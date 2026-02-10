@@ -4,18 +4,20 @@
  * Deep navy header, gold accents, tabbed layout, priority-coded cards
  * Now fetches data from the database via tRPC API
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Shield,
-  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown
+  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectCard, { type ProjectData } from "@/components/ProjectCard";
 import { IMAGES } from "@/lib/images";
+import { scoreAndRankProjects, type UserProfileData, type FeedbackData } from "@/lib/personalization";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -222,6 +224,11 @@ export default function Home() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
 
+  const [, navigate] = useLocation();
+
+  // Fetch user profile to check onboarding status
+  const { data: profile, isLoading: profileLoading } = trpc.profile.get.useQuery(undefined, { enabled: isAuthenticated });
+
   // Fetch report list for the dropdown
   const { data: reportList } = trpc.report.list.useQuery(undefined, { enabled: isAuthenticated });
 
@@ -231,10 +238,28 @@ export default function Home() {
     { enabled: isAuthenticated }
   );
 
+  // Fetch feedback for personalization
+  const reportIdForFeedback = fullReport?.report?.id;
+  const { data: feedbackList } = trpc.feedback.byReport.useQuery(
+    { reportId: reportIdForFeedback! },
+    { enabled: isAuthenticated && !!reportIdForFeedback }
+  );
+
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
-  if (reportLoading || !fullReport) return <LoadingPage />;
+
+  // Redirect to onboarding if profile not completed
+  if (!profileLoading && profile === null) {
+    navigate("/onboarding");
+    return <LoadingPage />;
+  }
+  if (!profileLoading && profile && !profile.onboardingCompleted) {
+    navigate("/onboarding");
+    return <LoadingPage />;
+  }
+
+  if (reportLoading || !fullReport || profileLoading) return <LoadingPage />;
 
   const { report, projects, contacts, drillingCampaigns, awardedProjects } = fullReport;
 
@@ -242,15 +267,43 @@ export default function Home() {
   const researchPasses: { pass: string; focus: string; rawProjects: number; keySources: string }[] = (report.researchPasses as any[]) ?? [];
   const sourceCategories: { name: string; type: string }[] = (report.sourceCategories as any[]) ?? [];
 
-  const filteredProjects = projects.filter((p: ProjectData) => {
+  // ── Personalization: score and rank projects ──
+  const profileData: UserProfileData | null = profile ? {
+    territories: profile.territories as string[] | null,
+    industries: profile.industries as string[] | null,
+    offerCategories: profile.offerCategories as string[] | null,
+    customerTypes: profile.customerTypes as string[] | null,
+    keyAccounts: profile.keyAccounts as string[] | null,
+    excludeAccounts: profile.excludeAccounts as string[] | null,
+    dealSizeMin: profile.dealSizeMin,
+    dealSizeMax: profile.dealSizeMax,
+    stageTiming: profile.stageTiming as string[] | null,
+    buyerRoles: profile.buyerRoles as string[] | null,
+  } : null;
+
+  const feedbackData: FeedbackData[] = (feedbackList ?? []).map((f: any) => ({
+    projectId: f.projectId,
+    vote: f.vote as "up" | "down",
+    reason: f.reason,
+  }));
+
+  const feedbackMap = new Map(feedbackData.map(f => [f.projectId, f]));
+
+  const personalizedProjects = scoreAndRankProjects(
+    projects as ProjectData[],
+    profileData,
+    feedbackData
+  );
+
+  const filteredProjects = personalizedProjects.filter((p: ProjectData) => {
     if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
     if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
     return true;
   });
 
-  const hotProjects = projects.filter((p: ProjectData) => p.priority === "hot");
-  const warmProjects = projects.filter((p: ProjectData) => p.priority === "warm");
-  const coldProjects = projects.filter((p: ProjectData) => p.priority === "cold");
+  const hotProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "hot");
+  const warmProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "warm");
+  const coldProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "cold");
 
   const stats = {
     total: report.totalProjects,
@@ -294,9 +347,13 @@ export default function Home() {
                   ))}
                 </select>
               )}
-              {/* User info & logout */}
+              {/* User info & settings & logout */}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
+                <button onClick={() => navigate("/settings")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                  <Settings className="w-3 h-3" /> Settings
+                </button>
+                <span className="text-slate-600">|</span>
                 <button onClick={() => logout()} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <LogOut className="w-3 h-3" /> Sign Out
                 </button>
@@ -365,7 +422,7 @@ export default function Home() {
                 <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-xs font-bold">{hotProjects.length}</span>
               </div>
               <div className="space-y-3">
-                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} />)}
+                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} />)}
               </div>
             </div>
           </TabsContent>
@@ -391,7 +448,7 @@ export default function Home() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badgeClass}`}>{group.length}</span>
                   </div>
                   <div className="space-y-3">
-                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} />)}
+                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} />)}
                   </div>
                 </div>
               );

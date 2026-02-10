@@ -9,6 +9,8 @@ import {
   getContactsByReportId, createContacts,
   getDrillingCampaignsByReportId, createDrillingCampaigns,
   getAwardedProjectsByReportId, createAwardedProjects,
+  getProfileByUserId, upsertProfile, completeOnboarding,
+  upsertFeedback, getFeedbackByUserAndReport,
 } from "./db";
 
 export const appRouter = router({
@@ -22,26 +24,92 @@ export const appRouter = router({
     }),
   }),
 
+  // ── User Profile / Onboarding endpoints ──
+  profile: router({
+    /** Get the current user's profile */
+    get: protectedProcedure.query(async ({ ctx }) => {
+      return getProfileByUserId(ctx.user.id);
+    }),
+
+    /** Update profile (used by onboarding wizard, step by step) */
+    update: protectedProcedure
+      .input(z.object({
+        companyName: z.string().optional(),
+        companyWebsite: z.string().optional(),
+        territories: z.array(z.string()).optional(),
+        remoteMetroOnly: z.string().optional(),
+        industries: z.array(z.string()).optional(),
+        offerCategories: z.array(z.string()).optional(),
+        customerTypes: z.array(z.string()).optional(),
+        dealSizeMin: z.string().optional(),
+        dealSizeMax: z.string().optional(),
+        stageTiming: z.array(z.string()).optional(),
+        buyerRoles: z.array(z.string()).optional(),
+        keyAccounts: z.array(z.string()).optional(),
+        excludeAccounts: z.array(z.string()).optional(),
+        aiSegments: z.array(z.object({
+          name: z.string(),
+          description: z.string(),
+          expectedLeads: z.number(),
+        })).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await upsertProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    /** Mark onboarding as completed */
+    completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+      await completeOnboarding(ctx.user.id);
+      return { success: true };
+    }),
+  }),
+
+  // ── Project Feedback endpoints ──
+  feedback: router({
+    /** Submit feedback (thumbs up/down) for a project */
+    submit: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        reportId: z.number(),
+        vote: z.enum(["up", "down"]),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await upsertFeedback({
+          userId: ctx.user.id,
+          projectId: input.projectId,
+          reportId: input.reportId,
+          vote: input.vote,
+          reason: input.reason ?? null,
+        });
+        return { success: true };
+      }),
+
+    /** Get all feedback for the current user on a specific report */
+    byReport: protectedProcedure
+      .input(z.object({ reportId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return getFeedbackByUserAndReport(ctx.user.id, input.reportId);
+      }),
+  }),
+
   // ── Intelligence Report endpoints ──
   report: router({
-    /** Get the latest report (public — redirects to login if needed via frontend) */
     latest: protectedProcedure.query(async () => {
       return getLatestReport();
     }),
 
-    /** List all reports (for report history dropdown) */
     list: protectedProcedure.query(async () => {
       return getAllReports();
     }),
 
-    /** Get a specific report by ID */
     byId: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return getReportById(input.id);
       }),
 
-    /** Get full report data (report + projects + contacts + drilling + awarded) */
     full: protectedProcedure
       .input(z.object({ reportId: z.number().optional() }))
       .query(async ({ input }) => {
@@ -69,7 +137,6 @@ export const appRouter = router({
         };
       }),
 
-    /** Create a new report with all associated data (admin only — used by weekly automation) */
     create: adminProcedure
       .input(z.object({
         report: z.object({

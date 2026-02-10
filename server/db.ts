@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -7,6 +7,8 @@ import {
   contacts, InsertContact,
   drillingCampaigns, InsertDrillingCampaign,
   awardedProjects, InsertAwardedProject,
+  userProfiles, InsertUserProfile, UserProfile,
+  projectFeedback, InsertProjectFeedback,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -195,4 +197,75 @@ export async function getAwardedProjectsByReportId(reportId: number) {
   if (!db) return [];
 
   return db.select().from(awardedProjects).where(eq(awardedProjects.reportId, reportId));
+}
+
+// ── User Profile helpers ──
+
+export async function getProfileByUserId(userId: number): Promise<UserProfile | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function upsertProfile(userId: number, data: Partial<InsertUserProfile>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await getProfileByUserId(userId);
+  if (existing) {
+    await db.update(userProfiles).set(data).where(eq(userProfiles.userId, userId));
+  } else {
+    await db.insert(userProfiles).values({ ...data, userId });
+  }
+}
+
+export async function completeOnboarding(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(userProfiles).set({ onboardingCompleted: true }).where(eq(userProfiles.userId, userId));
+}
+
+// ── Project Feedback helpers ──
+
+export async function upsertFeedback(data: InsertProjectFeedback): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Check if feedback already exists for this user + project
+  const existing = await db.select().from(projectFeedback)
+    .where(and(
+      eq(projectFeedback.userId, data.userId),
+      eq(projectFeedback.projectId, data.projectId)
+    ))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db.update(projectFeedback)
+      .set({ vote: data.vote, reason: data.reason })
+      .where(eq(projectFeedback.id, existing[0].id));
+  } else {
+    await db.insert(projectFeedback).values(data);
+  }
+}
+
+export async function getFeedbackByUserAndReport(userId: number, reportId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(projectFeedback)
+    .where(and(
+      eq(projectFeedback.userId, userId),
+      eq(projectFeedback.reportId, reportId)
+    ));
+}
+
+export async function getAllFeedbackByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(projectFeedback)
+    .where(eq(projectFeedback.userId, userId));
 }

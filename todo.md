@@ -18,3 +18,21 @@
 - [x] Seed database with current week's data
 - [x] Add login-protected access for sales team
 - [x] Write vitest tests for API endpoints
+- [x] Database schema for user profiles/preferences (territories, offer categories, customer types, industries, deal size, stage timing, buyer roles)
+- [x] Database schema for project feedback (thumbs up/down + reason per project per user)
+- [x] Push new migrations
+- [x] tRPC API endpoints for user profile CRUD and feedback
+- [x] Onboarding wizard Screen 1: Territory + industries
+- [x] Onboarding wizard Screen 2: Offer category + customer type
+- [x] Onboarding wizard Screen 3: Deal size + stage timing
+- [x] Onboarding wizard Screen 4: Contact roles (3-5 chips)
+- [x] Onboarding wizard Screen 5 (optional): Key accounts + exclusions
+- [x] Onboarding wizard Screen 6: AI suggests segments + expected leads preview
+- [x] Auto-redirect to wizard on first login (no profile yet)
+- [x] Personalized filtering engine (hard filters on territory, industry, deal size)
+- [x] Soft ranking engine (score projects by relevance to user profile)
+- [x] Thumbs up/down feedback buttons on project cards
+- [x] Feedback reason selector (wrong region, too small, wrong market, not our buyer)
+- [x] Settings page to edit profile preferences after onboarding
+- [x] Write vitest tests for profile and feedback endpoints
+- [x] End-to-end test: onboarding → personalized dashboard → feedback

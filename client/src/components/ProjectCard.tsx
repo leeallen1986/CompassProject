@@ -1,11 +1,13 @@
 /*
  * ProjectCard — Expandable project card with priority-coded left border
  * Design: Nordic Industrial Precision — deep navy, gold accents, teal highlights
- * Now uses database types from tRPC API
+ * Now includes feedback buttons (thumbs up/down) and relevance score
  */
 import { useState } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 // DB project shape from the API
 export interface ProjectData {
@@ -30,6 +32,9 @@ export interface ProjectData {
   timeline: string | null;
   completion: string | null;
   createdAt: Date;
+  // Personalization fields (optional, added by filtering engine)
+  relevanceScore?: number;
+  relevanceReasons?: string[];
 }
 
 const priorityConfig = {
@@ -50,12 +55,75 @@ const routeBadge: Record<string, string> = {
   "OPEX/Monitor": "bg-slate-200 text-slate-600 border border-slate-300",
 };
 
-export default function ProjectCard({ project }: { project: ProjectData }) {
+const feedbackReasons = [
+  { key: "great_fit", label: "Great fit for us" },
+  { key: "wrong_region", label: "Wrong region" },
+  { key: "too_small", label: "Too small" },
+  { key: "wrong_market", label: "Wrong market" },
+  { key: "not_our_buyer", label: "Not our buyer type" },
+  { key: "too_early", label: "Too early stage" },
+];
+
+interface FeedbackState {
+  vote: "up" | "down" | null;
+  reason?: string;
+}
+
+export default function ProjectCard({
+  project,
+  existingFeedback,
+}: {
+  project: ProjectData;
+  existingFeedback?: { vote: "up" | "down"; reason: string | null } | null;
+}) {
   const [open, setOpen] = useState(false);
+  const [showReasons, setShowReasons] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackState>({
+    vote: existingFeedback?.vote ?? null,
+    reason: existingFeedback?.reason ?? undefined,
+  });
+
   const cfg = priorityConfig[project.priority];
   const equipmentSignals = project.equipmentSignals ?? [];
   const contractors = project.contractors ?? [];
   const sources = project.sources ?? [];
+
+  const submitFeedback = trpc.feedback.submit.useMutation({
+    onSuccess: () => {
+      toast.success("Feedback recorded — this improves your future results");
+      setShowReasons(false);
+    },
+  });
+
+  const handleVote = (vote: "up" | "down") => {
+    if (feedback.vote === vote) {
+      // Toggle off
+      setFeedback({ vote: null });
+      return;
+    }
+    setFeedback({ vote, reason: undefined });
+    if (vote === "down") {
+      setShowReasons(true);
+    } else {
+      // Thumbs up — submit immediately
+      submitFeedback.mutate({
+        projectId: project.id,
+        reportId: project.reportId,
+        vote: "up",
+        reason: "great_fit",
+      });
+    }
+  };
+
+  const handleReason = (reason: string) => {
+    setFeedback(prev => ({ ...prev, reason }));
+    submitFeedback.mutate({
+      projectId: project.id,
+      reportId: project.reportId,
+      vote: "down",
+      reason,
+    });
+  };
 
   return (
     <div
@@ -73,6 +141,11 @@ export default function ProjectCard({ project }: { project: ProjectData }) {
                 <Sparkles className="w-3 h-3" /> New
               </span>
             )}
+            {project.relevanceScore !== undefined && project.relevanceScore >= 70 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-gold/20 text-gold-dark uppercase tracking-wider">
+                {project.relevanceScore}% match
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{project.location}</span>
@@ -85,8 +158,67 @@ export default function ProjectCard({ project }: { project: ProjectData }) {
             <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${routeBadge[project.opportunityRoute]}`}>{project.opportunityRoute}</span>
           </div>
         </div>
-        <ChevronDown className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 mt-1 ${open ? "rotate-180" : ""}`} />
+        <div className="flex items-center gap-2 shrink-0 mt-1">
+          {/* Feedback buttons */}
+          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleVote("up"); }}
+              className={`p-1.5 rounded-md transition-all ${
+                feedback.vote === "up"
+                  ? "bg-teal/20 text-teal"
+                  : "text-muted-foreground hover:bg-teal/10 hover:text-teal"
+              }`}
+              title="Good lead for me"
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleVote("down"); }}
+              className={`p-1.5 rounded-md transition-all ${
+                feedback.vote === "down"
+                  ? "bg-hot/20 text-hot"
+                  : "text-muted-foreground hover:bg-hot/10 hover:text-hot"
+              }`}
+              title="Not relevant to me"
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
+          </div>
+          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </div>
       </button>
+
+      {/* Feedback reason selector (appears when thumbs down) */}
+      <AnimatePresence>
+        {showReasons && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 sm:px-5 pb-3 border-t border-border pt-3">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Why isn't this relevant? (helps improve future results)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {feedbackReasons.filter(r => r.key !== "great_fit").map(r => (
+                  <button
+                    key={r.key}
+                    onClick={() => handleReason(r.key)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      feedback.reason === r.key
+                        ? "bg-hot/15 text-hot border border-hot/30"
+                        : "bg-card text-muted-foreground border border-border hover:border-hot/30"
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {open && (
@@ -98,6 +230,19 @@ export default function ProjectCard({ project }: { project: ProjectData }) {
             className="overflow-hidden"
           >
             <div className="px-4 sm:px-5 pb-5 border-t border-border">
+              {/* Relevance reasons */}
+              {project.relevanceReasons && project.relevanceReasons.length > 0 && (
+                <div className="pt-3 pb-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {project.relevanceReasons.map((reason, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded text-[10px] font-medium bg-gold/10 text-gold-dark border border-gold/20">
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4">
                 {/* Overview */}
                 <div>

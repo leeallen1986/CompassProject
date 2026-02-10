@@ -15,6 +15,13 @@
       "when": 1770760355354,
       "tag": "0001_powerful_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1770761631192,
+      "tag": "0002_empty_meteorite",
+      "breakpoints": true
     }
   ]
 }

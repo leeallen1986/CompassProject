@@ -19,6 +19,68 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
+ * User profiles — onboarding preferences that drive personalized filtering.
+ * One row per user. Created during the onboarding wizard.
+ */
+export const userProfiles = mysqlTable("userProfiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+
+  // Company info (Step 0)
+  companyName: varchar("companyName", { length: 256 }),
+  companyWebsite: varchar("companyWebsite", { length: 512 }),
+
+  // Screen 1: Territory + industries
+  territories: json("territories").$type<string[]>(),         // e.g. ["WA", "NT", "QLD"]
+  remoteMetroOnly: varchar("remoteMetroOnly", { length: 16 }), // "remote", "metro", "both"
+  industries: json("industries").$type<string[]>(),            // e.g. ["mining_exploration", "mining_production"]
+
+  // Screen 2: Offer category + customer type
+  offerCategories: json("offerCategories").$type<string[]>(),  // e.g. ["equipment", "rentals", "services"]
+  customerTypes: json("customerTypes").$type<string[]>(),      // e.g. ["principal_contractor", "owner_operator"]
+
+  // Screen 3: Deal size + stage timing
+  dealSizeMin: varchar("dealSizeMin", { length: 32 }),         // e.g. "$25k"
+  dealSizeMax: varchar("dealSizeMax", { length: 32 }),         // e.g. "$500k+"
+  stageTiming: json("stageTiming").$type<string[]>(),          // e.g. ["early_signal", "awarded_mobilizing"]
+
+  // Screen 4: Contact roles
+  buyerRoles: json("buyerRoles").$type<string[]>(),            // e.g. ["procurement", "project_manager", "engineering"]
+
+  // Screen 5 (optional): Key accounts + exclusions
+  keyAccounts: json("keyAccounts").$type<string[]>(),          // company names to prioritize
+  excludeAccounts: json("excludeAccounts").$type<string[]>(),  // company names to exclude
+
+  // AI-generated segments (Screen 6)
+  aiSegments: json("aiSegments").$type<{ name: string; description: string; expectedLeads: number }[]>(),
+
+  // Metadata
+  onboardingCompleted: boolean("onboardingCompleted").notNull().default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type InsertUserProfile = typeof userProfiles.$inferInsert;
+
+/**
+ * Project feedback — thumbs up/down per project per user.
+ * Powers the learning loop for personalization.
+ */
+export const projectFeedback = mysqlTable("projectFeedback", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  reportId: int("reportId").notNull(),
+  vote: mysqlEnum("vote", ["up", "down"]).notNull(),
+  reason: varchar("reason", { length: 128 }),  // e.g. "wrong_region", "too_small", "wrong_market", "not_our_buyer", "too_early", "great_fit"
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ProjectFeedback = typeof projectFeedback.$inferSelect;
+export type InsertProjectFeedback = typeof projectFeedback.$inferInsert;
+
+/**
  * Weekly intelligence reports — one row per weekly run.
  */
 export const reports = mysqlTable("reports", {
