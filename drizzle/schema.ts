@@ -153,6 +153,11 @@ export const contacts = mysqlTable("contacts", {
   email: varchar("email", { length: 320 }),
   linkedin: varchar("linkedin", { length: 512 }),
   phone: varchar("phone", { length: 64 }),
+  enrichmentStatus: mysqlEnum("enrichmentStatus", ["pending", "enriched", "not_found", "failed"]).default("pending"),
+  enrichedAt: timestamp("enrichedAt"),
+  linkedinHeadline: varchar("linkedinHeadline", { length: 512 }),
+  linkedinLocation: varchar("linkedinLocation", { length: 256 }),
+  linkedinProfilePic: varchar("linkedinProfilePic", { length: 1024 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

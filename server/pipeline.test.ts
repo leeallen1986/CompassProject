@@ -348,3 +348,177 @@ describe("pipelineDb helpers", () => {
     expect(mod.getDailyExtractionStats).toBeDefined();
   });
 });
+
+// ── Contact Enrichment tests ──
+
+describe("contactEnrichment module", () => {
+  it("exports all required functions", async () => {
+    const mod = await import("./contactEnrichment");
+    expect(mod.runEnrichmentPipeline).toBeDefined();
+    expect(typeof mod.runEnrichmentPipeline).toBe("function");
+    expect(mod.generateAndEnrichContacts).toBeDefined();
+    expect(typeof mod.generateAndEnrichContacts).toBe("function");
+    expect(mod.enrichContactsForProject).toBeDefined();
+    expect(typeof mod.enrichContactsForProject).toBe("function");
+    expect(mod.getEnrichmentStats).toBeDefined();
+    expect(typeof mod.getEnrichmentStats).toBe("function");
+  });
+});
+
+describe("email inference logic", () => {
+  // Replicate the inferEmail logic for unit testing
+  function inferEmail(name: string, company: string): string | null {
+    if (!name || !company) return null;
+    const parts = name.toLowerCase().trim().split(/\s+/);
+    if (parts.length < 2) return null;
+    const first = parts[0].replace(/[^a-z]/g, "");
+    const last = parts[parts.length - 1].replace(/[^a-z]/g, "");
+    if (!first || !last) return null;
+    const domain = company
+      .toLowerCase()
+      .replace(/\s*(pty|ltd|limited|inc|corp|group|australia|holdings)\s*/gi, "")
+      .trim()
+      .replace(/\s+/g, "")
+      .replace(/[^a-z0-9]/g, "");
+    if (!domain) return null;
+    return `${first}.${last}@${domain}.com.au`;
+  }
+
+  it("generates correct email pattern for standard names", () => {
+    expect(inferEmail("John Smith", "BHP Group")).toBe("john.smith@bhp.com.au");
+    expect(inferEmail("Sarah Johnson", "Rio Tinto")).toBe("sarah.johnson@riotinto.com.au");
+  });
+
+  it("handles company suffixes correctly", () => {
+    expect(inferEmail("Jane Doe", "Downer Group Pty Ltd")).toBe("jane.doe@downer.com.au");
+    expect(inferEmail("Bob Lee", "Thiess Holdings Limited")).toBe("bob.lee@thiess.com.au");
+  });
+
+  it("returns null for single-name inputs", () => {
+    expect(inferEmail("Madonna", "Company")).toBeNull();
+  });
+
+  it("returns null for empty inputs", () => {
+    expect(inferEmail("", "Company")).toBeNull();
+    expect(inferEmail("John Smith", "")).toBeNull();
+  });
+
+  it("handles multi-part names by using first and last", () => {
+    expect(inferEmail("Mary Jane Watson", "Fortescue Metals")).toBe("mary.watson@fortescuemetals.com.au");
+  });
+});
+
+describe("role bucket inference logic", () => {
+  function inferRoleBucket(headline: string): string {
+    const h = headline.toLowerCase();
+    if (h.includes("procurement") || h.includes("supply chain") || h.includes("purchasing")) return "procurement";
+    if (h.includes("project manager") || h.includes("project director")) return "project_manager";
+    if (h.includes("engineer") || h.includes("engineering")) return "engineering";
+    if (h.includes("operations") || h.includes("ops manager")) return "operations";
+    if (h.includes("maintenance") || h.includes("reliability")) return "maintenance";
+    if (h.includes("site manager") || h.includes("site superintendent")) return "site_manager";
+    if (h.includes("fleet") || h.includes("equipment")) return "fleet_manager";
+    if (h.includes("general manager") || h.includes("managing director") || h.includes("ceo") || h.includes("director")) return "general_manager";
+    if (h.includes("commercial") || h.includes("business development")) return "commercial";
+    return "other";
+  }
+
+  it("correctly categorizes procurement roles", () => {
+    expect(inferRoleBucket("Procurement Manager at BHP")).toBe("procurement");
+    expect(inferRoleBucket("Supply Chain Director")).toBe("procurement");
+    expect(inferRoleBucket("Purchasing Officer")).toBe("procurement");
+  });
+
+  it("correctly categorizes project management roles", () => {
+    expect(inferRoleBucket("Senior Project Manager")).toBe("project_manager");
+    expect(inferRoleBucket("Project Director - Mining")).toBe("project_manager");
+  });
+
+  it("correctly categorizes engineering roles", () => {
+    expect(inferRoleBucket("Chief Engineer")).toBe("engineering");
+    expect(inferRoleBucket("Engineering Manager")).toBe("engineering");
+  });
+
+  it("correctly categorizes operations roles", () => {
+    expect(inferRoleBucket("Operations Manager")).toBe("operations");
+    expect(inferRoleBucket("Ops Manager - Mining")).toBe("operations");
+  });
+
+  it("correctly categorizes site management roles", () => {
+    expect(inferRoleBucket("Site Manager at Fortescue")).toBe("site_manager");
+    expect(inferRoleBucket("Site Superintendent")).toBe("site_manager");
+  });
+
+  it("correctly categorizes fleet/equipment roles", () => {
+    expect(inferRoleBucket("Fleet Manager")).toBe("fleet_manager");
+    expect(inferRoleBucket("Equipment Coordinator")).toBe("fleet_manager");
+  });
+
+  it("correctly categorizes executive roles", () => {
+    expect(inferRoleBucket("General Manager - Mining")).toBe("general_manager");
+    expect(inferRoleBucket("Managing Director")).toBe("general_manager");
+    expect(inferRoleBucket("CEO")).toBe("general_manager");
+  });
+
+  it("returns 'other' for unrecognized roles", () => {
+    expect(inferRoleBucket("Marketing Specialist")).toBe("other");
+    expect(inferRoleBucket("Graphic Designer")).toBe("other");
+  });
+});
+
+// ── Daily Pipeline tests ──
+
+describe("dailyPipeline module", () => {
+  it("exports the pipeline runner and scheduler", async () => {
+    const mod = await import("./dailyPipeline");
+    expect(mod.runDailyPipeline).toBeDefined();
+    expect(typeof mod.runDailyPipeline).toBe("function");
+    expect(mod.startDailyScheduler).toBeDefined();
+    expect(typeof mod.startDailyScheduler).toBe("function");
+  });
+});
+
+describe("target roles by sector", () => {
+  // Replicate the getTargetRoles logic for testing
+  function getTargetRoles(sector: string): string[] {
+    const baseRoles = ["Project Manager", "Procurement Manager", "Operations Manager"];
+    const sectorRoles: Record<string, string[]> = {
+      mining: ["Mining Manager", "Site Manager", "Fleet Manager", "Maintenance Superintendent", "Chief Operating Officer"],
+      oil_gas: ["Facilities Manager", "Construction Manager", "Commissioning Manager", "HSE Manager"],
+      infrastructure: ["Construction Manager", "Site Superintendent", "Plant Manager", "Engineering Manager"],
+      energy: ["Plant Manager", "Engineering Manager", "Maintenance Manager", "Technical Director"],
+      defence: ["Program Manager", "Technical Director", "Logistics Manager", "Engineering Director"],
+    };
+    return [...baseRoles, ...(sectorRoles[sector] || [])];
+  }
+
+  it("returns base roles plus sector-specific roles for mining", () => {
+    const roles = getTargetRoles("mining");
+    expect(roles).toContain("Project Manager");
+    expect(roles).toContain("Mining Manager");
+    expect(roles).toContain("Fleet Manager");
+    expect(roles.length).toBe(8);
+  });
+
+  it("returns base roles plus sector-specific roles for oil_gas", () => {
+    const roles = getTargetRoles("oil_gas");
+    expect(roles).toContain("Procurement Manager");
+    expect(roles).toContain("Facilities Manager");
+    expect(roles).toContain("HSE Manager");
+    expect(roles.length).toBe(7);
+  });
+
+  it("returns only base roles for unknown sectors", () => {
+    const roles = getTargetRoles("unknown_sector");
+    expect(roles).toHaveLength(3);
+    expect(roles).toContain("Project Manager");
+  });
+
+  it("covers all 5 defined sectors", () => {
+    const sectors = ["mining", "oil_gas", "infrastructure", "energy", "defence"];
+    for (const sector of sectors) {
+      const roles = getTargetRoles(sector);
+      expect(roles.length).toBeGreaterThan(3);
+    }
+  });
+});

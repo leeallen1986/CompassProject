@@ -16,6 +16,7 @@ import {
   type RawArticle, type InsertProject,
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
+import { generateAndEnrichContacts } from "./contactEnrichment";
 
 // ── Configuration ──
 
@@ -419,12 +420,25 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
         completion: result.project.completion,
       };
 
-      await db.insert(projects).values(projectData);
+      const [insertResult] = await db.insert(projects).values(projectData);
+      const newProjectId = Number(insertResult.insertId);
 
       // Mark article as extracted
       await db.update(rawArticles)
         .set({ status: "extracted", extractedAt: new Date(), extractedData: result.project as unknown as Record<string, unknown> })
         .where(eq(rawArticles.id, result.articleId));
+
+      // Auto-enrich contacts for the new project (non-blocking)
+      generateAndEnrichContacts(
+        newProjectId,
+        reportId,
+        result.project.name,
+        result.project.owner,
+        result.project.contractors || [],
+        result.project.sector
+      ).catch(err => {
+        console.error(`Contact enrichment failed for project ${newProjectId}:`, err instanceof Error ? err.message : String(err));
+      });
 
       extracted++;
       allResults.push(result);

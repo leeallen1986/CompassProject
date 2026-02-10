@@ -29,6 +29,8 @@ import { harvestAllFeeds, getPipelineStats } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
 import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } from "./mlRanker";
 import { seedDefaultPipelineData } from "./seedPipeline";
+import { runEnrichmentPipeline, getEnrichmentStats } from "./contactEnrichment";
+import { runDailyPipeline } from "./dailyPipeline";
 import { notifyOwner } from "./_core/notification";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
@@ -567,6 +569,25 @@ export const appRouter = router({
         return result;
       }),
 
+    /** Trigger contact enrichment (admin only) */
+    enrich: adminProcedure
+      .input(z.object({ maxContacts: z.number().optional() }).optional())
+      .mutation(async ({ input }) => {
+        const result = await runEnrichmentPipeline(input?.maxContacts);
+        if (result.enriched > 0) {
+          await notifyOwner({
+            title: "Contact Enrichment Complete",
+            content: `Enriched ${result.enriched} contacts. ${result.notFound} not found, ${result.failed} failed. Daily usage: ${result.dailyUsed}/30.`,
+          });
+        }
+        return result;
+      }),
+
+    /** Get enrichment stats */
+    enrichmentStats: protectedProcedure.query(async () => {
+      return getEnrichmentStats();
+    }),
+
     /** Get recent articles */
     recentArticles: protectedProcedure
       .input(z.object({
@@ -585,6 +606,14 @@ export const appRouter = router({
   seed: router({
     defaults: adminProcedure.mutation(async () => {
       const result = await seedDefaultPipelineData();
+      return result;
+    }),
+  }),
+
+  // ── Full daily pipeline (admin only) ──
+  dailyPipeline: router({
+    run: adminProcedure.mutation(async () => {
+      const result = await runDailyPipeline();
       return result;
     }),
   }),

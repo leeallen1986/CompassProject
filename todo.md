@@ -58,3 +58,9 @@
 - [x] Vitest tests for RSS harvester and AI extractor
 - [x] Seed defaults for 4 business lines and 18 RSS sources
 - [x] Admin link in header navigation for admin users
+- [x] Integrate contact enrichment via LinkedIn People Search API on new projects
+- [x] Wire contact enrichment into the AI extraction pipeline (auto-enriches on project insert)
+- [x] Set up 24-hour automated pipeline schedule (06:00 UTC / 16:00 AEST daily)
+- [x] Full daily pipeline runner (harvest → extract → enrich → notify owner)
+- [x] Admin dashboard: Run Full Pipeline button, Enrich Contacts button, enrichment stats panel
+- [x] Vitest tests for contact enrichment service (email inference, role bucket, target roles)

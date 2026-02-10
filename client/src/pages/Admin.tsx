@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Loader2, ArrowLeft, Shield, Rss, Building2, Database, Play,
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
-  BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter,
+  BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -308,6 +308,21 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`Seed failed: ${e.message}`),
   });
+  const enrichMut = trpc.dataPipeline.enrich.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Enriched ${data.enriched} contacts. ${data.notFound} not found, ${data.failed} failed.`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`Enrichment failed: ${e.message}`),
+  });
+  const { data: enrichStats } = trpc.dataPipeline.enrichmentStats.useQuery();
+  const fullPipelineMut = trpc.dailyPipeline.run.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Full pipeline complete in ${data.duration}s: ${data.extraction.extracted} projects, ${data.enrichment.enriched} contacts enriched`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`Pipeline failed: ${e.message}`),
+  });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -351,8 +366,24 @@ function PipelineOpsTab() {
           {extractMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
           Run AI Extraction
         </Button>
+        <Button
+          onClick={() => fullPipelineMut.mutate()}
+          disabled={fullPipelineMut.isPending}
+          className="bg-hot hover:bg-hot/90 text-white gap-1.5"
+        >
+          {fullPipelineMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          Run Full Pipeline
+        </Button>
         <Button onClick={() => refetchStats()} variant="outline" size="sm" className="gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" /> Refresh Stats
+        </Button>
+        <Button
+          onClick={() => enrichMut.mutate({})}
+          disabled={enrichMut.isPending}
+          className="bg-navy hover:bg-navy/90 text-white gap-1.5"
+        >
+          {enrichMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+          Enrich Contacts
         </Button>
         <Button
           onClick={() => seedMut.mutate()}
@@ -365,6 +396,23 @@ function PipelineOpsTab() {
           Seed Defaults
         </Button>
       </div>
+
+      {/* Contact Enrichment Stats */}
+      {enrichStats && (
+        <div className="bg-card rounded-lg border border-border p-4">
+          <h3 className="text-sm font-bold text-navy mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4 text-gold" /> Contact Enrichment
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatsCard label="Total Contacts" value={enrichStats.total} icon={<Users className="w-4 h-4" />} color="text-navy" />
+            <StatsCard label="Enriched" value={enrichStats.enriched} icon={<CheckCircle2 className="w-4 h-4" />} color="text-teal" />
+            <StatsCard label="Pending" value={enrichStats.pending} icon={<Clock className="w-4 h-4" />} color="text-warm" />
+            <StatsCard label="Not Found" value={enrichStats.notFound} icon={<XCircle className="w-4 h-4" />} color="text-muted-foreground" />
+            <StatsCard label="Failed" value={enrichStats.failed} icon={<AlertTriangle className="w-4 h-4" />} color="text-hot" />
+            <StatsCard label="Daily Usage" value={`${enrichStats.dailyUsed}/${enrichStats.dailyCap}`} icon={<BarChart3 className="w-4 h-4" />} color="text-gold" />
+          </div>
+        </div>
+      )}
 
       {/* Daily Extraction Chart */}
       {stats?.dailyExtractions && stats.dailyExtractions.length > 0 && (

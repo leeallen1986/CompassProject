@@ -36,6 +36,13 @@
       "when": 1770763986040,
       "tag": "0004_solid_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1770765341279,
+      "tag": "0005_strong_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }
