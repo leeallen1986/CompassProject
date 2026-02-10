@@ -367,6 +367,14 @@ export default function Home() {
                   <Settings className="w-3 h-3" /> Settings
                 </button>
                 <span className="text-slate-600">|</span>
+                {user?.role === "admin" && (
+                  <>
+                    <Link href="/admin" className="text-xs text-gold hover:text-gold-light flex items-center gap-1 transition-colors">
+                      <Database className="w-3 h-3" /> Admin
+                    </Link>
+                    <span className="text-slate-600">|</span>
+                  </>
+                )}
                 <button onClick={() => logout()} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <LogOut className="w-3 h-3" /> Sign Out
                 </button>

@@ -47,3 +47,14 @@
 - [x] Email digest content builder (filter projects by user profile, generate summary)
 - [x] Settings page update: email digest preferences toggle
 - [x] Vitest tests for pipeline and email digest endpoints
+- [x] Database schema for business lines, RSS sources, raw articles, and extraction queue
+- [x] RSS feed harvester service (server-side, fetches 20+ feeds every 6 hours)
+- [x] Keyword relevance gate (filters articles by business line keywords)
+- [x] AI extractor service (structured LLM extraction with daily cap)
+- [x] Smart deduplication (merge new data into existing projects)
+- [x] Business line configuration (admin can add/remove feeds and keywords)
+- [x] Enhanced ML ranker with feedback-driven weight learning
+- [x] Admin pipeline dashboard (monitor ingestion stats, queue depth, credit usage)
+- [x] Vitest tests for RSS harvester and AI extractor
+- [x] Seed defaults for 4 business lines and 18 RSS sources
+- [x] Admin link in header navigation for admin users

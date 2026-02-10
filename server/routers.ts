@@ -17,8 +17,23 @@ import {
   createPipelineActivityEntry, getActivityByClaimId,
   getEmailDigestPrefs, upsertEmailDigestPrefs,
 } from "./db";
+import {
+  getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
+  createBusinessLine, updateBusinessLine, deleteBusinessLine,
+  getAllRssSources, getActiveRssSources,
+  createRssSource, updateRssSource, deleteRssSource,
+  getRecentArticles, getArticlesByStatus, getArticleStats, getDailyExtractionStats,
+  getFeedbackWeightsByUser,
+} from "./pipelineDb";
+import { harvestAllFeeds, getPipelineStats } from "./rssHarvester";
+import { runExtractionPipeline } from "./aiExtractor";
+import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } from "./mlRanker";
+import { seedDefaultPipelineData } from "./seedPipeline";
 import { notifyOwner } from "./_core/notification";
 import { sendWeeklyDigests } from "./emailDigest";
+import { getDb } from "./db";
+import { projects } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -69,7 +84,7 @@ export const appRouter = router({
     }),
   }),
 
-  // ── Project Feedback endpoints ──
+  // ── Project Feedback endpoints (with ML weight updates) ──
   feedback: router({
     submit: protectedProcedure
       .input(z.object({
@@ -86,6 +101,17 @@ export const appRouter = router({
           vote: input.vote,
           reason: input.reason ?? null,
         });
+
+        // Update ML weights from this feedback
+        const db = await getDb();
+        if (db) {
+          const [project] = await db.select().from(projects)
+            .where(eq(projects.id, input.projectId)).limit(1);
+          if (project) {
+            await updateWeightsFromFeedback(ctx.user.id, project, input.vote);
+          }
+        }
+
         return { success: true };
       }),
 
@@ -98,7 +124,6 @@ export const appRouter = router({
 
   // ── Pipeline Tracker endpoints ──
   pipeline: router({
-    /** Claim a project for your pipeline */
     claim: protectedProcedure
       .input(z.object({
         projectId: z.number(),
@@ -110,7 +135,6 @@ export const appRouter = router({
         contactName: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Check if already claimed by this user
         const existing = await getPipelineClaimsByProject(input.projectId);
         const userClaim = existing.find(c => c.userId === ctx.user.id);
         if (userClaim) {
@@ -140,7 +164,6 @@ export const appRouter = router({
         return { claimId, alreadyClaimed: false };
       }),
 
-    /** Update the status of a pipeline claim */
     updateStatus: protectedProcedure
       .input(z.object({
         claimId: z.number(),
@@ -175,7 +198,6 @@ export const appRouter = router({
           note: input.notes ?? `Status changed from ${fromStatus} to ${input.status}`,
         });
 
-        // Notify owner on won/lost
         if (input.status === "won" || input.status === "lost") {
           await notifyOwner({
             title: `Pipeline: Project ${input.status === "won" ? "Won" : "Lost"}`,
@@ -186,7 +208,6 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Release (delete) a pipeline claim */
     release: protectedProcedure
       .input(z.object({ claimId: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -200,24 +221,20 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Get the current user's pipeline */
     mine: protectedProcedure.query(async ({ ctx }) => {
       return getPipelineClaimsByUser(ctx.user.id);
     }),
 
-    /** Get all claims for a specific project */
     byProject: protectedProcedure
       .input(z.object({ projectId: z.number() }))
       .query(async ({ input }) => {
         return getPipelineClaimsByProject(input.projectId);
       }),
 
-    /** Get all pipeline claims across the team (with user info) */
     team: protectedProcedure.query(async () => {
       return getAllPipelineClaims();
     }),
 
-    /** Get activity log for a specific claim */
     activity: protectedProcedure
       .input(z.object({ claimId: z.number() }))
       .query(async ({ input }) => {
@@ -227,12 +244,10 @@ export const appRouter = router({
 
   // ── Email Digest Preferences endpoints ──
   emailDigest: router({
-    /** Get current user's email digest preferences */
     get: protectedProcedure.query(async ({ ctx }) => {
       return getEmailDigestPrefs(ctx.user.id);
     }),
 
-    /** Update email digest preferences */
     update: protectedProcedure
       .input(z.object({
         enabled: z.boolean().optional(),
@@ -249,14 +264,13 @@ export const appRouter = router({
 
   // ── Admin Digest Trigger ──
   digest: router({
-    /** Admin: trigger digest send for all enabled users */
     sendNow: adminProcedure.mutation(async () => {
       const results = await sendWeeklyDigests();
       return results;
     }),
   }),
 
-  // ── Intelligence Report endpoints ──
+  // ── ML-Ranked Intelligence Report endpoints ──
   report: router({
     latest: protectedProcedure.query(async () => {
       return getLatestReport();
@@ -274,7 +288,7 @@ export const appRouter = router({
 
     full: protectedProcedure
       .input(z.object({ reportId: z.number().optional() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         let report;
         if (input.reportId) {
           report = await getReportById(input.reportId);
@@ -290,12 +304,27 @@ export const appRouter = router({
           getAwardedProjectsByReportId(report.id),
         ]);
 
+        // Apply ML ranking if user is authenticated
+        let rankedProjects = projectsList;
+        let rankings: Awaited<ReturnType<typeof rankProjectsForUser>> | null = null;
+        if (ctx.user) {
+          rankings = await rankProjectsForUser(ctx.user.id, projectsList);
+          rankedProjects = rankings.map(r => r.project);
+        }
+
         return {
           report,
-          projects: projectsList,
+          projects: rankedProjects,
           contacts: contactsList,
           drillingCampaigns: drillingList,
           awardedProjects: awardedList,
+          rankings: rankings ? rankings.map(r => ({
+            projectId: r.project.id,
+            relevanceScore: r.relevanceScore,
+            profileMatch: r.profileMatch,
+            feedbackBoost: r.feedbackBoost,
+            matchDetails: r.matchDetails,
+          })) : null,
         };
       }),
 
@@ -401,6 +430,176 @@ export const appRouter = router({
 
         return { reportId };
       }),
+  }),
+
+  // ── Admin: Business Line Management ──
+  businessLines: router({
+    list: protectedProcedure.query(async () => {
+      return getAllBusinessLines();
+    }),
+
+    active: protectedProcedure.query(async () => {
+      return getActiveBusinessLines();
+    }),
+
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        keywords: z.array(z.string()),
+        sectors: z.array(z.string()),
+        equipmentTypes: z.array(z.string()).optional(),
+        defaultTerritories: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createBusinessLine({
+          name: input.name,
+          description: input.description ?? null,
+          keywords: input.keywords,
+          sectors: input.sectors,
+          equipmentTypes: input.equipmentTypes ?? null,
+          defaultTerritories: input.defaultTerritories ?? null,
+        });
+        return { id };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        keywords: z.array(z.string()).optional(),
+        sectors: z.array(z.string()).optional(),
+        equipmentTypes: z.array(z.string()).optional(),
+        defaultTerritories: z.array(z.string()).optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateBusinessLine(id, data);
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteBusinessLine(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ── Admin: RSS Source Management ──
+  rssSources: router({
+    list: protectedProcedure.query(async () => {
+      return getAllRssSources();
+    }),
+
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        feedUrl: z.string().url(),
+        category: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await createRssSource({
+          name: input.name,
+          feedUrl: input.feedUrl,
+          category: input.category,
+        });
+        return { id };
+      }),
+
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        feedUrl: z.string().url().optional(),
+        category: z.string().optional(),
+        isActive: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateRssSource(id, data);
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteRssSource(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ── Admin: Data Pipeline Operations ──
+  dataPipeline: router({
+    /** Get pipeline statistics */
+    stats: protectedProcedure.query(async () => {
+      const [pipelineStats, articleStats, dailyStats] = await Promise.all([
+        getPipelineStats(),
+        getArticleStats(),
+        getDailyExtractionStats(7),
+      ]);
+      return { pipeline: pipelineStats, articles: articleStats, dailyExtractions: dailyStats };
+    }),
+
+    /** Trigger RSS harvest (admin only) */
+    harvest: adminProcedure.mutation(async () => {
+      const result = await harvestAllFeeds();
+      await notifyOwner({
+        title: "RSS Harvest Complete",
+        content: `Fetched ${result.totalFetched} articles from ${result.totalSources} sources. ${result.totalNew} new, ${result.totalDuplicates} duplicates, ${result.totalErrors} errors.`,
+      });
+      return result;
+    }),
+
+    /** Trigger AI extraction (admin only) */
+    extract: adminProcedure
+      .input(z.object({ maxArticles: z.number().optional() }).optional())
+      .mutation(async ({ input }) => {
+        const result = await runExtractionPipeline(input?.maxArticles);
+        if (result.extracted > 0) {
+          await notifyOwner({
+            title: "AI Extraction Complete",
+            content: `Extracted ${result.extracted} projects from ${result.processed} articles. ${result.duplicates} duplicates, ${result.failed} failed. Credits used today: ${result.creditsUsed}.`,
+          });
+        }
+        return result;
+      }),
+
+    /** Get recent articles */
+    recentArticles: protectedProcedure
+      .input(z.object({
+        status: z.enum(["pending", "queued", "extracted", "skipped", "failed"]).optional(),
+        limit: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        if (input?.status) {
+          return getArticlesByStatus(input.status, input.limit || 50);
+        }
+        return getRecentArticles(input?.limit || 50);
+      }),
+  }),
+
+  // ── Admin: Seed default data ──
+  seed: router({
+    defaults: adminProcedure.mutation(async () => {
+      const result = await seedDefaultPipelineData();
+      return result;
+    }),
+  }),
+
+  // ── ML Ranking endpoints ──
+  mlRanking: router({
+    /** Get the user's learned weights */
+    weights: protectedProcedure.query(async ({ ctx }) => {
+      return getFeedbackWeightsByUser(ctx.user.id);
+    }),
+
+    /** Recompute weights from all historical feedback */
+    recompute: protectedProcedure.mutation(async ({ ctx }) => {
+      return recomputeAllWeights(ctx.user.id);
+    }),
   }),
 });
 

@@ -255,3 +255,81 @@ export const emailDigestPrefs = mysqlTable("emailDigestPrefs", {
 
 export type EmailDigestPref = typeof emailDigestPrefs.$inferSelect;
 export type InsertEmailDigestPref = typeof emailDigestPrefs.$inferInsert;
+
+/**
+ * Business lines — each Atlas Copco division with its own keyword dictionary.
+ */
+export const businessLines = mysqlTable("businessLines", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull().unique(),
+  description: text("description"),
+  keywords: json("keywords").$type<string[]>(),
+  sectors: json("sectors").$type<string[]>(),
+  equipmentTypes: json("equipmentTypes").$type<string[]>(),
+  defaultTerritories: json("defaultTerritories").$type<string[]>(),
+  isActive: boolean("isActive").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BusinessLine = typeof businessLines.$inferSelect;
+export type InsertBusinessLine = typeof businessLines.$inferInsert;
+
+/**
+ * RSS source registry — configurable feeds per business line.
+ */
+export const rssSources = mysqlTable("rssSources", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 256 }).notNull(),
+  feedUrl: varchar("feedUrl", { length: 512 }).notNull(),
+  category: varchar("category", { length: 64 }).notNull(),
+  isActive: boolean("isActive").notNull().default(true),
+  lastFetchedAt: timestamp("lastFetchedAt"),
+  lastFetchCount: int("lastFetchCount").default(0),
+  errorCount: int("errorCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RssSource = typeof rssSources.$inferSelect;
+export type InsertRssSource = typeof rssSources.$inferInsert;
+
+/**
+ * Raw articles — harvested from RSS feeds before AI extraction.
+ */
+export const rawArticles = mysqlTable("rawArticles", {
+  id: int("id").autoincrement().primaryKey(),
+  sourceId: int("sourceId").notNull(),
+  fingerprint: varchar("fingerprint", { length: 64 }).notNull().unique(),
+  title: varchar("title", { length: 512 }).notNull(),
+  summary: text("summary"),
+  url: varchar("url", { length: 512 }).notNull(),
+  publishedAt: timestamp("publishedAt"),
+  matchedKeywords: json("matchedKeywords").$type<string[]>(),
+  matchedBusinessLines: json("matchedBusinessLines").$type<number[]>(),
+  status: mysqlEnum("status", ["pending", "queued", "extracted", "skipped", "failed"]).notNull().default("pending"),
+  extractedData: json("extractedData").$type<Record<string, unknown>>(),
+  extractedAt: timestamp("extractedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RawArticle = typeof rawArticles.$inferSelect;
+export type InsertRawArticle = typeof rawArticles.$inferInsert;
+
+/**
+ * Feedback weight adjustments — per-user learned weights from thumbs up/down.
+ * Powers the ML relevance ranker without any AI credits.
+ */
+export const feedbackWeights = mysqlTable("feedbackWeights", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  territoryWeights: json("territoryWeights").$type<Record<string, number>>(),
+  industryWeights: json("industryWeights").$type<Record<string, number>>(),
+  sectorWeights: json("sectorWeights").$type<Record<string, number>>(),
+  dealSizeWeights: json("dealSizeWeights").$type<Record<string, number>>(),
+  totalFeedbackCount: int("totalFeedbackCount").notNull().default(0),
+  lastUpdatedAt: timestamp("lastUpdatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FeedbackWeight = typeof feedbackWeights.$inferSelect;
+export type InsertFeedbackWeight = typeof feedbackWeights.$inferInsert;

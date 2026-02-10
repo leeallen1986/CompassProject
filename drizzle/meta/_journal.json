@@ -29,6 +29,13 @@
       "when": 1770762496446,
       "tag": "0003_grey_misty_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1770763986040,
+      "tag": "0004_solid_king_bedlam",
+      "breakpoints": true
     }
   ]
 }
