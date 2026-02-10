@@ -657,3 +657,152 @@ describe("parseArticlePage", () => {
     expect(result.bodyText).toContain("Western Australia");
   });
 });
+
+// ── DMIRS Scraper tests ──
+
+import { cleanProjectName, extractLocation, mapPriority, extractEquipmentSignals } from "./dmirsScraper";
+
+describe("DMIRS cleanProjectName", () => {
+  it("removes 'Mining Proposal' suffix", () => {
+    expect(cleanProjectName("Gruyere Gold Mine Mining Proposal")).toBe("Gruyere Gold Mine");
+  });
+
+  it("removes 'MP' suffix", () => {
+    expect(cleanProjectName("Nifty Copper Mine MP")).toBe("Nifty Copper Mine");
+  });
+
+  it("removes version numbers", () => {
+    expect(cleanProjectName("Pilgangoora Lithium Mine V2.1")).toBe("Pilgangoora Lithium Mine");
+  });
+
+  it("removes 'Revision' suffix", () => {
+    expect(cleanProjectName("Mt Keith Nickel Mine Revision 3")).toBe("Mt Keith Nickel Mine");
+  });
+
+  it("removes 'Amendment' suffix", () => {
+    expect(cleanProjectName("Jundee Gold Mine Amendment 2")).toBe("Jundee Gold Mine");
+  });
+
+  it("removes 'Stage' suffix", () => {
+    expect(cleanProjectName("Fortescue Iron Ore Stage 2a")).toBe("Fortescue Iron Ore");
+  });
+
+  it("handles combined suffixes", () => {
+    expect(cleanProjectName("Olympic Dam Expansion Mining Proposal")).toBe("Olympic Dam Expansion");
+  });
+
+  it("preserves clean names", () => {
+    expect(cleanProjectName("Gruyere Gold Mine")).toBe("Gruyere Gold Mine");
+  });
+
+  it("trims trailing hyphens", () => {
+    expect(cleanProjectName("Some Mine -")).toBe("Some Mine");
+  });
+});
+
+describe("DMIRS extractLocation", () => {
+  it("detects Pilbara region", () => {
+    expect(extractLocation("Iron Valley Mine Pilbara Extension")).toBe("Pilbara, WA");
+  });
+
+  it("detects Goldfields region", () => {
+    expect(extractLocation("Sunrise Dam Goldfields Operations")).toBe("Goldfields, WA");
+  });
+
+  it("detects Kalgoorlie", () => {
+    expect(extractLocation("Super Pit Kalgoorlie Expansion")).toBe("Kalgoorlie, WA");
+  });
+
+  it("detects Newman", () => {
+    expect(extractLocation("BHP Newman Hub Operations")).toBe("Newman, WA");
+  });
+
+  it("defaults to Western Australia when no region found", () => {
+    expect(extractLocation("Generic Mine Expansion")).toBe("Western Australia");
+  });
+
+  it("is case-insensitive", () => {
+    expect(extractLocation("PILBARA IRON ORE PROJECT")).toBe("Pilbara, WA");
+  });
+});
+
+describe("DMIRS mapPriority", () => {
+  it("returns hot for recently approved proposals (within 30 days)", () => {
+    const recentDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+    expect(mapPriority("Approved", recentDate)).toBe("hot");
+  });
+
+  it("returns warm for proposals approved 31-90 days ago", () => {
+    const olderDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+    expect(mapPriority("Approved", olderDate)).toBe("warm");
+  });
+
+  it("returns warm for approved proposals with no date", () => {
+    expect(mapPriority("Approved", null)).toBe("warm");
+  });
+
+  it("returns cold for non-approved statuses", () => {
+    expect(mapPriority("Pending", null)).toBe("cold");
+  });
+
+  it("returns warm for old approved proposals (>90 days)", () => {
+    const veryOldDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString();
+    expect(mapPriority("Approved", veryOldDate)).toBe("warm");
+  });
+});
+
+describe("DMIRS extractEquipmentSignals", () => {
+  it("detects underground mining signals", () => {
+    const signals = extractEquipmentSignals("Telfer Underground Mine Extension");
+    expect(signals).toContain("Underground mining — ventilation & compressed air");
+  });
+
+  it("detects open pit signals", () => {
+    const signals = extractEquipmentSignals("Boddington Open Pit Expansion");
+    expect(signals).toContain("Open pit operations — mobile compressors");
+  });
+
+  it("detects drilling signals", () => {
+    const signals = extractEquipmentSignals("Gruyere Exploration Drilling Program");
+    expect(signals).toContain("Drilling operations — compressed air for RC/DD rigs");
+  });
+
+  it("detects expansion signals", () => {
+    const signals = extractEquipmentSignals("Nifty Copper Mine Expansion");
+    expect(signals).toContain("Site expansion — additional equipment needs");
+  });
+
+  it("detects processing plant signals", () => {
+    const signals = extractEquipmentSignals("Pilgangoora Processing Plant Upgrade");
+    expect(signals).toContain("Processing plant — industrial compressors");
+  });
+
+  it("detects iron ore signals", () => {
+    const signals = extractEquipmentSignals("Roy Hill Iron Ore Mine");
+    expect(signals).toContain("Iron ore operations — heavy-duty compressors");
+  });
+
+  it("detects gold mining signals", () => {
+    const signals = extractEquipmentSignals("Sunrise Dam Gold Mine");
+    expect(signals).toContain("Gold mining — exploration & production air");
+  });
+
+  it("detects battery minerals signals", () => {
+    const signals = extractEquipmentSignals("Greenbushes Lithium Mine");
+    expect(signals).toContain("Battery minerals — growing sector demand");
+  });
+
+  it("provides default signal when no specific match", () => {
+    const signals = extractEquipmentSignals("Generic Project Alpha");
+    expect(signals).toHaveLength(1);
+    expect(signals[0]).toContain("Mining proposal approved");
+  });
+
+  it("detects multiple signals from a complex title", () => {
+    const signals = extractEquipmentSignals("Telfer Underground Gold Mine Expansion");
+    expect(signals.length).toBeGreaterThanOrEqual(3);
+    expect(signals).toContain("Underground mining — ventilation & compressed air");
+    expect(signals).toContain("Site expansion — additional equipment needs");
+    expect(signals).toContain("Gold mining — exploration & production air");
+  });
+});

@@ -331,6 +331,13 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`Projectory scrape failed: ${e.message}`),
   });
   const { data: projectoryStatus } = trpc.projectory.status.useQuery();
+  const dmirsScrape = trpc.dmirs.scrape.useMutation({
+    onSuccess: (data) => {
+      toast.success(`DMIRS: ${data.totalNewProjects} new projects, ${data.totalDuplicates} duplicates from ${data.totalFetched} registrations (${data.duration}s)`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`DMIRS scrape failed: ${e.message}`),
+  });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -411,6 +418,27 @@ function PipelineOpsTab() {
           {projectoryScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
           Scrape Projectory
         </Button>
+        <Button
+          onClick={() => dmirsScrape.mutate({})}
+          disabled={dmirsScrape.isPending}
+          className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+        >
+          {dmirsScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+          Scrape DMIRS
+        </Button>
+      </div>
+
+      {/* DMIRS Status */}
+      <div className="bg-card rounded-lg border border-amber-200 p-4 mb-3">
+        <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-amber-600" /> DMIRS MINEDEX Integration
+        </h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 text-teal">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Public API — no auth required
+          </span>
+          <span className="text-muted-foreground text-xs">Fetches approved WA mining proposals (last 90 days). Runs Wednesdays via daily pipeline. Zero AI credits.</span>
+        </div>
       </div>
 
       {/* Projectory Status */}

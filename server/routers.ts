@@ -32,6 +32,7 @@ import { seedDefaultPipelineData } from "./seedPipeline";
 import { runEnrichmentPipeline, getEnrichmentStats } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
+import { runDmirsScraper } from "./dmirsScraper";
 import { notifyOwner } from "./_core/notification";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
@@ -654,6 +655,26 @@ export const appRouter = router({
         cookieLength: cookies.length,
       };
     }),
+  }),
+
+  // ── DMIRS Scraper (admin only) ──
+  dmirs: router({
+    /** Run the DMIRS MINEDEX scraper */
+    scrape: adminProcedure
+      .input(z.object({
+        maxRegistrations: z.number().optional(),
+        lookbackDays: z.number().optional(),
+      }).optional())
+      .mutation(async ({ input }) => {
+        const result = await runDmirsScraper(input ?? undefined);
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "DMIRS Scrape Complete",
+            content: `Scraped ${result.totalFetched} registrations from DMIRS MINEDEX. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
   }),
 
   // ── ML Ranking endpoints ──

@@ -16,6 +16,7 @@ import { harvestAllFeeds } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
 import { runEnrichmentPipeline } from "./contactEnrichment";
 import { runProjectoryScraper } from "./projectoryScraper";
+import { runDmirsScraper } from "./dmirsScraper";
 import { notifyOwner } from "./_core/notification";
 
 export interface DailyPipelineResult {
@@ -43,6 +44,13 @@ export interface DailyPipelineResult {
     ran: boolean;
     totalNewProjects: number;
     totalNewContacts: number;
+    totalDuplicates: number;
+    totalErrors: number;
+    duration: number;
+  };
+  dmirs: {
+    ran: boolean;
+    totalNewProjects: number;
     totalDuplicates: number;
     totalErrors: number;
     duration: number;
@@ -105,8 +113,31 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     console.log("[DailyPipeline] Skipping Projectory (runs on Mondays only)");
   }
 
-  // Step 4: Contact Enrichment
-  console.log("[DailyPipeline] Step 4/5: Enriching contacts...");
+  // Step 4: DMIRS Scrape (weekly — runs on Wednesdays)
+  const isWednesday = new Date().getUTCDay() === 3;
+  let dmirsResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isWednesday) {
+    console.log("[DailyPipeline] Step 4/6: Scraping DMIRS MINEDEX (weekly Wednesday run)...");
+    try {
+      const scrapeResult = await runDmirsScraper();
+      dmirsResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      console.log(`[DailyPipeline] DMIRS complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] DMIRS scrape failed:", err instanceof Error ? err.message : String(err));
+      dmirsResult.totalErrors = 1;
+    }
+  } else {
+    console.log("[DailyPipeline] Skipping DMIRS (runs on Wednesdays only)");
+  }
+
+  // Step 5: Contact Enrichment
+  console.log("[DailyPipeline] Step 5/6: Enriching contacts...");
   let enrichmentResult;
   try {
     enrichmentResult = await runEnrichmentPipeline();
@@ -143,6 +174,7 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       dailyUsed: enrichmentResult.dailyUsed,
     },
     projectory: projectoryResult,
+    dmirs: dmirsResult,
     duration,
     completedAt,
   };
@@ -158,6 +190,7 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
         `AI Extraction: ${extractionResult.extracted} projects extracted (${extractionResult.creditsUsed} LLM credits used today)`,
         `Contact Enrichment: ${enrichmentResult.enriched} contacts enriched (${enrichmentResult.dailyUsed}/30 daily cap)`,
         projectoryResult.ran ? `Projectory Scrape: ${projectoryResult.totalNewProjects} new projects, ${projectoryResult.totalNewContacts} contacts (${projectoryResult.duration}s)` : `Projectory: Skipped (runs Mondays only)`,
+        dmirsResult.ran ? `DMIRS Scrape: ${dmirsResult.totalNewProjects} new projects, ${dmirsResult.totalDuplicates} duplicates (${dmirsResult.duration}s)` : `DMIRS: Skipped (runs Wednesdays only)`,
         ``,
         `Errors: ${harvestResult.totalErrors} harvest, ${extractionResult.failed} extraction, ${enrichmentResult.failed} enrichment, ${projectoryResult.totalErrors} projectory`,
       ].join("\n"),
