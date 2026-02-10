@@ -4,7 +4,7 @@
  * Now includes feedback buttons (thumbs up/down) and relevance score
  */
 import { useState } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -69,12 +69,63 @@ interface FeedbackState {
   reason?: string;
 }
 
+const pipelineStatusLabels: Record<string, string> = {
+  identified: "In Pipeline",
+  contacted: "Contacted",
+  meeting_booked: "Meeting Booked",
+  quoted: "Quoted",
+  won: "Won",
+  lost: "Lost",
+};
+
+const pipelineStatusColors: Record<string, string> = {
+  identified: "bg-slate-500",
+  contacted: "bg-blue-500",
+  meeting_booked: "bg-amber-500",
+  quoted: "bg-purple-500",
+  won: "bg-emerald-500",
+  lost: "bg-red-500",
+};
+
+function ClaimButton({ projectId, reportId }: { projectId: number; reportId: number }) {
+  const utils = trpc.useUtils();
+  const claimMutation = trpc.pipeline.claim.useMutation({
+    onSuccess: (data) => {
+      if (data.alreadyClaimed) {
+        toast.info("You've already claimed this project");
+      } else {
+        toast.success("Project added to your pipeline!");
+      }
+      utils.pipeline.mine.invalidate();
+      utils.pipeline.team.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        claimMutation.mutate({ projectId, reportId });
+      }}
+      disabled={claimMutation.isPending}
+      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-navy bg-gold/20 hover:bg-gold/40 border border-gold/30 transition-colors disabled:opacity-50"
+      title="Add to my pipeline"
+    >
+      <Target className="w-3 h-3" />
+      {claimMutation.isPending ? "..." : "Claim"}
+    </button>
+  );
+}
+
 export default function ProjectCard({
   project,
   existingFeedback,
+  pipelineClaim,
 }: {
   project: ProjectData;
   existingFeedback?: { vote: "up" | "down"; reason: string | null } | null;
+  pipelineClaim?: { id: number; status: string } | null;
 }) {
   const [open, setOpen] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
@@ -159,6 +210,17 @@ export default function ProjectCard({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-1">
+          {/* Claim / Pipeline status button */}
+          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+            {pipelineClaim ? (
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-white ${pipelineStatusColors[pipelineClaim.status] || "bg-slate-500"}`}>
+                <Check className="w-3 h-3" />
+                {pipelineStatusLabels[pipelineClaim.status] || pipelineClaim.status}
+              </span>
+            ) : (
+              <ClaimButton projectId={project.id} reportId={project.reportId} />
+            )}
+          </div>
           {/* Feedback buttons */}
           <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
             <button

@@ -9,6 +9,9 @@ import {
   awardedProjects, InsertAwardedProject,
   userProfiles, InsertUserProfile, UserProfile,
   projectFeedback, InsertProjectFeedback,
+  pipelineClaims, InsertPipelineClaim, PipelineClaim,
+  pipelineActivity, InsertPipelineActivity,
+  emailDigestPrefs, InsertEmailDigestPref, EmailDigestPref,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -268,4 +271,130 @@ export async function getAllFeedbackByUser(userId: number) {
 
   return db.select().from(projectFeedback)
     .where(eq(projectFeedback.userId, userId));
+}
+
+// ── Pipeline Claim helpers ──
+
+export async function createPipelineClaim(data: InsertPipelineClaim): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(pipelineClaims).values(data);
+  return Number(result[0].insertId);
+}
+
+export async function getPipelineClaimById(id: number): Promise<PipelineClaim | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(pipelineClaims).where(eq(pipelineClaims.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getPipelineClaimsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(pipelineClaims)
+    .where(eq(pipelineClaims.userId, userId))
+    .orderBy(desc(pipelineClaims.updatedAt));
+}
+
+export async function getPipelineClaimsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(pipelineClaims)
+    .where(eq(pipelineClaims.projectId, projectId));
+}
+
+export async function getAllPipelineClaims() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select({
+    claim: pipelineClaims,
+    userName: users.name,
+    userEmail: users.email,
+  })
+    .from(pipelineClaims)
+    .leftJoin(users, eq(pipelineClaims.userId, users.id))
+    .orderBy(desc(pipelineClaims.updatedAt));
+}
+
+export async function updatePipelineClaim(
+  id: number,
+  data: Partial<InsertPipelineClaim>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(pipelineClaims).set(data).where(eq(pipelineClaims.id, id));
+}
+
+export async function deletePipelineClaim(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(pipelineActivity).where(eq(pipelineActivity.claimId, id));
+  await db.delete(pipelineClaims).where(eq(pipelineClaims.id, id));
+}
+
+// ── Pipeline Activity helpers ──
+
+export async function createPipelineActivityEntry(data: InsertPipelineActivity): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(pipelineActivity).values(data);
+}
+
+export async function getActivityByClaimId(claimId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(pipelineActivity)
+    .where(eq(pipelineActivity.claimId, claimId))
+    .orderBy(desc(pipelineActivity.createdAt));
+}
+
+// ── Email Digest Preferences helpers ──
+
+export async function getEmailDigestPrefs(userId: number): Promise<EmailDigestPref | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db.select().from(emailDigestPrefs)
+    .where(eq(emailDigestPrefs.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function upsertEmailDigestPrefs(
+  userId: number,
+  data: Partial<InsertEmailDigestPref>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await getEmailDigestPrefs(userId);
+  if (existing) {
+    await db.update(emailDigestPrefs).set(data).where(eq(emailDigestPrefs.userId, userId));
+  } else {
+    await db.insert(emailDigestPrefs).values({ ...data, userId });
+  }
+}
+
+export async function getAllEnabledDigestUsers() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select({
+    pref: emailDigestPrefs,
+    user: users,
+    profile: userProfiles,
+  })
+    .from(emailDigestPrefs)
+    .leftJoin(users, eq(emailDigestPrefs.userId, users.id))
+    .leftJoin(userProfiles, eq(emailDigestPrefs.userId, userProfiles.userId))
+    .where(eq(emailDigestPrefs.enabled, true));
 }

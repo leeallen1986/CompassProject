@@ -36,3 +36,14 @@
 - [x] Settings page to edit profile preferences after onboarding
 - [x] Write vitest tests for profile and feedback endpoints
 - [x] End-to-end test: onboarding → personalized dashboard → feedback
+- [x] Database schema for pipeline claims (userId, projectId, status, notes, timestamps)
+- [x] Database schema for pipeline activity log (status changes, notes history)
+- [x] tRPC API endpoints for pipeline CRUD (claim, update status, release, list by user/project)
+- [x] Pipeline tab UI on dashboard (Kanban-style columns: Identified → Contacted → Meeting Booked → Quoted → Won/Lost)
+- [x] Claim button on project cards with status indicator
+- [x] Team view showing all claimed projects across the team
+- [x] Database schema for email digest preferences (frequency, enabled/disabled)
+- [x] Notification API integration for personalized email digests
+- [x] Email digest content builder (filter projects by user profile, generate summary)
+- [x] Settings page update: email digest preferences toggle
+- [x] Vitest tests for pipeline and email digest endpoints

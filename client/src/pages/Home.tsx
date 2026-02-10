@@ -12,8 +12,9 @@ import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Shield,
-  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings
+  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target
 } from "lucide-react";
+import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectCard, { type ProjectData } from "@/components/ProjectCard";
 import { IMAGES } from "@/lib/images";
@@ -245,6 +246,9 @@ export default function Home() {
     { enabled: isAuthenticated && !!reportIdForFeedback }
   );
 
+  // Fetch pipeline claims for the current user
+  const { data: myClaims } = trpc.pipeline.mine.useQuery(undefined, { enabled: isAuthenticated });
+
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
@@ -288,6 +292,11 @@ export default function Home() {
   }));
 
   const feedbackMap = new Map(feedbackData.map(f => [f.projectId, f]));
+
+  // Build pipeline claims lookup by projectId
+  const claimsMap = new Map(
+    (myClaims ?? []).map((c: any) => [c.projectId, { id: c.id, status: c.status }])
+  );
 
   const personalizedProjects = scoreAndRankProjects(
     projects as ProjectData[],
@@ -350,6 +359,10 @@ export default function Home() {
               {/* User info & settings & logout */}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
+                <Link href="/pipeline" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                  <Target className="w-3 h-3" /> Pipeline
+                </Link>
+                <span className="text-slate-600">|</span>
                 <button onClick={() => navigate("/settings")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Settings className="w-3 h-3" /> Settings
                 </button>
@@ -422,7 +435,7 @@ export default function Home() {
                 <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-xs font-bold">{hotProjects.length}</span>
               </div>
               <div className="space-y-3">
-                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} />)}
+                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} />)}
               </div>
             </div>
           </TabsContent>
@@ -448,7 +461,7 @@ export default function Home() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badgeClass}`}>{group.length}</span>
                   </div>
                   <div className="space-y-3">
-                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} />)}
+                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} />)}
                   </div>
                 </div>
               );

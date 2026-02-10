@@ -198,3 +198,60 @@ export const awardedProjects = mysqlTable("awardedProjects", {
 
 export type AwardedProject = typeof awardedProjects.$inferSelect;
 export type InsertAwardedProject = typeof awardedProjects.$inferInsert;
+
+/**
+ * Pipeline claims — sales reps claim projects and track outreach status.
+ * Status flow: identified → contacted → meeting_booked → quoted → won | lost
+ */
+export const pipelineClaims = mysqlTable("pipelineClaims", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  reportId: int("reportId").notNull(),
+  status: mysqlEnum("status", ["identified", "contacted", "meeting_booked", "quoted", "won", "lost"]).notNull().default("identified"),
+  notes: text("notes"),
+  estimatedValue: varchar("estimatedValue", { length: 64 }),
+  nextAction: varchar("nextAction", { length: 512 }),
+  nextActionDate: timestamp("nextActionDate"),
+  contactName: varchar("contactName", { length: 256 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PipelineClaim = typeof pipelineClaims.$inferSelect;
+export type InsertPipelineClaim = typeof pipelineClaims.$inferInsert;
+
+/**
+ * Pipeline activity log — tracks status changes and notes history.
+ */
+export const pipelineActivity = mysqlTable("pipelineActivity", {
+  id: int("id").autoincrement().primaryKey(),
+  claimId: int("claimId").notNull(),
+  userId: int("userId").notNull(),
+  fromStatus: varchar("fromStatus", { length: 32 }),
+  toStatus: varchar("toStatus", { length: 32 }).notNull(),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PipelineActivityRow = typeof pipelineActivity.$inferSelect;
+export type InsertPipelineActivity = typeof pipelineActivity.$inferInsert;
+
+/**
+ * Email digest preferences — per-user settings for weekly email summaries.
+ */
+export const emailDigestPrefs = mysqlTable("emailDigestPrefs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  enabled: boolean("enabled").notNull().default(true),
+  frequency: mysqlEnum("frequency", ["weekly", "daily", "none"]).notNull().default("weekly"),
+  includeHotOnly: boolean("includeHotOnly").notNull().default(false),
+  includeContacts: boolean("includeContacts").notNull().default(true),
+  includePipelineUpdates: boolean("includePipelineUpdates").notNull().default(true),
+  lastSentAt: timestamp("lastSentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailDigestPref = typeof emailDigestPrefs.$inferSelect;
+export type InsertEmailDigestPref = typeof emailDigestPrefs.$inferInsert;

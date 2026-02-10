@@ -7,13 +7,16 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import Settings from "./pages/Settings";
+import Pipeline from "./pages/Pipeline";
 
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/onboarding"} component={Onboarding} />
       <Route path={"/settings"} component={Settings} />
+      <Route path={"/pipeline"} component={Pipeline} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

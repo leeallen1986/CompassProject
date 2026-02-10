@@ -11,7 +11,14 @@ import {
   getAwardedProjectsByReportId, createAwardedProjects,
   getProfileByUserId, upsertProfile, completeOnboarding,
   upsertFeedback, getFeedbackByUserAndReport,
+  createPipelineClaim, getPipelineClaimById, getPipelineClaimsByUser,
+  getPipelineClaimsByProject, getAllPipelineClaims,
+  updatePipelineClaim, deletePipelineClaim,
+  createPipelineActivityEntry, getActivityByClaimId,
+  getEmailDigestPrefs, upsertEmailDigestPrefs,
 } from "./db";
+import { notifyOwner } from "./_core/notification";
+import { sendWeeklyDigests } from "./emailDigest";
 
 export const appRouter = router({
   system: systemRouter,
@@ -26,12 +33,10 @@ export const appRouter = router({
 
   // ── User Profile / Onboarding endpoints ──
   profile: router({
-    /** Get the current user's profile */
     get: protectedProcedure.query(async ({ ctx }) => {
       return getProfileByUserId(ctx.user.id);
     }),
 
-    /** Update profile (used by onboarding wizard, step by step) */
     update: protectedProcedure
       .input(z.object({
         companyName: z.string().optional(),
@@ -58,7 +63,6 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Mark onboarding as completed */
     completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
       await completeOnboarding(ctx.user.id);
       return { success: true };
@@ -67,7 +71,6 @@ export const appRouter = router({
 
   // ── Project Feedback endpoints ──
   feedback: router({
-    /** Submit feedback (thumbs up/down) for a project */
     submit: protectedProcedure
       .input(z.object({
         projectId: z.number(),
@@ -86,12 +89,171 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Get all feedback for the current user on a specific report */
     byReport: protectedProcedure
       .input(z.object({ reportId: z.number() }))
       .query(async ({ ctx, input }) => {
         return getFeedbackByUserAndReport(ctx.user.id, input.reportId);
       }),
+  }),
+
+  // ── Pipeline Tracker endpoints ──
+  pipeline: router({
+    /** Claim a project for your pipeline */
+    claim: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        reportId: z.number(),
+        notes: z.string().optional(),
+        estimatedValue: z.string().optional(),
+        nextAction: z.string().optional(),
+        nextActionDate: z.date().optional(),
+        contactName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if already claimed by this user
+        const existing = await getPipelineClaimsByProject(input.projectId);
+        const userClaim = existing.find(c => c.userId === ctx.user.id);
+        if (userClaim) {
+          return { claimId: userClaim.id, alreadyClaimed: true };
+        }
+
+        const claimId = await createPipelineClaim({
+          userId: ctx.user.id,
+          projectId: input.projectId,
+          reportId: input.reportId,
+          status: "identified",
+          notes: input.notes ?? null,
+          estimatedValue: input.estimatedValue ?? null,
+          nextAction: input.nextAction ?? null,
+          nextActionDate: input.nextActionDate ?? null,
+          contactName: input.contactName ?? null,
+        });
+
+        await createPipelineActivityEntry({
+          claimId,
+          userId: ctx.user.id,
+          fromStatus: null,
+          toStatus: "identified",
+          note: input.notes ?? "Project claimed",
+        });
+
+        return { claimId, alreadyClaimed: false };
+      }),
+
+    /** Update the status of a pipeline claim */
+    updateStatus: protectedProcedure
+      .input(z.object({
+        claimId: z.number(),
+        status: z.enum(["identified", "contacted", "meeting_booked", "quoted", "won", "lost"]),
+        notes: z.string().optional(),
+        estimatedValue: z.string().optional(),
+        nextAction: z.string().optional(),
+        nextActionDate: z.date().optional(),
+        contactName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const claim = await getPipelineClaimById(input.claimId);
+        if (!claim) throw new Error("Claim not found");
+        if (claim.userId !== ctx.user.id) throw new Error("Not your claim");
+
+        const fromStatus = claim.status;
+
+        await updatePipelineClaim(input.claimId, {
+          status: input.status,
+          notes: input.notes ?? claim.notes,
+          estimatedValue: input.estimatedValue ?? claim.estimatedValue,
+          nextAction: input.nextAction ?? claim.nextAction,
+          nextActionDate: input.nextActionDate ?? claim.nextActionDate,
+          contactName: input.contactName ?? claim.contactName,
+        });
+
+        await createPipelineActivityEntry({
+          claimId: input.claimId,
+          userId: ctx.user.id,
+          fromStatus,
+          toStatus: input.status,
+          note: input.notes ?? `Status changed from ${fromStatus} to ${input.status}`,
+        });
+
+        // Notify owner on won/lost
+        if (input.status === "won" || input.status === "lost") {
+          await notifyOwner({
+            title: `Pipeline: Project ${input.status === "won" ? "Won" : "Lost"}`,
+            content: `Claim #${input.claimId} status changed to ${input.status}. ${input.notes || ""}`,
+          });
+        }
+
+        return { success: true };
+      }),
+
+    /** Release (delete) a pipeline claim */
+    release: protectedProcedure
+      .input(z.object({ claimId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const claim = await getPipelineClaimById(input.claimId);
+        if (!claim) throw new Error("Claim not found");
+        if (claim.userId !== ctx.user.id && ctx.user.role !== "admin") {
+          throw new Error("Not authorized to release this claim");
+        }
+
+        await deletePipelineClaim(input.claimId);
+        return { success: true };
+      }),
+
+    /** Get the current user's pipeline */
+    mine: protectedProcedure.query(async ({ ctx }) => {
+      return getPipelineClaimsByUser(ctx.user.id);
+    }),
+
+    /** Get all claims for a specific project */
+    byProject: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return getPipelineClaimsByProject(input.projectId);
+      }),
+
+    /** Get all pipeline claims across the team (with user info) */
+    team: protectedProcedure.query(async () => {
+      return getAllPipelineClaims();
+    }),
+
+    /** Get activity log for a specific claim */
+    activity: protectedProcedure
+      .input(z.object({ claimId: z.number() }))
+      .query(async ({ input }) => {
+        return getActivityByClaimId(input.claimId);
+      }),
+  }),
+
+  // ── Email Digest Preferences endpoints ──
+  emailDigest: router({
+    /** Get current user's email digest preferences */
+    get: protectedProcedure.query(async ({ ctx }) => {
+      return getEmailDigestPrefs(ctx.user.id);
+    }),
+
+    /** Update email digest preferences */
+    update: protectedProcedure
+      .input(z.object({
+        enabled: z.boolean().optional(),
+        frequency: z.enum(["weekly", "daily", "none"]).optional(),
+        includeHotOnly: z.boolean().optional(),
+        includeContacts: z.boolean().optional(),
+        includePipelineUpdates: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await upsertEmailDigestPrefs(ctx.user.id, input);
+        return { success: true };
+      }),
+  }),
+
+  // ── Admin Digest Trigger ──
+  digest: router({
+    /** Admin: trigger digest send for all enabled users */
+    sendNow: adminProcedure.mutation(async () => {
+      const results = await sendWeeklyDigests();
+      return results;
+    }),
   }),
 
   // ── Intelligence Report endpoints ──
