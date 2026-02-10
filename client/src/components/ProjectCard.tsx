@@ -1,11 +1,36 @@
 /*
  * ProjectCard — Expandable project card with priority-coded left border
  * Design: Nordic Industrial Precision — deep navy, gold accents, teal highlights
+ * Now uses database types from tRPC API
  */
 import { useState } from "react";
 import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Project } from "@/lib/data";
+
+// DB project shape from the API
+export interface ProjectData {
+  id: number;
+  reportId: number;
+  projectKey: string;
+  name: string;
+  location: string;
+  value: string;
+  owner: string;
+  priority: "hot" | "warm" | "cold";
+  capexGrade: "A" | "B" | "Unknown";
+  opportunityRoute: "Direct CAPEX" | "Fleet CAPEX" | "OPEX/Monitor";
+  sector: "mining" | "oil_gas" | "infrastructure" | "energy" | "defence";
+  isNew: boolean;
+  stage: string | null;
+  overview: string | null;
+  equipmentSignals: string[] | null;
+  contractors: { name: string; status: string; confidence?: number; detail?: string }[] | null;
+  opportunityNote: string | null;
+  sources: { label: string; url: string; date?: string }[] | null;
+  timeline: string | null;
+  completion: string | null;
+  createdAt: Date;
+}
 
 const priorityConfig = {
   hot: { border: "border-l-hot", bg: "bg-hot/5", badge: "bg-hot text-white", label: "HOT" },
@@ -25,9 +50,12 @@ const routeBadge: Record<string, string> = {
   "OPEX/Monitor": "bg-slate-200 text-slate-600 border border-slate-300",
 };
 
-export default function ProjectCard({ project }: { project: Project }) {
+export default function ProjectCard({ project }: { project: ProjectData }) {
   const [open, setOpen] = useState(false);
   const cfg = priorityConfig[project.priority];
+  const equipmentSignals = project.equipmentSignals ?? [];
+  const contractors = project.contractors ?? [];
+  const sources = project.sources ?? [];
 
   return (
     <div
@@ -87,7 +115,7 @@ export default function ProjectCard({ project }: { project: Project }) {
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-2">Contractors</h4>
                   <ul className="space-y-1.5">
-                    {project.contractors.map((c, i) => (
+                    {contractors.map((c, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
                         <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
                           c.status === "confirmed" ? "bg-teal/15 text-teal" :
@@ -106,7 +134,7 @@ export default function ProjectCard({ project }: { project: Project }) {
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-2">Equipment Signals</h4>
                   <ul className="space-y-1">
-                    {project.equipmentSignals.map((s, i) => (
+                    {equipmentSignals.map((s, i) => (
                       <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
                         <span className="w-1 h-1 rounded-full bg-teal shrink-0 mt-2" />
                         {s}
@@ -124,7 +152,7 @@ export default function ProjectCard({ project }: { project: Project }) {
                     {project.completion && <p><span className="font-medium text-foreground">Completion:</span> {project.completion}</p>}
                   </div>
                   <div className="mt-3 space-y-1">
-                    {project.sources.map((src, i) => (
+                    {sources.map((src, i) => (
                       <a
                         key={i}
                         href={src.url}

@@ -2,23 +2,22 @@
  * Home — Atlas Copco Market Intelligence Dashboard
  * Design: Nordic Industrial Precision
  * Deep navy header, gold accents, tabbed layout, priority-coded cards
+ * Now fetches data from the database via tRPC API
  */
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import { trpc } from "@/lib/trpc";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
-  BarChart3, Pickaxe, Fuel, Building, Shield, ChevronRight,
-  MapPin, Calendar, ArrowUpRight, Sparkles, Database, FileText
+  BarChart3, Pickaxe, Fuel, Building, Shield,
+  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProjectCard from "@/components/ProjectCard";
+import ProjectCard, { type ProjectData } from "@/components/ProjectCard";
 import { IMAGES } from "@/lib/images";
-import {
-  projects, contacts, drillingCampaigns, awardedProjects,
-  researchPasses, sourceCategories, stats, executiveSummary, metadata,
-  type Project, type Contact
-} from "@/lib/data";
 
+// ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
   mining: <Pickaxe className="w-3.5 h-3.5" />,
   oil_gas: <Fuel className="w-3.5 h-3.5" />,
@@ -26,15 +25,11 @@ const sectorIcons: Record<string, React.ReactNode> = {
   energy: <TrendingUp className="w-3.5 h-3.5" />,
   defence: <Shield className="w-3.5 h-3.5" />,
 };
-
 const sectorLabels: Record<string, string> = {
-  mining: "Mining",
-  oil_gas: "Oil & Gas",
-  infrastructure: "Infrastructure",
-  energy: "Energy",
-  defence: "Defence",
+  mining: "Mining", oil_gas: "Oil & Gas", infrastructure: "Infrastructure", energy: "Energy", defence: "Defence",
 };
 
+// ── KPI Card ──
 function KPICard({ value, label, accent }: { value: string | number; label: string; accent?: "hot" | "warm" | "gold" | "teal" }) {
   const accentClass = accent === "hot" ? "text-hot" : accent === "warm" ? "text-warm" : accent === "gold" ? "text-gold" : accent === "teal" ? "text-teal" : "text-navy";
   return (
@@ -45,25 +40,19 @@ function KPICard({ value, label, accent }: { value: string | number; label: stri
   );
 }
 
-function PriorityFilter({ active, onChange }: { active: string; onChange: (v: string) => void }) {
+// ── Priority Filter ──
+function PriorityFilter({ active, onChange, stats }: { active: string; onChange: (v: string) => void; stats: { total: number; hot: number; warm: number; cold: number } }) {
   const filters = [
-    { key: "all", label: "All", count: stats.totalProjects },
-    { key: "hot", label: "Hot", count: stats.hotProjects, color: "bg-hot" },
-    { key: "warm", label: "Warm", count: stats.warmProjects, color: "bg-warm" },
-    { key: "cold", label: "Cold", count: stats.coldProjects, color: "bg-cold" },
+    { key: "all", label: "All", count: stats.total },
+    { key: "hot", label: "Hot", count: stats.hot, color: "bg-hot" },
+    { key: "warm", label: "Warm", count: stats.warm, color: "bg-warm" },
+    { key: "cold", label: "Cold", count: stats.cold, color: "bg-cold" },
   ];
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {filters.map(f => (
-        <button
-          key={f.key}
-          onClick={() => onChange(f.key)}
-          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-            active === f.key
-              ? "bg-navy text-white shadow-sm"
-              : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-          }`}
-        >
+        <button key={f.key} onClick={() => onChange(f.key)}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${active === f.key ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"}`}>
           {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color} mr-1.5`} />}
           {f.label} ({f.count})
         </button>
@@ -72,20 +61,14 @@ function PriorityFilter({ active, onChange }: { active: string; onChange: (v: st
   );
 }
 
+// ── Sector Filter ──
 function SectorFilter({ active, onChange }: { active: string; onChange: (v: string) => void }) {
   const sectors = ["all", "mining", "oil_gas", "infrastructure", "energy", "defence"];
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {sectors.map(s => (
-        <button
-          key={s}
-          onClick={() => onChange(s)}
-          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-            active === s
-              ? "bg-navy text-white shadow-sm"
-              : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-          }`}
-        >
+        <button key={s} onClick={() => onChange(s)}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${active === s ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"}`}>
           {s !== "all" && sectorIcons[s]}
           {s === "all" ? "All Sectors" : sectorLabels[s]}
         </button>
@@ -94,7 +77,20 @@ function SectorFilter({ active, onChange }: { active: string; onChange: (v: stri
   );
 }
 
-function ContactsTable({ data }: { data: Contact[] }) {
+// ── Contacts Table ──
+interface ContactRow {
+  id: number;
+  name: string;
+  title: string;
+  company: string;
+  project: string;
+  priority: "hot" | "warm" | "cold";
+  roleBucket: string;
+  email: string | null;
+  linkedin: string | null;
+}
+
+function ContactsTable({ data, weekEnding }: { data: ContactRow[]; weekEnding: string }) {
   const [search, setSearch] = useState("");
   const filtered = useMemo(() => {
     if (!search) return data;
@@ -110,12 +106,12 @@ function ContactsTable({ data }: { data: Contact[] }) {
   const exportCSV = () => {
     const headers = ["Name", "Title", "Company", "Project", "Priority", "Role Bucket", "Email", "LinkedIn"];
     const rows = filtered.map(c => [c.name, c.title, c.company, c.project, c.priority, c.roleBucket, c.email || "", c.linkedin || ""]);
-    const csv = [headers, ...rows].map(r => r.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `atlas-copco-contacts-${metadata.weekEnding.replace(/\s/g, "-")}.csv`;
+    a.download = `atlas-copco-contacts-${weekEnding.replace(/\s/g, "-")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -131,18 +127,12 @@ function ContactsTable({ data }: { data: Contact[] }) {
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name, company, title, or project..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
-          />
+          <input type="text" placeholder="Search by name, company, title, or project..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold" />
         </div>
-        <button
-          onClick={exportCSV}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gold text-navy text-sm font-semibold hover:bg-gold-light transition-colors"
-        >
+        <button onClick={exportCSV}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gold text-navy text-sm font-semibold hover:bg-gold-light transition-colors">
           <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
@@ -162,7 +152,7 @@ function ContactsTable({ data }: { data: Contact[] }) {
           </thead>
           <tbody>
             {filtered.map((c, i) => (
-              <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+              <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
                 <td className="px-4 py-3 font-medium text-navy">{c.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{c.title}</td>
                 <td className="px-4 py-3">{c.company}</td>
@@ -174,14 +164,10 @@ function ContactsTable({ data }: { data: Contact[] }) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     {c.email && (
-                      <a href={`mailto:${c.email}`} className="px-2 py-1 rounded text-[10px] font-semibold bg-teal/15 text-teal hover:bg-teal/25 transition-colors">
-                        Email
-                      </a>
+                      <a href={`mailto:${c.email}`} className="px-2 py-1 rounded text-[10px] font-semibold bg-teal/15 text-teal hover:bg-teal/25 transition-colors">Email</a>
                     )}
                     {c.linkedin && (
-                      <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-navy/10 text-navy hover:bg-navy/20 transition-colors">
-                        LI
-                      </a>
+                      <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-navy/10 text-navy hover:bg-navy/20 transition-colors">LI</a>
                     )}
                   </div>
                 </td>
@@ -195,19 +181,83 @@ function ContactsTable({ data }: { data: Contact[] }) {
   );
 }
 
+// ── Login Page ──
+function LoginPage() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center max-w-md mx-auto px-6">
+        <div className="mb-8">
+          <img src={IMAGES.heroBanner} alt="" className="w-full h-32 object-cover rounded-lg mb-6" />
+          <h1 className="text-2xl font-bold text-navy tracking-tight mb-2">Atlas Copco Portable Air</h1>
+          <p className="text-sm text-muted-foreground">Weekly Market Intelligence Dashboard</p>
+        </div>
+        <a href={getLoginUrl()}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-navy text-white font-semibold hover:bg-navy-light transition-colors shadow-md">
+          <LogIn className="w-5 h-5" /> Sign In to Access Dashboard
+        </a>
+        <p className="text-xs text-muted-foreground mt-4">Login required to view market intelligence data.</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Loading Page ──
+function LoadingPage() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-10 h-10 text-gold animate-spin mx-auto mb-4" />
+        <p className="text-sm text-muted-foreground">Loading intelligence data...</p>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// ── Main Dashboard ──
+// ══════════════════════════════════════════════════════════════
 export default function Home() {
+  const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
+  const [selectedReportId, setSelectedReportId] = useState<number | undefined>(undefined);
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter(p => {
-      if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
-      if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
-      return true;
-    });
-  }, [priorityFilter, sectorFilter]);
+  // Fetch report list for the dropdown
+  const { data: reportList } = trpc.report.list.useQuery(undefined, { enabled: isAuthenticated });
 
-  const hotProjects = projects.filter(p => p.priority === "hot");
+  // Fetch the full report data
+  const { data: fullReport, isLoading: reportLoading } = trpc.report.full.useQuery(
+    { reportId: selectedReportId },
+    { enabled: isAuthenticated }
+  );
+
+  // ── Auth gates ──
+  if (authLoading) return <LoadingPage />;
+  if (!isAuthenticated) return <LoginPage />;
+  if (reportLoading || !fullReport) return <LoadingPage />;
+
+  const { report, projects, contacts, drillingCampaigns, awardedProjects } = fullReport;
+
+  const actionItems: string[] = (report.actionItems as string[]) ?? [];
+  const researchPasses: { pass: string; focus: string; rawProjects: number; keySources: string }[] = (report.researchPasses as any[]) ?? [];
+  const sourceCategories: { name: string; type: string }[] = (report.sourceCategories as any[]) ?? [];
+
+  const filteredProjects = projects.filter((p: ProjectData) => {
+    if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
+    if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
+    return true;
+  });
+
+  const hotProjects = projects.filter((p: ProjectData) => p.priority === "hot");
+  const warmProjects = projects.filter((p: ProjectData) => p.priority === "warm");
+  const coldProjects = projects.filter((p: ProjectData) => p.priority === "cold");
+
+  const stats = {
+    total: report.totalProjects,
+    hot: report.hotProjects,
+    warm: report.warmProjects,
+    cold: report.coldProjects,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -227,10 +277,29 @@ export default function Home() {
                 Weekly Market Intelligence Dashboard — Enhanced Edition
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right flex flex-col items-end gap-2">
               <div className="text-xl sm:text-2xl font-bold text-gold tracking-wider">ATLAS COPCO</div>
-              <div className="text-xs text-slate-400 mt-1">
-                Week ending {metadata.weekEnding} | Generated: {metadata.generatedTime}
+              <div className="text-xs text-slate-400">
+                Week ending {report.weekEnding} | Generated: {report.generatedTime}
+              </div>
+              {/* Report selector */}
+              {reportList && reportList.length > 1 && (
+                <select
+                  value={selectedReportId ?? report.id}
+                  onChange={e => setSelectedReportId(Number(e.target.value))}
+                  className="mt-1 px-2 py-1 rounded text-xs bg-navy-light text-slate-200 border border-slate-500 focus:outline-none focus:ring-1 focus:ring-gold"
+                >
+                  {reportList.map((r: any) => (
+                    <option key={r.id} value={r.id}>Week ending {r.weekEnding}</option>
+                  ))}
+                </select>
+              )}
+              {/* User info & logout */}
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
+                <button onClick={() => logout()} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                  <LogOut className="w-3 h-3" /> Sign Out
+                </button>
               </div>
             </div>
           </div>
@@ -241,24 +310,12 @@ export default function Home() {
       <main className="container py-6 sm:py-8">
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start bg-card border border-border rounded-lg p-1 overflow-x-auto flex-nowrap mb-6">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
-              All Projects ({stats.totalProjects})
-            </TabsTrigger>
-            <TabsTrigger value="awarded" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
-              Awarded Projects
-            </TabsTrigger>
-            <TabsTrigger value="drilling" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
-              Drilling & Exploration
-            </TabsTrigger>
-            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
-              Contacts ({stats.totalContacts})
-            </TabsTrigger>
-            <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
-              Sources & Methodology
-            </TabsTrigger>
+            <TabsTrigger value="overview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
+            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({report.totalProjects})</TabsTrigger>
+            <TabsTrigger value="awarded" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
+            <TabsTrigger value="drilling" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
+            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({report.totalContacts})</TabsTrigger>
+            <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
           </TabsList>
 
           {/* ===== OVERVIEW TAB ===== */}
@@ -267,35 +324,37 @@ export default function Home() {
             <div className="bg-card rounded-lg border border-border p-5 sm:p-6">
               <h2 className="text-lg font-bold text-navy flex items-center gap-2 mb-3">
                 <FileText className="w-5 h-5 text-gold" />
-                Executive Summary — Week of {metadata.weekEnding}
+                Executive Summary — Week of {report.weekEnding}
               </h2>
-              <p className="text-sm text-foreground/80 leading-relaxed mb-4">{executiveSummary.mainText}</p>
-              <div className="bg-gold/8 border border-gold/25 rounded-lg p-4 mb-4">
-                <h3 className="text-sm font-bold text-gold-dark mb-2 flex items-center gap-2">
-                  <ArrowUpRight className="w-4 h-4" /> Top Action Items for Sales
-                </h3>
-                <ol className="space-y-2">
-                  {executiveSummary.actionItems.map((item, i) => (
-                    <li key={i} className="text-sm text-foreground/80 flex gap-2">
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-gold text-navy text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
-                      {item}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-              <p className="text-sm text-foreground/70">{executiveSummary.changes}</p>
+              <p className="text-sm text-foreground/80 leading-relaxed mb-4">{report.executiveSummaryMain}</p>
+              {actionItems.length > 0 && (
+                <div className="bg-gold/8 border border-gold/25 rounded-lg p-4 mb-4">
+                  <h3 className="text-sm font-bold text-gold-dark mb-2 flex items-center gap-2">
+                    <ArrowUpRight className="w-4 h-4" /> Top Action Items for Sales
+                  </h3>
+                  <ol className="space-y-2">
+                    {actionItems.map((item: string, i: number) => (
+                      <li key={i} className="text-sm text-foreground/80 flex gap-2">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-gold text-navy text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+              <p className="text-sm text-foreground/70">{report.executiveSummaryChanges}</p>
             </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              <KPICard value={stats.totalProjects} label="Total Projects" accent="teal" />
-              <KPICard value={stats.hotProjects} label="Hot Projects" accent="hot" />
-              <KPICard value={stats.warmProjects} label="Warm Projects" accent="warm" />
-              <KPICard value={stats.confirmedContractors} label="Confirmed Contractors" />
-              <KPICard value={stats.predictedContractors} label="Predicted Contractors" />
-              <KPICard value={stats.capexOpportunities} label="CAPEX Opportunities" accent="gold" />
-              <KPICard value={stats.totalContacts} label="Contacts" />
-              <KPICard value={stats.sourcesSearched} label="Sources Searched" accent="teal" />
+              <KPICard value={report.totalProjects} label="Total Projects" accent="teal" />
+              <KPICard value={report.hotProjects} label="Hot Projects" accent="hot" />
+              <KPICard value={report.warmProjects} label="Warm Projects" accent="warm" />
+              <KPICard value={report.confirmedContractors} label="Confirmed Contractors" />
+              <KPICard value={report.predictedContractors} label="Predicted Contractors" />
+              <KPICard value={report.capexOpportunities} label="CAPEX Opportunities" accent="gold" />
+              <KPICard value={report.totalContacts} label="Contacts" />
+              <KPICard value={report.sourcesSearched} label="Sources Searched" accent="teal" />
             </div>
 
             {/* Hot Projects */}
@@ -306,7 +365,7 @@ export default function Home() {
                 <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-xs font-bold">{hotProjects.length}</span>
               </div>
               <div className="space-y-3">
-                {hotProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} />)}
               </div>
             </div>
           </TabsContent>
@@ -314,12 +373,12 @@ export default function Home() {
           {/* ===== ALL PROJECTS TAB ===== */}
           <TabsContent value="projects" className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} />
+              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={stats} />
               <SectorFilter active={sectorFilter} onChange={setSectorFilter} />
             </div>
 
             {(["hot", "warm", "cold"] as const).map(priority => {
-              const group = filteredProjects.filter(p => p.priority === priority);
+              const group = filteredProjects.filter((p: ProjectData) => p.priority === priority);
               if (group.length === 0) return null;
               const icon = priority === "hot" ? <Flame className="w-4 h-4 text-hot" /> : priority === "warm" ? <TrendingUp className="w-4 h-4 text-warm" /> : <BarChart3 className="w-4 h-4 text-cold" />;
               const label = priority === "hot" ? "Hot Projects" : priority === "warm" ? "Warm Projects" : "Cold / Monitor Projects";
@@ -332,7 +391,7 @@ export default function Home() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badgeClass}`}>{group.length}</span>
                   </div>
                   <div className="space-y-3">
-                    {group.map(p => <ProjectCard key={p.id} project={p} />)}
+                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} />)}
                   </div>
                 </div>
               );
@@ -359,10 +418,10 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {awardedProjects.map((ap, i) => {
+                  {awardedProjects.map((ap: any, i: number) => {
                     const oppClass = ap.opportunity === "Direct" ? "bg-teal/15 text-teal" : ap.opportunity === "Fleet" ? "bg-gold/15 text-gold-dark" : "bg-slate-200 text-slate-600";
                     return (
-                      <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                      <tr key={ap.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
                         <td className="px-4 py-3 font-semibold text-navy">{ap.project}</td>
                         <td className="px-4 py-3 font-medium">{ap.value}</td>
                         <td className="px-4 py-3">{ap.winningContractor}</td>
@@ -370,9 +429,11 @@ export default function Home() {
                         <td className="px-4 py-3 text-muted-foreground">{ap.stage}</td>
                         <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${oppClass}`}>{ap.opportunity}</span></td>
                         <td className="px-4 py-3">
-                          <a href={ap.source.url} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light text-xs flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3" />{ap.source.label}
-                          </a>
+                          {ap.sourceUrl && (
+                            <a href={ap.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light text-xs flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" />{ap.sourceLabel || "Source"}
+                            </a>
+                          )}
                         </td>
                       </tr>
                     );
@@ -388,7 +449,6 @@ export default function Home() {
               <h2 className="text-lg font-bold text-navy mb-2">Drilling & Exploration Campaigns</h2>
               <p className="text-sm text-foreground/70">Active and upcoming drilling campaigns represent direct demand for portable air compressors. RC drilling rigs require 600-1200 CFM at 350 psi. Diamond drilling requires 200-400 CFM. These are time-sensitive opportunities.</p>
             </div>
-            {/* Feature image */}
             <div className="relative rounded-lg overflow-hidden h-48 sm:h-56">
               <img src={IMAGES.miningOps} alt="Mining operations" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-navy/80 to-transparent" />
@@ -411,8 +471,8 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {drillingCampaigns.map((dc, i) => (
-                    <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                  {drillingCampaigns.map((dc: any, i: number) => (
+                    <tr key={dc.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
                       <td className="px-4 py-3 font-semibold text-navy">{dc.campaign}</td>
                       <td className="px-4 py-3">{dc.operator}</td>
                       <td className="px-4 py-3 text-muted-foreground">{dc.location}</td>
@@ -420,9 +480,11 @@ export default function Home() {
                       <td className="px-4 py-3 text-muted-foreground">{dc.timing}</td>
                       <td className="px-4 py-3 font-medium text-teal">{dc.airRequirement}</td>
                       <td className="px-4 py-3">
-                        <a href={dc.source.url} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light text-xs flex items-center gap-1">
-                          <ExternalLink className="w-3 h-3" />{dc.source.label}
-                        </a>
+                        {dc.sourceUrl && (
+                          <a href={dc.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light text-xs flex items-center gap-1">
+                            <ExternalLink className="w-3 h-3" />{dc.sourceLabel || "Source"}
+                          </a>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -436,9 +498,9 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-2">
               <Users className="w-5 h-5 text-gold" />
               <h2 className="text-lg font-bold text-navy">Contact Database</h2>
-              <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{stats.totalContacts} contacts</span>
+              <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{contacts.length} contacts</span>
             </div>
-            <ContactsTable data={contacts} />
+            <ContactsTable data={contacts as ContactRow[]} weekEnding={report.weekEnding} />
           </TabsContent>
 
           {/* ===== SOURCES TAB ===== */}
@@ -463,7 +525,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {researchPasses.map((rp, i) => (
+                    {researchPasses.map((rp: any, i: number) => (
                       <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"}`}>
                         <td className="px-4 py-3 font-bold text-gold">{rp.pass}</td>
                         <td className="px-4 py-3 font-medium text-navy">{rp.focus}</td>
@@ -479,7 +541,7 @@ export default function Home() {
             <div>
               <h3 className="text-base font-bold text-navy mb-3">Source Categories</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {sourceCategories.map((sc, i) => {
+                {sourceCategories.map((sc: any, i: number) => {
                   const dotColor = sc.type === "asx" ? "bg-gold" : sc.type === "industry" ? "bg-teal" : sc.type === "news" ? "bg-hot" : "bg-cold";
                   return (
                     <div key={i} className="flex items-center gap-2 text-sm text-foreground/80 py-1.5 px-3 bg-card rounded border border-border">
@@ -505,7 +567,7 @@ export default function Home() {
         <div className="container text-center">
           <p className="text-xs font-medium text-gold mb-1">Generated by Manus AI — Enhanced Multi-Source Edition</p>
           <p className="text-xs">Atlas Copco Portable Air — Weekly Market Intelligence Dashboard</p>
-          <p className="text-xs mt-1">Data sourced from 20+ public sources including ASX releases, industry publications, and government announcements. Week ending {metadata.weekEnding}.</p>
+          <p className="text-xs mt-1">Data sourced from 20+ public sources including ASX releases, industry publications, and government announcements. Week ending {report.weekEnding}.</p>
         </div>
       </footer>
     </div>
