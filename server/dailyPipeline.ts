@@ -15,6 +15,7 @@
 import { harvestAllFeeds } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
 import { runEnrichmentPipeline } from "./contactEnrichment";
+import { runProjectoryScraper } from "./projectoryScraper";
 import { notifyOwner } from "./_core/notification";
 
 export interface DailyPipelineResult {
@@ -37,6 +38,14 @@ export interface DailyPipelineResult {
     notFound: number;
     failed: number;
     dailyUsed: number;
+  };
+  projectory: {
+    ran: boolean;
+    totalNewProjects: number;
+    totalNewContacts: number;
+    totalDuplicates: number;
+    totalErrors: number;
+    duration: number;
   };
   duration: number;
   completedAt: string;
@@ -72,8 +81,32 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     extractionResult = { processed: 0, extracted: 0, duplicates: 0, skipped: 0, failed: 0, creditsUsed: 0, results: [] };
   }
 
-  // Step 3: Contact Enrichment
-  console.log("[DailyPipeline] Step 3/3: Enriching contacts...");
+  // Step 3: Projectory Scrape (weekly — runs on Mondays)
+  const isMonday = new Date().getUTCDay() === 1;
+  let projectoryResult = { ran: false, totalNewProjects: 0, totalNewContacts: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isMonday) {
+    console.log("[DailyPipeline] Step 3/5: Scraping Projectory (weekly Monday run)...");
+    try {
+      const scrapeResult = await runProjectoryScraper();
+      projectoryResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalNewContacts: scrapeResult.totalNewContacts,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      console.log(`[DailyPipeline] Projectory complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] Projectory scrape failed:", err instanceof Error ? err.message : String(err));
+      projectoryResult.totalErrors = 1;
+    }
+  } else {
+    console.log("[DailyPipeline] Skipping Projectory (runs on Mondays only)");
+  }
+
+  // Step 4: Contact Enrichment
+  console.log("[DailyPipeline] Step 4/5: Enriching contacts...");
   let enrichmentResult;
   try {
     enrichmentResult = await runEnrichmentPipeline();
@@ -109,6 +142,7 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       failed: enrichmentResult.failed,
       dailyUsed: enrichmentResult.dailyUsed,
     },
+    projectory: projectoryResult,
     duration,
     completedAt,
   };
@@ -123,8 +157,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
         `RSS Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources`,
         `AI Extraction: ${extractionResult.extracted} projects extracted (${extractionResult.creditsUsed} LLM credits used today)`,
         `Contact Enrichment: ${enrichmentResult.enriched} contacts enriched (${enrichmentResult.dailyUsed}/30 daily cap)`,
+        projectoryResult.ran ? `Projectory Scrape: ${projectoryResult.totalNewProjects} new projects, ${projectoryResult.totalNewContacts} contacts (${projectoryResult.duration}s)` : `Projectory: Skipped (runs Mondays only)`,
         ``,
-        `Errors: ${harvestResult.totalErrors} harvest, ${extractionResult.failed} extraction, ${enrichmentResult.failed} enrichment`,
+        `Errors: ${harvestResult.totalErrors} harvest, ${extractionResult.failed} extraction, ${enrichmentResult.failed} enrichment, ${projectoryResult.totalErrors} projectory`,
       ].join("\n"),
     });
   } catch (err: unknown) {

@@ -64,3 +64,10 @@
 - [x] Full daily pipeline runner (harvest → extract → enrich → notify owner)
 - [x] Admin dashboard: Run Full Pipeline button, Enrich Contacts button, enrichment stats panel
 - [x] Vitest tests for contact enrichment service (email inference, role bucket, target roles)
+- [x] Build Projectory scraper service (weekly harvest of 6 categories)
+- [x] Map Projectory data fields to existing project schema (status, CAPEX, sector, priority, contacts)
+- [x] Deduplication against existing projects in database (name-based fuzzy matching)
+- [x] Include older projects and update their current phase
+- [x] Wire Projectory scraper into admin dashboard with manual trigger (Scrape Projectory button)
+- [x] Set up weekly automated schedule for Projectory scraping (Mondays via daily pipeline)
+- [x] Vitest tests for Projectory scraper (listing page parser, article page parser, contact extraction)

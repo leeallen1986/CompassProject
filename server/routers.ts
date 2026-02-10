@@ -31,6 +31,7 @@ import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } f
 import { seedDefaultPipelineData } from "./seedPipeline";
 import { runEnrichmentPipeline, getEnrichmentStats } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
+import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
 import { notifyOwner } from "./_core/notification";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
@@ -615,6 +616,43 @@ export const appRouter = router({
     run: adminProcedure.mutation(async () => {
       const result = await runDailyPipeline();
       return result;
+    }),
+  }),
+
+  // ── Projectory Scraper (admin only) ──
+  projectory: router({
+    /** Run the Projectory scraper */
+    scrape: adminProcedure
+      .input(z.object({
+        maxPages: z.number().optional(),
+        categories: z.array(z.string()).optional(),
+      }).optional())
+      .mutation(async ({ input }) => {
+        const result = await runProjectoryScraper(input ?? undefined);
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "Projectory Scrape Complete",
+            content: `Scraped ${result.totalScraped} articles from ${result.totalCategories} categories. ${result.totalNewProjects} new projects, ${result.totalNewContacts} new contacts, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
+
+    /** Set session cookies for Projectory access */
+    setCookies: adminProcedure
+      .input(z.object({ cookies: z.string() }))
+      .mutation(async ({ input }) => {
+        setProjectoryCookies(input.cookies);
+        return { success: true };
+      }),
+
+    /** Check if cookies are configured */
+    status: protectedProcedure.query(async () => {
+      const cookies = getProjectoryCookies();
+      return {
+        hasCookies: cookies.length > 0,
+        cookieLength: cookies.length,
+      };
     }),
   }),
 

@@ -522,3 +522,138 @@ describe("target roles by sector", () => {
     }
   });
 });
+
+// ── Projectory Scraper tests ──
+
+import { parseListingPage, parseArticlePage } from "./projectoryScraper";
+
+describe("parseListingPage", () => {
+  it("extracts article links from a typical listing page", () => {
+    const html = `
+      <div class="article-list">
+        <h3 class="entry-title"><a href="https://www.projectory.com.au/article/new-gold-mine-wa">New Gold Mine in WA</a></h3>
+        <span>on January 15, 2026</span>
+        <h3 class="entry-title"><a href="https://www.projectory.com.au/article/solar-farm-qld">Solar Farm QLD Expansion</a></h3>
+        <span>on February 1, 2026</span>
+      </div>
+    `;
+    const articles = parseListingPage(html);
+    expect(articles).toHaveLength(2);
+    expect(articles[0].title).toBe("New Gold Mine in WA");
+    expect(articles[0].url).toBe("https://www.projectory.com.au/article/new-gold-mine-wa");
+    expect(articles[0].date).toBe("January 15, 2026");
+    expect(articles[1].title).toBe("Solar Farm QLD Expansion");
+  });
+
+  it("returns empty array for pages with no article links", () => {
+    const html = `<div><p>No articles here</p></div>`;
+    const articles = parseListingPage(html);
+    expect(articles).toHaveLength(0);
+  });
+
+  it("handles articles without dates gracefully", () => {
+    const html = `
+      <h3 class="entry-title"><a href="https://www.projectory.com.au/article/test-project">Test Project</a></h3>
+    `;
+    const articles = parseListingPage(html);
+    expect(articles).toHaveLength(1);
+    expect(articles[0].date).toBe("");
+  });
+});
+
+describe("parseArticlePage", () => {
+  it("extracts project details from the project snapshot section", () => {
+    const html = `
+      <div class="c-project-snapshot">
+        <div class="c-project-snapshot__name"><a href="/project/big-mine">Big Mining Project</a></div>
+        <div class="c-project-snapshot__line">
+          <label class="c-project-snapshot__label">Status:</label> Construction
+        </div>
+        <div class="c-project-snapshot__line">
+          <label class="c-project-snapshot__label">Site:</label> Pilbara, WA
+        </div>
+        <div class="c-project-snapshot__line">
+          <label class="c-project-snapshot__label">CAPEX($AUD million):</label> $450
+        </div>
+        <div class="c-project-snapshot__line">
+          <label class="c-project-snapshot__label">Proponent:</label> BHP Group
+        </div>
+      </div>
+    `;
+    const result = parseArticlePage(html);
+    expect(result.project).not.toBeNull();
+    expect(result.project!.name).toBe("Big Mining Project");
+    expect(result.project!.status).toBe("Construction");
+    expect(result.project!.site).toBe("Pilbara, WA");
+    expect(result.project!.capex).toBe("$450");
+    expect(result.project!.proponent).toBe("BHP Group");
+  });
+
+  it("extracts contacts from the Project Contacts section", () => {
+    const html = `
+      <div>Project Contacts</div>
+      <div class="c-accordion__title">
+        <span class="c-accordion__title-text">John Smith</span>
+      </div>
+      <div class="c-accordion__content">
+        <table>
+          <tr>
+            <td class="c-project-snapshot__label">Position:</td>
+            <td>Project Manager</td>
+          </tr>
+          <tr>
+            <td class="c-project-snapshot__label">Organisation:</td>
+            <td>BHP Group</td>
+          </tr>
+          <tr>
+            <td class="c-project-snapshot__label">Telephone:</td>
+            <td>+61 8 1234 5678</td>
+          </tr>
+        </table>
+        <a href="mailto:john.smith@bhp.com">Email</a>
+      </div>
+      <div class="c-accordion__title">
+        <span class="c-accordion__title-text">Jane Doe</span>
+      </div>
+      <div class="c-accordion__content">
+        <table>
+          <tr>
+            <td class="c-project-snapshot__label">Position:</td>
+            <td>Site Engineer</td>
+          </tr>
+          <tr>
+            <td class="c-project-snapshot__label">Organisation:</td>
+            <td>Fluor Corporation</td>
+          </tr>
+        </table>
+      </div>
+    `;
+    const result = parseArticlePage(html);
+    expect(result.contacts).toHaveLength(2);
+    expect(result.contacts[0].name).toBe("John Smith");
+    expect(result.contacts[0].position).toBe("Project Manager");
+    expect(result.contacts[0].organisation).toBe("BHP Group");
+    expect(result.contacts[0].email).toBe("john.smith@bhp.com");
+    expect(result.contacts[0].telephone).toBe("+61 8 1234 5678");
+    expect(result.contacts[1].name).toBe("Jane Doe");
+    expect(result.contacts[1].position).toBe("Site Engineer");
+  });
+
+  it("returns null project when no snapshot section exists", () => {
+    const html = `<div><p>Just a regular article with no project details.</p></div>`;
+    const result = parseArticlePage(html);
+    expect(result.project).toBeNull();
+    expect(result.contacts).toHaveLength(0);
+  });
+
+  it("extracts body text from entry-content div", () => {
+    const html = `
+      <div class="entry-content">
+        <p>This is a major new mining project in Western Australia that will produce gold and copper.</p>
+      </div>
+    `;
+    const result = parseArticlePage(html);
+    expect(result.bodyText).toContain("major new mining project");
+    expect(result.bodyText).toContain("Western Australia");
+  });
+});

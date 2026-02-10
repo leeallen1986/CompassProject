@@ -323,6 +323,14 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`Pipeline failed: ${e.message}`),
   });
+  const projectoryScrape = trpc.projectory.scrape.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Projectory: ${data.totalNewProjects} new projects, ${data.totalNewContacts} contacts from ${data.totalScraped} articles (${data.duration}s)`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`Projectory scrape failed: ${e.message}`),
+  });
+  const { data: projectoryStatus } = trpc.projectory.status.useQuery();
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -395,6 +403,28 @@ function PipelineOpsTab() {
           {seedMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
           Seed Defaults
         </Button>
+        <Button
+          onClick={() => projectoryScrape.mutate({})}
+          disabled={projectoryScrape.isPending}
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
+        >
+          {projectoryScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+          Scrape Projectory
+        </Button>
+      </div>
+
+      {/* Projectory Status */}
+      <div className="bg-card rounded-lg border border-purple-200 p-4">
+        <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
+          <Database className="w-4 h-4 text-purple-600" /> Projectory Integration
+        </h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className={`flex items-center gap-1 ${projectoryStatus?.hasCookies ? 'text-teal' : 'text-hot'}`}>
+            {projectoryStatus?.hasCookies ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+            {projectoryStatus?.hasCookies ? 'Session active' : 'No session cookies'}
+          </span>
+          <span className="text-muted-foreground text-xs">Scrapes 6 categories, ~60 articles per run. Zero AI credits.</span>
+        </div>
       </div>
 
       {/* Contact Enrichment Stats */}
