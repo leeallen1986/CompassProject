@@ -12,7 +12,7 @@ import {
   Loader2, ArrowLeft, Shield, Rss, Building2, Database, Play,
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
-  UserPlus, Copy, KeyRound, Mail,
+  UserPlus, Copy, KeyRound, Mail, Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -378,6 +378,13 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`AEMO scrape failed: ${e.message}`),
   });
+  const govScrape = trpc.gov.scrape.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Gov Projects: ${data.totalNewProjects} new projects, ${data.totalDuplicates} duplicates from ${data.totalFetched} government projects (${data.duration}s)`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`Gov scrape failed: ${e.message}`),
+  });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -474,6 +481,27 @@ function PipelineOpsTab() {
           {aemoScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
           Scrape AEMO
         </Button>
+        <Button
+          onClick={() => govScrape.mutate()}
+          disabled={govScrape.isPending}
+          className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+        >
+          {govScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Landmark className="w-4 h-4" />}
+          Scrape Gov Projects
+        </Button>
+      </div>
+
+      {/* Gov Projects Status */}
+      <div className="bg-card rounded-lg border border-blue-200 p-4 mb-3">
+        <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
+          <Landmark className="w-4 h-4 text-blue-600" /> Government Major Projects
+        </h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 text-teal">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Infrastructure Australia + NREPL projects
+          </span>
+          <span className="text-muted-foreground text-xs">43 curated projects: transport, water, energy, defence. Runs Tuesdays via daily pipeline.</span>
+        </div>
       </div>
 
       {/* AEMO Status */}

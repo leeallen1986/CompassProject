@@ -15,6 +15,7 @@ import { eq, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { projects, reports, businessLines } from "../drizzle/schema";
 import type { InsertProject } from "../drizzle/schema";
+import { generateAndEnrichContacts } from "./contactEnrichment";
 
 // ── Types ──
 
@@ -569,9 +570,26 @@ export async function runAemoScraper(): Promise<AemoScrapeResult> {
     };
 
     try {
-      await db.insert(projects).values(projectData);
+      const [inserted] = await db.insert(projects).values(projectData).$returningId();
       totalNewProjects++;
       console.log(`[AEMO] New project: ${aemoProject.name} (${aemoProject.capacity}, ${aemoProject.status})`);
+
+      // Auto-discover and enrich contacts for this new project
+      try {
+        const contactResults = await generateAndEnrichContacts(
+          inserted.id,
+          reportId,
+          aemoProject.name,
+          aemoProject.developer,
+          [{ name: aemoProject.developer, status: "confirmed" }],
+          "energy"
+        );
+        if (contactResults.length > 0) {
+          console.log(`[AEMO] Auto-enriched ${contactResults.length} contacts for ${aemoProject.name}`);
+        }
+      } catch (enrichErr) {
+        console.warn(`[AEMO] Contact enrichment failed for ${aemoProject.name}:`, enrichErr instanceof Error ? enrichErr.message : String(enrichErr));
+      }
     } catch (insertErr) {
       const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
       errors.push(`Insert "${aemoProject.name}": ${msg}`);

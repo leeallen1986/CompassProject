@@ -35,6 +35,7 @@ import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from
 import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
 import { runDmirsScraper } from "./dmirsScraper";
 import { runAemoScraper } from "./aemoScraper";
+import { runGovScraper } from "./govScraper";
 import {
   createInvite, completeRegistration, loginWithEmail,
   generatePasswordReset, resetPassword, getEmailUsers, deleteEmailUser,
@@ -861,6 +862,22 @@ export const appRouter = router({
           await notifyOwner({
             title: "AEMO Scrape Complete",
             content: `Scraped ${result.totalFetched} AEMO generation projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
+  }),
+
+  // ── Government Major Projects Scraper (admin only) ──
+  gov: router({
+    /** Run the government major projects scraper */
+    scrape: adminProcedure
+      .mutation(async () => {
+        const result = await runGovScraper();
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "Gov Projects Scrape Complete",
+            content: `Scraped ${result.totalFetched} government major projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
           });
         }
         return result;

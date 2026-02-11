@@ -18,6 +18,7 @@ import { runEnrichmentPipeline } from "./contactEnrichment";
 import { runProjectoryScraper } from "./projectoryScraper";
 import { runDmirsScraper } from "./dmirsScraper";
 import { runAemoScraper } from "./aemoScraper";
+import { runGovScraper } from "./govScraper";
 import { notifyOwner } from "./_core/notification";
 
 export interface DailyPipelineResult {
@@ -61,6 +62,13 @@ export interface DailyPipelineResult {
     totalNewProjects: number;
     totalDuplicates: number;
     totalSkipped: number;
+    totalErrors: number;
+    duration: number;
+  };
+  gov: {
+    ran: boolean;
+    totalNewProjects: number;
+    totalDuplicates: number;
     totalErrors: number;
     duration: number;
   };
@@ -169,8 +177,31 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     console.log("[DailyPipeline] Skipping AEMO (runs on Fridays only)");
   }
 
-  // Step 6: Contact Enrichment
-  console.log("[DailyPipeline] Step 6/7: Enriching contacts...");
+  // Step 6: Government Major Projects Scrape (weekly — runs on Tuesdays)
+  const isTuesday = new Date().getUTCDay() === 2;
+  let govResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isTuesday) {
+    console.log("[DailyPipeline] Step 6/8: Scraping government major projects (weekly Tuesday run)...");
+    try {
+      const scrapeResult = await runGovScraper();
+      govResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      console.log(`[DailyPipeline] Gov complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] Gov scrape failed:", err instanceof Error ? err.message : String(err));
+      govResult.totalErrors = 1;
+    }
+  } else {
+    console.log("[DailyPipeline] Skipping Gov projects (runs on Tuesdays only)");
+  }
+
+  // Step 7: Contact Enrichment
+  console.log("[DailyPipeline] Step 7/8: Enriching contacts...");
   let enrichmentResult;
   try {
     enrichmentResult = await runEnrichmentPipeline();
@@ -209,6 +240,7 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     projectory: projectoryResult,
     dmirs: dmirsResult,
     aemo: aemoResult,
+    gov: govResult,
     duration,
     completedAt,
   };
@@ -226,6 +258,7 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
         projectoryResult.ran ? `Projectory Scrape: ${projectoryResult.totalNewProjects} new projects, ${projectoryResult.totalNewContacts} contacts (${projectoryResult.duration}s)` : `Projectory: Skipped (runs Mondays only)`,
         dmirsResult.ran ? `DMIRS Scrape: ${dmirsResult.totalNewProjects} new projects, ${dmirsResult.totalDuplicates} duplicates (${dmirsResult.duration}s)` : `DMIRS: Skipped (runs Wednesdays only)`,
         aemoResult.ran ? `AEMO Scrape: ${aemoResult.totalNewProjects} new projects, ${aemoResult.totalDuplicates} duplicates (${aemoResult.duration}s)` : `AEMO: Skipped (runs Fridays only)`,
+        govResult.ran ? `Gov Projects: ${govResult.totalNewProjects} new projects, ${govResult.totalDuplicates} duplicates (${govResult.duration}s)` : `Gov Projects: Skipped (runs Tuesdays only)`,
         ``,
         `Errors: ${harvestResult.totalErrors} harvest, ${extractionResult.failed} extraction, ${enrichmentResult.failed} enrichment, ${projectoryResult.totalErrors} projectory`,
       ].join("\n"),

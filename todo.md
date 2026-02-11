@@ -142,5 +142,14 @@
 - [x] Expand Pump (Flow) keywords (stormwater, tailings, groundwater, flood recovery, dam construction, etc.)
 - [x] Vitest tests for AEMO scraper (business line matching, priority mapping, CAPEX grading, equipment signals)
 - [x] All 196 tests passing
-- [ ] Build scrapers for additional data sources (government major projects, tender sites)
+- [x] Build government major projects scraper (Infrastructure Australia Priority List + NREPL)
+- [x] 43 curated projects: transport, water, energy, defence across all Australian states
+- [x] Wire gov scraper into admin dashboard with manual trigger (Scrape Gov Projects button)
+- [x] Set up weekly automated schedule for gov scraping (Tuesdays via daily pipeline)
+- [x] Auto-enrichment: both gov scraper and AEMO scraper now auto-discover contacts via LinkedIn on new project insertion
+- [x] Vitest tests for gov scraper (business line matching, priority mapping, CAPEX grading, data integrity, category coverage)
+- [x] All 241 tests passing
+- [x] Dashboard now at 116 total projects (BESS 33, PAL 53, Portable Air 98, Pump 29)
 - [ ] Target: 500+ projects and 1500+ contacts at scale
+- [ ] Build tender site scrapers (AusTender, ICN Gateway)
+- [ ] Add networking events page for sales professionals
