@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
@@ -33,6 +33,11 @@ import { runEnrichmentPipeline, getEnrichmentStats } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
 import { runDmirsScraper } from "./dmirsScraper";
+import {
+  createInvite, completeRegistration, loginWithEmail,
+  generatePasswordReset, resetPassword, getEmailUsers, deleteEmailUser,
+  validatePassword,
+} from "./emailAuth";
 import { notifyOwner } from "./_core/notification";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
@@ -48,6 +53,92 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // ── Email/Password Auth ──
+    loginWithEmail: publicProcedure
+      .input(z.object({ email: z.string().email(), password: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const { user, sessionToken } = await loginWithEmail(input);
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+
+    register: publicProcedure
+      .input(z.object({ inviteToken: z.string().min(1), password: z.string().min(8) }))
+      .mutation(async ({ input, ctx }) => {
+        const { user, sessionToken } = await completeRegistration(input);
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+
+    resetPassword: publicProcedure
+      .input(z.object({ resetToken: z.string().min(1), newPassword: z.string().min(8) }))
+      .mutation(async ({ input }) => {
+        return resetPassword(input);
+      }),
+
+    validateInviteToken: publicProcedure
+      .input(z.object({ token: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { users: usersTable } = await import("../drizzle/schema");
+        const result = await db.select().from(usersTable)
+          .where(eq(usersTable.inviteToken, input.token)).limit(1);
+        if (result.length === 0) return { valid: false, email: null, name: null };
+        const user = result[0];
+        if (user.inviteExpiresAt && new Date() > user.inviteExpiresAt) return { valid: false, email: null, name: null };
+        return { valid: true, email: user.email, name: user.name };
+      }),
+  }),
+
+  // ── Admin User Management ──
+  userManagement: router({
+    invite: adminProcedure
+      .input(z.object({
+        email: z.string().email(),
+        name: z.string().min(1),
+        role: z.enum(["user", "admin", "distributor"]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await createInvite({ ...input, invitedByUserId: ctx.user.id });
+        // Build the registration URL
+        const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || "";
+        const registrationUrl = `${origin}/register?token=${result.inviteToken}`;
+        return { ...result, registrationUrl };
+      }),
+
+    resetPassword: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await generatePasswordReset(input.userId);
+        const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || "";
+        const resetUrl = `${origin}/reset-password?token=${result.resetToken}`;
+        return { ...result, resetUrl };
+      }),
+
+    listEmailUsers: adminProcedure.query(async () => {
+      const emailUsers = await getEmailUsers();
+      return emailUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        authMethod: u.authMethod,
+        lastSignedIn: u.lastSignedIn,
+        createdAt: u.createdAt,
+        hasPendingInvite: !!u.inviteToken,
+      }));
+    }),
+
+    deleteUser: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteEmailUser(input.userId);
+        return { success: true };
+      }),
   }),
 
   // ── User Profile / Onboarding endpoints ──

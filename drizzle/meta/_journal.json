@@ -43,6 +43,13 @@
       "when": 1770765341279,
       "tag": "0005_strong_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1770772462930,
+      "tag": "0006_first_jean_grey",
+      "breakpoints": true
     }
   ]
 }

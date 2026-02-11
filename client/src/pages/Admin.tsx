@@ -12,6 +12,7 @@ import {
   Loader2, ArrowLeft, Shield, Rss, Building2, Database, Play,
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
+  UserPlus, Copy, KeyRound, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -539,6 +540,236 @@ function PipelineOpsTab() {
   );
 }
 
+// ── User Management Tab ──
+
+function UserManagementTab() {
+  const utils = trpc.useUtils();
+  const { data: emailUsers, isLoading } = trpc.userManagement.listEmailUsers.useQuery();
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"user" | "distributor" | "admin">("distributor");
+  const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
+  const [lastResetUrl, setLastResetUrl] = useState<string | null>(null);
+
+  const inviteMutation = trpc.userManagement.invite.useMutation({
+    onSuccess: (data) => {
+      setLastInviteUrl(data.registrationUrl);
+      setShowInvite(false);
+      setInviteName("");
+      setInviteEmail("");
+      utils.userManagement.listEmailUsers.invalidate();
+      toast.success(`Invitation created for ${data.email}`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const resetPwMutation = trpc.userManagement.resetPassword.useMutation({
+    onSuccess: (data) => {
+      setLastResetUrl(data.resetUrl);
+      toast.success("Password reset link generated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteMutation = trpc.userManagement.deleteUser.useMutation({
+    onSuccess: () => {
+      utils.userManagement.listEmailUsers.invalidate();
+      toast.success("User deleted");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Invite URL display */}
+      {lastInviteUrl && (
+        <div className="bg-teal/10 border border-teal/30 rounded-lg p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold text-teal flex items-center gap-2"><Mail className="w-4 h-4" /> Invitation Link Created</h3>
+              <p className="text-xs text-muted-foreground mt-1">Send this link to the user to complete their registration. Expires in 72 hours.</p>
+              <code className="text-xs bg-card border border-border rounded px-2 py-1 mt-2 block break-all">{lastInviteUrl}</code>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => copyToClipboard(lastInviteUrl)} className="shrink-0">
+              <Copy className="w-3.5 h-3.5 mr-1" /> Copy
+            </Button>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setLastInviteUrl(null)} className="mt-2 text-xs">Dismiss</Button>
+        </div>
+      )}
+
+      {/* Reset URL display */}
+      {lastResetUrl && (
+        <div className="bg-gold/10 border border-gold/30 rounded-lg p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-bold text-gold-dark flex items-center gap-2"><KeyRound className="w-4 h-4" /> Password Reset Link</h3>
+              <p className="text-xs text-muted-foreground mt-1">Send this link to the user to reset their password. Expires in 72 hours.</p>
+              <code className="text-xs bg-card border border-border rounded px-2 py-1 mt-2 block break-all">{lastResetUrl}</code>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => copyToClipboard(lastResetUrl)} className="shrink-0">
+              <Copy className="w-3.5 h-3.5 mr-1" /> Copy
+            </Button>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setLastResetUrl(null)} className="mt-2 text-xs">Dismiss</Button>
+        </div>
+      )}
+
+      {/* Invite form */}
+      <div className="bg-card rounded-lg border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-navy flex items-center gap-2">
+            <Users className="w-5 h-5 text-gold" /> Email/Password Users
+          </h2>
+          <Button
+            size="sm"
+            onClick={() => setShowInvite(!showInvite)}
+            className="bg-navy hover:bg-navy-light text-white gap-1.5"
+          >
+            <UserPlus className="w-3.5 h-3.5" /> Invite User
+          </Button>
+        </div>
+
+        {showInvite && (
+          <div className="bg-slate-50 border border-border rounded-lg p-4 mb-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="John Smith"
+                  className="w-full px-3 py-2 rounded-md border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="john@company.com"
+                  className="w-full px-3 py-2 rounded-md border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Role</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as "user" | "distributor" | "admin")}
+                  className="w-full px-3 py-2 rounded-md border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+                >
+                  <option value="distributor">Distributor</option>
+                  <option value="user">Internal User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (!inviteName || !inviteEmail) { toast.error("Name and email are required"); return; }
+                  inviteMutation.mutate({ name: inviteName, email: inviteEmail, role: inviteRole });
+                }}
+                disabled={inviteMutation.isPending}
+                className="bg-teal hover:bg-teal-light text-white gap-1.5"
+              >
+                {inviteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                Send Invitation
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowInvite(false)}>Cancel</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Users table */}
+        {isLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
+        ) : !emailUsers || emailUsers.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No email/password users yet. Invite your first distributor above.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-navy text-white">
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Name</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Email</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Role</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Last Login</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {emailUsers.map((u, i) => (
+                  <tr key={u.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                    <td className="px-4 py-3 font-medium text-navy">{u.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        u.role === "admin" ? "bg-hot/15 text-hot" :
+                        u.role === "distributor" ? "bg-teal/15 text-teal" :
+                        "bg-gold/15 text-gold-dark"
+                      }`}>{u.role}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.hasPendingInvite ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-warm/15 text-warm">Pending</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-teal/15 text-teal">Active</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {u.lastSignedIn ? new Date(u.lastSignedIn).toLocaleDateString() : "Never"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => resetPwMutation.mutate({ userId: u.id })}
+                          className="px-2 py-1 rounded text-[10px] font-semibold bg-gold/15 text-gold-dark hover:bg-gold/25 transition-colors"
+                          title="Generate password reset link"
+                        >
+                          <KeyRound className="w-3 h-3 inline mr-0.5" /> Reset PW
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete user ${u.name}?`)) deleteMutation.mutate({ userId: u.id });
+                          }}
+                          className="px-2 py-1 rounded text-[10px] font-semibold bg-hot/15 text-hot hover:bg-hot/25 transition-colors"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-gold/8 border border-gold/25 rounded-lg p-4">
+        <p className="text-sm text-foreground/80">
+          <strong className="text-navy">How it works:</strong> Invite a user by entering their name, email, and role. They receive a registration link to set their password. Internal team members can continue using Manus OAuth login. Both auth methods work side by side.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Admin Page ──
 
 export default function Admin() {
@@ -604,6 +835,9 @@ export default function Admin() {
             <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <Rss className="w-3.5 h-3.5 mr-1.5" /> RSS Sources
             </TabsTrigger>
+            <TabsTrigger value="users" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
+              <Users className="w-3.5 h-3.5 mr-1.5" /> User Management
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -616,6 +850,10 @@ export default function Admin() {
 
           <TabsContent value="sources">
             <RssSourcesTab />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagementTab />
           </TabsContent>
         </Tabs>
       </main>

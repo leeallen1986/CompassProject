@@ -77,3 +77,13 @@
 - [x] Wire DMIRS scraper into admin dashboard with manual trigger (Scrape DMIRS button)
 - [x] Set up weekly automated schedule for DMIRS scraping (Wednesdays via daily pipeline)
 - [x] Vitest tests for DMIRS scraper (cleanProjectName, extractLocation, mapPriority, extractEquipmentSignals)
+- [x] Extend user schema with email, passwordHash, authMethod fields
+- [x] Build server-side email/password auth (login, register via invite, password reset)
+- [x] Build email/password login page with show password toggle
+- [x] Build registration page for completing invitations
+- [x] Build password reset page
+- [x] Admin invite flow (admin creates distributor accounts with email)
+- [x] Admin user management tab (list users, invite, reset password, delete)
+- [x] Dual auth support (Manus OAuth for internal, email/password for distributors)
+- [x] Redirect to /login page instead of Manus OAuth on unauthorized
+- [x] Vitest tests for email/password auth (password validation, hashing, verification)
