@@ -114,3 +114,9 @@
 - [x] Add new RSS feeds for generators, pumps, and BESS (Energy Storage News, Renewables Now, Fluid Handling, CEG, Diesel Progress)
 - [x] Run AI extraction pipeline on queued articles (54 total projects now, up from 28)
 - [x] Add business line badges to project cards (Air, PAL, Pump, BESS color-coded badges)
+- [x] AI-powered outreach email generator feature
+- [x] Server-side tRPC endpoint to generate personalised outreach email via LLM
+- [x] Outreach email modal UI with preview, edit subject/body, and tone selector (3 tones: professional, consultative, direct)
+- [x] mailto: integration to open user's email client with pre-filled draft
+- [x] Wire contact "Outreach" buttons in Contacts tab to trigger AI outreach flow
+- [x] Vitest tests for outreach email generation endpoint (11 tests)

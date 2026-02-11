@@ -40,6 +40,7 @@ import {
   validatePassword,
 } from "./emailAuth";
 import { notifyOwner } from "./_core/notification";
+import { generateOutreachEmail } from "./outreachEmail";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
 import { projects } from "../drizzle/schema";
@@ -845,6 +846,36 @@ export const appRouter = router({
             content: `Scraped ${result.totalFetched} registrations from DMIRS MINEDEX. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
           });
         }
+        return result;
+      }),
+  }),
+
+  // ── Outreach Email Generator ──
+  outreach: router({
+    /** Generate a personalised outreach email for a contact on a project */
+    generate: protectedProcedure
+      .input(z.object({
+        contactName: z.string(),
+        contactTitle: z.string(),
+        contactCompany: z.string(),
+        contactEmail: z.string(),
+        contactRoleBucket: z.string(),
+        projectName: z.string(),
+        projectLocation: z.string(),
+        projectValue: z.string(),
+        projectSector: z.string(),
+        projectStage: z.string().nullable(),
+        projectOverview: z.string().nullable(),
+        equipmentSignals: z.array(z.string()).nullable(),
+        opportunityRoute: z.string(),
+        matchedBusinessLines: z.array(z.string()),
+        tone: z.enum(["professional", "consultative", "direct"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await generateOutreachEmail({
+          ...input,
+          senderName: ctx.user.name || "Team",
+        });
         return result;
       }),
   }),

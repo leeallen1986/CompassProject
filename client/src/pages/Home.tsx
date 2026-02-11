@@ -12,13 +12,14 @@ import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Shield,
-  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target
+  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectCard, { type ProjectData } from "@/components/ProjectCard";
 import { IMAGES } from "@/lib/images";
 import { scoreAndRankProjects, type UserProfileData, type FeedbackData } from "@/lib/personalization";
+import OutreachEmailModal from "@/components/OutreachEmailModal";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -93,8 +94,57 @@ interface ContactRow {
   linkedin: string | null;
 }
 
-function ContactsTable({ data, weekEnding }: { data: ContactRow[]; weekEnding: string }) {
+function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNames }: { data: ContactRow[]; weekEnding: string; projects: ProjectData[]; businessLineNames: Record<number, string> }) {
   const [search, setSearch] = useState("");
+  const [outreachContact, setOutreachContact] = useState<ContactRow | null>(null);
+  const [outreachProject, setOutreachProject] = useState<ProjectData | null>(null);
+
+  // Find matching project for a contact
+  const findProjectForContact = (contact: ContactRow): ProjectData | null => {
+    const projectName = contact.project.toLowerCase();
+    return allProjects.find(p => 
+      p.name.toLowerCase().includes(projectName) || 
+      projectName.includes(p.name.toLowerCase())
+    ) ?? allProjects.find(p => 
+      p.owner.toLowerCase() === contact.company.toLowerCase()
+    ) ?? null;
+  };
+
+  const handleOutreachClick = (contact: ContactRow) => {
+    const matchedProject = findProjectForContact(contact);
+    if (matchedProject) {
+      setOutreachContact(contact);
+      setOutreachProject(matchedProject);
+    } else {
+      // Fallback: create a minimal project from contact info
+      setOutreachContact(contact);
+      setOutreachProject({
+        id: 0,
+        reportId: 0,
+        projectKey: "",
+        name: contact.project,
+        location: "Australia",
+        value: "Unknown",
+        owner: contact.company,
+        priority: contact.priority,
+        capexGrade: "Unknown" as const,
+        opportunityRoute: "Direct CAPEX" as const,
+        sector: "mining" as const,
+        isNew: false,
+        stage: null,
+        overview: null,
+        equipmentSignals: null,
+        contractors: null,
+        opportunityNote: null,
+        sources: null,
+        timeline: null,
+        completion: null,
+        matchedBusinessLines: null,
+        createdAt: new Date(),
+      });
+    }
+  };
+
   const filtered = useMemo(() => {
     if (!search) return data;
     const q = search.toLowerCase();
@@ -167,7 +217,9 @@ function ContactsTable({ data, weekEnding }: { data: ContactRow[]; weekEnding: s
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     {c.email && (
-                      <a href={`mailto:${c.email}`} className="px-2 py-1 rounded text-[10px] font-semibold bg-teal/15 text-teal hover:bg-teal/25 transition-colors">Email</a>
+                      <button onClick={() => handleOutreachClick(c)} className="px-2 py-1 rounded text-[10px] font-semibold bg-gold/15 text-gold-dark hover:bg-gold/25 transition-colors flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Outreach
+                      </button>
                     )}
                     {c.linkedin && (
                       <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-navy/10 text-navy hover:bg-navy/20 transition-colors">LI</a>
@@ -180,6 +232,32 @@ function ContactsTable({ data, weekEnding }: { data: ContactRow[]; weekEnding: s
         </table>
       </div>
       <p className="text-xs text-muted-foreground mt-2">{filtered.length} of {data.length} contacts shown</p>
+
+      {/* Outreach Email Modal */}
+      {outreachContact && outreachProject && (
+        <OutreachEmailModal
+          isOpen={!!outreachContact}
+          onClose={() => { setOutreachContact(null); setOutreachProject(null); }}
+          contact={{
+            name: outreachContact.name,
+            title: outreachContact.title,
+            company: outreachContact.company,
+            email: outreachContact.email || "",
+            roleBucket: outreachContact.roleBucket,
+          }}
+          project={{
+            name: outreachProject.name,
+            location: outreachProject.location,
+            value: outreachProject.value,
+            sector: outreachProject.sector,
+            stage: outreachProject.stage,
+            overview: outreachProject.overview,
+            equipmentSignals: outreachProject.equipmentSignals,
+            opportunityRoute: outreachProject.opportunityRoute,
+            matchedBusinessLines: (outreachProject.matchedBusinessLines || []).map(id => businessLineNames[id] || `BL-${id}`),
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -612,7 +690,7 @@ export default function Home() {
               <h2 className="text-lg font-bold text-navy">Contact Database</h2>
               <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{contacts.length} contacts</span>
             </div>
-            <ContactsTable data={contacts as ContactRow[]} weekEnding={report.weekEnding} />
+            <ContactsTable data={contacts as ContactRow[]} weekEnding={report.weekEnding} projects={personalizedProjects as ProjectData[]} businessLineNames={businessLineNamesMap} />
           </TabsContent>
 
           {/* ===== SOURCES TAB ===== */}
