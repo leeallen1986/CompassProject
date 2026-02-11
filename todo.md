@@ -182,3 +182,8 @@
 - [x] Vitest tests for enrichment caching and profile-aware filtering (337 tests passing)
 - [x] End-to-end test: Carmichael Mine → Found Danny Daly (Electrical Engineering Manager at Bravus Mining), cached for 7 days, 10 API calls
 - [x] Contacts count now at 52
+- [x] Fix login redirect: unauthenticated users see custom /login page (already implemented in main.tsx)
+- [x] Update app title from "Atlas Copco Portable Air" to "Atlas Copco Power Technique" in HTML title and placeholder text
+- [x] Manus OAuth is secondary option on login page — email/password is primary for sales team
+- [ ] User action needed: Change visibility to Public in Management UI Settings > General to remove Manus OAuth gate
+- [ ] User action needed: Update VITE_APP_TITLE in Management UI Settings > General to "Atlas Copco Power Technique - Market Intelligence"

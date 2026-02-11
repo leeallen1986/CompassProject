@@ -307,7 +307,7 @@ export default function Onboarding() {
                       type="text"
                       value={companyName}
                       onChange={e => setCompanyName(e.target.value)}
-                      placeholder="e.g. Atlas Copco Portable Air"
+                      placeholder="e.g. Atlas Copco Power Technique"
                       className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
                     />
                   </div>

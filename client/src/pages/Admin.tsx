@@ -83,7 +83,7 @@ function BusinessLinesTab() {
 
       {showForm && (
         <div className="bg-card rounded-lg border border-gold/30 p-4 space-y-3">
-          <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Business Line Name (e.g., Portable Air)"
+          <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Business Line Name (e.g., Power Technique)"
             className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm focus:ring-2 focus:ring-gold/40" />
           <input value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="Description"
             className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm focus:ring-2 focus:ring-gold/40" />
