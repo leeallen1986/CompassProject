@@ -180,9 +180,12 @@ export default function ProjectCard({
     <div
       className={`bg-card rounded-lg border-l-4 ${cfg.border} shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden ${project.isNew ? "ring-1 ring-teal/40" : ""}`}
     >
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen(!open)}
-        className="w-full text-left p-4 sm:p-5 flex items-start justify-between gap-3"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}
+        className="w-full text-left p-4 sm:p-5 flex items-start justify-between gap-3 cursor-pointer"
       >
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-1.5">
@@ -248,7 +251,7 @@ export default function ProjectCard({
           </div>
           <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </div>
-      </button>
+      </div>
 
       {/* Feedback reason selector (appears when thumbs down) */}
       <AnimatePresence>
