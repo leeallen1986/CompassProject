@@ -2,7 +2,7 @@
  * Admin Pipeline Dashboard — Manage business lines, RSS sources, and data pipeline.
  * Admin-only page with tabbed interface.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { runClientSideScrape, type ClientScrapeProgress, type ScrapedArticleData } from "@/lib/projectoryScraper";
 
 // ── Pipeline Stats Card ──
 
@@ -324,14 +325,45 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`Pipeline failed: ${e.message}`),
   });
-  const projectoryScrape = trpc.projectory.scrape.useMutation({
+  const projectoryIngest = trpc.projectory.ingest.useMutation({
     onSuccess: (data) => {
-      toast.success(`Projectory: ${data.totalNewProjects} new projects, ${data.totalNewContacts} contacts from ${data.totalScraped} articles (${data.duration}s)`);
+      toast.success(`Projectory: ${data.totalNewProjects} new projects, ${data.totalNewContacts} contacts, ${data.totalDuplicates} duplicates`);
       refetchStats();
+      setProjectoryProgress(null);
     },
-    onError: (e) => toast.error(`Projectory scrape failed: ${e.message}`),
+    onError: (e) => {
+      toast.error(`Projectory ingest failed: ${e.message}`);
+      setProjectoryProgress(null);
+    },
   });
-  const { data: projectoryStatus } = trpc.projectory.status.useQuery();
+  const [projectoryProgress, setProjectoryProgress] = useState<ClientScrapeProgress | null>(null);
+  const isProjectoryScraping = projectoryProgress !== null;
+
+  const handleProjectoryScrape = useCallback(async () => {
+    try {
+      setProjectoryProgress({ phase: "listing", message: "Starting...", articlesFound: 0, articlesScraped: 0, totalArticles: 0 });
+      const results = await runClientSideScrape((progress) => {
+        setProjectoryProgress(progress);
+      });
+
+      // Send to server for deduplication and storage
+      setProjectoryProgress({ phase: "sending", message: `Sending ${results.length} articles to server...`, articlesFound: results.length, articlesScraped: results.length, totalArticles: results.length });
+
+      // Batch in chunks of 10 to avoid payload size limits
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < results.length; i += BATCH_SIZE) {
+        const batch = results.slice(i, i + BATCH_SIZE);
+        await projectoryIngest.mutateAsync({ articles: batch });
+      }
+
+      setProjectoryProgress({ phase: "done", message: "Complete!", articlesFound: results.length, articlesScraped: results.length, totalArticles: results.length });
+      setTimeout(() => setProjectoryProgress(null), 3000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Projectory scrape failed: ${msg}`);
+      setProjectoryProgress(null);
+    }
+  }, [projectoryIngest]);
   const dmirsScrape = trpc.dmirs.scrape.useMutation({
     onSuccess: (data) => {
       toast.success(`DMIRS: ${data.totalNewProjects} new projects, ${data.totalDuplicates} duplicates from ${data.totalFetched} registrations (${data.duration}s)`);
@@ -412,12 +444,12 @@ function PipelineOpsTab() {
           Seed Defaults
         </Button>
         <Button
-          onClick={() => projectoryScrape.mutate({})}
-          disabled={projectoryScrape.isPending}
+          onClick={handleProjectoryScrape}
+          disabled={isProjectoryScraping}
           className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
         >
-          {projectoryScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-          Scrape Projectory
+          {isProjectoryScraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+          {isProjectoryScraping ? "Scraping..." : "Scrape Projectory"}
         </Button>
         <Button
           onClick={() => dmirsScrape.mutate({})}
@@ -447,12 +479,30 @@ function PipelineOpsTab() {
         <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
           <Database className="w-4 h-4 text-purple-600" /> Projectory Integration
         </h3>
-        <div className="flex items-center gap-3 text-sm">
-          <span className={`flex items-center gap-1 ${projectoryStatus?.hasCookies ? 'text-teal' : 'text-hot'}`}>
-            {projectoryStatus?.hasCookies ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-            {projectoryStatus?.hasCookies ? 'Session active' : 'No session cookies'}
-          </span>
-          <span className="text-muted-foreground text-xs">Scrapes 6 categories, ~60 articles per run. Zero AI credits.</span>
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-teal">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Client-side scraper (bypasses anti-bot)
+            </span>
+            <span className="text-muted-foreground text-xs">Scrapes 6 categories, ~60 articles per run. Zero AI credits.</span>
+          </div>
+          {projectoryProgress && (
+            <div className="bg-purple-50 border border-purple-200 rounded p-3">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="font-medium text-purple-700">{projectoryProgress.phase.toUpperCase()}</span>
+                <span className="text-purple-600">{projectoryProgress.articlesScraped}/{projectoryProgress.totalArticles || '?'}</span>
+              </div>
+              <p className="text-xs text-purple-600">{projectoryProgress.message}</p>
+              {projectoryProgress.totalArticles > 0 && (
+                <div className="mt-1 h-1.5 bg-purple-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-purple-600 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round((projectoryProgress.articlesScraped / projectoryProgress.totalArticles) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

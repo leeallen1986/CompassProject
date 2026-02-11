@@ -87,3 +87,8 @@
 - [x] Dual auth support (Manus OAuth for internal, email/password for distributors)
 - [x] Redirect to /login page instead of Manus OAuth on unauthorized
 - [x] Vitest tests for email/password auth (password validation, hashing, verification)
+- [x] Fix scraping pipeline — unified dashboard now shows ALL projects across all reports
+- [x] Consolidate dashboard into single personalized view (removed report selector dropdown)
+- [x] Personalization scoring drives project/opportunity ranking on main dashboard
+- [x] Client-side Projectory scraper (bypasses anti-bot via admin's browser session)
+- [x] Updated report.test.ts for new aggregated dashboard behavior

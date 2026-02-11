@@ -1,0 +1,19 @@
+{
+  "query": "SELECT DISTINCT reportId FROM projects; SELECT COUNT(*) as total FROM projects;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT DISTINCT reportId FROM projects; SELECT COUNT(*) as total FROM projects;",
+  "rows": [
+    {
+      "reportId": "1"
+    },
+    {
+      "reportId": "total"
+    },
+    {
+      "reportId": "28"
+    }
+  ],
+  "messages": [],
+  "stdout": "reportId\n1\ntotal\n28\n",
+  "stderr": "",
+  "execution_time_ms": 1757
+}

@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, reportId, name FROM projects LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, reportId, name FROM projects LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "reportId": "1",
+      "name": "West Angelas Sustaining Project (WASP) — Bulk Earthworks"
+    },
+    {
+      "id": "2",
+      "reportId": "1",
+      "name": "Monadelphous Rio Tinto Pilbara Maintenance Services"
+    },
+    {
+      "id": "3",
+      "reportId": "1",
+      "name": "Golding Meandu Coal Mine MSA"
+    },
+    {
+      "id": "4",
+      "reportId": "1",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning"
+    },
+    {
+      "id": "5",
+      "reportId": "1",
+      "name": "Thiess Mount Pleasant Operation Expansion"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\treportId\tname\n1\t1\tWest Angelas Sustaining Project (WASP) — Bulk Earthworks\n2\t1\tMonadelphous Rio Tinto Pilbara Maintenance Services\n3\t1\tGolding Meandu Coal Mine MSA\n4\t1\tBW Opal FPSO / Barossa LNG Commissioning\n5\t1\tThiess Mount Pleasant Operation Expansion\n",
+  "stderr": "",
+  "execution_time_ms": 1622
+}

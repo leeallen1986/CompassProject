@@ -5,10 +5,10 @@ import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_
 import { z } from "zod";
 import {
   getLatestReport, getAllReports, getReportById, createReport,
-  getProjectsByReportId, createProjects,
-  getContactsByReportId, createContacts,
-  getDrillingCampaignsByReportId, createDrillingCampaigns,
-  getAwardedProjectsByReportId, createAwardedProjects,
+  getProjectsByReportId, createProjects, getAllProjects,
+  getContactsByReportId, createContacts, getAllContacts,
+  getDrillingCampaignsByReportId, createDrillingCampaigns, getAllDrillingCampaigns,
+  getAwardedProjectsByReportId, createAwardedProjects, getAllAwardedProjects,
   getProfileByUserId, upsertProfile, completeOnboarding,
   upsertFeedback, getFeedbackByUserAndReport,
   createPipelineClaim, getPipelineClaimById, getPipelineClaimsByUser,
@@ -32,6 +32,7 @@ import { seedDefaultPipelineData } from "./seedPipeline";
 import { runEnrichmentPipeline, getEnrichmentStats } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
+import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
 import { runDmirsScraper } from "./dmirsScraper";
 import {
   createInvite, completeRegistration, loginWithEmail,
@@ -384,20 +385,51 @@ export const appRouter = router({
     full: protectedProcedure
       .input(z.object({ reportId: z.number().optional() }))
       .query(async ({ ctx, input }) => {
-        let report;
-        if (input.reportId) {
-          report = await getReportById(input.reportId);
-        } else {
-          report = await getLatestReport();
-        }
-        if (!report) return null;
-
+        // Always fetch ALL projects across all reports for the unified dashboard
         const [projectsList, contactsList, drillingList, awardedList] = await Promise.all([
-          getProjectsByReportId(report.id),
-          getContactsByReportId(report.id),
-          getDrillingCampaignsByReportId(report.id),
-          getAwardedProjectsByReportId(report.id),
+          getAllProjects(),
+          getAllContacts(),
+          getAllDrillingCampaigns(),
+          getAllAwardedProjects(),
         ]);
+
+        // Get the latest report for metadata (executive summary, etc.)
+        const report = input.reportId
+          ? await getReportById(input.reportId)
+          : await getLatestReport();
+
+        // Build aggregate stats from actual data
+        const hot = projectsList.filter(p => p.priority === "hot").length;
+        const warm = projectsList.filter(p => p.priority === "warm").length;
+        const cold = projectsList.filter(p => p.priority === "cold").length;
+
+        const aggregateReport = report ? {
+          ...report,
+          totalProjects: projectsList.length,
+          hotProjects: hot,
+          warmProjects: warm,
+          coldProjects: cold,
+          totalContacts: contactsList.length,
+        } : {
+          id: 0,
+          weekEnding: new Date().toISOString().slice(0, 10),
+          generatedTime: new Date().toISOString(),
+          totalProjects: projectsList.length,
+          hotProjects: hot,
+          warmProjects: warm,
+          coldProjects: cold,
+          confirmedContractors: 0,
+          predictedContractors: 0,
+          capexOpportunities: 0,
+          totalContacts: contactsList.length,
+          sourcesSearched: "Multi-Source Pipeline",
+          newProjectsCount: 0,
+          executiveSummaryMain: "Unified dashboard showing all projects from RSS feeds, Projectory, and DMIRS sources.",
+          executiveSummaryChanges: null,
+          actionItems: null,
+          researchPasses: null,
+          sourceCategories: null,
+        };
 
         // Apply ML ranking if user is authenticated
         let rankedProjects = projectsList;
@@ -408,7 +440,7 @@ export const appRouter = router({
         }
 
         return {
-          report,
+          report: aggregateReport,
           projects: rankedProjects,
           contacts: contactsList,
           drillingCampaigns: drillingList,
@@ -713,7 +745,7 @@ export const appRouter = router({
 
   // ── Projectory Scraper (admin only) ──
   projectory: router({
-    /** Run the Projectory scraper */
+    /** Legacy server-side scraper (requires cookies) */
     scrape: adminProcedure
       .input(z.object({
         maxPages: z.number().optional(),
@@ -725,6 +757,55 @@ export const appRouter = router({
           await notifyOwner({
             title: "Projectory Scrape Complete",
             content: `Scraped ${result.totalScraped} articles from ${result.totalCategories} categories. ${result.totalNewProjects} new projects, ${result.totalNewContacts} new contacts, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
+
+    /** Proxy fetch — fetches a Projectory URL server-side for the client scraper */
+    proxyFetch: adminProcedure
+      .input(z.object({ url: z.string().url() }))
+      .mutation(async ({ input }) => {
+        const html = await proxyFetchUrl(input.url);
+        return { html };
+      }),
+
+    /** Ingest pre-parsed articles from the client-side scraper */
+    ingest: adminProcedure
+      .input(z.object({
+        articles: z.array(z.object({
+          article: z.object({
+            title: z.string(),
+            url: z.string(),
+            date: z.string(),
+            categories: z.array(z.string()),
+            regions: z.array(z.string()),
+          }),
+          project: z.object({
+            name: z.string(),
+            projectUrl: z.string(),
+            status: z.string(),
+            site: z.string(),
+            capex: z.string(),
+            proponent: z.string(),
+          }).nullable(),
+          contacts: z.array(z.object({
+            name: z.string(),
+            position: z.string(),
+            organisation: z.string(),
+            telephone: z.string(),
+            email: z.string(),
+            website: z.string(),
+          })),
+          bodyText: z.string(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await ingestProjectoryArticles(input.articles);
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "Projectory Ingest Complete",
+            content: `Ingested ${result.totalReceived} articles. ${result.totalNewProjects} new projects, ${result.totalNewContacts} new contacts, ${result.totalDuplicates} duplicates.`,
           });
         }
         return result;

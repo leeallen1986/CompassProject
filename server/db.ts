@@ -151,6 +151,13 @@ export async function getProjectsByReportId(reportId: number) {
   return db.select().from(projects).where(eq(projects.reportId, reportId));
 }
 
+export async function getAllProjects() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(projects).orderBy(desc(projects.id));
+}
+
 // ── Contact helpers ──
 
 export async function createContacts(data: InsertContact[]): Promise<void> {
@@ -166,6 +173,27 @@ export async function getContactsByReportId(reportId: number) {
   if (!db) return [];
 
   return db.select().from(contacts).where(eq(contacts.reportId, reportId));
+}
+
+export async function getAllContacts() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(contacts).orderBy(desc(contacts.id));
+}
+
+export async function getAllDrillingCampaigns() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(drillingCampaigns).orderBy(desc(drillingCampaigns.id));
+}
+
+export async function getAllAwardedProjects() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(awardedProjects).orderBy(desc(awardedProjects.id));
 }
 
 // ── Drilling campaign helpers ──

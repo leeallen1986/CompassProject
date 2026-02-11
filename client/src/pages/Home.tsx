@@ -221,7 +221,6 @@ function LoadingPage() {
 // ══════════════════════════════════════════════════════════════
 export default function Home() {
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
-  const [selectedReportId, setSelectedReportId] = useState<number | undefined>(undefined);
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
 
@@ -230,12 +229,9 @@ export default function Home() {
   // Fetch user profile to check onboarding status
   const { data: profile, isLoading: profileLoading } = trpc.profile.get.useQuery(undefined, { enabled: isAuthenticated });
 
-  // Fetch report list for the dropdown
-  const { data: reportList } = trpc.report.list.useQuery(undefined, { enabled: isAuthenticated });
-
-  // Fetch the full report data
+  // Fetch the unified dashboard data (all projects across all sources)
   const { data: fullReport, isLoading: reportLoading } = trpc.report.full.useQuery(
-    { reportId: selectedReportId },
+    {},
     { enabled: isAuthenticated }
   );
 
@@ -268,8 +264,6 @@ export default function Home() {
   const { report, projects, contacts, drillingCampaigns, awardedProjects } = fullReport;
 
   const actionItems: string[] = (report.actionItems as string[]) ?? [];
-  const researchPasses: { pass: string; focus: string; rawProjects: number; keySources: string }[] = (report.researchPasses as any[]) ?? [];
-  const sourceCategories: { name: string; type: string }[] = (report.sourceCategories as any[]) ?? [];
 
   // ── Personalization: score and rank projects ──
   const profileData: UserProfileData | null = profile ? {
@@ -314,13 +308,6 @@ export default function Home() {
   const warmProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "warm");
   const coldProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "cold");
 
-  const stats = {
-    total: report.totalProjects,
-    hot: report.hotProjects,
-    warm: report.warmProjects,
-    cold: report.coldProjects,
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Header */}
@@ -336,26 +323,14 @@ export default function Home() {
                 Atlas Copco Portable Air
               </h1>
               <p className="text-sm sm:text-base text-slate-300 mt-1 font-medium">
-                Weekly Market Intelligence Dashboard — Enhanced Edition
+                Market Intelligence Dashboard — Personalised for You
               </p>
             </div>
             <div className="text-right flex flex-col items-end gap-2">
               <div className="text-xl sm:text-2xl font-bold text-gold tracking-wider">ATLAS COPCO</div>
               <div className="text-xs text-slate-400">
-                Week ending {report.weekEnding} | Generated: {report.generatedTime}
+                Multi-Source Intelligence | Updated: {new Date(report.generatedTime).toLocaleDateString()}
               </div>
-              {/* Report selector */}
-              {reportList && reportList.length > 1 && (
-                <select
-                  value={selectedReportId ?? report.id}
-                  onChange={e => setSelectedReportId(Number(e.target.value))}
-                  className="mt-1 px-2 py-1 rounded text-xs bg-navy-light text-slate-200 border border-slate-500 focus:outline-none focus:ring-1 focus:ring-gold"
-                >
-                  {reportList.map((r: any) => (
-                    <option key={r.id} value={r.id}>Week ending {r.weekEnding}</option>
-                  ))}
-                </select>
-              )}
               {/* User info & settings & logout */}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
@@ -389,10 +364,10 @@ export default function Home() {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start bg-card border border-border rounded-lg p-1 overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="overview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
-            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({report.totalProjects})</TabsTrigger>
+            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({projects.length})</TabsTrigger>
             <TabsTrigger value="awarded" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
             <TabsTrigger value="drilling" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
-            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({report.totalContacts})</TabsTrigger>
+            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({contacts.length})</TabsTrigger>
             <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
           </TabsList>
 
@@ -402,9 +377,11 @@ export default function Home() {
             <div className="bg-card rounded-lg border border-border p-5 sm:p-6">
               <h2 className="text-lg font-bold text-navy flex items-center gap-2 mb-3">
                 <FileText className="w-5 h-5 text-gold" />
-                Executive Summary — Week of {report.weekEnding}
+                Market Intelligence Overview
               </h2>
-              <p className="text-sm text-foreground/80 leading-relaxed mb-4">{report.executiveSummaryMain}</p>
+              <p className="text-sm text-foreground/80 leading-relaxed mb-4">
+                {report.executiveSummaryMain || `Tracking ${report.totalProjects} projects across mining, infrastructure, energy, and defence sectors. Projects are ranked by your personal preferences — use thumbs up/down on project cards to improve your recommendations.`}
+              </p>
               {actionItems.length > 0 && (
                 <div className="bg-gold/8 border border-gold/25 rounded-lg p-4 mb-4">
                   <h3 className="text-sm font-bold text-gold-dark mb-2 flex items-center gap-2">
@@ -425,14 +402,14 @@ export default function Home() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              <KPICard value={report.totalProjects} label="Total Projects" accent="teal" />
-              <KPICard value={report.hotProjects} label="Hot Projects" accent="hot" />
-              <KPICard value={report.warmProjects} label="Warm Projects" accent="warm" />
-              <KPICard value={report.confirmedContractors} label="Confirmed Contractors" />
-              <KPICard value={report.predictedContractors} label="Predicted Contractors" />
-              <KPICard value={report.capexOpportunities} label="CAPEX Opportunities" accent="gold" />
-              <KPICard value={report.totalContacts} label="Contacts" />
-              <KPICard value={report.sourcesSearched} label="Sources Searched" accent="teal" />
+              <KPICard value={projects.length} label="Total Projects" accent="teal" />
+              <KPICard value={hotProjects.length} label="Hot Projects" accent="hot" />
+              <KPICard value={warmProjects.length} label="Warm Projects" accent="warm" />
+              <KPICard value={coldProjects.length} label="Cold / Monitor" />
+              <KPICard value={awardedProjects.length} label="Awarded" accent="gold" />
+              <KPICard value={drillingCampaigns.length} label="Drilling Campaigns" />
+              <KPICard value={contacts.length} label="Contacts" />
+              <KPICard value="4" label="Data Sources" accent="teal" />
             </div>
 
             {/* Hot Projects */}
@@ -451,7 +428,7 @@ export default function Home() {
           {/* ===== ALL PROJECTS TAB ===== */}
           <TabsContent value="projects" className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={stats} />
+              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: personalizedProjects.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
               <SectorFilter active={sectorFilter} onChange={setSectorFilter} />
             </div>
 
@@ -585,30 +562,39 @@ export default function Home() {
           <TabsContent value="sources" className="space-y-5">
             <div className="bg-card rounded-lg border border-border p-5">
               <h2 className="text-lg font-bold text-navy mb-2 flex items-center gap-2">
-                <Database className="w-5 h-5 text-gold" /> Sources & Methodology
+                <Database className="w-5 h-5 text-gold" /> Data Sources & Pipeline
               </h2>
-              <p className="text-sm text-foreground/70">This report was generated using an <strong className="text-navy">8-pass multi-source research methodology</strong>, searching across 20+ Australian industry sources. This is a significant improvement over single-source approaches, ensuring broader coverage and cross-validation.</p>
+              <p className="text-sm text-foreground/70">Projects are aggregated from multiple automated data sources, each running on a scheduled pipeline. New projects are automatically extracted, deduplicated, and ranked by your personal preferences.</p>
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-navy mb-3">Research Passes</h3>
+              <h3 className="text-base font-bold text-navy mb-3">Active Data Sources</h3>
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-navy text-white">
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Pass</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Focus</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Raw Projects</th>
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Key Sources</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Source</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Type</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Schedule</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Coverage</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">AI Credits</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {researchPasses.map((rp: any, i: number) => (
+                    {[
+                      { source: "RSS Feed Pipeline", type: "18+ Industry Feeds", schedule: "Daily (06:00 UTC)", coverage: "Mining, Energy, Infrastructure, Defence", credits: "~50/day cap" },
+                      { source: "Projectory", type: "Web Scraper", schedule: "Weekly (Mondays)", coverage: "Resources, Infrastructure, Construction, Energy, Industrial, Defence", credits: "None" },
+                      { source: "DMIRS MINEDEX", type: "Government API", schedule: "Weekly (Wednesdays)", coverage: "WA Mining Proposals & Approvals", credits: "None" },
+                      { source: "LinkedIn People Search", type: "Contact Enrichment", schedule: "On new projects", coverage: "Contact verification & enrichment", credits: "30 lookups/day" },
+                    ].map((row, i) => (
                       <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"}`}>
-                        <td className="px-4 py-3 font-bold text-gold">{rp.pass}</td>
-                        <td className="px-4 py-3 font-medium text-navy">{rp.focus}</td>
-                        <td className="px-4 py-3">{rp.rawProjects}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{rp.keySources}</td>
+                        <td className="px-4 py-3 font-semibold text-navy">{row.source}</td>
+                        <td className="px-4 py-3">{row.type}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{row.schedule}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{row.coverage}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.credits === "None" ? "bg-teal/15 text-teal" : "bg-gold/15 text-gold-dark"}`}>{row.credits}</span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -617,23 +603,29 @@ export default function Home() {
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-navy mb-3">Source Categories</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {sourceCategories.map((sc: any, i: number) => {
-                  const dotColor = sc.type === "asx" ? "bg-gold" : sc.type === "industry" ? "bg-teal" : sc.type === "news" ? "bg-hot" : "bg-cold";
-                  return (
-                    <div key={i} className="flex items-center gap-2 text-sm text-foreground/80 py-1.5 px-3 bg-card rounded border border-border">
-                      <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                      {sc.name}
-                    </div>
-                  );
-                })}
+              <h3 className="text-base font-bold text-navy mb-3">How Personalisation Works</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-card rounded-lg border border-border p-4">
+                  <div className="text-2xl font-bold text-gold mb-1">1</div>
+                  <h4 className="text-sm font-bold text-navy mb-1">Profile Matching</h4>
+                  <p className="text-xs text-muted-foreground">Your onboarding preferences (territories, industries, deal size) are matched against each project to calculate a relevance score.</p>
+                </div>
+                <div className="bg-card rounded-lg border border-border p-4">
+                  <div className="text-2xl font-bold text-gold mb-1">2</div>
+                  <h4 className="text-sm font-bold text-navy mb-1">Feedback Learning</h4>
+                  <p className="text-xs text-muted-foreground">Every thumbs up/down adjusts your personal weights via Bayesian learning. The more feedback you give, the better your rankings become.</p>
+                </div>
+                <div className="bg-card rounded-lg border border-border p-4">
+                  <div className="text-2xl font-bold text-gold mb-1">3</div>
+                  <h4 className="text-sm font-bold text-navy mb-1">Smart Ranking</h4>
+                  <p className="text-xs text-muted-foreground">Projects are scored combining profile match, feedback boost, and priority signals. Hot projects with high relevance appear first.</p>
+                </div>
               </div>
             </div>
 
             <div className="bg-gold/8 border border-gold/25 rounded-lg p-4">
               <p className="text-sm text-foreground/80">
-                <strong className="text-navy">Methodology Note:</strong> All CAPEX grades are evidence-based. If no source URL + date can be cited for a CAPEX claim, the grade is set to "Unknown" rather than estimated. Contractor predictions include confidence scores (0.0–1.0) and are clearly labelled. Contact information requires verification before outreach.
+                <strong className="text-navy">Methodology Note:</strong> All CAPEX grades are evidence-based. Contractor predictions include confidence scores and are clearly labelled. Contact information is enriched via LinkedIn but requires verification before outreach.
               </p>
             </div>
           </TabsContent>
@@ -643,9 +635,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-navy text-slate-400 py-6 mt-8">
         <div className="container text-center">
-          <p className="text-xs font-medium text-gold mb-1">Generated by Manus AI — Enhanced Multi-Source Edition</p>
-          <p className="text-xs">Atlas Copco Portable Air — Weekly Market Intelligence Dashboard</p>
-          <p className="text-xs mt-1">Data sourced from 20+ public sources including ASX releases, industry publications, and government announcements. Week ending {report.weekEnding}.</p>
+          <p className="text-xs font-medium text-gold mb-1">Powered by Multi-Source Intelligence Pipeline</p>
+          <p className="text-xs">Atlas Copco Portable Air — Market Intelligence Dashboard</p>
+          <p className="text-xs mt-1">Data sourced from RSS feeds, Projectory, DMIRS MINEDEX, ASX releases, and industry publications. Ranked by your preferences.</p>
         </div>
       </footer>
     </div>

@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, weekEnding FROM reports ORDER BY id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, weekEnding FROM reports ORDER BY id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "30001",
+      "weekEnding": "2026-02-11"
+    },
+    {
+      "id": "1",
+      "weekEnding": "Feb 10, 2026"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tweekEnding\n30001\t2026-02-11\n1\tFeb 10, 2026\n",
+  "stderr": "",
+  "execution_time_ms": 2510
+}

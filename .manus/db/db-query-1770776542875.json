@@ -1,0 +1,18 @@
+{
+  "query": "SELECT reportId, COUNT(*) as cnt FROM projects GROUP BY reportId; SELECT id FROM reports;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT reportId, COUNT(*) as cnt FROM projects GROUP BY reportId; SELECT id FROM reports;",
+  "rows": [
+    {
+      "reportId": "1",
+      "cnt": "28"
+    }
+  ],
+  "messages": [
+    "id",
+    "1",
+    "30001"
+  ],
+  "stdout": "reportId\tcnt\n1\t28\nid\n1\n30001\n",
+  "stderr": "",
+  "execution_time_ms": 1700
+}

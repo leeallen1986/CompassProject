@@ -14,6 +14,10 @@ vi.mock("./db", async (importOriginal) => {
     getContactsByReportId: vi.fn(),
     getDrillingCampaignsByReportId: vi.fn(),
     getAwardedProjectsByReportId: vi.fn(),
+    getAllProjects: vi.fn(),
+    getAllContacts: vi.fn(),
+    getAllDrillingCampaigns: vi.fn(),
+    getAllAwardedProjects: vi.fn(),
     createReport: vi.fn(),
     createProjects: vi.fn(),
     createContacts: vi.fn(),
@@ -30,6 +34,10 @@ import {
   getContactsByReportId,
   getDrillingCampaignsByReportId,
   getAwardedProjectsByReportId,
+  getAllProjects,
+  getAllContacts,
+  getAllDrillingCampaigns,
+  getAllAwardedProjects,
   createReport,
   createProjects,
   createContacts,
@@ -201,30 +209,33 @@ describe("report.byId", () => {
 });
 
 describe("report.full", () => {
-  it("returns full report data with all associated records", async () => {
+  it("returns aggregated data from all reports with ML ranking", async () => {
     vi.mocked(getLatestReport).mockResolvedValue(mockReport);
-    vi.mocked(getProjectsByReportId).mockResolvedValue([mockProject]);
-    vi.mocked(getContactsByReportId).mockResolvedValue([mockContact]);
-    vi.mocked(getDrillingCampaignsByReportId).mockResolvedValue([mockDrilling]);
-    vi.mocked(getAwardedProjectsByReportId).mockResolvedValue([mockAwarded]);
+    vi.mocked(getAllProjects).mockResolvedValue([mockProject]);
+    vi.mocked(getAllContacts).mockResolvedValue([mockContact]);
+    vi.mocked(getAllDrillingCampaigns).mockResolvedValue([mockDrilling]);
+    vi.mocked(getAllAwardedProjects).mockResolvedValue([mockAwarded]);
 
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.report.full({});
 
     expect(result).not.toBeNull();
-    expect(result!.report).toEqual(mockReport);
-    expect(result!.projects).toEqual([mockProject]);
+    expect(result!.report.totalProjects).toBe(1);
+    expect(result!.report.hotProjects).toBe(1);
+    expect(result!.projects).toHaveLength(1);
     expect(result!.contacts).toEqual([mockContact]);
     expect(result!.drillingCampaigns).toEqual([mockDrilling]);
     expect(result!.awardedProjects).toEqual([mockAwarded]);
+    expect(getAllProjects).toHaveBeenCalledOnce();
+    expect(getAllContacts).toHaveBeenCalledOnce();
   });
 
   it("returns full report data for a specific report ID", async () => {
     vi.mocked(getReportById).mockResolvedValue(mockReport);
-    vi.mocked(getProjectsByReportId).mockResolvedValue([mockProject]);
-    vi.mocked(getContactsByReportId).mockResolvedValue([mockContact]);
-    vi.mocked(getDrillingCampaignsByReportId).mockResolvedValue([mockDrilling]);
-    vi.mocked(getAwardedProjectsByReportId).mockResolvedValue([mockAwarded]);
+    vi.mocked(getAllProjects).mockResolvedValue([mockProject]);
+    vi.mocked(getAllContacts).mockResolvedValue([mockContact]);
+    vi.mocked(getAllDrillingCampaigns).mockResolvedValue([mockDrilling]);
+    vi.mocked(getAllAwardedProjects).mockResolvedValue([mockAwarded]);
 
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.report.full({ reportId: 1 });
@@ -233,11 +244,21 @@ describe("report.full", () => {
     expect(getReportById).toHaveBeenCalledWith(1);
   });
 
-  it("returns null when no report exists", async () => {
+  it("returns synthetic report when no report exists (still shows all projects)", async () => {
     vi.mocked(getLatestReport).mockResolvedValue(null);
+    vi.mocked(getAllProjects).mockResolvedValue([]);
+    vi.mocked(getAllContacts).mockResolvedValue([]);
+    vi.mocked(getAllDrillingCampaigns).mockResolvedValue([]);
+    vi.mocked(getAllAwardedProjects).mockResolvedValue([]);
+
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.report.full({});
-    expect(result).toBeNull();
+
+    // Now returns a synthetic report even when no report exists
+    expect(result).not.toBeNull();
+    expect(result!.report.id).toBe(0);
+    expect(result!.report.totalProjects).toBe(0);
+    expect(result!.report.sourcesSearched).toBe("Multi-Source Pipeline");
   });
 
   it("rejects unauthenticated users", async () => {
