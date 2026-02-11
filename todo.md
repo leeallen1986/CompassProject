@@ -242,3 +242,8 @@
 - [x] Flip enrichment model: LLM as primary source, LinkedIn API as on-demand verification
 - [x] Add on-demand "Verify via LinkedIn" endpoint (single contact verification)
 - [x] Update contacts table UI: verification badges, confidence indicators, LinkedIn search links, verify button
+- [x] Ensure onboarding preferences are the single source of truth for ALL personalization
+- [x] Filter contacts by user's preferred buyer roles from onboarding (show relevant stakeholders first)
+- [x] Add scoring transparency: first-time users should understand how the scoring/personalization works
+- [x] Show match score breakdown on project cards (territory match, industry match, CAPEX fit, etc.)
+- [x] Add scoring explainer panel/tooltip for new users explaining how personalization drives what they see

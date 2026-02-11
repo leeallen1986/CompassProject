@@ -448,9 +448,21 @@ export default function ProjectCard({
                 <Sparkles className="w-3 h-3" /> New
               </span>
             )}
-            {project.relevanceScore !== undefined && project.relevanceScore >= 70 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-gold/20 text-gold-dark uppercase tracking-wider">
+            {project.relevanceScore !== undefined && project.relevanceScore >= 50 && (
+              <span className="relative group inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-gold/20 text-gold-dark uppercase tracking-wider cursor-help">
                 {project.relevanceScore}% match
+                {/* Score breakdown tooltip */}
+                {project.relevanceReasons && project.relevanceReasons.length > 0 && (
+                  <span className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block w-48 bg-navy text-white text-[10px] font-normal normal-case tracking-normal rounded-lg shadow-lg p-2.5">
+                    <span className="block font-bold text-gold mb-1">Match Breakdown</span>
+                    {project.relevanceReasons.map((reason, i) => (
+                      <span key={i} className="flex items-center gap-1.5 py-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
+                        {reason}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </span>
             )}
           </div>

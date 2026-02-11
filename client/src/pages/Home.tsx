@@ -11,9 +11,9 @@ import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
-  BarChart3, Pickaxe, Fuel, Building, Shield,
+  BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
   ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
-  ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp
+  ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -102,9 +102,49 @@ interface ContactRow {
   linkedinProfilePic: string | null;
 }
 
-function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNames }: { data: ContactRow[]; weekEnding: string; projects: ProjectData[]; businessLineNames: Record<number, string> }) {
+// Map onboarding buyer role IDs to contact roleBucket values
+const buyerRoleToRoleBucket: Record<string, string[]> = {
+  procurement: ["procurement"],
+  project_manager: ["project_manager", "project_management"],
+  engineering: ["engineering"],
+  maintenance_shutdown: ["maintenance"],
+  operations_site: ["operations", "site_manager"],
+  hse_esg: ["hse", "esg"],
+  fleet_manager: ["fleet_manager"],
+  commercial: ["commercial"],
+};
+
+const roleBucketLabels: Record<string, string> = {
+  procurement: "Procurement",
+  project_manager: "Project Manager",
+  project_management: "Project Manager",
+  engineering: "Engineering",
+  maintenance: "Maintenance",
+  operations: "Operations",
+  site_manager: "Site Manager",
+  fleet_manager: "Fleet Manager",
+  general_manager: "Executive",
+  commercial: "Commercial",
+  executive: "Executive",
+  hse: "HSE",
+  esg: "ESG",
+  other: "Other",
+};
+
+function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNames, preferredBuyerRoles }: { data: ContactRow[]; weekEnding: string; projects: ProjectData[]; businessLineNames: Record<number, string>; preferredBuyerRoles: string[] }) {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"all" | "verified" | "ai_suggested">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "preferred" | string>("preferred");
+
+  // Build the set of preferred role buckets from onboarding buyer roles
+  const preferredRoleBuckets = useMemo(() => {
+    const buckets = new Set<string>();
+    preferredBuyerRoles.forEach(role => {
+      const mapped = buyerRoleToRoleBucket[role];
+      if (mapped) mapped.forEach(b => buckets.add(b));
+    });
+    return buckets;
+  }, [preferredBuyerRoles]);
   const [outreachContact, setOutreachContact] = useState<ContactRow | null>(null);
   const [outreachProject, setOutreachProject] = useState<ProjectData | null>(null);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
@@ -170,11 +210,19 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
 
   const filtered = useMemo(() => {
     let result = data;
+    // Source filter
     if (sourceFilter === "verified") {
       result = result.filter(c => c.verificationStatus === "verified");
     } else if (sourceFilter === "ai_suggested") {
       result = result.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm");
     }
+    // Role filter
+    if (roleFilter === "preferred" && preferredRoleBuckets.size > 0) {
+      result = result.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || ""));
+    } else if (roleFilter !== "all" && roleFilter !== "preferred") {
+      result = result.filter(c => (c.roleBucket?.toLowerCase() || "") === roleFilter);
+    }
+    // Search filter
     if (!search) return result;
     const q = search.toLowerCase();
     return result.filter(c =>
@@ -183,7 +231,10 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       c.title.toLowerCase().includes(q) ||
       c.project.toLowerCase().includes(q)
     );
-  }, [data, search, sourceFilter]);
+  }, [data, search, sourceFilter, roleFilter, preferredRoleBuckets]);
+
+  // Count contacts by role for filter badges
+  const preferredCount = preferredRoleBuckets.size > 0 ? data.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "")).length : 0;
 
   const verifiedCount = data.filter(c => c.verificationStatus === "verified").length;
   const aiSuggestedCount = data.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm").length;
@@ -274,6 +325,37 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
         </button>
       </div>
 
+      {/* Role filter tabs */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Role:</span>
+        {preferredBuyerRoles.length > 0 && (
+          <button onClick={() => setRoleFilter("preferred")}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              roleFilter === "preferred" ? "bg-gold text-navy shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-gold/30"
+            }`}>
+            <Target className="w-3 h-3" /> My Roles ({preferredCount})
+          </button>
+        )}
+        <button onClick={() => setRoleFilter("all")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            roleFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+          }`}>
+          All Roles ({data.length})
+        </button>
+        {["procurement", "project_manager", "engineering", "operations", "maintenance", "fleet_manager", "commercial", "general_manager"].map(role => {
+          const count = data.filter(c => (c.roleBucket?.toLowerCase() || "") === role).length;
+          if (count === 0) return null;
+          return (
+            <button key={role} onClick={() => setRoleFilter(role)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                roleFilter === role ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+              }`}>
+              {roleBucketLabels[role] || role} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       {/* Warning banner for AI contacts */}
       {sourceFilter !== "verified" && aiSuggestedCount > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex items-start gap-2">
@@ -312,7 +394,12 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                     )}
                     <div>
                       <div className="font-medium text-navy">{c.name}</div>
-                      <div className="text-[10px] text-muted-foreground">{c.roleBucket}</div>
+                      <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        {roleBucketLabels[c.roleBucket?.toLowerCase() || ""] || c.roleBucket}
+                        {preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "") && (
+                          <span className="px-1 py-0 rounded bg-gold/20 text-gold-dark text-[8px] font-bold" title="Matches your preferred buyer roles">YOUR ROLE</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -461,6 +548,9 @@ export default function Home() {
   const [sectorFilter, setSectorFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
   const [showAllTerritories, setShowAllTerritories] = useState(false);
+  const [showScoringGuide, setShowScoringGuide] = useState(() => {
+    return !localStorage.getItem("atlas-scoring-guide-dismissed");
+  });
 
   const [, navigate] = useLocation();
 
@@ -730,6 +820,82 @@ export default function Home() {
 
           {/* ===== OVERVIEW TAB ===== */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Scoring Guide for first-time users */}
+            {showScoringGuide && (
+              <div className="bg-gradient-to-r from-navy/5 via-gold/5 to-teal/5 rounded-lg border border-gold/30 p-5 sm:p-6 relative">
+                <button
+                  onClick={() => {
+                    setShowScoringGuide(false);
+                    localStorage.setItem("atlas-scoring-guide-dismissed", "true");
+                  }}
+                  className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                  title="Dismiss"
+                >
+                  ✕
+                </button>
+                <h2 className="text-base font-bold text-navy flex items-center gap-2 mb-3">
+                  <Sparkles className="w-5 h-5 text-gold" />
+                  How Your Dashboard is Personalised
+                </h2>
+                <p className="text-sm text-foreground/70 mb-4">
+                  Projects and contacts are ranked based on the preferences you set during onboarding. Here's how the scoring works:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="bg-white/60 rounded-lg p-3 border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Globe className="w-4 h-4 text-teal" />
+                      <span className="text-xs font-bold text-navy">Territory Match (25%)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Projects in your selected territories ({userTerritories.length > 0 ? userTerritories.join(", ") : "all"}) are shown. Others are hidden unless you toggle "Show All".</p>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-3 border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <BarChart3 className="w-4 h-4 text-teal" />
+                      <span className="text-xs font-bold text-navy">Industry Match (25%)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Projects in your selected industries (mining, oil & gas, infrastructure, etc.) score higher and appear first.</p>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-3 border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Target className="w-4 h-4 text-gold" />
+                      <span className="text-xs font-bold text-navy">Offer Category (15%)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Projects matching your offer categories (Direct CAPEX, Fleet CAPEX, OPEX) get a relevance boost.</p>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-3 border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-gold" />
+                      <span className="text-xs font-bold text-navy">Customer Type (15%)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Projects with your preferred customer types (principal contractors, owner-operators) are prioritised.</p>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-3 border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Building2 className="w-4 h-4 text-navy" />
+                      <span className="text-xs font-bold text-navy">Key Accounts (10%)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Projects involving your nominated key accounts (BHP, Rio Tinto, etc.) get an extra boost.</p>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-3 border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ThumbsUp className="w-4 h-4 text-emerald-500" />
+                      <span className="text-xs font-bold text-navy">Your Feedback (10%)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Thumbs up/down on project cards teaches the system your preferences over time.</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-3">
+                  <p className="text-[11px] text-muted-foreground italic">Hover over the match % badge on any project card to see its score breakdown.</p>
+                  <button
+                    onClick={() => navigate("/settings")}
+                    className="text-[11px] font-semibold text-gold-dark hover:text-gold transition-colors underline"
+                  >
+                    Update your preferences
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Executive Summary */}
             <div className="bg-card rounded-lg border border-border p-5 sm:p-6">
               <h2 className="text-lg font-bold text-navy flex items-center gap-2 mb-3">
@@ -912,7 +1078,7 @@ export default function Home() {
               <h2 className="text-lg font-bold text-navy">Contact Database</h2>
               <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{territoryFilteredContacts.length} contacts</span>
             </div>
-            <ContactsTable data={territoryFilteredContacts as ContactRow[]} weekEnding={report.weekEnding} projects={territoryFiltered as ProjectData[]} businessLineNames={businessLineNamesMap} />
+            <ContactsTable data={territoryFilteredContacts as ContactRow[]} weekEnding={report.weekEnding} projects={territoryFiltered as ProjectData[]} businessLineNames={businessLineNamesMap} preferredBuyerRoles={profileData?.buyerRoles ?? []} />
           </TabsContent>
 
           {/* ===== AI SEARCH TAB ===== */}
