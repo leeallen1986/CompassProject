@@ -4,7 +4,7 @@
  * Now includes feedback buttons (thumbs up/down) and relevance score
  */
 import { useState } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users } from "lucide-react";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -213,6 +213,142 @@ function findPrimaryContact(
 
   scored.sort((a, b) => b.score - a.score);
   return scored[0]?.contact ?? null;
+}
+
+function EnrichProjectButton({ projectId, projectName }: { projectId: number; projectName: string }) {
+  const utils = trpc.useUtils();
+
+  // Check enrichment cache status
+  const cacheQuery = trpc.dataPipeline.enrichmentCacheStatus.useQuery(
+    { projectId },
+    { staleTime: 60_000 } // Cache for 1 minute client-side
+  );
+
+  const enrichMutation = trpc.dataPipeline.enrichProject.useMutation({
+    onSuccess: (data) => {
+      if (data.fromCache) {
+        toast.info(`${data.contactsFound} contact${data.contactsFound !== 1 ? "s" : ""} already on file (saved ${data.apiCallsSaved} API calls).`, {
+          description: "Contacts were found from a recent search. Use 'Refresh' to search again.",
+          duration: 5000,
+        });
+      } else if (data.contactsFound === 0) {
+        toast.info(`No new contacts found for ${data.projectName || projectName}. The daily cap may have been reached, or contacts already exist.`);
+      } else {
+        toast.success(`Found ${data.contactsFound} new contact${data.contactsFound > 1 ? "s" : ""} for ${data.projectName || projectName}!`, {
+          description: data.contacts.map((c: { name: string; headline?: string }) => `${c.name} — ${c.headline || ""}`).join(", "),
+          duration: 8000,
+        });
+      }
+      // Refresh report, pipeline, and cache data
+      utils.report.invalidate();
+      utils.pipeline.invalidate();
+      cacheQuery.refetch();
+    },
+    onError: (err: { message: string }) => {
+      toast.error(`Enrichment failed: ${err.message}`);
+    },
+  });
+
+  const isCached = cacheQuery.data?.cached === true;
+  const cachedAt = cacheQuery.data?.enrichedAt;
+  const cachedContacts = cacheQuery.data?.contactsFound ?? 0;
+
+  // Format relative time for cache display
+  const formatCacheAge = (date: Date | undefined) => {
+    if (!date) return "";
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    return "just now";
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" /> Find Contacts
+          </h4>
+          {isCached ? (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              <span className="text-teal font-medium">{cachedContacts} contact{cachedContacts !== 1 ? "s" : ""}</span> found {formatCacheAge(cachedAt)}.
+              Click <strong>Refresh</strong> to search again (uses API credits).
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Search LinkedIn for decision makers based on your preferred buyer roles. Takes 10–30 seconds.
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isCached && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toast.info(`Re-searching LinkedIn for contacts on ${projectName}...`, {
+                  description: "Forcing a fresh search. This uses API credits and may take 10–30 seconds.",
+                  duration: 5000,
+                });
+                enrichMutation.mutate({ projectId, forceRefresh: true });
+              }}
+              disabled={enrichMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors disabled:opacity-50 disabled:cursor-wait"
+              title="Force a fresh LinkedIn search (uses API credits)"
+            >
+              Refresh
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isCached) {
+                toast.info(`Searching LinkedIn for contacts on ${projectName}...`, {
+                  description: "Searching based on your preferred buyer roles. This may take 10–30 seconds.",
+                  duration: 5000,
+                });
+              }
+              enrichMutation.mutate({ projectId });
+            }}
+            disabled={enrichMutation.isPending}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-teal/10 text-teal hover:bg-teal/20 border border-teal/20 transition-colors disabled:opacity-50 disabled:cursor-wait"
+          >
+            {enrichMutation.isPending ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Searching...</>
+            ) : isCached ? (
+              <><Check className="w-3.5 h-3.5" /> {cachedContacts} Contact{cachedContacts !== 1 ? "s" : ""} Found</>
+            ) : (
+              <><Search className="w-3.5 h-3.5" /> Find Contacts</>
+            )}
+          </button>
+        </div>
+      </div>
+      {enrichMutation.isPending && (
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground bg-teal/5 rounded-md px-3 py-2 border border-teal/10">
+          <Loader2 className="w-3 h-3 animate-spin text-teal" />
+          Searching LinkedIn for contacts matching your preferred buyer roles...
+        </div>
+      )}
+      {enrichMutation.isSuccess && enrichMutation.data.contactsFound > 0 && !enrichMutation.data.fromCache && (
+        <div className="mt-2 space-y-1">
+          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string }, i: number) => (
+            <div key={i} className="flex items-center gap-2 text-xs bg-teal/5 rounded-md px-3 py-1.5 border border-teal/10">
+              <User className="w-3 h-3 text-teal shrink-0" />
+              <span className="font-medium text-navy">{c.name}</span>
+              {c.headline && <span className="text-muted-foreground">— {c.headline}</span>}
+              {c.linkedinUrl && (
+                <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ProjectCard({
@@ -502,6 +638,9 @@ export default function ProjectCard({
                   </div>
                 </div>
               </div>
+
+              {/* Find Contacts (On-Demand Enrichment) Button */}
+              <EnrichProjectButton projectId={project.id} projectName={project.name} />
 
               {/* Primary Contact & Outreach */}
               {primaryContact && (

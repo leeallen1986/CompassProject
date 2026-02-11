@@ -11,15 +11,16 @@
  * - Batches lookups with 1-second delay between calls to respect rate limits
  * - Caches results to avoid duplicate lookups for the same person
  */
-import { eq, and, sql, isNull, or, desc } from "drizzle-orm";
+import { eq, and, sql, isNull, or, desc, gte } from "drizzle-orm";
 import { getDb } from "./db";
-import { contacts, projects, type InsertContact } from "../drizzle/schema";
+import { contacts, projects, userProfiles, projectEnrichmentCache, type InsertContact } from "../drizzle/schema";
 import { callDataApi } from "./_core/dataApi";
 
 // ── Configuration ──
 
 const DAILY_ENRICHMENT_CAP = 100;
 const DELAY_BETWEEN_CALLS_MS = 1000;
+const CACHE_TTL_DAYS = 7; // Re-enrichment allowed after 7 days
 const BUYER_ROLES = [
   "procurement",
   "project_manager",
@@ -303,10 +304,26 @@ export async function generateAndEnrichContacts(
   projectName: string,
   owner: string,
   contractors: { name: string; status: string }[],
-  sector: string
+  sector: string,
+  options?: {
+    userId?: number | null;           // User requesting enrichment (null = auto/scraper)
+    preferredRoles?: string[] | null; // User's preferred buyer roles from profile
+    skipCacheCheck?: boolean;         // Force re-enrichment even if cached
+  }
 ): Promise<EnrichmentResult[]> {
   const db = await getDb();
   if (!db) return [];
+
+  const userId = options?.userId ?? null;
+
+  // Check cache first (unless explicitly skipped)
+  if (!options?.skipCacheCheck) {
+    const cache = await getProjectEnrichmentCache(projectId);
+    if (cache.cached) {
+      console.log(`[Enrichment] Cache hit for project ${projectId} (enriched ${cache.enrichedAt?.toISOString()}, ${cache.contactsFound} contacts found)`);
+      return []; // Return empty — contacts are already in DB
+    }
+  }
 
   // Check daily cap
   const dailyCount = await getDailyEnrichmentCount();
@@ -317,6 +334,7 @@ export async function generateAndEnrichContacts(
 
   const remaining = DAILY_ENRICHMENT_CAP - dailyCount;
   const results: EnrichmentResult[] = [];
+  let apiCallsMade = 0;
 
   // Build list of companies to search for contacts
   const companies = [owner];
@@ -326,8 +344,10 @@ export async function generateAndEnrichContacts(
     }
   }
 
-  // Target roles based on sector
-  const targetRoles = getTargetRoles(sector);
+  // Target roles: prefer user's profile roles, fall back to sector-based defaults
+  const targetRoles = (options?.preferredRoles && options.preferredRoles.length > 0)
+    ? mapBuyerRolesToSearchTitles(options.preferredRoles)
+    : getTargetRoles(sector);
 
   // Search for contacts at each company
   for (const company of companies) {
@@ -347,6 +367,8 @@ export async function generateAndEnrichContacts(
           success?: boolean;
           data?: { items?: LinkedInPerson[]; total?: number };
         };
+
+        apiCallsMade++;
 
         if (!searchResult?.success || !searchResult?.data?.items?.length) {
           await sleep(DELAY_BETWEEN_CALLS_MS);
@@ -424,6 +446,19 @@ export async function generateAndEnrichContacts(
       }
     }
   }
+
+  // Write cache entry so we don't re-enrich this project within CACHE_TTL_DAYS
+  await writeEnrichmentCache(
+    projectId,
+    userId,
+    targetRoles,
+    companies,
+    results.length,
+    results.length, // all are new (duplicates were skipped)
+    apiCallsMade
+  );
+
+  console.log(`[Enrichment] Project ${projectId}: ${results.length} contacts found, ${apiCallsMade} API calls, cached for ${CACHE_TTL_DAYS} days`);
 
   return results;
 }
@@ -581,6 +616,113 @@ function getTargetRoles(sector: string): string[] {
   };
 
   return [...baseRoles, ...(sectorRoles[sector] || [])];
+}
+
+// ── Cache helpers ──
+
+/** Check if a project was recently enriched (within CACHE_TTL_DAYS) */
+export async function getProjectEnrichmentCache(
+  projectId: number
+): Promise<{ cached: boolean; enrichedAt?: Date; contactsFound?: number; rolesSearched?: string[]; apiCallsMade?: number }> {
+  const db = await getDb();
+  if (!db) return { cached: false };
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - CACHE_TTL_DAYS);
+
+  const [entry] = await db
+    .select()
+    .from(projectEnrichmentCache)
+    .where(
+      and(
+        eq(projectEnrichmentCache.projectId, projectId),
+        gte(projectEnrichmentCache.enrichedAt, cutoff)
+      )
+    )
+    .orderBy(desc(projectEnrichmentCache.enrichedAt))
+    .limit(1);
+
+  if (!entry) return { cached: false };
+
+  return {
+    cached: true,
+    enrichedAt: entry.enrichedAt,
+    contactsFound: entry.contactsFound,
+    rolesSearched: entry.rolesSearched ?? [],
+    apiCallsMade: entry.apiCallsMade,
+  };
+}
+
+/** Write an enrichment cache entry after a successful enrichment */
+async function writeEnrichmentCache(
+  projectId: number,
+  userId: number | null,
+  rolesSearched: string[],
+  companiesSearched: string[],
+  contactsFound: number,
+  contactsNew: number,
+  apiCallsMade: number
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.insert(projectEnrichmentCache).values({
+    projectId,
+    userId,
+    rolesSearched,
+    companiesSearched,
+    contactsFound,
+    contactsNew,
+    apiCallsMade,
+    enrichedAt: new Date(),
+  });
+}
+
+/** Get user's preferred buyer roles from their onboarding profile */
+export async function getUserPreferredRoles(userId: number): Promise<string[] | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const [profile] = await db
+    .select({ buyerRoles: userProfiles.buyerRoles })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+
+  if (!profile?.buyerRoles || profile.buyerRoles.length === 0) return null;
+  return profile.buyerRoles;
+}
+
+/** Map user's buyer role preferences to LinkedIn search titles */
+export function mapBuyerRolesToSearchTitles(buyerRoles: string[]): string[] {
+  const roleMapping: Record<string, string[]> = {
+    procurement: ["Procurement Manager", "Supply Chain Manager", "Purchasing Manager"],
+    project_manager: ["Project Manager", "Project Director"],
+    engineering: ["Engineering Manager", "Chief Engineer", "Technical Director"],
+    operations: ["Operations Manager", "Chief Operating Officer"],
+    maintenance: ["Maintenance Manager", "Maintenance Superintendent", "Reliability Manager"],
+    site_manager: ["Site Manager", "Site Superintendent"],
+    fleet_manager: ["Fleet Manager", "Equipment Manager"],
+    general_manager: ["General Manager", "Managing Director", "CEO"],
+    commercial: ["Commercial Manager", "Business Development Manager"],
+    mining_manager: ["Mining Manager", "Mine Manager"],
+    construction_manager: ["Construction Manager", "Construction Director"],
+    plant_manager: ["Plant Manager"],
+  };
+
+  const titles: string[] = [];
+  for (const role of buyerRoles) {
+    const mapped = roleMapping[role];
+    if (mapped) {
+      titles.push(...mapped);
+    } else {
+      // Use the role as-is if no mapping exists (e.g., custom roles)
+      titles.push(role.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+    }
+  }
+
+  // Deduplicate
+  return Array.from(new Set(titles));
 }
 
 // ── Get enrichment stats ──

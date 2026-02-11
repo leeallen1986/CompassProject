@@ -107,10 +107,10 @@ export interface AusTenderScrapeResult {
 // ── Configuration ──
 
 const AUSTENDER_API_BASE = "https://api.tenders.gov.au/ocds";
-const MIN_CONTRACT_VALUE = 1_000_000; // $1M minimum
-const LOOKBACK_DAYS = 14; // Fetch last 2 weeks of contracts
+const MIN_CONTRACT_VALUE = 500_000; // $500K minimum (widened from $1M)
+const LOOKBACK_DAYS = 30; // Fetch last 30 days of contracts (widened from 14)
 
-// UNSPSC codes relevant to Atlas Copco PT business lines
+// UNSPSC codes relevant to Atlas Copco PT business lines (broadened)
 const RELEVANT_UNSPSC_PREFIXES = [
   "72", // Building and Facility Construction
   "20", // Mining and Well Drilling Machinery
@@ -121,28 +121,58 @@ const RELEVANT_UNSPSC_PREFIXES = [
   "22", // Building and Construction Machinery
   "15", // Fuel and Lubricants and Anti-corrosive Materials
   "81", // Engineering and Research Services
+  "83", // Public Utilities and Public Sector Related Services
+  "77", // Environmental Management
+  "78", // Transportation and Storage
+  "76", // Industrial Cleaning Services
+  "25", // Commercial and Military and Private Vehicles
+  "23", // Industrial Manufacturing and Processing Machinery
+  "21", // Farming and Fishing and Forestry and Wildlife Machinery
+  "47", // Cleaning Equipment and Supplies
+  "39", // Laboratory and Measuring Equipment
+  "41", // Laboratory and Scientific Equipment
+  "73", // Industrial Production and Manufacturing Services
 ];
 
-// Keywords that indicate relevance to PT equipment
+// Keywords that indicate relevance to PT equipment (significantly broadened)
 const RELEVANCE_KEYWORDS = [
   // Portable Air
   "compressor", "compressed air", "drilling", "tunnelling", "tunnel",
   "blasting", "excavation", "concrete", "construction", "civil works",
   "road construction", "bridge", "earthworks", "foundation",
+  "demolition", "piling", "grouting", "shotcrete", "formwork",
+  "quarry", "aggregate", "crusher", "screening",
   // PAL (Power and Light)
   "generator", "power supply", "temporary power", "lighting",
   "electrical", "substation", "transmission", "powerline",
+  "switchgear", "transformer", "high voltage", "hv ", "cable",
+  "power station", "turbine",
   // BESS
   "battery", "energy storage", "bess", "solar farm", "wind farm",
-  "renewable energy", "grid", "inverter",
+  "renewable energy", "grid", "inverter", "solar", "wind",
+  "photovoltaic", "hydrogen", "electrolysis",
   // Pump
   "pump", "dewatering", "water treatment", "pipeline", "sewage",
   "stormwater", "irrigation", "dam", "weir", "desalination",
-  "water supply", "flood", "drainage",
-  // General construction
+  "water supply", "flood", "drainage", "wastewater", "bore",
+  "groundwater", "aquifer", "reservoir", "water main",
+  "water infrastructure", "sewer", "catchment",
+  // General construction & infrastructure
   "mining", "mine site", "rail", "railway", "port", "wharf",
   "defence", "military", "base", "facility", "infrastructure",
   "maintenance", "upgrade", "expansion", "remediation",
+  "building", "hospital", "school", "prison", "airport",
+  "highway", "freeway", "motorway", "interchange",
+  "depot", "warehouse", "terminal", "precinct",
+  "refurbishment", "fitout", "fit-out", "landscaping",
+  "site preparation", "site works", "bulk earth",
+  // Resource sector
+  "ore", "mineral", "coal", "iron", "gold", "copper", "lithium",
+  "nickel", "zinc", "bauxite", "alumina", "rare earth",
+  "oil", "gas", "petroleum", "lng", "refinery", "petrochemical",
+  // Environmental / remediation
+  "contamination", "asbestos", "remediation", "rehabilitation",
+  "landfill", "waste management", "recycling",
 ];
 
 // ── Business Line Matching ──

@@ -29,7 +29,7 @@ import { harvestAllFeeds, getPipelineStats } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
 import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } from "./mlRanker";
 import { seedDefaultPipelineData } from "./seedPipeline";
-import { runEnrichmentPipeline, getEnrichmentStats } from "./contactEnrichment";
+import { runEnrichmentPipeline, getEnrichmentStats, generateAndEnrichContacts, getProjectEnrichmentCache, getUserPreferredRoles } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
 import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
@@ -47,8 +47,8 @@ import { notifyOwner } from "./_core/notification";
 import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOutreachHistory, getContactedContactList, getOutreachLeaderboard } from "./outreachEmail";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
-import { projects } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { projects, contacts } from "../drizzle/schema";
+import { eq, sql } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -717,6 +717,97 @@ export const appRouter = router({
     enrichmentStats: protectedProcedure.query(async () => {
       return getEnrichmentStats();
     }),
+
+    /** Check enrichment cache status for a project */
+    enrichmentCacheStatus: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return getProjectEnrichmentCache(input.projectId);
+      }),
+
+    /** On-demand per-project enrichment (profile-aware, cached) */
+    enrichProject: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        forceRefresh: z.boolean().optional(), // Allow user to force re-enrichment
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        // Check cache first (unless force refresh)
+        if (!input.forceRefresh) {
+          const cache = await getProjectEnrichmentCache(input.projectId);
+          if (cache.cached) {
+            // Return existing contacts from DB instead of re-searching
+            const existingContacts = await db
+              .select()
+              .from(contacts)
+              .where(sql`${contacts.project} IN (SELECT name FROM projects WHERE id = ${input.projectId})`)
+              .limit(20);
+
+            return {
+              projectId: input.projectId,
+              projectName: "",
+              contactsFound: existingContacts.length,
+              fromCache: true,
+              cachedAt: cache.enrichedAt,
+              apiCallsSaved: cache.apiCallsMade ?? 0,
+              contacts: existingContacts.map(c => ({
+                name: c.name,
+                status: c.enrichmentStatus || "enriched",
+                headline: c.linkedinHeadline || c.title,
+                linkedinUrl: c.linkedin ?? undefined,
+              })),
+            };
+          }
+        }
+
+        // Fetch the project
+        const [project] = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.id, input.projectId))
+          .limit(1);
+
+        if (!project) throw new Error("Project not found");
+
+        // Get user's preferred buyer roles from their onboarding profile
+        const preferredRoles = ctx.user ? await getUserPreferredRoles(ctx.user.id) : null;
+
+        // Extract contractors from JSON
+        const contractorsList = Array.isArray(project.contractors)
+          ? (project.contractors as { name: string; status: string }[])
+          : [];
+
+        // Run enrichment with profile-aware roles and caching
+        const results = await generateAndEnrichContacts(
+          project.id,
+          project.reportId,
+          project.name,
+          project.owner || "Unknown",
+          contractorsList,
+          project.sector || "infrastructure",
+          {
+            userId: ctx.user?.id ?? null,
+            preferredRoles,
+            skipCacheCheck: input.forceRefresh,
+          }
+        );
+
+        return {
+          projectId: project.id,
+          projectName: project.name,
+          contactsFound: results.length,
+          fromCache: false,
+          contacts: results.map(r => ({
+            name: r.name,
+            status: r.status,
+            headline: r.headline,
+            linkedinUrl: r.linkedinUrl,
+          })),
+        };
+      }),
 
     /** Get recent articles */
     recentArticles: protectedProcedure

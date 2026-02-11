@@ -366,3 +366,24 @@ export const outreachEmails = mysqlTable("outreachEmails", {
 
 export type OutreachEmail = typeof outreachEmails.$inferSelect;
 export type InsertOutreachEmail = typeof outreachEmails.$inferInsert;
+
+/**
+ * Project enrichment cache — tracks which projects have been enriched,
+ * when, by whom, and what roles were searched. Prevents duplicate
+ * LinkedIn API calls for the same project.
+ * Cache TTL: 7 days (re-enrichment allowed after expiry).
+ */
+export const projectEnrichmentCache = mysqlTable("projectEnrichmentCache", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId"),                                     // null = auto-enrichment (scraper)
+  rolesSearched: json("rolesSearched").$type<string[]>(),     // which roles were searched
+  companiesSearched: json("companiesSearched").$type<string[]>(), // which companies were searched
+  contactsFound: int("contactsFound").notNull().default(0),
+  contactsNew: int("contactsNew").notNull().default(0),       // newly created (not duplicates)
+  apiCallsMade: int("apiCallsMade").notNull().default(0),     // LinkedIn API calls consumed
+  enrichedAt: timestamp("enrichedAt").defaultNow().notNull(),
+});
+
+export type ProjectEnrichmentCacheRow = typeof projectEnrichmentCache.$inferSelect;
+export type InsertProjectEnrichmentCache = typeof projectEnrichmentCache.$inferInsert;

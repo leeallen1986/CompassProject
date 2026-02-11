@@ -165,3 +165,20 @@
 - [x] Dashboard now at 133 total projects (BESS 34, PAL 70, Portable Air 115, Pump 41), 51 contacts
 - [ ] Target: 500+ projects and 1500+ contacts at scale
 - [ ] Add networking events page for sales professionals
+- [x] Widen AusTender filters (lowered to $500K, extended lookback to 30 days, broadened UNSPSC codes and keywords)
+- [x] Re-run AusTender scraper — now captures 1 relevant contract (Department of Defence $627K NSW)
+- [x] Build on-demand per-project enrichment backend endpoint (enrichProject tRPC mutation)
+- [x] Add "Find Contacts" button on project cards for sales reps
+- [x] Loading state with spinner + progress message ("Searching LinkedIn for procurement managers...")
+- [x] Clear UX messaging: "Takes 10-30 seconds" shown above button
+- [x] All 310 tests passing
+- [x] Dashboard at 134 total projects, 51 contacts
+- [x] Add enrichment cache schema (projectEnrichmentCache table: projectId, userId, rolesSearched, companiesSearched, contactsFound, contactsNew, apiCallsMade, enrichedAt)
+- [x] Profile-aware enrichment: reads user's preferred buyer roles from onboarding profile, only searches for those specific roles
+- [x] Cache check: skips LinkedIn API call if project was enriched within 7 days, returns cached results (0 API calls)
+- [x] Show cached state on Find Contacts button ("1 contact found just now. Click Refresh to search again")
+- [x] Refresh button with tooltip ("Force a fresh LinkedIn search — uses API credits") for manual override
+- [x] Auto-enrichment on scrapers respects caching (writes cache entries on new project enrichment)
+- [x] Vitest tests for enrichment caching and profile-aware filtering (337 tests passing)
+- [x] End-to-end test: Carmichael Mine → Found Danny Daly (Electrical Engineering Manager at Bravus Mining), cached for 7 days, 10 API calls
+- [x] Contacts count now at 52

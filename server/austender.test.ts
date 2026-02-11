@@ -78,7 +78,7 @@ describe("matchBusinessLinesFromContract", () => {
 // ── Relevance Filtering ──
 
 describe("isRelevantContract", () => {
-  it("rejects contracts below $1M", () => {
+  it("rejects contracts below $500K", () => {
     const release = {
       ocid: "test-1",
       id: "test-1",
@@ -91,14 +91,34 @@ describe("isRelevantContract", () => {
         description: "Road construction",
         title: "Road construction",
         items: [{ id: "i1", classification: { scheme: "UNSPSC", id: "72000000" } }],
-        value: { currency: "AUD", amount: "500000" },
+        value: { currency: "AUD", amount: "400000" },
         status: "active",
       }],
     };
     expect(isRelevantContract(release)).toBe(false);
   });
 
-  it("accepts contracts over $1M with relevant UNSPSC", () => {
+  it("accepts contracts at $500K with relevant UNSPSC", () => {
+    const release = {
+      ocid: "test-1b",
+      id: "test-1b",
+      date: "2026-01-01",
+      parties: [],
+      contracts: [{
+        id: "c1b",
+        awardID: "a1b",
+        dateSigned: "2026-01-01",
+        description: "Road construction",
+        title: "Road construction",
+        items: [{ id: "i1", classification: { scheme: "UNSPSC", id: "72000000" } }],
+        value: { currency: "AUD", amount: "500000" },
+        status: "active",
+      }],
+    };
+    expect(isRelevantContract(release)).toBe(true);
+  });
+
+  it("accepts contracts over $500K with relevant UNSPSC", () => {
     const release = {
       ocid: "test-2",
       id: "test-2",
@@ -260,8 +280,8 @@ describe("formatCurrency", () => {
 // ── Configuration ──
 
 describe("configuration", () => {
-  it("has minimum contract value of $1M", () => {
-    expect(MIN_CONTRACT_VALUE).toBe(1_000_000);
+  it("has minimum contract value of $500K (widened)", () => {
+    expect(MIN_CONTRACT_VALUE).toBe(500_000);
   });
 
   it("has relevant UNSPSC prefixes", () => {
