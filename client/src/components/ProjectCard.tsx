@@ -226,13 +226,21 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
 
   const enrichMutation = trpc.dataPipeline.enrichProject.useMutation({
     onSuccess: (data) => {
-      if (data.fromCache) {
+      if ((data as any).quotaExhausted) {
+        toast.warning("LinkedIn API quota temporarily exhausted", {
+          description: "The daily LinkedIn search quota has been reached. Please try again tomorrow when the quota resets. Any existing contacts are still shown below.",
+          duration: 10000,
+        });
+      } else if (data.fromCache) {
         toast.info(`${data.contactsFound} contact${data.contactsFound !== 1 ? "s" : ""} already on file (saved ${data.apiCallsSaved} API calls).`, {
           description: "Contacts were found from a recent search. Use 'Refresh' to search again.",
           duration: 5000,
         });
       } else if (data.contactsFound === 0) {
-        toast.info(`No new contacts found for ${data.projectName || projectName}. The daily cap may have been reached, or contacts already exist.`);
+        toast.info(`No new contacts found for ${data.projectName || projectName}.`, {
+          description: "No matching LinkedIn profiles were found for this project's companies and roles. Try again later or adjust your preferred buyer roles in Settings.",
+          duration: 6000,
+        });
       } else {
         toast.success(`Found ${data.contactsFound} new contact${data.contactsFound > 1 ? "s" : ""} for ${data.projectName || projectName}!`, {
           description: data.contacts.map((c: { name: string; headline?: string }) => `${c.name} — ${c.headline || ""}`).join(", "),

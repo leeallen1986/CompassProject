@@ -1,0 +1,34 @@
+{
+  "query": "SELECT projectId, contactsFound, apiCallsMade, enrichedAt FROM projectEnrichmentCache ORDER BY enrichedAt DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT projectId, contactsFound, apiCallsMade, enrichedAt FROM projectEnrichmentCache ORDER BY enrichedAt DESC LIMIT 20;",
+  "rows": [
+    {
+      "projectId": "120019",
+      "contactsFound": "1",
+      "apiCallsMade": "7",
+      "enrichedAt": "2026-02-11 14:25:42"
+    },
+    {
+      "projectId": "120021",
+      "contactsFound": "2",
+      "apiCallsMade": "7",
+      "enrichedAt": "2026-02-11 14:25:38"
+    },
+    {
+      "projectId": "120017",
+      "contactsFound": "1",
+      "apiCallsMade": "12",
+      "enrichedAt": "2026-02-11 14:13:59"
+    },
+    {
+      "projectId": "120015",
+      "contactsFound": "1",
+      "apiCallsMade": "10",
+      "enrichedAt": "2026-02-11 12:52:39"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectId\tcontactsFound\tapiCallsMade\tenrichedAt\n120019\t1\t7\t2026-02-11 14:25:42\n120021\t2\t7\t2026-02-11 14:25:38\n120017\t1\t12\t2026-02-11 14:13:59\n120015\t1\t10\t2026-02-11 12:52:39\n",
+  "stderr": "",
+  "execution_time_ms": 1535
+}

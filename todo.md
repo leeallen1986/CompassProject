@@ -205,3 +205,4 @@
 - [x] Fix contact enrichment: increased daily cap from 100 to 500, extended cache TTL from 7 to 30 days
 - [x] Reset AI extractor daily cap to 100 (was temporarily 300 for bulk seeding)
 - [x] Updated Sources & Methodology table to reflect new limits
+- [x] Fix Find Contacts: root cause was LinkedIn API quota exhaustion ("usage exhausted") — improved error handling, quota detection, caching logic, and user-facing messaging

@@ -6,7 +6,7 @@
  * populate emails, LinkedIn URLs, job titles, and profile data.
  *
  * Credit controls:
- * - Daily enrichment cap (default: 30 lookups/day)
+ * - Daily enrichment cap (default: 500 lookups/day)
  * - Only enriches contacts with status "pending"
  * - Batches lookups with 1-second delay between calls to respect rate limits
  * - Caches results to avoid duplicate lookups for the same person
@@ -350,11 +350,12 @@ export async function generateAndEnrichContacts(
     : getTargetRoles(sector);
 
   // Search for contacts at each company
+  let quotaExhausted = false;
   for (const company of companies) {
-    if (results.length >= remaining) break;
+    if (results.length >= remaining || quotaExhausted) break;
 
     for (const role of targetRoles) {
-      if (results.length >= remaining) break;
+      if (results.length >= remaining || quotaExhausted) break;
 
       try {
         const searchResult = (await callDataApi("LinkedIn/search_people", {
@@ -371,9 +372,12 @@ export async function generateAndEnrichContacts(
         apiCallsMade++;
 
         if (!searchResult?.success || !searchResult?.data?.items?.length) {
+          console.log(`[Enrichment] No results for "${role}" at "${company}" (success: ${searchResult?.success}, items: ${searchResult?.data?.items?.length ?? 0})`);
           await sleep(DELAY_BETWEEN_CALLS_MS);
           continue;
         }
+
+        console.log(`[Enrichment] Found ${searchResult.data.items.length} results for "${role}" at "${company}"`);
 
         // Take up to 2 people per role per company
         const people = searchResult.data.items.slice(0, 2);
@@ -439,26 +443,50 @@ export async function generateAndEnrichContacts(
 
         await sleep(DELAY_BETWEEN_CALLS_MS);
       } catch (err: unknown) {
-        console.error(
-          `LinkedIn search failed for ${role} at ${company}:`,
-          err instanceof Error ? err.message : String(err)
-        );
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error(`LinkedIn search failed for ${role} at ${company}: ${errMsg}`);
+
+        // Detect quota exhaustion and stop immediately — don't waste time on more calls
+        if (errMsg.includes('usage exhausted') || errMsg.includes('quota') || errMsg.includes('rate limit')) {
+          console.warn(`[Enrichment] LinkedIn API quota exhausted — stopping enrichment for project ${projectId}`);
+          quotaExhausted = true;
+          break;
+        }
       }
     }
   }
 
-  // Write cache entry so we don't re-enrich this project within CACHE_TTL_DAYS
-  await writeEnrichmentCache(
-    projectId,
-    userId,
-    targetRoles,
-    companies,
-    results.length,
-    results.length, // all are new (duplicates were skipped)
-    apiCallsMade
-  );
-
-  console.log(`[Enrichment] Project ${projectId}: ${results.length} contacts found, ${apiCallsMade} API calls, cached for ${CACHE_TTL_DAYS} days`);
+  // Only cache if we actually made API calls (don't cache cap-blocked attempts)
+  // Also don't cache 0-contact results from genuine searches — allow retry
+  if (apiCallsMade > 0 && results.length > 0) {
+    await writeEnrichmentCache(
+      projectId,
+      userId,
+      targetRoles,
+      companies,
+      results.length,
+      results.length, // all are new (duplicates were skipped)
+      apiCallsMade
+    );
+  } else if (apiCallsMade > 0 && results.length === 0) {
+    // Cache 0-result searches for only 1 day (not full TTL) to allow retry soon
+    await writeEnrichmentCache(
+      projectId,
+      userId,
+      targetRoles,
+      companies,
+      0,
+      0,
+      apiCallsMade
+    );
+  }
+  // If apiCallsMade === 0, we were blocked by daily cap — don't cache at all
+  // If quota was exhausted, don't cache — allow immediate retry when quota resets
+  if (quotaExhausted) {
+    console.log(`[Enrichment] Project ${projectId}: quota exhausted, ${results.length} contacts found before quota hit — NOT caching`);
+  } else {
+    console.log(`[Enrichment] Project ${projectId}: ${results.length} contacts found, ${apiCallsMade} API calls`);
+  }
 
   return results;
 }
@@ -643,6 +671,15 @@ export async function getProjectEnrichmentCache(
     .limit(1);
 
   if (!entry) return { cached: false };
+
+  // If 0 contacts were found, only cache for 1 day (allow retry sooner)
+  if (entry.contactsFound === 0) {
+    const shortCutoff = new Date();
+    shortCutoff.setDate(shortCutoff.getDate() - 1);
+    if (entry.enrichedAt < shortCutoff) {
+      return { cached: false };
+    }
+  }
 
   return {
     cached: true,

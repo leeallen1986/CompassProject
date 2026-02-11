@@ -781,32 +781,60 @@ export const appRouter = router({
           : [];
 
         // Run enrichment with profile-aware roles and caching
-        const results = await generateAndEnrichContacts(
-          project.id,
-          project.reportId,
-          project.name,
-          project.owner || "Unknown",
-          contractorsList,
-          project.sector || "infrastructure",
-          {
-            userId: ctx.user?.id ?? null,
-            preferredRoles,
-            skipCacheCheck: input.forceRefresh,
-          }
-        );
+        try {
+          const results = await generateAndEnrichContacts(
+            project.id,
+            project.reportId,
+            project.name,
+            project.owner || "Unknown",
+            contractorsList,
+            project.sector || "infrastructure",
+            {
+              userId: ctx.user?.id ?? null,
+              preferredRoles,
+              skipCacheCheck: input.forceRefresh,
+            }
+          );
 
-        return {
-          projectId: project.id,
-          projectName: project.name,
-          contactsFound: results.length,
-          fromCache: false,
-          contacts: results.map(r => ({
-            name: r.name,
-            status: r.status,
-            headline: r.headline,
-            linkedinUrl: r.linkedinUrl,
-          })),
-        };
+          return {
+            projectId: project.id,
+            projectName: project.name,
+            contactsFound: results.length,
+            fromCache: false,
+            quotaExhausted: false,
+            contacts: results.map(r => ({
+              name: r.name,
+              status: r.status,
+              headline: r.headline,
+              linkedinUrl: r.linkedinUrl,
+            })),
+          };
+        } catch (enrichErr: unknown) {
+          const msg = enrichErr instanceof Error ? enrichErr.message : String(enrichErr);
+          if (msg.includes('usage exhausted') || msg.includes('quota')) {
+            // Return existing contacts if any, with quota warning
+            const existingContacts = await db
+              .select()
+              .from(contacts)
+              .where(sql`${contacts.project} IN (SELECT name FROM projects WHERE id = ${input.projectId})`)
+              .limit(20);
+
+            return {
+              projectId: project.id,
+              projectName: project.name,
+              contactsFound: existingContacts.length,
+              fromCache: false,
+              quotaExhausted: true,
+              contacts: existingContacts.map(c => ({
+                name: c.name,
+                status: c.enrichmentStatus || "enriched",
+                headline: c.linkedinHeadline || c.title,
+                linkedinUrl: c.linkedin ?? undefined,
+              })),
+            };
+          }
+          throw enrichErr;
+        }
       }),
 
     /** Get recent articles */
