@@ -111,3 +111,6 @@
 - [x] Update AI extractor prompt for 4 business lines
 - [x] Backfill existing projects with new business line tags
 - [x] All 151 tests passing
+- [x] Add new RSS feeds for generators, pumps, and BESS (Energy Storage News, Renewables Now, Fluid Handling, CEG, Diesel Progress)
+- [x] Run AI extraction pipeline on queued articles (54 total projects now, up from 28)
+- [x] Add business line badges to project cards (Air, PAL, Pump, BESS color-coded badges)

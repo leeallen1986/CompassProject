@@ -249,6 +249,14 @@ export default function Home() {
   // Fetch active business lines for the filter
   const { data: activeBusinessLines } = trpc.businessLines.active.useQuery(undefined, { enabled: isAuthenticated });
 
+  // Build business line ID → name lookup for badges
+  const businessLineNamesMap: Record<number, string> = useMemo(() => {
+    if (!activeBusinessLines) return {};
+    const map: Record<number, string> = {};
+    activeBusinessLines.forEach((bl: any) => { map[bl.id] = bl.name; });
+    return map;
+  }, [activeBusinessLines]);
+
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
@@ -469,7 +477,7 @@ export default function Home() {
                 <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-xs font-bold">{hotProjects.length}</span>
               </div>
               <div className="space-y-3">
-                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} />)}
+                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} businessLineNames={businessLineNamesMap} />)}
               </div>
             </div>
           </TabsContent>
@@ -495,7 +503,7 @@ export default function Home() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badgeClass}`}>{group.length}</span>
                   </div>
                   <div className="space-y-3">
-                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} />)}
+                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} businessLineNames={businessLineNamesMap} />)}
                   </div>
                 </div>
               );

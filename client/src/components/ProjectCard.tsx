@@ -70,6 +70,14 @@ interface FeedbackState {
   reason?: string;
 }
 
+// Business line badge colors
+const businessLineBadgeConfig: Record<string, { bg: string; text: string; short: string }> = {
+  "Portable Air": { bg: "bg-sky-100", text: "text-sky-700", short: "Air" },
+  "PAL": { bg: "bg-amber-100", text: "text-amber-700", short: "PAL" },
+  "Pump (Flow)": { bg: "bg-blue-100", text: "text-blue-700", short: "Pump" },
+  "BESS": { bg: "bg-emerald-100", text: "text-emerald-700", short: "BESS" },
+};
+
 const pipelineStatusLabels: Record<string, string> = {
   identified: "In Pipeline",
   contacted: "Contacted",
@@ -123,10 +131,12 @@ export default function ProjectCard({
   project,
   existingFeedback,
   pipelineClaim,
+  businessLineNames,
 }: {
   project: ProjectData;
   existingFeedback?: { vote: "up" | "down"; reason: string | null } | null;
   pipelineClaim?: { id: number; status: string } | null;
+  businessLineNames?: Record<number, string>;
 }) {
   const [open, setOpen] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
@@ -211,6 +221,22 @@ export default function ProjectCard({
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${cfg.badge}`}>{cfg.label}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${capexBadge[project.capexGrade]}`}>CAPEX {project.capexGrade}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${routeBadge[project.opportunityRoute]}`}>{project.opportunityRoute}</span>
+            {/* Business line badges */}
+            {businessLineNames && project.matchedBusinessLines && project.matchedBusinessLines.length > 0 && (
+              <>
+                <span className="w-px h-3 bg-border mx-0.5" />
+                {project.matchedBusinessLines.map(blId => {
+                  const name = businessLineNames[blId];
+                  if (!name) return null;
+                  const cfg = businessLineBadgeConfig[name] || { bg: "bg-slate-100", text: "text-slate-600", short: name };
+                  return (
+                    <span key={blId} className={`px-2 py-0.5 rounded text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>
+                      {cfg.short}
+                    </span>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-1">

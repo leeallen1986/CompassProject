@@ -105,6 +105,17 @@ const DEFAULT_RSS_SOURCES = [
   // Oil & Gas
   { name: "Energy News Australia", feedUrl: "https://www.energynewsaustralia.com/feed/", category: "industry" },
 
+  // BESS & Energy Storage
+  { name: "Energy Storage News", feedUrl: "https://www.energy-storage.news/feed/", category: "industry" },
+  { name: "Renewables Now", feedUrl: "https://renewablesnow.com/feed/", category: "industry" },
+
+  // Pumps & Water Management
+  { name: "Fluid Handling Magazine", feedUrl: "https://fluidhandlingmag.com/feed/", category: "industry" },
+
+  // Construction Equipment & Power Generation
+  { name: "Construction Equipment Guide", feedUrl: "https://www.constructionequipmentguide.com/rss/news.xml", category: "industry" },
+  { name: "Diesel Progress", feedUrl: "https://dieselnet.com/rss.xml", category: "industry" },
+
   // Government / Tenders
   { name: "WA Government Media", feedUrl: "https://www.mediastatements.wa.gov.au/RSS", category: "government" },
   { name: "QLD Government News", feedUrl: "https://statements.qld.gov.au/feed", category: "government" },
