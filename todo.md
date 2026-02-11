@@ -189,3 +189,5 @@
 - [x] User action needed: Update VITE_APP_TITLE in Management UI Settings > General to "Atlas Copco Power Technique - Market Intelligence"
 - [x] Fix Manus OAuth gate: all auth redirects now go to /login instead of Manus OAuth URL
 - [x] Updated useAuth.ts, main.tsx, Home.tsx, DashboardLayout.tsx, Onboarding.tsx, Settings.tsx, Pipeline.tsx, Admin.tsx
+- [x] Fix onboarding bug: new users get pushed back on first attempt of completing personalization/preferences (works on 2nd try)
+- [x] Root cause: stale profile cache after completeOnboarding mutation; fixed by invalidating profile cache + staleTime:0 + removing setTimeout delay

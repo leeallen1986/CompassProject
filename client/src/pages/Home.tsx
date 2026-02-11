@@ -324,7 +324,10 @@ export default function Home() {
   const [, navigate] = useLocation();
 
   // Fetch user profile to check onboarding status
-  const { data: profile, isLoading: profileLoading } = trpc.profile.get.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: profile, isLoading: profileLoading } = trpc.profile.get.useQuery(undefined, {
+    enabled: isAuthenticated,
+    staleTime: 0, // Always refetch to ensure onboarding status is current
+  });
 
   // Fetch the unified dashboard data (all projects across all sources)
   const { data: fullReport, isLoading: reportLoading } = trpc.report.full.useQuery(
@@ -357,17 +360,16 @@ export default function Home() {
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
 
+  // Wait for profile to load before deciding
+  if (profileLoading) return <LoadingPage />;
+
   // Redirect to onboarding if profile not completed
-  if (!profileLoading && profile === null) {
-    navigate("/onboarding");
-    return <LoadingPage />;
-  }
-  if (!profileLoading && profile && !profile.onboardingCompleted) {
+  if (profile === null || (profile && !profile.onboardingCompleted)) {
     navigate("/onboarding");
     return <LoadingPage />;
   }
 
-  if (reportLoading || !fullReport || profileLoading) return <LoadingPage />;
+  if (reportLoading || !fullReport) return <LoadingPage />;
 
   const { report, projects, contacts, drillingCampaigns, awardedProjects } = fullReport;
 

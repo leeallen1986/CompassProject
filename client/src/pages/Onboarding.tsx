@@ -153,6 +153,7 @@ export default function Onboarding() {
   const [keyAccountsText, setKeyAccountsText] = useState("");
   const [excludeAccountsText, setExcludeAccountsText] = useState("");
 
+  const utils = trpc.useUtils();
   const updateProfile = trpc.profile.update.useMutation();
   const completeOnboarding = trpc.profile.completeOnboarding.useMutation();
 
@@ -226,8 +227,10 @@ export default function Onboarding() {
     try {
       await saveCurrentStep();
       await completeOnboarding.mutateAsync();
+      // Invalidate the profile cache so Home page sees onboardingCompleted=true immediately
+      await utils.profile.get.invalidate();
       toast.success("Profile setup complete! Loading your personalized dashboard...");
-      setTimeout(() => navigate("/"), 1000);
+      navigate("/");
     } catch {
       toast.error("Failed to complete setup. Please try again.");
     }
