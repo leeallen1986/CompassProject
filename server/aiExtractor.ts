@@ -20,7 +20,7 @@ import { generateAndEnrichContacts } from "./contactEnrichment";
 
 // ── Configuration ──
 
-const DAILY_EXTRACTION_CAP = 50;
+const DAILY_EXTRACTION_CAP = 100;
 const BATCH_SIZE = 5;
 const MAX_ARTICLE_AGE_DAYS = 30;
 

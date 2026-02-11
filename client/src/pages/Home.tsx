@@ -740,7 +740,7 @@ export default function Home() {
                       { source: "RSS Feed Pipeline", type: "18+ Industry Feeds", schedule: "Daily (06:00 UTC)", coverage: "Mining, Energy, Infrastructure, Defence", credits: "~50/day cap" },
                       { source: "Projectory", type: "Web Scraper", schedule: "Weekly (Mondays)", coverage: "Resources, Infrastructure, Construction, Energy, Industrial, Defence", credits: "None" },
                       { source: "DMIRS MINEDEX", type: "Government API", schedule: "Weekly (Wednesdays)", coverage: "WA Mining Proposals & Approvals", credits: "None" },
-                      { source: "LinkedIn People Search", type: "Contact Enrichment", schedule: "On new projects", coverage: "Contact verification & enrichment", credits: "30 lookups/day" },
+                      { source: "LinkedIn People Search", type: "Contact Enrichment", schedule: "On new projects", coverage: "Contact verification & enrichment (30-day cache)", credits: "500 lookups/day" },
                     ].map((row, i) => (
                       <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"}`}>
                         <td className="px-4 py-3 font-semibold text-navy">{row.source}</td>

@@ -18,9 +18,9 @@ import { callDataApi } from "./_core/dataApi";
 
 // ── Configuration ──
 
-const DAILY_ENRICHMENT_CAP = 100;
+const DAILY_ENRICHMENT_CAP = 500;
 const DELAY_BETWEEN_CALLS_MS = 1000;
-const CACHE_TTL_DAYS = 7; // Re-enrichment allowed after 7 days
+const CACHE_TTL_DAYS = 30; // Re-enrichment allowed after 30 days
 const BUYER_ROLES = [
   "procurement",
   "project_manager",

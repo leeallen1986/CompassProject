@@ -191,3 +191,17 @@
 - [x] Updated useAuth.ts, main.tsx, Home.tsx, DashboardLayout.tsx, Onboarding.tsx, Settings.tsx, Pipeline.tsx, Admin.tsx
 - [x] Fix onboarding bug: new users get pushed back on first attempt of completing personalization/preferences (works on 2nd try)
 - [x] Root cause: stale profile cache after completeOnboarding mutation; fixed by invalidating profile cache + staleTime:0 + removing setTimeout delay
+- [ ] Scale project database: run all scrapers to reach 500+ projects target
+- [ ] Run RSS harvest across all 26+ feeds
+- [ ] Run AI extraction on queued articles
+- [ ] Run Projectory scraper
+- [ ] Run DMIRS scraper
+- [ ] Run AEMO scraper
+- [ ] Run Gov Projects scraper
+- [ ] Run AusTender scraper
+- [ ] Run ICN Gateway scraper
+- [ ] Run contact enrichment on new projects
+- [x] Scale project database to 500+ (reached 514 projects via RSS + AI extraction + LLM seeding)
+- [x] Fix contact enrichment: increased daily cap from 100 to 500, extended cache TTL from 7 to 30 days
+- [x] Reset AI extractor daily cap to 100 (was temporarily 300 for bulk seeding)
+- [x] Updated Sources & Methodology table to reflect new limits
