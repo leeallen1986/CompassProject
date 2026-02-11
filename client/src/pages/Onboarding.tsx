@@ -242,7 +242,7 @@ export default function Onboarding() {
     );
   }
   if (!user) {
-    window.location.href = getLoginUrl("/onboarding");
+    window.location.href = "/login";
     return null;
   }
 

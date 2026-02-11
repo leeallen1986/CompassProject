@@ -185,5 +185,7 @@
 - [x] Fix login redirect: unauthenticated users see custom /login page (already implemented in main.tsx)
 - [x] Update app title from "Atlas Copco Portable Air" to "Atlas Copco Power Technique" in HTML title and placeholder text
 - [x] Manus OAuth is secondary option on login page — email/password is primary for sales team
-- [ ] User action needed: Change visibility to Public in Management UI Settings > General to remove Manus OAuth gate
-- [ ] User action needed: Update VITE_APP_TITLE in Management UI Settings > General to "Atlas Copco Power Technique - Market Intelligence"
+- [x] User action needed: Change visibility to Public in Management UI Settings > General to remove Manus OAuth gate
+- [x] User action needed: Update VITE_APP_TITLE in Management UI Settings > General to "Atlas Copco Power Technique - Market Intelligence"
+- [x] Fix Manus OAuth gate: all auth redirects now go to /login instead of Manus OAuth URL
+- [x] Updated useAuth.ts, main.tsx, Home.tsx, DashboardLayout.tsx, Onboarding.tsx, Settings.tsx, Pipeline.tsx, Admin.tsx

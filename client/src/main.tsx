@@ -20,9 +20,10 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   // Redirect to our custom login page instead of directly to Manus OAuth
   // Users can choose email/password or Manus OAuth from the login page
-  if (!window.location.pathname.startsWith("/login") &&
-      !window.location.pathname.startsWith("/register") &&
-      !window.location.pathname.startsWith("/reset-password")) {
+  const path = window.location.pathname;
+  if (!path.startsWith("/login") &&
+      !path.startsWith("/register") &&
+      !path.startsWith("/reset-password")) {
     window.location.href = "/login";
   }
 };

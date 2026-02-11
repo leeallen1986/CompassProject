@@ -947,7 +947,7 @@ export default function Admin() {
   }
 
   if (!user) {
-    window.location.href = getLoginUrl("/admin");
+    window.location.href = "/login";
     return null;
   }
 

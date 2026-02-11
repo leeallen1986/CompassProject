@@ -290,7 +290,7 @@ function LoginPage() {
           <h1 className="text-2xl font-bold text-navy tracking-tight mb-2">Atlas Copco Power Technique</h1>
           <p className="text-sm text-muted-foreground">Market Intelligence Dashboard</p>
         </div>
-        <a href={getLoginUrl()}
+        <a href="/login"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-navy text-white font-semibold hover:bg-navy-light transition-colors shadow-md">
           <LogIn className="w-5 h-5" /> Sign In to Access Dashboard
         </a>

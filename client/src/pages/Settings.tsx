@@ -132,7 +132,7 @@ export default function Settings() {
   }
 
   if (!user) {
-    window.location.href = getLoginUrl("/settings");
+    window.location.href = "/login";
     return null;
   }
 
