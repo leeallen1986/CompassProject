@@ -371,6 +371,13 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`DMIRS scrape failed: ${e.message}`),
   });
+  const aemoScrape = trpc.aemo.scrape.useMutation({
+    onSuccess: (data) => {
+      toast.success(`AEMO: ${data.totalNewProjects} new projects, ${data.totalDuplicates} duplicates, ${data.totalSkipped} skipped (${data.duration}s)`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`AEMO scrape failed: ${e.message}`),
+  });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -459,6 +466,27 @@ function PipelineOpsTab() {
           {dmirsScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
           Scrape DMIRS
         </Button>
+        <Button
+          onClick={() => aemoScrape.mutate()}
+          disabled={aemoScrape.isPending}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+        >
+          {aemoScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          Scrape AEMO
+        </Button>
+      </div>
+
+      {/* AEMO Status */}
+      <div className="bg-card rounded-lg border border-emerald-200 p-4 mb-3">
+        <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
+          <Zap className="w-4 h-4 text-emerald-600" /> AEMO Generation Information
+        </h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 text-teal">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Curated BESS & power generation projects
+          </span>
+          <span className="text-muted-foreground text-xs">Major BESS, pumped hydro, and gas peaker projects across NEM. Runs Fridays via daily pipeline.</span>
+        </div>
       </div>
 
       {/* DMIRS Status */}

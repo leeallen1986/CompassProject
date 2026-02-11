@@ -54,7 +54,10 @@ const DEFAULT_BUSINESS_LINES = [
       "dewatering pump", "submersible pump", "wellpoint dewatering",
       "pump station", "water pump", "mine dewatering", "flood pump",
       "centrifugal pump", "drainage pump", "slurry pump",
-      "water management", "pit dewatering"
+      "water management", "pit dewatering", "stormwater",
+      "water treatment", "tailings", "water table", "groundwater",
+      "flood recovery", "dam construction", "water infrastructure",
+      "sewage pump", "effluent pump", "bypass pumping"
     ],
     sectors: ["mining", "infrastructure", "energy"],
     equipmentTypes: [
@@ -118,6 +121,16 @@ const DEFAULT_RSS_SOURCES = [
   // Construction Equipment & Power Generation
   { name: "Construction Equipment Guide", feedUrl: "https://www.constructionequipmentguide.com/rss/news.xml", category: "industry" },
   { name: "Diesel Progress", feedUrl: "https://dieselnet.com/rss.xml", category: "industry" },
+
+  // Pump & Dewatering Specific
+  { name: "World Pumps", feedUrl: "https://www.worldpumps.com/rss/", category: "industry" },
+  { name: "Pump Engineer", feedUrl: "https://www.pumpengineer.net/feed/", category: "industry" },
+  { name: "Australian Water Association", feedUrl: "https://www.awa.asn.au/feed/", category: "industry" },
+  { name: "Water Source", feedUrl: "https://watersource.awa.asn.au/feed/", category: "industry" },
+  { name: "Utility Magazine", feedUrl: "https://utilitymagazine.com.au/feed/", category: "industry" },
+
+  // Project Databases & Tenders
+  { name: "Projectory Australia", feedUrl: "https://www.projectory.com.au/rss.xml", category: "industry" },
 
   // Government / Tenders
   { name: "WA Government Media", feedUrl: "https://www.mediastatements.wa.gov.au/RSS", category: "government" },

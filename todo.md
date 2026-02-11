@@ -133,3 +133,14 @@
 - [x] Run full harvest cycle (26 sources, 31 extracted, pump feeds active)
 - [x] Build team outreach leaderboard on Pipeline page (weekly email count per user, trophy icons)
 - [x] Vitest tests for outreach history, contacted list, and leaderboard (168 tests passing)
+- [x] Research and add more Australian project databases to support all PT business lines
+- [x] Build AEMO scraper for BESS, pumped hydro, and gas peaker projects across NEM
+- [x] Wire AEMO scraper into admin dashboard with manual trigger (Scrape AEMO button)
+- [x] Set up weekly automated schedule for AEMO scraping (Fridays via daily pipeline)
+- [x] Add 7 new AEMO projects (Cethana Pumped Hydro, Muswellbrook Pumped Hydro, Goat Hill Pumped Hydro, Marinus Link BESS, Western Sydney BESS, Mortlake Gas Peaker)
+- [x] Add 5 new pump-specific RSS sources (World Pumps, Pump Engineer, AWA, Water Source, Utility Magazine)
+- [x] Expand Pump (Flow) keywords (stormwater, tailings, groundwater, flood recovery, dam construction, etc.)
+- [x] Vitest tests for AEMO scraper (business line matching, priority mapping, CAPEX grading, equipment signals)
+- [x] All 196 tests passing
+- [ ] Build scrapers for additional data sources (government major projects, tender sites)
+- [ ] Target: 500+ projects and 1500+ contacts at scale

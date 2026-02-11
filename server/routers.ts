@@ -34,6 +34,7 @@ import { runDailyPipeline } from "./dailyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
 import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
 import { runDmirsScraper } from "./dmirsScraper";
+import { runAemoScraper } from "./aemoScraper";
 import {
   createInvite, completeRegistration, loginWithEmail,
   generatePasswordReset, resetPassword, getEmailUsers, deleteEmailUser,
@@ -844,6 +845,22 @@ export const appRouter = router({
           await notifyOwner({
             title: "DMIRS Scrape Complete",
             content: `Scraped ${result.totalFetched} registrations from DMIRS MINEDEX. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
+  }),
+
+  // ── AEMO Generation Scraper (admin only) ──
+  aemo: router({
+    /** Run the AEMO generation projects scraper */
+    scrape: adminProcedure
+      .mutation(async () => {
+        const result = await runAemoScraper();
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "AEMO Scrape Complete",
+            content: `Scraped ${result.totalFetched} AEMO generation projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
           });
         }
         return result;
