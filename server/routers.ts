@@ -26,6 +26,7 @@ import {
   getFeedbackWeightsByUser,
 } from "./pipelineDb";
 import { harvestAllFeeds, getPipelineStats } from "./rssHarvester";
+import { callDataApi } from "./_core/dataApi";
 import { runExtractionPipeline } from "./aiExtractor";
 import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } from "./mlRanker";
 import { seedDefaultPipelineData } from "./seedPipeline";
@@ -915,6 +916,123 @@ export const appRouter = router({
             linkedinUrl: c.linkedin ?? undefined,
           })),
         };
+      }),
+
+    /** Verify a single contact via LinkedIn API (on-demand) */
+    verifyContact: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        // Fetch the contact
+        const [contact] = await db
+          .select()
+          .from(contacts)
+          .where(eq(contacts.id, input.contactId))
+          .limit(1);
+
+        if (!contact) throw new Error("Contact not found");
+
+        // Search LinkedIn for this person
+        try {
+          const queryParts = [contact.name];
+          if (contact.company) queryParts.push(contact.company);
+
+          const searchResult = (await callDataApi("LinkedIn/search_people", {
+            query: {
+              keywords: queryParts.join(" "),
+              ...(contact.company ? { company: contact.company } : {}),
+              ...(contact.title ? { keywordTitle: contact.title } : {}),
+            },
+          })) as {
+            success?: boolean;
+            data?: { items?: Array<{
+              fullName?: string;
+              headline?: string;
+              location?: string;
+              profileURL?: string;
+              username?: string;
+              profilePicture?: string;
+            }>; total?: number };
+          };
+
+          if (!searchResult?.success || !searchResult?.data?.items?.length) {
+            // No LinkedIn match found — mark as unverified
+            await db.update(contacts).set({
+              verificationStatus: "unverified",
+              confidenceScore: "low",
+              enrichedAt: new Date(),
+            }).where(eq(contacts.id, input.contactId));
+
+            return {
+              contactId: input.contactId,
+              verified: false,
+              message: "No LinkedIn profile found matching this contact. The contact may not exist or uses a different name on LinkedIn.",
+            };
+          }
+
+          // Find best match by name
+          const nameLower = contact.name.toLowerCase().trim();
+          let bestMatch = searchResult.data.items[0];
+          for (const person of searchResult.data.items) {
+            const fullName = (person.fullName || "").toLowerCase().trim();
+            if (fullName === nameLower) {
+              bestMatch = person;
+              break;
+            }
+            const nameParts = nameLower.split(/\s+/);
+            if (nameParts.length >= 2) {
+              const firstName = nameParts[0];
+              const lastName = nameParts[nameParts.length - 1];
+              if (fullName.includes(firstName) && fullName.includes(lastName)) {
+                bestMatch = person;
+                break;
+              }
+            }
+          }
+
+          const linkedinUrl = bestMatch.profileURL || (bestMatch.username ? `https://www.linkedin.com/in/${bestMatch.username}` : null);
+
+          // Update the contact with verified LinkedIn data
+          await db.update(contacts).set({
+            verificationStatus: "verified",
+            confidenceScore: "high",
+            enrichmentSource: "linkedin",
+            enrichmentStatus: "enriched",
+            enrichedAt: new Date(),
+            linkedin: linkedinUrl,
+            linkedinHeadline: bestMatch.headline || contact.linkedinHeadline,
+            linkedinLocation: bestMatch.location || contact.linkedinLocation,
+            linkedinProfilePic: bestMatch.profilePicture || contact.linkedinProfilePic,
+            linkedinSearchUrl: linkedinUrl || contact.linkedinSearchUrl,
+            emailVerified: false, // Email still needs separate verification
+            // Update name if LinkedIn has a better match
+            name: bestMatch.fullName || contact.name,
+            title: bestMatch.headline || contact.title,
+          }).where(eq(contacts.id, input.contactId));
+
+          return {
+            contactId: input.contactId,
+            verified: true,
+            linkedinUrl,
+            headline: bestMatch.headline,
+            location: bestMatch.location,
+            profilePic: bestMatch.profilePicture,
+            message: `Contact verified via LinkedIn. Profile: ${bestMatch.fullName || contact.name} — ${bestMatch.headline || ""}.`,
+          };
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          if (errMsg.includes('usage exhausted') || errMsg.includes('quota')) {
+            return {
+              contactId: input.contactId,
+              verified: false,
+              quotaExhausted: true,
+              message: "LinkedIn API quota exhausted. Please try again later or verify manually via the LinkedIn search link.",
+            };
+          }
+          throw err;
+        }
       }),
 
     /** Get recent articles */

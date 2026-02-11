@@ -232,3 +232,13 @@
 - [x] Dashboard: Add "Show All / Unfiltered" toggle so users can override territory filter
 - [x] AI Search: Keep unfiltered (shows all projects regardless of territory — user is actively searching)
 - [x] Apply territory filter to KPI counts, hot projects section, contacts tab, awarded projects, drilling campaigns
+- [x] Add verification status field to contacts schema (verified / ai_suggested / unverified)
+- [x] Add confidence score field to contacts schema (high / medium / low)
+- [x] Update LLM contact generator to produce confidence scores based on match quality
+- [x] Add LinkedIn search links to contacts (name + company search URL, not guessed profile URL)
+- [x] Add visual warning on AI-generated emails (pattern-guessed, verify before outreach)
+- [x] Update contacts table UI with verification badges, confidence indicators, and LinkedIn links
+- [x] Backfill existing contacts with appropriate verification status (linkedin → verified, llm → ai_suggested)
+- [x] Flip enrichment model: LLM as primary source, LinkedIn API as on-demand verification
+- [x] Add on-demand "Verify via LinkedIn" endpoint (single contact verification)
+- [x] Update contacts table UI: verification badges, confidence indicators, LinkedIn search links, verify button

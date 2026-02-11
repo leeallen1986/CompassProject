@@ -78,6 +78,13 @@
       "when": 1770823171873,
       "tag": "0010_steady_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1770829092594,
+      "tag": "0011_nosy_pretty_boy",
+      "breakpoints": true
     }
   ]
 }

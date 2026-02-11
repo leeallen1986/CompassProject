@@ -165,6 +165,10 @@ export const contacts = mysqlTable("contacts", {
   linkedinHeadline: varchar("linkedinHeadline", { length: 512 }),
   linkedinLocation: varchar("linkedinLocation", { length: 256 }),
   linkedinProfilePic: varchar("linkedinProfilePic", { length: 1024 }),
+  verificationStatus: mysqlEnum("verificationStatus", ["verified", "ai_suggested", "unverified"]).default("unverified"),
+  confidenceScore: mysqlEnum("confidenceScore", ["high", "medium", "low"]).default("medium"),
+  linkedinSearchUrl: varchar("linkedinSearchUrl", { length: 1024 }),
+  emailVerified: boolean("emailVerified").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

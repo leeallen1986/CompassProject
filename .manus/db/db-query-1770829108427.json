@@ -1,0 +1,22 @@
+{
+  "query": "\nUPDATE contacts SET verificationStatus = 'verified', confidenceScore = 'high', emailVerified = true WHERE enrichmentSource = 'linkedin';\nUPDATE contacts SET verificationStatus = 'ai_suggested', confidenceScore = 'medium', emailVerified = false WHERE enrichmentSource = 'llm';\nUPDATE contacts SET verificationStatus = 'unverified', confidenceScore = 'low', emailVerified = false WHERE enrichmentSource IS NULL OR enrichmentSource = 'manual';\nSELECT enrichmentSource, verificationStatus, confidenceScore, COUNT(*) as cnt FROM contacts GROUP BY enrichmentSource, verificationStatus, confidenceScore;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nUPDATE contacts SET verificationStatus = 'verified', confidenceScore = 'high', emailVerified = true WHERE enrichmentSource = 'linkedin';\nUPDATE contacts SET verificationStatus = 'ai_suggested', confidenceScore = 'medium', emailVerified = false WHERE enrichmentSource = 'llm';\nUPDATE contacts SET verificationStatus = 'unverified', confidenceScore = 'low', emailVerified = false WHERE enrichmentSource IS NULL OR enrichmentSource = 'manual';\nSELECT enrichmentSource, verificationStatus, confidenceScore, COUNT(*) as cnt FROM contacts GROUP BY enrichmentSource, verificationStatus, confidenceScore;\n",
+  "rows": [
+    {
+      "enrichmentSource": "llm",
+      "verificationStatus": "ai_suggested",
+      "confidenceScore": "medium",
+      "cnt": "1010"
+    },
+    {
+      "enrichmentSource": "linkedin",
+      "verificationStatus": "verified",
+      "confidenceScore": "high",
+      "cnt": "56"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\tverificationStatus\tconfidenceScore\tcnt\nllm\tai_suggested\tmedium\t1010\nlinkedin\tverified\thigh\t56\n",
+  "stderr": "",
+  "execution_time_ms": 2292
+}

@@ -324,6 +324,9 @@ export async function generateAndSaveLLMContacts(
 
       if (existing.length > 0) continue;
 
+      // Build LinkedIn search URL for easy verification
+      const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(contact.name + " " + owner)}`;
+
       const contactData: InsertContact = {
         reportId,
         name: contact.name,
@@ -340,6 +343,10 @@ export async function generateAndSaveLLMContacts(
         linkedinHeadline: `${contact.title} (AI-suggested role)`,
         linkedinLocation: location || null,
         linkedinProfilePic: null,
+        verificationStatus: "ai_suggested",
+        confidenceScore: contact.confidence || "medium",
+        linkedinSearchUrl,
+        emailVerified: false,
       };
 
       await db.insert(contacts).values(contactData);

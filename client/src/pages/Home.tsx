@@ -12,7 +12,8 @@ import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Shield,
-  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter
+  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
+  ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -93,15 +94,44 @@ interface ContactRow {
   roleBucket: string;
   email: string | null;
   linkedin: string | null;
+  enrichmentSource: string | null;
+  verificationStatus: string | null;
+  confidenceScore: string | null;
+  linkedinSearchUrl: string | null;
+  emailVerified: boolean | null;
+  linkedinProfilePic: string | null;
 }
 
 function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNames }: { data: ContactRow[]; weekEnding: string; projects: ProjectData[]; businessLineNames: Record<number, string> }) {
   const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "verified" | "ai_suggested">("all");
   const [outreachContact, setOutreachContact] = useState<ContactRow | null>(null);
   const [outreachProject, setOutreachProject] = useState<ProjectData | null>(null);
+  const [verifyingId, setVerifyingId] = useState<number | null>(null);
 
   // Fetch contacted contacts list for badges
   const { data: contactedList } = trpc.outreach.contactedList.useQuery();
+  const utils = trpc.useUtils();
+
+  // Verify contact mutation
+  const verifyMutation = trpc.dataPipeline.verifyContact.useMutation({
+    onSuccess: (result: { verified?: boolean; quotaExhausted?: boolean; message?: string }) => {
+      setVerifyingId(null);
+      if (result.verified) {
+        alert(`Contact verified! ${result.message}`);
+      } else if (result.quotaExhausted) {
+        alert("LinkedIn API quota exhausted. Try again later or use the LinkedIn search link to verify manually.");
+      } else {
+        alert(result.message || "Contact could not be verified via LinkedIn.");
+      }
+      // Refresh the data
+      utils.report.full.invalidate();
+    },
+    onError: (err: { message: string }) => {
+      setVerifyingId(null);
+      alert(`Verification failed: ${err.message}`);
+    },
+  });
 
   // Find matching project for a contact
   const findProjectForContact = (contact: ContactRow): ProjectData | null => {
@@ -120,49 +150,47 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       setOutreachContact(contact);
       setOutreachProject(matchedProject);
     } else {
-      // Fallback: create a minimal project from contact info
       setOutreachContact(contact);
       setOutreachProject({
-        id: 0,
-        reportId: 0,
-        projectKey: "",
-        name: contact.project,
-        location: "Australia",
-        value: "Unknown",
-        owner: contact.company,
-        priority: contact.priority,
-        capexGrade: "Unknown" as const,
-        opportunityRoute: "Direct CAPEX" as const,
-        sector: "mining" as const,
-        isNew: false,
-        stage: null,
-        overview: null,
-        equipmentSignals: null,
-        contractors: null,
-        opportunityNote: null,
-        sources: null,
-        timeline: null,
-        completion: null,
-        matchedBusinessLines: null,
+        id: 0, reportId: 0, projectKey: "", name: contact.project, location: "Australia",
+        value: "Unknown", owner: contact.company, priority: contact.priority,
+        capexGrade: "Unknown" as const, opportunityRoute: "Direct CAPEX" as const,
+        sector: "mining" as const, isNew: false, stage: null, overview: null,
+        equipmentSignals: null, contractors: null, opportunityNote: null,
+        sources: null, timeline: null, completion: null, matchedBusinessLines: null,
         createdAt: new Date(),
       });
     }
   };
 
+  const handleVerifyClick = (contactId: number) => {
+    setVerifyingId(contactId);
+    verifyMutation.mutate({ contactId });
+  };
+
   const filtered = useMemo(() => {
-    if (!search) return data;
+    let result = data;
+    if (sourceFilter === "verified") {
+      result = result.filter(c => c.verificationStatus === "verified");
+    } else if (sourceFilter === "ai_suggested") {
+      result = result.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm");
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return data.filter(c =>
+    return result.filter(c =>
       c.name.toLowerCase().includes(q) ||
       c.company.toLowerCase().includes(q) ||
       c.title.toLowerCase().includes(q) ||
       c.project.toLowerCase().includes(q)
     );
-  }, [data, search]);
+  }, [data, search, sourceFilter]);
+
+  const verifiedCount = data.filter(c => c.verificationStatus === "verified").length;
+  const aiSuggestedCount = data.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm").length;
 
   const exportCSV = () => {
-    const headers = ["Name", "Title", "Company", "Project", "Priority", "Role Bucket", "Email", "LinkedIn"];
-    const rows = filtered.map(c => [c.name, c.title, c.company, c.project, c.priority, c.roleBucket, c.email || "", c.linkedin || ""]);
+    const headers = ["Name", "Title", "Company", "Project", "Priority", "Role Bucket", "Email", "Email Verified", "LinkedIn", "LinkedIn Search", "Source", "Verification", "Confidence"];
+    const rows = filtered.map(c => [c.name, c.title, c.company, c.project, c.priority, c.roleBucket, c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || ""]);
     const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -179,9 +207,39 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
     return "bg-cold text-white";
   };
 
+  const verificationBadge = (c: ContactRow) => {
+    if (c.verificationStatus === "verified") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700" title="Verified via LinkedIn API">
+          <ShieldCheck className="w-3 h-3" /> Verified
+        </span>
+      );
+    }
+    if (c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700" title="AI-generated contact — verify before outreach">
+          <Bot className="w-3 h-3" /> AI Suggested
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500" title="Unverified contact">
+        <CircleHelp className="w-3 h-3" /> Unverified
+      </span>
+    );
+  };
+
+  const confidenceBadge = (c: ContactRow) => {
+    const score = c.confidenceScore || "medium";
+    if (score === "high") return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-600">HIGH</span>;
+    if (score === "medium") return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600">MED</span>;
+    return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-red-500">LOW</span>;
+  };
+
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      {/* Header with search, source filter, and export */}
+      <div className="flex items-center gap-3 mb-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input type="text" placeholder="Search by name, company, title, or project..."
@@ -193,55 +251,136 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
-      <p className="text-[11px] text-muted-foreground italic mb-3">Contact details require verification via People Data Labs or Coresignal before outreach. Emails shown are corporate domain patterns.</p>
+
+      {/* Source filter tabs */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <button onClick={() => setSourceFilter("all")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            sourceFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+          }`}>
+          All ({data.length})
+        </button>
+        <button onClick={() => setSourceFilter("verified")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            sourceFilter === "verified" ? "bg-emerald-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-emerald-300"
+          }`}>
+          <ShieldCheck className="w-3 h-3" /> Verified ({verifiedCount})
+        </button>
+        <button onClick={() => setSourceFilter("ai_suggested")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            sourceFilter === "ai_suggested" ? "bg-amber-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-amber-300"
+          }`}>
+          <Bot className="w-3 h-3" /> AI Suggested ({aiSuggestedCount})
+        </button>
+      </div>
+
+      {/* Warning banner for AI contacts */}
+      {sourceFilter !== "verified" && aiSuggestedCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-xs text-amber-800">
+            <strong>AI-Suggested contacts</strong> are role-based inferences generated by AI. Names, emails, and titles are pattern-guessed and <strong>must be verified before outreach</strong>. Use the LinkedIn search link or "Verify" button to confirm each contact.
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-navy text-white">
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Name</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Title</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Company</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Project</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Priority</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Role</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Name</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Title</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Company</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Project</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Priority</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Source</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Confidence</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((c, i) => (
               <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
-                <td className="px-4 py-3 font-medium text-navy">{c.name}</td>
-                <td className="px-4 py-3 text-muted-foreground">{c.title}</td>
-                <td className="px-4 py-3">{c.company}</td>
-                <td className="px-4 py-3 text-muted-foreground">{c.project}</td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    {c.linkedinProfilePic ? (
+                      <img src={c.linkedinProfilePic} alt="" className="w-7 h-7 rounded-full object-cover border border-border" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                        {c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium text-navy">{c.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{c.roleBucket}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-3 text-muted-foreground text-xs">{c.title}</td>
+                <td className="px-3 py-3 text-xs">{c.company}</td>
+                <td className="px-3 py-3 text-muted-foreground text-xs max-w-[180px] truncate" title={c.project}>{c.project}</td>
+                <td className="px-3 py-3">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(c.priority)}`}>{c.priority}</span>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{c.roleBucket}</td>
-                <td className="px-4 py-3">
-                  {(() => {
-                    const contacted = contactedList?.find(cl => cl.contactName.toLowerCase() === c.name.toLowerCase());
-                    if (contacted) {
-                      const daysAgo = Math.floor((Date.now() - new Date(contacted.sentAt).getTime()) / (1000 * 60 * 60 * 24));
-                      return (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal/15 text-teal" title={`Contacted ${daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago'}`}>
-                          ✓ Contacted
-                        </span>
-                      );
-                    }
-                    return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">Not contacted</span>;
-                  })()}
+                <td className="px-3 py-3">
+                  {verificationBadge(c)}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
+                <td className="px-3 py-3">
+                  {confidenceBadge(c)}
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Email with warning for unverified */}
                     {c.email && (
-                      <button onClick={() => handleOutreachClick(c)} className="px-2 py-1 rounded text-[10px] font-semibold bg-gold/15 text-gold-dark hover:bg-gold/25 transition-colors flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Outreach
-                      </button>
+                      <div className="relative group">
+                        <button onClick={() => handleOutreachClick(c)}
+                          className={`px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors ${
+                            c.emailVerified || c.verificationStatus === "verified"
+                              ? "bg-gold/15 text-gold-dark hover:bg-gold/25"
+                              : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                          }`}>
+                          <Sparkles className="w-3 h-3" />
+                          {c.emailVerified || c.verificationStatus === "verified" ? "Outreach" : "Outreach*"}
+                        </button>
+                        {!c.emailVerified && c.verificationStatus !== "verified" && (
+                          <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                            Email is pattern-guessed — verify before sending
+                          </div>
+                        )}
+                      </div>
                     )}
+
+                    {/* LinkedIn profile link (verified) */}
                     {c.linkedin && (
-                      <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-navy/10 text-navy hover:bg-navy/20 transition-colors">LI</a>
+                      <a href={c.linkedin} target="_blank" rel="noopener noreferrer"
+                        className="px-2 py-1 rounded text-[10px] font-semibold bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 transition-colors flex items-center gap-1"
+                        title="View LinkedIn profile">
+                        <Linkedin className="w-3 h-3" /> Profile
+                      </a>
+                    )}
+
+                    {/* LinkedIn search link (for unverified) */}
+                    {!c.linkedin && c.linkedinSearchUrl && (
+                      <a href={c.linkedinSearchUrl} target="_blank" rel="noopener noreferrer"
+                        className="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex items-center gap-1"
+                        title="Search LinkedIn for this person">
+                        <Search className="w-3 h-3" /> Find on LI
+                      </a>
+                    )}
+
+                    {/* Verify via LinkedIn button (only for AI-suggested contacts) */}
+                    {(c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm") && c.verificationStatus !== "verified" && (
+                      <button
+                        onClick={() => handleVerifyClick(c.id)}
+                        disabled={verifyingId === c.id}
+                        className="px-2 py-1 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors flex items-center gap-1 disabled:opacity-50"
+                        title="Use LinkedIn API to verify this contact">
+                        {verifyingId === c.id ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" /> Verifying...</>
+                        ) : (
+                          <><CheckCircle2 className="w-3 h-3" /> Verify</>
+                        )}
+                      </button>
                     )}
                   </div>
                 </td>
