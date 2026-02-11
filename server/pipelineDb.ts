@@ -127,17 +127,19 @@ export async function getDailyExtractionStats(days: number = 7) {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
+  // Use CAST + DATE to create a deterministic expression that MySQL's ONLY_FULL_GROUP_BY accepts
+  const dateExpr = sql`CAST(DATE(${rawArticles.extractedAt}) AS CHAR)`;
   const results = await db.select({
-    date: sql<string>`DATE(${rawArticles.extractedAt})`,
-    count: sql<number>`count(*)`,
+    date: sql<string>`${dateExpr}`.as("extraction_date"),
+    count: sql<number>`count(*)`.as("cnt"),
   })
     .from(rawArticles)
     .where(and(
       eq(rawArticles.status, "extracted"),
       gte(rawArticles.extractedAt, cutoff)
     ))
-    .groupBy(sql`DATE(${rawArticles.extractedAt})`)
-    .orderBy(sql`DATE(${rawArticles.extractedAt})`);
+    .groupBy(dateExpr)
+    .orderBy(dateExpr);
 
   return results.map(r => ({ date: String(r.date), count: Number(r.count) }));
 }

@@ -93,3 +93,4 @@
 - [x] Client-side Projectory scraper (bypasses anti-bot via admin's browser session)
 - [x] Updated report.test.ts for new aggregated dashboard behavior
 - [x] Fix nested button HTML error on Home page (button cannot contain a nested button)
+- [x] Fix rawArticles DATE() query error on Admin page

@@ -1,0 +1,9 @@
+{
+  "query": "SELECT DATE(extractedAt) as d, count(*) as cnt FROM rawArticles WHERE status = 'extracted' AND extractedAt IS NOT NULL GROUP BY DATE(extractedAt) ORDER BY DATE(extractedAt) LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT DATE(extractedAt) as d, count(*) as cnt FROM rawArticles WHERE status = 'extracted' AND extractedAt IS NOT NULL GROUP BY DATE(extractedAt) ORDER BY DATE(extractedAt) LIMIT 5;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1549
+}

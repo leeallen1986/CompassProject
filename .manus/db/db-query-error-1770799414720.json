@@ -1,0 +1,8 @@
+{
+  "query": "select DATE(`extractedAt`), count(*) from `rawArticles` where (`rawArticles`.`status` = 'extracted' and `rawArticles`.`extractedAt` >= '2026-02-04 08:41:52.301') group by DATE(`rawArticles`.`extractedAt`) order by DATE(`rawArticles`.`extractedAt`);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute select DATE(`extractedAt`), count(*) from `rawArticles` where (`rawArticles`.`status` = 'extracted' and `rawArticles`.`extractedAt` >= '2026-02-04 08:41:52.301') group by DATE(`rawArticles`.`extractedAt`) order by DATE(`rawArticles`.`extractedAt`);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1055 (42000) at line 1: Expression #1 of SELECT list is not in GROUP BY clause and contains nonaggregated column '3SMu786VMCWdCnmNSx6pxw.rawArticles.extractedAt' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by"
+  ]
+}
