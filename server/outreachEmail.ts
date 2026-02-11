@@ -277,6 +277,110 @@ export async function getProjectOutreachHistory(userId: number, projectId: numbe
 }
 
 /**
+ * Get a set of contact names that have been contacted by anyone on the team.
+ * Used to show "Contacted" badges on the contacts table.
+ */
+export async function getContactedContactNames(): Promise<Map<string, { userId: number; userName: string | null; sentAt: Date }>> {
+  const db = await getDb();
+  if (!db) return new Map();
+
+  const rows = await db.select({
+    contactName: outreachEmails.contactName,
+    contactId: outreachEmails.contactId,
+    userId: outreachEmails.userId,
+    createdAt: outreachEmails.createdAt,
+  })
+    .from(outreachEmails)
+    .orderBy(desc(outreachEmails.createdAt));
+
+  // Deduplicate: keep the most recent outreach per contact name
+  const map = new Map<string, { userId: number; userName: string | null; sentAt: Date }>();
+  for (const row of rows) {
+    const key = row.contactName.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, { userId: row.userId, userName: null, sentAt: row.createdAt });
+    }
+  }
+  return map;
+}
+
+/**
+ * Get contacted contact names as a simple list for the API.
+ */
+export async function getContactedContactList(): Promise<{
+  contactName: string;
+  contactId: number | null;
+  userId: number;
+  sentAt: Date;
+}[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get the most recent outreach per contact name using a subquery approach
+  const rows = await db.select({
+    contactName: outreachEmails.contactName,
+    contactId: outreachEmails.contactId,
+    userId: outreachEmails.userId,
+    sentAt: outreachEmails.createdAt,
+  })
+    .from(outreachEmails)
+    .orderBy(desc(outreachEmails.createdAt));
+
+  // Deduplicate by contact name (keep most recent)
+  const seen = new Set<string>();
+  const result: { contactName: string; contactId: number | null; userId: number; sentAt: Date }[] = [];
+  for (const row of rows) {
+    const key = row.contactName.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({
+        contactName: row.contactName,
+        contactId: row.contactId,
+        userId: row.userId,
+        sentAt: row.sentAt,
+      });
+    }
+  }
+  return result;
+}
+
+/**
+ * Get outreach leaderboard — count of emails per user in a given time window.
+ */
+export async function getOutreachLeaderboard(sinceDate?: Date): Promise<{
+  userId: number;
+  count: number;
+}[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { sql, count } = await import("drizzle-orm");
+  
+  let query;
+  if (sinceDate) {
+    query = db.select({
+      userId: outreachEmails.userId,
+      count: count(),
+    })
+      .from(outreachEmails)
+      .where(sql`${outreachEmails.createdAt} >= ${sinceDate}`)
+      .groupBy(outreachEmails.userId)
+      .orderBy(desc(count()));
+  } else {
+    query = db.select({
+      userId: outreachEmails.userId,
+      count: count(),
+    })
+      .from(outreachEmails)
+      .groupBy(outreachEmails.userId)
+      .orderBy(desc(count()));
+  }
+
+  const rows = await query;
+  return rows.map(r => ({ userId: r.userId, count: Number(r.count) }));
+}
+
+/**
  * Get all outreach emails sent by a user.
  */
 export async function getUserOutreachHistory(userId: number): Promise<{

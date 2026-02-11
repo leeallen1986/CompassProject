@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Target, Phone, Calendar, FileText, Trophy, XCircle,
   ChevronDown, ChevronUp, MapPin, ArrowRight, Clock,
-  User, Trash2, Edit3, Plus, Settings, ArrowLeft
+  User, Trash2, Edit3, Plus, Settings, ArrowLeft, Mail, Award, TrendingUp
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -240,9 +240,13 @@ export default function Pipeline() {
   const [viewMode, setViewMode] = useState<"mine" | "team">("mine");
   const [editingClaim, setEditingClaim] = useState<any>(null);
 
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<"week" | "month" | "all">("week");
+
   const myClaimsQuery = trpc.pipeline.mine.useQuery(undefined, { enabled: isAuthenticated });
   const teamClaimsQuery = trpc.pipeline.team.useQuery(undefined, { enabled: isAuthenticated && viewMode === "team" });
   const reportQuery = trpc.report.full.useQuery({}, { enabled: isAuthenticated });
+  const leaderboardQuery = trpc.outreach.leaderboard.useQuery({ period: leaderboardPeriod }, { enabled: isAuthenticated });
+  const teamClaimsForNames = trpc.pipeline.team.useQuery(undefined, { enabled: isAuthenticated });
 
   // Build a project lookup from the report data
   const projectLookup = useMemo(() => {
@@ -428,6 +432,88 @@ export default function Pipeline() {
               </div>
             );
           })}
+        </div>
+
+        {/* Outreach Leaderboard */}
+        <div className="mt-8 bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gold/15 flex items-center justify-center">
+                <Award className="w-4.5 h-4.5 text-gold-dark" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-navy">Outreach Leaderboard</h3>
+                <p className="text-[10px] text-slate-500">Team outreach emails sent</p>
+              </div>
+            </div>
+            <div className="flex rounded-lg overflow-hidden border border-slate-200">
+              {(["week", "month", "all"] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => setLeaderboardPeriod(p)}
+                  className={`px-3 py-1.5 text-[10px] font-semibold transition-colors ${
+                    leaderboardPeriod === p ? "bg-navy text-white" : "text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  {p === "week" ? "This Week" : p === "month" ? "This Month" : "All Time"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {leaderboardQuery.isLoading ? (
+            <div className="flex items-center justify-center py-8 text-slate-400 text-sm">Loading...</div>
+          ) : !leaderboardQuery.data?.length ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Mail className="w-10 h-10 text-slate-200 mb-2" />
+              <p className="text-sm text-slate-400">No outreach emails sent {leaderboardPeriod === "week" ? "this week" : leaderboardPeriod === "month" ? "this month" : "yet"}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Go to the Dashboard → Contacts tab to start outreach</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {leaderboardQuery.data.map((entry, idx) => {
+                // Find user name from team claims data
+                const teamMember = teamClaimsForNames.data?.find(t => t.claim.userId === entry.userId);
+                const userName = teamMember?.userName || (entry.userId === user?.id ? user?.name : `User #${entry.userId}`);
+                const isMe = entry.userId === user?.id;
+                const maxCount = leaderboardQuery.data![0].count;
+                const barWidth = maxCount > 0 ? (entry.count / maxCount) * 100 : 0;
+
+                return (
+                  <div key={entry.userId} className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${isMe ? "bg-gold/8 border border-gold/20" : "hover:bg-slate-50"}`}>
+                    {/* Rank */}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      idx === 0 ? "bg-gold text-navy" : idx === 1 ? "bg-slate-300 text-slate-700" : idx === 2 ? "bg-amber-700/70 text-white" : "bg-slate-100 text-slate-500"
+                    }`}>
+                      {idx + 1}
+                    </div>
+
+                    {/* Name + bar */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-semibold truncate ${isMe ? "text-gold-dark" : "text-navy"}`}>
+                          {userName}{isMe ? " (You)" : ""}
+                        </span>
+                        {idx === 0 && <Trophy className="w-3.5 h-3.5 text-gold" />}
+                      </div>
+                      <div className="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${isMe ? "bg-gold" : "bg-navy/60"}`}
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Count */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <span className={`text-sm font-bold ${isMe ? "text-gold-dark" : "text-navy"}`}>{entry.count}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Empty state */}

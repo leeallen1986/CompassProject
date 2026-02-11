@@ -40,7 +40,7 @@ import {
   validatePassword,
 } from "./emailAuth";
 import { notifyOwner } from "./_core/notification";
-import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOutreachHistory } from "./outreachEmail";
+import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOutreachHistory, getContactedContactList, getOutreachLeaderboard } from "./outreachEmail";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
 import { projects } from "../drizzle/schema";
@@ -910,6 +910,29 @@ export const appRouter = router({
     myHistory: protectedProcedure.query(async ({ ctx }) => {
       return getUserOutreachHistory(ctx.user.id);
     }),
+
+    /** Get list of all contacted contacts (for badges) */
+    contactedList: protectedProcedure.query(async () => {
+      return getContactedContactList();
+    }),
+
+    /** Get outreach leaderboard — email count per user */
+    leaderboard: protectedProcedure
+      .input(z.object({
+        period: z.enum(["week", "month", "all"]).default("week"),
+      }).optional())
+      .query(async ({ input }) => {
+        const period = input?.period ?? "week";
+        let sinceDate: Date | undefined;
+        if (period === "week") {
+          sinceDate = new Date();
+          sinceDate.setDate(sinceDate.getDate() - 7);
+        } else if (period === "month") {
+          sinceDate = new Date();
+          sinceDate.setMonth(sinceDate.getMonth() - 1);
+        }
+        return getOutreachLeaderboard(sinceDate);
+      }),
   }),
 
   // ── ML Ranking endpoints ──

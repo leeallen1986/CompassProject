@@ -99,6 +99,9 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
   const [outreachContact, setOutreachContact] = useState<ContactRow | null>(null);
   const [outreachProject, setOutreachProject] = useState<ProjectData | null>(null);
 
+  // Fetch contacted contacts list for badges
+  const { data: contactedList } = trpc.outreach.contactedList.useQuery();
+
   // Find matching project for a contact
   const findProjectForContact = (contact: ContactRow): ProjectData | null => {
     const projectName = contact.project.toLowerCase();
@@ -200,6 +203,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
               <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Project</th>
               <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Priority</th>
               <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Role</th>
+              <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Status</th>
               <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -214,6 +218,20 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(c.priority)}`}>{c.priority}</span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{c.roleBucket}</td>
+                <td className="px-4 py-3">
+                  {(() => {
+                    const contacted = contactedList?.find(cl => cl.contactName.toLowerCase() === c.name.toLowerCase());
+                    if (contacted) {
+                      const daysAgo = Math.floor((Date.now() - new Date(contacted.sentAt).getTime()) / (1000 * 60 * 60 * 24));
+                      return (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal/15 text-teal" title={`Contacted ${daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago'}`}>
+                          ✓ Contacted
+                        </span>
+                      );
+                    }
+                    return <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">Not contacted</span>;
+                  })()}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     {c.email && (
