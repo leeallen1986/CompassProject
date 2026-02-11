@@ -12,7 +12,7 @@ import {
   Loader2, ArrowLeft, Shield, Rss, Building2, Database, Play,
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
-  UserPlus, Copy, KeyRound, Mail, Landmark,
+  UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -385,6 +385,20 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`Gov scrape failed: ${e.message}`),
   });
+  const austenderScrape = trpc.austender.scrape.useMutation({
+    onSuccess: (data) => {
+      toast.success(`AusTender: ${data.totalNewProjects} new from ${data.totalRelevant} relevant contracts (${data.totalFetched} fetched, ${data.totalDuplicates} duplicates, ${data.duration}s)`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`AusTender scrape failed: ${e.message}`),
+  });
+  const icnScrape = trpc.icn.scrape.useMutation({
+    onSuccess: (data) => {
+      toast.success(`ICN Gateway: ${data.totalNewProjects} new projects, ${data.totalDuplicates} duplicates from ${data.totalFetched} ICN projects (${data.duration}s)`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`ICN scrape failed: ${e.message}`),
+  });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -489,6 +503,48 @@ function PipelineOpsTab() {
           {govScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Landmark className="w-4 h-4" />}
           Scrape Gov Projects
         </Button>
+        <Button
+          onClick={() => austenderScrape.mutate()}
+          disabled={austenderScrape.isPending}
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
+        >
+          {austenderScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSearch className="w-4 h-4" />}
+          Scrape AusTender
+        </Button>
+        <Button
+          onClick={() => icnScrape.mutate()}
+          disabled={icnScrape.isPending}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white gap-1.5"
+        >
+          {icnScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Network className="w-4 h-4" />}
+          Scrape ICN Gateway
+        </Button>
+      </div>
+
+      {/* AusTender Status */}
+      <div className="bg-card rounded-lg border border-purple-200 p-4 mb-3">
+        <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
+          <FileSearch className="w-4 h-4 text-purple-600" /> AusTender OCDS API
+        </h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 text-teal">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Public API — no auth required
+          </span>
+          <span className="text-muted-foreground text-xs">Fetches recent government contracts over $1M in construction, mining, energy, water, and defence. Runs Thursdays via daily pipeline.</span>
+        </div>
+      </div>
+
+      {/* ICN Gateway Status */}
+      <div className="bg-card rounded-lg border border-cyan-200 p-4 mb-3">
+        <h3 className="text-sm font-bold text-navy mb-2 flex items-center gap-2">
+          <Network className="w-4 h-4 text-cyan-600" /> ICN Gateway Projects
+        </h3>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="flex items-center gap-1 text-teal">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Curated major projects with work packages
+          </span>
+          <span className="text-muted-foreground text-xs">24 curated ICN projects: defence, mining, transport, energy. Open work packages = active supplier opportunities. Runs Saturdays via daily pipeline.</span>
+        </div>
       </div>
 
       {/* Gov Projects Status */}

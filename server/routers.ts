@@ -36,6 +36,8 @@ import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
 import { runDmirsScraper } from "./dmirsScraper";
 import { runAemoScraper } from "./aemoScraper";
 import { runGovScraper } from "./govScraper";
+import { runAusTenderScraper } from "./austenderScraper";
+import { runIcnScraper } from "./icnScraper";
 import {
   createInvite, completeRegistration, loginWithEmail,
   generatePasswordReset, resetPassword, getEmailUsers, deleteEmailUser,
@@ -878,6 +880,36 @@ export const appRouter = router({
           await notifyOwner({
             title: "Gov Projects Scrape Complete",
             content: `Scraped ${result.totalFetched} government major projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
+  }),
+
+  // ── AusTender Scraper ──
+  austender: router({
+    scrape: adminProcedure
+      .mutation(async () => {
+        const result = await runAusTenderScraper();
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "AusTender Scrape Complete",
+            content: `Fetched ${result.totalFetched} contracts, ${result.totalRelevant} relevant. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
+          });
+        }
+        return result;
+      }),
+  }),
+
+  // ── ICN Gateway Scraper ──
+  icn: router({
+    scrape: adminProcedure
+      .mutation(async () => {
+        const result = await runIcnScraper();
+        if (result.totalNewProjects > 0) {
+          await notifyOwner({
+            title: "ICN Gateway Scrape Complete",
+            content: `Scraped ${result.totalFetched} ICN projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
           });
         }
         return result;

@@ -151,5 +151,17 @@
 - [x] All 241 tests passing
 - [x] Dashboard now at 116 total projects (BESS 33, PAL 53, Portable Air 98, Pump 29)
 - [ ] Target: 500+ projects and 1500+ contacts at scale
-- [ ] Build tender site scrapers (AusTender, ICN Gateway)
+- [x] Build AusTender OCDS API scraper (public API, zero AI credits, filters $1M+ construction/mining/energy/water contracts)
+- [x] Build ICN Gateway scraper (24 curated major projects: defence, mining, transport, energy with work packages)
+- [x] Wire AusTender and ICN scrapers into admin dashboard with manual triggers
+- [x] Set up weekly automated schedule: AusTender (Thursdays), ICN (Saturdays)
+- [x] Increase daily enrichment cap from 30 to 100
+- [x] Auto-enrichment on ICN scraper (auto-discovers contacts via LinkedIn on new project insertion)
+- [x] Vitest tests for AusTender scraper (keyword matching, business line mapping, CAPEX grading, UNSPSC filtering)
+- [x] Vitest tests for ICN scraper (business line matching, priority mapping, CAPEX grading, work package detection)
+- [x] All 309 tests passing
+- [x] ICN scraper run: 17 new projects, 6 duplicates, auto-enriched contacts
+- [x] AusTender scraper run: 100 contracts fetched, live API confirmed working
+- [x] Dashboard now at 133 total projects (BESS 34, PAL 70, Portable Air 115, Pump 41), 51 contacts
+- [ ] Target: 500+ projects and 1500+ contacts at scale
 - [ ] Add networking events page for sales professionals

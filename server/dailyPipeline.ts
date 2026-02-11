@@ -19,6 +19,8 @@ import { runProjectoryScraper } from "./projectoryScraper";
 import { runDmirsScraper } from "./dmirsScraper";
 import { runAemoScraper } from "./aemoScraper";
 import { runGovScraper } from "./govScraper";
+import { runAusTenderScraper } from "./austenderScraper";
+import { runIcnScraper } from "./icnScraper";
 import { notifyOwner } from "./_core/notification";
 
 export interface DailyPipelineResult {
@@ -66,6 +68,22 @@ export interface DailyPipelineResult {
     duration: number;
   };
   gov: {
+    ran: boolean;
+    totalNewProjects: number;
+    totalDuplicates: number;
+    totalErrors: number;
+    duration: number;
+  };
+  austender: {
+    ran: boolean;
+    totalFetched: number;
+    totalRelevant: number;
+    totalNewProjects: number;
+    totalDuplicates: number;
+    totalErrors: number;
+    duration: number;
+  };
+  icn: {
     ran: boolean;
     totalNewProjects: number;
     totalDuplicates: number;
@@ -200,8 +218,56 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     console.log("[DailyPipeline] Skipping Gov projects (runs on Tuesdays only)");
   }
 
-  // Step 7: Contact Enrichment
-  console.log("[DailyPipeline] Step 7/8: Enriching contacts...");
+  // Step 7: AusTender Scrape (weekly — runs on Thursdays)
+  const isThursday = new Date().getUTCDay() === 4;
+  let austenderResult = { ran: false, totalFetched: 0, totalRelevant: 0, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isThursday) {
+    console.log("[DailyPipeline] Step 7/10: Scraping AusTender contracts (weekly Thursday run)...");
+    try {
+      const scrapeResult = await runAusTenderScraper();
+      austenderResult = {
+        ran: true,
+        totalFetched: scrapeResult.totalFetched,
+        totalRelevant: scrapeResult.totalRelevant,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      console.log(`[DailyPipeline] AusTender complete: ${scrapeResult.totalNewProjects} new projects from ${scrapeResult.totalRelevant} relevant contracts`);
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] AusTender scrape failed:", err instanceof Error ? err.message : String(err));
+      austenderResult.totalErrors = 1;
+    }
+  } else {
+    console.log("[DailyPipeline] Skipping AusTender (runs on Thursdays only)");
+  }
+
+  // Step 8: ICN Gateway Scrape (weekly — runs on Saturdays)
+  const isSaturday = new Date().getUTCDay() === 6;
+  let icnResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isSaturday) {
+    console.log("[DailyPipeline] Step 8/10: Scraping ICN Gateway projects (weekly Saturday run)...");
+    try {
+      const scrapeResult = await runIcnScraper();
+      icnResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      console.log(`[DailyPipeline] ICN complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] ICN scrape failed:", err instanceof Error ? err.message : String(err));
+      icnResult.totalErrors = 1;
+    }
+  } else {
+    console.log("[DailyPipeline] Skipping ICN Gateway (runs on Saturdays only)");
+  }
+
+  // Step 9: Contact Enrichment
+  console.log("[DailyPipeline] Step 9/10: Enriching contacts...");
   let enrichmentResult;
   try {
     enrichmentResult = await runEnrichmentPipeline();
@@ -241,6 +307,8 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     dmirs: dmirsResult,
     aemo: aemoResult,
     gov: govResult,
+    austender: austenderResult,
+    icn: icnResult,
     duration,
     completedAt,
   };
@@ -254,11 +322,13 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
         ``,
         `RSS Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources`,
         `AI Extraction: ${extractionResult.extracted} projects extracted (${extractionResult.creditsUsed} LLM credits used today)`,
-        `Contact Enrichment: ${enrichmentResult.enriched} contacts enriched (${enrichmentResult.dailyUsed}/30 daily cap)`,
+        `Contact Enrichment: ${enrichmentResult.enriched} contacts enriched (${enrichmentResult.dailyUsed}/${enrichmentResult.dailyCap ?? 100} daily cap)`,
         projectoryResult.ran ? `Projectory Scrape: ${projectoryResult.totalNewProjects} new projects, ${projectoryResult.totalNewContacts} contacts (${projectoryResult.duration}s)` : `Projectory: Skipped (runs Mondays only)`,
         dmirsResult.ran ? `DMIRS Scrape: ${dmirsResult.totalNewProjects} new projects, ${dmirsResult.totalDuplicates} duplicates (${dmirsResult.duration}s)` : `DMIRS: Skipped (runs Wednesdays only)`,
         aemoResult.ran ? `AEMO Scrape: ${aemoResult.totalNewProjects} new projects, ${aemoResult.totalDuplicates} duplicates (${aemoResult.duration}s)` : `AEMO: Skipped (runs Fridays only)`,
         govResult.ran ? `Gov Projects: ${govResult.totalNewProjects} new projects, ${govResult.totalDuplicates} duplicates (${govResult.duration}s)` : `Gov Projects: Skipped (runs Tuesdays only)`,
+        austenderResult.ran ? `AusTender: ${austenderResult.totalNewProjects} new from ${austenderResult.totalRelevant} relevant contracts (${austenderResult.duration}s)` : `AusTender: Skipped (runs Thursdays only)`,
+        icnResult.ran ? `ICN Gateway: ${icnResult.totalNewProjects} new projects, ${icnResult.totalDuplicates} duplicates (${icnResult.duration}s)` : `ICN Gateway: Skipped (runs Saturdays only)`,
         ``,
         `Errors: ${harvestResult.totalErrors} harvest, ${extractionResult.failed} extraction, ${enrichmentResult.failed} enrichment, ${projectoryResult.totalErrors} projectory`,
       ].join("\n"),

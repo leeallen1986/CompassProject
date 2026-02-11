@@ -18,7 +18,7 @@ import { callDataApi } from "./_core/dataApi";
 
 // ── Configuration ──
 
-const DAILY_ENRICHMENT_CAP = 30;
+const DAILY_ENRICHMENT_CAP = 100;
 const DELAY_BETWEEN_CALLS_MS = 1000;
 const BUYER_ROLES = [
   "procurement",
@@ -60,6 +60,7 @@ interface EnrichmentSummary {
   notFound: number;
   failed: number;
   dailyUsed: number;
+  dailyCap: number;
   results: EnrichmentResult[];
 }
 
@@ -447,6 +448,7 @@ export async function runEnrichmentPipeline(
       notFound: 0,
       failed: 0,
       dailyUsed: dailyCount,
+      dailyCap: DAILY_ENRICHMENT_CAP,
       results: [],
     };
   }
@@ -471,6 +473,7 @@ export async function runEnrichmentPipeline(
       notFound: 0,
       failed: 0,
       dailyUsed: dailyCount,
+      dailyCap: DAILY_ENRICHMENT_CAP,
       results: [],
     };
   }
@@ -529,6 +532,7 @@ export async function runEnrichmentPipeline(
     notFound,
     failed,
     dailyUsed: dailyCount + pendingContacts.length,
+    dailyCap: DAILY_ENRICHMENT_CAP,
     results: allResults,
   };
 }
