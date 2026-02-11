@@ -40,7 +40,7 @@ import {
   validatePassword,
 } from "./emailAuth";
 import { notifyOwner } from "./_core/notification";
-import { generateOutreachEmail } from "./outreachEmail";
+import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOutreachHistory } from "./outreachEmail";
 import { sendWeeklyDigests } from "./emailDigest";
 import { getDb } from "./db";
 import { projects } from "../drizzle/schema";
@@ -878,6 +878,38 @@ export const appRouter = router({
         });
         return result;
       }),
+
+    /** Save an outreach email to the database */
+    save: protectedProcedure
+      .input(z.object({
+        contactId: z.number().optional(),
+        contactName: z.string(),
+        contactEmail: z.string().optional(),
+        projectId: z.number().optional(),
+        projectName: z.string().optional(),
+        subject: z.string(),
+        body: z.string(),
+        tone: z.enum(["professional", "consultative", "direct"]),
+        status: z.enum(["drafted", "opened_in_email", "sent"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return saveOutreachEmail({
+          userId: ctx.user.id,
+          ...input,
+        });
+      }),
+
+    /** Get outreach history for a specific contact */
+    contactHistory: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .query(async ({ input }) => {
+        return getOutreachHistory(input.contactId);
+      }),
+
+    /** Get all outreach history for the current user */
+    myHistory: protectedProcedure.query(async ({ ctx }) => {
+      return getUserOutreachHistory(ctx.user.id);
+    }),
   }),
 
   // ── ML Ranking endpoints ──

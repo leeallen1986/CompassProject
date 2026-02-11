@@ -120,3 +120,11 @@
 - [x] mailto: integration to open user's email client with pre-filled draft
 - [x] Wire contact "Outreach" buttons in Contacts tab to trigger AI outreach flow
 - [x] Vitest tests for outreach email generation endpoint (11 tests)
+- [x] Add pump-specific RSS feeds (Pump Engineer, World Pumps, dewatering industry sources)
+- [ ] Harvest new pump feeds and run AI extraction (feeds added, awaiting next harvest cycle)
+- [x] Create outreach history schema (outreachEmails table: userId, contactId, projectId, subject, body, tone, sentAt)
+- [x] Save outreach emails to database when user clicks "Open in Email"
+- [ ] Show outreach history on contacts (badge showing if already contacted)
+- [x] Add primary contact with outreach button directly on project cards
+- [x] Select primary contact based on user's preferred buyer roles from onboarding profile (fuzzy keyword matching)
+- [x] Vitest tests for outreach email generation (11 tests), all 162 tests passing

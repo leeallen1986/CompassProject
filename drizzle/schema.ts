@@ -344,3 +344,25 @@ export const feedbackWeights = mysqlTable("feedbackWeights", {
 
 export type FeedbackWeight = typeof feedbackWeights.$inferSelect;
 export type InsertFeedbackWeight = typeof feedbackWeights.$inferInsert;
+
+/**
+ * Outreach emails — tracks AI-generated outreach emails sent to contacts.
+ * Prevents duplicate outreach and provides history for the team.
+ */
+export const outreachEmails = mysqlTable("outreachEmails", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  contactId: int("contactId"),
+  contactName: varchar("contactName", { length: 256 }).notNull(),
+  contactEmail: varchar("contactEmail", { length: 320 }),
+  projectId: int("projectId"),
+  projectName: varchar("projectName", { length: 512 }),
+  subject: varchar("subject", { length: 512 }).notNull(),
+  body: text("body").notNull(),
+  tone: mysqlEnum("tone", ["professional", "consultative", "direct"]).notNull(),
+  status: mysqlEnum("status", ["drafted", "opened_in_email", "sent"]).notNull().default("drafted"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OutreachEmail = typeof outreachEmails.$inferSelect;
+export type InsertOutreachEmail = typeof outreachEmails.$inferInsert;

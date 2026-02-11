@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProjectCard, { type ProjectData } from "@/components/ProjectCard";
+import ProjectCard, { type ProjectData, type ContactData } from "@/components/ProjectCard";
 import { IMAGES } from "@/lib/images";
 import { scoreAndRankProjects, type UserProfileData, type FeedbackData } from "@/lib/personalization";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
@@ -555,7 +555,7 @@ export default function Home() {
                 <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-xs font-bold">{hotProjects.length}</span>
               </div>
               <div className="space-y-3">
-                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} businessLineNames={businessLineNamesMap} />)}
+                {hotProjects.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} businessLineNames={businessLineNamesMap} allContacts={contacts as ContactData[]} buyerRoles={profileData?.buyerRoles} />)}
               </div>
             </div>
           </TabsContent>
@@ -581,7 +581,7 @@ export default function Home() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badgeClass}`}>{group.length}</span>
                   </div>
                   <div className="space-y-3">
-                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} businessLineNames={businessLineNamesMap} />)}
+                    {group.map((p: ProjectData) => <ProjectCard key={p.id} project={p} existingFeedback={feedbackMap.get(p.id) ?? null} pipelineClaim={claimsMap.get(p.id) ?? null} businessLineNames={businessLineNamesMap} allContacts={contacts as ContactData[]} buyerRoles={profileData?.buyerRoles} />)}
                   </div>
                 </div>
               );

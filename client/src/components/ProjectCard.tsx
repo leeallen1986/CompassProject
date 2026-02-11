@@ -4,7 +4,8 @@
  * Now includes feedback buttons (thumbs up/down) and relevance score
  */
 import { useState } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User } from "lucide-react";
+import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -127,19 +128,116 @@ function ClaimButton({ projectId, reportId }: { projectId: number; reportId: num
   );
 }
 
+// Contact shape from the API
+export interface ContactData {
+  id: number;
+  name: string;
+  title: string;
+  company: string;
+  project: string;
+  priority: "hot" | "warm" | "cold";
+  roleBucket: string;
+  email: string | null;
+  linkedin: string | null;
+}
+
+/** Stopwords to ignore during keyword matching */
+const STOP_WORDS = new Set(["the", "a", "an", "of", "in", "for", "and", "or", "to", "at", "by", "on", "is", "—", "-", "/"]);
+
+/** Extract meaningful keywords from a string */
+function extractKeywords(text: string): string[] {
+  return text.toLowerCase().split(/[\s/—\-–,()]+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
+}
+
+/** Check if two strings share significant keyword overlap */
+function hasKeywordOverlap(a: string, b: string): boolean {
+  const kwA = extractKeywords(a);
+  const kwB = extractKeywords(b);
+  if (kwA.length === 0 || kwB.length === 0) return false;
+  const shared = kwA.filter(w => kwB.some(bw => bw.includes(w) || w.includes(bw)));
+  // At least 2 shared keywords, or 1 if the contact project name is very short
+  return shared.length >= 2 || (shared.length >= 1 && kwA.length <= 2);
+}
+
+/**
+ * Find the best primary contact for a project based on user's preferred buyer roles.
+ * Matching strategy:
+ *   1. Direct substring match (contact.project ⊂ project.name or vice versa)
+ *   2. Keyword overlap (e.g., "Rio Tinto Maintenance" ↔ "Monadelphous Rio Tinto Pilbara Maintenance Services")
+ *   3. Company/owner match (contact.company ≈ project.owner)
+ * Scoring: buyerRoles preference > has email > priority (hot > warm > cold)
+ */
+function findPrimaryContact(
+  projectName: string,
+  projectOwner: string,
+  allContacts: ContactData[],
+  buyerRoles?: string[] | null,
+): ContactData | null {
+  const projectNameLower = projectName.toLowerCase();
+  const ownerLower = projectOwner.toLowerCase();
+  // Split owner on / or & for multi-owner projects (e.g., "Santos / BW Offshore")
+  const ownerParts = ownerLower.split(/[/&,]+/).map(s => s.trim()).filter(Boolean);
+
+  const projectContacts = allContacts.filter(c => {
+    const cProject = c.project.toLowerCase();
+    const cCompany = c.company.toLowerCase();
+    // Direct substring match
+    if (cProject.includes(projectNameLower) || projectNameLower.includes(cProject)) return true;
+    // Keyword overlap between contact project and project name
+    if (hasKeywordOverlap(cProject, projectNameLower)) return true;
+    // Company matches project owner (or any part of multi-owner)
+    if (ownerParts.some(op => cCompany.includes(op) || op.includes(cCompany))) return true;
+    // Contact company appears in project name
+    if (projectNameLower.includes(cCompany) && cCompany.length > 3) return true;
+    return false;
+  });
+
+  if (projectContacts.length === 0) return null;
+
+  // Score each contact
+  const priorityScore = { hot: 3, warm: 2, cold: 1 };
+  const scored = projectContacts.map(c => {
+    let score = priorityScore[c.priority] || 0;
+    // Boost if matches user's preferred buyer roles
+    if (buyerRoles && buyerRoles.length > 0) {
+      const roleLower = c.roleBucket.toLowerCase();
+      if (buyerRoles.some(r => roleLower.includes(r.toLowerCase()))) score += 10;
+    }
+    // Boost if has email (actionable)
+    if (c.email) score += 5;
+    // Boost if contact project name directly matches
+    const cProject = c.project.toLowerCase();
+    if (projectNameLower.includes(cProject) || cProject.includes(projectNameLower)) score += 3;
+    return { contact: c, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.contact ?? null;
+}
+
 export default function ProjectCard({
   project,
   existingFeedback,
   pipelineClaim,
   businessLineNames,
+  allContacts,
+  buyerRoles,
 }: {
   project: ProjectData;
   existingFeedback?: { vote: "up" | "down"; reason: string | null } | null;
   pipelineClaim?: { id: number; status: string } | null;
   businessLineNames?: Record<number, string>;
+  allContacts?: ContactData[];
+  buyerRoles?: string[] | null;
 }) {
   const [open, setOpen] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
+  const [showOutreach, setShowOutreach] = useState(false);
+
+  // Find primary contact for this project
+  const primaryContact = allContacts && allContacts.length > 0
+    ? findPrimaryContact(project.name, project.owner, allContacts, buyerRoles)
+    : null;
   const [feedback, setFeedback] = useState<FeedbackState>({
     vote: existingFeedback?.vote ?? null,
     reason: existingFeedback?.reason ?? undefined,
@@ -404,10 +502,70 @@ export default function ProjectCard({
                   </div>
                 </div>
               </div>
+
+              {/* Primary Contact & Outreach */}
+              {primaryContact && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-3 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5" /> Recommended Contact
+                  </h4>
+                  <div className="flex items-center justify-between gap-3 bg-navy/5 rounded-lg p-3 border border-navy/10">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-navy">{primaryContact.name}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                          primaryContact.priority === "hot" ? "bg-hot/15 text-hot" :
+                          primaryContact.priority === "warm" ? "bg-warm/15 text-warm" :
+                          "bg-cold/15 text-cold"
+                        }`}>{primaryContact.priority}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{primaryContact.title} — {primaryContact.company}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Role: {primaryContact.roleBucket}</p>
+                    </div>
+                    {primaryContact.email && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowOutreach(true); }}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gold text-navy text-xs font-bold hover:bg-gold-light transition-colors shadow-sm"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        Outreach
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Outreach Email Modal */}
+      {primaryContact && showOutreach && (
+        <OutreachEmailModal
+          isOpen={showOutreach}
+          onClose={() => setShowOutreach(false)}
+          contact={{
+            id: primaryContact.id,
+            name: primaryContact.name,
+            title: primaryContact.title,
+            company: primaryContact.company,
+            email: primaryContact.email || "",
+            roleBucket: primaryContact.roleBucket,
+          }}
+          project={{
+            id: project.id,
+            name: project.name,
+            location: project.location,
+            value: project.value,
+            sector: project.sector,
+            stage: project.stage,
+            overview: project.overview,
+            equipmentSignals: project.equipmentSignals,
+            opportunityRoute: project.opportunityRoute,
+            matchedBusinessLines: (project.matchedBusinessLines || []).map(blId => businessLineNames?.[blId] || String(blId)),
+          }}
+        />
+      )}
     </div>
   );
 }

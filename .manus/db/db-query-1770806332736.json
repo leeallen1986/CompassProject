@@ -1,0 +1,90 @@
+{
+  "query": "SELECT DISTINCT project, company FROM contacts ORDER BY project LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT DISTINCT project, company FROM contacts ORDER BY project LIMIT 20;",
+  "rows": [
+    {
+      "project": "Barossa / BW Opal",
+      "company": "Santos"
+    },
+    {
+      "project": "Barossa FPSO",
+      "company": "Monadelphous Group"
+    },
+    {
+      "project": "BW Opal FPSO",
+      "company": "Monadelphous"
+    },
+    {
+      "project": "Callide C Outage",
+      "company": "CS Energy"
+    },
+    {
+      "project": "Dampier Link Bridge",
+      "company": "Brady Marine & Civil"
+    },
+    {
+      "project": "General",
+      "company": "KBR"
+    },
+    {
+      "project": "General",
+      "company": "Clough"
+    },
+    {
+      "project": "General Drilling",
+      "company": "DDH1 Drilling"
+    },
+    {
+      "project": "General WA",
+      "company": "MACA"
+    },
+    {
+      "project": "Gladstone Shutdown",
+      "company": "KAEFER"
+    },
+    {
+      "project": "Gold Duke",
+      "company": "SSH Mining Australia"
+    },
+    {
+      "project": "Gold Duke",
+      "company": "Delta Consultancy & Drilling"
+    },
+    {
+      "project": "Logan-GC Faster Rail",
+      "company": "CPB Contractors"
+    },
+    {
+      "project": "Logan-GC Faster Rail",
+      "company": "UGL"
+    },
+    {
+      "project": "Logan-GC Faster Rail",
+      "company": "ACCIONA Infrastructure"
+    },
+    {
+      "project": "Mt Pleasant Expansion",
+      "company": "Thiess"
+    },
+    {
+      "project": "Orchard Hills Defence",
+      "company": "Hansen Yuncken"
+    },
+    {
+      "project": "Orchard Hills Defence",
+      "company": "ADCO Constructions"
+    },
+    {
+      "project": "Rio Tinto Maintenance",
+      "company": "Monadelphous Group"
+    },
+    {
+      "project": "Scarborough",
+      "company": "Worley"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tcompany\nBarossa / BW Opal\tSantos\nBarossa FPSO\tMonadelphous Group\nBW Opal FPSO\tMonadelphous\nCallide C Outage\tCS Energy\nDampier Link Bridge\tBrady Marine & Civil\nGeneral\tKBR\nGeneral\tClough\nGeneral Drilling\tDDH1 Drilling\nGeneral WA\tMACA\nGladstone Shutdown\tKAEFER\nGold Duke\tSSH Mining Australia\nGold Duke\tDelta Consultancy & Drilling\nLogan-GC Faster Rail\tCPB Contractors\nLogan-GC Faster Rail\tUGL\nLogan-GC Faster Rail\tACCIONA Infrastructure\nMt Pleasant Expansion\tThiess\nOrchard Hills Defence\tHansen Yuncken\nOrchard Hills Defence\tADCO Constructions\nRio Tinto Maintenance\tMonadelphous Group\nScarborough\tWorley\n",
+  "stderr": "",
+  "execution_time_ms": 1518
+}

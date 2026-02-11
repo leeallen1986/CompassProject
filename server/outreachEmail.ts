@@ -8,6 +8,9 @@
  * - User's preferred tone (professional, consultative, direct)
  */
 import { invokeLLM } from "./_core/llm";
+import { getDb } from "./db";
+import { outreachEmails } from "../drizzle/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 export interface OutreachInput {
   // Contact info
@@ -181,4 +184,125 @@ Return your response as JSON with this exact structure:
   const parsed = JSON.parse(content) as OutreachResult;
   parsed.toneUsed = input.tone;
   return parsed;
+}
+
+/**
+ * Save an outreach email to the database for tracking.
+ */
+export async function saveOutreachEmail(params: {
+  userId: number;
+  contactId?: number;
+  contactName: string;
+  contactEmail?: string;
+  projectId?: number;
+  projectName?: string;
+  subject: string;
+  body: string;
+  tone: "professional" | "consultative" | "direct";
+  status: "drafted" | "opened_in_email" | "sent";
+}): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(outreachEmails).values({
+    userId: params.userId,
+    contactId: params.contactId ?? null,
+    contactName: params.contactName,
+    contactEmail: params.contactEmail ?? null,
+    projectId: params.projectId ?? null,
+    projectName: params.projectName ?? null,
+    subject: params.subject,
+    body: params.body,
+    tone: params.tone,
+    status: params.status,
+  });
+
+  return { id: Number(result[0].insertId) };
+}
+
+/**
+ * Get outreach history for a contact (most recent first).
+ */
+export async function getOutreachHistory(contactId: number): Promise<{
+  id: number;
+  userId: number;
+  subject: string;
+  tone: string;
+  status: string;
+  createdAt: Date;
+}[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select({
+    id: outreachEmails.id,
+    userId: outreachEmails.userId,
+    subject: outreachEmails.subject,
+    tone: outreachEmails.tone,
+    status: outreachEmails.status,
+    createdAt: outreachEmails.createdAt,
+  })
+    .from(outreachEmails)
+    .where(eq(outreachEmails.contactId, contactId))
+    .orderBy(desc(outreachEmails.createdAt));
+}
+
+/**
+ * Get outreach history for a specific user + project combination.
+ */
+export async function getProjectOutreachHistory(userId: number, projectId: number): Promise<{
+  id: number;
+  contactName: string;
+  contactEmail: string | null;
+  subject: string;
+  tone: string;
+  status: string;
+  createdAt: Date;
+}[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select({
+    id: outreachEmails.id,
+    contactName: outreachEmails.contactName,
+    contactEmail: outreachEmails.contactEmail,
+    subject: outreachEmails.subject,
+    tone: outreachEmails.tone,
+    status: outreachEmails.status,
+    createdAt: outreachEmails.createdAt,
+  })
+    .from(outreachEmails)
+    .where(and(eq(outreachEmails.userId, userId), eq(outreachEmails.projectId, projectId)))
+    .orderBy(desc(outreachEmails.createdAt));
+}
+
+/**
+ * Get all outreach emails sent by a user.
+ */
+export async function getUserOutreachHistory(userId: number): Promise<{
+  id: number;
+  contactName: string;
+  contactEmail: string | null;
+  projectName: string | null;
+  subject: string;
+  tone: string;
+  status: string;
+  createdAt: Date;
+}[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select({
+    id: outreachEmails.id,
+    contactName: outreachEmails.contactName,
+    contactEmail: outreachEmails.contactEmail,
+    projectName: outreachEmails.projectName,
+    subject: outreachEmails.subject,
+    tone: outreachEmails.tone,
+    status: outreachEmails.status,
+    createdAt: outreachEmails.createdAt,
+  })
+    .from(outreachEmails)
+    .where(eq(outreachEmails.userId, userId))
+    .orderBy(desc(outreachEmails.createdAt));
 }

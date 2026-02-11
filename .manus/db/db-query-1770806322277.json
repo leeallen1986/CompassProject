@@ -1,0 +1,100 @@
+{
+  "query": "SELECT id, name, company, project, priority, roleBucket, email FROM contacts LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, company, project, priority, roleBucket, email FROM contacts LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Yogesh Prajapati",
+      "company": "NRW Holdings",
+      "project": "WASP Deposit H",
+      "priority": "hot",
+      "roleBucket": "Procurement",
+      "email": "yogesh.prajapati@nrw.com.au"
+    },
+    {
+      "id": "2",
+      "name": "Jules Pemberton",
+      "company": "NRW Holdings",
+      "project": "WASP / Meandu",
+      "priority": "hot",
+      "roleBucket": "Operations",
+      "email": "info@nrw.com.au"
+    },
+    {
+      "id": "3",
+      "name": "Kim Hyman",
+      "company": "NRW Holdings",
+      "project": "WASP / Meandu",
+      "priority": "hot",
+      "roleBucket": "Finance",
+      "email": "NULL"
+    },
+    {
+      "id": "4",
+      "name": "Michael Finnegan",
+      "company": "Macmahon (Decmil)",
+      "project": "WASP Western Hill",
+      "priority": "hot",
+      "roleBucket": "Operations",
+      "email": "info@macmahon.com.au"
+    },
+    {
+      "id": "5",
+      "name": "Zoran Bebic",
+      "company": "Monadelphous Group",
+      "project": "Rio Tinto Maintenance",
+      "priority": "hot",
+      "roleBucket": "Operations",
+      "email": "zoran.bebic@monadelphous.com.au"
+    },
+    {
+      "id": "6",
+      "name": "Paul Thomas",
+      "company": "Monadelphous Group",
+      "project": "Rio Tinto Maintenance",
+      "priority": "hot",
+      "roleBucket": "Procurement",
+      "email": "paul.thomas@monadelphous.com.au"
+    },
+    {
+      "id": "7",
+      "name": "James Bolton",
+      "company": "Monadelphous Group",
+      "project": "Rio Tinto Maintenance",
+      "priority": "hot",
+      "roleBucket": "Operations",
+      "email": "james.bolton@monadelphous.com.au"
+    },
+    {
+      "id": "8",
+      "name": "Alex Longworth",
+      "company": "Monadelphous Group",
+      "project": "Barossa FPSO",
+      "priority": "hot",
+      "roleBucket": "Project",
+      "email": "alex.longworth@monadelphous.com.au"
+    },
+    {
+      "id": "9",
+      "name": "Michael Gray",
+      "company": "Thiess",
+      "project": "Mt Pleasant Expansion",
+      "priority": "hot",
+      "roleBucket": "Operations",
+      "email": "michael.gray@thiess.com.au"
+    },
+    {
+      "id": "10",
+      "name": "Sean Munroe",
+      "company": "Thiess",
+      "project": "Mt Pleasant Expansion",
+      "priority": "hot",
+      "roleBucket": "Procurement",
+      "email": "sean.munroe@thiess.com.au"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcompany\tproject\tpriority\troleBucket\temail\n1\tYogesh Prajapati\tNRW Holdings\tWASP Deposit H\thot\tProcurement\tyogesh.prajapati@nrw.com.au\n2\tJules Pemberton\tNRW Holdings\tWASP / Meandu\thot\tOperations\tinfo@nrw.com.au\n3\tKim Hyman\tNRW Holdings\tWASP / Meandu\thot\tFinance\tNULL\n4\tMichael Finnegan\tMacmahon (Decmil)\tWASP Western Hill\thot\tOperations\tinfo@macmahon.com.au\n5\tZoran Bebic\tMonadelphous Group\tRio Tinto Maintenance\thot\tOperations\tzoran.bebic@monadelphous.com.au\n6\tPaul Thomas\tMonadelphous Group\tRio Tinto Maintenance\thot\tProcurement\tpaul.thomas@monadelphous.com.au\n7\tJames Bolton\tMonadelphous Group\tRio Tinto Maintenance\thot\tOperations\tjames.bolton@monadelphous.com.au\n8\tAlex Longworth\tMonadelphous Group\tBarossa FPSO\thot\tProject\talex.longworth@monadelphous.com.au\n9\tMichael Gray\tThiess\tMt Pleasant Expansion\thot\tOperations\tmichael.gray@thiess.com.au\n10\tSean Munroe\tThiess\tMt Pleasant Expansion\thot\tProcurement\tsean.munroe@thiess.com.au\n",
+  "stderr": "",
+  "execution_time_ms": 1566
+}

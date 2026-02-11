@@ -111,6 +111,9 @@ const DEFAULT_RSS_SOURCES = [
 
   // Pumps & Water Management
   { name: "Fluid Handling Magazine", feedUrl: "https://fluidhandlingmag.com/feed/", category: "industry" },
+  { name: "Pump Industry Australia", feedUrl: "https://www.pumpindustry.com.au/feed/", category: "industry" },
+  { name: "Water & Wastes Digest", feedUrl: "https://www.wwdmag.com/rss.xml", category: "industry" },
+  { name: "PM Magazine - Pumps", feedUrl: "https://www.pmmag.com/rss/topic/4293-pumps", category: "industry" },
 
   // Construction Equipment & Power Generation
   { name: "Construction Equipment Guide", feedUrl: "https://www.constructionequipmentguide.com/rss/news.xml", category: "industry" },

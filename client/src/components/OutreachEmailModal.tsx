@@ -36,8 +36,8 @@ interface ProjectInfo {
 interface OutreachEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contact: ContactInfo;
-  project: ProjectInfo;
+  contact: ContactInfo & { id?: number };
+  project: ProjectInfo & { id?: number };
 }
 
 type Tone = "professional" | "consultative" | "direct";
@@ -91,11 +91,30 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
     }
   }, [isOpen, tone]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const saveMutation = trpc.outreach.save.useMutation({
+    onError: (err) => {
+      console.error("Failed to save outreach email:", err.message);
+    },
+  });
+
   const handleOpenInEmail = () => {
+    // Save to DB before opening email client
+    saveMutation.mutate({
+      contactId: contact.id,
+      contactName: contact.name,
+      contactEmail: contact.email || undefined,
+      projectId: project.id,
+      projectName: project.name,
+      subject,
+      body,
+      tone,
+      status: "opened_in_email",
+    });
+
     const mailtoSubject = encodeURIComponent(subject);
     const mailtoBody = encodeURIComponent(body);
     window.open(`mailto:${contact.email}?subject=${mailtoSubject}&body=${mailtoBody}`, "_self");
-    toast.success("Opening in your email client...");
+    toast.success("Opening in your email client — outreach saved to history");
   };
 
   const handleCopy = async () => {
