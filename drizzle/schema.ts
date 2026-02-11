@@ -160,6 +160,7 @@ export const contacts = mysqlTable("contacts", {
   linkedin: varchar("linkedin", { length: 512 }),
   phone: varchar("phone", { length: 64 }),
   enrichmentStatus: mysqlEnum("enrichmentStatus", ["pending", "enriched", "not_found", "failed"]).default("pending"),
+  enrichmentSource: mysqlEnum("enrichmentSource", ["linkedin", "llm", "manual"]).default("linkedin"),
   enrichedAt: timestamp("enrichedAt"),
   linkedinHeadline: varchar("linkedinHeadline", { length: 512 }),
   linkedinLocation: varchar("linkedinLocation", { length: 256 }),

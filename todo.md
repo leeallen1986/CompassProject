@@ -206,3 +206,23 @@
 - [x] Reset AI extractor daily cap to 100 (was temporarily 300 for bulk seeding)
 - [x] Updated Sources & Methodology table to reflect new limits
 - [x] Fix Find Contacts: root cause was LinkedIn API quota exhaustion ("usage exhausted") — improved error handling, quota detection, caching logic, and user-facing messaging
+- [ ] Run bulk contact enrichment across all 514 projects
+- [ ] Research and add fallback enrichment provider (Hunter.io, PDL, or Coresignal) when LinkedIn API quota exhausted
+- [ ] Implement LLM-based contact generation as fallback when LinkedIn API quota exhausted
+- [ ] Integrate LLM fallback into enrichment flow (auto-fallback when LinkedIn fails)
+- [ ] Run bulk LinkedIn enrichment on all unenriched projects
+- [ ] Run LLM fallback on remaining projects
+- [x] Build LLM contact generation fallback service (generates 5 AI-suggested contacts per project)
+- [x] Integrate LLM fallback into enrichProject endpoint (auto-fallback when LinkedIn quota exhausted)
+- [x] Add enrichmentSource field to contacts schema (linkedin, llm, manual)
+- [x] Run bulk LLM enrichment: batch 1 (50 projects, 250 contacts), batch 2 (100 projects, 500 contacts)
+- [x] Total contacts now at 1066 (up from 56), covering ~250 projects
+- [x] Vitest tests for LLM fallback (45 tests: email inference, role normalization, response parsing, strategy selection, deduplication, confidence levels, contact limits, company extraction)
+- [x] All 382 tests passing
+- [x] Fix enrichment_source migration (column not applied to database)
+- [x] Build AI-powered project search/matching tool (LLM finds best projects for keywords/products)
+- [x] Backend tRPC endpoint for AI project matching (keyword → ranked project list with reasoning)
+- [x] Frontend AI search interface on dashboard (search bar + results with relevance scores)
+- [x] Enhance AI extractor to also identify awarded projects from articles
+- [x] Enhance AI extractor to also identify drilling campaigns from articles
+- [ ] Run extraction pipeline to populate awarded projects and drilling campaigns

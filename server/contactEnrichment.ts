@@ -422,6 +422,7 @@ export async function generateAndEnrichContacts(
             email: inferEmail(person.fullName, company),
             linkedin: linkedinUrl,
             enrichmentStatus: "enriched",
+            enrichmentSource: "linkedin",
             enrichedAt: new Date(),
             linkedinHeadline: person.headline,
             linkedinLocation: person.location,
@@ -484,6 +485,10 @@ export async function generateAndEnrichContacts(
   // If quota was exhausted, don't cache — allow immediate retry when quota resets
   if (quotaExhausted) {
     console.log(`[Enrichment] Project ${projectId}: quota exhausted, ${results.length} contacts found before quota hit — NOT caching`);
+    // Throw a specific error so the caller can detect quota exhaustion and fallback to LLM
+    if (results.length === 0) {
+      throw new Error(`LinkedIn API usage exhausted — quota depleted for project ${projectId}`);
+    }
   } else {
     console.log(`[Enrichment] Project ${projectId}: ${results.length} contacts found, ${apiCallsMade} API calls`);
   }

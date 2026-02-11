@@ -71,6 +71,13 @@
       "when": 1770813686403,
       "tag": "0009_dashing_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1770823171873,
+      "tag": "0010_steady_jack_power",
+      "breakpoints": true
     }
   ]
 }

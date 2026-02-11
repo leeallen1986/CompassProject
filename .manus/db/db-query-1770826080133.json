@@ -1,0 +1,16 @@
+{
+  "query": "\nSELECT \n  (SELECT COUNT(*) FROM projects) AS total_projects,\n  (SELECT COUNT(*) FROM awardedProjects) AS total_awarded,\n  (SELECT COUNT(*) FROM drillingCampaigns) AS total_drilling,\n  (SELECT COUNT(*) FROM contacts) AS total_contacts\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  (SELECT COUNT(*) FROM projects) AS total_projects,\n  (SELECT COUNT(*) FROM awardedProjects) AS total_awarded,\n  (SELECT COUNT(*) FROM drillingCampaigns) AS total_drilling,\n  (SELECT COUNT(*) FROM contacts) AS total_contacts\n",
+  "rows": [
+    {
+      "total_projects": "514",
+      "total_awarded": "10",
+      "total_drilling": "8",
+      "total_contacts": "1066"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_projects\ttotal_awarded\ttotal_drilling\ttotal_contacts\n514\t10\t8\t1066\n",
+  "stderr": "",
+  "execution_time_ms": 1536
+}

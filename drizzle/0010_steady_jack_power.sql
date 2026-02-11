@@ -1,0 +1,1 @@
+ALTER TABLE `contacts` ADD `enrichmentSource` enum('linkedin','llm','manual') DEFAULT 'linkedin';

@@ -3,8 +3,12 @@
  * using the built-in LLM. Includes daily credit cap, batch processing, and
  * deduplication against existing projects.
  *
+ * Now also extracts:
+ * - Awarded projects (contracts awarded to specific contractors)
+ * - Drilling campaigns (exploration/production drilling activity)
+ *
  * Cost controls:
- * - Daily extraction cap (default: 50 articles/day)
+ * - Daily extraction cap (default: 100 articles/day)
  * - Batch processing (5 articles per LLM call)
  * - Only processes articles with status "queued"
  * - Skips articles older than 30 days
@@ -12,8 +16,8 @@
 import { eq, and, sql, gte, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import {
-  rawArticles, projects, reports,
-  type RawArticle, type InsertProject,
+  rawArticles, projects, reports, awardedProjects, drillingCampaigns,
+  type RawArticle, type InsertProject, type InsertAwardedProject, type InsertDrillingCampaign,
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 import { generateAndEnrichContacts } from "./contactEnrichment";
@@ -44,11 +48,33 @@ interface ExtractedProject {
   completion: string;
 }
 
+interface ExtractedAwardedProject {
+  project: string;
+  value: string;
+  winningContractor: string;
+  location: string;
+  stage: string;
+  opportunity: "Direct" | "Fleet" | "Monitor";
+  sourceLabel: string;
+}
+
+interface ExtractedDrillingCampaign {
+  campaign: string;
+  operator: string;
+  location: string;
+  drillType: string;
+  timing: string;
+  airRequirement: string;
+  sourceLabel: string;
+}
+
 interface ExtractionResult {
   articleId: number;
   articleTitle: string;
   extracted: boolean;
   project: ExtractedProject | null;
+  awardedProjects: ExtractedAwardedProject[];
+  drillingCampaigns: ExtractedDrillingCampaign[];
   isDuplicate: boolean;
   error?: string;
 }
@@ -60,6 +86,8 @@ interface ExtractionSummary {
   skipped: number;
   failed: number;
   creditsUsed: number;
+  awardedProjectsInserted: number;
+  drillingCampaignsInserted: number;
   results: ExtractionResult[];
 }
 
@@ -97,11 +125,23 @@ Analyze the following articles and extract structured project intelligence relev
 - Pump / Flow (dewatering pumps, submersible pumps, wellpoint systems — PAS/WEDA series)
 - BESS (battery energy storage systems, hybrid power, solar hybrid, peak shaving, microgrids — ZenergiZe range)
 
-For each article that contains a real project or opportunity, extract the following fields. If an article is not relevant (e.g., opinion piece, unrelated industry), mark it as not relevant.
+For each article, extract THREE types of intelligence:
+
+1. **Project** — The main project or opportunity described in the article
+2. **Awarded Projects** — Any contracts that have been awarded to specific contractors. Look for phrases like "awarded to", "contract won by", "selected as preferred contractor", "appointed", "engaged to deliver", "contract signed". These are high-value because sales teams need to sell to the winning contractor.
+3. **Drilling Campaigns** — Any drilling or exploration activity. Look for: drill programs, exploration campaigns, RC drilling, diamond drilling, blast hole drilling, production drilling, water bore drilling. Include the operator, drill type, location, timing, and estimated compressed air requirement.
 
 ${articleList}
 
-For each article, respond with a JSON object. If the article contains a relevant project, include all fields. If not relevant, set "relevant" to false.
+For each article, respond with a JSON object containing:
+- "articleId": the article ID
+- "relevant": true/false
+- "project": the main project (if relevant)
+- "awardedProjects": array of awarded contracts found (can be empty)
+- "drillingCampaigns": array of drilling campaigns found (can be empty)
+
+An article can have a project AND awarded projects AND drilling campaigns simultaneously.
+Even if the main project is not relevant, there might still be awarded contracts or drilling campaigns mentioned.
 
 Important scoring rules:
 - "hot" = Active project with confirmed funding, named contractors, or imminent mobilisation
@@ -110,7 +150,14 @@ Important scoring rules:
 - capexGrade "A" = Source explicitly states CAPEX value with citation
 - capexGrade "B" = CAPEX estimated from project scope
 - capexGrade "Unknown" = No CAPEX information available
-- opportunityRoute: "Direct CAPEX" = sell equipment directly to project owner; "Fleet CAPEX" = sell to contractor fleet; "OPEX/Monitor" = rental or monitoring opportunity`;
+- opportunityRoute: "Direct CAPEX" = sell equipment directly to project owner; "Fleet CAPEX" = sell to contractor fleet; "OPEX/Monitor" = rental or monitoring opportunity
+
+For awarded projects:
+- opportunity: "Direct" = sell directly to the winning contractor; "Fleet" = sell to their fleet; "Monitor" = watch for subcontractor opportunities
+
+For drilling campaigns:
+- airRequirement: estimate compressed air needs based on drill type (e.g., "900 cfm" for RC drilling, "1600 cfm" for large blast hole, "350 cfm" for diamond core)
+- drillType: one of "RC", "Diamond Core", "Blast Hole", "Production", "Water Bore", "Geotechnical", "Directional", "Other"`;
 }
 
 // ── Extract projects from a batch of articles ──
@@ -182,8 +229,42 @@ async function extractBatch(
                       required: ["name", "location", "value", "owner", "priority", "capexGrade", "opportunityRoute", "sector", "stage", "overview", "equipmentSignals", "contractors", "opportunityNote", "timeline", "completion"],
                       additionalProperties: false,
                     },
+                    awardedProjects: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          project: { type: "string" },
+                          value: { type: "string" },
+                          winningContractor: { type: "string" },
+                          location: { type: "string" },
+                          stage: { type: "string" },
+                          opportunity: { type: "string", enum: ["Direct", "Fleet", "Monitor"] },
+                          sourceLabel: { type: "string" },
+                        },
+                        required: ["project", "value", "winningContractor", "location", "stage", "opportunity", "sourceLabel"],
+                        additionalProperties: false,
+                      },
+                    },
+                    drillingCampaigns: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          campaign: { type: "string" },
+                          operator: { type: "string" },
+                          location: { type: "string" },
+                          drillType: { type: "string" },
+                          timing: { type: "string" },
+                          airRequirement: { type: "string" },
+                          sourceLabel: { type: "string" },
+                        },
+                        required: ["campaign", "operator", "location", "drillType", "timing", "airRequirement", "sourceLabel"],
+                        additionalProperties: false,
+                      },
+                    },
                   },
-                  required: ["articleId", "relevant"],
+                  required: ["articleId", "relevant", "awardedProjects", "drillingCampaigns"],
                   additionalProperties: false,
                 },
               },
@@ -205,6 +286,8 @@ async function extractBatch(
         articleId: number;
         relevant: boolean;
         project?: ExtractedProject;
+        awardedProjects?: ExtractedAwardedProject[];
+        drillingCampaigns?: ExtractedDrillingCampaign[];
       }>;
     };
 
@@ -217,6 +300,8 @@ async function extractBatch(
         articleTitle: article.title,
         extracted: extraction.relevant && !!extraction.project,
         project: extraction.project || null,
+        awardedProjects: extraction.awardedProjects || [],
+        drillingCampaigns: extraction.drillingCampaigns || [],
         isDuplicate: false,
       });
     }
@@ -229,6 +314,8 @@ async function extractBatch(
         articleTitle: article.title,
         extracted: false,
         project: null,
+        awardedProjects: [],
+        drillingCampaigns: [],
         isDuplicate: false,
         error: errMsg,
       });
@@ -264,6 +351,60 @@ async function isProjectDuplicate(projectName: string, owner: string): Promise<b
   return false;
 }
 
+// ── Check if an awarded project already exists ──
+
+async function isAwardedDuplicate(projectName: string, contractor: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const normName = projectName.toLowerCase().trim();
+  const normContractor = contractor.toLowerCase().trim();
+
+  const existing = await db.select({ project: awardedProjects.project, winningContractor: awardedProjects.winningContractor })
+    .from(awardedProjects)
+    .orderBy(desc(awardedProjects.id))
+    .limit(100);
+
+  for (const a of existing) {
+    const existingProject = a.project.toLowerCase().trim();
+    const existingContractor = a.winningContractor.toLowerCase().trim();
+    if (
+      (existingProject === normName || existingProject.includes(normName) || normName.includes(existingProject)) &&
+      (existingContractor === normContractor || existingContractor.includes(normContractor) || normContractor.includes(existingContractor))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ── Check if a drilling campaign already exists ──
+
+async function isDrillingDuplicate(campaignName: string, operator: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const normCampaign = campaignName.toLowerCase().trim();
+  const normOperator = operator.toLowerCase().trim();
+
+  const existing = await db.select({ campaign: drillingCampaigns.campaign, operator: drillingCampaigns.operator })
+    .from(drillingCampaigns)
+    .orderBy(desc(drillingCampaigns.id))
+    .limit(100);
+
+  for (const d of existing) {
+    const existingCampaign = d.campaign.toLowerCase().trim();
+    const existingOperator = d.operator.toLowerCase().trim();
+    if (
+      (existingCampaign === normCampaign || existingCampaign.includes(normCampaign) || normCampaign.includes(existingCampaign)) &&
+      (existingOperator === normOperator || existingOperator.includes(normOperator) || normOperator.includes(existingOperator))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // ── Main extraction pipeline ──
 
 export async function runExtractionPipeline(maxArticles?: number): Promise<ExtractionSummary> {
@@ -283,6 +424,8 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       skipped: 0,
       failed: 0,
       creditsUsed: dailyCount,
+      awardedProjectsInserted: 0,
+      drillingCampaignsInserted: 0,
       results: [],
     };
   }
@@ -308,6 +451,8 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       skipped: 0,
       failed: 0,
       creditsUsed: dailyCount,
+      awardedProjectsInserted: 0,
+      drillingCampaignsInserted: 0,
       results: [],
     };
   }
@@ -348,6 +493,8 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
   let duplicates = 0;
   let skipped = 0;
   let failed = 0;
+  let awardedProjectsInserted = 0;
+  let drillingCampaignsInserted = 0;
 
   // Process in batches
   for (let i = 0; i < queuedArticles.length; i += BATCH_SIZE) {
@@ -362,6 +509,8 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
     const batchResults = await extractBatch(batchInput);
 
     for (const result of batchResults) {
+      const article = batch.find(a => a.id === result.articleId);
+
       if (result.error) {
         // Mark as failed
         await db.update(rawArticles)
@@ -372,8 +521,58 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
         continue;
       }
 
+      // ── Insert awarded projects (even if main project is not relevant) ──
+      for (const ap of result.awardedProjects) {
+        if (!ap.project || !ap.winningContractor) continue;
+        const isDup = await isAwardedDuplicate(ap.project, ap.winningContractor);
+        if (isDup) continue;
+
+        try {
+          await db.insert(awardedProjects).values({
+            reportId,
+            project: ap.project.slice(0, 256),
+            value: ap.value.slice(0, 64),
+            winningContractor: ap.winningContractor.slice(0, 256),
+            location: ap.location.slice(0, 256),
+            stage: ap.stage.slice(0, 128),
+            opportunity: ap.opportunity,
+            sourceLabel: ap.sourceLabel?.slice(0, 256) || article?.title?.slice(0, 256) || "RSS Feed",
+            sourceUrl: article?.url?.slice(0, 512) || null,
+          });
+          awardedProjectsInserted++;
+          console.log(`[AI Extractor] Awarded project: "${ap.project}" → ${ap.winningContractor}`);
+        } catch (err) {
+          console.error(`[AI Extractor] Failed to insert awarded project:`, err instanceof Error ? err.message : String(err));
+        }
+      }
+
+      // ── Insert drilling campaigns (even if main project is not relevant) ──
+      for (const dc of result.drillingCampaigns) {
+        if (!dc.campaign || !dc.operator) continue;
+        const isDup = await isDrillingDuplicate(dc.campaign, dc.operator);
+        if (isDup) continue;
+
+        try {
+          await db.insert(drillingCampaigns).values({
+            reportId,
+            campaign: dc.campaign.slice(0, 256),
+            operator: dc.operator.slice(0, 256),
+            location: dc.location.slice(0, 256),
+            drillType: dc.drillType.slice(0, 128),
+            timing: dc.timing.slice(0, 128),
+            airRequirement: dc.airRequirement.slice(0, 128),
+            sourceLabel: dc.sourceLabel?.slice(0, 256) || article?.title?.slice(0, 256) || "RSS Feed",
+            sourceUrl: article?.url?.slice(0, 512) || null,
+          });
+          drillingCampaignsInserted++;
+          console.log(`[AI Extractor] Drilling campaign: "${dc.campaign}" by ${dc.operator}`);
+        } catch (err) {
+          console.error(`[AI Extractor] Failed to insert drilling campaign:`, err instanceof Error ? err.message : String(err));
+        }
+      }
+
       if (!result.extracted || !result.project) {
-        // Not relevant — mark as skipped
+        // Not relevant as a main project — mark as skipped (but awarded/drilling may have been inserted above)
         await db.update(rawArticles)
           .set({ status: "skipped" })
           .where(eq(rawArticles.id, result.articleId));
@@ -395,7 +594,6 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       }
 
       // Insert new project
-      const article = batch.find(a => a.id === result.articleId);
       const projectKey = `rss-${result.articleId}-${Date.now()}`;
 
       const projectData: InsertProject = {
@@ -447,7 +645,7 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
   }
 
   // Update report stats
-  if (extracted > 0) {
+  if (extracted > 0 || awardedProjectsInserted > 0 || drillingCampaignsInserted > 0) {
     const allProjects = await db.select().from(projects).where(eq(projects.reportId, reportId));
     const hot = allProjects.filter(p => p.priority === "hot").length;
     const warm = allProjects.filter(p => p.priority === "warm").length;
@@ -469,6 +667,8 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
     skipped,
     failed,
     creditsUsed: dailyCount + Math.ceil(queuedArticles.length / BATCH_SIZE),
+    awardedProjectsInserted,
+    drillingCampaignsInserted,
     results: allResults,
   };
 }

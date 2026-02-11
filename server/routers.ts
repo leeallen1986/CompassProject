@@ -46,6 +46,8 @@ import {
 import { notifyOwner } from "./_core/notification";
 import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOutreachHistory, getContactedContactList, getOutreachLeaderboard } from "./outreachEmail";
 import { sendWeeklyDigests } from "./emailDigest";
+import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
+import { searchProjects } from "./aiProjectMatcher";
 import { getDb } from "./db";
 import { projects, contacts } from "../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
@@ -369,6 +371,15 @@ export const appRouter = router({
       const results = await sendWeeklyDigests();
       return results;
     }),
+  }),
+
+  // ── AI Project Search / Matching ──
+  search: router({
+    projects: protectedProcedure
+      .input(z.object({ query: z.string().min(2).max(200) }))
+      .mutation(async ({ input }) => {
+        return searchProjects(input.query);
+      }),
   }),
 
   // ── ML-Ranked Intelligence Report endpoints ──
@@ -713,6 +724,20 @@ export const appRouter = router({
         return result;
       }),
 
+    /** Trigger LLM fallback bulk enrichment for projects without contacts (admin only) */
+    llmFallbackBulk: adminProcedure
+      .input(z.object({ maxProjects: z.number().optional() }).optional())
+      .mutation(async ({ input }) => {
+        const result = await runLLMFallbackBulk(input?.maxProjects || 50);
+        if (result.contactsGenerated > 0) {
+          await notifyOwner({
+            title: "LLM Contact Generation Complete",
+            content: `Generated ${result.contactsGenerated} AI-suggested contacts across ${result.processed} projects.`,
+          });
+        }
+        return result;
+      }),
+
     /** Get enrichment stats */
     enrichmentStats: protectedProcedure.query(async () => {
       return getEnrichmentStats();
@@ -781,6 +806,10 @@ export const appRouter = router({
           : [];
 
         // Run enrichment with profile-aware roles and caching
+        // Strategy: Try LinkedIn first, auto-fallback to LLM if quota exhausted
+        let linkedInQuotaExhausted = false;
+        let linkedInResults: { name: string; status: string; headline?: string; linkedinUrl?: string }[] = [];
+
         try {
           const results = await generateAndEnrichContacts(
             project.id,
@@ -796,45 +825,96 @@ export const appRouter = router({
             }
           );
 
-          return {
-            projectId: project.id,
-            projectName: project.name,
-            contactsFound: results.length,
-            fromCache: false,
-            quotaExhausted: false,
-            contacts: results.map(r => ({
-              name: r.name,
-              status: r.status,
-              headline: r.headline,
-              linkedinUrl: r.linkedinUrl,
-            })),
-          };
+          linkedInResults = results.map(r => ({
+            name: r.name,
+            status: r.status,
+            headline: r.headline,
+            linkedinUrl: r.linkedinUrl,
+          }));
         } catch (enrichErr: unknown) {
           const msg = enrichErr instanceof Error ? enrichErr.message : String(enrichErr);
           if (msg.includes('usage exhausted') || msg.includes('quota')) {
-            // Return existing contacts if any, with quota warning
-            const existingContacts = await db
-              .select()
-              .from(contacts)
-              .where(sql`${contacts.project} IN (SELECT name FROM projects WHERE id = ${input.projectId})`)
-              .limit(20);
-
-            return {
-              projectId: project.id,
-              projectName: project.name,
-              contactsFound: existingContacts.length,
-              fromCache: false,
-              quotaExhausted: true,
-              contacts: existingContacts.map(c => ({
-                name: c.name,
-                status: c.enrichmentStatus || "enriched",
-                headline: c.linkedinHeadline || c.title,
-                linkedinUrl: c.linkedin ?? undefined,
-              })),
-            };
+            linkedInQuotaExhausted = true;
+            console.log(`[enrichProject] LinkedIn quota exhausted for project ${project.id}, falling back to LLM`);
+          } else {
+            throw enrichErr;
           }
-          throw enrichErr;
         }
+
+        // If LinkedIn returned contacts, return them
+        if (linkedInResults.length > 0) {
+          return {
+            projectId: project.id,
+            projectName: project.name,
+            contactsFound: linkedInResults.length,
+            fromCache: false,
+            quotaExhausted: false,
+            llmFallback: false,
+            contacts: linkedInResults,
+          };
+        }
+
+        // LinkedIn returned 0 contacts (quota exhausted or no results) — try LLM fallback
+        if (linkedInQuotaExhausted || linkedInResults.length === 0) {
+          try {
+            const llmResult = await generateAndSaveLLMContacts(
+              project.id,
+              project.reportId,
+              project.name,
+              project.owner || "Unknown",
+              contractorsList,
+              project.sector || "infrastructure",
+              project.value || "Unknown",
+              project.location || "Australia",
+              project.stage || undefined,
+              preferredRoles,
+            );
+
+            if (llmResult.contactsGenerated > 0) {
+              return {
+                projectId: project.id,
+                projectName: project.name,
+                contactsFound: llmResult.contactsGenerated,
+                fromCache: false,
+                quotaExhausted: linkedInQuotaExhausted,
+                llmFallback: true,
+                llmNote: llmResult.note,
+                contacts: llmResult.contacts.map(c => ({
+                  name: c.name,
+                  status: "enriched" as const,
+                  headline: c.title,
+                  linkedinUrl: undefined,
+                  source: "llm" as const,
+                  confidence: c.confidence,
+                })),
+              };
+            }
+          } catch (llmErr) {
+            console.error(`[enrichProject] LLM fallback also failed:`, llmErr instanceof Error ? llmErr.message : String(llmErr));
+          }
+        }
+
+        // Both LinkedIn and LLM failed — return existing contacts if any
+        const existingContacts = await db
+          .select()
+          .from(contacts)
+          .where(sql`${contacts.project} IN (SELECT name FROM projects WHERE id = ${input.projectId})`)
+          .limit(20);
+
+        return {
+          projectId: project.id,
+          projectName: project.name,
+          contactsFound: existingContacts.length,
+          fromCache: false,
+          quotaExhausted: linkedInQuotaExhausted,
+          llmFallback: false,
+          contacts: existingContacts.map(c => ({
+            name: c.name,
+            status: c.enrichmentStatus || "enriched",
+            headline: c.linkedinHeadline || c.title,
+            linkedinUrl: c.linkedin ?? undefined,
+          })),
+        };
       }),
 
     /** Get recent articles */

@@ -20,6 +20,7 @@ import ProjectCard, { type ProjectData, type ContactData } from "@/components/Pr
 import { IMAGES } from "@/lib/images";
 import { scoreAndRankProjects, type UserProfileData, type FeedbackData } from "@/lib/personalization";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
+import AIProjectSearch from "@/components/AIProjectSearch";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -522,6 +523,7 @@ export default function Home() {
             <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({projects.length})</TabsTrigger>
             <TabsTrigger value="awarded" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
             <TabsTrigger value="drilling" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
+            <TabsTrigger value="ai-search" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI Search</TabsTrigger>
             <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({contacts.length})</TabsTrigger>
             <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
           </TabsList>
@@ -711,6 +713,11 @@ export default function Home() {
               <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{contacts.length} contacts</span>
             </div>
             <ContactsTable data={contacts as ContactRow[]} weekEnding={report.weekEnding} projects={personalizedProjects as ProjectData[]} businessLineNames={businessLineNamesMap} />
+          </TabsContent>
+
+          {/* ===== AI SEARCH TAB ===== */}
+          <TabsContent value="ai-search" className="space-y-5">
+            <AIProjectSearch />
           </TabsContent>
 
           {/* ===== SOURCES TAB ===== */}

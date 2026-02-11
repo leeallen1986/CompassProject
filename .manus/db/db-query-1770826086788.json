@@ -1,0 +1,30 @@
+{
+  "query": "SELECT COUNT(*) as cnt, 'projects' as tbl FROM projects UNION ALL SELECT COUNT(*), 'awarded' FROM awardedProjects UNION ALL SELECT COUNT(*), 'drilling' FROM drillingCampaigns UNION ALL SELECT COUNT(*), 'contacts' FROM contacts UNION ALL SELECT COUNT(*), 'reports' FROM reports",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as cnt, 'projects' as tbl FROM projects UNION ALL SELECT COUNT(*), 'awarded' FROM awardedProjects UNION ALL SELECT COUNT(*), 'drilling' FROM drillingCampaigns UNION ALL SELECT COUNT(*), 'contacts' FROM contacts UNION ALL SELECT COUNT(*), 'reports' FROM reports",
+  "rows": [
+    {
+      "cnt": "10",
+      "tbl": "awarded"
+    },
+    {
+      "cnt": "8",
+      "tbl": "drilling"
+    },
+    {
+      "cnt": "2",
+      "tbl": "reports"
+    },
+    {
+      "cnt": "514",
+      "tbl": "projects"
+    },
+    {
+      "cnt": "1066",
+      "tbl": "contacts"
+    }
+  ],
+  "messages": [],
+  "stdout": "cnt\ttbl\n10\tawarded\n8\tdrilling\n2\treports\n514\tprojects\n1066\tcontacts\n",
+  "stderr": "",
+  "execution_time_ms": 1519
+}
