@@ -226,3 +226,9 @@
 - [x] Enhance AI extractor to also identify awarded projects from articles
 - [x] Enhance AI extractor to also identify drilling campaigns from articles
 - [ ] Run extraction pipeline to populate awarded projects and drilling campaigns
+- [x] Bug: AI Search shows all projects regardless of user preferences (should filter by WA if user preference is WA)
+- [x] Verify main project list also correctly respects user location preferences
+- [x] Dashboard: Filter projects by user territory preferences (hide non-matching projects, not just rank lower)
+- [x] Dashboard: Add "Show All / Unfiltered" toggle so users can override territory filter
+- [x] AI Search: Keep unfiltered (shows all projects regardless of territory — user is actively searching)
+- [x] Apply territory filter to KPI counts, hot projects section, contacts tab, awarded projects, drilling campaigns

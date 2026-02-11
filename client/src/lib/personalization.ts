@@ -62,7 +62,7 @@ const routeToOfferCategories: Record<string, string[]> = {
   "OPEX/Monitor": ["services", "maintenance", "parts", "aftermarket"],
 };
 
-function locationMatchesTerritory(location: string, territories: string[]): boolean {
+export function locationMatchesTerritory(location: string, territories: string[]): boolean {
   const loc = location.toLowerCase();
   for (const territory of territories) {
     const keywords = stateAbbreviations[territory.toUpperCase()] || [territory.toLowerCase()];

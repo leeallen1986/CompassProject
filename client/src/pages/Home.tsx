@@ -12,13 +12,13 @@ import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Shield,
-  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles
+  ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectCard, { type ProjectData, type ContactData } from "@/components/ProjectCard";
 import { IMAGES } from "@/lib/images";
-import { scoreAndRankProjects, type UserProfileData, type FeedbackData } from "@/lib/personalization";
+import { scoreAndRankProjects, locationMatchesTerritory, type UserProfileData, type FeedbackData } from "@/lib/personalization";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import AIProjectSearch from "@/components/AIProjectSearch";
 
@@ -321,6 +321,7 @@ export default function Home() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
+  const [showAllTerritories, setShowAllTerritories] = useState(false);
 
   const [, navigate] = useLocation();
 
@@ -409,10 +410,42 @@ export default function Home() {
     feedbackData
   );
 
-  // Apply business line filter first, then priority/sector
-  const businessLineFiltered = businessLineFilter === "all"
+  // ── Territory hard-filter: hide projects outside user's preferred territories ──
+  const userTerritories = profileData?.territories ?? [];
+  const territoryFiltered = (showAllTerritories || userTerritories.length === 0)
     ? personalizedProjects
-    : personalizedProjects.filter((p: ProjectData) => {
+    : personalizedProjects.filter((p: ProjectData) =>
+        locationMatchesTerritory(p.location, userTerritories)
+      );
+
+  // Also filter contacts, awarded projects, and drilling campaigns by territory
+  const territoryFilteredContacts = (showAllTerritories || userTerritories.length === 0)
+    ? contacts
+    : (contacts as any[]).filter((c: any) => {
+        // Match contact's project name to a territory-filtered project
+        const matchedProject = territoryFiltered.find((p: ProjectData) =>
+          p.name.toLowerCase().includes(c.project?.toLowerCase?.() || "") ||
+          (c.project?.toLowerCase?.() || "").includes(p.name.toLowerCase())
+        );
+        return !!matchedProject;
+      });
+
+  const territoryFilteredAwarded = (showAllTerritories || userTerritories.length === 0)
+    ? awardedProjects
+    : (awardedProjects as any[]).filter((ap: any) =>
+        locationMatchesTerritory(ap.location || "", userTerritories)
+      );
+
+  const territoryFilteredDrilling = (showAllTerritories || userTerritories.length === 0)
+    ? drillingCampaigns
+    : (drillingCampaigns as any[]).filter((dc: any) =>
+        locationMatchesTerritory(dc.location || "", userTerritories)
+      );
+
+  // Apply business line filter, then priority/sector
+  const businessLineFiltered = businessLineFilter === "all"
+    ? territoryFiltered
+    : territoryFiltered.filter((p: ProjectData) => {
         const blIds = p.matchedBusinessLines;
         if (!blIds || blIds.length === 0) return false;
         return blIds.includes(Number(businessLineFilter));
@@ -481,6 +514,34 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container py-6 sm:py-8">
+        {/* Territory Filter Bar */}
+        {userTerritories.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mb-3 bg-card rounded-lg border border-border px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-gold" />
+              <span className="text-xs font-semibold text-foreground">
+                {showAllTerritories ? "Showing all territories" : `Filtered to: ${userTerritories.join(", ")}`}
+              </span>
+              {!showAllTerritories && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({territoryFiltered.length} of {personalizedProjects.length} projects)
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowAllTerritories(!showAllTerritories)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                showAllTerritories
+                  ? "bg-gold/15 text-gold-dark border border-gold/30 hover:bg-gold/25"
+                  : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+              }`}
+            >
+              <Filter className="w-3 h-3" />
+              {showAllTerritories ? "Apply Territory Filter" : "Show All Territories"}
+            </button>
+          </div>
+        )}
+
         {/* Business Line Filter */}
         {activeBusinessLines && activeBusinessLines.length > 0 && (
           <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -493,10 +554,10 @@ export default function Home() {
                   : "bg-card text-muted-foreground border border-border hover:border-navy/30"
               }`}
             >
-              All PT ({personalizedProjects.length})
+              All PT ({territoryFiltered.length})
             </button>
             {activeBusinessLines.map((bl: any) => {
-              const count = personalizedProjects.filter((p: ProjectData) => {
+              const count = territoryFiltered.filter((p: ProjectData) => {
                 const ids = p.matchedBusinessLines;
                 return ids && ids.includes(bl.id);
               }).length;
@@ -520,11 +581,11 @@ export default function Home() {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start bg-card border border-border rounded-lg p-1 overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="overview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
-            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({projects.length})</TabsTrigger>
+            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({territoryFiltered.length})</TabsTrigger>
             <TabsTrigger value="awarded" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
             <TabsTrigger value="drilling" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
             <TabsTrigger value="ai-search" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI Search</TabsTrigger>
-            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({contacts.length})</TabsTrigger>
+            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({territoryFilteredContacts.length})</TabsTrigger>
             <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
           </TabsList>
 
@@ -563,9 +624,9 @@ export default function Home() {
               <KPICard value={hotProjects.length} label="Hot Projects" accent="hot" />
               <KPICard value={warmProjects.length} label="Warm Projects" accent="warm" />
               <KPICard value={coldProjects.length} label="Cold / Monitor" />
-              <KPICard value={awardedProjects.length} label="Awarded" accent="gold" />
-              <KPICard value={drillingCampaigns.length} label="Drilling Campaigns" />
-              <KPICard value={contacts.length} label="Contacts" />
+              <KPICard value={territoryFilteredAwarded.length} label="Awarded" accent="gold" />
+              <KPICard value={territoryFilteredDrilling.length} label="Drilling Campaigns" />
+              <KPICard value={territoryFilteredContacts.length} label="Contacts" />
               <KPICard value="4" label="Data Sources" accent="teal" />
             </div>
 
@@ -630,7 +691,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {awardedProjects.map((ap: any, i: number) => {
+                  {territoryFilteredAwarded.map((ap: any, i: number) => {
                     const oppClass = ap.opportunity === "Direct" ? "bg-teal/15 text-teal" : ap.opportunity === "Fleet" ? "bg-gold/15 text-gold-dark" : "bg-slate-200 text-slate-600";
                     return (
                       <tr key={ap.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
@@ -683,7 +744,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {drillingCampaigns.map((dc: any, i: number) => (
+                  {territoryFilteredDrilling.map((dc: any, i: number) => (
                     <tr key={dc.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
                       <td className="px-4 py-3 font-semibold text-navy">{dc.campaign}</td>
                       <td className="px-4 py-3">{dc.operator}</td>
@@ -710,9 +771,9 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-2">
               <Users className="w-5 h-5 text-gold" />
               <h2 className="text-lg font-bold text-navy">Contact Database</h2>
-              <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{contacts.length} contacts</span>
+              <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{territoryFilteredContacts.length} contacts</span>
             </div>
-            <ContactsTable data={contacts as ContactRow[]} weekEnding={report.weekEnding} projects={personalizedProjects as ProjectData[]} businessLineNames={businessLineNamesMap} />
+            <ContactsTable data={territoryFilteredContacts as ContactRow[]} weekEnding={report.weekEnding} projects={territoryFiltered as ProjectData[]} businessLineNames={businessLineNamesMap} />
           </TabsContent>
 
           {/* ===== AI SEARCH TAB ===== */}
