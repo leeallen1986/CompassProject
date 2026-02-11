@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 /**
- * Tests for business line filter feature:
- * 1. matchedBusinessLines field is correctly stored in projects
- * 2. Keyword matching logic correctly tags projects
- * 3. Filter logic correctly filters projects by business line ID
+ * Tests for business line filter feature (Power Technique division only):
+ * 1. Keyword matching logic correctly tags projects for Portable Air and Power Technique
+ * 2. Filter logic correctly filters projects by business line ID
  */
 import { matchKeywords } from "./rssHarvester";
 import type { BusinessLine } from "../drizzle/schema";
@@ -34,35 +33,11 @@ const mockBusinessLines: BusinessLine[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
   },
-  {
-    id: 3,
-    name: "Industrial Compressors",
-    description: "Stationary compressors",
-    keywords: ["industrial compressor", "screw compressor", "oil-free compressor", "nitrogen generation"],
-    sectors: ["energy", "infrastructure"],
-    equipmentTypes: ["Screw Compressor"],
-    defaultTerritories: ["NSW", "VIC"],
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 4,
-    name: "Vacuum Solutions",
-    description: "Vacuum pumps",
-    keywords: ["vacuum pump", "vacuum system", "semiconductor", "food packaging"],
-    sectors: ["infrastructure", "energy"],
-    equipmentTypes: ["Dry Vacuum Pump"],
-    defaultTerritories: ["NSW", "VIC"],
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
 ];
 
 // ── matchKeywords returns correct business line IDs ──
 
-describe("matchKeywords for business line tagging", () => {
+describe("matchKeywords for PT business line tagging", () => {
   it("tags a drilling project with Portable Air", () => {
     const result = matchKeywords(
       "BHP Olympic Dam Drilling Campaign",
@@ -84,7 +59,7 @@ describe("matchKeywords for business line tagging", () => {
     expect(result.matchedKeywords).toContain("generator");
   });
 
-  it("tags a project matching multiple business lines", () => {
+  it("tags a project matching both Portable Air and Power Technique", () => {
     const result = matchKeywords(
       "Mining Project Needs Compressor and Generator",
       "The site requires both portable air compressor and diesel generator for drilling operations",
@@ -92,28 +67,27 @@ describe("matchKeywords for business line tagging", () => {
     );
     expect(result.matchedBusinessLineIds).toContain(1); // Portable Air
     expect(result.matchedBusinessLineIds).toContain(2); // Power Technique
+    expect(result.matchedBusinessLineIds).toHaveLength(2);
   });
 
-  it("tags a vacuum project correctly", () => {
+  it("tags dewatering pump project with Power Technique", () => {
     const result = matchKeywords(
-      "Semiconductor Fab Expansion",
-      "New vacuum pump system for semiconductor manufacturing clean room",
+      "Flood Recovery Dewatering",
+      "Emergency dewatering pump deployment for flooded mine pit",
       mockBusinessLines
     );
-    expect(result.matchedBusinessLineIds).toContain(4); // Vacuum Solutions
-    expect(result.matchedKeywords).toContain("vacuum pump");
-    expect(result.matchedKeywords).toContain("semiconductor");
+    expect(result.matchedBusinessLineIds).toContain(2); // Power Technique
+    expect(result.matchedKeywords).toContain("dewatering pump");
   });
 
-  it("tags industrial compressor projects", () => {
+  it("tags lighting tower project with Power Technique", () => {
     const result = matchKeywords(
-      "Process Plant Upgrade",
-      "Installation of new oil-free compressor for nitrogen generation",
+      "Night Shift Operations",
+      "Portable lighting tower rental for construction site night operations",
       mockBusinessLines
     );
-    expect(result.matchedBusinessLineIds).toContain(3); // Industrial Compressors
-    expect(result.matchedKeywords).toContain("oil-free compressor");
-    expect(result.matchedKeywords).toContain("nitrogen generation");
+    expect(result.matchedBusinessLineIds).toContain(2); // Power Technique
+    expect(result.matchedKeywords).toContain("lighting tower");
   });
 
   it("returns empty arrays for unrelated content", () => {
@@ -146,12 +120,12 @@ function filterByBusinessLine(projects: MockProject[], businessLineFilter: strin
   });
 }
 
-describe("filterByBusinessLine", () => {
+describe("filterByBusinessLine (PT division)", () => {
   const mockProjects: MockProject[] = [
     { id: 1, name: "Drilling Project", matchedBusinessLines: [1, 2], priority: "hot", sector: "mining" },
     { id: 2, name: "Generator Project", matchedBusinessLines: [2], priority: "warm", sector: "infrastructure" },
-    { id: 3, name: "Vacuum Project", matchedBusinessLines: [4], priority: "cold", sector: "energy" },
-    { id: 4, name: "Multi-Division Project", matchedBusinessLines: [1, 2, 3], priority: "hot", sector: "mining" },
+    { id: 3, name: "Compressor Only", matchedBusinessLines: [1], priority: "cold", sector: "mining" },
+    { id: 4, name: "Both Divisions", matchedBusinessLines: [1, 2], priority: "hot", sector: "mining" },
     { id: 5, name: "Legacy Project", matchedBusinessLines: null, priority: "warm", sector: "mining" },
   ];
 
@@ -162,26 +136,14 @@ describe("filterByBusinessLine", () => {
 
   it("filters by Portable Air (id=1)", () => {
     const result = filterByBusinessLine(mockProjects, "1");
-    expect(result).toHaveLength(2);
-    expect(result.map(p => p.id)).toEqual([1, 4]);
+    expect(result).toHaveLength(3);
+    expect(result.map(p => p.id)).toEqual([1, 3, 4]);
   });
 
   it("filters by Power Technique (id=2)", () => {
     const result = filterByBusinessLine(mockProjects, "2");
     expect(result).toHaveLength(3);
     expect(result.map(p => p.id)).toEqual([1, 2, 4]);
-  });
-
-  it("filters by Industrial Compressors (id=3)", () => {
-    const result = filterByBusinessLine(mockProjects, "3");
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(4);
-  });
-
-  it("filters by Vacuum Solutions (id=4)", () => {
-    const result = filterByBusinessLine(mockProjects, "4");
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(3);
   });
 
   it("excludes projects with null matchedBusinessLines", () => {

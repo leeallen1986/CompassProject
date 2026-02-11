@@ -99,3 +99,7 @@
 - [x] Propagate business line info from rawArticles to projects during AI extraction
 - [x] Backfill existing 28 projects with business line tags
 - [x] Vitest tests for business line filter (keyword matching + client-side filtering)
+- [x] Remove Industrial Compressors, Vacuum Solutions business lines from database (deactivate)
+- [x] Update seed defaults to only include Portable Air and Power Technique
+- [x] Update AI extractor prompt for PT-only focus
+- [x] Update dashboard filter to only show PT-relevant divisions

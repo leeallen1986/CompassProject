@@ -91,11 +91,9 @@ function buildExtractionPrompt(articles: { id: number; title: string; summary: s
 
   return `You are an Australian market intelligence analyst for Atlas Copco, a global industrial equipment manufacturer.
 
-Analyze the following articles and extract structured project intelligence relevant to Atlas Copco's business lines:
-- Portable Air (compressors for mining, construction, drilling)
-- Industrial Compressors (manufacturing, energy, process industries)
-- Power Technique (generators, pumps, lighting towers)
-- Vacuum Solutions (semiconductor, food processing, packaging)
+Analyze the following articles and extract structured project intelligence relevant to Atlas Copco's Power Technique division:
+- Portable Air (portable compressors for mining, construction, drilling, blasting, tunnelling)
+- Power Technique (generators, dewatering pumps, lighting towers, temporary power)
 
 For each article that contains a real project or opportunity, extract the following fields. If an article is not relevant (e.g., opinion piece, unrelated industry), mark it as not relevant.
 

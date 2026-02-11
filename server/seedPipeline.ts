@@ -1,6 +1,10 @@
 /**
  * Seed script — Populates default business lines and RSS sources.
  * Called from an admin endpoint or run manually.
+ *
+ * Business lines scoped to Power Technique division:
+ *   - Portable Air (compressors, drilling, blasting)
+ *   - Power Technique (generators, pumps, lighting towers)
  */
 import { getDb } from "./db";
 import { businessLines, rssSources } from "../drizzle/schema";
@@ -25,23 +29,6 @@ const DEFAULT_BUSINESS_LINES = [
     defaultTerritories: ["WA", "QLD", "NSW", "SA", "NT", "VIC", "TAS"],
   },
   {
-    name: "Industrial Compressors",
-    description: "Stationary compressors for manufacturing, process industries, food & beverage, and energy. GA, ZR, ZT series.",
-    keywords: [
-      "industrial compressor", "stationary compressor", "oil-free compressor",
-      "screw compressor", "centrifugal compressor", "manufacturing plant",
-      "process air", "instrument air", "plant air", "nitrogen generation",
-      "food processing", "pharmaceutical", "semiconductor", "data centre",
-      "compressed air system", "energy efficiency", "VSD compressor"
-    ],
-    sectors: ["energy", "infrastructure"],
-    equipmentTypes: [
-      "Screw Compressor", "Centrifugal Compressor", "Oil-Free Compressor",
-      "Nitrogen Generator", "Air Dryer"
-    ],
-    defaultTerritories: ["NSW", "VIC", "QLD", "SA", "WA"],
-  },
-  {
     name: "Power Technique",
     description: "Generators, pumps, and lighting towers for construction, mining, and events. QAS, QES, PAS series.",
     keywords: [
@@ -56,21 +43,6 @@ const DEFAULT_BUSINESS_LINES = [
       "Submersible Pump", "Power Pack"
     ],
     defaultTerritories: ["WA", "QLD", "NSW", "NT"],
-  },
-  {
-    name: "Vacuum Solutions",
-    description: "Vacuum pumps and systems for semiconductor, food packaging, and industrial processes.",
-    keywords: [
-      "vacuum pump", "vacuum system", "semiconductor", "food packaging",
-      "vacuum technology", "dry vacuum", "liquid ring", "rotary vane",
-      "central vacuum", "vacuum conveying", "packaging line"
-    ],
-    sectors: ["infrastructure", "energy"],
-    equipmentTypes: [
-      "Dry Vacuum Pump", "Liquid Ring Pump", "Rotary Vane Pump",
-      "Vacuum Booster", "Central Vacuum System"
-    ],
-    defaultTerritories: ["NSW", "VIC", "QLD"],
   },
 ];
 
