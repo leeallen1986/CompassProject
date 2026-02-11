@@ -223,6 +223,7 @@ export default function Home() {
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
+  const [businessLineFilter, setBusinessLineFilter] = useState("all");
 
   const [, navigate] = useLocation();
 
@@ -244,6 +245,9 @@ export default function Home() {
 
   // Fetch pipeline claims for the current user
   const { data: myClaims } = trpc.pipeline.mine.useQuery(undefined, { enabled: isAuthenticated });
+
+  // Fetch active business lines for the filter
+  const { data: activeBusinessLines } = trpc.businessLines.active.useQuery(undefined, { enabled: isAuthenticated });
 
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
@@ -298,15 +302,24 @@ export default function Home() {
     feedbackData
   );
 
-  const filteredProjects = personalizedProjects.filter((p: ProjectData) => {
+  // Apply business line filter first, then priority/sector
+  const businessLineFiltered = businessLineFilter === "all"
+    ? personalizedProjects
+    : personalizedProjects.filter((p: ProjectData) => {
+        const blIds = p.matchedBusinessLines;
+        if (!blIds || blIds.length === 0) return false;
+        return blIds.includes(Number(businessLineFilter));
+      });
+
+  const filteredProjects = businessLineFiltered.filter((p: ProjectData) => {
     if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
     if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
     return true;
   });
 
-  const hotProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "hot");
-  const warmProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "warm");
-  const coldProjects = personalizedProjects.filter((p: ProjectData) => p.priority === "cold");
+  const hotProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "hot");
+  const warmProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "warm");
+  const coldProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "cold");
 
   return (
     <div className="min-h-screen bg-background">
@@ -361,6 +374,42 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container py-6 sm:py-8">
+        {/* Business Line Filter */}
+        {activeBusinessLines && activeBusinessLines.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Division:</span>
+            <button
+              onClick={() => setBusinessLineFilter("all")}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                businessLineFilter === "all"
+                  ? "bg-navy text-white shadow-sm"
+                  : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+              }`}
+            >
+              All Divisions ({personalizedProjects.length})
+            </button>
+            {activeBusinessLines.map((bl: any) => {
+              const count = personalizedProjects.filter((p: ProjectData) => {
+                const ids = p.matchedBusinessLines;
+                return ids && ids.includes(bl.id);
+              }).length;
+              return (
+                <button
+                  key={bl.id}
+                  onClick={() => setBusinessLineFilter(String(bl.id))}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    businessLineFilter === String(bl.id)
+                      ? "bg-navy text-white shadow-sm"
+                      : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                  }`}
+                >
+                  {bl.name} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="w-full justify-start bg-card border border-border rounded-lg p-1 overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="overview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
@@ -402,7 +451,7 @@ export default function Home() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              <KPICard value={projects.length} label="Total Projects" accent="teal" />
+              <KPICard value={businessLineFiltered.length} label="Total Projects" accent="teal" />
               <KPICard value={hotProjects.length} label="Hot Projects" accent="hot" />
               <KPICard value={warmProjects.length} label="Warm Projects" accent="warm" />
               <KPICard value={coldProjects.length} label="Cold / Monitor" />
@@ -428,7 +477,7 @@ export default function Home() {
           {/* ===== ALL PROJECTS TAB ===== */}
           <TabsContent value="projects" className="space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: personalizedProjects.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
+              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: businessLineFiltered.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
               <SectorFilter active={sectorFilter} onChange={setSectorFilter} />
             </div>
 

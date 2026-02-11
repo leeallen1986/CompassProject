@@ -418,6 +418,7 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
         sources: article ? [{ label: "RSS Feed", url: article.url }] : [],
         timeline: result.project.timeline,
         completion: result.project.completion,
+        matchedBusinessLines: article?.matchedBusinessLines as number[] ?? null,
       };
 
       const [insertResult] = await db.insert(projects).values(projectData);

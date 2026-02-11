@@ -94,3 +94,8 @@
 - [x] Updated report.test.ts for new aggregated dashboard behavior
 - [x] Fix nested button HTML error on Home page (button cannot contain a nested button)
 - [x] Fix rawArticles DATE() query error on Admin page
+- [x] Add business line filter to main dashboard (Portable Air, Industrial Compressors, Power Technique, Vacuum Solutions)
+- [x] Add matchedBusinessLines field to projects schema
+- [x] Propagate business line info from rawArticles to projects during AI extraction
+- [x] Backfill existing 28 projects with business line tags
+- [x] Vitest tests for business line filter (keyword matching + client-side filtering)

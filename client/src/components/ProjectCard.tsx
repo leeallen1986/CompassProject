@@ -31,6 +31,7 @@ export interface ProjectData {
   sources: { label: string; url: string; date?: string }[] | null;
   timeline: string | null;
   completion: string | null;
+  matchedBusinessLines: number[] | null;
   createdAt: Date;
   // Personalization fields (optional, added by filtering engine)
   relevanceScore?: number;

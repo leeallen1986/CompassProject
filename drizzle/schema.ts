@@ -137,6 +137,7 @@ export const projects = mysqlTable("projects", {
   sources: json("sources").$type<{ label: string; url: string; date?: string }[]>(),
   timeline: varchar("timeline", { length: 256 }),
   completion: varchar("completion", { length: 256 }),
+  matchedBusinessLines: json("matchedBusinessLines").$type<number[]>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
