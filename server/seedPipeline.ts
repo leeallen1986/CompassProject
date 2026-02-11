@@ -2,9 +2,11 @@
  * Seed script — Populates default business lines and RSS sources.
  * Called from an admin endpoint or run manually.
  *
- * Business lines scoped to Power Technique division:
+ * Power Technique (PT) division business lines:
  *   - Portable Air (compressors, drilling, blasting)
- *   - Power Technique (generators, pumps, lighting towers)
+ *   - PAL (power generators, lighting towers)
+ *   - Pump (Flow) (dewatering, submersible, wellpoint)
+ *   - BESS (battery energy storage systems)
  */
 import { getDb } from "./db";
 import { businessLines, rssSources } from "../drizzle/schema";
@@ -24,25 +26,58 @@ const DEFAULT_BUSINESS_LINES = [
     sectors: ["mining", "oil_gas", "infrastructure", "energy", "defence"],
     equipmentTypes: [
       "Portable Compressor", "Booster Compressor", "Drill Rig",
-      "Air Treatment", "Lighting Tower"
+      "Air Treatment"
     ],
     defaultTerritories: ["WA", "QLD", "NSW", "SA", "NT", "VIC", "TAS"],
   },
   {
-    name: "Power Technique",
-    description: "Generators, pumps, and lighting towers for construction, mining, and events. QAS, QES, PAS series.",
+    name: "PAL",
+    description: "Power generators, lighting towers, and BESS. QAS, QES series generators, HiLight towers, and ZenergiZe BESS.",
     keywords: [
       "generator", "power generation", "diesel generator", "portable generator",
-      "dewatering pump", "lighting tower", "light tower", "temporary power",
-      "standby power", "backup power", "construction power", "mine site power",
-      "pump station", "submersible pump", "wellpoint dewatering"
+      "lighting tower", "light tower", "temporary power", "standby power",
+      "backup power", "construction power", "mine site power",
+      "battery energy storage", "BESS", "energy storage system",
+      "hybrid power", "solar hybrid", "ZenergiZe"
     ],
     sectors: ["mining", "infrastructure", "energy"],
     equipmentTypes: [
-      "Diesel Generator", "Lighting Tower", "Dewatering Pump",
-      "Submersible Pump", "Power Pack"
+      "Diesel Generator", "Lighting Tower", "Battery Energy Storage",
+      "Hybrid Power", "Power Pack"
     ],
     defaultTerritories: ["WA", "QLD", "NSW", "NT"],
+  },
+  {
+    name: "Pump (Flow)",
+    description: "Dewatering pumps, submersible pumps, and wellpoint systems for mining, construction, and flood recovery. PAS and WEDA series.",
+    keywords: [
+      "dewatering pump", "submersible pump", "wellpoint dewatering",
+      "pump station", "water pump", "mine dewatering", "flood pump",
+      "centrifugal pump", "drainage pump", "slurry pump",
+      "water management", "pit dewatering"
+    ],
+    sectors: ["mining", "infrastructure", "energy"],
+    equipmentTypes: [
+      "Dewatering Pump", "Submersible Pump", "Wellpoint System",
+      "Centrifugal Pump"
+    ],
+    defaultTerritories: ["WA", "QLD", "NSW", "NT", "SA"],
+  },
+  {
+    name: "BESS",
+    description: "Battery Energy Storage Systems for mining, construction, and renewable energy projects. ZenergiZe range, hybrid power solutions, and peak shaving.",
+    keywords: [
+      "battery energy storage", "BESS", "energy storage system",
+      "battery storage", "hybrid power", "solar hybrid", "ZenergiZe",
+      "peak shaving", "load management", "microgrid", "off-grid power",
+      "renewable energy storage", "lithium battery", "containerised power"
+    ],
+    sectors: ["mining", "infrastructure", "energy"],
+    equipmentTypes: [
+      "Battery Energy Storage", "Hybrid Power System",
+      "Containerised Power", "Microgrid"
+    ],
+    defaultTerritories: ["WA", "QLD", "NSW", "NT", "SA"],
   },
 ];
 
@@ -63,7 +98,7 @@ const DEFAULT_RSS_SOURCES = [
   { name: "Infrastructure Magazine", feedUrl: "https://infrastructuremagazine.com.au/feed/", category: "industry" },
   { name: "Roads & Infrastructure", feedUrl: "https://roadsonline.com.au/feed/", category: "industry" },
 
-  // Energy
+  // Energy & Renewables
   { name: "Renew Economy", feedUrl: "https://reneweconomy.com.au/feed/", category: "industry" },
   { name: "Energy Magazine", feedUrl: "https://www.energymagazine.com.au/feed/", category: "industry" },
 

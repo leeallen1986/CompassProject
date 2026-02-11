@@ -91,9 +91,11 @@ function buildExtractionPrompt(articles: { id: number; title: string; summary: s
 
   return `You are an Australian market intelligence analyst for Atlas Copco, a global industrial equipment manufacturer.
 
-Analyze the following articles and extract structured project intelligence relevant to Atlas Copco's Power Technique division:
-- Portable Air (portable compressors for mining, construction, drilling, blasting, tunnelling)
-- Power Technique (generators, dewatering pumps, lighting towers, temporary power)
+Analyze the following articles and extract structured project intelligence relevant to Atlas Copco's Power Technique (PT) division. PT has four business lines:
+- Portable Air (portable compressors for mining, construction, drilling, blasting, tunnelling, shotcrete)
+- PAL (power generators, lighting towers — QAS/QES generators, HiLight towers)
+- Pump / Flow (dewatering pumps, submersible pumps, wellpoint systems — PAS/WEDA series)
+- BESS (battery energy storage systems, hybrid power, solar hybrid, peak shaving, microgrids — ZenergiZe range)
 
 For each article that contains a real project or opportunity, extract the following fields. If an article is not relevant (e.g., opinion piece, unrelated industry), mark it as not relevant.
 

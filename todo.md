@@ -103,3 +103,11 @@
 - [x] Update seed defaults to only include Portable Air and Power Technique
 - [x] Update AI extractor prompt for PT-only focus
 - [x] Update dashboard filter to only show PT-relevant divisions
+- [x] Restructure to Power Technique (PT) as parent division with 4 business lines
+- [x] Create/update business lines in DB: Portable Air, PAL (generators/lighting), Pump (Flow), BESS
+- [x] Update header branding from "Atlas Copco Portable Air" to "Atlas Copco Power Technique"
+- [x] Update filter bar to show PT business lines
+- [x] Update seed defaults and keyword dictionaries for all 4 business lines
+- [x] Update AI extractor prompt for 4 business lines
+- [x] Backfill existing projects with new business line tags
+- [x] All 151 tests passing

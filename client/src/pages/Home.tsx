@@ -1,5 +1,5 @@
 /*
- * Home — Atlas Copco Market Intelligence Dashboard
+ * Home — Atlas Copco Power Technique Market Intelligence Dashboard
  * Design: Nordic Industrial Precision
  * Deep navy header, gold accents, tabbed layout, priority-coded cards
  * Now fetches data from the database via tRPC API
@@ -191,8 +191,8 @@ function LoginPage() {
       <div className="text-center max-w-md mx-auto px-6">
         <div className="mb-8">
           <img src={IMAGES.heroBanner} alt="" className="w-full h-32 object-cover rounded-lg mb-6" />
-          <h1 className="text-2xl font-bold text-navy tracking-tight mb-2">Atlas Copco Portable Air</h1>
-          <p className="text-sm text-muted-foreground">Weekly Market Intelligence Dashboard</p>
+          <h1 className="text-2xl font-bold text-navy tracking-tight mb-2">Atlas Copco Power Technique</h1>
+          <p className="text-sm text-muted-foreground">Market Intelligence Dashboard</p>
         </div>
         <a href={getLoginUrl()}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-navy text-white font-semibold hover:bg-navy-light transition-colors shadow-md">
@@ -333,7 +333,7 @@ export default function Home() {
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
-                Atlas Copco Portable Air
+                Atlas Copco Power Technique
               </h1>
               <p className="text-sm sm:text-base text-slate-300 mt-1 font-medium">
                 Market Intelligence Dashboard — Personalised for You
@@ -377,7 +377,7 @@ export default function Home() {
         {/* Business Line Filter */}
         {activeBusinessLines && activeBusinessLines.length > 0 && (
           <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Division:</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Line:</span>
             <button
               onClick={() => setBusinessLineFilter("all")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
@@ -386,7 +386,7 @@ export default function Home() {
                   : "bg-card text-muted-foreground border border-border hover:border-navy/30"
               }`}
             >
-              All Divisions ({personalizedProjects.length})
+              All PT ({personalizedProjects.length})
             </button>
             {activeBusinessLines.map((bl: any) => {
               const count = personalizedProjects.filter((p: ProjectData) => {
@@ -685,7 +685,7 @@ export default function Home() {
       <footer className="bg-navy text-slate-400 py-6 mt-8">
         <div className="container text-center">
           <p className="text-xs font-medium text-gold mb-1">Powered by Multi-Source Intelligence Pipeline</p>
-          <p className="text-xs">Atlas Copco Portable Air — Market Intelligence Dashboard</p>
+          <p className="text-xs">Atlas Copco Power Technique — Market Intelligence Dashboard</p>
           <p className="text-xs mt-1">Data sourced from RSS feeds, Projectory, DMIRS MINEDEX, ASX releases, and industry publications. Ranked by your preferences.</p>
         </div>
       </footer>
