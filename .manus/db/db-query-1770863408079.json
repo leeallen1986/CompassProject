@@ -1,0 +1,186 @@
+{
+  "query": "DESCRIBE contacts;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DESCRIBE contacts;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int(11)",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "reportId",
+      "Type": "int(11)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "name",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "title",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "company",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "project",
+      "Type": "varchar(512)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "priority",
+      "Type": "enum('hot','warm','cold')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "roleBucket",
+      "Type": "varchar(128)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "email",
+      "Type": "varchar(320)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "linkedin",
+      "Type": "varchar(512)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "phone",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichmentStatus",
+      "Type": "enum('pending','enriched','not_found','failed')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "pending",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "linkedinHeadline",
+      "Type": "varchar(512)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "linkedinLocation",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "linkedinProfilePic",
+      "Type": "varchar(1024)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichmentSource",
+      "Type": "enum('linkedin','llm','manual')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "linkedin",
+      "Extra": ""
+    },
+    {
+      "Field": "verificationStatus",
+      "Type": "enum('verified','ai_suggested','unverified')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "unverified",
+      "Extra": ""
+    },
+    {
+      "Field": "confidenceScore",
+      "Type": "enum('high','medium','low')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "medium",
+      "Extra": ""
+    },
+    {
+      "Field": "linkedinSearchUrl",
+      "Type": "varchar(1024)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "emailVerified",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint(11)\tNO\tPRI\tNULL\tauto_increment\nreportId\tint(11)\tNO\t\tNULL\t\nname\tvarchar(256)\tNO\t\tNULL\t\ntitle\tvarchar(256)\tNO\t\tNULL\t\ncompany\tvarchar(256)\tNO\t\tNULL\t\nproject\tvarchar(512)\tNO\t\tNULL\t\npriority\tenum('hot','warm','cold')\tNO\t\tNULL\t\nroleBucket\tvarchar(128)\tNO\t\tNULL\t\nemail\tvarchar(320)\tYES\t\tNULL\t\nlinkedin\tvarchar(512)\tYES\t\tNULL\t\nphone\tvarchar(64)\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nenrichmentStatus\tenum('pending','enriched','not_found','failed')\tYES\t\tpending\t\nenrichedAt\ttimestamp\tYES\t\tNULL\t\nlinkedinHeadline\tvarchar(512)\tYES\t\tNULL\t\nlinkedinLocation\tvarchar(256)\tYES\t\tNULL\t\nlinkedinProfilePic\tvarchar(1024)\tYES\t\tNULL\t\nenrichmentSource\tenum('linkedin','llm','manual')\tYES\t\tlinkedin\t\nverificationStatus\tenum('verified','ai_suggested','unverified')\tYES\t\tunverified\t\nconfidenceScore\tenum('high','medium','low')\tYES\t\tmedium\t\nlinkedinSearchUrl\tvarchar(1024)\tYES\t\tNULL\t\nemailVerified\ttinyint(1)\tYES\t\t0\t\n",
+  "stderr": "",
+  "execution_time_ms": 1501
+}

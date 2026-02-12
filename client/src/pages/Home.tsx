@@ -102,6 +102,14 @@ interface ContactRow {
   linkedinProfilePic: string | null;
 }
 
+/** Deduplicated contact — one row per unique person, with all their projects */
+interface DeduplicatedContact extends ContactRow {
+  allProjects: string[];
+  projectCount: number;
+  /** Keep the "best" row's data (prefer verified > ai_suggested, linkedin > llm) */
+  originalIds: number[];
+}
+
 // Map onboarding buyer role IDs to contact roleBucket values
 const buyerRoleToRoleBucket: Record<string, string[]> = {
   procurement: ["procurement"],
@@ -208,8 +216,52 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
     verifyMutation.mutate({ contactId });
   };
 
+  // Deduplicate contacts: group by name (case-insensitive) to merge same person across projects
+  const deduplicatedData = useMemo(() => {
+    const map = new Map<string, DeduplicatedContact>();
+    for (const c of data) {
+      const key = c.name.toLowerCase().trim();
+      const existing = map.get(key);
+      if (existing) {
+        // Merge: add project, keep best data
+        if (c.project && !existing.allProjects.includes(c.project)) {
+          existing.allProjects.push(c.project);
+        }
+        existing.projectCount = existing.allProjects.length;
+        existing.originalIds.push(c.id);
+        // Upgrade verification status if this row is better
+        const verOrder = { verified: 3, ai_suggested: 2, unverified: 1 };
+        const existingVer = verOrder[(existing.verificationStatus as keyof typeof verOrder) || "unverified"] || 0;
+        const newVer = verOrder[(c.verificationStatus as keyof typeof verOrder) || "unverified"] || 0;
+        if (newVer > existingVer) {
+          existing.verificationStatus = c.verificationStatus;
+          existing.enrichmentSource = c.enrichmentSource;
+          existing.confidenceScore = c.confidenceScore;
+          existing.linkedin = c.linkedin || existing.linkedin;
+          existing.linkedinProfilePic = c.linkedinProfilePic || existing.linkedinProfilePic;
+          existing.linkedinSearchUrl = c.linkedinSearchUrl || existing.linkedinSearchUrl;
+          existing.email = c.email || existing.email;
+          existing.emailVerified = c.emailVerified || existing.emailVerified;
+        }
+        // Keep higher priority
+        const priOrder = { hot: 3, warm: 2, cold: 1 };
+        if ((priOrder[c.priority] || 0) > (priOrder[existing.priority] || 0)) {
+          existing.priority = c.priority;
+        }
+      } else {
+        map.set(key, {
+          ...c,
+          allProjects: c.project ? [c.project] : [],
+          projectCount: c.project ? 1 : 0,
+          originalIds: [c.id],
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [data]);
+
   const filtered = useMemo(() => {
-    let result = data;
+    let result = deduplicatedData;
     // Source filter
     if (sourceFilter === "verified") {
       result = result.filter(c => c.verificationStatus === "verified");
@@ -229,19 +281,21 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       c.name.toLowerCase().includes(q) ||
       c.company.toLowerCase().includes(q) ||
       c.title.toLowerCase().includes(q) ||
-      c.project.toLowerCase().includes(q)
+      c.project.toLowerCase().includes(q) ||
+      c.allProjects.some(p => p.toLowerCase().includes(q))
     );
-  }, [data, search, sourceFilter, roleFilter, preferredRoleBuckets]);
+  }, [deduplicatedData, search, sourceFilter, roleFilter, preferredRoleBuckets]);
 
-  // Count contacts by role for filter badges
-  const preferredCount = preferredRoleBuckets.size > 0 ? data.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "")).length : 0;
+  // Count contacts by role for filter badges (use deduplicated data)
+  const preferredCount = preferredRoleBuckets.size > 0 ? deduplicatedData.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "")).length : 0;
 
-  const verifiedCount = data.filter(c => c.verificationStatus === "verified").length;
-  const aiSuggestedCount = data.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm").length;
+  const verifiedCount = deduplicatedData.filter(c => c.verificationStatus === "verified").length;
+  const aiSuggestedCount = deduplicatedData.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm").length;
+  const totalUniqueContacts = deduplicatedData.length;
 
   const exportCSV = () => {
-    const headers = ["Name", "Title", "Company", "Project", "Priority", "Role Bucket", "Email", "Email Verified", "LinkedIn", "LinkedIn Search", "Source", "Verification", "Confidence"];
-    const rows = filtered.map(c => [c.name, c.title, c.company, c.project, c.priority, c.roleBucket, c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || ""]);
+    const headers = ["Name", "Title", "Company", "Projects", "# Projects", "Priority", "Role Bucket", "Email", "Email Verified", "LinkedIn", "LinkedIn Search", "Source", "Verification", "Confidence"];
+    const rows = filtered.map(c => [c.name, c.title, c.company, c.allProjects.join(" | "), String(c.projectCount), c.priority, c.roleBucket, c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || ""]);
     const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -309,7 +363,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
             sourceFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
           }`}>
-          All ({data.length})
+          All ({totalUniqueContacts})
         </button>
         <button onClick={() => setSourceFilter("verified")}
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
@@ -340,10 +394,10 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
             roleFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
           }`}>
-          All Roles ({data.length})
+          All Roles ({totalUniqueContacts})
         </button>
         {["procurement", "project_manager", "engineering", "operations", "maintenance", "fleet_manager", "commercial", "general_manager"].map(role => {
-          const count = data.filter(c => (c.roleBucket?.toLowerCase() || "") === role).length;
+          const count = deduplicatedData.filter(c => (c.roleBucket?.toLowerCase() || "") === role).length;
           if (count === 0) return null;
           return (
             <button key={role} onClick={() => setRoleFilter(role)}
@@ -373,7 +427,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Name</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Title</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Company</th>
-              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Project</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Projects</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Priority</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Source</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Confidence</th>
@@ -405,7 +459,14 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                 </td>
                 <td className="px-3 py-3 text-muted-foreground text-xs">{c.title}</td>
                 <td className="px-3 py-3 text-xs">{c.company}</td>
-                <td className="px-3 py-3 text-muted-foreground text-xs max-w-[180px] truncate" title={c.project}>{c.project}</td>
+                <td className="px-3 py-3 text-xs max-w-[200px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground truncate" title={c.allProjects.join(' | ')}>{c.allProjects[0]}</span>
+                    {c.projectCount > 1 && (
+                      <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-navy/10 text-navy text-[9px] font-bold" title={c.allProjects.join('\n')}>+{c.projectCount - 1}</span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-3 py-3">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(c.priority)}`}>{c.priority}</span>
                 </td>
@@ -476,7 +537,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground mt-2">{filtered.length} of {data.length} contacts shown</p>
+      <p className="text-xs text-muted-foreground mt-2">{filtered.length} unique contacts shown (from {data.length} total entries across projects)</p>
 
       {/* Outreach Email Modal */}
       {outreachContact && outreachProject && (

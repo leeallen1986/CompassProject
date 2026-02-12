@@ -140,12 +140,13 @@ ${roleGuidance}
 
 RULES:
 1. Generate ${MAX_CONTACTS_PER_PROJECT} contacts across the target companies
-2. Use realistic Australian names (mix of Anglo, European, and multicultural names common in Australian industry)
+2. CRITICAL — NAME UNIQUENESS: Every name you generate MUST be unique and different from common/generic names. Use the project name "${projectName}" as a seed to vary your name choices. DO NOT reuse names like "Sarah Chen", "Priya Sharma", "David Miller", "James Wilson", "Michael Thompson", "John Smith" or any other common placeholder names. Generate diverse, realistic Australian names — mix Anglo-Saxon, Southern European, East Asian, South Asian, Indigenous Australian, and Middle Eastern names that reflect Australia's multicultural workforce.
 3. Job titles must be specific and realistic for the sector and company size
 4. Each contact must have a different role/function — no duplicates
 5. Assign confidence: "high" if the role definitely exists at that company type, "medium" if likely, "low" if uncertain
 6. Provide brief reasoning for why this role would be relevant to Atlas Copco Power Technique equipment sales
 7. For role_bucket, use one of: procurement, project_manager, engineering, operations, maintenance, site_manager, fleet_manager, general_manager, commercial, construction_manager, mining_manager, plant_manager
+8. Remember: these contacts are AI-suggested role templates to guide sales outreach. The names should be plausible but clearly unique per project.
 
 Return a JSON array of contacts.`;
 
@@ -310,19 +311,19 @@ export async function generateAndSaveLLMContacts(
   const savedContacts: LLMGeneratedContact[] = [];
   for (const contact of generatedContacts) {
     try {
-      // Check for duplicate by name + company
+      // Check for duplicate by name across ALL projects (not just this one)
       const existing = await db
         .select({ id: contacts.id })
         .from(contacts)
         .where(
-          and(
-            sql`LOWER(${contacts.name}) = LOWER(${contact.name})`,
-            sql`${contacts.project} = ${projectName}`
-          )
+          sql`LOWER(${contacts.name}) = LOWER(${contact.name})`
         )
         .limit(1);
 
-      if (existing.length > 0) continue;
+      if (existing.length > 0) {
+        console.log(`[LLM Fallback] Skipping duplicate name "${contact.name}" — already exists in database`);
+        continue;
+      }
 
       // Build LinkedIn search URL for easy verification
       const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(contact.name + " " + owner)}`;

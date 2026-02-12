@@ -176,6 +176,22 @@ export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = typeof contacts.$inferInsert;
 
 /**
+ * Junction table linking contacts to multiple projects.
+ * One contact can be relevant to many projects.
+ */
+export const contactProjects = mysqlTable("contactProjects", {
+  id: int("id").autoincrement().primaryKey(),
+  contactId: int("contactId").notNull(),
+  projectId: int("projectId").notNull(),
+  projectName: varchar("projectName", { length: 512 }).notNull(),
+  relevance: mysqlEnum("relevance", ["primary", "secondary"]).default("primary"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContactProject = typeof contactProjects.$inferSelect;
+export type InsertContactProject = typeof contactProjects.$inferInsert;
+
+/**
  * Drilling campaigns from each weekly report.
  */
 export const drillingCampaigns = mysqlTable("drillingCampaigns", {

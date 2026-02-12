@@ -247,3 +247,8 @@
 - [x] Add scoring transparency: first-time users should understand how the scoring/personalization works
 - [x] Show match score breakdown on project cards (territory match, industry match, CAPEX fit, etc.)
 - [x] Add scoring explainer panel/tooltip for new users explaining how personalization drives what they see
+- [x] Bug: Many duplicate contacts across projects (same person appearing multiple times)
+- [x] Investigate scope of duplicate contacts in database
+- [x] Deduplicate existing contacts (keep best version, remove duplicates)
+- [x] Add deduplication logic to LLM contact generator to prevent future duplicates
+- [x] Update contacts UI to show unique contacts with linked projects instead of duplicate rows

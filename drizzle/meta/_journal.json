@@ -85,6 +85,13 @@
       "when": 1770829092594,
       "tag": "0011_nosy_pretty_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1770863530695,
+      "tag": "0012_giant_black_bird",
+      "breakpoints": true
     }
   ]
 }

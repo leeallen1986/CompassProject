@@ -1,0 +1,190 @@
+{
+  "query": "SELECT name, company, COUNT(*) as cnt, GROUP_CONCAT(DISTINCT project ORDER BY project SEPARATOR ' | ') as projects FROM contacts GROUP BY name, company HAVING COUNT(*) > 1 ORDER BY cnt DESC LIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT name, company, COUNT(*) as cnt, GROUP_CONCAT(DISTINCT project ORDER BY project SEPARATOR ' | ') as projects FROM contacts GROUP BY name, company HAVING COUNT(*) > 1 ORDER BY cnt DESC LIMIT 30;",
+  "rows": [
+    {
+      "name": "Sarah Chen",
+      "company": "Queensland Government",
+      "cnt": "6",
+      "projects": "Gateway to Bruce Upgrade (G2BU) | Great Keppel Island Pump Stations Revitalisation | Hells Gates Dam | Logan and Gold Coast Faster Rail project | Queensland's Hospital Rescue Plan | Toowoomba Hospital Redevelopment"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "AGL Energy",
+      "cnt": "4",
+      "projects": "Broken Hill BESS | Liddell BESS | Melrose BESS | Torrens Island BESS"
+    },
+    {
+      "name": "David Miller",
+      "company": "Queensland Government",
+      "cnt": "4",
+      "projects": "Gateway to Bruce Upgrade (G2BU) | Great Keppel Island Pump Stations Revitalisation | Logan and Gold Coast Faster Rail project | Queensland's Hospital Rescue Plan"
+    },
+    {
+      "name": "Priya Sharma",
+      "company": "AGL Energy",
+      "cnt": "4",
+      "projects": "Broken Hill BESS | Liddell BESS | Melrose BESS | Torrens Island BESS"
+    },
+    {
+      "name": "Priya Sharma",
+      "company": "New South Wales Government",
+      "cnt": "3",
+      "projects": "Gunnedah Hospital Redevelopment | M1 Metro North West & Bankstown Line Test Run | Sydney Metro West Project (Tunnelling)"
+    },
+    {
+      "name": "Priya Sharma",
+      "company": "Queensland Government",
+      "cnt": "3",
+      "projects": "Great Keppel Island Pump Stations Revitalisation | Queensland's Hospital Rescue Plan | Toowoomba Hospital Redevelopment"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "Australian Rail Track Corporation (ARTC)",
+      "cnt": "3",
+      "projects": "Inland Rail - Narrabri to North Star section (Phase 2) | Inland Rail — Melbourne to Brisbane | South Australia’s East-West Rail Corridor Recovery"
+    },
+    {
+      "name": "David O'Connell",
+      "company": "AGL Energy",
+      "cnt": "3",
+      "projects": "Broken Hill BESS | Melrose BESS | Torrens Island BESS"
+    },
+    {
+      "name": "Emily Wong",
+      "company": "Queensland Government",
+      "cnt": "3",
+      "projects": "Great Keppel Island Pump Stations Revitalisation | Hells Gates Dam | Toowoomba Hospital Redevelopment"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "New South Wales Government",
+      "cnt": "3",
+      "projects": "Gunnedah Hospital Redevelopment | M1 Metro North West & Bankstown Line Test Run | Sydney Metro West Project (Tunnelling)"
+    },
+    {
+      "name": "Priya Sharma",
+      "company": "Synergy",
+      "cnt": "3",
+      "projects": "Collie Battery Energy Storage System (BESS) | Collie Battery Energy Storage System (CBESS) | Kwinana BESS"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "NSW Government",
+      "cnt": "3",
+      "projects": "NSW Hydrogen Centre of Excellence | Singleton Bypass | Wyong Hospital Redevelopment"
+    },
+    {
+      "name": "Mark Davies",
+      "company": "Queensland Government",
+      "cnt": "3",
+      "projects": "Borumba Pumped Hydro | Gateway to Bruce Upgrade (G2BU) | Hells Gates Dam"
+    },
+    {
+      "name": "David Chen",
+      "company": "Genex Power",
+      "cnt": "2",
+      "projects": "Goat Hill Pumped Hydro | Kidston Pumped Hydro"
+    },
+    {
+      "name": "Sarah O'Connell",
+      "company": "Snowy Hydro",
+      "cnt": "2",
+      "projects": "Kurri Kurri Gas Peaker | Snowy 2.0"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "Synergy",
+      "cnt": "2",
+      "projects": "Collie Battery Energy Storage System (BESS) | Collie Battery Energy Storage System (CBESS)"
+    },
+    {
+      "name": "David O'Connell",
+      "company": "New South Wales Government",
+      "cnt": "2",
+      "projects": "Gunnedah Hospital Redevelopment | Sydney Metro West Project (Tunnelling)"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "ACEN Australia",
+      "cnt": "2",
+      "projects": "Valley of the Winds | Yarrabin (Phoenix) Pumped Hydro"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "Origin Energy",
+      "cnt": "2",
+      "projects": "Mortlake Gas Peaker | Supernode and Eraring Stage 1 battery storage projects"
+    },
+    {
+      "name": "Jessica Lee",
+      "company": "AGL Energy",
+      "cnt": "2",
+      "projects": "Broken Hill BESS | Muswellbrook Pumped Hydro"
+    },
+    {
+      "name": "David Miller",
+      "company": "Origin Energy",
+      "cnt": "2",
+      "projects": "Mortlake Gas Peaker | Supernode and Eraring Stage 1 battery storage projects"
+    },
+    {
+      "name": "David Chen",
+      "company": "Snowy Hydro",
+      "cnt": "2",
+      "projects": "Kurri Kurri Gas Peaker | Snowy 2.0"
+    },
+    {
+      "name": "Antonio Rossi",
+      "company": "AGL Energy",
+      "cnt": "2",
+      "projects": "Melrose BESS | Torrens Island BESS"
+    },
+    {
+      "name": "David Miller",
+      "company": "Synergy",
+      "cnt": "2",
+      "projects": "Collie Battery Energy Storage System (BESS) | Collie Battery Energy Storage System (CBESS)"
+    },
+    {
+      "name": "Sarah O'Connell",
+      "company": "Genex Power",
+      "cnt": "2",
+      "projects": "Goat Hill Pumped Hydro | Kidston Pumped Hydro"
+    },
+    {
+      "name": "Sarah O'Connell",
+      "company": "Queensland Government",
+      "cnt": "2",
+      "projects": "Borumba Pumped Hydro | Pioneer-Burdekin Pumped Hydro"
+    },
+    {
+      "name": "Mark Jones",
+      "company": "AGL Energy",
+      "cnt": "2",
+      "projects": "Liddell BESS | Muswellbrook Pumped Hydro"
+    },
+    {
+      "name": "Sarah Chen",
+      "company": "EnergyAustralia",
+      "cnt": "2",
+      "projects": "Jeeralang BESS | Wooreen BESS"
+    },
+    {
+      "name": "Priya Sharma",
+      "company": "EnergyAustralia",
+      "cnt": "2",
+      "projects": "Jeeralang BESS | Wooreen BESS"
+    },
+    {
+      "name": "Priya Sharma",
+      "company": "Octopus Australia",
+      "cnt": "2",
+      "projects": "Hanworth Battery Energy Storage System (BESS) | Octopus Australia 4.8GWh BESS Project"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tcompany\tcnt\tprojects\nSarah Chen\tQueensland Government\t6\tGateway to Bruce Upgrade (G2BU) | Great Keppel Island Pump Stations Revitalisation | Hells Gates Dam | Logan and Gold Coast Faster Rail project | Queensland's Hospital Rescue Plan | Toowoomba Hospital Redevelopment\nSarah Chen\tAGL Energy\t4\tBroken Hill BESS | Liddell BESS | Melrose BESS | Torrens Island BESS\nDavid Miller\tQueensland Government\t4\tGateway to Bruce Upgrade (G2BU) | Great Keppel Island Pump Stations Revitalisation | Logan and Gold Coast Faster Rail project | Queensland's Hospital Rescue Plan\nPriya Sharma\tAGL Energy\t4\tBroken Hill BESS | Liddell BESS | Melrose BESS | Torrens Island BESS\nPriya Sharma\tNew South Wales Government\t3\tGunnedah Hospital Redevelopment | M1 Metro North West & Bankstown Line Test Run | Sydney Metro West Project (Tunnelling)\nPriya Sharma\tQueensland Government\t3\tGreat Keppel Island Pump Stations Revitalisation | Queensland's Hospital Rescue Plan | Toowoomba Hospital Redevelopment\nSarah Chen\tAustralian Rail Track Corporation (ARTC)\t3\tInland Rail - Narrabri to North Star section (Phase 2) | Inland Rail — Melbourne to Brisbane | South Australia’s East-West Rail Corridor Recovery\nDavid O'Connell\tAGL Energy\t3\tBroken Hill BESS | Melrose BESS | Torrens Island BESS\nEmily Wong\tQueensland Government\t3\tGreat Keppel Island Pump Stations Revitalisation | Hells Gates Dam | Toowoomba Hospital Redevelopment\nSarah Chen\tNew South Wales Government\t3\tGunnedah Hospital Redevelopment | M1 Metro North West & Bankstown Line Test Run | Sydney Metro West Project (Tunnelling)\nPriya Sharma\tSynergy\t3\tCollie Battery Energy Storage System (BESS) | Collie Battery Energy Storage System (CBESS) | Kwinana BESS\nSarah Chen\tNSW Government\t3\tNSW Hydrogen Centre of Excellence | Singleton Bypass | Wyong Hospital Redevelopment\nMark Davies\tQueensland Government\t3\tBorumba Pumped Hydro | Gateway to Bruce Upgrade (G2BU) | Hells Gates Dam\nDavid Chen\tGenex Power\t2\tGoat Hill Pumped Hydro | Kidston Pumped Hydro\nSarah O'Connell\tSnowy Hydro\t2\tKurri Kurri Gas Peaker | Snowy 2.0\nSarah Chen\tSynergy\t2\tCollie Battery Energy Storage System (BESS) | Collie Battery Energy Storage System (CBESS)\nDavid O'Connell\tNew South Wales Government\t2\tGunnedah Hospital Redevelopment | Sydney Metro West Project (Tunnelling)\nSarah Chen\tACEN Australia\t2\tValley of the Winds | Yarrabin (Phoenix) Pumped Hydro\nSarah Chen\tOrigin Energy\t2\tMortlake Gas Peaker | Supernode and Eraring Stage 1 battery storage projects\nJessica Lee\tAGL Energy\t2\tBroken Hill BESS | Muswellbrook Pumped Hydro\nDavid Miller\tOrigin Energy\t2\tMortlake Gas Peaker | Supernode and Eraring Stage 1 battery storage projects\nDavid Chen\tSnowy Hydro\t2\tKurri Kurri Gas Peaker | Snowy 2.0\nAntonio Rossi\tAGL Energy\t2\tMelrose BESS | Torrens Island BESS\nDavid Miller\tSynergy\t2\tCollie Battery Energy Storage System (BESS) | Collie Battery Energy Storage System (CBESS)\nSarah O'Connell\tGenex Power\t2\tGoat Hill Pumped Hydro | Kidston Pumped Hydro\nSarah O'Connell\tQueensland Government\t2\tBorumba Pumped Hydro | Pioneer-Burdekin Pumped Hydro\nMark Jones\tAGL Energy\t2\tLiddell BESS | Muswellbrook Pumped Hydro\nSarah Chen\tEnergyAustralia\t2\tJeeralang BESS | Wooreen BESS\nPriya Sharma\tEnergyAustralia\t2\tJeeralang BESS | Wooreen BESS\nPriya Sharma\tOctopus Australia\t2\tHanworth Battery Energy Storage System (BESS) | Octopus Australia 4.8GWh BESS Project\n",
+  "stderr": "",
+  "execution_time_ms": 1500
+}

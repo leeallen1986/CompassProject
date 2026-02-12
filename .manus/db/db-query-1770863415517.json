@@ -1,0 +1,76 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contacts' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contacts' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "name"
+    },
+    {
+      "COLUMN_NAME": "title"
+    },
+    {
+      "COLUMN_NAME": "company"
+    },
+    {
+      "COLUMN_NAME": "project"
+    },
+    {
+      "COLUMN_NAME": "priority"
+    },
+    {
+      "COLUMN_NAME": "roleBucket"
+    },
+    {
+      "COLUMN_NAME": "email"
+    },
+    {
+      "COLUMN_NAME": "linkedin"
+    },
+    {
+      "COLUMN_NAME": "phone"
+    },
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "enrichmentStatus"
+    },
+    {
+      "COLUMN_NAME": "enrichedAt"
+    },
+    {
+      "COLUMN_NAME": "linkedinHeadline"
+    },
+    {
+      "COLUMN_NAME": "linkedinLocation"
+    },
+    {
+      "COLUMN_NAME": "linkedinProfilePic"
+    },
+    {
+      "COLUMN_NAME": "enrichmentSource"
+    },
+    {
+      "COLUMN_NAME": "verificationStatus"
+    },
+    {
+      "COLUMN_NAME": "confidenceScore"
+    },
+    {
+      "COLUMN_NAME": "linkedinSearchUrl"
+    },
+    {
+      "COLUMN_NAME": "emailVerified"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nreportId\nname\ntitle\ncompany\nproject\npriority\nroleBucket\nemail\nlinkedin\nphone\ncreatedAt\nenrichmentStatus\nenrichedAt\nlinkedinHeadline\nlinkedinLocation\nlinkedinProfilePic\nenrichmentSource\nverificationStatus\nconfidenceScore\nlinkedinSearchUrl\nemailVerified\n",
+  "stderr": "",
+  "execution_time_ms": 1542
+}
