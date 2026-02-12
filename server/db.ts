@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, ne, lt, sql, inArray, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -156,6 +156,127 @@ export async function getAllProjects() {
   if (!db) return [];
 
   return db.select().from(projects).orderBy(desc(projects.id));
+}
+
+export async function getActiveProjects() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(projects)
+    .where(or(
+      eq(projects.lifecycleStatus, "active"),
+      isNull(projects.lifecycleStatus)
+    ))
+    .orderBy(desc(projects.id));
+}
+
+export async function updateProjectLifecycle(
+  projectId: number,
+  status: "active" | "stale" | "archived" | "awarded" | "completed",
+  userId?: number
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateData: Record<string, unknown> = {
+    lifecycleStatus: status,
+  };
+
+  if (status === "archived") {
+    updateData.archivedBy = userId ?? null;
+    updateData.archivedAt = new Date();
+  } else if (status === "active") {
+    // Restoring from archived/stale
+    updateData.archivedBy = null;
+    updateData.archivedAt = null;
+    updateData.lastActivityAt = new Date();
+  }
+
+  await db.update(projects).set(updateData).where(eq(projects.id, projectId));
+}
+
+export async function bulkUpdateProjectLifecycle(
+  projectIds: number[],
+  status: "active" | "stale" | "archived" | "awarded" | "completed",
+  userId?: number
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (projectIds.length === 0) return 0;
+
+  const updateData: Record<string, unknown> = {
+    lifecycleStatus: status,
+  };
+
+  if (status === "archived") {
+    updateData.archivedBy = userId ?? null;
+    updateData.archivedAt = new Date();
+  } else if (status === "active") {
+    updateData.archivedBy = null;
+    updateData.archivedAt = null;
+    updateData.lastActivityAt = new Date();
+  }
+
+  const result = await db.update(projects).set(updateData).where(inArray(projects.id, projectIds));
+  return projectIds.length;
+}
+
+/**
+ * Mark projects as stale if they have no pipeline claims and were created > 30 days ago
+ * with no recent activity. Skips projects that are already archived, awarded, or completed.
+ */
+export async function markStaleProjects(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  // Get all active projects older than 30 days
+  const oldActiveProjects = await db.select({ id: projects.id })
+    .from(projects)
+    .where(and(
+      eq(projects.lifecycleStatus, "active"),
+      lt(projects.createdAt, thirtyDaysAgo),
+      or(
+        isNull(projects.lastActivityAt),
+        lt(projects.lastActivityAt, thirtyDaysAgo)
+      )
+    ));
+
+  if (oldActiveProjects.length === 0) return 0;
+
+  // Get projects that have active pipeline claims (these should stay active)
+  const claimedProjectIds = await db.select({ projectId: pipelineClaims.projectId })
+    .from(pipelineClaims)
+    .where(and(
+      inArray(pipelineClaims.projectId, oldActiveProjects.map(p => p.id)),
+      ne(pipelineClaims.status, "lost")
+    ));
+
+  const claimedSet = new Set(claimedProjectIds.map(c => c.projectId));
+  const staleIds = oldActiveProjects
+    .filter(p => !claimedSet.has(p.id))
+    .map(p => p.id);
+
+  if (staleIds.length === 0) return 0;
+
+  await db.update(projects)
+    .set({ lifecycleStatus: "stale" })
+    .where(inArray(projects.id, staleIds));
+
+  return staleIds.length;
+}
+
+/**
+ * Touch a project's lastActivityAt timestamp (called when someone interacts with it)
+ */
+export async function touchProjectActivity(projectId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(projects)
+    .set({ lastActivityAt: new Date(), lifecycleStatus: "active" })
+    .where(eq(projects.id, projectId));
 }
 
 // ── Contact helpers ──

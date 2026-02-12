@@ -22,6 +22,7 @@ import { runGovScraper } from "./govScraper";
 import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
 import { sendWeeklyDigests } from "./emailDigest";
+import { markStaleProjects } from "./db";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -324,6 +325,19 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     }
   } else {
     console.log("[DailyPipeline] Skipping weekly digest (runs on Mondays only)");
+  }
+
+  // Step 11: Auto-staleness check (runs daily)
+  console.log("[DailyPipeline] Step 11: Running project staleness check...");
+  try {
+    const staleCount = await markStaleProjects();
+    if (staleCount > 0) {
+      console.log(`[DailyPipeline] Marked ${staleCount} projects as stale (no activity in 30+ days, no pipeline claims)`);
+    } else {
+      console.log("[DailyPipeline] No new stale projects found");
+    }
+  } catch (err: unknown) {
+    console.error("[DailyPipeline] Staleness check failed:", err instanceof Error ? err.message : String(err));
   }
 
   console.log(`[DailyPipeline] Pipeline complete in ${duration}s`);

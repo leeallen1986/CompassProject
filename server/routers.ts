@@ -16,6 +16,8 @@ import {
   updatePipelineClaim, deletePipelineClaim,
   createPipelineActivityEntry, getActivityByClaimId,
   getEmailDigestPrefs, upsertEmailDigestPrefs,
+  updateProjectLifecycle, bulkUpdateProjectLifecycle, markStaleProjects, touchProjectActivity,
+  getActiveProjects,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -346,6 +348,63 @@ export const appRouter = router({
       }),
   }),
 
+  // ── Project Lifecycle endpoints ──
+  projectLifecycle: router({
+    /** Update a single project's lifecycle status */
+    update: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        status: z.enum(["active", "stale", "archived", "awarded", "completed"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateProjectLifecycle(input.projectId, input.status, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Bulk update lifecycle status for multiple projects */
+    bulkUpdate: protectedProcedure
+      .input(z.object({
+        projectIds: z.array(z.number()).min(1).max(500),
+        status: z.enum(["active", "stale", "archived", "awarded", "completed"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const count = await bulkUpdateProjectLifecycle(input.projectIds, input.status, ctx.user.id);
+        return { success: true, count };
+      }),
+
+    /** Run staleness check (admin only) — marks old untouched projects as stale */
+    markStale: adminProcedure.mutation(async () => {
+      const count = await markStaleProjects();
+      return { success: true, staleCount: count };
+    }),
+
+    /** Touch a project to keep it active (called on view/interact) */
+    touch: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        await touchProjectActivity(input.projectId);
+        return { success: true };
+      }),
+
+    /** Get lifecycle summary counts */
+    summary: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { active: 0, stale: 0, archived: 0, awarded: 0, completed: 0 };
+
+      const result = await db.select({
+        status: projects.lifecycleStatus,
+        count: sql<number>`COUNT(*)`,
+      }).from(projects).groupBy(projects.lifecycleStatus);
+
+      const counts: Record<string, number> = { active: 0, stale: 0, archived: 0, awarded: 0, completed: 0 };
+      for (const row of result) {
+        const key = row.status ?? "active";
+        counts[key] = Number(row.count);
+      }
+      return counts;
+    }),
+  }),
+
   // ── Email Digest Preferences endpoints ──
   emailDigest: router({
     get: protectedProcedure.query(async ({ ctx }) => {
@@ -400,7 +459,10 @@ export const appRouter = router({
       }),
 
     full: protectedProcedure
-      .input(z.object({ reportId: z.number().optional() }))
+      .input(z.object({
+        reportId: z.number().optional(),
+        lifecycleFilter: z.enum(["all", "active", "stale", "archived", "awarded", "completed"]).optional().default("all"),
+      }))
       .query(async ({ ctx, input }) => {
         // Always fetch ALL projects across all reports for the unified dashboard
         const [projectsList, contactsList, drillingList, awardedList] = await Promise.all([
@@ -410,19 +472,31 @@ export const appRouter = router({
           getAllAwardedProjects(),
         ]);
 
+        // Compute lifecycle counts from full list (before filtering)
+        const lifecycleCounts: Record<string, number> = { active: 0, stale: 0, archived: 0, awarded: 0, completed: 0 };
+        for (const p of projectsList) {
+          const status = p.lifecycleStatus ?? "active";
+          lifecycleCounts[status] = (lifecycleCounts[status] || 0) + 1;
+        }
+
+        // Apply lifecycle filter
+        const filteredByLifecycle = input.lifecycleFilter === "all"
+          ? projectsList
+          : projectsList.filter(p => (p.lifecycleStatus ?? "active") === input.lifecycleFilter);
+
         // Get the latest report for metadata (executive summary, etc.)
         const report = input.reportId
           ? await getReportById(input.reportId)
           : await getLatestReport();
 
-        // Build aggregate stats from actual data
-        const hot = projectsList.filter(p => p.priority === "hot").length;
-        const warm = projectsList.filter(p => p.priority === "warm").length;
-        const cold = projectsList.filter(p => p.priority === "cold").length;
+        // Build aggregate stats from filtered data
+        const hot = filteredByLifecycle.filter(p => p.priority === "hot").length;
+        const warm = filteredByLifecycle.filter(p => p.priority === "warm").length;
+        const cold = filteredByLifecycle.filter(p => p.priority === "cold").length;
 
         const aggregateReport = report ? {
           ...report,
-          totalProjects: projectsList.length,
+          totalProjects: filteredByLifecycle.length,
           hotProjects: hot,
           warmProjects: warm,
           coldProjects: cold,
@@ -431,7 +505,7 @@ export const appRouter = router({
           id: 0,
           weekEnding: new Date().toISOString().slice(0, 10),
           generatedTime: new Date().toISOString(),
-          totalProjects: projectsList.length,
+          totalProjects: filteredByLifecycle.length,
           hotProjects: hot,
           warmProjects: warm,
           coldProjects: cold,
@@ -449,16 +523,17 @@ export const appRouter = router({
         };
 
         // Apply ML ranking if user is authenticated
-        let rankedProjects = projectsList;
+        let rankedProjects = filteredByLifecycle;
         let rankings: Awaited<ReturnType<typeof rankProjectsForUser>> | null = null;
         if (ctx.user) {
-          rankings = await rankProjectsForUser(ctx.user.id, projectsList);
+          rankings = await rankProjectsForUser(ctx.user.id, filteredByLifecycle);
           rankedProjects = rankings.map(r => r.project);
         }
 
         return {
           report: aggregateReport,
           projects: rankedProjects,
+          lifecycleCounts,
           contacts: contactsList,
           drillingCampaigns: drillingList,
           awardedProjects: awardedList,

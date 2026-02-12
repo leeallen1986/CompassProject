@@ -13,7 +13,8 @@ import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
   ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
-  ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp
+  ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp,
+  Archive, Clock, Award, Check, Eye
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -640,6 +641,7 @@ export default function Home() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
+  const [lifecycleFilter, setLifecycleFilter] = useState<"all" | "active" | "stale" | "archived" | "awarded" | "completed">("active");
   const [showAllTerritories, setShowAllTerritories] = useState(false);
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
     return !localStorage.getItem("atlas-scoring-guide-dismissed");
@@ -695,7 +697,7 @@ export default function Home() {
 
   if (reportLoading || !fullReport) return <LoadingPage />;
 
-  const { report, projects, contacts, drillingCampaigns, awardedProjects } = fullReport;
+  const { report, projects, contacts, drillingCampaigns, awardedProjects, lifecycleCounts } = fullReport;
 
   const actionItems: string[] = (report.actionItems as string[]) ?? [];
 
@@ -732,11 +734,19 @@ export default function Home() {
     feedbackData
   );
 
+  // ── Lifecycle filter: filter by project lifecycle status ──
+  const lifecycleFiltered = lifecycleFilter === "all"
+    ? personalizedProjects
+    : personalizedProjects.filter((p: ProjectData) => {
+        const status = (p as any).lifecycleStatus ?? "active";
+        return status === lifecycleFilter;
+      });
+
   // ── Territory hard-filter: hide projects outside user's preferred territories ──
   const userTerritories = profileData?.territories ?? [];
   const territoryFiltered = (showAllTerritories || userTerritories.length === 0)
-    ? personalizedProjects
-    : personalizedProjects.filter((p: ProjectData) =>
+    ? lifecycleFiltered
+    : lifecycleFiltered.filter((p: ProjectData) =>
         locationMatchesTerritory(p.location, userTerritories)
       );
 
@@ -863,6 +873,36 @@ export default function Home() {
             </button>
           </div>
         )}
+
+        {/* Lifecycle Filter Bar */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status:</span>
+          {([
+            { key: "active", label: "Active", icon: Eye, count: (lifecycleCounts as any)?.active ?? 0 },
+            { key: "stale", label: "Stale", icon: Clock, count: (lifecycleCounts as any)?.stale ?? 0 },
+            { key: "archived", label: "Archived", icon: Archive, count: (lifecycleCounts as any)?.archived ?? 0 },
+            { key: "awarded", label: "Awarded", icon: Award, count: (lifecycleCounts as any)?.awarded ?? 0 },
+            { key: "completed", label: "Completed", icon: Check, count: (lifecycleCounts as any)?.completed ?? 0 },
+            { key: "all", label: "All", icon: BarChart3, count: Object.values((lifecycleCounts as any) ?? {}).reduce((a: number, b: any) => a + Number(b), 0) as number },
+          ] as const).map(f => {
+            const Icon = f.icon;
+            const isActive = lifecycleFilter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setLifecycleFilter(f.key as any)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  isActive
+                    ? "bg-navy text-white shadow-sm"
+                    : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                {f.label} ({f.count})
+              </button>
+            );
+          })}
+        </div>
 
         {/* Business Line Filter */}
         {activeBusinessLines && activeBusinessLines.length > 0 && (

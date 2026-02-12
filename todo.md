@@ -259,3 +259,11 @@
 - [x] Show multiple contacts on project card (not just one) with scores and LinkedIn links
 - [x] Vitest tests for ProjectCard contact matching logic (22 tests: keyword matching, scoring, deduplication, color coding)
 - [x] Bug: Weekly digest notification sending every day (same content) — fixed: removed daily notifyOwner call, weekly digest now only sends on Mondays
+- [x] Audit and document full pipeline update schedule from code for sales team communication
+- [x] Design project lifecycle system (active → stale → archived → awarded)
+- [x] Add lifecycleStatus field to projects schema (active, stale, archived, awarded, completed)
+- [x] Auto-staleness logic: mark projects as stale after 30 days with no updates and no pipeline claims
+- [x] Backend endpoints: archive/restore projects, bulk archive stale, update lifecycle status
+- [x] Frontend: filter active vs stale vs archived, status badges, archive/restore buttons on project cards
+- [x] Auto-update lifecycle when project moves through pipeline stages (claimed → active, won → awarded)
+- [x] Vitest tests for project lifecycle logic (25 tests: status transitions, staleness detection, filtering, counts, badge display)

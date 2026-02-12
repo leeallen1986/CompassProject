@@ -5,7 +5,7 @@
  * Enhanced: Shows multiple contacts with verification scores, LinkedIn links, and verify buttons
  */
 import { useState, useMemo } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award } from "lucide-react";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -34,6 +34,8 @@ export interface ProjectData {
   timeline: string | null;
   completion: string | null;
   matchedBusinessLines: number[] | null;
+  lifecycleStatus?: "active" | "stale" | "archived" | "awarded" | "completed" | null;
+  lastActivityAt?: Date | null;
   createdAt: Date;
   // Personalization fields (optional, added by filtering engine)
   relevanceScore?: number;
@@ -240,6 +242,68 @@ function findProjectContacts(
 
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, limit).map(s => s.contact);
+}
+
+// ── Lifecycle Actions ──
+const lifecycleOptions = [
+  { value: "active", label: "Active", icon: CheckCircle2, color: "text-teal", bg: "bg-teal/10 hover:bg-teal/20 border-teal/30" },
+  { value: "stale", label: "Stale", icon: Clock, color: "text-amber-600", bg: "bg-amber-50 hover:bg-amber-100 border-amber-300" },
+  { value: "archived", label: "Archive", icon: Archive, color: "text-slate-500", bg: "bg-slate-100 hover:bg-slate-200 border-slate-300" },
+  { value: "awarded", label: "Awarded", icon: Award, color: "text-teal", bg: "bg-teal/10 hover:bg-teal/20 border-teal/30" },
+  { value: "completed", label: "Completed", icon: Check, color: "text-navy", bg: "bg-navy/10 hover:bg-navy/20 border-navy/20" },
+] as const;
+
+function LifecycleActions({ project }: { project: ProjectData }) {
+  const utils = trpc.useUtils();
+  const currentStatus = project.lifecycleStatus ?? "active";
+
+  const updateLifecycle = trpc.projectLifecycle.update.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success(`Project moved to "${vars.status}"`);
+      utils.report.full.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  return (
+    <div className="mt-4 pt-3 border-t border-border">
+      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+        <Archive className="w-3.5 h-3.5" /> Project Status
+      </h4>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {lifecycleOptions.map(opt => {
+          const Icon = opt.icon;
+          const isActive = currentStatus === opt.value;
+          return (
+            <button
+              key={opt.value}
+              disabled={updateLifecycle.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isActive) {
+                  updateLifecycle.mutate({ projectId: project.id, status: opt.value });
+                }
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-semibold border transition-all ${
+                isActive
+                  ? `${opt.bg} ${opt.color} border-current shadow-sm`
+                  : "bg-card text-muted-foreground border-border hover:border-navy/30"
+              }`}
+            >
+              <Icon className="w-3 h-3" />
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {currentStatus === "stale" && (
+        <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3" />
+          No updates or pipeline activity in 30+ days. Archive or re-activate.
+        </p>
+      )}
+    </div>
+  );
 }
 
 function EnrichProjectButton({ projectId, projectName }: { projectId: number; projectName: string }) {
@@ -724,6 +788,20 @@ export default function ProjectCard({
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${cfg.badge}`}>{cfg.label}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${capexBadge[project.capexGrade]}`}>CAPEX {project.capexGrade}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${routeBadge[project.opportunityRoute]}`}>{project.opportunityRoute}</span>
+            {/* Lifecycle status badge */}
+            {project.lifecycleStatus && project.lifecycleStatus !== "active" && (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                project.lifecycleStatus === "stale" ? "bg-amber-100 text-amber-700 border border-amber-300" :
+                project.lifecycleStatus === "archived" ? "bg-slate-200 text-slate-500 border border-slate-300" :
+                project.lifecycleStatus === "awarded" ? "bg-teal/15 text-teal border border-teal/30" :
+                "bg-navy/10 text-navy border border-navy/20"
+              }`}>
+                {project.lifecycleStatus === "stale" && <Clock className="w-3 h-3 inline mr-0.5 -mt-0.5" />}
+                {project.lifecycleStatus === "archived" && <Archive className="w-3 h-3 inline mr-0.5 -mt-0.5" />}
+                {project.lifecycleStatus === "awarded" && <Award className="w-3 h-3 inline mr-0.5 -mt-0.5" />}
+                {project.lifecycleStatus}
+              </span>
+            )}
             {/* Business line badges */}
             {businessLineNames && project.matchedBusinessLines && project.matchedBusinessLines.length > 0 && (
               <>
@@ -907,6 +985,9 @@ export default function ProjectCard({
                   </div>
                 </div>
               </div>
+
+              {/* Lifecycle Actions */}
+              <LifecycleActions project={project} />
 
               {/* Find Contacts (On-Demand Enrichment) Button */}
               <EnrichProjectButton projectId={project.id} projectName={project.name} />

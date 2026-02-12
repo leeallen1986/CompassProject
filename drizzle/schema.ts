@@ -138,6 +138,10 @@ export const projects = mysqlTable("projects", {
   timeline: varchar("timeline", { length: 256 }),
   completion: varchar("completion", { length: 256 }),
   matchedBusinessLines: json("matchedBusinessLines").$type<number[]>(),
+  lifecycleStatus: mysqlEnum("lifecycleStatus", ["active", "stale", "archived", "awarded", "completed"]).notNull().default("active"),
+  lastActivityAt: timestamp("lastActivityAt").defaultNow(),
+  archivedBy: int("archivedBy"),
+  archivedAt: timestamp("archivedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
