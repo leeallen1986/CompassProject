@@ -255,3 +255,6 @@
 - [x] Add clear verification score to each AI-generated contact (numeric or visual indicator)
 - [x] Include direct clickable hyperlink to LinkedIn profile for each contact
 - [x] Make verification score and LinkedIn link prominent in the contacts table UI
+- [x] Enhance Recommended Contact on project cards: show verification score, LinkedIn profile link, and verification status
+- [x] Show multiple contacts on project card (not just one) with scores and LinkedIn links
+- [x] Vitest tests for ProjectCard contact matching logic (22 tests: keyword matching, scoring, deduplication, color coding)

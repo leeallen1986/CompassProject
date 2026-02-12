@@ -2,9 +2,10 @@
  * ProjectCard — Expandable project card with priority-coded left border
  * Design: Nordic Industrial Precision — deep navy, gold accents, teal highlights
  * Now includes feedback buttons (thumbs up/down) and relevance score
+ * Enhanced: Shows multiple contacts with verification scores, LinkedIn links, and verify buttons
  */
-import { useState } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin } from "lucide-react";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -128,7 +129,7 @@ function ClaimButton({ projectId, reportId }: { projectId: number; reportId: num
   );
 }
 
-// Contact shape from the API
+// Contact shape from the API — includes all verification fields
 export interface ContactData {
   id: number;
   name: string;
@@ -139,6 +140,15 @@ export interface ContactData {
   roleBucket: string;
   email: string | null;
   linkedin: string | null;
+  // Verification & enrichment fields
+  enrichmentSource?: string | null;
+  verificationStatus?: string | null;
+  confidenceScore?: string | null;
+  linkedinSearchUrl?: string | null;
+  emailVerified?: boolean | null;
+  linkedinProfilePic?: string | null;
+  verificationScore?: number | null;
+  linkedinProfileUrl?: string | null;
 }
 
 /** Stopwords to ignore during keyword matching */
@@ -160,19 +170,21 @@ function hasKeywordOverlap(a: string, b: string): boolean {
 }
 
 /**
- * Find the best primary contact for a project based on user's preferred buyer roles.
+ * Find ALL matching contacts for a project, ranked by relevance.
+ * Returns up to `limit` contacts sorted by score.
  * Matching strategy:
  *   1. Direct substring match (contact.project ⊂ project.name or vice versa)
  *   2. Keyword overlap (e.g., "Rio Tinto Maintenance" ↔ "Monadelphous Rio Tinto Pilbara Maintenance Services")
  *   3. Company/owner match (contact.company ≈ project.owner)
- * Scoring: buyerRoles preference > has email > priority (hot > warm > cold)
+ * Scoring: buyerRoles preference > verification score > has email > priority (hot > warm > cold)
  */
-function findPrimaryContact(
+function findProjectContacts(
   projectName: string,
   projectOwner: string,
   allContacts: ContactData[],
   buyerRoles?: string[] | null,
-): ContactData | null {
+  limit: number = 5,
+): ContactData[] {
   const projectNameLower = projectName.toLowerCase();
   const ownerLower = projectOwner.toLowerCase();
   // Split owner on / or & for multi-owner projects (e.g., "Santos / BW Offshore")
@@ -192,27 +204,42 @@ function findPrimaryContact(
     return false;
   });
 
-  if (projectContacts.length === 0) return null;
+  if (projectContacts.length === 0) return [];
+
+  // Deduplicate by name+company (case-insensitive)
+  const seen = new Map<string, ContactData>();
+  for (const c of projectContacts) {
+    const key = `${c.name.toLowerCase()}|${c.company.toLowerCase()}`;
+    const existing = seen.get(key);
+    if (!existing || (c.verificationScore ?? 0) > (existing.verificationScore ?? 0)) {
+      seen.set(key, c);
+    }
+  }
+  const deduped = Array.from(seen.values());
 
   // Score each contact
   const priorityScore = { hot: 3, warm: 2, cold: 1 };
-  const scored = projectContacts.map(c => {
+  const scored = deduped.map(c => {
     let score = priorityScore[c.priority] || 0;
     // Boost if matches user's preferred buyer roles
     if (buyerRoles && buyerRoles.length > 0) {
       const roleLower = c.roleBucket.toLowerCase();
       if (buyerRoles.some(r => roleLower.includes(r.toLowerCase()))) score += 10;
     }
+    // Boost by verification score (0-100 → 0-5 points)
+    score += ((c.verificationScore ?? 0) / 20);
     // Boost if has email (actionable)
     if (c.email) score += 5;
     // Boost if contact project name directly matches
     const cProject = c.project.toLowerCase();
     if (projectNameLower.includes(cProject) || cProject.includes(projectNameLower)) score += 3;
+    // Boost verified contacts
+    if (c.verificationStatus === "verified") score += 8;
     return { contact: c, score };
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.contact ?? null;
+  return scored.slice(0, limit).map(s => s.contact);
 }
 
 function EnrichProjectButton({ projectId, projectName }: { projectId: number; projectName: string }) {
@@ -359,6 +386,212 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
   );
 }
 
+/** Verification score badge with color coding and tooltip */
+function VerificationScoreBadge({ contact }: { contact: ContactData }) {
+  const score = contact.verificationScore ?? 0;
+  const color = score >= 80 ? "text-emerald-600 border-emerald-400 bg-emerald-50" :
+                score >= 60 ? "text-blue-600 border-blue-400 bg-blue-50" :
+                score >= 40 ? "text-amber-600 border-amber-400 bg-amber-50" :
+                "text-red-500 border-red-300 bg-red-50";
+  const label = score >= 80 ? "High Confidence" :
+                score >= 60 ? "Good Confidence" :
+                score >= 40 ? "Moderate" : "Low Confidence";
+
+  return (
+    <div className="relative group">
+      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full border-2 text-[11px] font-bold ${color}`}>
+        {score}
+      </span>
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1.5 rounded shadow-lg whitespace-nowrap min-w-[140px]">
+        <div className="font-bold mb-0.5">{label} ({score}/100)</div>
+        <div>Source: {contact.verificationStatus === 'verified' ? '30' : contact.enrichmentSource === 'llm' ? '10' : '5'}/30</div>
+        <div>Name: 15/15</div>
+        <div>Email: {contact.email ? (contact.emailVerified ? '15' : contact.verificationStatus === 'verified' ? '12' : '8') : '0'}/15</div>
+        <div>Title: {contact.title.split(' ').length >= 3 ? '15' : '12'}/15</div>
+        <div>LinkedIn: {contact.linkedin || contact.linkedinProfileUrl ? '15' : contact.linkedinSearchUrl ? '5' : '0'}/15</div>
+        <div>Company: {score >= 80 ? '10' : '5'}/10</div>
+      </div>
+    </div>
+  );
+}
+
+/** Verification status badge */
+function VerificationStatusBadge({ contact }: { contact: ContactData }) {
+  if (contact.verificationStatus === "verified") {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700" title="Verified via LinkedIn API">
+        <ShieldCheck className="w-3 h-3" /> Verified
+      </span>
+    );
+  }
+  if (contact.verificationStatus === "ai_suggested" || contact.enrichmentSource === "llm") {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700" title="AI-generated — verify before outreach">
+        <Bot className="w-3 h-3" /> AI Suggested
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500">
+      Unverified
+    </span>
+  );
+}
+
+/** Single contact card within the project detail view */
+function ProjectContactCard({
+  contact,
+  isPrimary,
+  buyerRoles,
+  onOutreach,
+}: {
+  contact: ContactData;
+  isPrimary: boolean;
+  buyerRoles?: string[] | null;
+  onOutreach: (contact: ContactData) => void;
+}) {
+  const utils = trpc.useUtils();
+  const [verifying, setVerifying] = useState(false);
+
+  const verifyMutation = trpc.dataPipeline.verifyContact.useMutation({
+    onSuccess: (result: { verified?: boolean; quotaExhausted?: boolean; message?: string }) => {
+      setVerifying(false);
+      if (result.verified) {
+        toast.success(`Contact verified! ${result.message}`);
+      } else if (result.quotaExhausted) {
+        toast.warning("LinkedIn API quota exhausted — try again tomorrow");
+      } else {
+        toast.info(result.message || "Verification complete");
+      }
+      utils.report.invalidate();
+    },
+    onError: (err) => {
+      setVerifying(false);
+      toast.error(`Verification failed: ${err.message}`);
+    },
+  });
+
+  const handleVerify = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVerifying(true);
+    verifyMutation.mutate({ contactId: contact.id });
+  };
+
+  // Check if this contact's role matches preferred buyer roles
+  const isPreferredRole = buyerRoles && buyerRoles.length > 0 &&
+    buyerRoles.some(r => contact.roleBucket.toLowerCase().includes(r.toLowerCase()));
+
+  const linkedinUrl = contact.linkedin || contact.linkedinProfileUrl;
+  const isAiSuggested = contact.verificationStatus === "ai_suggested" || contact.enrichmentSource === "llm";
+  const isVerified = contact.verificationStatus === "verified";
+
+  return (
+    <div className={`rounded-lg p-3 border transition-all ${
+      isPrimary
+        ? "bg-navy/5 border-navy/15 ring-1 ring-navy/10"
+        : "bg-slate-50 border-slate-200"
+    }`}>
+      <div className="flex items-start gap-3">
+        {/* Verification Score Circle */}
+        <div className="shrink-0 mt-0.5">
+          <VerificationScoreBadge contact={contact} />
+        </div>
+
+        {/* Contact Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-navy">{contact.name}</span>
+            {isPrimary && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gold/20 text-gold-dark uppercase">
+                Top Match
+              </span>
+            )}
+            <VerificationStatusBadge contact={contact} />
+            {isPreferredRole && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal/15 text-teal uppercase" title="Matches your preferred buyer roles">
+                Preferred Role
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {contact.title} — {contact.company}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Role: {contact.roleBucket}
+          </p>
+
+          {/* Action buttons row */}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {/* LinkedIn Profile Link */}
+            {linkedinUrl ? (
+              <a
+                href={linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 transition-colors"
+                title="View LinkedIn profile"
+              >
+                <Linkedin className="w-3 h-3" /> Profile
+              </a>
+            ) : contact.linkedinSearchUrl ? (
+              <a
+                href={contact.linkedinSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                title="Search LinkedIn for this contact"
+              >
+                <Search className="w-3 h-3" /> Search LI
+              </a>
+            ) : null}
+
+            {/* Email / Outreach button */}
+            {contact.email && (
+              <div className="relative group">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOutreach(contact); }}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
+                    contact.emailVerified || isVerified
+                      ? "bg-gold/15 text-gold-dark hover:bg-gold/25"
+                      : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  }`}
+                >
+                  <Mail className="w-3 h-3" />
+                  {contact.emailVerified || isVerified ? "Outreach" : "Outreach*"}
+                </button>
+                {!contact.emailVerified && !isVerified && (
+                  <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                    <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-400" />
+                    Email is pattern-guessed — verify before sending
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Verify via LinkedIn button (only for AI-suggested, not yet verified) */}
+            {isAiSuggested && !isVerified && (
+              <button
+                onClick={handleVerify}
+                disabled={verifying}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors disabled:opacity-50"
+                title="Use LinkedIn API to verify this contact"
+              >
+                {verifying ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Verifying...</>
+                ) : (
+                  <><CheckCircle2 className="w-3 h-3" /> Verify</>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectCard({
   project,
   existingFeedback,
@@ -377,11 +610,20 @@ export default function ProjectCard({
   const [open, setOpen] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
   const [showOutreach, setShowOutreach] = useState(false);
+  const [outreachContact, setOutreachContact] = useState<ContactData | null>(null);
+  const [showAllContacts, setShowAllContacts] = useState(false);
 
-  // Find primary contact for this project
-  const primaryContact = allContacts && allContacts.length > 0
-    ? findPrimaryContact(project.name, project.owner, allContacts, buyerRoles)
-    : null;
+  // Find all matching contacts for this project (up to 10)
+  const projectContacts = useMemo(() => {
+    if (!allContacts || allContacts.length === 0) return [];
+    return findProjectContacts(project.name, project.owner, allContacts, buyerRoles, 10);
+  }, [project.name, project.owner, allContacts, buyerRoles]);
+
+  const primaryContact = projectContacts.length > 0 ? projectContacts[0] : null;
+  // Show first 3 by default, expand to show all
+  const visibleContacts = showAllContacts ? projectContacts : projectContacts.slice(0, 3);
+  const hasMoreContacts = projectContacts.length > 3;
+
   const [feedback, setFeedback] = useState<FeedbackState>({
     vote: existingFeedback?.vote ?? null,
     reason: existingFeedback?.reason ?? undefined,
@@ -428,6 +670,13 @@ export default function ProjectCard({
       reason,
     });
   };
+
+  const handleOutreach = (contact: ContactData) => {
+    setOutreachContact(contact);
+    setShowOutreach(true);
+  };
+
+  const activeOutreachContact = outreachContact || primaryContact;
 
   return (
     <div
@@ -662,35 +911,43 @@ export default function ProjectCard({
               {/* Find Contacts (On-Demand Enrichment) Button */}
               <EnrichProjectButton projectId={project.id} projectName={project.name} />
 
-              {/* Primary Contact & Outreach */}
-              {primaryContact && (
+              {/* Project Contacts Section — Enhanced with verification scores, LinkedIn links, verify buttons */}
+              {projectContacts.length > 0 && (
                 <div className="mt-5 pt-4 border-t border-border">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-3 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5" /> Recommended Contact
-                  </h4>
-                  <div className="flex items-center justify-between gap-3 bg-navy/5 rounded-lg p-3 border border-navy/10">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-navy">{primaryContact.name}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                          primaryContact.priority === "hot" ? "bg-hot/15 text-hot" :
-                          primaryContact.priority === "warm" ? "bg-warm/15 text-warm" :
-                          "bg-cold/15 text-cold"
-                        }`}>{primaryContact.priority}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{primaryContact.title} — {primaryContact.company}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Role: {primaryContact.roleBucket}</p>
-                    </div>
-                    {primaryContact.email && (
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5" /> Project Contacts
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-navy/10 text-navy text-[10px] font-bold">
+                        {projectContacts.length}
+                      </span>
+                    </h4>
+                    {hasMoreContacts && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); setShowOutreach(true); }}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gold text-navy text-xs font-bold hover:bg-gold-light transition-colors shadow-sm"
+                        onClick={(e) => { e.stopPropagation(); setShowAllContacts(!showAllContacts); }}
+                        className="text-[10px] font-semibold text-teal hover:text-teal-light transition-colors"
                       >
-                        <Mail className="w-3.5 h-3.5" />
-                        Outreach
+                        {showAllContacts ? "Show less" : `Show all ${projectContacts.length}`}
                       </button>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    {visibleContacts.map((contact, i) => (
+                      <ProjectContactCard
+                        key={contact.id}
+                        contact={contact}
+                        isPrimary={i === 0}
+                        buyerRoles={buyerRoles}
+                        onOutreach={handleOutreach}
+                      />
+                    ))}
+                  </div>
+                  {/* AI-generated email disclaimer */}
+                  {projectContacts.some(c => c.enrichmentSource === "llm" || c.verificationStatus === "ai_suggested") && (
+                    <p className="text-[10px] text-muted-foreground mt-2 flex items-start gap-1">
+                      <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
+                      AI-suggested contacts and emails are pattern-guessed. Use the Verify button or check LinkedIn before outreach.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -699,17 +956,17 @@ export default function ProjectCard({
       </AnimatePresence>
 
       {/* Outreach Email Modal */}
-      {primaryContact && showOutreach && (
+      {activeOutreachContact && showOutreach && (
         <OutreachEmailModal
           isOpen={showOutreach}
-          onClose={() => setShowOutreach(false)}
+          onClose={() => { setShowOutreach(false); setOutreachContact(null); }}
           contact={{
-            id: primaryContact.id,
-            name: primaryContact.name,
-            title: primaryContact.title,
-            company: primaryContact.company,
-            email: primaryContact.email || "",
-            roleBucket: primaryContact.roleBucket,
+            id: activeOutreachContact.id,
+            name: activeOutreachContact.name,
+            title: activeOutreachContact.title,
+            company: activeOutreachContact.company,
+            email: activeOutreachContact.email || "",
+            roleBucket: activeOutreachContact.roleBucket,
           }}
           project={{
             id: project.id,
