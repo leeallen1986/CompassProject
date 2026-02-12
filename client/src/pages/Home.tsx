@@ -100,6 +100,8 @@ interface ContactRow {
   linkedinSearchUrl: string | null;
   emailVerified: boolean | null;
   linkedinProfilePic: string | null;
+  verificationScore: number | null;
+  linkedinProfileUrl: string | null;
 }
 
 /** Deduplicated contact — one row per unique person, with all their projects */
@@ -294,8 +296,8 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
   const totalUniqueContacts = deduplicatedData.length;
 
   const exportCSV = () => {
-    const headers = ["Name", "Title", "Company", "Projects", "# Projects", "Priority", "Role Bucket", "Email", "Email Verified", "LinkedIn", "LinkedIn Search", "Source", "Verification", "Confidence"];
-    const rows = filtered.map(c => [c.name, c.title, c.company, c.allProjects.join(" | "), String(c.projectCount), c.priority, c.roleBucket, c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || ""]);
+    const headers = ["Name", "Title", "Company", "Projects", "# Projects", "Priority", "Role Bucket", "Email", "Email Verified", "LinkedIn Profile", "LinkedIn Search", "Source", "Verification", "Confidence", "Verification Score"];
+    const rows = filtered.map(c => [c.name, c.title, c.company, c.allProjects.join(" | "), String(c.projectCount), c.priority, c.roleBucket, c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || c.linkedinProfileUrl || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || "", String(c.verificationScore ?? 0)]);
     const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -429,8 +431,8 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Company</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Projects</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Priority</th>
-              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Source</th>
-              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Confidence</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Score</th>
+              <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">LinkedIn</th>
               <th className="text-left px-3 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -471,10 +473,58 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(c.priority)}`}>{c.priority}</span>
                 </td>
                 <td className="px-3 py-3">
-                  {verificationBadge(c)}
+                  <div className="flex items-center gap-2">
+                    {/* Numeric verification score with color ring */}
+                    {(() => {
+                      const score = c.verificationScore ?? 0;
+                      const color = score >= 80 ? "text-emerald-600 border-emerald-400 bg-emerald-50" :
+                                    score >= 60 ? "text-blue-600 border-blue-400 bg-blue-50" :
+                                    score >= 40 ? "text-amber-600 border-amber-400 bg-amber-50" :
+                                    "text-red-500 border-red-300 bg-red-50";
+                      const label = score >= 80 ? "High Confidence" :
+                                    score >= 60 ? "Moderate" :
+                                    score >= 40 ? "Low — Verify" :
+                                    "Needs Verification";
+                      return (
+                        <div className="relative group">
+                          <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold ${color}`}
+                            title={`${label} (${score}/100)`}>
+                            {score}
+                          </div>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1.5 rounded shadow-lg whitespace-nowrap min-w-[140px]">
+                            <div className="font-bold mb-0.5">{label} ({score}/100)</div>
+                            <div>Source: {c.verificationStatus === 'verified' ? '30' : c.enrichmentSource === 'llm' ? '10' : '5'}/30</div>
+                            <div>Name: 15/15</div>
+                            <div>Email: {c.email ? (c.emailVerified ? '15' : c.verificationStatus === 'verified' ? '12' : '8') : '0'}/15</div>
+                            <div>Title: {c.title.split(' ').length >= 3 ? '15' : '12'}/15</div>
+                            <div>LinkedIn: {c.linkedin || c.linkedinProfileUrl ? '15' : c.linkedinSearchUrl ? '5' : '0'}/15</div>
+                            <div>Company: {score >= 80 ? '10' : '5'}/10</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {verificationBadge(c)}
+                  </div>
                 </td>
                 <td className="px-3 py-3">
-                  {confidenceBadge(c)}
+                  {/* Direct LinkedIn profile link */}
+                  <div className="flex flex-col gap-1">
+                    {(c.linkedin || c.linkedinProfileUrl) ? (
+                      <a href={c.linkedin || c.linkedinProfileUrl || ''} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 transition-colors"
+                        title="View LinkedIn profile">
+                        <Linkedin className="w-3 h-3" /> Profile
+                      </a>
+                    ) : c.linkedinSearchUrl ? (
+                      <a href={c.linkedinSearchUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                        title="Search LinkedIn for this person">
+                        <Search className="w-3 h-3" /> Search
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">—</span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -496,24 +546,6 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                           </div>
                         )}
                       </div>
-                    )}
-
-                    {/* LinkedIn profile link (verified) */}
-                    {c.linkedin && (
-                      <a href={c.linkedin} target="_blank" rel="noopener noreferrer"
-                        className="px-2 py-1 rounded text-[10px] font-semibold bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 transition-colors flex items-center gap-1"
-                        title="View LinkedIn profile">
-                        <Linkedin className="w-3 h-3" /> Profile
-                      </a>
-                    )}
-
-                    {/* LinkedIn search link (for unverified) */}
-                    {!c.linkedin && c.linkedinSearchUrl && (
-                      <a href={c.linkedinSearchUrl} target="_blank" rel="noopener noreferrer"
-                        className="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex items-center gap-1"
-                        title="Search LinkedIn for this person">
-                        <Search className="w-3 h-3" /> Find on LI
-                      </a>
                     )}
 
                     {/* Verify via LinkedIn button (only for AI-suggested contacts) */}

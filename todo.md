@@ -252,3 +252,6 @@
 - [x] Deduplicate existing contacts (keep best version, remove duplicates)
 - [x] Add deduplication logic to LLM contact generator to prevent future duplicates
 - [x] Update contacts UI to show unique contacts with linked projects instead of duplicate rows
+- [x] Add clear verification score to each AI-generated contact (numeric or visual indicator)
+- [x] Include direct clickable hyperlink to LinkedIn profile for each contact
+- [x] Make verification score and LinkedIn link prominent in the contacts table UI

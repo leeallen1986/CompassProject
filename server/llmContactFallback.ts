@@ -22,6 +22,7 @@ import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
 import { contacts, projects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { computeVerificationScore, generateLinkedInProfileUrl } from "./verificationScoring";
 
 // ── Types ──
 
@@ -328,6 +329,9 @@ export async function generateAndSaveLLMContacts(
       // Build LinkedIn search URL for easy verification
       const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(contact.name + " " + owner)}`;
 
+      // Generate LinkedIn profile URL from name
+      const linkedinProfileUrl = generateLinkedInProfileUrl(contact.name);
+
       const contactData: InsertContact = {
         reportId,
         name: contact.name,
@@ -347,8 +351,13 @@ export async function generateAndSaveLLMContacts(
         verificationStatus: "ai_suggested",
         confidenceScore: contact.confidence || "medium",
         linkedinSearchUrl,
+        linkedinProfileUrl: linkedinProfileUrl || null,
         emailVerified: false,
       };
+
+      // Compute and set verification score
+      const scoreBreakdown = computeVerificationScore(contactData);
+      (contactData as any).verificationScore = scoreBreakdown.total;
 
       await db.insert(contacts).values(contactData);
       savedContacts.push(contact);

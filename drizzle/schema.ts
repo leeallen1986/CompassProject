@@ -168,6 +168,8 @@ export const contacts = mysqlTable("contacts", {
   verificationStatus: mysqlEnum("verificationStatus", ["verified", "ai_suggested", "unverified"]).default("unverified"),
   confidenceScore: mysqlEnum("confidenceScore", ["high", "medium", "low"]).default("medium"),
   linkedinSearchUrl: varchar("linkedinSearchUrl", { length: 1024 }),
+  linkedinProfileUrl: varchar("linkedinProfileUrl", { length: 1024 }),
+  verificationScore: int("verificationScore").default(0),
   emailVerified: boolean("emailVerified").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
