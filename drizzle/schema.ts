@@ -175,6 +175,12 @@ export const contacts = mysqlTable("contacts", {
   linkedinProfileUrl: varchar("linkedinProfileUrl", { length: 1024 }),
   verificationScore: int("verificationScore").default(0),
   emailVerified: boolean("emailVerified").default(false),
+  verifiedByUserId: int("verifiedByUserId"),
+  verifiedAt: timestamp("verifiedAt"),
+  verifiedLinkedinUrl: varchar("verifiedLinkedinUrl", { length: 1024 }),
+  rejectedByUserId: int("rejectedByUserId"),
+  rejectedAt: timestamp("rejectedAt"),
+  rejectionReason: varchar("rejectionReason", { length: 256 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

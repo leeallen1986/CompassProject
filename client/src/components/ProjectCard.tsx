@@ -151,6 +151,8 @@ export interface ContactData {
   linkedinProfilePic?: string | null;
   verificationScore?: number | null;
   linkedinProfileUrl?: string | null;
+  verifiedByUserId?: string | null;
+  verifiedAt?: Date | null;
 }
 
 /** Stopwords to ignore during keyword matching */
@@ -516,7 +518,12 @@ function ProjectContactCard({
 }) {
   const utils = trpc.useUtils();
   const [verifying, setVerifying] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showLinkedinInput, setShowLinkedinInput] = useState(false);
+  const [linkedinUrlInput, setLinkedinUrlInput] = useState("");
 
+  // LinkedIn API verification (existing)
   const verifyMutation = trpc.dataPipeline.verifyContact.useMutation({
     onSuccess: (result: { verified?: boolean; quotaExhausted?: boolean; message?: string }) => {
       setVerifying(false);
@@ -535,10 +542,56 @@ function ProjectContactCard({
     },
   });
 
+  // Crowdsourced verification (new — zero cost)
+  const crowdVerifyMutation = trpc.contactVerification.verify.useMutation({
+    onSuccess: () => {
+      toast.success("Contact confirmed! Thank you for improving data quality.");
+      setShowLinkedinInput(false);
+      setLinkedinUrlInput("");
+      utils.report.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const crowdRejectMutation = trpc.contactVerification.reject.useMutation({
+    onSuccess: () => {
+      toast.success("Contact flagged. It will be deprioritized in results.");
+      setShowRejectInput(false);
+      setRejectReason("");
+      utils.report.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleVerify = (e: React.MouseEvent) => {
     e.stopPropagation();
     setVerifying(true);
     verifyMutation.mutate({ contactId: contact.id });
+  };
+
+  const handleCrowdVerify = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showLinkedinInput) {
+      // Submit with optional LinkedIn URL
+      crowdVerifyMutation.mutate({
+        contactId: contact.id,
+        linkedinUrl: linkedinUrlInput.trim() || undefined,
+      });
+    } else {
+      setShowLinkedinInput(true);
+    }
+  };
+
+  const handleCrowdReject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showRejectInput) {
+      crowdRejectMutation.mutate({
+        contactId: contact.id,
+        reason: rejectReason.trim() || undefined,
+      });
+    } else {
+      setShowRejectInput(true);
+    }
   };
 
   // Check if this contact's role matches preferred buyer roles
@@ -634,22 +687,129 @@ function ProjectContactCard({
               </div>
             )}
 
-            {/* Verify via LinkedIn button (only for AI-suggested, not yet verified) */}
+            {/* Verify via LinkedIn API button (only for AI-suggested, not yet verified) */}
             {isAiSuggested && !isVerified && (
               <button
                 onClick={handleVerify}
                 disabled={verifying}
                 className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors disabled:opacity-50"
-                title="Use LinkedIn API to verify this contact"
+                title="Use LinkedIn API to verify this contact (uses daily credits)"
               >
                 {verifying ? (
                   <><Loader2 className="w-3 h-3 animate-spin" /> Verifying...</>
                 ) : (
-                  <><CheckCircle2 className="w-3 h-3" /> Verify</>
+                  <><CheckCircle2 className="w-3 h-3" /> API Verify</>
                 )}
               </button>
             )}
+
+            {/* Crowdsourced: "I know this person" confirm button (zero cost) */}
+            {!isVerified && !contact.verifiedByUserId && (
+              <button
+                onClick={handleCrowdVerify}
+                disabled={crowdVerifyMutation.isPending}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-teal/10 text-teal hover:bg-teal/20 border border-teal/20 transition-colors disabled:opacity-50"
+                title="Confirm you know this person is correct (no API cost)"
+              >
+                {crowdVerifyMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Confirming...</>
+                ) : showLinkedinInput ? (
+                  <><ThumbsUp className="w-3 h-3" /> Submit</>
+                ) : (
+                  <><ThumbsUp className="w-3 h-3" /> I Know Them</>
+                )}
+              </button>
+            )}
+
+            {/* Crowdsourced: "Wrong person" reject button */}
+            {!isVerified && !contact.verifiedByUserId && (
+              <button
+                onClick={handleCrowdReject}
+                disabled={crowdRejectMutation.isPending}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-red-50 text-red-500 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
+                title="Flag this contact as incorrect or outdated"
+              >
+                {crowdRejectMutation.isPending ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Flagging...</>
+                ) : showRejectInput ? (
+                  <><ThumbsDown className="w-3 h-3" /> Submit</>
+                ) : (
+                  <><ThumbsDown className="w-3 h-3" /> Wrong Person</>
+                )}
+              </button>
+            )}
+
+            {/* Show "Verified by team" badge if already crowd-verified */}
+            {contact.verifiedByUserId && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                <ShieldCheck className="w-3 h-3" /> Team Verified
+              </span>
+            )}
           </div>
+
+          {/* Inline LinkedIn URL input for crowd verification */}
+          {showLinkedinInput && (
+            <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+              <input
+                type="url"
+                placeholder="Paste their LinkedIn URL (optional)"
+                value={linkedinUrlInput}
+                onChange={e => setLinkedinUrlInput(e.target.value)}
+                className="flex-1 px-2 py-1.5 rounded border border-teal/30 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-teal/50"
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  crowdVerifyMutation.mutate({
+                    contactId: contact.id,
+                    linkedinUrl: linkedinUrlInput.trim() || undefined,
+                  });
+                }}
+                disabled={crowdVerifyMutation.isPending}
+                className="px-2.5 py-1.5 rounded text-[10px] font-bold bg-teal text-white hover:bg-teal/90 transition-colors disabled:opacity-50"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowLinkedinInput(false); setLinkedinUrlInput(""); }}
+                className="px-2 py-1.5 rounded text-[10px] text-muted-foreground hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Inline reject reason input */}
+          {showRejectInput && (
+            <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+              <input
+                type="text"
+                placeholder="Why is this wrong? (optional)"
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                className="flex-1 px-2 py-1.5 rounded border border-red-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-red-300"
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  crowdRejectMutation.mutate({
+                    contactId: contact.id,
+                    reason: rejectReason.trim() || undefined,
+                  });
+                }}
+                disabled={crowdRejectMutation.isPending}
+                className="px-2.5 py-1.5 rounded text-[10px] font-bold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                Flag
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowRejectInput(false); setRejectReason(""); }}
+                className="px-2 py-1.5 rounded text-[10px] text-muted-foreground hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

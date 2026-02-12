@@ -547,3 +547,107 @@ export async function getAllEnabledDigestUsers() {
     .leftJoin(userProfiles, eq(emailDigestPrefs.userId, userProfiles.userId))
     .where(eq(emailDigestPrefs.enabled, true));
 }
+
+// ── Crowdsourced Contact Verification ──
+
+/**
+ * Mark a contact as verified by a sales rep.
+ * Updates verification status, score, and optionally the LinkedIn profile URL.
+ */
+export async function verifyContactByUser(
+  contactId: number,
+  userId: number,
+  linkedinUrl?: string | null,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateData: Record<string, any> = {
+    verificationStatus: "verified",
+    verifiedByUserId: userId,
+    verifiedAt: new Date(),
+    confidenceScore: "high",
+    rejectedByUserId: null,
+    rejectedAt: null,
+    rejectionReason: null,
+  };
+
+  // If a LinkedIn URL was provided, store it and boost the score
+  if (linkedinUrl) {
+    updateData.verifiedLinkedinUrl = linkedinUrl;
+    // If it's a direct profile URL, also update the main linkedin field
+    if (linkedinUrl.includes("/in/")) {
+      updateData.linkedinProfileUrl = linkedinUrl;
+    }
+  }
+
+  await db.update(contacts).set(updateData).where(eq(contacts.id, contactId));
+
+  // Recompute verification score with the updated status
+  const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactId)).limit(1);
+  if (contact) {
+    const { computeVerificationScore } = await import("./verificationScoring");
+    const score = computeVerificationScore(contact);
+    await db.update(contacts).set({ verificationScore: score.total }).where(eq(contacts.id, contactId));
+  }
+
+  return { success: true };
+}
+
+/**
+ * Mark a contact as rejected/incorrect by a sales rep.
+ */
+export async function rejectContactByUser(
+  contactId: number,
+  userId: number,
+  reason?: string,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.update(contacts).set({
+    rejectedByUserId: userId,
+    rejectedAt: new Date(),
+    rejectionReason: reason || "Incorrect contact",
+    confidenceScore: "low",
+    verificationScore: 10,
+  }).where(eq(contacts.id, contactId));
+
+  return { success: true };
+}
+
+/**
+ * Get verification stats for the admin dashboard.
+ */
+export async function getVerificationStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, verified: 0, rejected: 0, pending: 0, topVerifiers: [] };
+
+  const [stats] = await db.select({
+    total: sql<number>`COUNT(*)`,
+    verified: sql<number>`SUM(CASE WHEN ${contacts.verifiedByUserId} IS NOT NULL THEN 1 ELSE 0 END)`,
+    rejected: sql<number>`SUM(CASE WHEN ${contacts.rejectedByUserId} IS NOT NULL THEN 1 ELSE 0 END)`,
+    pending: sql<number>`SUM(CASE WHEN ${contacts.verifiedByUserId} IS NULL AND ${contacts.rejectedByUserId} IS NULL AND ${contacts.verificationStatus} = 'ai_suggested' THEN 1 ELSE 0 END)`,
+  }).from(contacts);
+
+  // Top verifiers (users who verified the most contacts)
+  const topVerifiers = await db.select({
+    userId: contacts.verifiedByUserId,
+    userName: users.name,
+    count: sql<number>`COUNT(*)`,
+  })
+    .from(contacts)
+    .leftJoin(users, eq(contacts.verifiedByUserId, users.id))
+    .where(sql`${contacts.verifiedByUserId} IS NOT NULL`)
+    .groupBy(contacts.verifiedByUserId, users.name)
+    .orderBy(sql`COUNT(*) DESC`)
+    .limit(10);
+
+  return {
+    total: Number(stats?.total || 0),
+    verified: Number(stats?.verified || 0),
+    rejected: Number(stats?.rejected || 0),
+    pending: Number(stats?.pending || 0),
+    topVerifiers,
+  };
+}

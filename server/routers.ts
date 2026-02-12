@@ -18,6 +18,7 @@ import {
   getEmailDigestPrefs, upsertEmailDigestPrefs,
   updateProjectLifecycle, bulkUpdateProjectLifecycle, markStaleProjects, touchProjectActivity,
   getActiveProjects,
+  verifyContactByUser, rejectContactByUser, getVerificationStats,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -402,6 +403,36 @@ export const appRouter = router({
         counts[key] = Number(row.count);
       }
       return counts;
+    }),
+  }),
+
+  // ── Crowdsourced Contact Verification endpoints ──
+  contactVerification: router({
+    /** Sales rep confirms a contact is correct (one-click verify) */
+    verify: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        linkedinUrl: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await verifyContactByUser(input.contactId, ctx.user.id, input.linkedinUrl);
+        return { success: true, message: "Contact verified. Thank you for helping improve data quality!" };
+      }),
+
+    /** Sales rep marks a contact as incorrect/outdated */
+    reject: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await rejectContactByUser(input.contactId, ctx.user.id, input.reason);
+        return { success: true, message: "Contact flagged as incorrect. It will be deprioritized in results." };
+      }),
+
+    /** Get verification stats for admin dashboard */
+    stats: protectedProcedure.query(async () => {
+      return getVerificationStats();
     }),
   }),
 

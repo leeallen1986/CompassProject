@@ -22,7 +22,7 @@ import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
 import { contacts, projects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { computeVerificationScore, generateLinkedInProfileUrl } from "./verificationScoring";
+import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
 
 // ── Types ──
 
@@ -326,11 +326,11 @@ export async function generateAndSaveLLMContacts(
         continue;
       }
 
-      // Build LinkedIn search URL for easy verification
-      const linkedinSearchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(contact.name + " " + owner)}`;
+      // Build precise LinkedIn search URL with name + company + title for best results
+      const linkedinSearchUrl = generateLinkedInSearchUrl(contact.name, owner, contact.title);
 
-      // Generate LinkedIn profile URL from name
-      const linkedinProfileUrl = generateLinkedInProfileUrl(contact.name);
+      // No guessed profile URL — use search URL instead (more reliable)
+      const linkedinProfileUrl: string | null = null;
 
       const contactData: InsertContact = {
         reportId,

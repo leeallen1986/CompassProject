@@ -273,3 +273,13 @@
 - [x] Vitest tests for notification preferences (19 tests: frequency validation, dedup windows, content filters, last-sent display)
 - [x] Run bulk contact enrichment: LinkedIn enrichment (966 enriched, 26 not found), LLM fallback on 100 projects without contacts (305 new AI contacts generated)
 - [x] Total contacts now at 1,297 (up from 992), 100% with email and LinkedIn, all 482 tests passing
+- [x] Enhance LLM contact generator to produce better LinkedIn search URLs (name + company + title)
+- [x] Build one-click crowdsourced verification flow for sales reps (confirm/reject contact from project card or contacts tab)
+- [x] Backend: verification endpoint (mark contact as verified/rejected by sales rep, store verifier userId and timestamp)
+- [x] Frontend: "I Know Them" / "Wrong Person" buttons on contact cards with inline LinkedIn URL input and reject reason
+- [x] Track verification stats (verifiedByUserId, verifiedAt, rejectedByUserId, rejectedAt, rejectionReason)
+- [x] Team-verified contacts get +20 point boost to verification score (source score: 10 → 30)
+- [x] "Team Verified" badge on contacts confirmed by sales reps
+- [x] Deprecated guessed LinkedIn profile URLs (/in/firstname-lastname) — now generates search URLs only
+- [x] Vitest tests for crowdsourced verification (18 tests: score boost, URL generation, labels, colors)
+- [x] All 500 tests passing

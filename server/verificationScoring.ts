@@ -61,6 +61,7 @@ export interface VerificationScoreBreakdown {
 export function computeVerificationScore(contact: {
   enrichmentSource?: string | null;
   verificationStatus?: string | null;
+  verifiedByUserId?: string | number | null;
   name: string;
   email?: string | null;
   emailVerified?: boolean | null;
@@ -78,7 +79,10 @@ export function computeVerificationScore(contact: {
   let companyMatch = 0;
 
   // 1. Source quality (0-30)
-  if (contact.verificationStatus === "verified" || contact.enrichmentSource === "linkedin") {
+  // Team-verified contacts (crowdsourced) get full source score
+  if (contact.verifiedByUserId) {
+    source = 30;
+  } else if (contact.verificationStatus === "verified" || contact.enrichmentSource === "linkedin") {
     source = 30;
   } else if (contact.enrichmentSource === "manual") {
     source = 20;
@@ -124,10 +128,17 @@ export function computeVerificationScore(contact: {
   }
 
   // 5. LinkedIn presence (0-15)
-  if (contact.linkedin || contact.linkedinProfileUrl) {
+  // Direct profile URLs (from LinkedIn API) get full score
+  // Search URLs (from LLM generation) get partial score
+  // Manually verified contacts get full score regardless
+  if (contact.verificationStatus === "verified") {
+    linkedinPresence = 15; // Verified by a human
+  } else if (contact.linkedin && contact.linkedin.includes("/in/") && !contact.linkedin.includes("/search/")) {
+    linkedinPresence = 15; // Direct profile URL from LinkedIn API
+  } else if (contact.linkedinProfileUrl && contact.linkedinProfileUrl.includes("/in/") && !contact.linkedinProfileUrl.includes("/search/")) {
     linkedinPresence = 15; // Direct profile URL
-  } else if (contact.linkedinSearchUrl) {
-    linkedinPresence = 5; // Only search URL
+  } else if (contact.linkedinSearchUrl || contact.linkedinProfileUrl) {
+    linkedinPresence = 8; // Search URL (better than nothing)
   }
 
   // 6. Company match (0-10)
@@ -151,21 +162,42 @@ export function computeVerificationScore(contact: {
 }
 
 /**
- * Generate a LinkedIn profile URL from a person's name.
- * LinkedIn profile URLs follow the pattern: linkedin.com/in/firstname-lastname
- * This is a best-guess URL — it may not resolve to the actual person.
+ * Generate a precise LinkedIn search URL from a person's name, company, and title.
+ * Uses LinkedIn's people search with all available context for best results.
+ * Returns a search URL (not a guessed profile URL) since we can't know the actual profile slug.
+ */
+export function generateLinkedInSearchUrl(
+  name: string,
+  company?: string | null,
+  title?: string | null,
+): string {
+  if (!name) return "";
+  // Build a precise search query: "Name" at Company, Title
+  const parts = [name];
+  if (company) parts.push(company);
+  if (title) {
+    // Extract the core role keyword (e.g., "Procurement Manager" from "Head of Procurement - Australia")
+    const coreTitle = title
+      .replace(/[-–—]/g, " ")
+      .replace(/\b(of|the|and|for|at|in)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .slice(0, 3)
+      .join(" ");
+    if (coreTitle) parts.push(coreTitle);
+  }
+  const query = parts.join(" ");
+  return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(query)}`;
+}
+
+/**
+ * @deprecated Use generateLinkedInSearchUrl instead. This generates a guessed profile URL
+ * that almost never resolves to the actual person.
  */
 export function generateLinkedInProfileUrl(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  if (!slug) return "";
-  return `https://www.linkedin.com/in/${slug}`;
+  // Now redirects to search URL for better results
+  return generateLinkedInSearchUrl(name);
 }
 
 /**
