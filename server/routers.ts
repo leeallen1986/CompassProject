@@ -427,8 +427,9 @@ export const appRouter = router({
 
   // ── Admin Digest Trigger ──
   digest: router({
+    /** Send digest now — uses force=true to bypass deduplication guard */
     sendNow: adminProcedure.mutation(async () => {
-      const results = await sendWeeklyDigests();
+      const results = await sendWeeklyDigests(true);
       return results;
     }),
   }),
@@ -765,10 +766,6 @@ export const appRouter = router({
     /** Trigger RSS harvest (admin only) */
     harvest: adminProcedure.mutation(async () => {
       const result = await harvestAllFeeds();
-      await notifyOwner({
-        title: "RSS Harvest Complete",
-        content: `Fetched ${result.totalFetched} articles from ${result.totalSources} sources. ${result.totalNew} new, ${result.totalDuplicates} duplicates, ${result.totalErrors} errors.`,
-      });
       return result;
     }),
 
@@ -777,12 +774,6 @@ export const appRouter = router({
       .input(z.object({ maxArticles: z.number().optional() }).optional())
       .mutation(async ({ input }) => {
         const result = await runExtractionPipeline(input?.maxArticles);
-        if (result.extracted > 0) {
-          await notifyOwner({
-            title: "AI Extraction Complete",
-            content: `Extracted ${result.extracted} projects from ${result.processed} articles. ${result.duplicates} duplicates, ${result.failed} failed. Credits used today: ${result.creditsUsed}.`,
-          });
-        }
         return result;
       }),
 
@@ -791,12 +782,6 @@ export const appRouter = router({
       .input(z.object({ maxContacts: z.number().optional() }).optional())
       .mutation(async ({ input }) => {
         const result = await runEnrichmentPipeline(input?.maxContacts);
-        if (result.enriched > 0) {
-          await notifyOwner({
-            title: "Contact Enrichment Complete",
-            content: `Enriched ${result.enriched} contacts. ${result.notFound} not found, ${result.failed} failed. Daily usage: ${result.dailyUsed}/30.`,
-          });
-        }
         return result;
       }),
 
@@ -805,12 +790,6 @@ export const appRouter = router({
       .input(z.object({ maxProjects: z.number().optional() }).optional())
       .mutation(async ({ input }) => {
         const result = await runLLMFallbackBulk(input?.maxProjects || 50);
-        if (result.contactsGenerated > 0) {
-          await notifyOwner({
-            title: "LLM Contact Generation Complete",
-            content: `Generated ${result.contactsGenerated} AI-suggested contacts across ${result.processed} projects.`,
-          });
-        }
         return result;
       }),
 
@@ -1150,12 +1129,6 @@ export const appRouter = router({
       }).optional())
       .mutation(async ({ input }) => {
         const result = await runProjectoryScraper(input ?? undefined);
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "Projectory Scrape Complete",
-            content: `Scraped ${result.totalScraped} articles from ${result.totalCategories} categories. ${result.totalNewProjects} new projects, ${result.totalNewContacts} new contacts, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
-          });
-        }
         return result;
       }),
 
@@ -1199,12 +1172,6 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         const result = await ingestProjectoryArticles(input.articles);
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "Projectory Ingest Complete",
-            content: `Ingested ${result.totalReceived} articles. ${result.totalNewProjects} new projects, ${result.totalNewContacts} new contacts, ${result.totalDuplicates} duplicates.`,
-          });
-        }
         return result;
       }),
 
@@ -1236,12 +1203,6 @@ export const appRouter = router({
       }).optional())
       .mutation(async ({ input }) => {
         const result = await runDmirsScraper(input ?? undefined);
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "DMIRS Scrape Complete",
-            content: `Scraped ${result.totalFetched} registrations from DMIRS MINEDEX. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
-          });
-        }
         return result;
       }),
   }),
@@ -1252,12 +1213,6 @@ export const appRouter = router({
     scrape: adminProcedure
       .mutation(async () => {
         const result = await runAemoScraper();
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "AEMO Scrape Complete",
-            content: `Scraped ${result.totalFetched} AEMO generation projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates, ${result.totalSkipped} skipped. Duration: ${result.duration}s.`,
-          });
-        }
         return result;
       }),
   }),
@@ -1268,12 +1223,6 @@ export const appRouter = router({
     scrape: adminProcedure
       .mutation(async () => {
         const result = await runGovScraper();
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "Gov Projects Scrape Complete",
-            content: `Scraped ${result.totalFetched} government major projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
-          });
-        }
         return result;
       }),
   }),
@@ -1283,12 +1232,6 @@ export const appRouter = router({
     scrape: adminProcedure
       .mutation(async () => {
         const result = await runAusTenderScraper();
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "AusTender Scrape Complete",
-            content: `Fetched ${result.totalFetched} contracts, ${result.totalRelevant} relevant. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
-          });
-        }
         return result;
       }),
   }),
@@ -1298,12 +1241,6 @@ export const appRouter = router({
     scrape: adminProcedure
       .mutation(async () => {
         const result = await runIcnScraper();
-        if (result.totalNewProjects > 0) {
-          await notifyOwner({
-            title: "ICN Gateway Scrape Complete",
-            content: `Scraped ${result.totalFetched} ICN projects. ${result.totalNewProjects} new projects, ${result.totalDuplicates} duplicates. Duration: ${result.duration}s.`,
-          });
-        }
         return result;
       }),
   }),

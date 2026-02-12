@@ -10,7 +10,10 @@ import {
   getProjectsByReportId,
   getContactsByReportId,
   getPipelineClaimsByUser,
+  getDb,
 } from "./db";
+import { emailDigestPrefs } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 interface DigestProject {
   id: number;
@@ -181,15 +184,37 @@ function generateDigestContent(
 }
 
 /**
- * Send personalized digests to all enabled users
- * Called when a new report is published or via admin trigger
+ * Check if a digest was already sent this week (within 6 days)
  */
-export async function sendWeeklyDigests(): Promise<{
+function wasDigestSentThisWeek(lastSentAt: Date | null): boolean {
+  if (!lastSentAt) return false;
+  const sixDaysMs = 6 * 24 * 60 * 60 * 1000;
+  return (Date.now() - lastSentAt.getTime()) < sixDaysMs;
+}
+
+/**
+ * Update the lastSentAt timestamp for a user's digest preference
+ */
+async function markDigestSent(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(emailDigestPrefs)
+    .set({ lastSentAt: new Date() })
+    .where(eq(emailDigestPrefs.userId, userId));
+}
+
+/**
+ * Send personalized digests to all enabled users
+ * Called when a new report is published or via admin trigger.
+ * Includes deduplication: skips users who already received a digest this week.
+ */
+export async function sendWeeklyDigests(force = false): Promise<{
   sent: number;
   failed: number;
   skipped: number;
+  alreadySent: number;
 }> {
-  const results = { sent: 0, failed: 0, skipped: 0 };
+  const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 
   // Get the latest report
   const report = await getLatestReport();
@@ -208,6 +233,12 @@ export async function sendWeeklyDigests(): Promise<{
   for (const { pref, user, profile } of digestUsers) {
     if (!user || !profile) {
       results.skipped++;
+      continue;
+    }
+
+    // Deduplication guard: skip if digest was already sent this week
+    if (!force && wasDigestSentThisWeek(pref.lastSentAt)) {
+      results.alreadySent++;
       continue;
     }
 
@@ -295,6 +326,8 @@ export async function sendWeeklyDigests(): Promise<{
 
       if (sent) {
         results.sent++;
+        // Mark digest as sent for this user to prevent duplicates
+        await markDigestSent(user.id);
       } else {
         results.failed++;
       }

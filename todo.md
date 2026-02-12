@@ -267,3 +267,4 @@
 - [x] Frontend: filter active vs stale vs archived, status badges, archive/restore buttons on project cards
 - [x] Auto-update lifecycle when project moves through pipeline stages (claimed → active, won → awarded)
 - [x] Vitest tests for project lifecycle logic (25 tests: status transitions, staleness detection, filtering, counts, badge display)
+- [x] Bug: Weekly digest notification sending multiple times per day (almost hourly) — fixed: added deduplication guard (6-day window) to sendWeeklyDigests, removed all noisy notifyOwner calls from scrapers/pipeline admin endpoints, kept only pipeline won/lost and weekly digest notifications
