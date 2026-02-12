@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  (SELECT COUNT(*) FROM contacts) as total_contacts,\n  (SELECT COUNT(*) FROM contacts WHERE verificationStatus = 'verified') as verified,\n  (SELECT COUNT(*) FROM contacts WHERE verificationStatus = 'ai_suggested') as ai_suggested,\n  (SELECT COUNT(*) FROM contacts WHERE verificationStatus IS NULL OR verificationStatus = 'unverified') as unverified,\n  (SELECT COUNT(*) FROM contacts WHERE linkedinProfileUrl IS NOT NULL AND linkedinProfileUrl != '') as with_linkedin,\n  (SELECT COUNT(*) FROM contacts WHERE email IS NOT NULL AND email != '') as with_email,\n  (SELECT COUNT(DISTINCT projectId) FROM contacts) as projects_with_contacts,\n  (SELECT COUNT(*) FROM projects) as total_projects\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  (SELECT COUNT(*) FROM contacts) as total_contacts,\n  (SELECT COUNT(*) FROM contacts WHERE verificationStatus = 'verified') as verified,\n  (SELECT COUNT(*) FROM contacts WHERE verificationStatus = 'ai_suggested') as ai_suggested,\n  (SELECT COUNT(*) FROM contacts WHERE verificationStatus IS NULL OR verificationStatus = 'unverified') as unverified,\n  (SELECT COUNT(*) FROM contacts WHERE linkedinProfileUrl IS NOT NULL AND linkedinProfileUrl != '') as with_linkedin,\n  (SELECT COUNT(*) FROM contacts WHERE email IS NOT NULL AND email != '') as with_email,\n  (SELECT COUNT(DISTINCT projectId) FROM contacts) as projects_with_contacts,\n  (SELECT COUNT(*) FROM projects) as total_projects\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'projectid' in 'field list'"
+  ]
+}

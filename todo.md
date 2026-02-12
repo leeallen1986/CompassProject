@@ -268,3 +268,8 @@
 - [x] Auto-update lifecycle when project moves through pipeline stages (claimed → active, won → awarded)
 - [x] Vitest tests for project lifecycle logic (25 tests: status transitions, staleness detection, filtering, counts, badge display)
 - [x] Bug: Weekly digest notification sending multiple times per day (almost hourly) — fixed: added deduplication guard (6-day window) to sendWeeklyDigests, removed all noisy notifyOwner calls from scrapers/pipeline admin endpoints, kept only pipeline won/lost and weekly digest notifications
+- [x] Add Notification Preferences section in user Settings (toggle digest on/off, frequency daily/weekly/fortnightly/off, include hot only, include contacts, include pipeline updates)
+- [x] Added fortnightly frequency option to schema and digest deduplication logic
+- [x] Vitest tests for notification preferences (19 tests: frequency validation, dedup windows, content filters, last-sent display)
+- [x] Run bulk contact enrichment: LinkedIn enrichment (966 enriched, 26 not found), LLM fallback on 100 projects without contacts (305 new AI contacts generated)
+- [x] Total contacts now at 1,297 (up from 992), 100% with email and LinkedIn, all 482 tests passing

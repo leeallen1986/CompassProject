@@ -184,12 +184,18 @@ function generateDigestContent(
 }
 
 /**
- * Check if a digest was already sent this week (within 6 days)
+ * Check if a digest was already sent within the user's frequency window.
+ * Weekly: 6-day guard, Fortnightly: 13-day guard, Daily: 20-hour guard.
  */
-function wasDigestSentThisWeek(lastSentAt: Date | null): boolean {
+function wasDigestSentRecently(lastSentAt: Date | null, frequency: string): boolean {
   if (!lastSentAt) return false;
-  const sixDaysMs = 6 * 24 * 60 * 60 * 1000;
-  return (Date.now() - lastSentAt.getTime()) < sixDaysMs;
+  const guardMs: Record<string, number> = {
+    daily: 20 * 60 * 60 * 1000,       // 20 hours
+    weekly: 6 * 24 * 60 * 60 * 1000,  // 6 days
+    fortnightly: 13 * 24 * 60 * 60 * 1000, // 13 days
+  };
+  const window = guardMs[frequency] ?? guardMs.weekly;
+  return (Date.now() - lastSentAt.getTime()) < window;
 }
 
 /**
@@ -236,8 +242,8 @@ export async function sendWeeklyDigests(force = false): Promise<{
       continue;
     }
 
-    // Deduplication guard: skip if digest was already sent this week
-    if (!force && wasDigestSentThisWeek(pref.lastSentAt)) {
+    // Deduplication guard: skip if digest was already sent within the user's frequency window
+    if (!force && wasDigestSentRecently(pref.lastSentAt, pref.frequency)) {
       results.alreadySent++;
       continue;
     }

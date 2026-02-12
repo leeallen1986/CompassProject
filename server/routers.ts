@@ -414,7 +414,7 @@ export const appRouter = router({
     update: protectedProcedure
       .input(z.object({
         enabled: z.boolean().optional(),
-        frequency: z.enum(["weekly", "daily", "none"]).optional(),
+        frequency: z.enum(["weekly", "fortnightly", "daily", "none"]).optional(),
         includeHotOnly: z.boolean().optional(),
         includeContacts: z.boolean().optional(),
         includePipelineUpdates: z.boolean().optional(),

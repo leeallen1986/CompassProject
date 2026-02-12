@@ -282,7 +282,7 @@ export const emailDigestPrefs = mysqlTable("emailDigestPrefs", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
   enabled: boolean("enabled").notNull().default(true),
-  frequency: mysqlEnum("frequency", ["weekly", "daily", "none"]).notNull().default("weekly"),
+  frequency: mysqlEnum("frequency", ["weekly", "fortnightly", "daily", "none"]).notNull().default("weekly"),
   includeHotOnly: boolean("includeHotOnly").notNull().default(false),
   includeContacts: boolean("includeContacts").notNull().default(true),
   includePipelineUpdates: boolean("includePipelineUpdates").notNull().default(true),
