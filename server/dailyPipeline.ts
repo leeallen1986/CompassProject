@@ -21,7 +21,7 @@ import { runAemoScraper } from "./aemoScraper";
 import { runGovScraper } from "./govScraper";
 import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
-import { notifyOwner } from "./_core/notification";
+import { sendWeeklyDigests } from "./emailDigest";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -313,28 +313,17 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     completedAt,
   };
 
-  // Notify owner with summary
-  try {
-    await notifyOwner({
-      title: "Daily Pipeline Complete",
-      content: [
-        `Pipeline completed in ${duration}s at ${completedAt}.`,
-        ``,
-        `RSS Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources`,
-        `AI Extraction: ${extractionResult.extracted} projects extracted (${extractionResult.creditsUsed} LLM credits used today)`,
-        `Contact Enrichment: ${enrichmentResult.enriched} contacts enriched (${enrichmentResult.dailyUsed}/${enrichmentResult.dailyCap ?? 100} daily cap)`,
-        projectoryResult.ran ? `Projectory Scrape: ${projectoryResult.totalNewProjects} new projects, ${projectoryResult.totalNewContacts} contacts (${projectoryResult.duration}s)` : `Projectory: Skipped (runs Mondays only)`,
-        dmirsResult.ran ? `DMIRS Scrape: ${dmirsResult.totalNewProjects} new projects, ${dmirsResult.totalDuplicates} duplicates (${dmirsResult.duration}s)` : `DMIRS: Skipped (runs Wednesdays only)`,
-        aemoResult.ran ? `AEMO Scrape: ${aemoResult.totalNewProjects} new projects, ${aemoResult.totalDuplicates} duplicates (${aemoResult.duration}s)` : `AEMO: Skipped (runs Fridays only)`,
-        govResult.ran ? `Gov Projects: ${govResult.totalNewProjects} new projects, ${govResult.totalDuplicates} duplicates (${govResult.duration}s)` : `Gov Projects: Skipped (runs Tuesdays only)`,
-        austenderResult.ran ? `AusTender: ${austenderResult.totalNewProjects} new from ${austenderResult.totalRelevant} relevant contracts (${austenderResult.duration}s)` : `AusTender: Skipped (runs Thursdays only)`,
-        icnResult.ran ? `ICN Gateway: ${icnResult.totalNewProjects} new projects, ${icnResult.totalDuplicates} duplicates (${icnResult.duration}s)` : `ICN Gateway: Skipped (runs Saturdays only)`,
-        ``,
-        `Errors: ${harvestResult.totalErrors} harvest, ${extractionResult.failed} extraction, ${enrichmentResult.failed} enrichment, ${projectoryResult.totalErrors} projectory`,
-      ].join("\n"),
-    });
-  } catch (err: unknown) {
-    console.error("[DailyPipeline] Failed to notify owner:", err instanceof Error ? err.message : String(err));
+  // Step 10: Weekly digest notification (Mondays only)
+  if (isMonday) {
+    console.log("[DailyPipeline] Step 10/10: Sending weekly intelligence digest (Monday run)...");
+    try {
+      const digestResult = await sendWeeklyDigests();
+      console.log(`[DailyPipeline] Weekly digest sent: ${digestResult.sent} sent, ${digestResult.failed} failed, ${digestResult.skipped} skipped`);
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] Weekly digest failed:", err instanceof Error ? err.message : String(err));
+    }
+  } else {
+    console.log("[DailyPipeline] Skipping weekly digest (runs on Mondays only)");
   }
 
   console.log(`[DailyPipeline] Pipeline complete in ${duration}s`);

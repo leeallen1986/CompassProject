@@ -258,3 +258,4 @@
 - [x] Enhance Recommended Contact on project cards: show verification score, LinkedIn profile link, and verification status
 - [x] Show multiple contacts on project card (not just one) with scores and LinkedIn links
 - [x] Vitest tests for ProjectCard contact matching logic (22 tests: keyword matching, scoring, deduplication, color coding)
+- [x] Bug: Weekly digest notification sending every day (same content) — fixed: removed daily notifyOwner call, weekly digest now only sends on Mondays
