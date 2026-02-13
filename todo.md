@@ -290,3 +290,4 @@
 - [x] Added quality filter to getAllContacts(): only returns contacts with score ≥60 OR LinkedIn-verified OR team-verified
 - [x] Vitest tests for quality filtering (22 tests: score thresholds, duplicate detection, SQL filter logic, email inference, LinkedIn URL quality)
 - [x] All 522 tests passing
+- [x] Bug: Tab bar overflow on mobile/Chrome — fixed: wrapped tab bar in scrollable container with flex-none triggers, added scrollbar-thin utility, also fixed STATUS and BUSINESS LINE filter bars with overflow-x-auto and whitespace-nowrap

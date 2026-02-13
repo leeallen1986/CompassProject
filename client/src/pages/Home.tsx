@@ -875,8 +875,8 @@ export default function Home() {
         )}
 
         {/* Lifecycle Filter Bar */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status:</span>
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Status:</span>
           {([
             { key: "active", label: "Active", icon: Eye, count: (lifecycleCounts as any)?.active ?? 0 },
             { key: "stale", label: "Stale", icon: Clock, count: (lifecycleCounts as any)?.stale ?? 0 },
@@ -891,7 +891,7 @@ export default function Home() {
               <button
                 key={f.key}
                 onClick={() => setLifecycleFilter(f.key as any)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                   isActive
                     ? "bg-navy text-white shadow-sm"
                     : "bg-card text-muted-foreground border border-border hover:border-navy/30"
@@ -906,11 +906,11 @@ export default function Home() {
 
         {/* Business Line Filter */}
         {activeBusinessLines && activeBusinessLines.length > 0 && (
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Line:</span>
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-thin pb-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Business Line:</span>
             <button
               onClick={() => setBusinessLineFilter("all")}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                 businessLineFilter === "all"
                   ? "bg-navy text-white shadow-sm"
                   : "bg-card text-muted-foreground border border-border hover:border-navy/30"
@@ -927,7 +927,7 @@ export default function Home() {
                 <button
                   key={bl.id}
                   onClick={() => setBusinessLineFilter(String(bl.id))}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                     businessLineFilter === String(bl.id)
                       ? "bg-navy text-white shadow-sm"
                       : "bg-card text-muted-foreground border border-border hover:border-navy/30"
@@ -941,15 +941,17 @@ export default function Home() {
         )}
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="w-full justify-start bg-card border border-border rounded-lg p-1 overflow-x-auto flex-nowrap mb-6">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
-            <TabsTrigger value="projects" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({territoryFiltered.length})</TabsTrigger>
-            <TabsTrigger value="awarded" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
-            <TabsTrigger value="drilling" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
-            <TabsTrigger value="ai-search" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI Search</TabsTrigger>
-            <TabsTrigger value="contacts" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({territoryFilteredContacts.length})</TabsTrigger>
-            <TabsTrigger value="sources" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto mb-6 -mx-1 px-1 scrollbar-thin">
+            <TabsList className="inline-flex w-max min-w-full justify-start bg-card border border-border rounded-lg p-1 gap-0.5">
+              <TabsTrigger value="overview" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
+              <TabsTrigger value="projects" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({territoryFiltered.length})</TabsTrigger>
+              <TabsTrigger value="awarded" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
+              <TabsTrigger value="drilling" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
+              <TabsTrigger value="ai-search" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI Search</TabsTrigger>
+              <TabsTrigger value="contacts" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({territoryFilteredContacts.length})</TabsTrigger>
+              <TabsTrigger value="sources" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ===== OVERVIEW TAB ===== */}
           <TabsContent value="overview" className="space-y-6">

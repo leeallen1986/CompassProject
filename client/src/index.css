@@ -164,3 +164,11 @@
 ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.65 0.015 250);
 }
+
+/* Thin scrollbar for horizontal tab bars */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 3px;
+}
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
