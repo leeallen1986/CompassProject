@@ -1,0 +1,94 @@
+{
+  "query": "\nSELECT 'Total Contacts' as metric, COUNT(*) as cnt FROM contacts\nUNION ALL SELECT 'LinkedIn Verified', COUNT(*) FROM contacts WHERE enrichmentSource = 'linkedin'\nUNION ALL SELECT 'LLM Generated', COUNT(*) FROM contacts WHERE enrichmentSource = 'llm'\nUNION ALL SELECT 'Manual', COUNT(*) FROM contacts WHERE enrichmentSource = 'manual'\nUNION ALL SELECT 'NULL source', COUNT(*) FROM contacts WHERE enrichmentSource IS NULL\nUNION ALL SELECT '--- Confidence ---', 0\nUNION ALL SELECT 'High confidence', COUNT(*) FROM contacts WHERE confidenceScore = 'high'\nUNION ALL SELECT 'Medium confidence', COUNT(*) FROM contacts WHERE confidenceScore = 'medium'\nUNION ALL SELECT 'Low confidence', COUNT(*) FROM contacts WHERE confidenceScore = 'low'\nUNION ALL SELECT 'NULL confidence', COUNT(*) FROM contacts WHERE confidenceScore IS NULL\nUNION ALL SELECT '--- Verification ---', 0\nUNION ALL SELECT 'Verified', COUNT(*) FROM contacts WHERE verificationStatus = 'verified'\nUNION ALL SELECT 'AI Suggested', COUNT(*) FROM contacts WHERE verificationStatus = 'ai_suggested'\nUNION ALL SELECT 'Unverified', COUNT(*) FROM contacts WHERE verificationStatus = 'unverified'\nUNION ALL SELECT 'NULL verification', COUNT(*) FROM contacts WHERE verificationStatus IS NULL\nUNION ALL SELECT '--- Scores ---', 0\nUNION ALL SELECT 'Score >= 80', COUNT(*) FROM contacts WHERE verificationScore >= 80\nUNION ALL SELECT 'Score 60-79', COUNT(*) FROM contacts WHERE verificationScore >= 60 AND verificationScore < 80\nUNION ALL SELECT 'Score 40-59', COUNT(*) FROM contacts WHERE verificationScore >= 40 AND verificationScore < 60\nUNION ALL SELECT 'Score < 40', COUNT(*) FROM contacts WHERE verificationScore < 40\nUNION ALL SELECT 'Score NULL/0', COUNT(*) FROM contacts WHERE verificationScore IS NULL OR verificationScore = 0;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT 'Total Contacts' as metric, COUNT(*) as cnt FROM contacts\nUNION ALL SELECT 'LinkedIn Verified', COUNT(*) FROM contacts WHERE enrichmentSource = 'linkedin'\nUNION ALL SELECT 'LLM Generated', COUNT(*) FROM contacts WHERE enrichmentSource = 'llm'\nUNION ALL SELECT 'Manual', COUNT(*) FROM contacts WHERE enrichmentSource = 'manual'\nUNION ALL SELECT 'NULL source', COUNT(*) FROM contacts WHERE enrichmentSource IS NULL\nUNION ALL SELECT '--- Confidence ---', 0\nUNION ALL SELECT 'High confidence', COUNT(*) FROM contacts WHERE confidenceScore = 'high'\nUNION ALL SELECT 'Medium confidence', COUNT(*) FROM contacts WHERE confidenceScore = 'medium'\nUNION ALL SELECT 'Low confidence', COUNT(*) FROM contacts WHERE confidenceScore = 'low'\nUNION ALL SELECT 'NULL confidence', COUNT(*) FROM contacts WHERE confidenceScore IS NULL\nUNION ALL SELECT '--- Verification ---', 0\nUNION ALL SELECT 'Verified', COUNT(*) FROM contacts WHERE verificationStatus = 'verified'\nUNION ALL SELECT 'AI Suggested', COUNT(*) FROM contacts WHERE verificationStatus = 'ai_suggested'\nUNION ALL SELECT 'Unverified', COUNT(*) FROM contacts WHERE verificationStatus = 'unverified'\nUNION ALL SELECT 'NULL verification', COUNT(*) FROM contacts WHERE verificationStatus IS NULL\nUNION ALL SELECT '--- Scores ---', 0\nUNION ALL SELECT 'Score >= 80', COUNT(*) FROM contacts WHERE verificationScore >= 80\nUNION ALL SELECT 'Score 60-79', COUNT(*) FROM contacts WHERE verificationScore >= 60 AND verificationScore < 80\nUNION ALL SELECT 'Score 40-59', COUNT(*) FROM contacts WHERE verificationScore >= 40 AND verificationScore < 60\nUNION ALL SELECT 'Score < 40', COUNT(*) FROM contacts WHERE verificationScore < 40\nUNION ALL SELECT 'Score NULL/0', COUNT(*) FROM contacts WHERE verificationScore IS NULL OR verificationScore = 0;\n",
+  "rows": [
+    {
+      "metric": "Total Contacts",
+      "cnt": "1310"
+    },
+    {
+      "metric": "--- Confidence ---",
+      "cnt": "0"
+    },
+    {
+      "metric": "LLM Generated",
+      "cnt": "1240"
+    },
+    {
+      "metric": "LinkedIn Verified",
+      "cnt": "70"
+    },
+    {
+      "metric": "NULL source",
+      "cnt": "0"
+    },
+    {
+      "metric": "Medium confidence",
+      "cnt": "994"
+    },
+    {
+      "metric": "--- Verification ---",
+      "cnt": "0"
+    },
+    {
+      "metric": "Low confidence",
+      "cnt": "12"
+    },
+    {
+      "metric": "NULL confidence",
+      "cnt": "0"
+    },
+    {
+      "metric": "AI Suggested",
+      "cnt": "1228"
+    },
+    {
+      "metric": "Unverified",
+      "cnt": "26"
+    },
+    {
+      "metric": "--- Scores ---",
+      "cnt": "0"
+    },
+    {
+      "metric": "NULL verification",
+      "cnt": "0"
+    },
+    {
+      "metric": "Manual",
+      "cnt": "0"
+    },
+    {
+      "metric": "High confidence",
+      "cnt": "304"
+    },
+    {
+      "metric": "Verified",
+      "cnt": "56"
+    },
+    {
+      "metric": "Score 60-79",
+      "cnt": "388"
+    },
+    {
+      "metric": "Score >= 80",
+      "cnt": "58"
+    },
+    {
+      "metric": "Score 40-59",
+      "cnt": "852"
+    },
+    {
+      "metric": "Score < 40",
+      "cnt": "12"
+    },
+    {
+      "metric": "Score NULL/0",
+      "cnt": "12"
+    }
+  ],
+  "messages": [],
+  "stdout": "metric\tcnt\nTotal Contacts\t1310\n--- Confidence ---\t0\nLLM Generated\t1240\nLinkedIn Verified\t70\nNULL source\t0\nMedium confidence\t994\n--- Verification ---\t0\nLow confidence\t12\nNULL confidence\t0\nAI Suggested\t1228\nUnverified\t26\n--- Scores ---\t0\nNULL verification\t0\nManual\t0\nHigh confidence\t304\nVerified\t56\nScore 60-79\t388\nScore >= 80\t58\nScore 40-59\t852\nScore < 40\t12\nScore NULL/0\t12\n",
+  "stderr": "",
+  "execution_time_ms": 1751
+}

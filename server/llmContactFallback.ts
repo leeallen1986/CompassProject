@@ -47,6 +47,8 @@ export interface LLMFallbackResult {
 // ── Configuration ──
 
 const MAX_CONTACTS_PER_PROJECT = 5;
+const MIN_VERIFICATION_SCORE = 60;
+const MIN_CONFIDENCE = "medium"; // Reject "low" confidence contacts
 
 // ── Helpers ──
 
@@ -214,14 +216,21 @@ Return a JSON array of contacts.`;
       return [];
     }
 
-    return parsed.contacts.slice(0, MAX_CONTACTS_PER_PROJECT).map(c => ({
+    // Filter out low-confidence contacts before returning
+    const mapped = parsed.contacts.slice(0, MAX_CONTACTS_PER_PROJECT).map(c => ({
       name: c.name,
       title: c.title,
+      company: c.company,
       roleBucket: normalizeRoleBucket(c.role_bucket),
       email: inferEmail(c.name, c.company),
       reasoning: c.reasoning,
       confidence: (c.confidence as "high" | "medium" | "low") || "medium",
     }));
+
+    // Quality gate: reject low-confidence contacts
+    const filtered = mapped.filter(c => c.confidence !== "low");
+    console.log(`[LLM Fallback] Generated ${mapped.length} contacts, kept ${filtered.length} after quality filter (rejected ${mapped.length - filtered.length} low-confidence)`);
+    return filtered;
   } catch (err) {
     console.error("[LLM Fallback] Error generating contacts:", err instanceof Error ? err.message : String(err));
     return [];
@@ -358,6 +367,12 @@ export async function generateAndSaveLLMContacts(
       // Compute and set verification score
       const scoreBreakdown = computeVerificationScore(contactData);
       (contactData as any).verificationScore = scoreBreakdown.total;
+
+      // Quality gate: reject contacts with verification score below threshold
+      if (scoreBreakdown.total < MIN_VERIFICATION_SCORE) {
+        console.log(`[LLM Fallback] Rejecting "${contact.name}" — verification score ${scoreBreakdown.total} below minimum ${MIN_VERIFICATION_SCORE}`);
+        continue;
+      }
 
       await db.insert(contacts).values(contactData);
       savedContacts.push(contact);

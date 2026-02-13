@@ -283,3 +283,10 @@
 - [x] Deprecated guessed LinkedIn profile URLs (/in/firstname-lastname) — now generates search URLs only
 - [x] Vitest tests for crowdsourced verification (18 tests: score boost, URL generation, labels, colors)
 - [x] All 500 tests passing
+- [x] Audit contact quality: 1,310 contacts → 852 (65%) had scores 40-59, 1,240 (95%) were LLM-generated, duplicate names like "Sarah Chen" appeared 11 times
+- [x] Purged 930 low-quality contacts: deleted all with score <60, all with duplicate names across 3+ companies, all low-confidence LLM contacts
+- [x] Remaining: 380 high-quality contacts (58 LinkedIn-verified, 322 high-confidence LLM)
+- [x] Tightened LLM contact generation: reject low-confidence contacts, reject score <60 at save time, dual quality gate
+- [x] Added quality filter to getAllContacts(): only returns contacts with score ≥60 OR LinkedIn-verified OR team-verified
+- [x] Vitest tests for quality filtering (22 tests: score thresholds, duplicate detection, SQL filter logic, email inference, LinkedIn URL quality)
+- [x] All 522 tests passing

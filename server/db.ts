@@ -296,11 +296,22 @@ export async function getContactsByReportId(reportId: number) {
   return db.select().from(contacts).where(eq(contacts.reportId, reportId));
 }
 
-export async function getAllContacts() {
+export async function getAllContacts(includeAll = false) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(contacts).orderBy(desc(contacts.id));
+  if (includeAll) {
+    // Admin view: return all contacts
+    return db.select().from(contacts).orderBy(desc(contacts.id));
+  }
+
+  // Quality filter: only return contacts with score >= 60 or LinkedIn-verified
+  // This prevents low-quality LLM hallucinations from reaching the sales team
+  return db.select().from(contacts)
+    .where(
+      sql`(${contacts.verificationScore} >= 60 OR ${contacts.enrichmentSource} = 'linkedin' OR ${contacts.verificationStatus} = 'verified')`
+    )
+    .orderBy(desc(contacts.id));
 }
 
 export async function getAllDrillingCampaigns() {
