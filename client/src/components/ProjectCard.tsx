@@ -916,6 +916,8 @@ export default function ProjectCard({
 
   return (
     <div
+      id={`project-${project.id}`}
+      data-project-id={project.id}
       className={`bg-card rounded-lg border-l-4 ${cfg.border} shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden ${project.isNew ? "ring-1 ring-teal/40" : ""}`}
     >
       <div

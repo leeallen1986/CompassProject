@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Search, Sparkles, Loader2, Target, MapPin, Building,
   ChevronDown, ChevronUp, Users, ArrowRight, Lightbulb,
-  Flame, Zap, Package, TrendingUp
+  Flame, Zap, Package, TrendingUp, ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,7 +85,7 @@ const sectorLabels: Record<string, string> = {
 };
 
 // ── Result Card ──
-function ResultCard({ match, rank }: { match: MatchedProject; rank: number }) {
+function ResultCard({ match, rank, onNavigateToProject }: { match: MatchedProject; rank: number; onNavigateToProject?: (projectId: number) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -116,6 +116,18 @@ function ResultCard({ match, rank }: { match: MatchedProject; rank: number }) {
               <span className="flex items-center gap-1 text-xs text-teal font-medium">
                 <Users className="w-3 h-3" />{match.contactCount}
               </span>
+            )}
+            {onNavigateToProject && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateToProject(match.projectId);
+                }}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-navy bg-gold/20 hover:bg-gold/40 border border-gold/30 transition-colors"
+                title="View full project details"
+              >
+                <ExternalLink className="w-3 h-3" /> View
+              </button>
             )}
             {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
           </div>
@@ -174,10 +186,23 @@ function ResultCard({ match, rank }: { match: MatchedProject; rank: number }) {
             </div>
           )}
 
-          {/* Stage */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span><strong className="text-navy">Stage:</strong> {match.stage}</span>
-            <span><strong className="text-navy">Sector:</strong> {sectorLabels[match.sector] || match.sector}</span>
+          {/* Stage + View Project */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span><strong className="text-navy">Stage:</strong> {match.stage}</span>
+              <span><strong className="text-navy">Sector:</strong> {sectorLabels[match.sector] || match.sector}</span>
+            </div>
+            {onNavigateToProject && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateToProject(match.projectId);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-semibold hover:bg-navy-light transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" /> View Full Project
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -186,7 +211,7 @@ function ResultCard({ match, rank }: { match: MatchedProject; rank: number }) {
 }
 
 // ── Main Component ──
-export default function AIProjectSearch() {
+export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToProject?: (projectId: number) => void } = {}) {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<MatchResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -323,7 +348,7 @@ export default function AIProjectSearch() {
           {result.matches.length > 0 ? (
             <div className="space-y-3">
               {result.matches.map((match, i) => (
-                <ResultCard key={match.projectId} match={match} rank={i + 1} />
+                <ResultCard key={match.projectId} match={match} rank={i + 1} onNavigateToProject={onNavigateToProject} />
               ))}
             </div>
           ) : (

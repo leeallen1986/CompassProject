@@ -337,3 +337,4 @@
 - [x] Build Admin UI: Apollo Credit Usage dashboard with monthly total, per-user breakdown, daily chart, activity log
 - [x] Write vitest tests for credit tracking (8 tests: insert record, null fields, action types, summary structure, aggregation, date filter, empty results, schema validation)
 - [x] All 562 tests passing
+- [x] AI Search: Add click-through from search results to project detail view (View button on each result card, scrolls to and highlights project in All Projects tab)

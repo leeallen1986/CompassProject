@@ -647,6 +647,8 @@ export default function Home() {
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
     return !localStorage.getItem("atlas-scoring-guide-dismissed");
   });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [highlightedProjectId, setHighlightedProjectId] = useState<number | null>(null);
 
   const [, navigate] = useLocation();
 
@@ -941,7 +943,7 @@ export default function Home() {
           </div>
         )}
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto mb-6 -mx-1 px-1 scrollbar-thin">
             <TabsList className="inline-flex w-max min-w-full justify-start bg-card border border-border rounded-lg p-1 gap-0.5">
               <TabsTrigger value="overview" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
@@ -1223,7 +1225,27 @@ export default function Home() {
 
           {/* ===== AI SEARCH TAB ===== */}
           <TabsContent value="ai-search" className="space-y-5">
-            <AIProjectSearch />
+            <AIProjectSearch onNavigateToProject={(projectId: number) => {
+              setHighlightedProjectId(projectId);
+              // Reset filters so the project is visible
+              setPriorityFilter("all");
+              setSectorFilter("all");
+              setLifecycleFilter("all");
+              // Switch to All Projects tab
+              setActiveTab("projects");
+              // Scroll to the project after tab switch renders
+              setTimeout(() => {
+                const el = document.getElementById(`project-${projectId}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  el.classList.add("ring-2", "ring-gold", "ring-offset-2");
+                  setTimeout(() => {
+                    el.classList.remove("ring-2", "ring-gold", "ring-offset-2");
+                    setHighlightedProjectId(null);
+                  }, 3000);
+                }
+              }, 150);
+            }} />
           </TabsContent>
 
           {/* ===== SOURCES TAB ===== */}
