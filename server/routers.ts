@@ -35,6 +35,7 @@ import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } f
 import { seedDefaultPipelineData } from "./seedPipeline";
 import { runEnrichmentPipeline, getEnrichmentStats, generateAndEnrichContacts, getProjectEnrichmentCache, getUserPreferredRoles } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
+import { runWeeklyPipeline } from "./weeklyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
 import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
 import { runDmirsScraper } from "./dmirsScraper";
@@ -1146,6 +1147,14 @@ export const appRouter = router({
   dailyPipeline: router({
     run: adminProcedure.mutation(async () => {
       const result = await runDailyPipeline();
+      return result;
+    }),
+  }),
+
+  // ── Weekly mega-scrape pipeline (admin only) ──
+  weeklyPipeline: router({
+    run: adminProcedure.mutation(async () => {
+      const result = await runWeeklyPipeline();
       return result;
     }),
   }),

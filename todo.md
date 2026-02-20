@@ -291,3 +291,11 @@
 - [x] Vitest tests for quality filtering (22 tests: score thresholds, duplicate detection, SQL filter logic, email inference, LinkedIn URL quality)
 - [x] All 522 tests passing
 - [x] Bug: Tab bar overflow on mobile/Chrome — fixed: wrapped tab bar in scrollable container with flex-none triggers, added scrollbar-thin utility, also fixed STATUS and BUSINESS LINE filter bars with overflow-x-auto and whitespace-nowrap
+- [x] Add 20 new RSS feeds: Defence Connect, ASPI Strategist, Inside Construction, Build Australia, Sourceable, Urban Developer, Quarry Magazine, Rigzone, Offshore Magazine, Petroleum Australia, Oil & Gas Australia, Energy Voice Asia-Pacific, PV Magazine Australia, Geo Drilling International, The Driller, Mirage News Mining, Mirage News Construction, Mining Weekly, Mining Monthly
+- [x] Build weekly mega-scrape pipeline (runs ALL scrapers in a single pass: RSS → AI Extraction → Projectory → DMIRS → AEMO → Gov → AusTender → ICN → Enrichment → Digest → Staleness → Notify)
+- [x] Schedule weekly mega-scrape for Sunday 13:00 UTC (9pm AWST / Perth Time)
+- [x] Add weekly pipeline admin endpoint (weeklyPipeline.run tRPC mutation)
+- [x] Add "Weekly Mega-Scrape" button on Admin dashboard (purple, Database icon)
+- [x] Wire weekly scheduler into server startup (startWeeklyScheduler in _core/index.ts)
+- [x] Vitest tests for weekly pipeline (20 tests: all scrapers called, aggregation, error handling, scheduling logic, result types)
+- [x] All 544 tests passing

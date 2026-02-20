@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startDailyScheduler } from "../dailyPipeline";
+import { startWeeklyScheduler } from "../weeklyPipeline";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -62,6 +63,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Start the daily pipeline scheduler (06:00 UTC / 16:00 AEST)
     startDailyScheduler();
+    // Start the weekly mega-scrape scheduler (Sunday 13:00 UTC / 21:00 AWST)
+    startWeeklyScheduler();
   });
 }
 

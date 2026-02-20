@@ -325,6 +325,13 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`Pipeline failed: ${e.message}`),
   });
+  const weeklyPipelineMut = trpc.weeklyPipeline.run.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Weekly mega-scrape complete in ${Math.floor(data.duration / 60)}m ${data.duration % 60}s: ${data.totalNewProjects} new projects, ${data.totalNewContacts} new contacts`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`Weekly pipeline failed: ${e.message}`),
+  });
   const projectoryIngest = trpc.projectory.ingest.useMutation({
     onSuccess: (data) => {
       toast.success(`Projectory: ${data.totalNewProjects} new projects, ${data.totalNewContacts} contacts, ${data.totalDuplicates} duplicates`);
@@ -449,6 +456,14 @@ function PipelineOpsTab() {
         >
           {fullPipelineMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
           Run Full Pipeline
+        </Button>
+        <Button
+          onClick={() => weeklyPipelineMut.mutate()}
+          disabled={weeklyPipelineMut.isPending}
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
+        >
+          {weeklyPipelineMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+          Weekly Mega-Scrape
         </Button>
         <Button onClick={() => refetchStats()} variant="outline" size="sm" className="gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" /> Refresh Stats

@@ -140,6 +140,39 @@ const DEFAULT_RSS_SOURCES = [
   { name: "Proactive Investors AU", feedUrl: "https://www.proactiveinvestors.com.au/pages/rss", category: "asx" },
   { name: "Small Caps", feedUrl: "https://smallcaps.com.au/feed/", category: "asx" },
   { name: "Stockhead", feedUrl: "https://stockhead.com.au/feed/", category: "asx" },
+
+  // Defence
+  { name: "Defence Connect", feedUrl: "https://www.defenceconnect.com.au/feed", category: "industry" },
+  { name: "ASPI Strategist", feedUrl: "https://www.aspistrategist.org.au/feed/", category: "industry" },
+
+  // Construction & Infrastructure (additional)
+  { name: "Inside Construction", feedUrl: "https://insideconstruction.com.au/feed/", category: "industry" },
+  { name: "Build Australia", feedUrl: "https://buildaustralia.com.au/feed/", category: "industry" },
+  { name: "Sourceable", feedUrl: "https://sourceable.net/feed/", category: "industry" },
+  { name: "The Urban Developer", feedUrl: "https://theurbandeveloper.com/feed", category: "industry" },
+  { name: "Quarry Magazine", feedUrl: "https://www.quarrymagazine.com/feed/", category: "industry" },
+
+  // Oil & Gas (additional)
+  { name: "Rigzone", feedUrl: "https://www.rigzone.com/news/rss/", category: "industry" },
+  { name: "Offshore Magazine", feedUrl: "https://www.offshore-mag.com/rss", category: "industry" },
+  { name: "Petroleum Australia", feedUrl: "https://www.petroleumaustralia.com.au/feed/", category: "industry" },
+  { name: "Oil & Gas Australia", feedUrl: "https://www.oilandgasaustralia.com.au/feed/", category: "industry" },
+  { name: "Energy Voice Asia-Pacific", feedUrl: "https://www.energyvoice.com/region/asia-australasia/feed/", category: "industry" },
+
+  // Energy & Renewables (additional)
+  { name: "PV Magazine Australia", feedUrl: "https://www.pv-magazine-australia.com/feed/", category: "industry" },
+
+  // Drilling & Geotechnical
+  { name: "Geo Drilling International", feedUrl: "https://www.geodrillinginternational.com/rss", category: "industry" },
+  { name: "The Driller", feedUrl: "https://www.thedriller.com/rss", category: "industry" },
+
+  // Mirage News (high-volume Australian news aggregator)
+  { name: "Mirage News - Mining", feedUrl: "https://www.miragenews.com/tag/mining/feed/", category: "news" },
+  { name: "Mirage News - Construction", feedUrl: "https://www.miragenews.com/tag/construction/feed/", category: "news" },
+
+  // Mining (additional)
+  { name: "Mining Weekly", feedUrl: "https://www.miningweekly.com/page/rss", category: "industry" },
+  { name: "Mining Monthly", feedUrl: "https://www.miningmonthly.com/feed/", category: "industry" },
 ];
 
 export async function seedDefaultPipelineData(): Promise<{
