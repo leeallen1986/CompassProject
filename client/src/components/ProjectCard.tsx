@@ -308,7 +308,21 @@ function LifecycleActions({ project }: { project: ProjectData }) {
   );
 }
 
-function EnrichProjectButton({ projectId, projectName }: { projectId: number; projectName: string }) {
+/** Infer a role bucket from a job title string */
+function inferRoleBucketFromTitle(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("procurement") || t.includes("purchasing") || t.includes("supply chain")) return "procurement";
+  if (t.includes("engineer") || t.includes("technical") || t.includes("design")) return "engineering";
+  if (t.includes("operations") || t.includes("site manager") || t.includes("mine manager")) return "operations";
+  if (t.includes("project manager") || t.includes("project director") || t.includes("construction manager")) return "project_management";
+  if (t.includes("maintenance") || t.includes("reliability")) return "maintenance";
+  if (t.includes("fleet") || t.includes("equipment manager")) return "fleet";
+  if (t.includes("general manager") || t.includes("managing director") || t.includes("ceo") || t.includes("coo") || t.includes("director")) return "executive";
+  if (t.includes("construction") || t.includes("civil") || t.includes("building")) return "construction";
+  return "other";
+}
+
+function EnrichProjectButton({ projectId, projectName, onOutreach, project }: { projectId: number; projectName: string; onOutreach?: (contact: { name: string; title: string; company: string; email: string; roleBucket: string }) => void; project?: ProjectData }) {
   const utils = trpc.useUtils();
 
   // Check enrichment cache status
@@ -439,16 +453,37 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
               Source: {(enrichMutation.data as any).source === "apollo" ? "Apollo.io" : (enrichMutation.data as any).source === "linkedin" ? "LinkedIn" : (enrichMutation.data as any).source === "llm" ? "AI Generated" : "Database"}
             </div>
           )}
-          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string }, i: number) => (
+          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string; enrichmentSource?: string }, i: number) => (
             <div key={i} className="flex items-center gap-2 text-xs bg-teal/5 rounded-md px-3 py-1.5 border border-teal/10">
               <User className="w-3 h-3 text-teal shrink-0" />
               <span className="font-medium text-navy">{c.name}</span>
-              {c.headline && <span className="text-muted-foreground">— {c.headline}</span>}
-              <div className="ml-auto flex items-center gap-2">
-                {c.email && (
+              {c.headline && <span className="text-muted-foreground truncate">— {c.headline}</span>}
+              <div className="ml-auto flex items-center gap-2 shrink-0">
+                {c.email && onOutreach && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOutreach({
+                        name: c.name,
+                        title: c.headline || "Unknown",
+                        company: project?.owner || "Unknown",
+                        email: c.email!,
+                        roleBucket: inferRoleBucketFromTitle(c.headline || ""),
+                      });
+                    }}
+                    className="text-[10px] font-semibold bg-gold/15 text-gold-dark px-1.5 py-0.5 rounded hover:bg-gold/25 transition-colors"
+                  >
+                    <Mail className="w-3 h-3 inline mr-0.5" />
+                    Outreach
+                  </button>
+                )}
+                {c.email && !onOutreach && (
                   <a href={`mailto:${c.email}`} className="text-[10px] font-semibold bg-teal/15 text-teal px-1.5 py-0.5 rounded hover:bg-teal/25 transition-colors" onClick={e => e.stopPropagation()}>
                     Email
                   </a>
+                )}
+                {!c.email && (
+                  <span className="text-[10px] text-muted-foreground italic">No email</span>
                 )}
                 {c.linkedinUrl && (
                   <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
@@ -1164,7 +1199,26 @@ export default function ProjectCard({
               <LifecycleActions project={project} />
 
               {/* Find Contacts (On-Demand Enrichment) Button */}
-              <EnrichProjectButton projectId={project.id} projectName={project.name} />
+              <EnrichProjectButton
+                projectId={project.id}
+                projectName={project.name}
+                project={project}
+                onOutreach={(contact) => {
+                  // Create a minimal ContactData-like object for the outreach modal
+                  setOutreachContact({
+                    id: 0,
+                    name: contact.name,
+                    title: contact.title,
+                    company: contact.company,
+                    project: project.name,
+                    priority: "warm",
+                    roleBucket: contact.roleBucket,
+                    email: contact.email,
+                    linkedin: null,
+                  });
+                  setShowOutreach(true);
+                }}
+              />
 
               {/* Project Contacts Section — Enhanced with verification scores, LinkedIn links, verify buttons */}
               {projectContacts.length > 0 && (

@@ -338,3 +338,10 @@
 - [x] Write vitest tests for credit tracking (8 tests: insert record, null fields, action types, summary structure, aggregation, date filter, empty results, schema validation)
 - [x] All 562 tests passing
 - [x] AI Search: Add click-through from search results to project detail view (View button on each result card, scrolls to and highlights project in All Projects tab)
+- [x] Fix Apollo enrichment: emails not being retrieved — Apollo People Search returns obfuscated data by design; enrichment via People Enrich endpoint already wired correctly; LinkedIn fallback is expected when Apollo returns 0 results for a company
+- [x] Wire Outreach button on Find Contacts results (inline contact list after Apollo search) — Outreach button appears on contacts with emails, opens OutreachEmailModal with full project context
+- [x] Enhance outreach email generation: deep role-KPI personalisation with 8 persona maps (procurement, engineering, operations, project_management, maintenance, fleet, executive, construction) — each with KPIs, pain points, and messaging angles woven into the LLM prompt
+- [x] Outreach email only available when email address exists — contacts without email show "No email" label instead of Outreach button
+- [x] Added inferRoleBucketFromTitle helper for Find Contacts results (maps job title to role bucket for KPI personalisation)
+- [x] Write vitest tests for role-KPI outreach personalisation (12 tests: all 8 role types, unknown role fallback, partial match, mixed casing, hyphenated roles)
+- [x] All 574 tests passing

@@ -90,6 +90,74 @@ VALUE PROPOSITIONS:
 - Digital fleet management (FleetLink telematics)
 `;
 
+/**
+ * Role-KPI mapping: maps each role bucket to the KPIs, pain points, and
+ * messaging angles that resonate most with that persona.
+ */
+const ROLE_KPI_MAP: Record<string, {
+  kpis: string[];
+  painPoints: string[];
+  messagingAngle: string;
+}> = {
+  procurement: {
+    kpis: ["Total cost of ownership (TCO)", "Supplier consolidation", "Contract compliance", "On-time delivery", "Cost savings vs. budget"],
+    painPoints: ["Managing multiple equipment vendors", "Unpredictable maintenance costs", "Long lead times on parts", "Price volatility on hire/purchase"],
+    messagingAngle: "Focus on TCO savings, bundled service agreements, single-vendor simplification, and flexible hire-purchase options that protect their budget.",
+  },
+  engineering: {
+    kpis: ["Equipment uptime & reliability", "Technical spec compliance", "Safety standards", "Energy efficiency", "Integration with existing systems"],
+    painPoints: ["Equipment failures causing project delays", "Spec mismatches discovered on-site", "Emission compliance pressure", "Noise restrictions near communities"],
+    messagingAngle: "Lead with technical credibility — specific CFM/kVA ratings, emission standards met, noise levels, and how Atlas Copco's engineering support de-risks their design.",
+  },
+  operations: {
+    kpis: ["Site productivity (tonnes/hour, metres/day)", "Equipment availability %", "Fuel consumption per unit output", "Safety incident rate", "Shift utilisation"],
+    painPoints: ["Unplanned downtime halting production", "Fuel cost blowouts", "Operator skill gaps", "Remote site logistics"],
+    messagingAngle: "Emphasise uptime guarantees, FleetLink telematics for real-time monitoring, fuel savings data, and 24/7 service coverage even at remote sites.",
+  },
+  project_management: {
+    kpis: ["On-time project delivery", "Budget adherence", "Resource utilisation", "Stakeholder satisfaction", "Risk mitigation"],
+    painPoints: ["Equipment delays pushing back milestones", "Scope creep on temporary power/air needs", "Coordinating multiple subcontractors", "Budget overruns on equipment hire"],
+    messagingAngle: "Position Atlas Copco as a reliability partner — guaranteed delivery timelines, rental flexibility to scale up/down, and a single point of contact to simplify their vendor management.",
+  },
+  maintenance: {
+    kpis: ["Mean time between failures (MTBF)", "Planned vs. unplanned maintenance ratio", "Parts availability", "Maintenance cost per operating hour"],
+    painPoints: ["Sourcing genuine parts quickly", "Ageing fleet with increasing breakdown frequency", "Lack of OEM support in remote areas", "Training new technicians"],
+    messagingAngle: "Highlight genuine parts availability, preventive maintenance programs, operator/technician training, and service agreements that lock in response times.",
+  },
+  fleet: {
+    kpis: ["Fleet utilisation rate", "Cost per operating hour", "Fleet age & replacement cycle", "Fuel efficiency across fleet", "Compliance & certification currency"],
+    painPoints: ["Ageing fleet driving up repair costs", "Underutilised assets sitting idle", "Balancing owned vs. hired equipment", "Tracking certification expiry dates"],
+    messagingAngle: "Talk fleet strategy — trade-in programs, rent-to-own pathways, FleetLink telematics for utilisation tracking, and lifecycle cost modelling to justify fleet refresh.",
+  },
+  executive: {
+    kpis: ["EBITDA / margin improvement", "Capital allocation efficiency", "ESG / sustainability targets", "Shareholder value", "Strategic partnerships"],
+    painPoints: ["Pressure to reduce carbon footprint", "Capital vs. opex trade-offs", "Board-level ESG reporting requirements", "Finding strategic suppliers, not just vendors"],
+    messagingAngle: "Elevate the conversation to strategic partnership — sustainability credentials (ZenergiZe BESS, hybrid solutions), total value delivered across their portfolio, and executive-level case studies.",
+  },
+  construction: {
+    kpis: ["Daily pour/placement rates", "Site setup time", "Equipment mobilisation speed", "Safety compliance", "Subcontractor coordination"],
+    painPoints: ["Tight construction windows", "Noise and emission restrictions in urban areas", "Power reliability for concrete batching/cranes", "Multiple equipment vendors to coordinate"],
+    messagingAngle: "Focus on rapid mobilisation, quiet/low-emission options for urban sites, and bundled air+power+lighting packages that simplify their site setup.",
+  },
+  other: {
+    kpis: ["Operational efficiency", "Cost management", "Risk reduction", "Compliance"],
+    painPoints: ["General equipment reliability concerns", "Cost pressures", "Vendor management complexity"],
+    messagingAngle: "Take a broad value approach — reliability, service coverage, and flexible commercial models.",
+  },
+};
+
+/** Get the best role-KPI match for a contact's role bucket */
+function getRoleKPIs(roleBucket: string): typeof ROLE_KPI_MAP[string] {
+  const normalised = roleBucket.toLowerCase().replace(/[\s_-]+/g, "_");
+  // Try exact match first
+  if (ROLE_KPI_MAP[normalised]) return ROLE_KPI_MAP[normalised];
+  // Try partial match
+  for (const [key, value] of Object.entries(ROLE_KPI_MAP)) {
+    if (normalised.includes(key) || key.includes(normalised)) return value;
+  }
+  return ROLE_KPI_MAP.other;
+}
+
 export async function generateOutreachEmail(input: OutreachInput): Promise<OutreachResult> {
   const toneGuide = {
     professional: "Write in a formal, professional tone. Use proper business language. Be respectful of the recipient's time. Focus on value proposition and credibility.",
@@ -105,6 +173,25 @@ export async function generateOutreachEmail(input: OutreachInput): Promise<Outre
     ? `Equipment signals detected: ${input.equipmentSignals.join(", ")}. Reference these specific needs in your email.`
     : "";
 
+  // Get role-specific KPIs and pain points for deep personalisation
+  const roleKPIs = getRoleKPIs(input.contactRoleBucket);
+  const roleContext = `
+ROLE-SPECIFIC PERSONALISATION (CRITICAL — this is what makes the email resonate):
+The recipient is a "${input.contactRoleBucket}" persona. Their key KPIs are:
+${roleKPIs.kpis.map((k, i) => `  ${i + 1}. ${k}`).join("\n")}
+
+Their typical pain points are:
+${roleKPIs.painPoints.map((p, i) => `  ${i + 1}. ${p}`).join("\n")}
+
+Messaging strategy: ${roleKPIs.messagingAngle}
+
+You MUST weave at least 2 of their KPIs or pain points into the email body naturally.
+Do NOT list KPIs — instead, demonstrate understanding of their world.
+For example, if they are a Procurement Manager, don't say "we can help with TCO" — instead say
+"With ${input.projectName} moving into [stage], locking in a service agreement now could save
+15-20% on maintenance costs over the project lifecycle compared to ad-hoc call-outs."
+`;
+
   const prompt = `You are a sales email copywriter for Atlas Copco Power Technique. Generate a personalised outreach email.
 
 ${ATLAS_COPCO_PT_KNOWLEDGE}
@@ -114,6 +201,7 @@ RECIPIENT:
 - Title: ${input.contactTitle}
 - Company: ${input.contactCompany}
 - Role type: ${input.contactRoleBucket}
+${roleContext}
 
 PROJECT CONTEXT:
 - Project: ${input.projectName}
@@ -131,15 +219,16 @@ SENDER: ${input.senderName}${input.senderCompany ? ` from ${input.senderCompany}
 TONE: ${toneGuide[input.tone]}
 
 RULES:
-1. The email must feel personalised — reference the specific project by name and the recipient's role
-2. Lead with value for THEIR project, not a product pitch
+1. The email MUST feel deeply personalised — reference the specific project by name, the recipient's role, and at least 2 of their role-specific KPIs or pain points
+2. Lead with value for THEIR project, not a product pitch — show you understand what keeps them up at night
 3. Reference specific Atlas Copco PT products/solutions that match the project needs
 4. Include a clear, low-commitment call-to-action (e.g., "Would a 15-minute call this week work?" or "Happy to share a site assessment")
 5. Keep the email concise — 3-4 short paragraphs maximum
-6. Do NOT use generic phrases like "I hope this email finds you well"
+6. Do NOT use generic phrases like "I hope this email finds you well" or "I wanted to reach out"
 7. Do NOT include [placeholder] brackets — use real product names and specific details
 8. Sign off with just the sender's first name
 9. The subject line should reference the project name and be compelling
+10. The opening line should hook them by referencing something specific about their project or role — NOT a self-introduction
 
 Return your response as JSON with this exact structure:
 {
