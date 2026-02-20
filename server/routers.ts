@@ -50,6 +50,10 @@ import {
 } from "./emailAuth";
 import { notifyOwner } from "./_core/notification";
 import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOutreachHistory, getContactedContactList, getOutreachLeaderboard } from "./outreachEmail";
+import {
+  createTemplate, listTemplates, getTemplateById, updateTemplate,
+  deleteTemplate, incrementTemplateUsage, personaliseTemplate, getTemplateStats,
+} from "./outreachTemplates";
 import { sendWeeklyDigests } from "./emailDigest";
 import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
 import { searchProjects } from "./aiProjectMatcher";
@@ -1667,6 +1671,115 @@ export const appRouter = router({
     /** Recompute weights from all historical feedback */
     recompute: protectedProcedure.mutation(async ({ ctx }) => {
       return recomputeAllWeights(ctx.user.id);
+    }),
+  }),
+
+  // ── Outreach Template Library ──
+  templates: router({
+    /** Create a new outreach template */
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(256),
+        description: z.string().max(512).optional(),
+        subject: z.string().min(1).max(512),
+        body: z.string().min(1),
+        tone: z.enum(["professional", "consultative", "direct"]),
+        roleBucket: z.string().max(128).optional(),
+        sector: z.string().max(128).optional(),
+        tags: z.array(z.string()).optional(),
+        isShared: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return createTemplate({
+          ...input,
+          createdBy: ctx.user.id,
+          createdByName: ctx.user.name || undefined,
+        });
+      }),
+
+    /** List templates with optional filters */
+    list: protectedProcedure
+      .input(z.object({
+        roleBucket: z.string().optional(),
+        sector: z.string().optional(),
+        tone: z.string().optional(),
+        search: z.string().optional(),
+        myOnly: z.boolean().optional(),
+      }).optional())
+      .query(async ({ ctx, input }) => {
+        return listTemplates({
+          roleBucket: input?.roleBucket,
+          sector: input?.sector,
+          tone: input?.tone,
+          search: input?.search,
+          createdBy: input?.myOnly ? ctx.user.id : undefined,
+          sharedOnly: !input?.myOnly,
+        });
+      }),
+
+    /** Get a single template by ID */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getTemplateById(input.id);
+      }),
+
+    /** Update a template (only creator can update) */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(256).optional(),
+        description: z.string().max(512).optional(),
+        subject: z.string().min(1).max(512).optional(),
+        body: z.string().min(1).optional(),
+        tone: z.enum(["professional", "consultative", "direct"]).optional(),
+        roleBucket: z.string().max(128).optional(),
+        sector: z.string().max(128).optional(),
+        tags: z.array(z.string()).optional(),
+        isShared: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const template = await getTemplateById(input.id);
+        if (!template) throw new Error("Template not found");
+        if (template.createdBy !== ctx.user.id) throw new Error("Only the template creator can edit it");
+        return updateTemplate(input);
+      }),
+
+    /** Delete a template (only creator can delete) */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        return deleteTemplate(input.id, ctx.user.id);
+      }),
+
+    /** Apply a template to a new contact with AI personalisation */
+    personalise: protectedProcedure
+      .input(z.object({
+        templateId: z.number(),
+        contactName: z.string(),
+        contactTitle: z.string(),
+        contactCompany: z.string(),
+        contactEmail: z.string(),
+        contactRoleBucket: z.string(),
+        projectName: z.string(),
+        projectLocation: z.string(),
+        projectValue: z.string(),
+        projectSector: z.string(),
+        projectStage: z.string().nullable(),
+        projectOverview: z.string().nullable(),
+        equipmentSignals: z.array(z.string()).nullable(),
+        matchedBusinessLines: z.array(z.string()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return personaliseTemplate({
+          ...input,
+          senderName: ctx.user.name || "Team",
+        });
+      }),
+
+    /** Get template library stats */
+    stats: protectedProcedure.query(async () => {
+      return getTemplateStats();
     }),
   }),
 });

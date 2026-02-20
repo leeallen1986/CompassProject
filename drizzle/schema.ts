@@ -442,3 +442,29 @@ export const apolloCreditLog = mysqlTable("apolloCreditLog", {
 
 export type ApolloCreditLogRow = typeof apolloCreditLog.$inferSelect;
 export type InsertApolloCreditLog = typeof apolloCreditLog.$inferInsert;
+
+/**
+ * Outreach email templates — reusable email templates saved by sales reps.
+ * Templates can be filtered by role bucket, sector, tone, and tags.
+ * Usage count tracks popularity for sorting.
+ */
+export const outreachTemplates = mysqlTable("outreachTemplates", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 256 }).notNull(),
+  description: varchar("description", { length: 512 }),
+  subject: varchar("subject", { length: 512 }).notNull(),
+  body: text("body").notNull(),
+  tone: mysqlEnum("tone", ["professional", "consultative", "direct"]).notNull(),
+  roleBucket: varchar("roleBucket", { length: 128 }),
+  sector: varchar("sector", { length: 128 }),
+  tags: json("tags").$type<string[]>(),
+  usageCount: int("usageCount").notNull().default(0),
+  createdBy: int("createdBy").notNull(),
+  createdByName: varchar("createdByName", { length: 256 }),
+  isShared: boolean("isShared").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OutreachTemplate = typeof outreachTemplates.$inferSelect;
+export type InsertOutreachTemplate = typeof outreachTemplates.$inferInsert;

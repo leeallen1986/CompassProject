@@ -345,3 +345,12 @@
 - [x] Added inferRoleBucketFromTitle helper for Find Contacts results (maps job title to role bucket for KPI personalisation)
 - [x] Write vitest tests for role-KPI outreach personalisation (12 tests: all 8 role types, unknown role fallback, partial match, mixed casing, hyphenated roles)
 - [x] All 574 tests passing
+- [x] Build outreach email template library
+- [x] Database schema for outreach templates (name, subject, body, tone, roleBucket, sector, tags, usageCount, createdBy, isShared)
+- [x] tRPC endpoints: create, list, getById, update, delete, personalise, stats (7 endpoints)
+- [x] "Save as Template" button on OutreachEmailModal — inline form with name, description, tags, share toggle
+- [x] Template browser UI: collapsible picker in OutreachEmailModal, filtered by contact's roleBucket, shows usage count and tone badges
+- [x] "Use Template" flow: select template → AI auto-personalises with contact/project details via LLM → preview → send
+- [x] Template usage tracking (incrementTemplateUsage on each personalise call)
+- [x] Write vitest tests for template library (20 tests: schema validation, CRUD functions, filter interfaces, personalise input, tone values, stats structure)
+- [x] All 596 tests passing
