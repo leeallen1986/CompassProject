@@ -53,6 +53,11 @@ import { generateOutreachEmail, saveOutreachEmail, getOutreachHistory, getUserOu
 import { sendWeeklyDigests } from "./emailDigest";
 import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
 import { searchProjects } from "./aiProjectMatcher";
+import {
+  apolloPeopleSearch, enrichSingleContact, enrichProjectContacts,
+  revealContactEmail, validateApolloApiKey, inferDomain,
+  type ApolloEnrichmentResult, type ApolloSearchResult,
+} from "./apolloEnrichment";
 import { getDb } from "./db";
 import { projects, contacts } from "../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
@@ -1120,6 +1125,183 @@ export const appRouter = router({
           throw err;
         }
       }),
+
+    /** Apollo People Search — FREE, no credits. Returns obfuscated contacts. */
+    apolloSearch: protectedProcedure
+      .input(z.object({
+        companyDomain: z.string().optional(),
+        companyName: z.string().optional(),
+        personTitles: z.array(z.string()).optional(),
+        organizationLocations: z.array(z.string()).optional(),
+        keywords: z.string().optional(),
+        page: z.number().optional(),
+        perPage: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        // Infer domain from company name if not provided
+        let domain = input.companyDomain;
+        if (!domain && input.companyName) {
+          domain = inferDomain(input.companyName) ?? undefined;
+        }
+
+        const result = await apolloPeopleSearch({
+          organizationDomains: domain ? [domain] : undefined,
+          personTitles: input.personTitles,
+          organizationLocations: input.organizationLocations ?? ["australia"],
+          keywords: input.keywords,
+          page: input.page ?? 1,
+          perPage: input.perPage ?? 25,
+        });
+
+        return {
+          people: result.people.map(p => ({
+            apolloId: p.id,
+            firstName: p.first_name,
+            lastNameObfuscated: p.last_name_obfuscated,
+            title: p.title,
+            company: p.organization?.name || input.companyName || "Unknown",
+            hasEmail: p.has_email,
+            hasCity: p.has_city,
+            hasState: p.has_state,
+            hasCountry: p.has_country,
+          })),
+          totalFound: result.total_entries,
+          creditsUsed: 0, // People Search is free
+        };
+      }),
+
+    /** Apollo Reveal Contact — costs 1 Apollo credit. Returns full name, email, LinkedIn. */
+    apolloReveal: protectedProcedure
+      .input(z.object({
+        apolloId: z.string(),
+        firstName: z.string(),
+        lastNameObfuscated: z.string().optional(),
+        title: z.string(),
+        company: z.string(),
+        projectId: z.number().optional(), // Link to a project if applicable
+        reportId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const person: ApolloEnrichmentResult = {
+          contactId: 0,
+          apolloId: input.apolloId,
+          name: `${input.firstName} ${input.lastNameObfuscated || ""}`.trim(),
+          firstName: input.firstName,
+          lastNameObfuscated: input.lastNameObfuscated,
+          title: input.title,
+          company: input.company,
+          email: null,
+          emailStatus: null,
+          linkedinUrl: null,
+          photoUrl: null,
+          city: null,
+          state: null,
+          country: null,
+          seniority: null,
+          hasEmail: true,
+          status: "found",
+        };
+
+        const enriched = await enrichSingleContact(person);
+
+        // If enrichment succeeded and we have a project, save to DB
+        if (enriched.status === "enriched" && input.projectId) {
+          const db = await getDb();
+          if (db) {
+            // Check for duplicates
+            const existing = await db
+              .select({ id: contacts.id })
+              .from(contacts)
+              .where(
+                sql`LOWER(${contacts.name}) = LOWER(${enriched.name}) AND LOWER(${contacts.company}) = LOWER(${input.company})`
+              )
+              .limit(1);
+
+            if (existing.length === 0) {
+              // Get project name
+              const [project] = await db
+                .select({ name: projects.name })
+                .from(projects)
+                .where(eq(projects.id, input.projectId))
+                .limit(1);
+
+              await db.insert(contacts).values({
+                reportId: input.reportId ?? 0,
+                name: enriched.name,
+                title: enriched.title,
+                company: input.company,
+                project: project?.name || "Unknown",
+                priority: "warm",
+                roleBucket: "other",
+                email: enriched.email,
+                linkedin: enriched.linkedinUrl,
+                enrichmentStatus: "enriched",
+                enrichmentSource: "apollo",
+                enrichedAt: new Date(),
+                linkedinHeadline: enriched.title,
+                linkedinLocation: [enriched.city, enriched.state, enriched.country].filter(Boolean).join(", ") || null,
+                linkedinProfilePic: enriched.photoUrl,
+                verificationStatus: enriched.emailStatus === "verified" ? "verified" : "unverified",
+                verificationScore: enriched.emailStatus === "verified" ? 95 : 50,
+                emailVerified: enriched.emailStatus === "verified",
+              });
+            }
+          }
+        }
+
+        return {
+          apolloId: enriched.apolloId,
+          name: enriched.name,
+          title: enriched.title,
+          company: enriched.company,
+          email: enriched.email,
+          emailStatus: enriched.emailStatus,
+          linkedinUrl: enriched.linkedinUrl,
+          photoUrl: enriched.photoUrl,
+          city: enriched.city,
+          state: enriched.state,
+          country: enriched.country,
+          seniority: enriched.seniority,
+          status: enriched.status,
+          creditsUsed: enriched.status === "enriched" ? 1 : 0,
+        };
+      }),
+
+    /** Apollo Enrich Project — search + reveal all contacts for a project */
+    apolloEnrichProject: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        reportId: z.number().optional(),
+        targetTitles: z.array(z.string()).optional(),
+        maxPerCompany: z.number().optional(),
+        enrichEmails: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await enrichProjectContacts(
+          input.projectId,
+          input.reportId ?? 0,
+          {
+            targetTitles: input.targetTitles,
+            maxPerCompany: input.maxPerCompany,
+            enrichEmails: input.enrichEmails,
+          }
+        );
+        return result;
+      }),
+
+    /** Apollo Reveal Email for existing contact — costs 1 Apollo credit */
+    apolloRevealEmail: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input }) => {
+        const result = await revealContactEmail(input.contactId);
+        return result;
+      }),
+
+    /** Validate Apollo API key status */
+    apolloStatus: adminProcedure.query(async () => {
+      const result = await validateApolloApiKey();
+      return result;
+    }),
 
     /** Get recent articles */
     recentArticles: protectedProcedure

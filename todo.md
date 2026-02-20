@@ -307,3 +307,15 @@
 - [x] Improved RSS harvester: browser-like User-Agent, redirect following, XML validation, cleaner error messages
 - [x] Updated seed defaults to only include verified working feeds (34 active, 0 errors)
 - [x] All 544 tests passing
+- [x] Clean out existing AI-generated contacts from database — purged 441 LLM/unverified contacts, kept 56 LinkedIn-verified
+- [x] Research Apollo.io API endpoints (People Search api_search, People Enrichment, Organization Enrichment)
+- [x] Set up Apollo Master API key as environment secret (APOLLO_API_KEY)
+- [x] Build Apollo.io enrichment service (server/apolloEnrichment.ts) — search, reveal, enrich, validate
+- [x] Add 'apollo' to enrichmentSource enum in schema, pushed migration
+- [x] Build 5 tRPC endpoints: apolloSearch (free), apolloReveal (1 credit), apolloEnrichProject (bulk), apolloRevealEmail, apolloStatus
+- [x] Build ApolloContactSearch frontend component — search 275M+ contacts, quick title filters, reveal with 1 credit
+- [x] Integrated into Contacts tab above existing contacts table
+- [x] No phone numbers pulled per user request — emails, names, titles, LinkedIn only
+- [x] Write vitest tests for Apollo enrichment service (4 tests: API key validation, people search, empty results, enrichment)
+- [x] Write vitest tests for Apollo tRPC route logic (6 tests: search, empty results, domain inference, API key validation, enrichment)
+- [x] All 554 tests passing

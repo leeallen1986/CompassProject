@@ -1,0 +1,30 @@
+{
+  "query": "SELECT enrichmentSource, verificationStatus, COUNT(*) as cnt FROM contacts GROUP BY enrichmentSource, verificationStatus ORDER BY enrichmentSource, verificationStatus;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT enrichmentSource, verificationStatus, COUNT(*) as cnt FROM contacts GROUP BY enrichmentSource, verificationStatus ORDER BY enrichmentSource, verificationStatus;",
+  "rows": [
+    {
+      "enrichmentSource": "linkedin",
+      "verificationStatus": "verified",
+      "cnt": "56"
+    },
+    {
+      "enrichmentSource": "linkedin",
+      "verificationStatus": "unverified",
+      "cnt": "117"
+    },
+    {
+      "enrichmentSource": "llm",
+      "verificationStatus": "ai_suggested",
+      "cnt": "322"
+    },
+    {
+      "enrichmentSource": "llm",
+      "verificationStatus": "unverified",
+      "cnt": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\tverificationStatus\tcnt\nlinkedin\tverified\t56\nlinkedin\tunverified\t117\nllm\tai_suggested\t322\nllm\tunverified\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1580
+}

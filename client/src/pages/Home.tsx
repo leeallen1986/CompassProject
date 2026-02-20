@@ -23,6 +23,7 @@ import { IMAGES } from "@/lib/images";
 import { scoreAndRankProjects, locationMatchesTerritory, type UserProfileData, type FeedbackData } from "@/lib/personalization";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import AIProjectSearch from "@/components/AIProjectSearch";
+import ApolloContactSearch from "@/components/ApolloContactSearch";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -1213,6 +1214,10 @@ export default function Home() {
               <h2 className="text-lg font-bold text-navy">Contact Database</h2>
               <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold-dark text-xs font-bold">{territoryFilteredContacts.length} contacts</span>
             </div>
+
+            {/* Apollo Contact Search — search 275M+ contacts, reveal with 1 credit */}
+            <ApolloContactSearch />
+
             <ContactsTable data={territoryFilteredContacts as ContactRow[]} weekEnding={report.weekEnding} projects={territoryFiltered as ProjectData[]} businessLineNames={businessLineNamesMap} preferredBuyerRoles={profileData?.buyerRoles ?? []} />
           </TabsContent>
 
