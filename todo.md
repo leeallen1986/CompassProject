@@ -329,3 +329,4 @@
 - [x] Verify weekly mega-scrape includes all 6 scrapers: AusTender, ICN Gateway, Gov Major Projects, AEMO, DMIRS, Projectory — confirmed all present
 - [x] Update seed defaults to only include 32 verified working feeds (removed Mining.com duplicate, Mining Journal, ASPI Strategist)
 - [x] All 554 tests passing
+- [x] Update Sources & Methodology section to reflect real current state: 32 active RSS feeds, all 8 data sources (RSS, Projectory, DMIRS, AEMO, Gov Major Projects, AusTender, ICN Gateway, Apollo.io), correct schedules, Apollo.io enrichment (replaced LinkedIn)

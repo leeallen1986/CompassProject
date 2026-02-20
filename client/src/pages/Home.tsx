@@ -1250,10 +1250,14 @@ export default function Home() {
                   </thead>
                   <tbody>
                     {[
-                      { source: "RSS Feed Pipeline", type: "18+ Industry Feeds", schedule: "Daily (06:00 UTC)", coverage: "Mining, Energy, Infrastructure, Defence", credits: "~50/day cap" },
-                      { source: "Projectory", type: "Web Scraper", schedule: "Weekly (Mondays)", coverage: "Resources, Infrastructure, Construction, Energy, Industrial, Defence", credits: "None" },
-                      { source: "DMIRS MINEDEX", type: "Government API", schedule: "Weekly (Wednesdays)", coverage: "WA Mining Proposals & Approvals", credits: "None" },
-                      { source: "LinkedIn People Search", type: "Contact Enrichment", schedule: "On new projects", coverage: "Contact verification & enrichment (30-day cache)", credits: "500 lookups/day" },
+                      { source: "RSS Feed Pipeline", type: "32 Industry Feeds", schedule: "Daily (06:00 UTC) + Sunday Mega-Scrape (9pm AWST)", coverage: "Mining, Energy, Oil & Gas, Infrastructure, Defence, Construction, Renewables, ASX", credits: "~100/day cap" },
+                      { source: "Projectory Australia", type: "Web Scraper", schedule: "Weekly (Mondays) + Sunday Mega-Scrape", coverage: "Resources, Infrastructure, Construction, Energy, Industrial, Defence", credits: "None" },
+                      { source: "DMIRS MINEDEX", type: "Government API", schedule: "Weekly (Wednesdays) + Sunday Mega-Scrape", coverage: "WA Mining Proposals & Approvals", credits: "None" },
+                      { source: "AEMO Generation Info", type: "Government Data", schedule: "Weekly (Fridays) + Sunday Mega-Scrape", coverage: "BESS, Pumped Hydro, Gas Peaker & Power Generation (NEM)", credits: "None" },
+                      { source: "Gov Major Projects", type: "Government Data", schedule: "Weekly (Tuesdays) + Sunday Mega-Scrape", coverage: "Infrastructure Australia + NREPL: Transport, Water, Energy, Defence", credits: "None" },
+                      { source: "AusTender OCDS", type: "Government API", schedule: "Weekly (Thursdays) + Sunday Mega-Scrape", coverage: "Federal Contracts >$1M: Construction, Mining, Energy, Water, Defence", credits: "None" },
+                      { source: "ICN Gateway", type: "Industry Portal", schedule: "Weekly (Saturdays) + Sunday Mega-Scrape", coverage: "Major Projects with Open Work Packages: Defence, Mining, Transport, Energy", credits: "None" },
+                      { source: "Apollo.io People Search", type: "Contact Enrichment", schedule: "On-demand (per project)", coverage: "275M+ contacts — verified emails, titles, LinkedIn (no phone numbers)", credits: "1 credit/reveal" },
                     ].map((row, i) => (
                       <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"}`}>
                         <td className="px-4 py-3 font-semibold text-navy">{row.source}</td>
@@ -1293,7 +1297,7 @@ export default function Home() {
 
             <div className="bg-gold/8 border border-gold/25 rounded-lg p-4">
               <p className="text-sm text-foreground/80">
-                <strong className="text-navy">Methodology Note:</strong> All CAPEX grades are evidence-based. Contractor predictions include confidence scores and are clearly labelled. Contact information is enriched via LinkedIn but requires verification before outreach.
+                <strong className="text-navy">Methodology Note:</strong> All CAPEX grades are evidence-based. Contractor predictions include confidence scores and are clearly labelled. Contact information is enriched via Apollo.io (275M+ database) with verified business emails. AI-generated contacts are clearly marked and require verification before outreach. Every Sunday at 9pm AWST, a full mega-scrape runs all 8 pipeline stages across all sources.
               </p>
             </div>
           </TabsContent>
@@ -1305,7 +1309,7 @@ export default function Home() {
         <div className="container text-center">
           <p className="text-xs font-medium text-gold mb-1">Powered by Multi-Source Intelligence Pipeline</p>
           <p className="text-xs">Atlas Copco Power Technique — Market Intelligence Dashboard</p>
-          <p className="text-xs mt-1">Data sourced from RSS feeds, Projectory, DMIRS MINEDEX, ASX releases, and industry publications. Ranked by your preferences.</p>
+          <p className="text-xs mt-1">Data sourced from 32 RSS feeds, Projectory, DMIRS MINEDEX, AEMO, AusTender, ICN Gateway, Gov Major Projects, and Apollo.io. Ranked by your preferences.</p>
         </div>
       </footer>
     </div>
