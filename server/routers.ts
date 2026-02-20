@@ -846,7 +846,7 @@ export const appRouter = router({
     enrichProject: protectedProcedure
       .input(z.object({
         projectId: z.number(),
-        forceRefresh: z.boolean().optional(), // Allow user to force re-enrichment
+        forceRefresh: z.boolean().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
@@ -856,7 +856,6 @@ export const appRouter = router({
         if (!input.forceRefresh) {
           const cache = await getProjectEnrichmentCache(input.projectId);
           if (cache.cached) {
-            // Return existing contacts from DB instead of re-searching
             const existingContacts = await db
               .select()
               .from(contacts)
@@ -870,11 +869,14 @@ export const appRouter = router({
               fromCache: true,
               cachedAt: cache.enrichedAt,
               apiCallsSaved: cache.apiCallsMade ?? 0,
+              source: "cache" as const,
               contacts: existingContacts.map(c => ({
                 name: c.name,
                 status: c.enrichmentStatus || "enriched",
                 headline: c.linkedinHeadline || c.title,
                 linkedinUrl: c.linkedin ?? undefined,
+                email: c.email ?? undefined,
+                enrichmentSource: c.enrichmentSource ?? undefined,
               })),
             };
           }
@@ -897,10 +899,60 @@ export const appRouter = router({
           ? (project.contractors as { name: string; status: string }[])
           : [];
 
-        // Run enrichment with profile-aware roles and caching
-        // Strategy: Try LinkedIn first, auto-fallback to LLM if quota exhausted
+        // ── Strategy: Apollo first → LinkedIn fallback → LLM fallback ──
+
+        // Step 1: Try Apollo (primary source)
+        let apolloResults: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string; enrichmentSource?: string }[] = [];
+        let apolloFailed = false;
+
+        try {
+          const apolloResult = await enrichProjectContacts(
+            project.id,
+            project.reportId,
+            {
+              targetTitles: preferredRoles && preferredRoles.length > 0
+                ? preferredRoles.map(r => r.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()))
+                : undefined,
+              maxPerCompany: 5,
+              enrichEmails: true,
+            }
+          );
+
+          apolloResults = apolloResult.people
+            .filter(p => p.status === "enriched" || p.status === "found")
+            .map(p => ({
+              name: p.name,
+              status: p.status,
+              headline: p.title,
+              linkedinUrl: p.linkedinUrl ?? undefined,
+              email: p.email ?? undefined,
+              enrichmentSource: "apollo",
+            }));
+
+          console.log(`[enrichProject] Apollo found ${apolloResults.length} contacts for project ${project.id}`);
+        } catch (apolloErr: unknown) {
+          apolloFailed = true;
+          const msg = apolloErr instanceof Error ? apolloErr.message : String(apolloErr);
+          console.error(`[enrichProject] Apollo failed for project ${project.id}: ${msg}`);
+        }
+
+        // If Apollo returned contacts, return them
+        if (apolloResults.length > 0) {
+          return {
+            projectId: project.id,
+            projectName: project.name,
+            contactsFound: apolloResults.length,
+            fromCache: false,
+            quotaExhausted: false,
+            llmFallback: false,
+            source: "apollo" as const,
+            contacts: apolloResults,
+          };
+        }
+
+        // Step 2: Apollo returned 0 or failed — try LinkedIn fallback
+        let linkedInResults: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string; enrichmentSource?: string }[] = [];
         let linkedInQuotaExhausted = false;
-        let linkedInResults: { name: string; status: string; headline?: string; linkedinUrl?: string }[] = [];
 
         try {
           const results = await generateAndEnrichContacts(
@@ -922,18 +974,20 @@ export const appRouter = router({
             status: r.status,
             headline: r.headline,
             linkedinUrl: r.linkedinUrl,
+            enrichmentSource: "linkedin",
           }));
+
+          console.log(`[enrichProject] LinkedIn found ${linkedInResults.length} contacts for project ${project.id}`);
         } catch (enrichErr: unknown) {
           const msg = enrichErr instanceof Error ? enrichErr.message : String(enrichErr);
           if (msg.includes('usage exhausted') || msg.includes('quota')) {
             linkedInQuotaExhausted = true;
-            console.log(`[enrichProject] LinkedIn quota exhausted for project ${project.id}, falling back to LLM`);
+            console.log(`[enrichProject] LinkedIn quota exhausted for project ${project.id}`);
           } else {
-            throw enrichErr;
+            console.error(`[enrichProject] LinkedIn failed: ${msg}`);
           }
         }
 
-        // If LinkedIn returned contacts, return them
         if (linkedInResults.length > 0) {
           return {
             projectId: project.id,
@@ -942,51 +996,51 @@ export const appRouter = router({
             fromCache: false,
             quotaExhausted: false,
             llmFallback: false,
+            source: "linkedin" as const,
             contacts: linkedInResults,
           };
         }
 
-        // LinkedIn returned 0 contacts (quota exhausted or no results) — try LLM fallback
-        if (linkedInQuotaExhausted || linkedInResults.length === 0) {
-          try {
-            const llmResult = await generateAndSaveLLMContacts(
-              project.id,
-              project.reportId,
-              project.name,
-              project.owner || "Unknown",
-              contractorsList,
-              project.sector || "infrastructure",
-              project.value || "Unknown",
-              project.location || "Australia",
-              project.stage || undefined,
-              preferredRoles,
-            );
+        // Step 3: Both Apollo and LinkedIn failed — try LLM fallback
+        try {
+          const llmResult = await generateAndSaveLLMContacts(
+            project.id,
+            project.reportId,
+            project.name,
+            project.owner || "Unknown",
+            contractorsList,
+            project.sector || "infrastructure",
+            project.value || "Unknown",
+            project.location || "Australia",
+            project.stage || undefined,
+            preferredRoles,
+          );
 
-            if (llmResult.contactsGenerated > 0) {
-              return {
-                projectId: project.id,
-                projectName: project.name,
-                contactsFound: llmResult.contactsGenerated,
-                fromCache: false,
-                quotaExhausted: linkedInQuotaExhausted,
-                llmFallback: true,
-                llmNote: llmResult.note,
-                contacts: llmResult.contacts.map(c => ({
-                  name: c.name,
-                  status: "enriched" as const,
-                  headline: c.title,
-                  linkedinUrl: undefined,
-                  source: "llm" as const,
-                  confidence: c.confidence,
-                })),
-              };
-            }
-          } catch (llmErr) {
-            console.error(`[enrichProject] LLM fallback also failed:`, llmErr instanceof Error ? llmErr.message : String(llmErr));
+          if (llmResult.contactsGenerated > 0) {
+            return {
+              projectId: project.id,
+              projectName: project.name,
+              contactsFound: llmResult.contactsGenerated,
+              fromCache: false,
+              quotaExhausted: linkedInQuotaExhausted,
+              llmFallback: true,
+              llmNote: llmResult.note,
+              source: "llm" as const,
+              contacts: llmResult.contacts.map(c => ({
+                name: c.name,
+                status: "enriched" as const,
+                headline: c.title,
+                linkedinUrl: undefined,
+                source: "llm" as const,
+                confidence: c.confidence,
+              })),
+            };
           }
+        } catch (llmErr) {
+          console.error(`[enrichProject] LLM fallback also failed:`, llmErr instanceof Error ? llmErr.message : String(llmErr));
         }
 
-        // Both LinkedIn and LLM failed — return existing contacts if any
+        // All three sources failed — return existing contacts if any
         const existingContacts = await db
           .select()
           .from(contacts)
@@ -1000,11 +1054,14 @@ export const appRouter = router({
           fromCache: false,
           quotaExhausted: linkedInQuotaExhausted,
           llmFallback: false,
+          source: "existing" as const,
           contacts: existingContacts.map(c => ({
             name: c.name,
             status: c.enrichmentStatus || "enriched",
             headline: c.linkedinHeadline || c.title,
             linkedinUrl: c.linkedin ?? undefined,
+            email: c.email ?? undefined,
+            enrichmentSource: c.enrichmentSource ?? undefined,
           })),
         };
       }),

@@ -320,8 +320,8 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
   const enrichMutation = trpc.dataPipeline.enrichProject.useMutation({
     onSuccess: (data) => {
       if ((data as any).quotaExhausted) {
-        toast.warning("LinkedIn API quota temporarily exhausted", {
-          description: "The daily LinkedIn search quota has been reached. Please try again tomorrow when the quota resets. Any existing contacts are still shown below.",
+        toast.warning("API quota temporarily exhausted", {
+          description: "The daily search quota has been reached. Please try again tomorrow when the quota resets. Any existing contacts are still shown below.",
           duration: 10000,
         });
       } else if (data.fromCache) {
@@ -331,7 +331,7 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
         });
       } else if (data.contactsFound === 0) {
         toast.info(`No new contacts found for ${data.projectName || projectName}.`, {
-          description: "No matching LinkedIn profiles were found for this project's companies and roles. Try again later or adjust your preferred buyer roles in Settings.",
+          description: "No matching contacts were found for this project's companies and roles. Try again later or adjust your preferred buyer roles in Settings.",
           duration: 6000,
         });
       } else {
@@ -380,7 +380,7 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
             </p>
           ) : (
             <p className="text-[11px] text-muted-foreground mt-1">
-              Search LinkedIn for decision makers based on your preferred buyer roles. Takes 10–30 seconds.
+              Search Apollo for decision makers at this project's companies. Takes 10–30 seconds.
             </p>
           )}
         </div>
@@ -389,15 +389,15 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                toast.info(`Re-searching LinkedIn for contacts on ${projectName}...`, {
-                  description: "Forcing a fresh search. This uses API credits and may take 10–30 seconds.",
+                toast.info(`Re-searching Apollo for contacts on ${projectName}...`, {
+                  description: "Forcing a fresh search. This uses Apollo credits and may take 10–30 seconds.",
                   duration: 5000,
                 });
                 enrichMutation.mutate({ projectId, forceRefresh: true });
               }}
               disabled={enrichMutation.isPending}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors disabled:opacity-50 disabled:cursor-wait"
-              title="Force a fresh LinkedIn search (uses API credits)"
+              title="Force a fresh Apollo search (uses API credits)"
             >
               Refresh
             </button>
@@ -406,8 +406,8 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
             onClick={(e) => {
               e.stopPropagation();
               if (!isCached) {
-                toast.info(`Searching LinkedIn for contacts on ${projectName}...`, {
-                  description: "Searching based on your preferred buyer roles. This may take 10–30 seconds.",
+                toast.info(`Searching Apollo for contacts on ${projectName}...`, {
+                  description: "Searching Apollo's 275M+ contact database. This may take 10–30 seconds.",
                   duration: 5000,
                 });
               }
@@ -429,21 +429,33 @@ function EnrichProjectButton({ projectId, projectName }: { projectId: number; pr
       {enrichMutation.isPending && (
         <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground bg-teal/5 rounded-md px-3 py-2 border border-teal/10">
           <Loader2 className="w-3 h-3 animate-spin text-teal" />
-          Searching LinkedIn for contacts matching your preferred buyer roles...
+          Searching Apollo for contacts matching your preferred buyer roles...
         </div>
       )}
       {enrichMutation.isSuccess && enrichMutation.data.contactsFound > 0 && !enrichMutation.data.fromCache && (
         <div className="mt-2 space-y-1">
-          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string }, i: number) => (
+          {(enrichMutation.data as any).source && (
+            <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-semibold">
+              Source: {(enrichMutation.data as any).source === "apollo" ? "Apollo.io" : (enrichMutation.data as any).source === "linkedin" ? "LinkedIn" : (enrichMutation.data as any).source === "llm" ? "AI Generated" : "Database"}
+            </div>
+          )}
+          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string }, i: number) => (
             <div key={i} className="flex items-center gap-2 text-xs bg-teal/5 rounded-md px-3 py-1.5 border border-teal/10">
               <User className="w-3 h-3 text-teal shrink-0" />
               <span className="font-medium text-navy">{c.name}</span>
               {c.headline && <span className="text-muted-foreground">— {c.headline}</span>}
-              {c.linkedinUrl && (
-                <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+              <div className="ml-auto flex items-center gap-2">
+                {c.email && (
+                  <a href={`mailto:${c.email}`} className="text-[10px] font-semibold bg-teal/15 text-teal px-1.5 py-0.5 rounded hover:bg-teal/25 transition-colors" onClick={e => e.stopPropagation()}>
+                    Email
+                  </a>
+                )}
+                {c.linkedinUrl && (
+                  <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>

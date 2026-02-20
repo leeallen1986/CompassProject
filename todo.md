@@ -319,3 +319,9 @@
 - [x] Write vitest tests for Apollo enrichment service (4 tests: API key validation, people search, empty results, enrichment)
 - [x] Write vitest tests for Apollo tRPC route logic (6 tests: search, empty results, domain inference, API key validation, enrichment)
 - [x] All 554 tests passing
+- [x] Rewire "Find Contacts" button on project cards to use Apollo.io instead of LinkedIn API
+- [x] Auto-search Apollo for the project's contractor/operator when clicking Find Contacts
+- [x] Show Apollo search results inline on the project card with email + LinkedIn links
+- [x] Update enrichProject tRPC endpoint: Apollo primary → LinkedIn fallback → LLM fallback
+- [x] Updated ProjectCard UI: "Search Apollo" messaging, source label (Apollo.io/LinkedIn/AI), email buttons on inline results
+- [x] All 554 tests passing
