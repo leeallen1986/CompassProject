@@ -299,3 +299,11 @@
 - [x] Wire weekly scheduler into server startup (startWeeklyScheduler in _core/index.ts)
 - [x] Vitest tests for weekly pipeline (20 tests: all scrapers called, aggregation, error handling, scheduling logic, result types)
 - [x] All 544 tests passing
+- [x] Bug: Many RSS sources showing "Never" fetched with error counts (3, 6, 11 errors) — investigated and fixed
+- [x] Identify which feeds are failing and why (403, timeout, invalid XML, wrong URL) — parallel tested all 62 feeds
+- [x] Fix or replace broken feed URLs — corrected 8 URLs (Defence Connect, Energy News Bulletin, Rigzone, Mining Weekly, Renewables Now, Mining.com, Construction Equipment Guide)
+- [x] Deactivated 32 feeds with no RSS available (domain dead, paywalled, captcha-blocked, HTML-only)
+- [x] Added 3 replacement feeds: ABC News Business, ABC News Australia, Master Builders Australia
+- [x] Improved RSS harvester: browser-like User-Agent, redirect following, XML validation, cleaner error messages
+- [x] Updated seed defaults to only include verified working feeds (34 active, 0 errors)
+- [x] All 544 tests passing

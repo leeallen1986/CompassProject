@@ -1,0 +1,21 @@
+{
+  "query": "SELECT * FROM rssSources LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT * FROM rssSources LIMIT 1;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Australian Mining",
+      "feedUrl": "https://www.australianmining.com.au/feed/",
+      "category": "industry",
+      "isActive": "1",
+      "lastFetchedAt": "2026-02-20 01:24:22",
+      "lastFetchCount": "5",
+      "errorCount": "0",
+      "createdAt": "2026-02-11 08:45:57"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfeedUrl\tcategory\tisActive\tlastFetchedAt\tlastFetchCount\terrorCount\tcreatedAt\n1\tAustralian Mining\thttps://www.australianmining.com.au/feed/\tindustry\t1\t2026-02-20 01:24:22\t5\t0\t2026-02-11 08:45:57\n",
+  "stderr": "",
+  "execution_time_ms": 1536
+}

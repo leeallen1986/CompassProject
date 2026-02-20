@@ -145,13 +145,15 @@ export function matchKeywords(
 async function fetchFeed(source: RssSource): Promise<{ items: FeedItem[]; error?: string }> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
     const response = await fetch(source.feedUrl, {
       signal: controller.signal,
+      redirect: "follow",
       headers: {
-        "User-Agent": "AtlasCopcoIntelligence/1.0 (RSS Aggregator)",
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
       },
     });
     clearTimeout(timeout);
@@ -161,10 +163,21 @@ async function fetchFeed(source: RssSource): Promise<{ items: FeedItem[]; error?
     }
 
     const xml = await response.text();
+
+    // Verify we got XML, not an HTML page
+    const trimmed = xml.trim();
+    const isXml = trimmed.startsWith("<?xml") || trimmed.startsWith("<rss") || trimmed.startsWith("<feed") || trimmed.includes("<channel>");
+    if (!isXml && xml.length > 100) {
+      return { items: [], error: "Response is HTML, not RSS/Atom XML" };
+    }
+
     const items = parseRSSFeed(xml);
     return { items };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    // Provide cleaner error messages
+    if (message.includes("abort")) return { items: [], error: "Timeout (20s)" };
+    if (message.includes("fetch failed") || message.includes("ENOTFOUND")) return { items: [], error: "DNS/Connection failed" };
     return { items: [], error: message };
   }
 }

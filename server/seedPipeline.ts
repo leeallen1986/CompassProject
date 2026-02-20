@@ -85,94 +85,55 @@ const DEFAULT_BUSINESS_LINES = [
 ];
 
 const DEFAULT_RSS_SOURCES = [
-  // Industry Publications
+  // ── Mining & Resources ──
   { name: "Australian Mining", feedUrl: "https://www.australianmining.com.au/feed/", category: "industry" },
-  { name: "Mining Magazine", feedUrl: "https://www.miningmagazine.com/feed/", category: "industry" },
   { name: "International Mining", feedUrl: "https://im-mining.com/feed/", category: "industry" },
   { name: "Mining.com", feedUrl: "https://www.mining.com/feed/", category: "industry" },
   { name: "Mining Technology", feedUrl: "https://www.mining-technology.com/feed/", category: "industry" },
-  { name: "Energy News Bulletin", feedUrl: "https://www.energynewsbulletin.net/feed/", category: "industry" },
+  { name: "Mining Journal", feedUrl: "https://www.mining-journal.com/feed", category: "industry" },
+  { name: "Mining Weekly SA", feedUrl: "https://www.miningweekly.com/page/home/feed", category: "industry" },
+  { name: "Rigzone News", feedUrl: "https://www.rigzone.com/news/rss/rigzone_latest.aspx", category: "industry" },
 
-  // News Sources
-  { name: "Australian Financial Review - Companies", feedUrl: "https://www.afr.com/rss/companies", category: "news" },
+  // ── News Sources ──
   { name: "The Australian - Business", feedUrl: "https://www.theaustralian.com.au/business/rss", category: "news" },
-
-  // Infrastructure
-  { name: "Infrastructure Magazine", feedUrl: "https://infrastructuremagazine.com.au/feed/", category: "industry" },
-  { name: "Roads & Infrastructure", feedUrl: "https://roadsonline.com.au/feed/", category: "industry" },
-
-  // Energy & Renewables
-  { name: "Renew Economy", feedUrl: "https://reneweconomy.com.au/feed/", category: "industry" },
-  { name: "Energy Magazine", feedUrl: "https://www.energymagazine.com.au/feed/", category: "industry" },
-
-  // Oil & Gas
-  { name: "Energy News Australia", feedUrl: "https://www.energynewsaustralia.com/feed/", category: "industry" },
-
-  // BESS & Energy Storage
-  { name: "Energy Storage News", feedUrl: "https://www.energy-storage.news/feed/", category: "industry" },
-  { name: "Renewables Now", feedUrl: "https://renewablesnow.com/feed/", category: "industry" },
-
-  // Pumps & Water Management
-  { name: "Fluid Handling Magazine", feedUrl: "https://fluidhandlingmag.com/feed/", category: "industry" },
-  { name: "Pump Industry Australia", feedUrl: "https://www.pumpindustry.com.au/feed/", category: "industry" },
-  { name: "Water & Wastes Digest", feedUrl: "https://www.wwdmag.com/rss.xml", category: "industry" },
-  { name: "PM Magazine - Pumps", feedUrl: "https://www.pmmag.com/rss/topic/4293-pumps", category: "industry" },
-
-  // Construction Equipment & Power Generation
-  { name: "Construction Equipment Guide", feedUrl: "https://www.constructionequipmentguide.com/rss/news.xml", category: "industry" },
-  { name: "Diesel Progress", feedUrl: "https://dieselnet.com/rss.xml", category: "industry" },
-
-  // Pump & Dewatering Specific
-  { name: "World Pumps", feedUrl: "https://www.worldpumps.com/rss/", category: "industry" },
-  { name: "Pump Engineer", feedUrl: "https://www.pumpengineer.net/feed/", category: "industry" },
-  { name: "Australian Water Association", feedUrl: "https://www.awa.asn.au/feed/", category: "industry" },
-  { name: "Water Source", feedUrl: "https://watersource.awa.asn.au/feed/", category: "industry" },
-  { name: "Utility Magazine", feedUrl: "https://utilitymagazine.com.au/feed/", category: "industry" },
-
-  // Project Databases & Tenders
-  { name: "Projectory Australia", feedUrl: "https://www.projectory.com.au/rss.xml", category: "industry" },
-
-  // Government / Tenders
-  { name: "WA Government Media", feedUrl: "https://www.mediastatements.wa.gov.au/RSS", category: "government" },
-  { name: "QLD Government News", feedUrl: "https://statements.qld.gov.au/feed", category: "government" },
-
-  // ASX / Financial
-  { name: "Proactive Investors AU", feedUrl: "https://www.proactiveinvestors.com.au/pages/rss", category: "asx" },
+  { name: "ABC News - Business", feedUrl: "https://www.abc.net.au/news/feed/51120/rss.xml", category: "news" },
+  { name: "ABC News - Australia", feedUrl: "https://www.abc.net.au/news/feed/2942460/rss.xml", category: "news" },
   { name: "Small Caps", feedUrl: "https://smallcaps.com.au/feed/", category: "asx" },
   { name: "Stockhead", feedUrl: "https://stockhead.com.au/feed/", category: "asx" },
 
-  // Defence
-  { name: "Defence Connect", feedUrl: "https://www.defenceconnect.com.au/feed", category: "industry" },
-  { name: "ASPI Strategist", feedUrl: "https://www.aspistrategist.org.au/feed/", category: "industry" },
-
-  // Construction & Infrastructure (additional)
+  // ── Infrastructure & Construction ──
+  { name: "Infrastructure Magazine", feedUrl: "https://infrastructuremagazine.com.au/feed/", category: "industry" },
+  { name: "Roads & Infrastructure", feedUrl: "https://roadsonline.com.au/feed/", category: "industry" },
   { name: "Inside Construction", feedUrl: "https://insideconstruction.com.au/feed/", category: "industry" },
-  { name: "Build Australia", feedUrl: "https://buildaustralia.com.au/feed/", category: "industry" },
-  { name: "Sourceable", feedUrl: "https://sourceable.net/feed/", category: "industry" },
-  { name: "The Urban Developer", feedUrl: "https://theurbandeveloper.com/feed", category: "industry" },
+  { name: "Build Australia", feedUrl: "https://buildaustralia.com.au/feed/", category: "infrastructure" },
+  { name: "Sourceable", feedUrl: "https://sourceable.net/feed/", category: "infrastructure" },
   { name: "Quarry Magazine", feedUrl: "https://www.quarrymagazine.com/feed/", category: "industry" },
+  { name: "Construction Equipment Guide", feedUrl: "https://feeds.feedburner.com/ceg", category: "industry" },
+  { name: "Master Builders Australia", feedUrl: "https://www.masterbuilders.com.au/feed", category: "infrastructure" },
 
-  // Oil & Gas (additional)
-  { name: "Rigzone", feedUrl: "https://www.rigzone.com/news/rss/", category: "industry" },
-  { name: "Offshore Magazine", feedUrl: "https://www.offshore-mag.com/rss", category: "industry" },
-  { name: "Petroleum Australia", feedUrl: "https://www.petroleumaustralia.com.au/feed/", category: "industry" },
-  { name: "Oil & Gas Australia", feedUrl: "https://www.oilandgasaustralia.com.au/feed/", category: "industry" },
-  { name: "Energy Voice Asia-Pacific", feedUrl: "https://www.energyvoice.com/region/asia-australasia/feed/", category: "industry" },
-
-  // Energy & Renewables (additional)
+  // ── Energy & Renewables ──
+  { name: "Renew Economy", feedUrl: "https://reneweconomy.com.au/feed/", category: "industry" },
+  { name: "Energy Magazine", feedUrl: "https://www.energymagazine.com.au/feed/", category: "industry" },
+  { name: "Energy Storage News", feedUrl: "https://www.energy-storage.news/feed/", category: "industry" },
+  { name: "Renewables Now", feedUrl: "https://renewablesnow.com/news/news_feed/?source=solar", category: "industry" },
   { name: "PV Magazine Australia", feedUrl: "https://www.pv-magazine-australia.com/feed/", category: "industry" },
+  { name: "One Step Off The Grid", feedUrl: "https://onestepoffthegrid.com.au/feed/", category: "industry" },
+  { name: "Energy News Bulletin", feedUrl: "https://www.energynewsbulletin.net/feed/rss", category: "industry" },
 
-  // Drilling & Geotechnical
-  { name: "Geo Drilling International", feedUrl: "https://www.geodrillinginternational.com/rss", category: "industry" },
-  { name: "The Driller", feedUrl: "https://www.thedriller.com/rss", category: "industry" },
+  // ── Pumps & Water Management ──
+  { name: "Fluid Handling Magazine", feedUrl: "https://fluidhandlingmag.com/feed/", category: "industry" },
+  { name: "Pump Industry Australia", feedUrl: "https://www.pumpindustry.com.au/feed/", category: "industry" },
+  { name: "Utility Magazine", feedUrl: "https://utilitymagazine.com.au/feed/", category: "industry" },
 
-  // Mirage News (high-volume Australian news aggregator)
-  { name: "Mirage News - Mining", feedUrl: "https://www.miragenews.com/tag/mining/feed/", category: "news" },
-  { name: "Mirage News - Construction", feedUrl: "https://www.miragenews.com/tag/construction/feed/", category: "news" },
+  // ── Construction Equipment & Power Generation ──
+  { name: "Diesel Progress", feedUrl: "https://dieselnet.com/rss.xml", category: "industry" },
 
-  // Mining (additional)
-  { name: "Mining Weekly", feedUrl: "https://www.miningweekly.com/page/rss", category: "industry" },
-  { name: "Mining Monthly", feedUrl: "https://www.miningmonthly.com/feed/", category: "industry" },
+  // ── Project Databases & Tenders ──
+  { name: "Projectory Australia", feedUrl: "https://www.projectory.com.au/rss.xml", category: "industry" },
+
+  // ── Defence ──
+  { name: "Defence Connect", feedUrl: "https://www.defenceconnect.com.au/news?format=feed&type=rss", category: "defence" },
+  { name: "ASPI Strategist", feedUrl: "https://www.aspistrategist.org.au/feed/", category: "defence" },
 ];
 
 export async function seedDefaultPipelineData(): Promise<{

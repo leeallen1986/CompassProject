@@ -1,0 +1,241 @@
+{
+  "query": "SELECT name, feedUrl, isActive, errorCount, lastFetchedAt FROM rssSources WHERE isActive = 1 ORDER BY name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT name, feedUrl, isActive, errorCount, lastFetchedAt FROM rssSources WHERE isActive = 1 ORDER BY name;",
+  "rows": [
+    {
+      "name": "ABC News - Australia",
+      "feedUrl": "https://www.abc.net.au/news/feed/2942460/rss.xml",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "name": "ABC News - Business",
+      "feedUrl": "https://www.abc.net.au/news/feed/51120/rss.xml",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "name": "Australian Mining",
+      "feedUrl": "https://www.australianmining.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:24:22"
+    },
+    {
+      "name": "Build Australia",
+      "feedUrl": "https://buildaustralia.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:32"
+    },
+    {
+      "name": "Construction Equipment Guide",
+      "feedUrl": "https://feeds.feedburner.com/ceg",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:16"
+    },
+    {
+      "name": "Defence Connect",
+      "feedUrl": "https://www.defenceconnect.com.au/news?format=feed&type=rss",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "name": "Diesel Progress",
+      "feedUrl": "https://dieselnet.com/rss.xml",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:20"
+    },
+    {
+      "name": "Energy Magazine",
+      "feedUrl": "https://www.energymagazine.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:25:56"
+    },
+    {
+      "name": "Energy News Bulletin",
+      "feedUrl": "https://www.energynewsbulletin.net/feed/rss",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "name": "Energy Storage News",
+      "feedUrl": "https://www.energy-storage.news/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:04"
+    },
+    {
+      "name": "Fluid Handling Magazine",
+      "feedUrl": "https://fluidhandlingmag.com/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:13"
+    },
+    {
+      "name": "Infrastructure Magazine",
+      "feedUrl": "https://infrastructuremagazine.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:25:37"
+    },
+    {
+      "name": "Inside Construction",
+      "feedUrl": "https://insideconstruction.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:30"
+    },
+    {
+      "name": "International Mining",
+      "feedUrl": "https://www.mining.com/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:24:35"
+    },
+    {
+      "name": "Master Builders Australia",
+      "feedUrl": "https://www.masterbuilders.com.au/feed",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "name": "Mining Journal",
+      "feedUrl": "https://www.mining-journal.com/feed",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:28:15"
+    },
+    {
+      "name": "Mining Technology",
+      "feedUrl": "https://www.mining-technology.com/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:24:44"
+    },
+    {
+      "name": "Mining Weekly SA",
+      "feedUrl": "https://www.miningweekly.com/page/home/feed",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-13 06:02:50"
+    },
+    {
+      "name": "Mining.com",
+      "feedUrl": "https://www.mining.com/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "name": "One Step Off The Grid",
+      "feedUrl": "https://onestepoffthegrid.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:36"
+    },
+    {
+      "name": "Projectory Australia",
+      "feedUrl": "https://www.projectory.com.au/rss.xml",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:38"
+    },
+    {
+      "name": "Pump Industry Australia",
+      "feedUrl": "https://www.pumpindustry.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:26"
+    },
+    {
+      "name": "PV Magazine Australia",
+      "feedUrl": "https://www.pv-magazine-australia.com/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:36"
+    },
+    {
+      "name": "Quarry Magazine",
+      "feedUrl": "https://www.quarrymagazine.com/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:40"
+    },
+    {
+      "name": "Renew Economy",
+      "feedUrl": "https://reneweconomy.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:25:51"
+    },
+    {
+      "name": "Renewables Now",
+      "feedUrl": "https://renewablesnow.com/news/news_feed/?source=solar",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:27:09"
+    },
+    {
+      "name": "Rigzone News",
+      "feedUrl": "https://www.rigzone.com/news/rss/rigzone_latest.aspx",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:13"
+    },
+    {
+      "name": "Roads & Infrastructure",
+      "feedUrl": "https://roadsonline.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:25:43"
+    },
+    {
+      "name": "Small Caps",
+      "feedUrl": "https://smallcaps.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:26:19"
+    },
+    {
+      "name": "Sourceable",
+      "feedUrl": "https://sourceable.net/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-16 05:37:34"
+    },
+    {
+      "name": "Stockhead",
+      "feedUrl": "https://stockhead.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:26:45"
+    },
+    {
+      "name": "The Australian - Business",
+      "feedUrl": "https://www.theaustralian.com.au/business/rss",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:24:58"
+    },
+    {
+      "name": "Utility Magazine",
+      "feedUrl": "https://utilitymagazine.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "0",
+      "lastFetchedAt": "2026-02-20 01:28:05"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tfeedUrl\tisActive\terrorCount\tlastFetchedAt\nABC News - Australia\thttps://www.abc.net.au/news/feed/2942460/rss.xml\t1\t0\tNULL\nABC News - Business\thttps://www.abc.net.au/news/feed/51120/rss.xml\t1\t0\tNULL\nAustralian Mining\thttps://www.australianmining.com.au/feed/\t1\t0\t2026-02-20 01:24:22\nBuild Australia\thttps://buildaustralia.com.au/feed/\t1\t0\t2026-02-16 05:37:32\nConstruction Equipment Guide\thttps://feeds.feedburner.com/ceg\t1\t0\t2026-02-20 01:27:16\nDefence Connect\thttps://www.defenceconnect.com.au/news?format=feed&type=rss\t1\t0\tNULL\nDiesel Progress\thttps://dieselnet.com/rss.xml\t1\t0\t2026-02-20 01:27:20\nEnergy Magazine\thttps://www.energymagazine.com.au/feed/\t1\t0\t2026-02-20 01:25:56\nEnergy News Bulletin\thttps://www.energynewsbulletin.net/feed/rss\t1\t0\tNULL\nEnergy Storage News\thttps://www.energy-storage.news/feed/\t1\t0\t2026-02-20 01:27:04\nFluid Handling Magazine\thttps://fluidhandlingmag.com/feed/\t1\t0\t2026-02-20 01:27:13\nInfrastructure Magazine\thttps://infrastructuremagazine.com.au/feed/\t1\t0\t2026-02-20 01:25:37\nInside Construction\thttps://insideconstruction.com.au/feed/\t1\t0\t2026-02-16 05:37:30\nInternational Mining\thttps://www.mining.com/feed/\t1\t0\t2026-02-20 01:24:35\nMaster Builders Australia\thttps://www.masterbuilders.com.au/feed\t1\t0\tNULL\nMining Journal\thttps://www.mining-journal.com/feed\t1\t0\t2026-02-20 01:28:15\nMining Technology\thttps://www.mining-technology.com/feed/\t1\t0\t2026-02-20 01:24:44\nMining Weekly SA\thttps://www.miningweekly.com/page/home/feed\t1\t0\t2026-02-13 06:02:50\nMining.com\thttps://www.mining.com/feed/\t1\t0\tNULL\nOne Step Off The Grid\thttps://onestepoffthegrid.com.au/feed/\t1\t0\t2026-02-16 05:37:36\nProjectory Australia\thttps://www.projectory.com.au/rss.xml\t1\t0\t2026-02-20 01:27:38\nPump Industry Australia\thttps://www.pumpindustry.com.au/feed/\t1\t0\t2026-02-20 01:27:26\nPV Magazine Australia\thttps://www.pv-magazine-australia.com/feed/\t1\t0\t2026-02-16 05:37:36\nQuarry Magazine\thttps://www.quarrymagazine.com/feed/\t1\t0\t2026-02-16 05:37:40\nRenew Economy\thttps://reneweconomy.com.au/feed/\t1\t0\t2026-02-20 01:25:51\nRenewables Now\thttps://renewablesnow.com/news/news_feed/?source=solar\t1\t0\t2026-02-20 01:27:09\nRigzone News\thttps://www.rigzone.com/news/rss/rigzone_latest.aspx\t1\t0\t2026-02-16 05:37:13\nRoads & Infrastructure\thttps://roadsonline.com.au/feed/\t1\t0\t2026-02-20 01:25:43\nSmall Caps\thttps://smallcaps.com.au/feed/\t1\t0\t2026-02-20 01:26:19\nSourceable\thttps://sourceable.net/feed/\t1\t0\t2026-02-16 05:37:34\nStockhead\thttps://stockhead.com.au/feed/\t1\t0\t2026-02-20 01:26:45\nThe Australian - Business\thttps://www.theaustralian.com.au/business/rss\t1\t0\t2026-02-20 01:24:58\nUtility Magazine\thttps://utilitymagazine.com.au/feed/\t1\t0\t2026-02-20 01:28:05\n",
+  "stderr": "",
+  "execution_time_ms": 1519
+}
