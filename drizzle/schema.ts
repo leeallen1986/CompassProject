@@ -420,3 +420,25 @@ export const projectEnrichmentCache = mysqlTable("projectEnrichmentCache", {
 
 export type ProjectEnrichmentCacheRow = typeof projectEnrichmentCache.$inferSelect;
 export type InsertProjectEnrichmentCache = typeof projectEnrichmentCache.$inferInsert;
+
+/**
+ * Apollo credit usage log — tracks every Apollo API credit consumed.
+ * Used for billing, usage dashboards, and plan limit alerts.
+ * Actions: reveal (1 credit), enrich_project (1/contact), verify_email (1 credit)
+ */
+export const apolloCreditLog = mysqlTable("apolloCreditLog", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 256 }),
+  action: mysqlEnum("action", ["reveal", "enrich_project", "verify_email"]).notNull(),
+  creditsUsed: int("creditsUsed").notNull().default(1),
+  contactId: int("contactId"),
+  contactName: varchar("contactName", { length: 256 }),
+  projectId: int("projectId"),
+  projectName: varchar("projectName", { length: 512 }),
+  apolloPersonId: varchar("apolloPersonId", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ApolloCreditLogRow = typeof apolloCreditLog.$inferSelect;
+export type InsertApolloCreditLog = typeof apolloCreditLog.$inferInsert;

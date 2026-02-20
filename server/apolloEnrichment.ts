@@ -19,6 +19,7 @@ import {
   contacts,
   projects,
   projectEnrichmentCache,
+  apolloCreditLog,
   type InsertContact,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -167,6 +168,117 @@ function inferRoleBucket(title: string): string {
   if (t.includes("commercial") || t.includes("business development"))
     return "commercial";
   return "other";
+}
+
+// ── Credit Logging ──
+
+/** Log an Apollo credit usage event to the database */
+export async function logCreditUsage(params: {
+  userId: number;
+  userName: string;
+  action: "reveal" | "enrich_project" | "verify_email";
+  creditsUsed: number;
+  contactId?: number | null;
+  contactName?: string | null;
+  projectId?: number | null;
+  projectName?: string | null;
+  apolloPersonId?: string | null;
+}): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.insert(apolloCreditLog).values({
+      userId: params.userId,
+      userName: params.userName,
+      action: params.action,
+      creditsUsed: params.creditsUsed,
+      contactId: params.contactId ?? null,
+      contactName: params.contactName ?? null,
+      projectId: params.projectId ?? null,
+      projectName: params.projectName ?? null,
+      apolloPersonId: params.apolloPersonId ?? null,
+    });
+  } catch (err) {
+    console.error("[Apollo] Failed to log credit usage:", err instanceof Error ? err.message : String(err));
+  }
+}
+
+/** Get credit usage summary for a given period */
+export async function getCreditUsageSummary(options?: {
+  since?: Date;
+  userId?: number;
+}): Promise<{
+  totalCredits: number;
+  byUser: { userId: number; userName: string; credits: number }[];
+  byAction: { action: string; credits: number; count: number }[];
+  recentActivity: {
+    id: number;
+    userId: number;
+    userName: string | null;
+    action: string;
+    creditsUsed: number;
+    contactName: string | null;
+    projectName: string | null;
+    createdAt: Date | null;
+  }[];
+}> {
+  const db = await getDb();
+  if (!db) return { totalCredits: 0, byUser: [], byAction: [], recentActivity: [] };
+
+  const since = options?.since ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1); // Default: start of current month
+
+  // Total credits this period
+  const [totalRow] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${apolloCreditLog.creditsUsed}), 0)` })
+    .from(apolloCreditLog)
+    .where(gte(apolloCreditLog.createdAt, since));
+
+  // By user
+  const byUser = await db
+    .select({
+      userId: apolloCreditLog.userId,
+      userName: apolloCreditLog.userName,
+      credits: sql<number>`SUM(${apolloCreditLog.creditsUsed})`,
+    })
+    .from(apolloCreditLog)
+    .where(gte(apolloCreditLog.createdAt, since))
+    .groupBy(apolloCreditLog.userId, apolloCreditLog.userName)
+    .orderBy(sql`SUM(${apolloCreditLog.creditsUsed}) DESC`);
+
+  // By action type
+  const byAction = await db
+    .select({
+      action: apolloCreditLog.action,
+      credits: sql<number>`SUM(${apolloCreditLog.creditsUsed})`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(apolloCreditLog)
+    .where(gte(apolloCreditLog.createdAt, since))
+    .groupBy(apolloCreditLog.action);
+
+  // Recent activity (last 50)
+  const recentActivity = await db
+    .select({
+      id: apolloCreditLog.id,
+      userId: apolloCreditLog.userId,
+      userName: apolloCreditLog.userName,
+      action: apolloCreditLog.action,
+      creditsUsed: apolloCreditLog.creditsUsed,
+      contactName: apolloCreditLog.contactName,
+      projectName: apolloCreditLog.projectName,
+      createdAt: apolloCreditLog.createdAt,
+    })
+    .from(apolloCreditLog)
+    .where(gte(apolloCreditLog.createdAt, since))
+    .orderBy(desc(apolloCreditLog.createdAt))
+    .limit(50);
+
+  return {
+    totalCredits: Number(totalRow?.total ?? 0),
+    byUser: byUser.map(r => ({ userId: r.userId, userName: r.userName ?? "Unknown", credits: Number(r.credits) })),
+    byAction: byAction.map(r => ({ action: r.action, credits: Number(r.credits), count: Number(r.count) })),
+    recentActivity,
+  };
 }
 
 // ── Apollo API Calls ──
@@ -360,9 +472,11 @@ export async function searchContactsForCompany(
 /**
  * Enrich a single contact via Apollo People Enrichment (1 credit).
  * Returns the contact with full name, verified email, LinkedIn URL.
+ * Logs credit usage to apolloCreditLog.
  */
 export async function enrichSingleContact(
-  person: ApolloEnrichmentResult
+  person: ApolloEnrichmentResult,
+  meta?: { userId?: number; userName?: string; projectId?: number; projectName?: string }
 ): Promise<ApolloEnrichmentResult> {
   try {
     const enrichResult = await apolloPeopleEnrich({
@@ -376,11 +490,25 @@ export async function enrichSingleContact(
     }
 
     const p = enrichResult.person;
+    const enrichedName = p.name || `${p.first_name} ${p.last_name}`.trim() || person.name;
+
+    // Log credit usage
+    await logCreditUsage({
+      userId: meta?.userId ?? 0,
+      userName: meta?.userName ?? "system",
+      action: "reveal",
+      creditsUsed: 1,
+      contactName: enrichedName,
+      projectId: meta?.projectId ?? null,
+      projectName: meta?.projectName ?? null,
+      apolloPersonId: person.apolloId,
+    });
+
     return {
       ...person,
-      name: p.name || `${p.first_name} ${p.last_name}`.trim() || person.name,
+      name: enrichedName,
       firstName: p.first_name || person.firstName,
-      lastNameObfuscated: undefined, // We now have the full name
+      lastNameObfuscated: undefined,
       title: p.title || person.title,
       email: p.email || null,
       emailStatus: p.email_status,
@@ -586,7 +714,8 @@ export async function enrichProjectContacts(
  * Costs 1 Apollo credit.
  */
 export async function revealContactEmail(
-  contactId: number
+  contactId: number,
+  meta?: { userId?: number; userName?: string }
 ): Promise<ApolloEnrichmentResult | null> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -643,6 +772,17 @@ export async function revealContactEmail(
     }
 
     const p = enrichResult.person;
+
+    // Log credit usage
+    await logCreditUsage({
+      userId: meta?.userId ?? 0,
+      userName: meta?.userName ?? "system",
+      action: "verify_email",
+      creditsUsed: 1,
+      contactId,
+      contactName: p.name || contact.name,
+      apolloPersonId: p.id,
+    });
 
     // Update the contact in DB
     await db

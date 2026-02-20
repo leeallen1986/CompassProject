@@ -330,3 +330,10 @@
 - [x] Update seed defaults to only include 32 verified working feeds (removed Mining.com duplicate, Mining Journal, ASPI Strategist)
 - [x] All 554 tests passing
 - [x] Update Sources & Methodology section to reflect real current state: 32 active RSS feeds, all 8 data sources (RSS, Projectory, DMIRS, AEMO, Gov Major Projects, AusTender, ICN Gateway, Apollo.io), correct schedules, Apollo.io enrichment (replaced LinkedIn)
+- [x] Build Apollo credit usage tracker on Admin page
+- [x] Create apolloCreditLog schema table (userId, action, creditsUsed, contactId, timestamp)
+- [x] Log every Apollo reveal/enrich action to the credit log
+- [x] Build tRPC endpoints for credit usage stats (monthly totals, per-user breakdown, daily trend)
+- [x] Build Admin UI: Apollo Credit Usage dashboard with monthly total, per-user breakdown, daily chart, activity log
+- [x] Write vitest tests for credit tracking (8 tests: insert record, null fields, action types, summary structure, aggregation, date filter, empty results, schema validation)
+- [x] All 562 tests passing

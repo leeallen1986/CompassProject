@@ -56,6 +56,7 @@ import { searchProjects } from "./aiProjectMatcher";
 import {
   apolloPeopleSearch, enrichSingleContact, enrichProjectContacts,
   revealContactEmail, validateApolloApiKey, inferDomain,
+  getCreditUsageSummary, logCreditUsage,
   type ApolloEnrichmentResult, type ApolloSearchResult,
 } from "./apolloEnrichment";
 import { getDb } from "./db";
@@ -1259,7 +1260,12 @@ export const appRouter = router({
           status: "found",
         };
 
-        const enriched = await enrichSingleContact(person);
+        const enriched = await enrichSingleContact(person, {
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? "Unknown",
+          projectId: input.projectId,
+          projectName: undefined,
+        });
 
         // If enrichment succeeded and we have a project, save to DB
         if (enriched.status === "enriched" && input.projectId) {
@@ -1349,9 +1355,51 @@ export const appRouter = router({
     /** Apollo Reveal Email for existing contact — costs 1 Apollo credit */
     apolloRevealEmail: protectedProcedure
       .input(z.object({ contactId: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const result = await revealContactEmail(input.contactId);
+        // Log credit usage for email reveal
+        if (result && (result as any).status === "enriched") {
+          await logCreditUsage({
+            userId: ctx.user.id,
+            userName: ctx.user.name ?? "Unknown",
+            action: "verify_email",
+            creditsUsed: 1,
+            contactId: input.contactId,
+            contactName: (result as any).name ?? null,
+          });
+        }
         return result;
+      }),
+
+    /** Apollo Credit Usage Dashboard — admin only */
+    apolloCreditUsage: adminProcedure
+      .input(z.object({
+        period: z.enum(["this_month", "last_month", "last_7_days", "last_30_days", "all_time"]).optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const period = input?.period ?? "this_month";
+        const now = new Date();
+        let since: Date;
+
+        switch (period) {
+          case "last_month": {
+            since = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            break;
+          }
+          case "last_7_days":
+            since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case "last_30_days":
+            since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case "all_time":
+            since = new Date(2020, 0, 1);
+            break;
+          default: // this_month
+            since = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+
+        return getCreditUsageSummary({ since });
       }),
 
     /** Validate Apollo API key status */

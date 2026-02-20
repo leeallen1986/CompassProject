@@ -13,6 +13,7 @@ import {
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
+  CreditCard, TrendingUp, Activity, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -947,6 +948,275 @@ function UserManagementTab() {
   );
 }
 
+// ── Apollo Credits Tab ──
+
+function ApolloCreditsTab() {
+  const [period, setPeriod] = useState<"this_month" | "last_month" | "last_7_days" | "last_30_days" | "all_time">("this_month");
+  const { data, isLoading, refetch } = trpc.dataPipeline.apolloCreditUsage.useQuery({ period });
+  const { data: apiStatus, isLoading: statusLoading } = trpc.dataPipeline.apolloStatus.useQuery();
+
+  const periodLabels: Record<string, string> = {
+    this_month: "This Month",
+    last_month: "Last Month",
+    last_7_days: "Last 7 Days",
+    last_30_days: "Last 30 Days",
+    all_time: "All Time",
+  };
+
+  const actionLabels: Record<string, string> = {
+    reveal: "Contact Reveal",
+    enrich_project: "Project Enrichment",
+    verify_email: "Email Verification",
+  };
+
+  const actionIcons: Record<string, React.ReactNode> = {
+    reveal: <Eye className="w-3.5 h-3.5" />,
+    enrich_project: <Users className="w-3.5 h-3.5" />,
+    verify_email: <Mail className="w-3.5 h-3.5" />,
+  };
+
+  const formatDate = (d: Date | string | null) => {
+    if (!d) return "—";
+    const date = typeof d === "string" ? new Date(d) : d;
+    return date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h3 className="text-lg font-bold text-navy flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-gold" /> Apollo.io Credit Usage
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Monitor API credit consumption across your team</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Period selector */}
+          <select
+            value={period}
+            onChange={e => setPeriod(e.target.value as typeof period)}
+            className="px-3 py-2 rounded-lg border border-border bg-card text-sm focus:ring-2 focus:ring-gold/40 focus:border-gold"
+          >
+            {Object.entries(periodLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <Button onClick={() => refetch()} variant="outline" size="sm" className="gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* API Status Banner */}
+      {!statusLoading && apiStatus && (
+        <div className={`rounded-lg border p-4 flex items-center gap-3 ${
+          apiStatus.valid ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"
+        }`}>
+          {apiStatus.valid ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-red-600 shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${apiStatus.valid ? "text-emerald-800" : "text-red-800"}`}>
+              {apiStatus.valid ? "Apollo API Connected" : "Apollo API Error"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {apiStatus.valid
+                ? `Plan active • API key verified`
+                : (apiStatus as any).error || "Check your API key configuration"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-gold" />
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-card rounded-lg border border-border p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-gold"><CreditCard className="w-5 h-5" /></span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{periodLabels[period]}</span>
+              </div>
+              <div className="text-3xl font-bold text-navy tracking-tight">{data?.totalCredits ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-1 font-medium">Total Credits Used</div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-teal"><Users className="w-5 h-5" /></span>
+              </div>
+              <div className="text-3xl font-bold text-navy tracking-tight">{data?.byUser?.length ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-1 font-medium">Active Users</div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-hot"><Eye className="w-5 h-5" /></span>
+              </div>
+              <div className="text-3xl font-bold text-navy tracking-tight">
+                {data?.byAction?.find((a: { action: string; credits: number; count: number }) => a.action === "reveal")?.count ?? 0}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 font-medium">Contact Reveals</div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-warm"><Activity className="w-5 h-5" /></span>
+              </div>
+              <div className="text-3xl font-bold text-navy tracking-tight">{data?.recentActivity?.length ?? 0}</div>
+              <div className="text-xs text-muted-foreground mt-1 font-medium">Recent Actions</div>
+            </div>
+          </div>
+
+          {/* Usage by Action Type */}
+          <div className="bg-card rounded-lg border border-border p-5">
+            <h4 className="text-sm font-bold text-navy mb-4 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-gold" /> Usage by Action Type
+            </h4>
+            {data?.byAction && data.byAction.length > 0 ? (
+              <div className="space-y-3">
+                {data.byAction.map((item: { action: string; credits: number; count: number }) => {
+                  const maxCredits = Math.max(...data.byAction.map((a: { action: string; credits: number; count: number }) => a.credits), 1);
+                  const pct = Math.round((item.credits / maxCredits) * 100);
+                  return (
+                    <div key={item.action} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-40 shrink-0">
+                        {actionIcons[item.action] || <Zap className="w-3.5 h-3.5" />}
+                        <span className="text-sm font-medium text-foreground">{actionLabels[item.action] || item.action}</span>
+                      </div>
+                      <div className="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-gold to-gold-light transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-right shrink-0 w-24">
+                        <span className="text-sm font-bold text-navy">{item.credits}</span>
+                        <span className="text-xs text-muted-foreground ml-1">({item.count} ops)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No credit usage recorded for this period.</p>
+            )}
+          </div>
+
+          {/* Usage by User */}
+          <div className="bg-card rounded-lg border border-border p-5">
+            <h4 className="text-sm font-bold text-navy mb-4 flex items-center gap-2">
+              <Users className="w-4 h-4 text-gold" /> Usage by User
+            </h4>
+            {data?.byUser && data.byUser.length > 0 ? (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-navy text-white">
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">User</th>
+                      <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">Credits Used</th>
+                      <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">% of Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.byUser.map((u: { userId: number; userName: string; credits: number }, i: number) => (
+                      <tr key={u.userId} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                        <td className="px-4 py-3 font-medium text-navy">{u.userName}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="font-bold text-navy">{u.credits}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-muted-foreground">
+                          {data.totalCredits > 0 ? `${Math.round((u.credits / data.totalCredits) * 100)}%` : "0%"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No user activity for this period.</p>
+            )}
+          </div>
+
+          {/* Recent Activity Log */}
+          <div className="bg-card rounded-lg border border-border p-5">
+            <h4 className="text-sm font-bold text-navy mb-4 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gold" /> Recent Activity (Last 50)
+            </h4>
+            {data?.recentActivity && data.recentActivity.length > 0 ? (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-navy text-white">
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Time</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Action</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Contact</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Project</th>
+                      <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">Credits</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recentActivity.map((a: { id: number; userId: number; userName: string | null; action: string; creditsUsed: number; contactName: string | null; projectName: string | null; createdAt: Date | null }, i: number) => (
+                      <tr key={a.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{formatDate(a.createdAt)}</td>
+                        <td className="px-4 py-2.5 font-medium text-navy">{a.userName || "System"}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-navy/10 text-navy">
+                            {actionIcons[a.action] || <Zap className="w-3 h-3" />}
+                            {actionLabels[a.action] || a.action}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground max-w-[200px] truncate">{a.contactName || "—"}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground max-w-[200px] truncate">{a.projectName || "—"}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className="font-bold text-gold">{a.creditsUsed}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No activity recorded for this period.</p>
+            )}
+          </div>
+
+          {/* Credit Cost Reference */}
+          <div className="bg-gold/8 border border-gold/25 rounded-lg p-4">
+            <h4 className="text-sm font-bold text-gold-dark mb-2">Apollo.io Credit Cost Reference</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-white/60 rounded-md p-2.5">
+                <div className="font-bold text-navy">Contact Reveal</div>
+                <div className="text-muted-foreground">1 credit / contact</div>
+              </div>
+              <div className="bg-white/60 rounded-md p-2.5">
+                <div className="font-bold text-navy">Email Verification</div>
+                <div className="text-muted-foreground">1 credit / email</div>
+              </div>
+              <div className="bg-white/60 rounded-md p-2.5">
+                <div className="font-bold text-navy">People Search</div>
+                <div className="text-muted-foreground">Free (no credits)</div>
+              </div>
+              <div className="bg-white/60 rounded-md p-2.5">
+                <div className="font-bold text-navy">Daily Cap</div>
+                <div className="text-muted-foreground">200 credits / day</div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main Admin Page ──
 
 export default function Admin() {
@@ -1015,6 +1285,9 @@ export default function Admin() {
             <TabsTrigger value="users" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <Users className="w-3.5 h-3.5 mr-1.5" /> User Management
             </TabsTrigger>
+            <TabsTrigger value="apollo" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
+              <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Apollo Credits
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -1031,6 +1304,10 @@ export default function Admin() {
 
           <TabsContent value="users">
             <UserManagementTab />
+          </TabsContent>
+
+          <TabsContent value="apollo">
+            <ApolloCreditsTab />
           </TabsContent>
         </Tabs>
       </main>
