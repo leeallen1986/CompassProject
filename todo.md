@@ -325,3 +325,7 @@
 - [x] Update enrichProject tRPC endpoint: Apollo primary → LinkedIn fallback → LLM fallback
 - [x] Updated ProjectCard UI: "Search Apollo" messaging, source label (Apollo.io/LinkedIn/AI), email buttons on inline results
 - [x] All 554 tests passing
+- [x] Delete all inactive/broken RSS feeds from database — removed 31 inactive feeds, reset error counts on working feeds
+- [x] Verify weekly mega-scrape includes all 6 scrapers: AusTender, ICN Gateway, Gov Major Projects, AEMO, DMIRS, Projectory — confirmed all present
+- [x] Update seed defaults to only include 32 verified working feeds (removed Mining.com duplicate, Mining Journal, ASPI Strategist)
+- [x] All 554 tests passing

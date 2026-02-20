@@ -87,12 +87,10 @@ const DEFAULT_BUSINESS_LINES = [
 const DEFAULT_RSS_SOURCES = [
   // ── Mining & Resources ──
   { name: "Australian Mining", feedUrl: "https://www.australianmining.com.au/feed/", category: "industry" },
-  { name: "International Mining", feedUrl: "https://im-mining.com/feed/", category: "industry" },
-  { name: "Mining.com", feedUrl: "https://www.mining.com/feed/", category: "industry" },
+  { name: "International Mining", feedUrl: "https://www.mining.com/feed/", category: "industry" },
   { name: "Mining Technology", feedUrl: "https://www.mining-technology.com/feed/", category: "industry" },
-  { name: "Mining Journal", feedUrl: "https://www.mining-journal.com/feed", category: "industry" },
-  { name: "Mining Weekly SA", feedUrl: "https://www.miningweekly.com/page/home/feed", category: "industry" },
-  { name: "Rigzone News", feedUrl: "https://www.rigzone.com/news/rss/rigzone_latest.aspx", category: "industry" },
+  { name: "Mining Weekly SA", feedUrl: "https://www.miningweekly.com/page/home/feed", category: "mining" },
+  { name: "Rigzone News", feedUrl: "https://www.rigzone.com/news/rss/rigzone_latest.aspx", category: "oil_gas" },
 
   // ── News Sources ──
   { name: "The Australian - Business", feedUrl: "https://www.theaustralian.com.au/business/rss", category: "news" },
@@ -133,7 +131,7 @@ const DEFAULT_RSS_SOURCES = [
 
   // ── Defence ──
   { name: "Defence Connect", feedUrl: "https://www.defenceconnect.com.au/news?format=feed&type=rss", category: "defence" },
-  { name: "ASPI Strategist", feedUrl: "https://www.aspistrategist.org.au/feed/", category: "defence" },
+
 ];
 
 export async function seedDefaultPipelineData(): Promise<{

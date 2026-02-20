@@ -1,0 +1,234 @@
+{
+  "query": "SELECT id, name, feedUrl, isActive, errorCount FROM rssSources WHERE isActive = false ORDER BY name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, feedUrl, isActive, errorCount FROM rssSources WHERE isActive = false ORDER BY name;",
+  "rows": [
+    {
+      "id": "90029",
+      "name": "Australian Defence Magazine",
+      "feedUrl": "https://www.australiandefence.com.au/feed",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "7",
+      "name": "Australian Financial Review - Companies",
+      "feedUrl": "https://www.afr.com/rss/companies",
+      "isActive": "0",
+      "errorCount": "11"
+    },
+    {
+      "id": "60004",
+      "name": "Australian Water Association",
+      "feedUrl": "https://www.awa.asn.au/feed/",
+      "isActive": "0",
+      "errorCount": "6"
+    },
+    {
+      "id": "90022",
+      "name": "Clean Energy Council",
+      "feedUrl": "https://www.cleanenergycouncil.org.au/news/feed",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90019",
+      "name": "Construction World",
+      "feedUrl": "https://www.constructionworld.org/feed/",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90008",
+      "name": "Drill & Blast",
+      "feedUrl": "https://www.drillandblast.com/feed/",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "13",
+      "name": "Energy News Australia",
+      "feedUrl": "https://www.energynewsaustralia.com/feed/",
+      "isActive": "0",
+      "errorCount": "11"
+    },
+    {
+      "id": "90011",
+      "name": "Energy Voice Asia-Australasia",
+      "feedUrl": "https://www.energyvoice.com/region/asia-australasia/feed/",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90006",
+      "name": "Geo Drilling International",
+      "feedUrl": "https://www.geodrillinginternational.com/rss",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90028",
+      "name": "Hot Copper Mining",
+      "feedUrl": "https://hotcopper.com.au/rss/mining",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90014",
+      "name": "LNG Industry",
+      "feedUrl": "https://www.lngindustry.com/rss",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90003",
+      "name": "Mining Global",
+      "feedUrl": "https://miningglobal.com/rss/articles",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "2",
+      "name": "Mining Magazine",
+      "feedUrl": "https://www.miningmagazine.com/feed/",
+      "isActive": "0",
+      "errorCount": "11"
+    },
+    {
+      "id": "90004",
+      "name": "Mining News Net",
+      "feedUrl": "https://www.miningnewsnet.com/feed/",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90025",
+      "name": "Mirage News Construction",
+      "feedUrl": "https://www.miragenews.com/tag/construction/feed/",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "90027",
+      "name": "Mirage News Energy",
+      "feedUrl": "https://www.miragenews.com/tag/energy/feed/",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "90026",
+      "name": "Mirage News Infrastructure",
+      "feedUrl": "https://www.miragenews.com/tag/infrastructure/feed/",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "90024",
+      "name": "Mirage News Mining",
+      "feedUrl": "https://www.miragenews.com/tag/mining/feed/",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "90010",
+      "name": "Offshore Magazine",
+      "feedUrl": "https://www.offshore-mag.com/rss",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90013",
+      "name": "Oil & Gas Australia",
+      "feedUrl": "https://www.oilandgasaustralia.com.au/feed/",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "90012",
+      "name": "Petroleum Australia",
+      "feedUrl": "https://www.petroleumaustralia.com.au/feed/",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "30008",
+      "name": "PM Magazine - Pumps",
+      "feedUrl": "https://www.pmmag.com/rss/topic/4293-pumps",
+      "isActive": "0",
+      "errorCount": "1"
+    },
+    {
+      "id": "16",
+      "name": "Proactive Investors AU",
+      "feedUrl": "https://www.proactiveinvestors.com.au/pages/rss",
+      "isActive": "0",
+      "errorCount": "11"
+    },
+    {
+      "id": "90005",
+      "name": "Proactive Investors AU Mining",
+      "feedUrl": "https://www.proactiveinvestors.com.au/companies/rss/mining",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "60003",
+      "name": "Pump Engineer",
+      "feedUrl": "https://www.pumpengineer.net/feed/",
+      "isActive": "0",
+      "errorCount": "6"
+    },
+    {
+      "id": "15",
+      "name": "QLD Government News",
+      "feedUrl": "https://statements.qld.gov.au/feed",
+      "isActive": "0",
+      "errorCount": "11"
+    },
+    {
+      "id": "90007",
+      "name": "The Driller",
+      "feedUrl": "https://www.thedriller.com/rss",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "90018",
+      "name": "The Urban Developer",
+      "feedUrl": "https://theurbandeveloper.com/feed",
+      "isActive": "0",
+      "errorCount": "3"
+    },
+    {
+      "id": "14",
+      "name": "WA Government Media",
+      "feedUrl": "https://www.mediastatements.wa.gov.au/RSS",
+      "isActive": "0",
+      "errorCount": "0"
+    },
+    {
+      "id": "30007",
+      "name": "Water & Wastes Digest",
+      "feedUrl": "https://www.wwdmag.com/rss.xml",
+      "isActive": "0",
+      "errorCount": "7"
+    },
+    {
+      "id": "60005",
+      "name": "Water Source",
+      "feedUrl": "https://watersource.awa.asn.au/feed/",
+      "isActive": "0",
+      "errorCount": "6"
+    },
+    {
+      "id": "60002",
+      "name": "World Pumps",
+      "feedUrl": "https://www.worldpumps.com/rss/",
+      "isActive": "0",
+      "errorCount": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfeedUrl\tisActive\terrorCount\n90029\tAustralian Defence Magazine\thttps://www.australiandefence.com.au/feed\t0\t3\n7\tAustralian Financial Review - Companies\thttps://www.afr.com/rss/companies\t0\t11\n60004\tAustralian Water Association\thttps://www.awa.asn.au/feed/\t0\t6\n90022\tClean Energy Council\thttps://www.cleanenergycouncil.org.au/news/feed\t0\t3\n90019\tConstruction World\thttps://www.constructionworld.org/feed/\t0\t3\n90008\tDrill & Blast\thttps://www.drillandblast.com/feed/\t0\t3\n13\tEnergy News Australia\thttps://www.energynewsaustralia.com/feed/\t0\t11\n90011\tEnergy Voice Asia-Australasia\thttps://www.energyvoice.com/region/asia-australasia/feed/\t0\t3\n90006\tGeo Drilling International\thttps://www.geodrillinginternational.com/rss\t0\t3\n90028\tHot Copper Mining\thttps://hotcopper.com.au/rss/mining\t0\t3\n90014\tLNG Industry\thttps://www.lngindustry.com/rss\t0\t3\n90003\tMining Global\thttps://miningglobal.com/rss/articles\t0\t3\n2\tMining Magazine\thttps://www.miningmagazine.com/feed/\t0\t11\n90004\tMining News Net\thttps://www.miningnewsnet.com/feed/\t0\t3\n90025\tMirage News Construction\thttps://www.miragenews.com/tag/construction/feed/\t0\t0\n90027\tMirage News Energy\thttps://www.miragenews.com/tag/energy/feed/\t0\t0\n90026\tMirage News Infrastructure\thttps://www.miragenews.com/tag/infrastructure/feed/\t0\t0\n90024\tMirage News Mining\thttps://www.miragenews.com/tag/mining/feed/\t0\t0\n90010\tOffshore Magazine\thttps://www.offshore-mag.com/rss\t0\t3\n90013\tOil & Gas Australia\thttps://www.oilandgasaustralia.com.au/feed/\t0\t3\n90012\tPetroleum Australia\thttps://www.petroleumaustralia.com.au/feed/\t0\t0\n30008\tPM Magazine - Pumps\thttps://www.pmmag.com/rss/topic/4293-pumps\t0\t1\n16\tProactive Investors AU\thttps://www.proactiveinvestors.com.au/pages/rss\t0\t11\n90005\tProactive Investors AU Mining\thttps://www.proactiveinvestors.com.au/companies/rss/mining\t0\t0\n60003\tPump Engineer\thttps://www.pumpengineer.net/feed/\t0\t6\n15\tQLD Government News\thttps://statements.qld.gov.au/feed\t0\t11\n90007\tThe Driller\thttps://www.thedriller.com/rss\t0\t0\n90018\tThe Urban Developer\thttps://theurbandeveloper.com/feed\t0\t3\n14\tWA Government Media\thttps://www.mediastatements.wa.gov.au/RSS\t0\t0\n30007\tWater & Wastes Digest\thttps://www.wwdmag.com/rss.xml\t0\t7\n60005\tWater Source\thttps://watersource.awa.asn.au/feed/\t0\t6\n60002\tWorld Pumps\thttps://www.worldpumps.com/rss/\t0\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1497
+}

@@ -1,0 +1,42 @@
+{
+  "query": "SELECT id, name, feedUrl, isActive, errorCount, lastFetchedAt FROM rssSources WHERE errorCount > 0 ORDER BY errorCount DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, feedUrl, isActive, errorCount, lastFetchedAt FROM rssSources WHERE errorCount > 0 ORDER BY errorCount DESC;",
+  "rows": [
+    {
+      "id": "3",
+      "name": "International Mining",
+      "feedUrl": "https://www.mining.com/feed/",
+      "isActive": "1",
+      "errorCount": "5",
+      "lastFetchedAt": "2026-02-20 01:24:35"
+    },
+    {
+      "id": "4",
+      "name": "Mining.com",
+      "feedUrl": "https://www.mining.com/feed/",
+      "isActive": "1",
+      "errorCount": "5",
+      "lastFetchedAt": "NULL"
+    },
+    {
+      "id": "90002",
+      "name": "Mining Journal",
+      "feedUrl": "https://www.mining-journal.com/feed",
+      "isActive": "1",
+      "errorCount": "4",
+      "lastFetchedAt": "2026-02-20 01:28:15"
+    },
+    {
+      "id": "90016",
+      "name": "Build Australia",
+      "feedUrl": "https://buildaustralia.com.au/feed/",
+      "isActive": "1",
+      "errorCount": "1",
+      "lastFetchedAt": "2026-02-20 06:00:42"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfeedUrl\tisActive\terrorCount\tlastFetchedAt\n3\tInternational Mining\thttps://www.mining.com/feed/\t1\t5\t2026-02-20 01:24:35\n4\tMining.com\thttps://www.mining.com/feed/\t1\t5\tNULL\n90002\tMining Journal\thttps://www.mining-journal.com/feed\t1\t4\t2026-02-20 01:28:15\n90016\tBuild Australia\thttps://buildaustralia.com.au/feed/\t1\t1\t2026-02-20 06:00:42\n",
+  "stderr": "",
+  "execution_time_ms": 1503
+}
