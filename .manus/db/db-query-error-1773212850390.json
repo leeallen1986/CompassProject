@@ -1,0 +1,8 @@
+{
+  "query": "SELECT \n  p.id,\n  p.name,\n  p.sector,\n  p.location,\n  p.stage,\n  p.priority,\n  p.capex_grade AS capexGrade,\n  p.owner,\n  p.contractors,\n  p.matched_business_lines AS matchedBL,\n  p.project_key AS projectKey,\n  p.created_at AS createdAt,\n  p.source\nFROM projects p\nORDER BY p.created_at DESC\nLIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  p.id,\n  p.name,\n  p.sector,\n  p.location,\n  p.stage,\n  p.priority,\n  p.capex_grade AS capexGrade,\n  p.owner,\n  p.contractors,\n  p.matched_business_lines AS matchedBL,\n  p.project_key AS projectKey,\n  p.created_at AS createdAt,\n  p.source\nFROM projects p\nORDER BY p.created_at DESC\nLIMIT 10;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'p.created_at' in 'order clause'"
+  ]
+}

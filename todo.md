@@ -453,3 +453,19 @@
 - [x] CONTRACTOR ENGINE: Add tRPC endpoints and integrate into daily pipeline
 - [x] CONTRACTOR ENGINE: Build frontend UI for contractor patterns and emerging patterns section
 - [x] CONTRACTOR ENGINE: Write tests and validate with existing project data (30 tests, 849 total passing)
+- [x] TIER CLASSIFICATION: Build 3-tier stage classification (Tier 1 Actionable, Tier 2 Warm, Tier 3 Monitor)
+- [x] TIER CLASSIFICATION: Add actionTier column to projects schema
+- [x] TIER CLASSIFICATION: Wire classifyStage into AI extractor (auto-classifies on project insert)
+- [x] TIER CLASSIFICATION: Wire bulk classification and contractor enrichment into daily pipeline (steps 15 & 16)
+- [x] TIER CLASSIFICATION: Add tRPC endpoints (classifyAll, distribution, classifySingle)
+- [x] TIER CLASSIFICATION: Update email digest to filter by actionTier (Tier 1 always, Tier 2 if hot/warm, Tier 3 excluded)
+- [x] TIER CLASSIFICATION: Add tier badges on project cards (T1 Actionable green, T2 Warm amber, T3 Monitor grey)
+- [x] TIER CLASSIFICATION: Add tier filter on All Projects tab (filter by T1/T2/T3/unclassified)
+- [x] TIER CLASSIFICATION: Write vitest tests (64 tests: keyword matching, priority ordering, cross-tier overlap, edge cases, brief inclusion logic)
+- [x] CONTRACTOR ENRICHMENT PASS: Build LLM-powered web search for projects missing contractor info
+- [x] CONTRACTOR ENRICHMENT PASS: Search patterns: project name + contractor, + EPC, + construction partner
+- [x] CONTRACTOR ENRICHMENT PASS: Add tRPC endpoints (runPass, missingCount)
+- [x] CONTRACTOR ENRICHMENT PASS: Integrate into daily pipeline as enrichment step 16
+- [x] CONTRACTOR ENRICHMENT PASS: Add admin UI buttons (Classify Tiers, Enrich Contractors with counts)
+- [x] CONTRACTOR ENRICHMENT PASS: Write tests for tier classification (64 tests passing)
+- [x] TIER CLASSIFICATION: Run bulk classification on all 741 projects (T1: 301 Actionable, T2: 288 Warm, T3: 152 Monitor, 0 unclassified)

@@ -562,6 +562,28 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`BL scoring failed: ${e.message}`),
   });
 
+  // Tier Classification
+  const { data: tierDist, refetch: refetchTierDist } = trpc.tierClassification.distribution.useQuery();
+  const classifyAllMut = trpc.tierClassification.classifyAll.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Tier Classification: ${data.classified} classified — T1:${data.tier1Count} T2:${data.tier2Count} T3:${data.tier3Count}`);
+      refetchStats();
+      refetchTierDist();
+    },
+    onError: (e) => toast.error(`Tier classification failed: ${e.message}`),
+  });
+
+  // Contractor Enrichment Pass
+  const { data: missingContractorCount, refetch: refetchMissingCount } = trpc.contractorEnrichment.missingCount.useQuery();
+  const contractorEnrichMut = trpc.contractorEnrichment.runPass.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Contractor Enrichment: ${data.enriched} projects enriched, ${data.contractorsDiscovered} contractors discovered`);
+      refetchStats();
+      refetchMissingCount();
+    },
+    onError: (e) => toast.error(`Contractor enrichment failed: ${e.message}`),
+  });
+
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
   const rawArticleStats = stats?.articles;
@@ -704,6 +726,22 @@ function PipelineOpsTab() {
         >
           {bulkScoreMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
           Score Business Lines {unscoredCount?.count ? `(${unscoredCount.count})` : ""}
+        </Button>
+        <Button
+          onClick={() => classifyAllMut.mutate()}
+          disabled={classifyAllMut.isPending}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+        >
+          {classifyAllMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Filter className="w-4 h-4" />}
+          Classify Tiers {tierDist ? `(T1:${tierDist.tier1} T2:${tierDist.tier2} T3:${tierDist.tier3})` : ""}
+        </Button>
+        <Button
+          onClick={() => contractorEnrichMut.mutate({})}
+          disabled={contractorEnrichMut.isPending}
+          className="bg-orange-600 hover:bg-orange-700 text-white gap-1.5"
+        >
+          {contractorEnrichMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+          Enrich Contractors {missingContractorCount !== undefined ? `(${missingContractorCount} missing)` : ""}
         </Button>
       </div>
 

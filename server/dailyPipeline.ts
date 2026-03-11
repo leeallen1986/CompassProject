@@ -22,7 +22,10 @@
  * 13. Business Line Scoring
  * 14. Weekly Digest (Mondays)
  * 15. Staleness Check
- * 16. Source Monitoring Snapshot
+ * 16. Contractor & Delivery Pattern Engine (Wed/Sat)
+ * 17. Tier Classification (daily)
+ * 18. Contractor Enrichment Pass (Tue/Fri)
+ * 19. Source Monitoring Snapshot
  *
  * Every step is logged with timing, counts, and error detail into the pipelineRuns table.
  */
@@ -49,6 +52,8 @@ import { enrichUnenrichedProjects, getSessionStatus as getProjectorySessionStatu
 import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { recordSourceRun } from "./sourceMonitoring";
 import { runContractorEngine } from "./contractorEngine";
+import { classifyAllProjects } from "./tierClassification";
+import { runContractorEnrichmentPass } from "./contractorEnrichmentPass";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -815,9 +820,54 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(contractorStep);
 
-  // ── Step 17: Source Monitoring Snapshot ──
+  // ── Step 17: Tier Classification (daily — classify new/unclassified projects) ──
+  const tierStep = startStep("Tier Classification");
+  console.log("[DailyPipeline] Step 17: Running tier classification on projects...");
+  try {
+    const tierResult = await classifyAllProjects();
+    completeStep(tierStep, {
+      total: tierResult.total,
+      classified: tierResult.classified,
+      tier1: tierResult.tier1Count,
+      tier2: tierResult.tier2Count,
+      tier3: tierResult.tier3Count,
+    });
+    console.log(`[DailyPipeline] Tier classification complete: ${tierResult.tier1Count} actionable, ${tierResult.tier2Count} warm, ${tierResult.tier3Count} monitor`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Tier classification failed:", errMsg);
+    failStep(tierStep, errMsg);
+  }
+  steps.push(tierStep);
+
+  // ── Step 18: Contractor Enrichment Pass (Tuesdays + Fridays) ──
+  const contractorEnrichStep = startStep("Contractor Enrichment Pass");
+  if (dayOfWeek === 2 || dayOfWeek === 5) {
+    console.log("[DailyPipeline] Step 18: Running contractor enrichment pass on projects missing contractors...");
+    try {
+      const ceResult = await runContractorEnrichmentPass(20);
+      completeStep(contractorEnrichStep, {
+        total: ceResult.total,
+        enriched: ceResult.enriched,
+        contractorsDiscovered: ceResult.contractorsDiscovered,
+        failed: ceResult.failed,
+        skipped: ceResult.skipped,
+      });
+      console.log(`[DailyPipeline] Contractor enrichment pass: ${ceResult.enriched} enriched, ${ceResult.contractorsDiscovered} contractors discovered, ${ceResult.failed} failed`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Contractor enrichment pass failed:", errMsg);
+      failStep(contractorEnrichStep, errMsg);
+    }
+  } else {
+    skipStep(contractorEnrichStep, "Runs on Tuesdays and Fridays");
+    console.log("[DailyPipeline] Step 18: Skipping contractor enrichment pass (runs Tue/Fri)");
+  }
+  steps.push(contractorEnrichStep);
+
+  // ── Step 19: Source Monitoring Snapshot ──
   const monitorStep = startStep("Source Monitoring Snapshot");
-  console.log("[DailyPipeline] Step 17: Recording source monitoring snapshot...");
+  console.log("[DailyPipeline] Step 19: Recording source monitoring snapshot...");
   try {
     completeStep(monitorStep, {
       totalSteps: steps.length,

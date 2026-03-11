@@ -21,6 +21,7 @@ import {
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 import { generateAndEnrichContacts } from "./contactEnrichment";
+import { classifyStage } from "./tierClassification";
 
 // ── Configuration ──
 
@@ -757,6 +758,7 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
         timeline: result.project.timeline,
         completion: result.project.completion,
         matchedBusinessLines: article?.matchedBusinessLines as number[] ?? null,
+        actionTier: classifyStage(result.project.stage),
       };
 
       const [insertResult] = await db.insert(projects).values(projectData);

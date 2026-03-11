@@ -14,6 +14,7 @@ import {
 } from "./db";
 import { emailDigestPrefs } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 
 interface DigestProject {
   id: number;
@@ -27,6 +28,7 @@ interface DigestProject {
   isNew: boolean;
   stage: string | null;
   overview: string | null;
+  actionTier: ActionTier | null;
 }
 
 interface DigestContact {
@@ -131,9 +133,16 @@ function generateDigestContent(
   includeContacts: boolean,
   includePipelineUpdates: boolean,
 ): string {
+  // Apply tier-based filtering: only Tier 1 and select Tier 2 reach the brief
+  const tierFiltered = matchedProjects.filter(p => {
+    const tier = p.actionTier || "tier3_monitor";
+    const priority = p.priority as "hot" | "warm" | "cold";
+    return shouldIncludeInBrief(tier, priority);
+  });
+
   const filtered = includeHotOnly
-    ? matchedProjects.filter(p => p.priority === "hot")
-    : matchedProjects;
+    ? tierFiltered.filter(p => p.priority === "hot")
+    : tierFiltered;
 
   const top10 = filtered.slice(0, 10);
 
@@ -145,14 +154,18 @@ function generateDigestContent(
   const hotCount = filtered.filter(p => p.priority === "hot").length;
   const warmCount = filtered.filter(p => p.priority === "warm").length;
   const newCount = filtered.filter(p => p.isNew).length;
-  content += `**Summary:** ${filtered.length} matching projects (${hotCount} hot, ${warmCount} warm, ${newCount} new this week)\n\n`;
+  const tier1Count = filtered.filter(p => p.actionTier === "tier1_actionable").length;
+  const tier2Count = filtered.filter(p => p.actionTier === "tier2_warm").length;
+  content += `**Summary:** ${filtered.length} matching projects (${hotCount} hot, ${warmCount} warm, ${newCount} new this week)\n`;
+  content += `**Action Tiers:** ${tier1Count} actionable, ${tier2Count} warm pipeline\n\n`;
 
   // Top projects
   content += `**Top Matching Projects:**\n\n`;
   for (const p of top10) {
     const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
     const newBadge = p.isNew ? " [NEW]" : "";
-    content += `${priorityEmoji} **${p.name}**${newBadge}\n`;
+    const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
+    content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
     content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
     content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}%\n`;
     if (p.overview) {
@@ -262,6 +275,7 @@ export async function sendWeeklyDigests(force = false): Promise<{
         isNew: p.isNew,
         stage: p.stage,
         overview: p.overview,
+        actionTier: (p as any).actionTier as ActionTier | null,
         relevanceScore: scoreProjectForUser(
           {
             id: p.id,
@@ -275,6 +289,7 @@ export async function sendWeeklyDigests(force = false): Promise<{
             isNew: p.isNew,
             stage: p.stage,
             overview: p.overview,
+            actionTier: (p as any).actionTier as ActionTier | null,
           },
           {
             territories: profile.territories as string[] | null,

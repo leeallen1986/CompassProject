@@ -667,6 +667,7 @@ export default function Home() {
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sectorFilter, setSectorFilter] = useState("all");
+  const [tierFilter, setTierFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
   const [lifecycleFilter, setLifecycleFilter] = useState<"all" | "active" | "stale" | "archived" | "awarded" | "completed">("active");
   const [showAllTerritories, setShowAllTerritories] = useState(false);
@@ -815,8 +816,19 @@ export default function Home() {
   const filteredProjects = businessLineFiltered.filter((p: ProjectData) => {
     if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
     if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
+    if (tierFilter !== "all") {
+      const tier = (p as any).actionTier ?? "unclassified";
+      if (tierFilter === "unclassified" && tier !== "unclassified" && tier !== null) return false;
+      if (tierFilter !== "unclassified" && tier !== tierFilter) return false;
+    }
     return true;
   });
+
+  // Tier counts for the filter UI
+  const tier1Count = businessLineFiltered.filter((p: any) => p.actionTier === "tier1_actionable").length;
+  const tier2Count = businessLineFiltered.filter((p: any) => p.actionTier === "tier2_warm").length;
+  const tier3Count = businessLineFiltered.filter((p: any) => p.actionTier === "tier3_monitor").length;
+  const tierUnclassifiedCount = businessLineFiltered.filter((p: any) => !p.actionTier).length;
 
   const hotProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "hot");
   const warmProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "warm");
@@ -1118,6 +1130,23 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: businessLineFiltered.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
               <SectorFilter active={sectorFilter} onChange={setSectorFilter} />
+            </div>
+            {/* Tier filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action Tier:</span>
+              {[
+                { key: "all", label: "All Tiers", count: businessLineFiltered.length },
+                { key: "tier1_actionable", label: "T1 Actionable", count: tier1Count, color: "bg-emerald-500" },
+                { key: "tier2_warm", label: "T2 Warm", count: tier2Count, color: "bg-amber-500" },
+                { key: "tier3_monitor", label: "T3 Monitor", count: tier3Count, color: "bg-slate-400" },
+                { key: "unclassified", label: "Unclassified", count: tierUnclassifiedCount },
+              ].map(f => (
+                <button key={f.key} onClick={() => setTierFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${tierFilter === f.key ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"}`}>
+                  {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color} mr-1.5`} />}
+                  {f.label} ({f.count})
+                </button>
+              ))}
             </div>
 
             {(["hot", "warm", "cold"] as const).map(priority => {

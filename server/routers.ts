@@ -86,6 +86,14 @@ import {
   scoreContractors, detectEmergingPatterns, generateEmergingPatternsSection,
   getContractorLeaderboard, getContractorProfile, getActivePatterns,
 } from "./contractorEngine";
+import {
+  classifyAllProjects, classifyProject, getTierDistribution,
+  classifyStage, shouldIncludeInBrief, getTierLabel,
+} from "./tierClassification";
+import {
+  runContractorEnrichmentPass, getEnrichmentPassStats,
+  getProjectsMissingContractors, getMissingContractorCount,
+} from "./contractorEnrichmentPass";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2096,6 +2104,54 @@ export const appRouter = router({
     emergingPatternsSection: protectedProcedure.query(async () => {
       return generateEmergingPatternsSection();
     }),
+  }),
+  // ── Tier Classification ──
+  tierClassification: router({
+    /** Classify all projects into action tiers */
+    classifyAll: adminProcedure.mutation(async () => {
+      return classifyAllProjects();
+    }),
+    /** Classify a single project */
+    classifyOne: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        const tier = await classifyProject(input.projectId);
+        return { projectId: input.projectId, tier, label: getTierLabel(tier) };
+      }),
+    /** Get tier distribution stats */
+    distribution: protectedProcedure.query(async () => {
+      return getTierDistribution();
+    }),
+    /** Preview classification for a stage string (no DB write) */
+    preview: protectedProcedure
+      .input(z.object({ stage: z.string() }))
+      .query(({ input }) => {
+        const tier = classifyStage(input.stage);
+        return { stage: input.stage, tier, label: getTierLabel(tier) };
+      }),
+  }),
+  // ── Contractor Enrichment Pass ──
+  contractorEnrichment: router({
+    /** Run the contractor enrichment pass on projects missing contractors */
+    runPass: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
+      .mutation(async ({ input }) => {
+        return runContractorEnrichmentPass(input?.limit ?? 20);
+      }),
+    /** Get enrichment pass statistics */
+    stats: protectedProcedure.query(async () => {
+      return getEnrichmentPassStats();
+    }),
+    /** Get count of projects missing contractor info */
+    missingCount: protectedProcedure.query(async () => {
+      return getMissingContractorCount();
+    }),
+    /** Get projects missing contractor information */
+    missingProjects: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
+      .query(async ({ input }) => {
+        return getProjectsMissingContractors(input?.limit ?? 20);
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

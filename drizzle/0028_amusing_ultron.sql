@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `actionTier` enum('tier1_actionable','tier2_warm','tier3_monitor') DEFAULT 'tier3_monitor';

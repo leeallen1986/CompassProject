@@ -143,6 +143,7 @@ export const projects = mysqlTable("projects", {
   archivedBy: int("archivedBy"),
   archivedAt: timestamp("archivedAt"),
   projectoryEnriched: boolean("projectoryEnriched").default(false),
+  actionTier: mysqlEnum("actionTier", ["tier1_actionable", "tier2_warm", "tier3_monitor"]).default("tier3_monitor"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

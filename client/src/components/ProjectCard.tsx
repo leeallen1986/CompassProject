@@ -34,6 +34,7 @@ export interface ProjectData {
   timeline: string | null;
   completion: string | null;
   matchedBusinessLines: number[] | null;
+  actionTier?: "tier1_actionable" | "tier2_warm" | "tier3_monitor" | null;
   lifecycleStatus?: "active" | "stale" | "archived" | "awarded" | "completed" | null;
   lastActivityAt?: Date | null;
   createdAt: Date;
@@ -1049,6 +1050,17 @@ export default function ProjectCard({
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${cfg.badge}`}>{cfg.label}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${capexBadge[project.capexGrade]}`}>CAPEX {project.capexGrade}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${routeBadge[project.opportunityRoute]}`}>{project.opportunityRoute}</span>
+            {/* Action Tier badge */}
+            {project.actionTier && (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                project.actionTier === "tier1_actionable" ? "bg-emerald-100 text-emerald-700 border border-emerald-300" :
+                project.actionTier === "tier2_warm" ? "bg-amber-100 text-amber-700 border border-amber-300" :
+                "bg-slate-200 text-slate-500 border border-slate-300"
+              }`}>
+                {project.actionTier === "tier1_actionable" ? "T1 Actionable" :
+                 project.actionTier === "tier2_warm" ? "T2 Warm" : "T3 Monitor"}
+              </span>
+            )}
             {/* Lifecycle status badge */}
             {project.lifecycleStatus && project.lifecycleStatus !== "active" && (
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
