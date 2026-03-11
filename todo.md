@@ -422,3 +422,25 @@
 - [x] Update frontend: Business Line Relevance panel on expanded project cards (colored score bars, X/10 display, explanations), Admin bulk scoring button with unscored count
 - [x] Write vitest tests for refined scoring (30 tests: dimensions coverage, schema columns, module exports, score normalisation)
 - [x] Backfill: 40 projects scored (2 batches of 20), 360 dimension scores with project-specific explanations. Verified UI display on Omega/Elixir project. 785 tests passing (34 files)
+- [x] PROJECTORY ENRICHMENT: Implement authenticated cookie-based access with expiry detection (auto-login via email/password, 2hr session, auto-refresh)
+- [x] PROJECTORY ENRICHMENT: Add PROJECTORY_EMAIL and PROJECTORY_PASSWORD environment secrets (auto-login, no manual cookie extraction)
+- [x] PROJECTORY ENRICHMENT: Build project lookup service (search Projectory by project name)
+- [x] PROJECTORY ENRICHMENT: Extract structured data from Projectory project pages (metadata, delivery chain, timeline signals)
+- [x] PROJECTORY ENRICHMENT: Attach enrichment data to existing project records (contractors, consultants, stage, source attribution)
+- [x] PROJECTORY ENRICHMENT: Mark enriched projects as "Projectory Enriched"
+- [x] PROJECTORY ENRICHMENT: Add projectory enrichment log schema (projects enriched, contractors discovered, stakeholders discovered, stage updates)
+- [x] PROJECTORY ENRICHMENT: Build contractor frequency analysis from Projectory data
+- [x] PROJECTORY ENRICHMENT: Expose enrichment stats and contractor patterns in pipeline monitoring
+- [x] PROJECTORY ENRICHMENT: Add tRPC endpoints for enrichment triggers and status
+- [ ] PROJECTORY ENRICHMENT: Build frontend UI for enrichment status, contractor patterns, and cookie management (deferred to UI phase)
+- [x] PROJECTORY ENRICHMENT: Write vitest tests for Projectory enrichment service (auth test + enrichment type tests)
+- [x] PROJECTORY ENRICHMENT: Rate-limit requests (2s delay between requests, only access when project already identified)
+- [x] SOURCE ARCHITECTURE: Categorise all sources into 3 roles (primary discovery, secondary confirmation, enrichment)
+- [x] SOURCE ARCHITECTURE: Create sourceConfig.ts with role assignments and source metadata
+- [x] ICN STRATEGY: Rewrite ICN as validation/enrichment source (not primary crawler)
+- [x] ICN STRATEGY: Query ICN when project discovered elsewhere to extract contractors, capabilities, procurement stage
+- [x] ASX MONITORING: Build targeted ASX monitoring with company watchlist (30+ companies across mining, energy, infrastructure)
+- [x] ASX MONITORING: Filter announcements using 45 project keywords, discard financial-only with 15 exclusion keywords
+- [x] SOURCE MONITORING: Track last successful fetch, articles retrieved, projects extracted, error rate, response time per source
+- [x] SOURCE MONITORING: Expose enhanced metrics in admin pipeline view (tRPC endpoints added)
+- [ ] PIPELINE VALIDATION: Run full pipeline cycle and report discovery/enrichment/contact/success metrics (pending)

@@ -1,0 +1,25 @@
+{
+  "query": "SELECT COUNT(*) as total_projects FROM projects WHERE lifecycleStatus = 'active'; SELECT COUNT(DISTINCT projectId) as scored_projects FROM projectBusinessLineScores; SELECT (SELECT COUNT(*) FROM projects WHERE lifecycleStatus = 'active') - (SELECT COUNT(DISTINCT projectId) FROM projectBusinessLineScores) as unscored_count",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total_projects FROM projects WHERE lifecycleStatus = 'active'; SELECT COUNT(DISTINCT projectId) as scored_projects FROM projectBusinessLineScores; SELECT (SELECT COUNT(*) FROM projects WHERE lifecycleStatus = 'active') - (SELECT COUNT(DISTINCT projectId) FROM projectBusinessLineScores) as unscored_count",
+  "rows": [
+    {
+      "total_projects": "724"
+    },
+    {
+      "total_projects": "scored_projects"
+    },
+    {
+      "total_projects": "40"
+    },
+    {
+      "total_projects": "unscored_count"
+    },
+    {
+      "total_projects": "684"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_projects\n724\nscored_projects\n40\nunscored_count\n684\n",
+  "stderr": "",
+  "execution_time_ms": 2106
+}

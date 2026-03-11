@@ -1,21 +1,28 @@
 /**
- * Daily Pipeline Runner
+ * Daily Pipeline Runner — v2 (Source Architecture Overhaul)
  *
- * Orchestrates the full daily pipeline:
- * 1. RSS Harvest — fetch all configured feeds
- * 2. AI Extraction — extract projects from queued articles (capped)
- * 3. Projectory Scrape (Mondays)
- * 4. Gov Major Projects Scrape (Tuesdays)
- * 5. DMIRS MINEDEX Scrape (Wednesdays)
- * 6. AusTender Scrape (Thursdays)
- * 7. AEMO Scrape (Fridays)
- * 8. ICN Gateway Scrape (Saturdays)
- * 9. Contact Enrichment
- * 10. Web Stakeholder Discovery
- * 11. Apollo Selective Gap-Fill
- * 12. Business Line Scoring (9 dimensions)
- * 13. Weekly Digest (Mondays)
- * 14. Staleness Check
+ * Sources are categorised into three roles:
+ *   PRIMARY DISCOVERY   — RSS feeds, AusTender, DMIRS, ASX monitoring
+ *   SECONDARY CONFIRM   — Gov major projects, AEMO, old Projectory scraper
+ *   ENRICHMENT          — Projectory authenticated enrichment, ICN validation
+ *
+ * Pipeline order:
+ *  1. RSS Harvest (daily)
+ *  2. AI Extraction (daily)
+ *  3. ASX Targeted Monitoring (daily — lightweight, keyword-filtered)
+ *  4. AusTender OCDS API (Thursdays)
+ *  5. DMIRS MINEDEX API (Wednesdays)
+ *  6. Gov Major Projects (Tuesdays)
+ *  7. AEMO Generation Info (Fridays)
+ *  8. Projectory Enrichment (daily — enriches existing projects, not discovery)
+ *  9. ICN Validation (Saturdays — validates existing projects, not discovery)
+ * 10. Contact Enrichment
+ * 11. Web Stakeholder Discovery
+ * 12. Apollo Selective Gap-Fill
+ * 13. Business Line Scoring
+ * 14. Weekly Digest (Mondays)
+ * 15. Staleness Check
+ * 16. Source Monitoring Snapshot
  *
  * Every step is logged with timing, counts, and error detail into the pipelineRuns table.
  */
@@ -35,6 +42,12 @@ import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
 import { markStaleProjects, getDb } from "./db";
 import { pipelineRuns, type PipelineStep } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
+
+// New source architecture imports
+import { scanTargetCompanies } from "./asxMonitor";
+import { enrichUnenrichedProjects, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
+import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
+import { recordSourceRun } from "./sourceMonitoring";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -57,6 +70,16 @@ export interface DailyPipelineResult {
     failed: number;
     dailyUsed: number;
   };
+  asxMonitor: {
+    ran: boolean;
+    companiesChecked: number;
+    announcementsScanned: number;
+    projectSignals: number;
+    newProjects: number;
+    duplicates: number;
+    errors: number;
+    duration: number;
+  };
   projectory: {
     ran: boolean;
     totalNewProjects: number;
@@ -64,6 +87,19 @@ export interface DailyPipelineResult {
     totalDuplicates: number;
     totalErrors: number;
     duration: number;
+  };
+  projectoryEnrichment: {
+    ran: boolean;
+    enriched: number;
+    contractorsFound: number;
+    failed: number;
+    sessionExpired: boolean;
+  };
+  icnValidation: {
+    ran: boolean;
+    validated: number;
+    contractorsFound: number;
+    failed: number;
   };
   dmirs: {
     ran: boolean;
@@ -148,7 +184,8 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   const startTime = Date.now();
   const steps: PipelineStep[] = [];
   const errors: string[] = [];
-  console.log("[DailyPipeline] Starting daily pipeline run...");
+  const dayOfWeek = new Date().getUTCDay(); // 0=Sun, 1=Mon, ...
+  console.log("[DailyPipeline] Starting daily pipeline run (v2 — source architecture)...");
 
   // Create pipeline run log entry
   let runId: number | null = null;
@@ -167,11 +204,16 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.error("[DailyPipeline] Failed to create pipeline run log:", err);
   }
 
-  // ── Step 1: RSS Harvest ──
+  // ════════════════════════════════════════════════════════════
+  // PRIMARY DISCOVERY SOURCES
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 1: RSS Harvest (daily) ──
   const harvestStep = startStep("RSS Harvest");
   console.log("[DailyPipeline] Step 1: Harvesting RSS feeds...");
   let harvestResult;
   try {
+    const stepStart = Date.now();
     harvestResult = await harvestAllFeeds();
     completeStep(harvestStep, {
       sources: harvestResult.totalSources,
@@ -179,6 +221,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
       duplicates: harvestResult.totalDuplicates,
       errors: harvestResult.totalErrors,
     });
+    recordSourceRun("rss_feeds", true, harvestResult.totalNew, Math.round((Date.now() - stepStart) / 1000));
     console.log(
       `[DailyPipeline] Harvest complete: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources`
     );
@@ -187,11 +230,12 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.error("[DailyPipeline] Harvest failed:", errMsg);
     errors.push(`Harvest: ${errMsg}`);
     failStep(harvestStep, errMsg);
+    recordSourceRun("rss_feeds", false, 0, 0, errMsg);
     harvestResult = { totalSources: 0, totalFetched: 0, totalNew: 0, totalDuplicates: 0, totalErrors: 1 };
   }
   steps.push(harvestStep);
 
-  // ── Step 2: AI Extraction ──
+  // ── Step 2: AI Extraction (daily) ──
   const extractionStep = startStep("AI Extraction");
   console.log("[DailyPipeline] Step 2: Running AI extraction...");
   let extractionResult;
@@ -216,117 +260,49 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(extractionStep);
 
-  // ── Step 3: Projectory Scrape (Mondays) ──
-  const isMonday = new Date().getUTCDay() === 1;
-  const projectoryStep = startStep("Projectory Scrape");
-  let projectoryResult = { ran: false, totalNewProjects: 0, totalNewContacts: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
-  if (isMonday) {
-    console.log("[DailyPipeline] Step 3: Scraping Projectory (weekly Monday run)...");
-    try {
-      const scrapeResult = await runProjectoryScraper();
-      projectoryResult = {
-        ran: true,
-        totalNewProjects: scrapeResult.totalNewProjects,
-        totalNewContacts: scrapeResult.totalNewContacts,
-        totalDuplicates: scrapeResult.totalDuplicates,
-        totalErrors: scrapeResult.totalErrors,
-        duration: scrapeResult.duration,
-      };
-      completeStep(projectoryStep, {
-        newProjects: scrapeResult.totalNewProjects,
-        newContacts: scrapeResult.totalNewContacts,
-        duplicates: scrapeResult.totalDuplicates,
-        errors: scrapeResult.totalErrors,
-      });
-      console.log(`[DailyPipeline] Projectory complete: ${scrapeResult.totalNewProjects} new projects`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Projectory scrape failed:", errMsg);
-      errors.push(`Projectory: ${errMsg}`);
-      failStep(projectoryStep, errMsg);
-      projectoryResult.totalErrors = 1;
-    }
-  } else {
-    skipStep(projectoryStep, "Runs on Mondays only");
-    console.log("[DailyPipeline] Skipping Projectory (runs on Mondays only)");
+  // ── Step 3: ASX Targeted Monitoring (daily — lightweight) ──
+  const asxStep = startStep("ASX Targeted Monitoring");
+  console.log("[DailyPipeline] Step 3: Running ASX targeted monitoring...");
+  let asxResult = { ran: false, companiesChecked: 0, announcementsScanned: 0, projectSignals: 0, newProjects: 0, duplicates: 0, errors: 0, duration: 0 };
+  try {
+    const stepStart = Date.now();
+    const asxData = await scanTargetCompanies(7);
+    asxResult = {
+      ran: true,
+      companiesChecked: asxData.totalCompaniesChecked,
+      announcementsScanned: asxData.totalAnnouncementsScanned,
+      projectSignals: asxData.totalProjectSignals,
+      newProjects: asxData.totalNewProjects,
+      duplicates: asxData.totalDuplicates,
+      errors: asxData.totalErrors,
+      duration: asxData.duration,
+    };
+    completeStep(asxStep, {
+      companiesChecked: asxData.totalCompaniesChecked,
+      announcementsScanned: asxData.totalAnnouncementsScanned,
+      projectSignals: asxData.totalProjectSignals,
+      newProjects: asxData.totalNewProjects,
+      duplicates: asxData.totalDuplicates,
+    });
+    recordSourceRun("asx_announcements", true, asxData.totalNewProjects, Math.round((Date.now() - stepStart) / 1000));
+    console.log(`[DailyPipeline] ASX monitoring complete: ${asxData.totalNewProjects} new projects from ${asxData.totalCompaniesChecked} companies`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] ASX monitoring failed:", errMsg);
+    errors.push(`ASX: ${errMsg}`);
+    failStep(asxStep, errMsg);
+    recordSourceRun("asx_announcements", false, 0, 0, errMsg);
   }
-  steps.push(projectoryStep);
+  steps.push(asxStep);
 
-  // ── Step 4: Government Major Projects (Tuesdays) ──
-  const isTuesday = new Date().getUTCDay() === 2;
-  const govStep = startStep("Gov Major Projects Scrape");
-  let govResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
-  if (isTuesday) {
-    console.log("[DailyPipeline] Step 4: Scraping government major projects (weekly Tuesday run)...");
-    try {
-      const scrapeResult = await runGovScraper();
-      govResult = {
-        ran: true,
-        totalNewProjects: scrapeResult.totalNewProjects,
-        totalDuplicates: scrapeResult.totalDuplicates,
-        totalErrors: scrapeResult.totalErrors,
-        duration: scrapeResult.duration,
-      };
-      completeStep(govStep, {
-        newProjects: scrapeResult.totalNewProjects,
-        duplicates: scrapeResult.totalDuplicates,
-        errors: scrapeResult.totalErrors,
-      });
-      console.log(`[DailyPipeline] Gov complete: ${scrapeResult.totalNewProjects} new projects`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Gov scrape failed:", errMsg);
-      errors.push(`Gov: ${errMsg}`);
-      failStep(govStep, errMsg);
-      govResult.totalErrors = 1;
-    }
-  } else {
-    skipStep(govStep, "Runs on Tuesdays only");
-    console.log("[DailyPipeline] Skipping Gov projects (runs on Tuesdays only)");
-  }
-  steps.push(govStep);
-
-  // ── Step 5: DMIRS MINEDEX (Wednesdays) ──
-  const isWednesday = new Date().getUTCDay() === 3;
-  const dmirsStep = startStep("DMIRS MINEDEX Scrape");
-  let dmirsResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
-  if (isWednesday) {
-    console.log("[DailyPipeline] Step 5: Scraping DMIRS MINEDEX (weekly Wednesday run)...");
-    try {
-      const scrapeResult = await runDmirsScraper();
-      dmirsResult = {
-        ran: true,
-        totalNewProjects: scrapeResult.totalNewProjects,
-        totalDuplicates: scrapeResult.totalDuplicates,
-        totalErrors: scrapeResult.totalErrors,
-        duration: scrapeResult.duration,
-      };
-      completeStep(dmirsStep, {
-        newProjects: scrapeResult.totalNewProjects,
-        duplicates: scrapeResult.totalDuplicates,
-        errors: scrapeResult.totalErrors,
-      });
-      console.log(`[DailyPipeline] DMIRS complete: ${scrapeResult.totalNewProjects} new projects`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] DMIRS scrape failed:", errMsg);
-      errors.push(`DMIRS: ${errMsg}`);
-      failStep(dmirsStep, errMsg);
-      dmirsResult.totalErrors = 1;
-    }
-  } else {
-    skipStep(dmirsStep, "Runs on Wednesdays only");
-    console.log("[DailyPipeline] Skipping DMIRS (runs on Wednesdays only)");
-  }
-  steps.push(dmirsStep);
-
-  // ── Step 6: AusTender (Thursdays) ──
-  const isThursday = new Date().getUTCDay() === 4;
-  const austenderStep = startStep("AusTender Scrape");
+  // ── Step 4: AusTender (Thursdays) ──
+  const isThursday = dayOfWeek === 4;
+  const austenderStep = startStep("AusTender OCDS API");
   let austenderResult = { ran: false, totalFetched: 0, totalRelevant: 0, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
   if (isThursday) {
-    console.log("[DailyPipeline] Step 6: Scraping AusTender contracts (weekly Thursday run)...");
+    console.log("[DailyPipeline] Step 4: Scraping AusTender contracts (weekly Thursday run)...");
     try {
+      const stepStart = Date.now();
       const scrapeResult = await runAusTenderScraper();
       austenderResult = {
         ran: true,
@@ -344,12 +320,14 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
         duplicates: scrapeResult.totalDuplicates,
         errors: scrapeResult.totalErrors,
       });
+      recordSourceRun("austender", true, scrapeResult.totalNewProjects, Math.round((Date.now() - stepStart) / 1000));
       console.log(`[DailyPipeline] AusTender complete: ${scrapeResult.totalNewProjects} new projects from ${scrapeResult.totalRelevant} relevant contracts`);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error("[DailyPipeline] AusTender scrape failed:", errMsg);
       errors.push(`AusTender: ${errMsg}`);
       failStep(austenderStep, errMsg);
+      recordSourceRun("austender", false, 0, 0, errMsg);
       austenderResult.totalErrors = 1;
     }
   } else {
@@ -358,13 +336,92 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(austenderStep);
 
+  // ── Step 5: DMIRS MINEDEX (Wednesdays) ──
+  const isWednesday = dayOfWeek === 3;
+  const dmirsStep = startStep("DMIRS MINEDEX API");
+  let dmirsResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isWednesday) {
+    console.log("[DailyPipeline] Step 5: Scraping DMIRS MINEDEX (weekly Wednesday run)...");
+    try {
+      const stepStart = Date.now();
+      const scrapeResult = await runDmirsScraper();
+      dmirsResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      completeStep(dmirsStep, {
+        newProjects: scrapeResult.totalNewProjects,
+        duplicates: scrapeResult.totalDuplicates,
+        errors: scrapeResult.totalErrors,
+      });
+      recordSourceRun("dmirs", true, scrapeResult.totalNewProjects, Math.round((Date.now() - stepStart) / 1000));
+      console.log(`[DailyPipeline] DMIRS complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] DMIRS scrape failed:", errMsg);
+      errors.push(`DMIRS: ${errMsg}`);
+      failStep(dmirsStep, errMsg);
+      recordSourceRun("dmirs", false, 0, 0, errMsg);
+      dmirsResult.totalErrors = 1;
+    }
+  } else {
+    skipStep(dmirsStep, "Runs on Wednesdays only");
+    console.log("[DailyPipeline] Skipping DMIRS (runs on Wednesdays only)");
+  }
+  steps.push(dmirsStep);
+
+  // ════════════════════════════════════════════════════════════
+  // SECONDARY CONFIRMATION SOURCES
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 6: Government Major Projects (Tuesdays) ──
+  const isTuesday = dayOfWeek === 2;
+  const govStep = startStep("Gov Major Projects");
+  let govResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isTuesday) {
+    console.log("[DailyPipeline] Step 6: Scraping government major projects (weekly Tuesday run)...");
+    try {
+      const stepStart = Date.now();
+      const scrapeResult = await runGovScraper();
+      govResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      completeStep(govStep, {
+        newProjects: scrapeResult.totalNewProjects,
+        duplicates: scrapeResult.totalDuplicates,
+        errors: scrapeResult.totalErrors,
+      });
+      recordSourceRun("gov_major_projects", true, scrapeResult.totalNewProjects, Math.round((Date.now() - stepStart) / 1000));
+      console.log(`[DailyPipeline] Gov complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Gov scrape failed:", errMsg);
+      errors.push(`Gov: ${errMsg}`);
+      failStep(govStep, errMsg);
+      recordSourceRun("gov_major_projects", false, 0, 0, errMsg);
+      govResult.totalErrors = 1;
+    }
+  } else {
+    skipStep(govStep, "Runs on Tuesdays only");
+    console.log("[DailyPipeline] Skipping Gov projects (runs on Tuesdays only)");
+  }
+  steps.push(govStep);
+
   // ── Step 7: AEMO (Fridays) ──
-  const isFriday = new Date().getUTCDay() === 5;
-  const aemoStep = startStep("AEMO Scrape");
+  const isFriday = dayOfWeek === 5;
+  const aemoStep = startStep("AEMO Generation Info");
   let aemoResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalSkipped: 0, totalErrors: 0, duration: 0 };
   if (isFriday) {
     console.log("[DailyPipeline] Step 7: Scraping AEMO generation projects (weekly Friday run)...");
     try {
+      const stepStart = Date.now();
       const scrapeResult = await runAemoScraper();
       aemoResult = {
         ran: true,
@@ -380,12 +437,14 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
         skipped: scrapeResult.totalSkipped,
         errors: scrapeResult.totalErrors,
       });
+      recordSourceRun("aemo", true, scrapeResult.totalNewProjects, Math.round((Date.now() - stepStart) / 1000));
       console.log(`[DailyPipeline] AEMO complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error("[DailyPipeline] AEMO scrape failed:", errMsg);
       errors.push(`AEMO: ${errMsg}`);
       failStep(aemoStep, errMsg);
+      recordSourceRun("aemo", false, 0, 0, errMsg);
       aemoResult.totalErrors = 1;
     }
   } else {
@@ -394,12 +453,121 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(aemoStep);
 
-  // ── Step 8: ICN Gateway (Saturdays) ──
-  const isSaturday = new Date().getUTCDay() === 6;
-  const icnStep = startStep("ICN Gateway Scrape");
+  // ════════════════════════════════════════════════════════════
+  // ENRICHMENT SOURCES
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 8: Projectory Enrichment (daily — enriches existing projects) ──
+  const projectoryEnrichStep = startStep("Projectory Enrichment");
+  console.log("[DailyPipeline] Step 8: Running Projectory enrichment on existing projects...");
+  let projectoryEnrichResult = { ran: false, enriched: 0, contractorsFound: 0, failed: 0, sessionExpired: false };
+  try {
+    const sessionStatus = getProjectorySessionStatus();
+    const hasCredentials = !!(process.env.PROJECTORY_EMAIL && process.env.PROJECTORY_PASSWORD);
+    if (!hasCredentials) {
+      skipStep(projectoryEnrichStep, "Projectory credentials not configured");
+      console.log("[DailyPipeline] Skipping Projectory enrichment: credentials not configured");
+    } else {
+      const stepStart = Date.now();
+      const enrichResult = await enrichUnenrichedProjects(15); // 15 projects per daily run
+      projectoryEnrichResult = {
+        ran: true,
+        enriched: enrichResult.totalEnriched,
+        contractorsFound: enrichResult.totalContractorsDiscovered,
+        failed: enrichResult.totalErrors,
+        sessionExpired: false,
+      };
+      completeStep(projectoryEnrichStep, {
+        processed: enrichResult.totalProcessed,
+        matched: enrichResult.totalMatched,
+        enriched: enrichResult.totalEnriched,
+        contractorsDiscovered: enrichResult.totalContractorsDiscovered,
+        consultantsDiscovered: enrichResult.totalConsultantsDiscovered,
+        stageUpdates: enrichResult.totalStageUpdates,
+        errors: enrichResult.totalErrors,
+      });
+      recordSourceRun("projectory_enrichment", true, enrichResult.totalEnriched, Math.round((Date.now() - stepStart) / 1000));
+      console.log(`[DailyPipeline] Projectory enrichment complete: ${enrichResult.totalEnriched} projects enriched, ${enrichResult.totalContractorsDiscovered} contractors found`);
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Projectory enrichment failed:", errMsg);
+    errors.push(`Projectory Enrichment: ${errMsg}`);
+    failStep(projectoryEnrichStep, errMsg);
+    recordSourceRun("projectory_enrichment", false, 0, 0, errMsg);
+  }
+  steps.push(projectoryEnrichStep);
+
+  // ── Step 8b: Legacy Projectory Scraper (Mondays — kept for backward compat) ──
+  const isMonday = dayOfWeek === 1;
+  const projectoryStep = startStep("Projectory Scrape (Legacy)");
+  let projectoryResult = { ran: false, totalNewProjects: 0, totalNewContacts: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  if (isMonday) {
+    console.log("[DailyPipeline] Step 8b: Running legacy Projectory scraper (Monday)...");
+    try {
+      const scrapeResult = await runProjectoryScraper();
+      projectoryResult = {
+        ran: true,
+        totalNewProjects: scrapeResult.totalNewProjects,
+        totalNewContacts: scrapeResult.totalNewContacts,
+        totalDuplicates: scrapeResult.totalDuplicates,
+        totalErrors: scrapeResult.totalErrors,
+        duration: scrapeResult.duration,
+      };
+      completeStep(projectoryStep, {
+        newProjects: scrapeResult.totalNewProjects,
+        newContacts: scrapeResult.totalNewContacts,
+        duplicates: scrapeResult.totalDuplicates,
+        errors: scrapeResult.totalErrors,
+      });
+      console.log(`[DailyPipeline] Legacy Projectory complete: ${scrapeResult.totalNewProjects} new projects`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Legacy Projectory scrape failed:", errMsg);
+      errors.push(`Projectory Legacy: ${errMsg}`);
+      failStep(projectoryStep, errMsg);
+      projectoryResult.totalErrors = 1;
+    }
+  } else {
+    skipStep(projectoryStep, "Runs on Mondays only");
+  }
+  steps.push(projectoryStep);
+
+  // ── Step 9: ICN Validation (Saturdays — validates existing projects) ──
+  const isSaturday = dayOfWeek === 6;
+  const icnValidationStep = startStep("ICN Validation");
+  let icnValidationResult = { ran: false, validated: 0, contractorsFound: 0, failed: 0 };
+  const icnStep = startStep("ICN Gateway Scrape (Legacy)");
   let icnResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
   if (isSaturday) {
-    console.log("[DailyPipeline] Step 8: Scraping ICN Gateway (weekly Saturday run)...");
+    console.log("[DailyPipeline] Step 9: Running ICN validation on existing projects...");
+    try {
+      const stepStart = Date.now();
+      const validationResult = await icnValidateAllProjects();
+      icnValidationResult = {
+        ran: true,
+        validated: validationResult.totalChecked,
+        contractorsFound: validationResult.totalContractorsAdded,
+        failed: validationResult.totalChecked - validationResult.totalMatched,
+      };
+      completeStep(icnValidationStep, {
+        checked: validationResult.totalChecked,
+        matched: validationResult.totalMatched,
+        updated: validationResult.totalUpdated,
+        contractorsAdded: validationResult.totalContractorsAdded,
+      });
+      recordSourceRun("icn_gateway", true, validationResult.totalContractorsAdded, Math.round((Date.now() - stepStart) / 1000));
+      console.log(`[DailyPipeline] ICN validation complete: ${validationResult.totalChecked} projects checked, ${validationResult.totalContractorsAdded} contractors found`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] ICN validation failed:", errMsg);
+      errors.push(`ICN Validation: ${errMsg}`);
+      failStep(icnValidationStep, errMsg);
+      recordSourceRun("icn_gateway", false, 0, 0, errMsg);
+    }
+
+    // Also run legacy ICN scraper
+    console.log("[DailyPipeline] Step 9b: Running legacy ICN scraper...");
     try {
       const scrapeResult = await runIcnScraper();
       icnResult = {
@@ -414,23 +582,24 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
         duplicates: scrapeResult.totalDuplicates,
         errors: scrapeResult.totalErrors,
       });
-      console.log(`[DailyPipeline] ICN complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] ICN scrape failed:", errMsg);
-      errors.push(`ICN: ${errMsg}`);
       failStep(icnStep, errMsg);
-      icnResult.totalErrors = 1;
     }
   } else {
+    skipStep(icnValidationStep, "Runs on Saturdays only");
     skipStep(icnStep, "Runs on Saturdays only");
-    console.log("[DailyPipeline] Skipping ICN Gateway (runs on Saturdays only)");
   }
+  steps.push(icnValidationStep);
   steps.push(icnStep);
 
-  // ── Step 9: Contact Enrichment ──
+  // ════════════════════════════════════════════════════════════
+  // CONTACT & SCORING PIPELINE
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 10: Contact Enrichment ──
   const enrichmentStep = startStep("Contact Enrichment");
-  console.log("[DailyPipeline] Step 9: Enriching contacts...");
+  console.log("[DailyPipeline] Step 10: Enriching contacts...");
   let enrichmentResult;
   try {
     enrichmentResult = await runEnrichmentPipeline();
@@ -453,11 +622,11 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(enrichmentStep);
 
-  // ── Step 10: Web Stakeholder Discovery ──
+  // ── Step 11: Web Stakeholder Discovery ──
   const webDiscoveryStep = startStep("Web Stakeholder Discovery");
-  console.log("[DailyPipeline] Step 10: Running open-web stakeholder discovery...");
+  console.log("[DailyPipeline] Step 11: Running open-web stakeholder discovery...");
   try {
-    const webResult = await runBulkWebDiscovery(20); // 20 projects per run
+    const webResult = await runBulkWebDiscovery(20);
     completeStep(webDiscoveryStep, {
       projectsProcessed: webResult.processed,
       contactsFound: webResult.contactsFound,
@@ -474,11 +643,11 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(webDiscoveryStep);
 
-  // ── Step 11: Apollo Selective Gap-Fill ──
+  // ── Step 12: Apollo Selective Gap-Fill ──
   const apolloStep = startStep("Apollo Gap-Fill");
-  console.log("[DailyPipeline] Step 11: Running selective Apollo gap-fill...");
+  console.log("[DailyPipeline] Step 12: Running selective Apollo gap-fill...");
   try {
-    const eligibility = await findEligibleProjects(10); // Max 10 projects per day
+    const eligibility = await findEligibleProjects(10);
     if (!eligibility.budgetStatus.withinBudget) {
       skipStep(apolloStep, `Budget exhausted — daily: ${eligibility.budgetStatus.dailyUsed}/${eligibility.budgetStatus.dailyCap}, monthly: ${eligibility.budgetStatus.monthlyUsed}/${eligibility.budgetStatus.monthlyCap}`);
       console.log(`[DailyPipeline] Apollo gap-fill skipped: budget exhausted`);
@@ -493,7 +662,6 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
 
       for (const proj of eligibility.eligible) {
         try {
-          // Check budget before each project
           const currentBudget = await getBudgetStatus();
           if (!currentBudget.withinBudget) {
             console.log(`[DailyPipeline] Apollo budget hit during gap-fill, stopping`);
@@ -503,7 +671,6 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
           const plan = await buildGapFillPlan(proj.projectId, proj.maxCredits);
           if (plan.actions.length === 0) continue;
 
-          // Execute email verifications
           for (const action of plan.actions) {
             if (action.type === "verify_email" && action.contactId) {
               try {
@@ -519,7 +686,6 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
                 console.warn(`[DailyPipeline] Apollo reveal failed for contact ${action.contactId}:`, revealErr instanceof Error ? revealErr.message : String(revealErr));
               }
             } else if (action.type === "find_additional") {
-              // Use Apollo search to find new contacts
               try {
                 const searchResult = await enrichProjectContacts(
                   proj.projectId,
@@ -557,12 +723,12 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(apolloStep);
 
-  // ── Step 12: Business Line Scoring ──
+  // ── Step 13: Business Line Scoring ──
   const blScoringStep = startStep("Business Line Scoring");
-  console.log("[DailyPipeline] Step 12: Scoring projects across 9 business lines...");
+  console.log("[DailyPipeline] Step 13: Scoring projects across 9 business lines...");
   try {
     const { getUnscoredProjectIds: getUnscored, scoreAndSaveProjects: bulkScore } = await import("./businessLineScoring");
-    const unscoredIds = await getUnscored(30); // Score up to 30 per run
+    const unscoredIds = await getUnscored(30);
     if (unscoredIds.length > 0) {
       const blResult = await bulkScore(unscoredIds);
       completeStep(blScoringStep, {
@@ -582,10 +748,10 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(blScoringStep);
 
-  // ── Step 13: Weekly Digest (Mondays) ──
+  // ── Step 14: Weekly Digest (Mondays) ──
   const digestStep = startStep("Weekly Digest");
   if (isMonday) {
-    console.log("[DailyPipeline] Step 13: Sending weekly intelligence digest (Monday run)...");
+    console.log("[DailyPipeline] Step 14: Sending weekly intelligence digest (Monday run)...");
     try {
       const digestResult = await sendWeeklyDigests();
       completeStep(digestStep, {
@@ -601,13 +767,13 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     }
   } else {
     skipStep(digestStep, "Runs on Mondays only");
-    console.log("[DailyPipeline] Step 13: Skipping weekly digest (runs on Mondays only)");
+    console.log("[DailyPipeline] Step 14: Skipping weekly digest (runs on Mondays only)");
   }
   steps.push(digestStep);
 
-  // ── Step 14: Staleness Check ──
+  // ── Step 15: Staleness Check ──
   const stalenessStep = startStep("Staleness Check");
-  console.log("[DailyPipeline] Step 14: Running project staleness check...");
+  console.log("[DailyPipeline] Step 15: Running project staleness check...");
   try {
     const staleCount = await markStaleProjects();
     completeStep(stalenessStep, { markedStale: staleCount });
@@ -622,6 +788,21 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     failStep(stalenessStep, errMsg);
   }
   steps.push(stalenessStep);
+
+  // ── Step 16: Source Monitoring Snapshot ──
+  const monitorStep = startStep("Source Monitoring Snapshot");
+  console.log("[DailyPipeline] Step 16: Recording source monitoring snapshot...");
+  try {
+    completeStep(monitorStep, {
+      totalSteps: steps.length,
+      completed: steps.filter(s => s.status === "completed").length,
+      failed: steps.filter(s => s.status === "failed").length,
+      skipped: steps.filter(s => s.status === "skipped").length,
+    });
+  } catch (err: unknown) {
+    failStep(monitorStep, err instanceof Error ? err.message : String(err));
+  }
+  steps.push(monitorStep);
 
   const duration = Math.round((Date.now() - startTime) / 1000);
   const completedAt = new Date().toISOString();
@@ -647,7 +828,10 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
       failed: enrichmentResult.failed,
       dailyUsed: enrichmentResult.dailyUsed,
     },
+    asxMonitor: asxResult,
     projectory: projectoryResult,
+    projectoryEnrichment: projectoryEnrichResult,
+    icnValidation: icnValidationResult,
     dmirs: dmirsResult,
     aemo: aemoResult,
     gov: govResult,
@@ -679,7 +863,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
         articlesDuplicate: harvestResult.totalDuplicates,
         // Extraction stats
         articlesExtracted: extractionResult.extracted,
-        projectsCreated: extractionResult.extracted + projectoryResult.totalNewProjects + govResult.totalNewProjects + dmirsResult.totalNewProjects + austenderResult.totalNewProjects + aemoResult.totalNewProjects + icnResult.totalNewProjects,
+        projectsCreated: extractionResult.extracted + projectoryResult.totalNewProjects + govResult.totalNewProjects + dmirsResult.totalNewProjects + austenderResult.totalNewProjects + aemoResult.totalNewProjects + icnResult.totalNewProjects + asxResult.newProjects,
         projectsDuplicate: extractionResult.duplicates,
         drillingCampaignsCreated: (extractionResult as any).drillingCampaignsInserted || 0,
         awardedProjectsCreated: (extractionResult as any).awardedProjectsInserted || 0,
@@ -687,6 +871,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
         austenderContracts: austenderResult.totalNewProjects,
         dmirsProjects: dmirsResult.totalNewProjects,
         projectoryProjects: projectoryResult.totalNewProjects,
+        projectoryEnriched: projectoryEnrichResult.enriched,
         govProjects: govResult.totalNewProjects,
         aemoProjects: aemoResult.totalNewProjects,
         icnProjects: icnResult.totalNewProjects,

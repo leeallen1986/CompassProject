@@ -76,6 +76,11 @@ import {
 import { getDb } from "./db";
 import { projects, contacts, pipelineRuns as pipelineRunsTable } from "../drizzle/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
+import { enrichProject, enrichUnenrichedProjects, getContractorFrequency, getEnrichmentStats as getProjectoryEnrichmentStats, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
+import { validateProject as icnValidateProject, validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
+import { scanTargetCompanies, getAsxWatchlist, addToWatchlist, removeFromWatchlist, getRecentAsxFindings } from "./asxMonitor";
+import { getSourceMonitoringSummary } from "./sourceMonitoring";
+import { getSourceSummary, ALL_SOURCES } from "./sourceConfig";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1928,11 +1933,116 @@ export const appRouter = router({
         });
       }),
 
-    /** Get template library stats */
+     /** Get template library stats */
     stats: protectedProcedure.query(async () => {
       return getTemplateStats();
     }),
   }),
-});
 
+  // ═══════════════════════════════════════════════════════════════
+  // SOURCE ARCHITECTURE — Categorisation, Monitoring, Enrichment
+  // ═══════════════════════════════════════════════════════════════
+
+  sources: router({
+    /** Get all source configurations with role categorisation */
+    config: protectedProcedure.query(async () => {
+      return {
+        sources: ALL_SOURCES,
+        summary: getSourceSummary(),
+      };
+    }),
+
+    /** Get source monitoring metrics */
+    monitoring: protectedProcedure.query(async () => {
+      return getSourceMonitoringSummary();
+    }),
+  }),
+
+  // ── Projectory Enrichment ──
+  projectoryEnrichment: router({
+    /** Get Projectory session status */
+    sessionStatus: protectedProcedure.query(async () => {
+      return getProjectorySessionStatus();
+    }),
+
+    /** Get enrichment statistics */
+    stats: protectedProcedure.query(async () => {
+      return getProjectoryEnrichmentStats();
+    }),
+
+    /** Enrich a single project via Projectory */
+    enrichOne: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        return enrichProject(input.projectId);
+      }),
+
+    /** Bulk enrich unenriched projects (hot/warm first) */
+    enrichBulk: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(50).default(20) }))
+      .mutation(async ({ input }) => {
+        return enrichUnenrichedProjects(input.limit);
+      }),
+
+    /** Get contractor frequency analysis */
+    contractorFrequency: protectedProcedure.query(async () => {
+      return getContractorFrequency();
+    }),
+  }),
+
+  // ── ICN Validation ──
+  icnValidation: router({
+    /** Validate a single project against ICN Gateway */
+    validateOne: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        return icnValidateProject(input.projectId);
+      }),
+
+    /** Validate all active projects against ICN Gateway */
+    validateAll: adminProcedure.mutation(async () => {
+      return icnValidateAllProjects();
+    }),
+  }),
+
+  // ── ASX Monitoring ──
+  asxMonitor: router({
+    /** Get the current ASX watchlist */
+    watchlist: protectedProcedure.query(async () => {
+      return getAsxWatchlist();
+    }),
+
+    /** Add a company to the ASX watchlist */
+    addToWatchlist: adminProcedure
+      .input(z.object({
+        ticker: z.string().min(1).max(10),
+        name: z.string().min(1),
+        sector: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        addToWatchlist(input.ticker, input.name, input.sector);
+        return { success: true };
+      }),
+
+    /** Remove a company from the ASX watchlist */
+    removeFromWatchlist: adminProcedure
+      .input(z.object({ ticker: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        removeFromWatchlist(input.ticker);
+        return { success: true };
+      }),
+
+    /** Run ASX scan for all watchlist companies */
+    scan: adminProcedure.mutation(async () => {
+      return scanTargetCompanies();
+    }),
+
+    /** Get recent ASX findings */
+    recentFindings: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20) }))
+      .query(async ({ input }) => {
+        return getRecentAsxFindings(input.limit);
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;

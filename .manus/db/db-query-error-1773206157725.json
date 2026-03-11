@@ -1,0 +1,8 @@
+{
+  "query": "SELECT source, COUNT(*) as cnt FROM projects GROUP BY source ORDER BY cnt DESC; SELECT COUNT(*) as total_projects FROM projects; SELECT COUNT(*) as total_contacts FROM contacts; SELECT COUNT(*) as total_articles FROM rawArticles; SELECT id, runType, status, triggeredBy, startedAt FROM pipelineRuns ORDER BY id DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT source, COUNT(*) as cnt FROM projects GROUP BY source ORDER BY cnt DESC; SELECT COUNT(*) as total_projects FROM projects; SELECT COUNT(*) as total_contacts FROM contacts; SELECT COUNT(*) as total_articles FROM rawArticles; SELECT id, runType, status, triggeredBy, startedAt FROM pipelineRuns ORDER BY id DESC LIMIT 5",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'source' in 'group statement'"
+  ]
+}

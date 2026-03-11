@@ -1,0 +1,16 @@
+{
+  "query": "SELECT (SELECT COUNT(*) FROM projects) as total_projects, (SELECT COUNT(*) FROM contacts) as total_contacts, (SELECT COUNT(*) FROM rawArticles) as total_articles, (SELECT COUNT(*) FROM pipelineRuns) as total_runs",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT (SELECT COUNT(*) FROM projects) as total_projects, (SELECT COUNT(*) FROM contacts) as total_contacts, (SELECT COUNT(*) FROM rawArticles) as total_articles, (SELECT COUNT(*) FROM pipelineRuns) as total_runs",
+  "rows": [
+    {
+      "total_projects": "729",
+      "total_contacts": "56",
+      "total_articles": "2007",
+      "total_runs": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_projects\ttotal_contacts\ttotal_articles\ttotal_runs\n729\t56\t2007\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1505
+}

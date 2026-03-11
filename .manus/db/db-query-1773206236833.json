@@ -1,0 +1,90 @@
+{
+  "query": "SELECT LEFT(projectKey, 15) as key_prefix, COUNT(*) as cnt FROM projects GROUP BY key_prefix ORDER BY cnt DESC LIMIT 20",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT LEFT(projectKey, 15) as key_prefix, COUNT(*) as cnt FROM projects GROUP BY key_prefix ORDER BY cnt DESC LIMIT 20",
+  "rows": [
+    {
+      "key_prefix": "seed-1770821304",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821640",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821721",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821647",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821722",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821644",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821576",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821482",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821568",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821725",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821478",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821795",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821719",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821572",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821477",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821569",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821642",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821794",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821724",
+      "cnt": "5"
+    },
+    {
+      "key_prefix": "seed-1770821394",
+      "cnt": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "key_prefix\tcnt\nseed-1770821304\t5\nseed-1770821640\t5\nseed-1770821721\t5\nseed-1770821647\t5\nseed-1770821722\t5\nseed-1770821644\t5\nseed-1770821576\t5\nseed-1770821482\t5\nseed-1770821568\t5\nseed-1770821725\t5\nseed-1770821478\t5\nseed-1770821795\t5\nseed-1770821719\t5\nseed-1770821572\t5\nseed-1770821477\t5\nseed-1770821569\t5\nseed-1770821642\t5\nseed-1770821794\t5\nseed-1770821724\t5\nseed-1770821394\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1612
+}

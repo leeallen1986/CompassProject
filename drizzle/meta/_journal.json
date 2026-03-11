@@ -176,6 +176,20 @@
       "when": 1773203226275,
       "tag": "0024_lowly_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1773208660275,
+      "tag": "0025_many_the_anarchist",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1773210171015,
+      "tag": "0026_wooden_silver_samurai",
+      "breakpoints": true
     }
   ]
 }

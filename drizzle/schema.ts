@@ -142,6 +142,8 @@ export const projects = mysqlTable("projects", {
   lastActivityAt: timestamp("lastActivityAt").defaultNow(),
   archivedBy: int("archivedBy"),
   archivedAt: timestamp("archivedAt"),
+  projectoryEnriched: boolean("projectoryEnriched").default(false),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -538,6 +540,8 @@ export const pipelineRuns = mysqlTable("pipelineRuns", {
   // Contact enrichment stats
   contactsEnriched: int("contactsEnriched").default(0),
   apolloCreditsUsed: int("apolloCreditsUsed").default(0),
+  // Projectory enrichment stats
+  projectoryEnriched: int("projectoryEnriched").default(0),
   // Scraper stats (additional)
   projectoryProjects: int("projectoryProjects").default(0),
   govProjects: int("govProjects").default(0),
@@ -554,3 +558,49 @@ export const pipelineRuns = mysqlTable("pipelineRuns", {
 
 export type PipelineRun = typeof pipelineRuns.$inferSelect;
 export type InsertPipelineRun = typeof pipelineRuns.$inferInsert;
+
+/**
+ * Projectory enrichment log — tracks each enrichment attempt per project.
+ * Records what was found: contractors, consultants, timeline signals, stage updates.
+ */
+export const projectoryEnrichmentLog = mysqlTable("projectoryEnrichmentLog", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  projectName: varchar("projectName", { length: 512 }).notNull(),
+  projectoryUrl: varchar("projectoryUrl", { length: 512 }),
+  status: mysqlEnum("status", ["matched", "not_found", "auth_expired", "error"]).notNull(),
+  // What was extracted
+  contractorsFound: json("contractorsFound").$type<{ name: string; role: string; detail?: string }[]>(),
+  consultantsFound: json("consultantsFound").$type<{ name: string; role: string; detail?: string }[]>(),
+  stakeholdersFound: json("stakeholdersFound").$type<{ name: string; position: string; organisation: string; email?: string }[]>(),
+  stageUpdate: varchar("stageUpdate", { length: 256 }),
+  valueUpdate: varchar("valueUpdate", { length: 128 }),
+  timelineSignals: json("timelineSignals").$type<{ phase: string; signal: string; date?: string }[]>(),
+  // Metadata
+  searchQuery: varchar("searchQuery", { length: 512 }),
+  enrichedAt: timestamp("enrichedAt").defaultNow().notNull(),
+  errorMessage: text("errorMessage"),
+});
+
+export type ProjectoryEnrichmentLogRow = typeof projectoryEnrichmentLog.$inferSelect;
+export type InsertProjectoryEnrichmentLog = typeof projectoryEnrichmentLog.$inferInsert;
+
+/**
+ * Projectory contractor frequency — aggregated contractor appearances across projects.
+ * Updated after each enrichment run. Powers the "Contractor Network" analysis.
+ */
+export const projectoryContractorFrequency = mysqlTable("projectoryContractorFrequency", {
+  id: int("id").autoincrement().primaryKey(),
+  contractorName: varchar("contractorName", { length: 256 }).notNull(),
+  role: varchar("role", { length: 128 }).notNull(),  // EPC, design, subcontractor, etc.
+  projectCount: int("projectCount").notNull().default(1),
+  projectIds: json("projectIds").$type<number[]>(),
+  sectors: json("sectors").$type<string[]>(),
+  states: json("states").$type<string[]>(),
+  lastSeenAt: timestamp("lastSeenAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProjectoryContractorFrequencyRow = typeof projectoryContractorFrequency.$inferSelect;
+export type InsertProjectoryContractorFrequency = typeof projectoryContractorFrequency.$inferInsert;

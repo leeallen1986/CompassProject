@@ -1,0 +1,30 @@
+{
+  "query": "SELECT sector, COUNT(*) as cnt FROM projects GROUP BY sector ORDER BY cnt DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT sector, COUNT(*) as cnt FROM projects GROUP BY sector ORDER BY cnt DESC",
+  "rows": [
+    {
+      "sector": "energy",
+      "cnt": "254"
+    },
+    {
+      "sector": "infrastructure",
+      "cnt": "236"
+    },
+    {
+      "sector": "mining",
+      "cnt": "168"
+    },
+    {
+      "sector": "defence",
+      "cnt": "42"
+    },
+    {
+      "sector": "oil_gas",
+      "cnt": "29"
+    }
+  ],
+  "messages": [],
+  "stdout": "sector\tcnt\nenergy\t254\ninfrastructure\t236\nmining\t168\ndefence\t42\noil_gas\t29\n",
+  "stderr": "",
+  "execution_time_ms": 1499
+}

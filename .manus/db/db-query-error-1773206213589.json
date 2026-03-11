@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as total_projects FROM projects; SELECT COUNT(*) as total_contacts FROM contacts; SELECT COUNT(*) as total_articles FROM rawArticles; SELECT r.id, r.title, r.weekEnding, (SELECT COUNT(*) FROM projects p WHERE p.reportId = r.id) as project_count FROM reports r ORDER BY r.id DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total_projects FROM projects; SELECT COUNT(*) as total_contacts FROM contacts; SELECT COUNT(*) as total_articles FROM rawArticles; SELECT r.id, r.title, r.weekEnding, (SELECT COUNT(*) FROM projects p WHERE p.reportId = r.id) as project_count FROM reports r ORDER BY r.id DESC LIMIT 5",
+  "returncode": 1,
+  "logs": [
+    "total_projects",
+    "729",
+    "total_contacts",
+    "56",
+    "total_articles",
+    "2007",
+    "ERROR 1054 (42S22) at line 1: Unknown column 'r.title' in 'field list'"
+  ]
+}

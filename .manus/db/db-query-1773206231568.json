@@ -1,0 +1,146 @@
+{
+  "query": "SELECT SUBSTRING_INDEX(projectKey, '-', 1) as source_prefix, COUNT(*) as cnt FROM projects GROUP BY source_prefix ORDER BY cnt DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT SUBSTRING_INDEX(projectKey, '-', 1) as source_prefix, COUNT(*) as cnt FROM projects GROUP BY source_prefix ORDER BY cnt DESC",
+  "rows": [
+    {
+      "source_prefix": "rss",
+      "cnt": "327"
+    },
+    {
+      "source_prefix": "seed",
+      "cnt": "294"
+    },
+    {
+      "source_prefix": "gov",
+      "cnt": "37"
+    },
+    {
+      "source_prefix": "aemo",
+      "cnt": "22"
+    },
+    {
+      "source_prefix": "icn",
+      "cnt": "17"
+    },
+    {
+      "source_prefix": "austender",
+      "cnt": "4"
+    },
+    {
+      "source_prefix": "dampier",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "yarrabin",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "novo",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "kincora",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "gold",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "bowen",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "callide",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "eva",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "thiess",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "wasp",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "golding",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "bw",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "csa",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "western",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "mulga",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "orchard",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "gladstone",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "nsw",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "hazel",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "toodyay",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "logan",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "shell",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "beach",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "conocophillips",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "woodside",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "rhodes",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "mnd",
+      "cnt": "1"
+    },
+    {
+      "source_prefix": "omega",
+      "cnt": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "source_prefix\tcnt\nrss\t327\nseed\t294\ngov\t37\naemo\t22\nicn\t17\naustender\t4\ndampier\t1\nyarrabin\t1\nnovo\t1\nkincora\t1\ngold\t1\nbowen\t1\ncallide\t1\neva\t1\nthiess\t1\nwasp\t1\ngolding\t1\nbw\t1\ncsa\t1\nwestern\t1\nmulga\t1\norchard\t1\ngladstone\t1\nnsw\t1\nhazel\t1\ntoodyay\t1\nlogan\t1\nshell\t1\nbeach\t1\nconocophillips\t1\nwoodside\t1\nrhodes\t1\nmnd\t1\nomega\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1527
+}
