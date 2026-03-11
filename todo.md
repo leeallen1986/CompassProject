@@ -412,3 +412,13 @@
 - [x] Update Admin UI: Apollo Selective Enrichment panel with budget status, eligible projects list, eligibility rules legend
 - [x] Update project cards: "Enrich with Apollo" button with eligibility indicator (explicit_request bypasses budget)
 - [x] Write vitest tests for Apollo eligibility rules (41 tests: config validation, module exports, type coverage, non-existent project handling, rule priority, budget constraints, gap analysis, gap-fill plans, integration)
+- [x] STEP 5: Refine business line scoring
+- [x] Review current business line scoring schema, AI extractor prompts, and scoring logic
+- [x] Add Dewatering Pumps as explicit scored business line (Pump/Dewatering dimension)
+- [x] Ensure all 9 business lines scored: Portable Air, PAL, BESS, Pump/Dewatering, Generators, Nitrogen, Booster, Service Potential, Rental Influence
+- [x] Each project gets relevance score (0-100) + short explanation per business line
+- [x] Update schema: projectBusinessLineScores junction table with score (int), explanation (text), scoredAt (bigint), per dimension per project
+- [x] LLM-powered scoring service: detailed prompt with Atlas Copco product context per dimension, structured JSON output, 0-100 scores with project-specific explanations
+- [x] Update frontend: Business Line Relevance panel on expanded project cards (colored score bars, X/10 display, explanations), Admin bulk scoring button with unscored count
+- [x] Write vitest tests for refined scoring (30 tests: dimensions coverage, schema columns, module exports, score normalisation)
+- [x] Backfill: 40 projects scored (2 batches of 20), 360 dimension scores with project-specific explanations. Verified UI display on Omega/Elixir project. 785 tests passing (34 files)

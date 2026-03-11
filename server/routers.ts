@@ -68,6 +68,11 @@ import {
   checkApolloEligibility, analyzeContactGaps, getBudgetStatus,
   buildGapFillPlan, findEligibleProjects,
 } from "./apolloEligibility";
+import {
+  scoreProject, saveProjectScores, getProjectScores, getProjectScoresBatch,
+  scoreAndSaveProjects, getUnscoredProjectIds, SCORING_DIMENSIONS,
+  type DimensionScore, type ProjectScores,
+} from "./businessLineScoring";
 import { getDb } from "./db";
 import { projects, contacts, pipelineRuns as pipelineRunsTable } from "../drizzle/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
@@ -1493,6 +1498,61 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return findEligibleProjects(input?.maxProjects ?? 20);
       }),
+
+    // ── Business Line Scoring ──
+
+    /** Get business line scores for a single project */
+    projectScores: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return getProjectScores(input.projectId);
+      }),
+
+    /** Get business line scores for multiple projects */
+    projectScoresBatch: protectedProcedure
+      .input(z.object({ projectIds: z.array(z.number()) }))
+      .query(async ({ input }) => {
+        const map = await getProjectScoresBatch(input.projectIds);
+        // Convert Map to plain object for serialization
+        const result: Record<number, DimensionScore[]> = {};
+        Array.from(map.entries()).forEach(([key, value]) => {
+          result[key] = value;
+        });
+        return result;
+      }),
+
+    /** Score a single project (admin) */
+    scoreProject: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        const scores = await scoreProject(input.projectId);
+        if (!scores) throw new Error("Project not found");
+        await saveProjectScores(scores);
+        return scores;
+      }),
+
+    /** Bulk score unscored projects (admin) */
+    bulkScoreProjects: adminProcedure
+      .input(z.object({ limit: z.number().optional() }).optional())
+      .mutation(async ({ input }) => {
+        const unscoredIds = await getUnscoredProjectIds(input?.limit ?? 20);
+        if (unscoredIds.length === 0) return { scored: 0, failed: 0, total: 0, errors: [] };
+        console.log(`[BL-Scoring] Bulk scoring ${unscoredIds.length} unscored projects`);
+        const result = await scoreAndSaveProjects(unscoredIds);
+        console.log(`[BL-Scoring] Bulk complete: ${result.scored} scored, ${result.failed} failed`);
+        return { ...result, total: unscoredIds.length };
+      }),
+
+    /** Get scoring dimensions list */
+    scoringDimensions: publicProcedure.query(() => {
+      return [...SCORING_DIMENSIONS];
+    }),
+
+    /** Get count of unscored projects */
+    unscoredCount: protectedProcedure.query(async () => {
+      const ids = await getUnscoredProjectIds(1000);
+      return { count: ids.length };
+    }),
 
     /** Get recent articles */
     recentArticles: protectedProcedure

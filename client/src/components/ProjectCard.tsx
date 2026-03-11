@@ -74,12 +74,18 @@ interface FeedbackState {
   reason?: string;
 }
 
-// Business line badge colors
+// Business line badge colors — covers all 9 scoring dimensions + legacy names
 const businessLineBadgeConfig: Record<string, { bg: string; text: string; short: string }> = {
   "Portable Air": { bg: "bg-sky-100", text: "text-sky-700", short: "Air" },
   "PAL": { bg: "bg-amber-100", text: "text-amber-700", short: "PAL" },
   "Pump (Flow)": { bg: "bg-blue-100", text: "text-blue-700", short: "Pump" },
+  "Pump/Dewatering": { bg: "bg-blue-100", text: "text-blue-700", short: "Pump" },
   "BESS": { bg: "bg-emerald-100", text: "text-emerald-700", short: "BESS" },
+  "Generators": { bg: "bg-orange-100", text: "text-orange-700", short: "Gen" },
+  "Nitrogen": { bg: "bg-purple-100", text: "text-purple-700", short: "N\u2082" },
+  "Booster": { bg: "bg-red-100", text: "text-red-700", short: "HP" },
+  "Service Potential": { bg: "bg-teal-100", text: "text-teal-700", short: "Svc" },
+  "Rental Influence": { bg: "bg-indigo-100", text: "text-indigo-700", short: "Rent" },
 };
 
 const pipelineStatusLabels: Record<string, string> = {
@@ -940,6 +946,12 @@ export default function ProjectCard({
     reason: existingFeedback?.reason ?? undefined,
   });
 
+  // Fetch BL scores when card is expanded
+  const blScoresQuery = trpc.dataPipeline.projectScores.useQuery(
+    { projectId: project.id },
+    { enabled: open }
+  );
+
   const cfg = priorityConfig[project.priority];
   const equipmentSignals = project.equipmentSignals ?? [];
   const contractors = project.contractors ?? [];
@@ -1234,6 +1246,47 @@ export default function ProjectCard({
                   </div>
                 </div>
               </div>
+
+              {/* Business Line Relevance Scores */}
+              {blScoresQuery.data && blScoresQuery.data.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-3 flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5" /> Business Line Relevance
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {blScoresQuery.data
+                      .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+                      .map((dim: { dimension: string; score: number; explanation: string }) => {
+                        const cfg = businessLineBadgeConfig[dim.dimension] || { bg: "bg-slate-100", text: "text-slate-600", short: dim.dimension };
+                        const barColor = dim.score >= 7 ? "bg-teal" : dim.score >= 4 ? "bg-gold" : "bg-slate-300";
+                        return (
+                          <div key={dim.dimension} className="bg-card border border-border rounded-lg p-2.5 hover:shadow-sm transition-shadow" title={dim.explanation}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>
+                                {dim.dimension}
+                              </span>
+                              <span className={`text-sm font-bold ${dim.score >= 7 ? "text-teal" : dim.score >= 4 ? "text-gold-dark" : "text-muted-foreground"}`}>
+                                {dim.score}/10
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                              <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${dim.score * 10}%` }} />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2">{dim.explanation}</p>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+              {blScoresQuery.isLoading && open && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Loading business line scores...
+                  </div>
+                </div>
+              )}
 
               {/* Lifecycle Actions */}
               <LifecycleActions project={project} />

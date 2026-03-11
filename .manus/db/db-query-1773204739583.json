@@ -1,0 +1,150 @@
+{
+  "query": "SELECT pbs.projectId, p.name, pbs.scoringDimension, pbs.score, LEFT(pbs.explanation, 100) as explanation FROM projectBusinessLineScores pbs JOIN projects p ON p.id = pbs.projectId WHERE pbs.score > 0 ORDER BY pbs.score DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT pbs.projectId, p.name, pbs.scoringDimension, pbs.score, LEFT(pbs.explanation, 100) as explanation FROM projectBusinessLineScores pbs JOIN projects p ON p.id = pbs.projectId WHERE pbs.score > 0 ORDER BY pbs.score DESC LIMIT 20;",
+  "rows": [
+    {
+      "projectId": "30007",
+      "name": "Octopus Australia 4.8GWh BESS Project",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project is explicitly a 4.8GWh Battery Energy Storage System (BESS) project, making it a direct "
+    },
+    {
+      "projectId": "30010",
+      "name": "Collie Battery Energy Storage System (CBESS)",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project is a 500MW/2,400MWh Collie Battery Energy Storage System (CBESS), making it directly and"
+    },
+    {
+      "projectId": "30008",
+      "name": "Armidale Battery Energy Storage System (BESS)",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project is explicitly a 150MW/437MWh Battery Energy Storage System (BESS), making it a direct an"
+    },
+    {
+      "projectId": "30013",
+      "name": "Akaysha Energy 1.6GWh BESS Project",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project is a 1.6GWh Battery Energy Storage System (BESS), making it a direct and explicit opport"
+    },
+    {
+      "projectId": "30002",
+      "name": "Supernode and Eraring Stage 1 battery storage projects",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project explicitly involves 'battery storage projects' and 'BESS', directly aligning with the BE"
+    },
+    {
+      "projectId": "30001",
+      "name": "Hunter Valley BESS",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project is explicitly a 1,600MWh Battery Energy Storage System (BESS). This is a direct and stro"
+    },
+    {
+      "projectId": "30011",
+      "name": "Victoria Government Development Facilitation Program BESS Projects",
+      "scoringDimension": "BESS",
+      "score": "100",
+      "explanation": "The project explicitly involves two large-scale Battery Energy Storage System (BESS) projects totali"
+    },
+    {
+      "projectId": "20",
+      "name": "Omega/Elixir Taroom Trough Drilling",
+      "scoringDimension": "Portable Air",
+      "score": "95",
+      "explanation": "The project involves an extensive drilling campaign, explicitly mentioning 'Drilling rig compressed "
+    },
+    {
+      "projectId": "20",
+      "name": "Omega/Elixir Taroom Trough Drilling",
+      "scoringDimension": "Booster",
+      "score": "95",
+      "explanation": "The project explicitly mentions 'well testing' and 'drilling rig compressed air', which are primary "
+    },
+    {
+      "projectId": "14",
+      "name": "Gladstone LNG Shutdown Season",
+      "scoringDimension": "Nitrogen",
+      "score": "95",
+      "explanation": "The project explicitly states 'nitrogen purging' and is in the oil & gas sector (LNG), making nitrog"
+    },
+    {
+      "projectId": "15",
+      "name": "Eva Copper Mine Project",
+      "scoringDimension": "Service Potential",
+      "score": "95",
+      "explanation": "A mine life extension project signifies a long-term operation with a significant installed base of e"
+    },
+    {
+      "projectId": "8",
+      "name": "Shell Prelude FLNG Turnaround 2026",
+      "scoringDimension": "Nitrogen",
+      "score": "95",
+      "explanation": "The project explicitly mentions 'nitrogen purging' for an LNG turnaround, which is a critical safety"
+    },
+    {
+      "projectId": "19",
+      "name": "Yarrabin (Phoenix) Pumped Hydro",
+      "scoringDimension": "Portable Air",
+      "score": "95",
+      "explanation": "The project explicitly signals 'Tunnelling, drilling & blasting, earthworks air', which are direct a"
+    },
+    {
+      "projectId": "4",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning",
+      "scoringDimension": "Booster",
+      "score": "95",
+      "explanation": "The project directly signals a need for 'boosters, 10-35 bar' for Nitrogen generation/purging and 'h"
+    },
+    {
+      "projectId": "1",
+      "name": "West Angelas Sustaining Project (WASP) — Bulk Earthworks",
+      "scoringDimension": "Portable Air",
+      "score": "95",
+      "explanation": "The project explicitly mentions compressed air for pneumatic tools and concrete vibrators, and drill"
+    },
+    {
+      "projectId": "5",
+      "name": "Thiess Mount Pleasant Operation Expansion",
+      "scoringDimension": "Portable Air",
+      "score": "95",
+      "explanation": "The project explicitly signals a need for high-pressure air for drill rigs and fleet maintenance, wh"
+    },
+    {
+      "projectId": "17",
+      "name": "NSW Long-Duration Energy Storage (6 BESS Projects)",
+      "scoringDimension": "BESS",
+      "score": "95",
+      "explanation": "This project is explicitly about building 6 Battery Energy Storage Systems (BESS) totaling 1.17 GW /"
+    },
+    {
+      "projectId": "21",
+      "name": "Beach Energy Cooper Basin Western Flank Drilling",
+      "scoringDimension": "Nitrogen",
+      "score": "95",
+      "explanation": "The project is in the oil & gas sector and explicitly mentions 'well completion', which is a key app"
+    },
+    {
+      "projectId": "3",
+      "name": "Golding Meandu Coal Mine MSA",
+      "scoringDimension": "Portable Air",
+      "score": "95",
+      "explanation": "The project explicitly mentions 'portable air for drilling rigs' and 'compressed air for maintenance"
+    },
+    {
+      "projectId": "7",
+      "name": "Woodside Scarborough Energy Project",
+      "scoringDimension": "Booster",
+      "score": "95",
+      "explanation": "The project signals 'pipeline tie-in high-pressure testing', which is a primary and high-value appli"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectId\tname\tscoringDimension\tscore\texplanation\n30007\tOctopus Australia 4.8GWh BESS Project\tBESS\t100\tThe project is explicitly a 4.8GWh Battery Energy Storage System (BESS) project, making it a direct \n30010\tCollie Battery Energy Storage System (CBESS)\tBESS\t100\tThe project is a 500MW/2,400MWh Collie Battery Energy Storage System (CBESS), making it directly and\n30008\tArmidale Battery Energy Storage System (BESS)\tBESS\t100\tThe project is explicitly a 150MW/437MWh Battery Energy Storage System (BESS), making it a direct an\n30013\tAkaysha Energy 1.6GWh BESS Project\tBESS\t100\tThe project is a 1.6GWh Battery Energy Storage System (BESS), making it a direct and explicit opport\n30002\tSupernode and Eraring Stage 1 battery storage projects\tBESS\t100\tThe project explicitly involves 'battery storage projects' and 'BESS', directly aligning with the BE\n30001\tHunter Valley BESS\tBESS\t100\tThe project is explicitly a 1,600MWh Battery Energy Storage System (BESS). This is a direct and stro\n30011\tVictoria Government Development Facilitation Program BESS Projects\tBESS\t100\tThe project explicitly involves two large-scale Battery Energy Storage System (BESS) projects totali\n20\tOmega/Elixir Taroom Trough Drilling\tPortable Air\t95\tThe project involves an extensive drilling campaign, explicitly mentioning 'Drilling rig compressed \n20\tOmega/Elixir Taroom Trough Drilling\tBooster\t95\tThe project explicitly mentions 'well testing' and 'drilling rig compressed air', which are primary \n14\tGladstone LNG Shutdown Season\tNitrogen\t95\tThe project explicitly states 'nitrogen purging' and is in the oil & gas sector (LNG), making nitrog\n15\tEva Copper Mine Project\tService Potential\t95\tA mine life extension project signifies a long-term operation with a significant installed base of e\n8\tShell Prelude FLNG Turnaround 2026\tNitrogen\t95\tThe project explicitly mentions 'nitrogen purging' for an LNG turnaround, which is a critical safety\n19\tYarrabin (Phoenix) Pumped Hydro\tPortable Air\t95\tThe project explicitly signals 'Tunnelling, drilling & blasting, earthworks air', which are direct a\n4\tBW Opal FPSO / Barossa LNG Commissioning\tBooster\t95\tThe project directly signals a need for 'boosters, 10-35 bar' for Nitrogen generation/purging and 'h\n1\tWest Angelas Sustaining Project (WASP) — Bulk Earthworks\tPortable Air\t95\tThe project explicitly mentions compressed air for pneumatic tools and concrete vibrators, and drill\n5\tThiess Mount Pleasant Operation Expansion\tPortable Air\t95\tThe project explicitly signals a need for high-pressure air for drill rigs and fleet maintenance, wh\n17\tNSW Long-Duration Energy Storage (6 BESS Projects)\tBESS\t95\tThis project is explicitly about building 6 Battery Energy Storage Systems (BESS) totaling 1.17 GW /\n21\tBeach Energy Cooper Basin Western Flank Drilling\tNitrogen\t95\tThe project is in the oil & gas sector and explicitly mentions 'well completion', which is a key app\n3\tGolding Meandu Coal Mine MSA\tPortable Air\t95\tThe project explicitly mentions 'portable air for drilling rigs' and 'compressed air for maintenance\n7\tWoodside Scarborough Energy Project\tBooster\t95\tThe project signals 'pipeline tie-in high-pressure testing', which is a primary and high-value appli\n",
+  "stderr": "",
+  "execution_time_ms": 1540
+}

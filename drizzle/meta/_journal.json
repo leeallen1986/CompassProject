@@ -169,6 +169,13 @@
       "when": 1773200611707,
       "tag": "0023_chunky_epoch",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1773203226275,
+      "tag": "0024_lowly_kulan_gath",
+      "breakpoints": true
     }
   ]
 }

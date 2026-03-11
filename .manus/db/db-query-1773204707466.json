@@ -1,0 +1,16 @@
+{
+  "query": "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%usiness%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%usiness%';",
+  "rows": [
+    {
+      "TABLE_NAME": "projectBusinessLineScores"
+    },
+    {
+      "TABLE_NAME": "businessLines"
+    }
+  ],
+  "messages": [],
+  "stdout": "TABLE_NAME\nprojectBusinessLineScores\nbusinessLines\n",
+  "stderr": "",
+  "execution_time_ms": 1545
+}

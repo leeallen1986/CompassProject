@@ -13,8 +13,9 @@
  * 9. Contact Enrichment
  * 10. Web Stakeholder Discovery
  * 11. Apollo Selective Gap-Fill
- * 12. Weekly Digest (Mondays)
- * 13. Staleness Check
+ * 12. Business Line Scoring (9 dimensions)
+ * 13. Weekly Digest (Mondays)
+ * 14. Staleness Check
  *
  * Every step is logged with timing, counts, and error detail into the pipelineRuns table.
  */
@@ -556,10 +557,35 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(apolloStep);
 
-  // ── Step 12: Weekly Digest (Mondays) ──
+  // ── Step 12: Business Line Scoring ──
+  const blScoringStep = startStep("Business Line Scoring");
+  console.log("[DailyPipeline] Step 12: Scoring projects across 9 business lines...");
+  try {
+    const { getUnscoredProjectIds: getUnscored, scoreAndSaveProjects: bulkScore } = await import("./businessLineScoring");
+    const unscoredIds = await getUnscored(30); // Score up to 30 per run
+    if (unscoredIds.length > 0) {
+      const blResult = await bulkScore(unscoredIds);
+      completeStep(blScoringStep, {
+        scored: blResult.scored,
+        failed: blResult.failed,
+        total: unscoredIds.length,
+      });
+      console.log(`[DailyPipeline] BL Scoring complete: ${blResult.scored} scored, ${blResult.failed} failed out of ${unscoredIds.length}`);
+    } else {
+      completeStep(blScoringStep, { scored: 0, failed: 0, total: 0 });
+      console.log("[DailyPipeline] No unscored projects found");
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] BL Scoring failed:", errMsg);
+    failStep(blScoringStep, errMsg);
+  }
+  steps.push(blScoringStep);
+
+  // ── Step 13: Weekly Digest (Mondays) ──
   const digestStep = startStep("Weekly Digest");
   if (isMonday) {
-    console.log("[DailyPipeline] Step 12: Sending weekly intelligence digest (Monday run)...");
+    console.log("[DailyPipeline] Step 13: Sending weekly intelligence digest (Monday run)...");
     try {
       const digestResult = await sendWeeklyDigests();
       completeStep(digestStep, {
@@ -575,13 +601,13 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     }
   } else {
     skipStep(digestStep, "Runs on Mondays only");
-    console.log("[DailyPipeline] Step 12: Skipping weekly digest (runs on Mondays only)");
+    console.log("[DailyPipeline] Step 13: Skipping weekly digest (runs on Mondays only)");
   }
   steps.push(digestStep);
 
-  // ── Step 13: Staleness Check ──
+  // ── Step 14: Staleness Check ──
   const stalenessStep = startStep("Staleness Check");
-  console.log("[DailyPipeline] Step 13: Running project staleness check...");
+  console.log("[DailyPipeline] Step 14: Running project staleness check...");
   try {
     const staleCount = await markStaleProjects();
     completeStep(stalenessStep, { markedStale: staleCount });

@@ -321,6 +321,24 @@ export type BusinessLine = typeof businessLines.$inferSelect;
 export type InsertBusinessLine = typeof businessLines.$inferInsert;
 
 /**
+ * Per-project business line relevance scores.
+ * Each project gets scored (0-100) across all 9 scoring dimensions with a short explanation.
+ * Scoring dimensions: Portable Air, PAL, BESS, Pump/Dewatering, Generators, Nitrogen, Booster, Service Potential, Rental Influence
+ */
+export const projectBusinessLineScores = mysqlTable("projectBusinessLineScores", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  scoringDimension: varchar("scoringDimension", { length: 64 }).notNull(),
+  score: int("score").notNull().default(0),
+  explanation: text("explanation"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProjectBusinessLineScore = typeof projectBusinessLineScores.$inferSelect;
+export type InsertProjectBusinessLineScore = typeof projectBusinessLineScores.$inferInsert;
+
+/**
  * RSS source registry — configurable feeds per business line.
  */
 export const rssSources = mysqlTable("rssSources", {

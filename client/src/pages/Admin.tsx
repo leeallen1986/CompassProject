@@ -13,7 +13,7 @@ import {
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
-  CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash,
+  CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash, Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -552,6 +552,15 @@ function PipelineOpsTab() {
   const { data: webDiscoveryStats, refetch: refetchWebStats } = trpc.dataPipeline.webDiscoveryStats.useQuery();
   const { data: apolloBudget, refetch: refetchBudget } = trpc.dataPipeline.apolloBudget.useQuery();
   const { data: apolloEligible, refetch: refetchEligible } = trpc.dataPipeline.apolloEligibleProjects.useQuery();
+  const { data: unscoredCount, refetch: refetchUnscored } = trpc.dataPipeline.unscoredCount.useQuery();
+  const bulkScoreMut = trpc.dataPipeline.bulkScoreProjects.useMutation({
+    onSuccess: (data) => {
+      toast.success(`BL Scoring: ${data.scored} projects scored, ${data.failed} failed out of ${data.total}`);
+      refetchStats();
+      refetchUnscored();
+    },
+    onError: (e) => toast.error(`BL scoring failed: ${e.message}`),
+  });
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -687,6 +696,14 @@ function PipelineOpsTab() {
         >
           {webDiscoveryMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
           Web Stakeholder Discovery
+        </Button>
+        <Button
+          onClick={() => bulkScoreMut.mutate({})}
+          disabled={bulkScoreMut.isPending}
+          className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+        >
+          {bulkScoreMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
+          Score Business Lines {unscoredCount?.count ? `(${unscoredCount.count})` : ""}
         </Button>
       </div>
 

@@ -1,0 +1,55 @@
+{
+  "query": "SELECT * FROM projectBusinessLineScores LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT * FROM projectBusinessLineScores LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "projectId": "1",
+      "scoringDimension": "Portable Air",
+      "score": "95",
+      "explanation": "The project explicitly mentions compressed air for pneumatic tools and concrete vibrators, and drilling/blasting potential. Its remote location makes portable air essential, indicating a strong direct need for Atlas Copco's portable compressor range.",
+      "createdAt": "2026-03-11 04:42:37",
+      "updatedAt": "2026-03-11 04:42:37"
+    },
+    {
+      "id": "2",
+      "projectId": "1",
+      "scoringDimension": "PAL",
+      "score": "85",
+      "explanation": "As a remote mining site with significant earthworks, there will be a clear need for temporary power generation and lighting for construction. The project's scale and duration suggest a substantial rental opportunity for generators and light towers.",
+      "createdAt": "2026-03-11 04:42:37",
+      "updatedAt": "2026-03-11 04:42:37"
+    },
+    {
+      "id": "3",
+      "projectId": "1",
+      "scoringDimension": "BESS",
+      "score": "60",
+      "explanation": "While not explicitly stated, Rio Tinto's focus on ESG and the remote nature of the site present a strong indirect opportunity for hybrid power solutions. BESS could offer fuel savings and reduced emissions for temporary power needs.",
+      "createdAt": "2026-03-11 04:42:37",
+      "updatedAt": "2026-03-11 04:42:37"
+    },
+    {
+      "id": "4",
+      "projectId": "1",
+      "scoringDimension": "Pump/Dewatering",
+      "score": "75",
+      "explanation": "Bulk earthworks, especially in a mining context, often encounter groundwater or require dewatering for stable ground conditions. The project's scale suggests a likely need for pumps, even if not explicitly mentioned.",
+      "createdAt": "2026-03-11 04:42:37",
+      "updatedAt": "2026-03-11 04:42:37"
+    },
+    {
+      "id": "5",
+      "projectId": "1",
+      "scoringDimension": "Generators",
+      "score": "55",
+      "explanation": "Given the project's scale and duration (work commenced Jan 2026), there's potential for some permanent or semi-permanent power requirements that might lead to generator purchases rather than just rentals. However, temporary power is likely to be rental.",
+      "createdAt": "2026-03-11 04:42:37",
+      "updatedAt": "2026-03-11 04:42:37"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprojectId\tscoringDimension\tscore\texplanation\tcreatedAt\tupdatedAt\n1\t1\tPortable Air\t95\tThe project explicitly mentions compressed air for pneumatic tools and concrete vibrators, and drilling/blasting potential. Its remote location makes portable air essential, indicating a strong direct need for Atlas Copco's portable compressor range.\t2026-03-11 04:42:37\t2026-03-11 04:42:37\n2\t1\tPAL\t85\tAs a remote mining site with significant earthworks, there will be a clear need for temporary power generation and lighting for construction. The project's scale and duration suggest a substantial rental opportunity for generators and light towers.\t2026-03-11 04:42:37\t2026-03-11 04:42:37\n3\t1\tBESS\t60\tWhile not explicitly stated, Rio Tinto's focus on ESG and the remote nature of the site present a strong indirect opportunity for hybrid power solutions. BESS could offer fuel savings and reduced emissions for temporary power needs.\t2026-03-11 04:42:37\t2026-03-11 04:42:37\n4\t1\tPump/Dewatering\t75\tBulk earthworks, especially in a mining context, often encounter groundwater or require dewatering for stable ground conditions. The project's scale suggests a likely need for pumps, even if not explicitly mentioned.\t2026-03-11 04:42:37\t2026-03-11 04:42:37\n5\t1\tGenerators\t55\tGiven the project's scale and duration (work commenced Jan 2026), there's potential for some permanent or semi-permanent power requirements that might lead to generator purchases rather than just rentals. However, temporary power is likely to be rental.\t2026-03-11 04:42:37\t2026-03-11 04:42:37\n",
+  "stderr": "",
+  "execution_time_ms": 1536
+}
