@@ -102,6 +102,7 @@ import {
   runBulkSecondPass, getSecondPassGapCount,
   runSecondPassForProject,
 } from "./secondPassContactSearch";
+import { getThisWeekSummary } from "./thisWeekService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2191,6 +2192,13 @@ export const appRouter = router({
     /** Get count of projects needing more relevant contacts */
     gapCount: protectedProcedure.query(async () => {
       return getSecondPassGapCount();
+    }),
+  }),
+  // ── This Week Summary ──
+  thisWeek: router({
+    /** Get the This Week summary for the landing page */
+    summary: protectedProcedure.query(async ({ ctx }) => {
+      return getThisWeekSummary(ctx.user.id);
     }),
   }),
 });

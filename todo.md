@@ -488,3 +488,12 @@
 - [x] ACTIVITY LAYER: Integrate into BL scoring — activity signals injected into LLM prompt + deterministic post-LLM score adjustments
 - [x] ACTIVITY LAYER: Write vitest tests — 59 tests (activity detection, env signals, stage weights, score modifiers, real-world scenarios)
 - [x] ACTIVITY LAYER: Validated on 30-project sample — correct differentiation (drilling+construction PA=+18 vs drilling+exploration PA=+4, solar PA=-13)
+- [x] THIS WEEK: Build server-side data aggregation (top projects by composite score, new stakeholders, stage changes, suggested actions)
+- [x] THIS WEEK: Build tRPC endpoint for This Week summary data (thisWeek.summary)
+- [x] THIS WEEK: Build frontend page with summary cards — KPIs, Suggested Actions, Top Priority Projects, New Stakeholders, Stage Changes, Pipeline Overview
+- [x] THIS WEEK: Wire as default landing page (/ route), moved existing dashboard to /dashboard
+- [x] THIS WEEK: Drill-down links — "View all projects", "View more priority projects", "Open Full Dashboard" all navigate to /dashboard
+- [x] EMAIL DIGEST: Updated weekly email — top 3 projects, top 2 stakeholder discoveries, 1 urgent action at top of every digest
+- [x] EMAIL DIGEST: Added "View full This Week summary" link back to / in every digest
+- [x] THIS WEEK: 28 vitest tests passing (tier filtering, stakeholder relevance, activity detection, action sorting, email formatting, routing, stats, stage changes)
+- [x] THIS WEEK: Verified in browser — all 6 sections rendering correctly with live data (298 T1, 245 hot, 712 new, 7 contacts, 46 key, 319 missing contractors)

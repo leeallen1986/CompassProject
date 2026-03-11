@@ -2,6 +2,9 @@
  * Email Digest Generator
  * Builds personalized intelligence summaries for each user based on their profile preferences.
  * Uses the built-in notification API to deliver digests.
+ *
+ * Updated: Now includes "This Week" summary data — top 3 projects, top 2 stakeholder
+ * discoveries, 1 urgent action, and a link back to the "This Week" page.
  */
 import { notifyOwner } from "./_core/notification";
 import {
@@ -15,6 +18,7 @@ import {
 import { emailDigestPrefs } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
+import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 
 interface DigestProject {
   id: number;
@@ -121,7 +125,70 @@ function scoreProjectForUser(
 }
 
 /**
- * Generate a personalized digest for a single user
+ * Format the "This Week" highlight section for the email digest.
+ * Includes top 3 projects, top 2 stakeholders, and 1 urgent action.
+ */
+function formatThisWeekSection(
+  top3Projects: ThisWeekProject[],
+  top2Stakeholders: ThisWeekStakeholder[],
+  urgentAction: SuggestedAction | null,
+  thisWeekUrl: string,
+): string {
+  let section = "";
+
+  // ── Urgent Action ──
+  if (urgentAction) {
+    const priorityEmoji = urgentAction.priority === "urgent" ? "🚨" : "⚡";
+    section += `${priorityEmoji} **ACTION REQUIRED: ${urgentAction.title}**\n`;
+    section += `${urgentAction.description}\n\n`;
+  }
+
+  // ── Top 3 Projects ──
+  if (top3Projects.length > 0) {
+    section += `**Top 3 Priority Projects This Week:**\n\n`;
+    for (const p of top3Projects) {
+      const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
+      const newBadge = p.isNew ? " [NEW]" : "";
+      const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
+      section += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
+      section += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
+      if (p.detectedActivities.length > 0) {
+        section += `   🏗️ Activities: ${p.detectedActivities.slice(0, 3).join(", ")}\n`;
+      }
+      if (p.contractors && p.contractors.length > 0) {
+        section += `   🔧 Contractors: ${p.contractors.slice(0, 2).map(c => c.name).join(", ")}\n`;
+      }
+      if (p.overview) {
+        section += `   ${p.overview.substring(0, 120)}...\n`;
+      }
+      section += `\n`;
+    }
+  }
+
+  // ── Top 2 Stakeholder Discoveries ──
+  if (top2Stakeholders.length > 0) {
+    section += `**New Stakeholder Discoveries:**\n\n`;
+    for (const s of top2Stakeholders) {
+      const relBadge = s.roleRelevance === "high" ? "🔑 KEY" : "📋 MED";
+      section += `${relBadge} **${s.name}** — ${s.title} at ${s.company}\n`;
+      section += `   Project: ${s.project}`;
+      if (s.email) section += ` | Email: ${s.email}`;
+      if (s.linkedin) section += ` | [LinkedIn](${s.linkedin})`;
+      section += `\n\n`;
+    }
+  }
+
+  // ── Link back to This Week ──
+  section += `---\n`;
+  section += `**[View full "This Week" summary →](${thisWeekUrl})**\n`;
+  section += `See all priority projects, stage changes, and suggested actions in one place.\n`;
+
+  return section;
+}
+
+/**
+ * Generate a personalized digest for a single user.
+ * Now includes the "This Week" highlight section at the top.
  */
 function generateDigestContent(
   userName: string,
@@ -132,6 +199,7 @@ function generateDigestContent(
   includeHotOnly: boolean,
   includeContacts: boolean,
   includePipelineUpdates: boolean,
+  thisWeekSection: string,
 ): string {
   // Apply tier-based filtering: only Tier 1 and select Tier 2 reach the brief
   const tierFiltered = matchedProjects.filter(p => {
@@ -148,7 +216,14 @@ function generateDigestContent(
 
   let content = `**Weekly Intelligence Digest — ${reportWeek}**\n\n`;
   content += `Hi ${userName || "there"},\n\n`;
-  content += `Here are your personalized project matches for this week:\n\n`;
+
+  // ── This Week Highlights (top of email) ──
+  content += thisWeekSection;
+  content += `\n`;
+
+  // ── Personalized Matches ──
+  content += `---\n\n`;
+  content += `**Your Personalized Project Matches:**\n\n`;
 
   // Summary stats
   const hotCount = filtered.filter(p => p.priority === "hot").length;
@@ -160,7 +235,6 @@ function generateDigestContent(
   content += `**Action Tiers:** ${tier1Count} actionable, ${tier2Count} warm pipeline\n\n`;
 
   // Top projects
-  content += `**Top Matching Projects:**\n\n`;
   for (const p of top10) {
     const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
     const newBadge = p.isNew ? " [NEW]" : "";
@@ -223,9 +297,15 @@ async function markDigestSent(userId: number): Promise<void> {
 }
 
 /**
- * Send personalized digests to all enabled users
+ * Send personalized digests to all enabled users.
  * Called when a new report is published or via admin trigger.
  * Includes deduplication: skips users who already received a digest this week.
+ *
+ * Now includes "This Week" highlights at the top of every digest:
+ * - Top 3 priority projects
+ * - Top 2 stakeholder discoveries
+ * - 1 urgent action
+ * - Link back to the "This Week" page
  */
 export async function sendWeeklyDigests(force = false): Promise<{
   sent: number;
@@ -245,6 +325,23 @@ export async function sendWeeklyDigests(force = false): Promise<{
   // Get all projects and contacts for this report
   const allProjects = await getProjectsByReportId(report.id);
   const allContacts = await getContactsByReportId(report.id);
+
+  // Get "This Week" summary data for the email highlight section
+  let thisWeekSection = "";
+  try {
+    const thisWeekData = await getThisWeekForEmail();
+    // Build the "This Week" URL — use relative path since we don't know the domain
+    const thisWeekUrl = "/";
+    thisWeekSection = formatThisWeekSection(
+      thisWeekData.top3Projects,
+      thisWeekData.top2Stakeholders,
+      thisWeekData.urgentAction,
+      thisWeekUrl,
+    );
+  } catch (err) {
+    console.warn("[EmailDigest] Failed to get This Week data, continuing without highlights:", err);
+    thisWeekSection = "";
+  }
 
   // Get all users with enabled digests
   const digestUsers = await getAllEnabledDigestUsers();
@@ -320,7 +417,7 @@ export async function sendWeeklyDigests(force = false): Promise<{
       const matchedProjectNames = new Set(matchedProjects.map(p => p.name));
       const matchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
 
-      // Generate the digest content
+      // Generate the digest content (now includes This Week section)
       const content = generateDigestContent(
         user.name || "Team Member",
         report.weekEnding,
@@ -337,6 +434,7 @@ export async function sendWeeklyDigests(force = false): Promise<{
         pref.includeHotOnly,
         pref.includeContacts,
         pref.includePipelineUpdates,
+        thisWeekSection,
       );
 
       // Send via notification API
