@@ -720,6 +720,28 @@ export default function Home() {
 
   const [, navigate] = useLocation();
 
+  // ── Read ?project= and ?tab= from URL to deep-link into specific project ──
+  const [pendingProjectId, setPendingProjectId] = useState<number | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get("project");
+    const tab = params.get("tab");
+    // Clean up URL immediately
+    if (pid || tab) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    return pid ? Number(pid) : null;
+  });
+
+  // On mount: read tab param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab) setActiveTab(tab);
+    if (pendingProjectId && !tab) setActiveTab("projects");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deep-link scroll effect is placed after fullReport query below
+
   // Fetch user profile to check onboarding status
   const { data: profile, isLoading: profileLoading } = trpc.profile.get.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -730,7 +752,28 @@ export default function Home() {
   const { data: fullReport, isLoading: reportLoading } = trpc.report.full.useQuery(
     {},
     { enabled: isAuthenticated }
-  );
+   );
+
+  // Once data loads and we have a pending project, scroll to it
+  useEffect(() => {
+    if (!pendingProjectId || reportLoading || !fullReport) return;
+    // Give the tab + cards time to render
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`project-${pendingProjectId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-gold", "ring-offset-2");
+        // Auto-expand the card
+        const clickTarget = el.querySelector('[role="button"]') as HTMLElement;
+        if (clickTarget) clickTarget.click();
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-gold", "ring-offset-2");
+        }, 3000);
+      }
+      setPendingProjectId(null);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [pendingProjectId, reportLoading, fullReport]);
 
   // Fetch feedback for personalization
   const reportIdForFeedback = fullReport?.report?.id;

@@ -559,3 +559,6 @@
 - [x] COACHING: Ensure weekly coaching prioritises projects in user's territory and BL
 - [x] OUTREACH: Pre-fill outreach with user's relevant BL context
 - [x] TESTS: Write vitest tests for personalised filtering and ranking
+
+## Bug Fixes
+- [x] BUG: Clicking project cards and suggested actions on This Week page navigates to Full Dashboard instead of the specific project — fixed with deep-link: ?project=ID auto-switches to Projects tab, scrolls to card, highlights it, and auto-expands
