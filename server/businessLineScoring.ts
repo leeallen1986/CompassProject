@@ -20,6 +20,7 @@ import { getDb } from "./db";
 import { projectBusinessLineScores, projects } from "../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
+import { computeScoreModifiers, applyScoreAdjustments, type ActivityScoreModifiers } from "./activitySignalLayer";
 
 // ── Constants ──
 
@@ -61,7 +62,11 @@ function buildScoringPrompt(projectData: {
   stage: string | null;
   opportunityRoute: string;
   location: string;
-}): string {
+}, activitySummary?: string): string {
+  const activitySection = activitySummary
+    ? `\n\nACTIVITY SIGNAL ANALYSIS (pre-computed from project text):\n${activitySummary}\n\nIMPORTANT: Use the activity signals above to guide your scoring. Score based on WHAT ACTIVITIES ARE HAPPENING ON SITE, not just the sector or project type. For example:\n- Drilling/tunnelling/blasting → Portable Air should be HIGH\n- Excavation/trenching/groundwater → Pump/Dewatering should be HIGH\n- Pipeline hydrotest/purge → Nitrogen and Booster should be HIGH\n- Remote construction without drilling → Portable Air should be MODERATE at most\n- Early-stage (exploration/feasibility) without confirmed activities → reduce all equipment scores`
+    : "";
+
   return `You are an Atlas Copco Power Technique (PT) business analyst. Score this project's relevance to each PT business line.
 
 PROJECT:
@@ -73,34 +78,46 @@ PROJECT:
 - Stage: ${projectData.stage || "Unknown"}
 - Opportunity Route: ${projectData.opportunityRoute}
 - Overview: ${projectData.overview || "No overview available"}
-- Equipment Signals: ${projectData.equipmentSignals?.join(", ") || "None detected"}
+- Equipment Signals: ${projectData.equipmentSignals?.join(", ") || "None detected"}${activitySection}
 
 Score this project from 0-100 for each of the following 9 business lines. Provide a 1-2 sentence explanation for each score.
 
+CRITICAL SCORING PRINCIPLE — ACTIVITY-BASED SCORING:
+Do NOT score based on sector alone. Score based on the SPECIFIC SITE ACTIVITIES that will occur.
+Ask: "What activities are happening on this site?" then map activities to equipment:
+- Drilling, tunnelling, blasting, shotcrete → Portable Air HIGH
+- Excavation, trenching, groundwater, pit dewatering → Pump/Dewatering HIGH
+- Pipeline hydrotest, purge, inerting → Nitrogen HIGH, Booster HIGH
+- Remote construction, temporary camp → Generators HIGH, PAL HIGH
+- Shutdown/turnaround → Rental Influence HIGH, Service Potential HIGH
+
+If no clear compressed-air activity is present, Portable Air should NOT automatically score high.
+If groundwater/excavation/drainage signals are present, Pump/Dewatering should score HIGH.
+
 SCORING GUIDE:
-- 80-100: Direct, strong relevance — the project explicitly needs this product/service
-- 50-79: Moderate relevance — the project likely needs this, or there's a clear indirect opportunity
-- 20-49: Low relevance — possible but not primary need
-- 0-19: Minimal or no relevance
+- 80-100: Direct, strong relevance — confirmed site activities explicitly need this product/service
+- 50-79: Moderate relevance — likely activities suggest this need, or clear indirect opportunity
+- 20-49: Low relevance — possible but not primary need based on detected activities
+- 0-19: Minimal or no relevance — no matching activities detected
 
 BUSINESS LINES:
-1. **Portable Air**: Portable compressors for mining, construction, drilling, blasting, tunnelling, shotcrete, sandblasting. Key products: XAS/XATS/XAVS/XRHS series. Score high for any project involving drilling, blasting, tunnelling, mining operations, or construction requiring compressed air on-site.
+1. **Portable Air**: Portable compressors for drilling, blasting, tunnelling, shotcrete, sandblasting, underground mining. Key products: XAS/XATS/XAVS/XRHS series. Score HIGH only when drilling, blasting, tunnelling, or compressed-air activities are confirmed. Do NOT auto-score high just because it's a mining or construction project.
 
 2. **PAL** (Power & Light): Power generators (QAS/QES series), lighting towers (HiLight series). Score high for remote sites needing temporary or permanent power, construction lighting, mine site power.
 
 3. **BESS** (Battery Energy Storage): Battery energy storage systems, hybrid power solutions, solar hybrid, peak shaving, microgrids. ZenergiZe range. Score high for renewable energy projects, remote power with ESG goals, mine electrification, hybrid power needs.
 
-4. **Pump/Dewatering**: Dewatering pumps, submersible pumps, wellpoint systems. PAS/WEDA series. Score high for any project with water management needs — mine dewatering, construction site dewatering, flood management, water treatment, dam projects.
+4. **Pump/Dewatering**: Dewatering pumps, submersible pumps, wellpoint systems. PAS/WEDA series. Score HIGH for any project with water management needs — mine dewatering, construction site dewatering, excavation, trenching, tunnelling, groundwater, flood management, dam projects. Look for environmental signals: groundwater, water table, drainage, seepage, pit water.
 
 5. **Generators**: Standalone generator sales opportunity (distinct from PAL rental). Score high when the project needs permanent or semi-permanent power generation equipment that would be purchased rather than rented.
 
-6. **Nitrogen**: Nitrogen generation systems, N2 solutions for inerting, purging, blanketing, pipeline testing, well completions. Score high for oil & gas projects, pipeline construction, chemical plants, mining operations needing nitrogen.
+6. **Nitrogen**: Nitrogen generation systems, N2 solutions for inerting, purging, blanketing, pipeline testing, well completions. Score high for pipeline construction, oil & gas projects, chemical plants, pipeline hydrotest/purge.
 
 7. **Booster**: High-pressure boosters, HP compressors for pipeline testing, well services, pressure testing, gas boosting. Score high for pipeline projects, well testing, pressure testing applications, gas processing.
 
 8. **Service Potential**: Aftermarket opportunity — service contracts, parts supply, maintenance agreements, fleet management, condition monitoring. Score based on the project's potential for ongoing service revenue after initial equipment sale. Large, long-duration projects score higher.
 
-9. **Rental Influence**: Rental fleet opportunity — short-term hire, OPEX model rather than CAPEX purchase. Score high for short-duration projects, contractor-led work, projects where rental is more likely than purchase.`;
+9. **Rental Influence**: Rental fleet opportunity — short-term hire, OPEX model rather than CAPEX purchase. Score high for short-duration projects, contractor-led work, shutdown/turnaround, projects where rental is more likely than purchase.`;
 }
 
 // ── Score a single project ──
@@ -136,24 +153,43 @@ export async function scoreProjectFromData(project: {
   opportunityRoute: string;
   location: string;
 }): Promise<ProjectScores> {
-  const prompt = buildScoringPrompt({
-    name: project.name,
-    overview: project.overview,
-    sector: project.sector,
-    equipmentSignals: project.equipmentSignals as string[] | null,
-    owner: project.owner,
-    value: project.value,
-    stage: project.stage,
-    opportunityRoute: project.opportunityRoute,
-    location: project.location,
-  });
+  // ── Activity Signal Layer: pre-compute activity signals ──
+  const eqSignals = project.equipmentSignals as string[] | null;
+  const modifiers = computeScoreModifiers(
+    project.name,
+    project.overview,
+    eqSignals,
+    project.stage,
+    project.sector,
+  );
+
+  if (modifiers.activities.length > 0) {
+    console.log(
+      `[BL-Scoring] Project ${project.id}: detected activities: ${modifiers.activities.map(a => a.activity).join(", ")} | stage: ${modifiers.stageWeight} | env signals: ${modifiers.environmentalSignals.length}`
+    );
+  }
+
+  const prompt = buildScoringPrompt(
+    {
+      name: project.name,
+      overview: project.overview,
+      sector: project.sector,
+      equipmentSignals: eqSignals,
+      owner: project.owner,
+      value: project.value,
+      stage: project.stage,
+      opportunityRoute: project.opportunityRoute,
+      location: project.location,
+    },
+    modifiers.promptSummary,
+  );
 
   try {
     const response = await invokeLLM({
       messages: [
         {
           role: "system",
-          content: "You are a business analyst. Always respond with valid JSON matching the requested schema.",
+          content: "You are a business analyst specialising in site-activity-based equipment scoring. Score based on WHAT ACTIVITIES ARE HAPPENING ON SITE, not just the sector. Always respond with valid JSON matching the requested schema.",
         },
         { role: "user", content: prompt },
       ],
@@ -198,8 +234,8 @@ export async function scoreProjectFromData(project: {
       scores: Array<{ dimension: string; score: number; explanation: string }>;
     };
 
-    // Normalize and validate scores
-    const scores: DimensionScore[] = SCORING_DIMENSIONS.map(dim => {
+    // Normalize and validate LLM scores
+    const llmScores = SCORING_DIMENSIONS.map(dim => {
       const found = parsed.scores.find(s => s.dimension === dim);
       return {
         dimension: dim,
@@ -208,14 +244,17 @@ export async function scoreProjectFromData(project: {
       };
     });
 
-    const topDimensions = scores
+    // ── Activity Signal Layer: apply deterministic post-LLM adjustments ──
+    const adjustedScores: DimensionScore[] = applyScoreAdjustments(llmScores, modifiers);
+
+    const topDimensions = adjustedScores
       .filter(s => s.score >= 50)
       .sort((a, b) => b.score - a.score)
       .map(s => s.dimension);
 
     return {
       projectId: project.id,
-      scores,
+      scores: adjustedScores,
       topDimensions,
     };
   } catch (err: unknown) {

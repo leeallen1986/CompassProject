@@ -480,3 +480,11 @@
 - [x] ROLE RELEVANCE: Update frontend — KEY/CORP badges on contacts, relevance filter (All/High/Medium/Low), CSV export column
 - [x] ROLE RELEVANCE: Write vitest tests — 86 tests (keyword matching, priority ordering, edge cases, word boundaries, sorting impact)
 - [x] ROLE RELEVANCE: Run bulk role scoring on all 69 existing contacts (52 high, 2 medium, 15 low, 0 unclassified)
+- [x] ACTIVITY LAYER: Build activity detection engine — 43 site activities with keyword matching (drilling, tunnelling, excavation, pipeline, shutdown, etc.)
+- [x] ACTIVITY LAYER: Define activity-to-business-line scoring matrix — each activity maps to 9 equipment relevance scores (0.0-1.0)
+- [x] ACTIVITY LAYER: Add stage weighting — boost (+15%) for construction/mobilisation, reduce (-35%) for exploration/feasibility
+- [x] ACTIVITY LAYER: Add environmental signal boosting — 23 water-related keywords boost Pump/Dewatering up to +30%
+- [x] ACTIVITY LAYER: Temper portable air — only scores high when drilling/tunnelling/blasting confirmed, not just sector match
+- [x] ACTIVITY LAYER: Integrate into BL scoring — activity signals injected into LLM prompt + deterministic post-LLM score adjustments
+- [x] ACTIVITY LAYER: Write vitest tests — 59 tests (activity detection, env signals, stage weights, score modifiers, real-world scenarios)
+- [x] ACTIVITY LAYER: Validated on 30-project sample — correct differentiation (drilling+construction PA=+18 vs drilling+exploration PA=+4, solar PA=-13)
