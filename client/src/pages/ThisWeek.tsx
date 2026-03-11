@@ -22,6 +22,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getLoginUrl } from "@/const";
+import NBACard from "@/components/NBACard";
+import WeeklyCoachingPanel from "@/components/WeeklyCoachingPanel";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -169,6 +171,10 @@ export default function ThisWeek() {
                   <Target className="w-3 h-3" /> Pipeline
                 </Link>
                 <span className="text-slate-600">|</span>
+                <Link href="/my-profile" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                  <Sparkles className="w-3 h-3" /> My Style
+                </Link>
+                <span className="text-slate-600">|</span>
                 <button onClick={() => navigate("/settings")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Settings className="w-3 h-3" /> Settings
                 </button>
@@ -202,6 +208,9 @@ export default function ThisWeek() {
           <KPICard value={stats.highRelevanceContacts} label="Key Contacts" accent="gold" icon={<Users className="w-4 h-4" />} />
           <KPICard value={stats.projectsMissingContractors} label="Missing Contractors" accent="warm" icon={<AlertTriangle className="w-4 h-4" />} />
         </div>
+
+        {/* ── Weekly Coaching Panel ── */}
+        <WeeklyCoachingPanel />
 
         {/* ── Suggested Actions ── */}
         {suggestedActions.length > 0 && (
@@ -402,16 +411,10 @@ export default function ThisWeek() {
                       </div>
                     )}
 
-                    {/* SUGGESTED ACTION — what to do next */}
-                    {project.suggestedAction && (
-                      <div className="bg-navy/5 border border-navy/10 rounded-md px-3 py-2 mt-1">
-                        <p className="text-[11px] text-navy font-medium flex items-center gap-1.5">
-                          <Target className="w-3 h-3 text-gold shrink-0" />
-                          <span className="text-[9px] font-bold uppercase text-gold mr-1">Next:</span>
-                          {project.suggestedAction}
-                        </p>
-                      </div>
-                    )}
+                    {/* NEXT BEST ACTION — AI-powered sales guidance */}
+                    <div className="mt-2" onClick={e => e.stopPropagation()}>
+                      <NBACard projectId={project.id} projectName={project.name} compact />
+                    </div>
                   </div>
                 );
               })}

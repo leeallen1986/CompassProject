@@ -107,6 +107,13 @@ import {
   trackActivity, getUserActivitySummary, getUserRecentActivity,
   getTeamActivitySummary, getUserEngagementScore,
 } from "./userActivityService";
+import { generateNBA, generateNBABatch } from "./nextBestAction";
+import { getWeeklyCoaching } from "./weeklyCoaching";
+import { getWorkingStyleProfile } from "./behaviourAnalysis";
+import {
+  getPreCallCoaching, getSegmentPainLibrary, getAllSegmentPainLibraries,
+  getRolePersona, getAllRolePersonas,
+} from "./personaCoaching";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2268,6 +2275,66 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getTeamActivitySummary(input?.days ?? 7);
       }),
+  }),
+  // ── Next Best Action ──
+  nba: router({
+    /** Get NBA for a single project */
+    forProject: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return generateNBA(input.projectId);
+      }),
+    /** Get NBA for multiple projects (batch) */
+    forProjects: protectedProcedure
+      .input(z.object({ projectIds: z.array(z.number()).max(20) }))
+      .query(async ({ input }) => {
+        return generateNBABatch(input.projectIds);
+      }),
+  }),
+  // ── Weekly Coaching ──
+  coaching: router({
+    /** Get personalised weekly coaching for the authenticated user */
+    weekly: protectedProcedure.query(async ({ ctx }) => {
+      return getWeeklyCoaching(ctx.user.id);
+    }),
+  }),
+  // ── Behaviour Analysis ──
+  behaviour: router({
+    /** Get the current user's working style profile */
+    myProfile: protectedProcedure
+      .input(z.object({ days: z.number().min(7).max(90).default(30) }).optional())
+      .query(async ({ ctx, input }) => {
+        return getWorkingStyleProfile(ctx.user.id, input?.days ?? 30);
+      }),
+  }),
+  // ── Persona Coaching ──
+  persona: router({
+    /** Get pre-call coaching for a project + optional contact */
+    preCallCoaching: protectedProcedure
+      .input(z.object({ projectId: z.number(), contactId: z.number().optional() }))
+      .query(async ({ input }) => {
+        return getPreCallCoaching(input.projectId, input.contactId);
+      }),
+    /** Get pain-point library for a segment */
+    segmentPainPoints: protectedProcedure
+      .input(z.object({ segment: z.string() }))
+      .query(async ({ input }) => {
+        return getSegmentPainLibrary(input.segment);
+      }),
+    /** Get all segment pain-point libraries */
+    allSegmentPainPoints: protectedProcedure.query(async () => {
+      return getAllSegmentPainLibraries();
+    }),
+    /** Get a role persona by key */
+    rolePersona: protectedProcedure
+      .input(z.object({ role: z.string() }))
+      .query(async ({ input }) => {
+        return getRolePersona(input.role);
+      }),
+    /** Get all role personas */
+    allRolePersonas: protectedProcedure.query(async () => {
+      return getAllRolePersonas();
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

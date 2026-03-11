@@ -509,3 +509,36 @@
 - [x] OUTREACH GENERATOR: Build personalised outreach draft generator tailored to BL, project type/stage, stakeholder role, customer pain points
 - [x] OUTREACH GENERATOR: Add outreach style options (concise first-touch, consultative, contractor-focused, owner/EPC-focused, engineering-led)
 - [x] OUTREACH GENERATOR: Different variants for contractor PM vs procurement manager vs engineering manager
+
+## AI Learning Sales Support
+
+### Phase 1 — Next Best Action
+- [x] NBA: Build server-side LLM service (nextBestAction.ts) that generates per-project: why it matters now, best stakeholder to contact first, why that stakeholder matters, likely customer pain points, recommended first action, simple call angle
+- [x] NBA: Add tRPC endpoint (nba.forProject + nba.forProjects batch) that accepts projectId and returns structured NBA output
+- [x] NBA: Add "Next Best Action" card/panel to project detail view and priority project cards on This Week page
+- [x] NBA: Cache NBA results per project (refresh on stage change or weekly) to avoid redundant LLM calls
+- [x] NBA: Write vitest tests for NBA service and endpoint
+
+### Phase 2 — Personalised Weekly Coaching
+- [x] COACHING: Build server-side coaching engine (weeklyCoaching.ts) that analyses user's project interactions and generates: top 5 actions this week, 2 overlooked opportunities, 1 adjacent BL opportunity, 1 early-stage project worth warming, 1 project that is probably too late
+- [x] COACHING: Add tRPC endpoint (coaching.weekly) that returns personalised coaching for the authenticated user
+- [x] COACHING: Build coaching panel UI inside This Week page — show coaching nudges, overlooked projects, adjacent BL suggestions, focus changes
+- [x] COACHING: Present coaching as supportive suggestions, not performance scoring (guardrail)
+- [x] COACHING: Write vitest tests for coaching engine
+
+### Phase 3 — Rep Behaviour Learning
+- [x] TRACKING: DB schema already exists (userActivity table with project_viewed, contact_viewed, outreach_sent, etc.)
+- [x] TRACKING: Server-side event tracking endpoints already exist (activity.track mutation)
+- [x] TRACKING: Client-side event hooks already exist in ThisWeek and Home pages
+- [x] TRACKING: Build behaviour analysis service (behaviourAnalysis.ts) that infers: preferred sectors, preferred stages, comfort-zone BLs, blind spots, engagement patterns
+- [x] TRACKING: Generate working-style insights and soft coaching suggestions from tracked behaviour
+- [x] TRACKING: Present insights as "working style" not "performance score" (guardrail) — My Working Style page at /my-profile
+- [x] TRACKING: Write vitest tests for tracking and behaviour analysis
+
+### Phase 4 — Pain-Point and Persona Coaching
+- [x] PERSONA: Build pain-point libraries by segment (mining, oil_gas/pipeline, infrastructure/civil, energy, defence)
+- [x] PERSONA: Build buyer-persona libraries by role (procurement, engineering, operations, project management) with cares-about, doesn't-care-about, communication style, decision influence, objection patterns
+- [x] PERSONA: Build coaching service (personaCoaching.ts) that generates per project+stakeholder: opening line, talk track, discovery questions, objection risks, closing ask, pain points, persona insights
+- [x] PERSONA: Add tRPC endpoints (persona.preCallCoaching, persona.segmentPainPoints, persona.allSegmentPainPoints, persona.rolePersona, persona.allRolePersonas)
+- [x] PERSONA: Build PreCallCoaching UI component with collapsible sections for talk track, questions, objections, persona insights, pain points
+- [x] PERSONA: Write vitest tests for persona coaching service
