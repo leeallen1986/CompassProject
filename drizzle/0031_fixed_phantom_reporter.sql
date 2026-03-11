@@ -1,0 +1,2 @@
+ALTER TABLE `outreachEmails` MODIFY COLUMN `tone` enum('professional','consultative','direct','contractor_focused','owner_epc_focused','procurement_led','engineering_led','first_touch') NOT NULL;--> statement-breakpoint
+ALTER TABLE `outreachTemplates` MODIFY COLUMN `tone` enum('professional','consultative','direct','contractor_focused','owner_epc_focused','procurement_led','engineering_led','first_touch') NOT NULL;

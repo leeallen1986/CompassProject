@@ -17,7 +17,7 @@ export interface CreateTemplateInput {
   description?: string;
   subject: string;
   body: string;
-  tone: "professional" | "consultative" | "direct";
+  tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
   roleBucket?: string;
   sector?: string;
   tags?: string[];
@@ -32,7 +32,7 @@ export interface UpdateTemplateInput {
   description?: string;
   subject?: string;
   body?: string;
-  tone?: "professional" | "consultative" | "direct";
+  tone?: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
   roleBucket?: string;
   sector?: string;
   tags?: string[];
@@ -122,7 +122,7 @@ export async function listTemplates(filter?: TemplateFilter): Promise<{
     conditions.push(eq(outreachTemplates.sector, filter.sector));
   }
   if (filter?.tone) {
-    conditions.push(eq(outreachTemplates.tone, filter.tone as "professional" | "consultative" | "direct"));
+    conditions.push(eq(outreachTemplates.tone, filter.tone as any));
   }
   if (filter?.createdBy) {
     conditions.push(eq(outreachTemplates.createdBy, filter.createdBy));

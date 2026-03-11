@@ -497,3 +497,15 @@
 - [x] EMAIL DIGEST: Added "View full This Week summary" link back to / in every digest
 - [x] THIS WEEK: 28 vitest tests passing (tier filtering, stakeholder relevance, activity detection, action sorting, email formatting, routing, stats, stage changes)
 - [x] THIS WEEK: Verified in browser — all 6 sections rendering correctly with live data (298 T1, 245 hot, 712 new, 7 contacts, 46 key, 319 missing contractors)
+- [x] SALES DASHBOARD: Enhance This Week project cards with sales context (why it matters, BL relevance, best stakeholder, suggested action)
+- [x] SALES DASHBOARD: Relocate platform metrics (total projects, data sources, drilling campaigns, archive stats) to Admin/Analytics view
+- [x] SALES DASHBOARD: Replace status filters (Active/Stale/Archived) with Action Now / Warm Opportunity / Monitor classification
+- [ ] PIPELINE AUTO-UPDATE: Build auto-stage updates from user actions (claim project, view contact, send outreach, log meeting, upload quote)
+- [ ] USER TRACKING: Implement user activity tracking (projects viewed, contacts opened, outreach actions, pipeline movements)
+- [x] AI SEARCH WORKFLOW: Transform AI Search into guided sales workflow (project match → stakeholder discovery → enrichment → action → outreach)
+- [x] AI SEARCH WORKFLOW: Search results show why project matched, BL relevance, commercial readiness, best stakeholder with role/company/confidence
+- [x] AI SEARCH WORKFLOW: Add per-result actions (View project, View contacts, Enrich contacts, Draft outreach, Add to pipeline)
+- [x] AI SEARCH WORKFLOW: Allow contact enrichment from search results when stakeholder coverage is weak
+- [x] OUTREACH GENERATOR: Build personalised outreach draft generator tailored to BL, project type/stage, stakeholder role, customer pain points
+- [x] OUTREACH GENERATOR: Add outreach style options (concise first-touch, consultative, contractor-focused, owner/EPC-focused, engineering-led)
+- [x] OUTREACH GENERATOR: Different variants for contractor PM vs procurement manager vs engineering manager

@@ -103,6 +103,10 @@ import {
   runSecondPassForProject,
 } from "./secondPassContactSearch";
 import { getThisWeekSummary } from "./thisWeekService";
+import {
+  trackActivity, getUserActivitySummary, getUserRecentActivity,
+  getTeamActivitySummary, getUserEngagementScore,
+} from "./userActivityService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -316,9 +320,10 @@ export const appRouter = router({
           note: input.notes ?? "Project claimed",
         });
 
+        // Track activity
+        await trackActivity(ctx.user.id, "pipeline_claimed", { projectId: input.projectId, claimId, metadata: { reportId: input.reportId } });
         return { claimId, alreadyClaimed: false };
       }),
-
     updateStatus: protectedProcedure
       .input(z.object({
         claimId: z.number(),
@@ -353,16 +358,23 @@ export const appRouter = router({
           note: input.notes ?? `Status changed from ${fromStatus} to ${input.status}`,
         });
 
-        if (input.status === "won" || input.status === "lost") {
+          if (input.status === "won" || input.status === "lost") {
           await notifyOwner({
             title: `Pipeline: Project ${input.status === "won" ? "Won" : "Lost"}`,
             content: `Claim #${input.claimId} status changed to ${input.status}. ${input.notes || ""}`,
           });
         }
-
+        // Track pipeline status change
+        const actionType = input.status === "meeting_booked" ? "pipeline_meeting_logged" as const
+          : input.status === "quoted" ? "pipeline_quote_uploaded" as const
+          : "pipeline_status_changed" as const;
+        await trackActivity(ctx.user.id, actionType, {
+          claimId: input.claimId,
+          projectId: claim.projectId,
+          metadata: { fromStatus, toStatus: input.status },
+        });
         return { success: true };
       }),
-
     release: protectedProcedure
       .input(z.object({ claimId: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -517,7 +529,9 @@ export const appRouter = router({
   search: router({
     projects: protectedProcedure
       .input(z.object({ query: z.string().min(2).max(200) }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Track search activity
+        await trackActivity(ctx.user.id, "search_performed", { metadata: { query: input.query } });
         return searchProjects(input.query);
       }),
   }),
@@ -1773,16 +1787,20 @@ export const appRouter = router({
         equipmentSignals: z.array(z.string()).nullable(),
         opportunityRoute: z.string(),
         matchedBusinessLines: z.array(z.string()),
-        tone: z.enum(["professional", "consultative", "direct"]),
+        tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
+        style: z.enum(["standard", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const result = await generateOutreachEmail({
           ...input,
           senderName: ctx.user.name || "Team",
         });
+        // Track outreach drafted
+        await trackActivity(ctx.user.id, "outreach_drafted", {
+          metadata: { contactName: input.contactName, projectName: input.projectName, tone: input.tone },
+        });
         return result;
       }),
-
     /** Save an outreach email to the database */
     save: protectedProcedure
       .input(z.object({
@@ -1793,7 +1811,7 @@ export const appRouter = router({
         projectName: z.string().optional(),
         subject: z.string(),
         body: z.string(),
-        tone: z.enum(["professional", "consultative", "direct"]),
+        tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
         status: z.enum(["drafted", "opened_in_email", "sent"]),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -1861,7 +1879,7 @@ export const appRouter = router({
         description: z.string().max(512).optional(),
         subject: z.string().min(1).max(512),
         body: z.string().min(1),
-        tone: z.enum(["professional", "consultative", "direct"]),
+        tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
         roleBucket: z.string().max(128).optional(),
         sector: z.string().max(128).optional(),
         tags: z.array(z.string()).optional(),
@@ -1910,7 +1928,7 @@ export const appRouter = router({
         description: z.string().max(512).optional(),
         subject: z.string().min(1).max(512).optional(),
         body: z.string().min(1).optional(),
-        tone: z.enum(["professional", "consultative", "direct"]).optional(),
+        tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).optional(),
         roleBucket: z.string().max(128).optional(),
         sector: z.string().max(128).optional(),
         tags: z.array(z.string()).optional(),
@@ -2200,6 +2218,56 @@ export const appRouter = router({
     summary: protectedProcedure.query(async ({ ctx }) => {
       return getThisWeekSummary(ctx.user.id);
     }),
+  }),
+  // ── User Activity Tracking ──
+  activity: router({
+    /** Track a user action (project view, contact view, etc.) */
+    track: protectedProcedure
+      .input(z.object({
+        actionType: z.enum([
+          "project_viewed", "contact_viewed", "contact_enriched",
+          "outreach_drafted", "outreach_sent", "pipeline_claimed",
+          "pipeline_status_changed", "pipeline_meeting_logged",
+          "pipeline_quote_uploaded", "search_performed", "project_exported",
+        ]),
+        projectId: z.number().optional(),
+        contactId: z.number().optional(),
+        claimId: z.number().optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await trackActivity(ctx.user.id, input.actionType, {
+          projectId: input.projectId,
+          contactId: input.contactId,
+          claimId: input.claimId,
+          metadata: input.metadata,
+        });
+        return { success: true };
+      }),
+    /** Get the current user's activity summary for the last N days */
+    mySummary: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(90).default(7) }).optional())
+      .query(async ({ ctx, input }) => {
+        return getUserActivitySummary(ctx.user.id, input?.days ?? 7);
+      }),
+    /** Get the current user's recent activity feed */
+    myRecent: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(50).default(20) }).optional())
+      .query(async ({ ctx, input }) => {
+        return getUserRecentActivity(ctx.user.id, input?.limit ?? 20);
+      }),
+    /** Get the current user's engagement score */
+    myScore: protectedProcedure
+      .input(z.object({ days: z.number().min(1).max(90).default(7) }).optional())
+      .query(async ({ ctx, input }) => {
+        return getUserEngagementScore(ctx.user.id, input?.days ?? 7);
+      }),
+    /** Admin: Get team-wide activity summary */
+    teamSummary: adminProcedure
+      .input(z.object({ days: z.number().min(1).max(90).default(7) }).optional())
+      .query(async ({ input }) => {
+        return getTeamActivitySummary(input?.days ?? 7);
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

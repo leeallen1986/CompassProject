@@ -1072,8 +1072,8 @@ export default function ProjectCard({
                 project.actionTier === "tier2_warm" ? "bg-amber-100 text-amber-700 border border-amber-300" :
                 "bg-slate-200 text-slate-500 border border-slate-300"
               }`}>
-                {project.actionTier === "tier1_actionable" ? "T1 Actionable" :
-                 project.actionTier === "tier2_warm" ? "T2 Warm" : "T3 Monitor"}
+                {project.actionTier === "tier1_actionable" ? "Action Now" :
+                 project.actionTier === "tier2_warm" ? "Warm" : "Monitor"}
               </span>
             )}
             {/* Lifecycle status badge */}

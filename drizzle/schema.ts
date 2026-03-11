@@ -422,7 +422,7 @@ export const outreachEmails = mysqlTable("outreachEmails", {
   projectName: varchar("projectName", { length: 512 }),
   subject: varchar("subject", { length: 512 }).notNull(),
   body: text("body").notNull(),
-  tone: mysqlEnum("tone", ["professional", "consultative", "direct"]).notNull(),
+  tone: mysqlEnum("tone", ["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).notNull(),
   status: mysqlEnum("status", ["drafted", "opened_in_email", "sent"]).notNull().default("drafted"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -484,7 +484,7 @@ export const outreachTemplates = mysqlTable("outreachTemplates", {
   description: varchar("description", { length: 512 }),
   subject: varchar("subject", { length: 512 }).notNull(),
   body: text("body").notNull(),
-  tone: mysqlEnum("tone", ["professional", "consultative", "direct"]).notNull(),
+  tone: mysqlEnum("tone", ["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).notNull(),
   roleBucket: varchar("roleBucket", { length: 128 }),
   sector: varchar("sector", { length: 128 }),
   tags: json("tags").$type<string[]>(),
@@ -734,3 +734,34 @@ export const emergingPatterns = mysqlTable("emergingPatterns", {
 
 export type EmergingPatternRow = typeof emergingPatterns.$inferSelect;
 export type InsertEmergingPattern = typeof emergingPatterns.$inferInsert;
+
+/**
+ * User activity tracking — measures system engagement per salesperson.
+ * Tracks: projects viewed, contacts opened, outreach actions, pipeline movements.
+ */
+export const userActivity = mysqlTable("userActivity", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  actionType: mysqlEnum("actionType", [
+    "project_viewed",
+    "contact_viewed",
+    "contact_enriched",
+    "outreach_drafted",
+    "outreach_sent",
+    "pipeline_claimed",
+    "pipeline_status_changed",
+    "pipeline_meeting_logged",
+    "pipeline_quote_uploaded",
+    "search_performed",
+    "project_exported",
+  ]).notNull(),
+  // Optional references
+  projectId: int("projectId"),
+  contactId: int("contactId"),
+  claimId: int("claimId"),
+  // Context
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type UserActivityRow = typeof userActivity.$inferSelect;
+export type InsertUserActivity = typeof userActivity.$inferInsert;

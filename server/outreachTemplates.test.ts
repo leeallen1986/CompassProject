@@ -56,7 +56,7 @@ describe("outreachTemplates schema", () => {
 
   it("should have tone as an enum with correct values", () => {
     const toneColumn = outreachTemplates.tone;
-    expect(toneColumn.enumValues).toEqual(["professional", "consultative", "direct"]);
+    expect(toneColumn.enumValues).toEqual(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]);
   });
 });
 

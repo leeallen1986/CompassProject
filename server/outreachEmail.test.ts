@@ -151,7 +151,7 @@ describe("outreachEmail", () => {
       expect(params.contactName).toBe("John Smith");
       expect(params.subject).toBeTruthy();
       expect(params.body).toBeTruthy();
-      expect(["professional", "consultative", "direct"]).toContain(params.tone);
+      expect(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).toContain(params.tone);
       expect(["drafted", "opened_in_email", "sent"]).toContain(params.status);
     });
 
@@ -206,11 +206,16 @@ describe("outreachEmail", () => {
   });
 
   describe("OutreachInput validation", () => {
-    it("accepts all three tone options", () => {
-      const tones: Array<"professional" | "consultative" | "direct"> = [
+    it("accepts all eight tone options", () => {
+      const tones: Array<"professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch"> = [
         "professional",
         "consultative",
         "direct",
+        "contractor_focused",
+        "owner_epc_focused",
+        "procurement_led",
+        "engineering_led",
+        "first_touch",
       ];
       tones.forEach((tone) => {
         expect(() => {

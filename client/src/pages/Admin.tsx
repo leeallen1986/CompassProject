@@ -1796,6 +1796,128 @@ function PipelineRunHistoryTab() {
   );
 }
 
+// ── Platform Analytics Tab ──
+
+function PlatformAnalyticsTab() {
+  const { data: fullReport, isLoading } = trpc.report.full.useQuery({});
+
+  if (isLoading || !fullReport) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  const { report, projects, contacts, drillingCampaigns, awardedProjects, lifecycleCounts } = fullReport;
+  const lc = (lifecycleCounts ?? {}) as Record<string, number>;
+  const totalProjects = Object.values(lc).reduce((a, b) => a + Number(b), 0);
+
+  const dataSources = [
+    { source: "RSS Feed Pipeline", type: "32 Industry Feeds", schedule: "Daily (06:00 UTC) + Sunday Mega-Scrape (9pm AWST)", coverage: "Mining, Energy, Oil & Gas, Infrastructure, Defence, Construction, Renewables, ASX", credits: "~100/day cap" },
+    { source: "Projectory Australia", type: "Web Scraper", schedule: "Weekly (Mondays) + Sunday Mega-Scrape", coverage: "Resources, Infrastructure, Construction, Energy, Industrial, Defence", credits: "None" },
+    { source: "DMIRS MINEDEX", type: "Government API", schedule: "Weekly (Wednesdays) + Sunday Mega-Scrape", coverage: "WA Mining Proposals & Approvals", credits: "None" },
+    { source: "AEMO Generation Info", type: "Government Data", schedule: "Weekly (Fridays) + Sunday Mega-Scrape", coverage: "BESS, Pumped Hydro, Gas Peaker & Power Generation (NEM)", credits: "None" },
+    { source: "Gov Major Projects", type: "Government Data", schedule: "Weekly (Tuesdays) + Sunday Mega-Scrape", coverage: "Infrastructure Australia + NREPL: Transport, Water, Energy, Defence", credits: "None" },
+    { source: "AusTender OCDS", type: "Government API", schedule: "Weekly (Thursdays) + Sunday Mega-Scrape", coverage: "Federal Contracts >$1M: Construction, Mining, Energy, Water, Defence", credits: "None" },
+    { source: "ICN Gateway", type: "Industry Portal", schedule: "Weekly (Saturdays) + Sunday Mega-Scrape", coverage: "Major Projects with Open Work Packages: Defence, Mining, Transport, Energy", credits: "None" },
+    { source: "Apollo.io People Search", type: "Contact Enrichment", schedule: "On-demand (per project)", coverage: "275M+ contacts \u2014 verified emails, titles, LinkedIn", credits: "1 credit/reveal" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Platform Overview KPIs */}
+      <div>
+        <h2 className="text-base font-bold text-navy mb-3 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-gold" /> Platform Overview
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          <StatsCard label="Total Projects" value={totalProjects} icon={<Database className="w-4 h-4" />} color="text-navy" />
+          <StatsCard label="Active" value={lc.active ?? 0} icon={<Eye className="w-4 h-4" />} color="text-teal" />
+          <StatsCard label="Stale" value={lc.stale ?? 0} icon={<Clock className="w-4 h-4" />} color="text-amber-600" />
+          <StatsCard label="Archived" value={lc.archived ?? 0} icon={<Activity className="w-4 h-4" />} color="text-slate-500" />
+          <StatsCard label="Awarded" value={lc.awarded ?? 0} icon={<CheckCircle2 className="w-4 h-4" />} color="text-gold" />
+          <StatsCard label="Completed" value={lc.completed ?? 0} icon={<Target className="w-4 h-4" />} color="text-emerald-600" />
+        </div>
+      </div>
+
+      {/* Lifecycle Status Breakdown */}
+      <div className="bg-card rounded-lg border border-border p-5">
+        <h3 className="text-sm font-bold text-navy mb-3">Project Lifecycle Distribution</h3>
+        <div className="space-y-2">
+          {Object.entries(lc).map(([status, count]) => {
+            const pct = totalProjects > 0 ? Math.round((count / totalProjects) * 100) : 0;
+            const barColor = status === "active" ? "bg-teal" : status === "stale" ? "bg-amber-500" : status === "archived" ? "bg-slate-400" : status === "awarded" ? "bg-gold" : "bg-emerald-500";
+            return (
+              <div key={status} className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-muted-foreground w-24 capitalize">{status}</span>
+                <div className="flex-1 bg-slate-100 rounded-full h-3 overflow-hidden">
+                  <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-xs font-bold text-navy w-16 text-right">{count} ({pct}%)</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Data Counts */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-2xl font-bold text-navy">{(contacts as any[])?.length ?? 0}</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Total Contacts</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-2xl font-bold text-navy">{(drillingCampaigns as any[])?.length ?? 0}</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Drilling Campaigns</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-2xl font-bold text-navy">{(awardedProjects as any[])?.length ?? 0}</div>
+          <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Awarded Projects</div>
+        </div>
+      </div>
+
+      {/* Data Sources Table */}
+      <div>
+        <h3 className="text-base font-bold text-navy mb-3">Active Data Sources</h3>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-navy text-white">
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Source</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Type</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Schedule</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Coverage</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">AI Credits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataSources.map((row, i) => (
+                <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"}`}>
+                  <td className="px-4 py-3 font-semibold text-navy">{row.source}</td>
+                  <td className="px-4 py-3">{row.type}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.schedule}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.coverage}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.credits === "None" ? "bg-teal/15 text-teal" : "bg-gold/15 text-gold-dark"}`}>{row.credits}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Methodology Note */}
+      <div className="bg-gold/8 border border-gold/25 rounded-lg p-4">
+        <p className="text-sm text-foreground/80">
+          <strong className="text-navy">Methodology Note:</strong> All CAPEX grades are evidence-based. Contractor predictions include confidence scores and are clearly labelled. Contact information is enriched via Apollo.io (275M+ database) with verified business emails. AI-generated contacts are clearly marked and require verification before outreach. Every Sunday at 9pm AWST, a full mega-scrape runs all 8 pipeline stages across all sources.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Admin Page ──
 
 export default function Admin() {
@@ -1870,6 +1992,9 @@ export default function Admin() {
             <TabsTrigger value="runhistory" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <Activity className="w-3.5 h-3.5 mr-1.5" /> Run History
             </TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Platform Analytics
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -1894,6 +2019,10 @@ export default function Admin() {
 
           <TabsContent value="runhistory">
             <PipelineRunHistoryTab />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <PlatformAnalyticsTab />
           </TabsContent>
         </Tabs>
       </main>

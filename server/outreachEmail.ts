@@ -35,8 +35,9 @@ export interface OutreachInput {
   senderName: string;
   senderCompany?: string;
 
-  // Tone
-  tone: "professional" | "consultative" | "direct";
+  // Tone / Style
+  tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
+  style?: "standard" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
 }
 
 export interface OutreachResult {
@@ -159,10 +160,15 @@ function getRoleKPIs(roleBucket: string): typeof ROLE_KPI_MAP[string] {
 }
 
 export async function generateOutreachEmail(input: OutreachInput): Promise<OutreachResult> {
-  const toneGuide = {
+  const toneGuide: Record<string, string> = {
     professional: "Write in a formal, professional tone. Use proper business language. Be respectful of the recipient's time. Focus on value proposition and credibility.",
     consultative: "Write in a warm, consultative tone. Position yourself as a trusted advisor who understands their challenges. Ask thoughtful questions. Show genuine interest in their project success.",
     direct: "Write in a concise, direct tone. Get straight to the point. Lead with the specific value you can deliver. Include a clear call-to-action. Keep it under 150 words.",
+    contractor_focused: "Write specifically for a CONTRACTOR audience (EPC, construction company, mining contractor). They care about: equipment reliability on-site, mobilisation speed, rental flexibility, service response times, and total cost of ownership. Reference their role as the contractor delivering the project — they need equipment that won't let them down. Mention fleet support, 24/7 service, and flexible hire/purchase options. Their pain: equipment delays = liquidated damages.",
+    owner_epc_focused: "Write specifically for a PROJECT OWNER or EPC audience. They care about: project timeline adherence, budget control, vendor consolidation, and ESG/sustainability credentials. Position Atlas Copco as a strategic partner, not just a vendor. Reference portfolio-level value, single-vendor simplification, and executive-level case studies. Their pain: managing multiple equipment vendors across a large project portfolio.",
+    procurement_led: "Write specifically for a PROCUREMENT audience. They care about: competitive pricing, contract terms, TCO analysis, vendor qualification, and supply chain reliability. Lead with commercial value — bundled pricing, service agreements that lock in costs, trade-in programs, and flexible payment structures. Reference specific cost savings data. Their pain: price volatility, long lead times, and managing multiple vendor relationships.",
+    engineering_led: "Write specifically for an ENGINEERING audience. They care about: technical specifications, compliance standards, energy efficiency, noise/emission levels, and system integration. Lead with technical credibility — specific CFM/kVA ratings, emission standards (Tier 4 Final / Stage V), noise levels in dB(A), and how Atlas Copco's engineering support de-risks their design. Reference technical documentation and site assessment capabilities. Their pain: spec mismatches discovered on-site.",
+    first_touch: "This is a FIRST-TOUCH cold outreach. The recipient has never heard from you. Be brief (under 120 words), lead with a specific observation about their project that shows you've done your homework, and make a very low-commitment ask (e.g., 'Would it be worth a quick chat?' or 'Happy to share a one-page overview'). Do NOT pitch products in the first email — focus on establishing relevance and curiosity. The goal is to get a reply, not close a deal.",
   };
 
   const businessLineContext = input.matchedBusinessLines.length > 0
@@ -287,7 +293,7 @@ export async function saveOutreachEmail(params: {
   projectName?: string;
   subject: string;
   body: string;
-  tone: "professional" | "consultative" | "direct";
+  tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
   status: "drafted" | "opened_in_email" | "sent";
 }): Promise<{ id: number }> {
   const db = await getDb();

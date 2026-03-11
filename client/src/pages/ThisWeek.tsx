@@ -43,9 +43,9 @@ function priorityBadge(priority: string) {
 }
 
 function tierBadge(tier: string | null) {
-  if (tier === "tier1_actionable") return { bg: "bg-emerald-100 text-emerald-800 border-emerald-200", label: "T1 Actionable" };
-  if (tier === "tier2_warm") return { bg: "bg-amber-100 text-amber-800 border-amber-200", label: "T2 Warm" };
-  if (tier === "tier3_monitor") return { bg: "bg-slate-100 text-slate-600 border-slate-200", label: "T3 Monitor" };
+  if (tier === "tier1_actionable") return { bg: "bg-emerald-100 text-emerald-800 border-emerald-200", label: "Action Now" };
+  if (tier === "tier2_warm") return { bg: "bg-amber-100 text-amber-800 border-amber-200", label: "Warm" };
+  if (tier === "tier3_monitor") return { bg: "bg-slate-100 text-slate-600 border-slate-200", label: "Monitor" };
   return { bg: "bg-slate-100 text-slate-500 border-slate-200", label: "Unclassified" };
 }
 
@@ -195,7 +195,7 @@ export default function ThisWeek() {
 
         {/* ── KPI Strip ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-          <KPICard value={stats.tier1Count} label="Actionable (T1)" accent="teal" icon={<Zap className="w-4 h-4" />} />
+          <KPICard value={stats.tier1Count} label="Action Now" accent="teal" icon={<Zap className="w-4 h-4" />} />
           <KPICard value={stats.hotCount} label="Hot Projects" accent="hot" icon={<Flame className="w-4 h-4" />} />
           <KPICard value={stats.newProjectsThisWeek} label="New This Week" accent="gold" icon={<Sparkles className="w-4 h-4" />} />
           <KPICard value={stats.newContactsThisWeek} label="New Contacts" accent="teal" icon={<UserPlus className="w-4 h-4" />} />
@@ -269,6 +269,7 @@ export default function ThisWeek() {
                     className="group bg-card rounded-lg border border-border p-4 hover:border-gold/30 hover:shadow-md transition-all cursor-pointer"
                     onClick={() => navigate(`/dashboard?project=${project.id}`)}
                   >
+                    {/* Header: rank, badges, name, value */}
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -294,6 +295,7 @@ export default function ThisWeek() {
                       </div>
                     </div>
 
+                    {/* Meta row: location, sector, stage, owner */}
                     <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> {project.location}
@@ -310,6 +312,67 @@ export default function ThisWeek() {
                       <span className="flex items-center gap-1">
                         <Building className="w-3 h-3" /> {project.owner}
                       </span>
+                    </div>
+
+                    {/* WHY IT MATTERS — sales context summary */}
+                    {project.whyItMatters && (
+                      <div className="bg-gold/5 border border-gold/15 rounded-md px-3 py-2 mb-2">
+                        <p className="text-[11px] text-gold-dark leading-relaxed">
+                          <Sparkles className="w-3 h-3 inline mr-1 text-gold" />
+                          {project.whyItMatters}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* BL Relevance + Best Stakeholder row */}
+                    <div className="flex items-start gap-4 mb-2 flex-wrap">
+                      {/* Top Business Lines */}
+                      {project.topBusinessLines && project.topBusinessLines.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <BarChart3 className="w-3 h-3 text-navy shrink-0" />
+                          {project.topBusinessLines.map(bl => (
+                            <Tooltip key={bl.name}>
+                              <TooltipTrigger asChild>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-navy/8 text-navy border border-navy/15">
+                                  {bl.name} <span className="text-[9px] text-muted-foreground">{bl.score}</span>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                {bl.name}: relevance score {bl.score}/100
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Best Stakeholder */}
+                      {project.bestStakeholder && (
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3 h-3 text-teal shrink-0" />
+                          <span className="text-[10px] font-semibold text-navy">{project.bestStakeholder.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{project.bestStakeholder.title}</span>
+                          <span className={`px-1 py-0.5 rounded text-[9px] font-bold uppercase ${
+                            project.bestStakeholder.relevance === "high" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {project.bestStakeholder.relevance === "high" ? "KEY" : "MED"}
+                          </span>
+                          {project.bestStakeholder.email && (
+                            <a href={`mailto:${project.bestStakeholder.email}`} onClick={e => e.stopPropagation()} className="text-teal hover:text-teal-light">
+                              <Mail className="w-3 h-3" />
+                            </a>
+                          )}
+                          {project.bestStakeholder.linkedin && (
+                            <a href={project.bestStakeholder.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-navy hover:text-gold-dark">
+                              <Linkedin className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {!project.bestStakeholder && project.contactDepth === 0 && (
+                        <span className="text-[10px] text-amber-600 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> No contacts found
+                        </span>
+                      )}
                     </div>
 
                     {/* Detected Activities */}
@@ -329,7 +392,7 @@ export default function ThisWeek() {
 
                     {/* Contractors */}
                     {project.contractors && project.contractors.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                         <Wrench className="w-3 h-3 text-teal shrink-0" />
                         {project.contractors.slice(0, 3).map((c: any, ci: number) => (
                           <span key={ci} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-teal/10 text-teal border border-teal/20">
@@ -339,8 +402,15 @@ export default function ThisWeek() {
                       </div>
                     )}
 
-                    {project.overview && (
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">{project.overview}</p>
+                    {/* SUGGESTED ACTION — what to do next */}
+                    {project.suggestedAction && (
+                      <div className="bg-navy/5 border border-navy/10 rounded-md px-3 py-2 mt-1">
+                        <p className="text-[11px] text-navy font-medium flex items-center gap-1.5">
+                          <Target className="w-3 h-3 text-gold shrink-0" />
+                          <span className="text-[9px] font-bold uppercase text-gold mr-1">Next:</span>
+                          {project.suggestedAction}
+                        </p>
+                      </div>
                     )}
                   </div>
                 );
@@ -474,9 +544,9 @@ export default function ThisWeek() {
                 <div className="space-y-3">
                   <StatRow label="Total Active Projects" value={stats.totalProjects} />
                   <Separator />
-                  <StatRow label="Tier 1 — Actionable" value={stats.tier1Count} color="text-emerald-600" />
-                  <StatRow label="Tier 2 — Warm" value={stats.tier2Count} color="text-amber-600" />
-                  <StatRow label="Tier 3 — Monitor" value={stats.tier3Count} color="text-slate-500" />
+                  <StatRow label="Action Now" value={stats.tier1Count} color="text-emerald-600" />
+                  <StatRow label="Warm" value={stats.tier2Count} color="text-amber-600" />
+                  <StatRow label="Monitor" value={stats.tier3Count} color="text-slate-500" />
                   <Separator />
                   <StatRow label="Hot Priority" value={stats.hotCount} color="text-hot" />
                   <StatRow label="Warm Priority" value={stats.warmCount} color="text-warm" />

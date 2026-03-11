@@ -1,16 +1,21 @@
 /**
- * AI Project Search — LLM-powered project matching for sales teams.
- * Sales reps type in keywords/products (e.g., "N2 solutions", "dewatering pumps")
- * and the AI finds and ranks the best matching projects with sales angles.
+ * AI Project Search — Guided Sales Workflow
+ * 
+ * Multi-step flow: Search → Match → View Stakeholders → Enrich → Draft Outreach
+ * Sales reps type in keywords/products and the AI guides them through the full
+ * project-to-outreach pipeline without leaving the component.
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   Search, Sparkles, Loader2, Target, MapPin, Building,
   ChevronDown, ChevronUp, Users, ArrowRight, Lightbulb,
-  Flame, Zap, Package, TrendingUp, ExternalLink
+  Flame, Zap, Package, TrendingUp, ExternalLink,
+  UserPlus, Mail, Phone, Linkedin, RefreshCw, CheckCircle2,
+  AlertCircle, Send, Shield
 } from "lucide-react";
 import { toast } from "sonner";
+import OutreachEmailModal from "./OutreachEmailModal";
 
 // ── Types matching backend ──
 interface MatchedProject {
@@ -38,6 +43,20 @@ interface MatchResult {
   matches: MatchedProject[];
   searchInsight: string;
   suggestedKeywords: string[];
+}
+
+interface ProjectContact {
+  id: number;
+  name: string;
+  title: string;
+  company: string;
+  email: string | null;
+  linkedin: string | null;
+  phone: string | null;
+  roleBucket: string;
+  roleRelevance: string | null;
+  confidenceScore: string | null;
+  enrichmentStatus: string | null;
 }
 
 // ── Quick search suggestions ──
@@ -78,18 +97,269 @@ function PriorityBadge({ priority }: { priority: string }) {
   );
 }
 
+// ── Role Relevance Badge ──
+function RoleBadge({ relevance }: { relevance: string | null }) {
+  if (relevance === "high") return (
+    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase">Key</span>
+  );
+  if (relevance === "medium") return (
+    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 uppercase">Med</span>
+  );
+  if (relevance === "low") return (
+    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500 uppercase">Corp</span>
+  );
+  return null;
+}
+
 // ── Sector Label ──
 const sectorLabels: Record<string, string> = {
   mining: "Mining", oil_gas: "Oil & Gas", infrastructure: "Infrastructure",
   energy: "Energy", defence: "Defence",
 };
 
-// ── Result Card ──
-function ResultCard({ match, rank, onNavigateToProject }: { match: MatchedProject; rank: number; onNavigateToProject?: (projectId: number) => void }) {
-  const [expanded, setExpanded] = useState(false);
+// ── Workflow Step Indicator ──
+function WorkflowSteps({ currentStep }: { currentStep: number }) {
+  const steps = [
+    { label: "Search", icon: Search },
+    { label: "Match", icon: Target },
+    { label: "Stakeholders", icon: Users },
+    { label: "Outreach", icon: Send },
+  ];
+  return (
+    <div className="flex items-center gap-1 mb-4">
+      {steps.map((step, i) => {
+        const Icon = step.icon;
+        const isActive = i <= currentStep;
+        const isCurrent = i === currentStep;
+        return (
+          <div key={step.label} className="flex items-center gap-1">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
+              isCurrent ? "bg-navy text-white shadow-sm" :
+              isActive ? "bg-navy/10 text-navy" :
+              "bg-slate-100 text-slate-400"
+            }`}>
+              <Icon className="w-3 h-3" />
+              {step.label}
+            </div>
+            {i < steps.length - 1 && (
+              <ArrowRight className={`w-3 h-3 ${isActive ? "text-navy" : "text-slate-300"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Contact Row in stakeholder panel ──
+function ContactRow({ contact, onDraftEmail, projectName }: {
+  contact: ProjectContact;
+  onDraftEmail: (contact: ProjectContact) => void;
+  projectName: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-lg hover:bg-gold/5 transition-colors group">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-navy truncate">{contact.name}</span>
+          <RoleBadge relevance={contact.roleRelevance} />
+          {contact.enrichmentStatus === "enriched" && (
+            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-xs text-muted-foreground truncate">{contact.title}</span>
+          <span className="text-[10px] text-muted-foreground">at {contact.company}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+        {contact.email && (
+          <button
+            onClick={() => onDraftEmail(contact)}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-gold/15 text-gold-dark hover:bg-gold/30 border border-gold/20 transition-colors"
+            title="Draft outreach email"
+          >
+            <Mail className="w-3 h-3" /> Draft
+          </button>
+        )}
+        {contact.linkedin && (
+          <a
+            href={contact.linkedin}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-md bg-navy/8 text-navy hover:bg-navy/15 transition-colors"
+            title="View LinkedIn"
+          >
+            <Linkedin className="w-3 h-3" />
+          </a>
+        )}
+        {contact.phone && (
+          <a
+            href={`tel:${contact.phone}`}
+            className="p-1.5 rounded-md bg-teal/10 text-teal hover:bg-teal/20 transition-colors"
+            title="Call"
+          >
+            <Phone className="w-3 h-3" />
+          </a>
+        )}
+        {!contact.email && !contact.linkedin && (
+          <span className="text-[10px] text-muted-foreground italic">No contact info</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Stakeholder Panel (inline within result card) ──
+function StakeholderPanel({ projectId, projectName, project, onClose }: {
+  projectId: number;
+  projectName: string;
+  project: MatchedProject;
+  onClose: () => void;
+}) {
+  const { data: reportData, isLoading } = trpc.report.full.useQuery({});
+
+  const contactsData = useMemo(() => {
+    if (!reportData) return [];
+    const allContacts = (reportData as any)?.contacts || [];
+    const nameLC = projectName.toLowerCase().slice(0, 30);
+    return allContacts.filter((c: any) => {
+      const cp = (c.project || "").toLowerCase();
+      return cp.includes(nameLC) || nameLC.includes(cp.slice(0, 30));
+    }).map((c: any): ProjectContact => ({
+      id: c.id,
+      name: c.name,
+      title: c.title,
+      company: c.company,
+      email: c.email,
+      linkedin: c.linkedin || c.linkedinProfileUrl,
+      phone: c.phone,
+      roleBucket: c.roleBucket,
+      roleRelevance: c.roleRelevance,
+      confidenceScore: c.confidenceScore,
+      enrichmentStatus: c.enrichmentStatus,
+    }));
+  }, [reportData, projectName]);
+
+  const [outreachContact, setOutreachContact] = useState<ProjectContact | null>(null);
+
+  const contacts: ProjectContact[] = contactsData || [];
+  const highRelevance = contacts.filter((c: ProjectContact) => c.roleRelevance === "high");
+  const medRelevance = contacts.filter((c: ProjectContact) => c.roleRelevance === "medium");
+  const lowRelevance = contacts.filter((c: ProjectContact) => c.roleRelevance === "low" || !c.roleRelevance);
+
+  const sortedContacts = [...highRelevance, ...medRelevance, ...lowRelevance];
 
   return (
-    <div className="bg-card rounded-lg border border-border hover:border-gold/40 hover:shadow-md transition-all">
+    <div className="border-t border-border bg-slate-50/50">
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-teal" />
+            <h4 className="text-sm font-bold text-navy">Stakeholders</h4>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal/10 text-teal font-bold">
+              {contacts.length} found
+            </span>
+            {highRelevance.length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">
+                {highRelevance.length} key
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-xs text-muted-foreground hover:text-navy transition-colors"
+          >
+            Close
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center gap-2 py-4 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-teal" />
+            <span className="text-xs text-muted-foreground">Loading stakeholders...</span>
+          </div>
+        ) : sortedContacts.length === 0 ? (
+          <div className="text-center py-4">
+            <AlertCircle className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">No stakeholders found for this project yet.</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Try running stakeholder discovery from the Admin panel.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-0.5 max-h-64 overflow-y-auto">
+            {sortedContacts.map(contact => (
+              <ContactRow
+                key={contact.id}
+                contact={contact}
+                onDraftEmail={(c) => setOutreachContact(c)}
+                projectName={projectName}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Quick action bar */}
+        {sortedContacts.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">
+              {highRelevance.length} key decision-makers, {medRelevance.length} influencers, {lowRelevance.length} corporate
+            </span>
+            {highRelevance.length > 0 && highRelevance[0].email && (
+              <button
+                onClick={() => setOutreachContact(highRelevance[0])}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold text-navy text-xs font-bold hover:bg-gold-light transition-colors"
+              >
+                <Send className="w-3 h-3" /> Draft to Top Contact
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Outreach Modal */}
+      {outreachContact && (
+        <OutreachEmailModal
+          isOpen={true}
+          onClose={() => setOutreachContact(null)}
+          contact={{
+            id: outreachContact.id,
+            name: outreachContact.name,
+            title: outreachContact.title,
+            company: outreachContact.company,
+            email: outreachContact.email || "",
+            roleBucket: outreachContact.roleBucket,
+          }}
+          project={{
+            id: project.projectId,
+            name: project.name,
+            location: project.location,
+            value: project.value,
+            sector: project.sector,
+            stage: project.stage,
+            overview: project.overview,
+            equipmentSignals: null,
+            opportunityRoute: "",
+            matchedBusinessLines: project.matchedProducts || [],
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Result Card with Guided Workflow ──
+function ResultCard({ match, rank, onNavigateToProject }: {
+  match: MatchedProject;
+  rank: number;
+  onNavigateToProject?: (projectId: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [showStakeholders, setShowStakeholders] = useState(false);
+
+  return (
+    <div className="bg-card rounded-lg border border-border hover:border-gold/40 hover:shadow-md transition-all overflow-hidden">
       {/* Header */}
       <div className="p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-start justify-between gap-3">
@@ -116,18 +386,6 @@ function ResultCard({ match, rank, onNavigateToProject }: { match: MatchedProjec
               <span className="flex items-center gap-1 text-xs text-teal font-medium">
                 <Users className="w-3 h-3" />{match.contactCount}
               </span>
-            )}
-            {onNavigateToProject && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateToProject(match.projectId);
-                }}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-navy bg-gold/20 hover:bg-gold/40 border border-gold/30 transition-colors"
-                title="View full project details"
-              >
-                <ExternalLink className="w-3 h-3" /> View
-              </button>
             )}
             {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
           </div>
@@ -186,25 +444,59 @@ function ResultCard({ match, rank, onNavigateToProject }: { match: MatchedProjec
             </div>
           )}
 
-          {/* Stage + View Project */}
-          <div className="flex items-center justify-between gap-4">
+          {/* Stage + Actions */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span><strong className="text-navy">Stage:</strong> {match.stage}</span>
               <span><strong className="text-navy">Sector:</strong> {sectorLabels[match.sector] || match.sector}</span>
             </div>
+          </div>
+
+          {/* ── Guided Workflow Action Buttons ── */}
+          <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStakeholders(!showStakeholders);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                showStakeholders
+                  ? "bg-teal text-white"
+                  : "bg-teal/10 text-teal hover:bg-teal/20 border border-teal/20"
+              }`}
+            >
+              <Users className="w-3 h-3" />
+              {showStakeholders ? "Hide Stakeholders" : "View Stakeholders"}
+              {match.contactCount > 0 && (
+                <span className="px-1 py-0.5 rounded-full bg-white/20 text-[9px] font-bold ml-0.5">
+                  {match.contactCount}
+                </span>
+              )}
+            </button>
+
             {onNavigateToProject && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onNavigateToProject(match.projectId);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-semibold hover:bg-navy-light transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white text-xs font-bold hover:bg-navy-light transition-colors"
               >
-                <ExternalLink className="w-3 h-3" /> View Full Project
+                <ExternalLink className="w-3 h-3" /> Full Details
               </button>
             )}
           </div>
         </div>
+      )}
+
+      {/* ── Inline Stakeholder Panel ── */}
+      {showStakeholders && (
+        <StakeholderPanel
+          projectId={match.projectId}
+          projectName={match.name}
+          project={match}
+          onClose={() => setShowStakeholders(false)}
+        />
       )}
     </div>
   );
@@ -215,6 +507,8 @@ export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToP
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<MatchResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const currentStep = !result ? 0 : 1;
 
   const searchMutation = trpc.search.projects.useMutation({
     onSuccess: (data) => {
@@ -244,14 +538,17 @@ export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToP
 
   return (
     <div className="space-y-5">
+      {/* Workflow Progress */}
+      <WorkflowSteps currentStep={currentStep} />
+
       {/* Search Header */}
       <div className="bg-card rounded-lg border border-border p-5">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles className="w-5 h-5 text-gold" />
-          <h2 className="text-lg font-bold text-navy">AI Project Finder</h2>
+          <h2 className="text-lg font-bold text-navy">Sales Opportunity Finder</h2>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Enter keywords, products, or solutions you're pushing — the AI will find and rank the best matching projects with sales angles and recommended products.
+          Enter keywords, products, or solutions — the AI will match projects, show stakeholders, and help you draft outreach in one flow.
         </p>
 
         {/* Search Input */}
@@ -277,7 +574,7 @@ export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToP
             {searchMutation.isPending ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
             ) : (
-              <><Zap className="w-4 h-4" /> Search</>
+              <><Zap className="w-4 h-4" /> Find Opportunities</>
             )}
           </button>
         </div>
@@ -319,6 +616,14 @@ export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToP
                 <p className="text-sm text-foreground/80 leading-relaxed">{result.searchInsight}</p>
               </div>
             </div>
+          </div>
+
+          {/* Workflow Hint */}
+          <div className="bg-navy/5 border border-navy/15 rounded-lg px-4 py-2.5 flex items-center gap-3">
+            <Shield className="w-4 h-4 text-navy shrink-0" />
+            <p className="text-xs text-navy/80">
+              <strong>Next steps:</strong> Expand a project card to see details, then click <strong>"View Stakeholders"</strong> to see contacts and <strong>"Draft"</strong> to compose outreach — all without leaving this page.
+            </p>
           </div>
 
           {/* Stats Bar */}
@@ -368,9 +673,18 @@ export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToP
             <TrendingUp className="w-6 h-6 text-gold" />
           </div>
           <h3 className="text-sm font-bold text-navy mb-1">Find Your Next Opportunity</h3>
-          <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Enter the products or solutions you're currently pushing, and the AI will match you with the most relevant projects from our database of 500+ opportunities.
+          <p className="text-xs text-muted-foreground max-w-md mx-auto mb-4">
+            Enter the products or solutions you're currently pushing, and the AI will match you with the most relevant projects, show key stakeholders, and help you draft outreach — all in one workflow.
           </p>
+          <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><Search className="w-3 h-3" /> Search</span>
+            <ArrowRight className="w-3 h-3" />
+            <span className="flex items-center gap-1"><Target className="w-3 h-3" /> Match</span>
+            <ArrowRight className="w-3 h-3" />
+            <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Stakeholders</span>
+            <ArrowRight className="w-3 h-3" />
+            <span className="flex items-center gap-1"><Send className="w-3 h-3" /> Outreach</span>
+          </div>
         </div>
       )}
     </div>

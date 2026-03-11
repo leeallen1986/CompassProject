@@ -710,7 +710,7 @@ export default function Home() {
   const [sectorFilter, setSectorFilter] = useState("all");
   const [tierFilter, setTierFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
-  const [lifecycleFilter, setLifecycleFilter] = useState<"all" | "active" | "stale" | "archived" | "awarded" | "completed">("active");
+  const [actionTierFilter, setActionTierFilter] = useState<"all" | "tier1_actionable" | "tier2_warm" | "tier3_monitor">("all");
   const [showAllTerritories, setShowAllTerritories] = useState(false);
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
     return !localStorage.getItem("atlas-scoring-guide-dismissed");
@@ -805,19 +805,19 @@ export default function Home() {
     feedbackData
   );
 
-  // ── Lifecycle filter: filter by project lifecycle status ──
-  const lifecycleFiltered = lifecycleFilter === "all"
+  // ── Action Tier filter: filter by sales action classification ──
+  const actionTierFiltered = actionTierFilter === "all"
     ? personalizedProjects
     : personalizedProjects.filter((p: ProjectData) => {
-        const status = (p as any).lifecycleStatus ?? "active";
-        return status === lifecycleFilter;
+        const tier = (p as any).actionTier ?? null;
+        return tier === actionTierFilter;
       });
 
   // ── Territory hard-filter: hide projects outside user's preferred territories ──
   const userTerritories = profileData?.territories ?? [];
   const territoryFiltered = (showAllTerritories || userTerritories.length === 0)
-    ? lifecycleFiltered
-    : lifecycleFiltered.filter((p: ProjectData) =>
+    ? actionTierFiltered
+    : actionTierFiltered.filter((p: ProjectData) =>
         locationMatchesTerritory(p.location, userTerritories)
       );
 
@@ -956,29 +956,28 @@ export default function Home() {
           </div>
         )}
 
-        {/* Lifecycle Filter Bar */}
+        {/* Action Tier Filter Bar */}
         <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Status:</span>
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Focus:</span>
           {([
-            { key: "active", label: "Active", icon: Eye, count: (lifecycleCounts as any)?.active ?? 0 },
-            { key: "stale", label: "Stale", icon: Clock, count: (lifecycleCounts as any)?.stale ?? 0 },
-            { key: "archived", label: "Archived", icon: Archive, count: (lifecycleCounts as any)?.archived ?? 0 },
-            { key: "awarded", label: "Awarded", icon: Award, count: (lifecycleCounts as any)?.awarded ?? 0 },
-            { key: "completed", label: "Completed", icon: Check, count: (lifecycleCounts as any)?.completed ?? 0 },
-            { key: "all", label: "All", icon: BarChart3, count: Object.values((lifecycleCounts as any) ?? {}).reduce((a: number, b: any) => a + Number(b), 0) as number },
+            { key: "all", label: "All Projects", icon: BarChart3, count: personalizedProjects.length, color: undefined as string | undefined },
+            { key: "tier1_actionable", label: "Action Now", icon: Target, count: personalizedProjects.filter((p: any) => p.actionTier === "tier1_actionable").length, color: "bg-emerald-500" },
+            { key: "tier2_warm", label: "Warm Opportunity", icon: TrendingUp, count: personalizedProjects.filter((p: any) => p.actionTier === "tier2_warm").length, color: "bg-amber-500" },
+            { key: "tier3_monitor", label: "Monitor", icon: Eye, count: personalizedProjects.filter((p: any) => p.actionTier === "tier3_monitor").length, color: "bg-slate-400" },
           ] as const).map(f => {
             const Icon = f.icon;
-            const isActive = lifecycleFilter === f.key;
+            const isActive = actionTierFilter === f.key;
             return (
               <button
                 key={f.key}
-                onClick={() => setLifecycleFilter(f.key as any)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+                onClick={() => setActionTierFilter(f.key as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                   isActive
                     ? "bg-navy text-white shadow-sm"
                     : "bg-card text-muted-foreground border border-border hover:border-navy/30"
                 }`}
               >
+                {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color}`} />}
                 <Icon className="w-3 h-3" />
                 {f.label} ({f.count})
               </button>
@@ -1143,14 +1142,14 @@ export default function Home() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              <KPICard value={businessLineFiltered.length} label="Total Projects" accent="teal" />
-              <KPICard value={hotProjects.length} label="Hot Projects" accent="hot" />
-              <KPICard value={warmProjects.length} label="Warm Projects" accent="warm" />
-              <KPICard value={coldProjects.length} label="Cold / Monitor" />
-              <KPICard value={territoryFilteredAwarded.length} label="Awarded" accent="gold" />
-              <KPICard value={territoryFilteredDrilling.length} label="Drilling Campaigns" />
+              <KPICard value={tier1Count} label="Action Now" accent="teal" />
+              <KPICard value={tier2Count} label="Warm Opportunity" accent="gold" />
+              <KPICard value={tier3Count} label="Monitor" />
+              <KPICard value={hotProjects.length} label="Hot Priority" accent="hot" />
+              <KPICard value={warmProjects.length} label="Warm Priority" accent="warm" />
               <KPICard value={territoryFilteredContacts.length} label="Contacts" />
-              <KPICard value="4" label="Data Sources" accent="teal" />
+              <KPICard value={territoryFilteredAwarded.length} label="Awarded" accent="gold" />
+              <KPICard value={businessLineFiltered.length} label="Total Projects" accent="teal" />
             </div>
 
             {/* Hot Projects */}
@@ -1177,9 +1176,9 @@ export default function Home() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action Tier:</span>
               {[
                 { key: "all", label: "All Tiers", count: businessLineFiltered.length },
-                { key: "tier1_actionable", label: "T1 Actionable", count: tier1Count, color: "bg-emerald-500" },
-                { key: "tier2_warm", label: "T2 Warm", count: tier2Count, color: "bg-amber-500" },
-                { key: "tier3_monitor", label: "T3 Monitor", count: tier3Count, color: "bg-slate-400" },
+                { key: "tier1_actionable", label: "Action Now", count: tier1Count, color: "bg-emerald-500" },
+                { key: "tier2_warm", label: "Warm", count: tier2Count, color: "bg-amber-500" },
+                { key: "tier3_monitor", label: "Monitor", count: tier3Count, color: "bg-slate-400" },
                 { key: "unclassified", label: "Unclassified", count: tierUnclassifiedCount },
               ].map(f => (
                 <button key={f.key} onClick={() => setTierFilter(f.key)}
@@ -1327,7 +1326,7 @@ export default function Home() {
               // Reset filters so the project is visible
               setPriorityFilter("all");
               setSectorFilter("all");
-              setLifecycleFilter("all");
+              setActionTierFilter("all");
               // Switch to All Projects tab
               setActiveTab("projects");
               // Scroll to the project after tab switch renders

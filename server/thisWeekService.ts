@@ -6,6 +6,7 @@
 import { getDb, getAllProjects, getAllContacts, getLatestReport, getProfileByUserId } from "./db";
 import { projects, contacts, projectBusinessLineScores, pipelineRuns } from "../drizzle/schema";
 import { eq, desc, gte, and, sql, inArray } from "drizzle-orm";
+import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring";
 import { type ActionTier, getTierLabel, shouldIncludeInBrief } from "./tierClassification";
 import { detectActivities, type DetectedActivity } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
@@ -32,6 +33,12 @@ export interface ThisWeekProject {
   detectedActivities: string[];
   relevanceScore: number;
   createdAt: Date | null;
+  // ── Sales Context (enhanced) ──
+  whyItMatters: string;
+  topBusinessLines: { name: string; score: number }[];
+  bestStakeholder: { name: string; title: string; company: string; relevance: string; email: string | null; linkedin: string | null } | null;
+  suggestedAction: string;
+  contactDepth: number; // how many high/medium contacts exist for this project
 }
 
 export interface ThisWeekStakeholder {
@@ -161,6 +168,20 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     return 0;
   });
 
+  // Fetch BL scores for top projects
+  const topProjectIds = rankedProjects.slice(0, 15).map(p => p.id);
+  const blScoresMap: Record<number, Record<string, number>> = {};
+  if (db && topProjectIds.length > 0) {
+    try {
+      const batchScores = await getProjectScoresBatch(topProjectIds);
+      Array.from(batchScores.entries()).forEach(([pid, dims]) => {
+        const scores: Record<string, number> = {};
+        dims.forEach(d => { scores[d.dimension] = d.score; });
+        blScoresMap[pid] = scores;
+      });
+    } catch { /* fallback to empty */ }
+  }
+
   const topProjects: ThisWeekProject[] = rankedProjects.slice(0, 15).map(p => {
     const activities = detectActivities(
       p.name,
@@ -169,6 +190,53 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       p.sector,
     );
     const tier = ((p as any).actionTier as ActionTier) ?? "tier3_monitor";
+
+    // BL scores for this project
+    const blScores = blScoresMap[p.id] ?? {};
+    const topBLs = Object.entries(blScores)
+      .filter(([_, score]) => score >= 40)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, score]) => ({ name, score }));
+
+    // Find best stakeholder for this project
+    const projectContacts = allContacts.filter(c =>
+      c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
+      p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+    );
+    const relevantContacts = projectContacts.filter(c =>
+      (c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium"
+    );
+    relevantContacts.sort((a, b) => {
+      const relOrder: Record<string, number> = { high: 2, medium: 1, low: 0 };
+      return (relOrder[(b as any).roleRelevance ?? "low"] ?? 0) - (relOrder[(a as any).roleRelevance ?? "low"] ?? 0);
+    });
+    const bestContact = relevantContacts[0] ?? null;
+
+    // Generate "Why it matters" summary
+    const whyParts: string[] = [];
+    if (tier === "tier1_actionable") whyParts.push("Active-stage project ready for equipment decisions");
+    else if (tier === "tier2_warm") whyParts.push("Advancing project nearing equipment procurement phase");
+    if (activities.length > 0) whyParts.push(`Site activities: ${activities.slice(0, 3).map(a => a.activity).join(", ")}`);
+    if (topBLs.length > 0) whyParts.push(`Strong fit for ${topBLs.map(bl => bl.name).join(", ")}`);
+    if (p.contractors && (p.contractors as any[]).length > 0) {
+      const cNames = (p.contractors as any[]).slice(0, 2).map((c: any) => c.name).join(", ");
+      whyParts.push(`Contractors: ${cNames}`);
+    }
+    const whyItMatters = whyParts.join(". ") + ".";
+
+    // Generate suggested action
+    let suggestedAction = "Review project details and assess opportunity";
+    if (bestContact && (bestContact as any).roleRelevance === "high") {
+      suggestedAction = `Reach out to ${bestContact.name} (${bestContact.title}) — high-relevance contact`;
+    } else if (relevantContacts.length === 0 && projectContacts.length === 0) {
+      suggestedAction = "Run stakeholder discovery — no contacts found yet";
+    } else if (relevantContacts.length === 0) {
+      suggestedAction = "Run second-pass contact search — no high-relevance contacts";
+    } else if (!p.contractors || (p.contractors as any[]).length === 0) {
+      suggestedAction = "Run contractor enrichment — no contractor data available";
+    }
+
     return {
       id: p.id,
       name: p.name,
@@ -188,6 +256,19 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       detectedActivities: activities.map(a => a.activity),
       relevanceScore: 0,
       createdAt: p.createdAt,
+      // Sales context
+      whyItMatters,
+      topBusinessLines: topBLs,
+      bestStakeholder: bestContact ? {
+        name: bestContact.name,
+        title: bestContact.title,
+        company: bestContact.company,
+        relevance: (bestContact as any).roleRelevance ?? "medium",
+        email: bestContact.email,
+        linkedin: (bestContact as any).linkedinProfileUrl ?? (bestContact as any).linkedin ?? null,
+      } : null,
+      suggestedAction,
+      contactDepth: relevantContacts.length,
     };
   });
 
