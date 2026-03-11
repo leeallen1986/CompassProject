@@ -1,0 +1,2 @@
+ALTER TABLE `contacts` MODIFY COLUMN `enrichmentSource` enum('linkedin','llm','manual','apollo','web_search') DEFAULT 'linkedin';--> statement-breakpoint
+ALTER TABLE `contacts` ADD `sourceUrl` varchar(1024);

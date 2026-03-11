@@ -26,6 +26,7 @@ import { runGovScraper } from "./govScraper";
 import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
 import { sendWeeklyDigests } from "./emailDigest";
+import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { markStaleProjects, getDb } from "./db";
 import { pipelineRuns, type PipelineStep } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -447,10 +448,31 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(enrichmentStep);
 
-  // ── Step 10: Weekly Digest (Mondays) ──
+  // ── Step 10: Web Stakeholder Discovery ──
+  const webDiscoveryStep = startStep("Web Stakeholder Discovery");
+  console.log("[DailyPipeline] Step 10: Running open-web stakeholder discovery...");
+  try {
+    const webResult = await runBulkWebDiscovery(20); // 20 projects per run
+    completeStep(webDiscoveryStep, {
+      projectsProcessed: webResult.processed,
+      contactsFound: webResult.contactsFound,
+      errors: webResult.errors.length,
+    });
+    console.log(
+      `[DailyPipeline] Web discovery complete: ${webResult.contactsFound} contacts found across ${webResult.processed} projects`
+    );
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Web stakeholder discovery failed:", errMsg);
+    errors.push(`Web Discovery: ${errMsg}`);
+    failStep(webDiscoveryStep, errMsg);
+  }
+  steps.push(webDiscoveryStep);
+
+  // ── Step 11: Weekly Digest (Mondays) ──
   const digestStep = startStep("Weekly Digest");
   if (isMonday) {
-    console.log("[DailyPipeline] Step 10: Sending weekly intelligence digest (Monday run)...");
+    console.log("[DailyPipeline] Step 11: Sending weekly intelligence digest (Monday run)...");
     try {
       const digestResult = await sendWeeklyDigests();
       completeStep(digestStep, {
@@ -470,9 +492,9 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(digestStep);
 
-  // ── Step 11: Staleness Check ──
+  // ── Step 12: Staleness Check ──
   const stalenessStep = startStep("Staleness Check");
-  console.log("[DailyPipeline] Step 11: Running project staleness check...");
+  console.log("[DailyPipeline] Step 12: Running project staleness check...");
   try {
     const staleCount = await markStaleProjects();
     completeStep(stalenessStep, { markedStale: staleCount });

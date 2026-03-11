@@ -104,6 +104,7 @@ interface ContactRow {
   linkedinProfilePic: string | null;
   verificationScore: number | null;
   linkedinProfileUrl: string | null;
+  sourceUrl: string | null;
 }
 
 /** Deduplicated contact — one row per unique person, with all their projects */
@@ -145,7 +146,7 @@ const roleBucketLabels: Record<string, string> = {
 
 function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNames, preferredBuyerRoles }: { data: ContactRow[]; weekEnding: string; projects: ProjectData[]; businessLineNames: Record<number, string>; preferredBuyerRoles: string[] }) {
   const [search, setSearch] = useState("");
-  const [sourceFilter, setSourceFilter] = useState<"all" | "verified" | "ai_suggested">("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "verified" | "ai_suggested" | "web_search">("all");
   const [roleFilter, setRoleFilter] = useState<"all" | "preferred" | string>("preferred");
 
   // Build the set of preferred role buckets from onboarding buyer roles
@@ -271,6 +272,8 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       result = result.filter(c => c.verificationStatus === "verified");
     } else if (sourceFilter === "ai_suggested") {
       result = result.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm");
+    } else if (sourceFilter === "web_search") {
+      result = result.filter(c => c.enrichmentSource === "web_search");
     }
     // Role filter
     if (roleFilter === "preferred" && preferredRoleBuckets.size > 0) {
@@ -321,6 +324,13 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700" title="Verified via LinkedIn API">
           <ShieldCheck className="w-3 h-3" /> Verified
+        </span>
+      );
+    }
+    if (c.enrichmentSource === "web_search") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700" title={`Web-discovered contact${c.sourceUrl ? ` — Source: ${c.sourceUrl}` : ''}`}>
+          <Eye className="w-3 h-3" /> Web Found
         </span>
       );
     }
@@ -380,6 +390,12 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
             sourceFilter === "ai_suggested" ? "bg-amber-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-amber-300"
           }`}>
           <Bot className="w-3 h-3" /> AI Suggested ({aiSuggestedCount})
+        </button>
+        <button onClick={() => setSourceFilter("web_search")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            sourceFilter === "web_search" ? "bg-indigo-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-indigo-300"
+          }`}>
+          <Eye className="w-3 h-3" /> Web Found ({deduplicatedData.filter(c => c.enrichmentSource === "web_search").length})
         </button>
       </div>
 
@@ -495,7 +511,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                           </div>
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1.5 rounded shadow-lg whitespace-nowrap min-w-[140px]">
                             <div className="font-bold mb-0.5">{label} ({score}/100)</div>
-                            <div>Source: {c.verificationStatus === 'verified' ? '30' : c.enrichmentSource === 'llm' ? '10' : '5'}/30</div>
+                            <div>Source: {c.verificationStatus === 'verified' ? '30' : c.enrichmentSource === 'web_search' ? '20' : c.enrichmentSource === 'llm' ? '10' : '5'}/30</div>
                             <div>Name: 15/15</div>
                             <div>Email: {c.email ? (c.emailVerified ? '15' : c.verificationStatus === 'verified' ? '12' : '8') : '0'}/15</div>
                             <div>Title: {c.title.split(' ').length >= 3 ? '15' : '12'}/15</div>
@@ -550,8 +566,17 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                       </div>
                     )}
 
-                    {/* Verify via LinkedIn button (only for AI-suggested contacts) */}
-                    {(c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm") && c.verificationStatus !== "verified" && (
+                    {/* Source URL for web-discovered contacts */}
+                    {c.enrichmentSource === "web_search" && c.sourceUrl && (
+                      <a href={c.sourceUrl} target="_blank" rel="noopener noreferrer"
+                        className="px-2 py-1 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors flex items-center gap-1"
+                        title={`Source: ${c.sourceUrl}`}>
+                        <ExternalLink className="w-3 h-3" /> Source
+                      </a>
+                    )}
+
+                    {/* Verify via LinkedIn button (for AI-suggested and web-discovered contacts) */}
+                    {(c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm" || c.enrichmentSource === "web_search") && c.verificationStatus !== "verified" && (
                       <button
                         onClick={() => handleVerifyClick(c.id)}
                         disabled={verifyingId === c.id}

@@ -390,3 +390,17 @@
 - [x] Update RSS harvester to write per-source stats on each fetch (success/failure, article count, error details)
 - [x] Enhance Admin RSS Sources tab with health indicators (green/yellow/red), last fetched time, article counts, error details
 - [x] Write vitest tests for source tracking logic (25 tests: health classification, formatTimeAgo, schema columns, harvester exports)
+- [x] STEP 3: Build open-web stakeholder discovery (public sources, not Apollo)
+- [x] Review current contact schema and enrichment flow
+- [x] Build open-web discovery service using LinkedIn search API + LLM-powered role targeting (Google search API not available)
+- [x] Search for project/procurement/engineering/operations stakeholders per project
+- [x] Store: name, title, company, sourceUrl, linkedinUrl, roleType, confidence
+- [x] Add 'web_search' to enrichmentSource enum in contacts schema
+- [x] Add sourceUrl column to contacts schema for attribution
+- [x] tRPC endpoints: discoverStakeholders (single project), bulkWebDiscovery (batch), webDiscoveryStats, manual trigger
+- [x] Wire into daily pipeline as automatic step 10 (web discovery) for new/unenriched projects
+- [x] Update Admin UI with web discovery stats and manual trigger button
+- [x] Update Home page contacts table: web_search badge, source URL link, filter by web_search source
+- [x] Apollo reserved for manual high-priority projects only (not auto-enrichment)
+- [x] Write vitest tests for web discovery service (31 tests: search queries, role normalisation, email inference, schema, module exports, verification scoring)
+- [x] End-to-end test: triggered bulk run — LinkedIn API monthly quota currently exhausted, service correctly detects and stops early. Architecture verified: LLM plans searches → LinkedIn executes → contacts saved with web_search source

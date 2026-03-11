@@ -86,6 +86,8 @@ export function computeVerificationScore(contact: {
     source = 30;
   } else if (contact.enrichmentSource === "manual") {
     source = 20;
+  } else if (contact.enrichmentSource === "web_search") {
+    source = 20; // Web search has real source URLs backing the data
   } else if (contact.enrichmentSource === "llm") {
     source = 10;
   } else {

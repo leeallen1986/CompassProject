@@ -542,6 +542,14 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`ICN scrape failed: ${e.message}`),
   });
+  const webDiscoveryMut = trpc.dataPipeline.bulkWebDiscovery.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Web Discovery: ${data.contactsFound} contacts found across ${data.processed} projects`);
+      refetchStats();
+    },
+    onError: (e) => toast.error(`Web discovery failed: ${e.message}`),
+  });
+  const { data: webDiscoveryStats, refetch: refetchWebStats } = trpc.dataPipeline.webDiscoveryStats.useQuery();
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -670,6 +678,14 @@ function PipelineOpsTab() {
           {icnScrape.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Network className="w-4 h-4" />}
           Scrape ICN Gateway
         </Button>
+        <Button
+          onClick={() => webDiscoveryMut.mutate({})}
+          disabled={webDiscoveryMut.isPending}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
+        >
+          {webDiscoveryMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+          Web Stakeholder Discovery
+        </Button>
       </div>
 
       {/* AusTender Status */}
@@ -768,6 +784,21 @@ function PipelineOpsTab() {
           )}
         </div>
       </div>
+
+      {/* Web Stakeholder Discovery Stats */}
+      {webDiscoveryStats && (webDiscoveryStats.totalWebContacts > 0 || webDiscoveryMut.isPending) && (
+        <div className="bg-card rounded-lg border border-indigo-200 p-4">
+          <h3 className="text-sm font-bold text-navy mb-3 flex items-center gap-2">
+            <Eye className="w-4 h-4 text-indigo-600" /> Web Stakeholder Discovery
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <StatsCard label="Web Contacts" value={webDiscoveryStats.totalWebContacts} icon={<Users className="w-4 h-4" />} color="text-indigo-600" />
+            <StatsCard label="Projects Covered" value={webDiscoveryStats.projectsWithWebContacts} icon={<CheckCircle2 className="w-4 h-4" />} color="text-teal" />
+            <StatsCard label="Avg per Project" value={webDiscoveryStats.avgPerProject} icon={<BarChart3 className="w-4 h-4" />} color="text-gold" />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">Contacts discovered from public web sources (project announcements, company websites, news articles). Source URLs stored for attribution.</p>
+        </div>
+      )}
 
       {/* Contact Enrichment Stats */}
       {enrichStats && (
