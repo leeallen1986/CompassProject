@@ -64,6 +64,10 @@ import {
   getCreditUsageSummary, logCreditUsage,
   type ApolloEnrichmentResult, type ApolloSearchResult,
 } from "./apolloEnrichment";
+import {
+  checkApolloEligibility, analyzeContactGaps, getBudgetStatus,
+  buildGapFillPlan, findEligibleProjects,
+} from "./apolloEligibility";
 import { getDb } from "./db";
 import { projects, contacts, pipelineRuns as pipelineRunsTable } from "../drizzle/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
@@ -1434,6 +1438,61 @@ export const appRouter = router({
       const result = await validateApolloApiKey();
       return result;
     }),
+
+    /** Check Apollo eligibility for a specific project */
+    apolloEligibility: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return checkApolloEligibility(input.projectId);
+      }),
+
+    /** Check Apollo eligibility with explicit request override */
+    apolloEnrichExplicit: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        reportId: z.number().optional(),
+        targetTitles: z.array(z.string()).optional(),
+        maxPerCompany: z.number().optional(),
+        enrichEmails: z.boolean().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Explicit request always allowed — user clicked "Enrich with Apollo"
+        const eligibility = await checkApolloEligibility(input.projectId, { explicitRequest: true });
+        console.log(`[Apollo] Explicit enrichment requested by ${ctx.user.name} for project ${input.projectId} — ${eligibility.details}`);
+
+        const result = await enrichProjectContacts(
+          input.projectId,
+          input.reportId ?? 0,
+          {
+            targetTitles: input.targetTitles,
+            maxPerCompany: input.maxPerCompany ?? 5,
+            enrichEmails: input.enrichEmails ?? true,
+          }
+        );
+        return {
+          ...result,
+          eligibility,
+        };
+      }),
+
+    /** Get Apollo budget status */
+    apolloBudget: protectedProcedure.query(async () => {
+      return getBudgetStatus();
+    }),
+
+    /** Get contact gap analysis for a project */
+    contactGaps: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return analyzeContactGaps(input.projectId);
+      }),
+
+    /** Find all projects eligible for auto Apollo enrichment (admin) */
+    apolloEligibleProjects: adminProcedure
+      .input(z.object({ maxProjects: z.number().optional() }).optional())
+      .query(async ({ input }) => {
+        return findEligibleProjects(input?.maxProjects ?? 20);
+      }),
 
     /** Get recent articles */
     recentArticles: protectedProcedure

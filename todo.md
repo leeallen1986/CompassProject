@@ -404,3 +404,11 @@
 - [x] Apollo reserved for manual high-priority projects only (not auto-enrichment)
 - [x] Write vitest tests for web discovery service (31 tests: search queries, role normalisation, email inference, schema, module exports, verification scoring)
 - [x] End-to-end test: triggered bulk run — LinkedIn API monthly quota currently exhausted, service correctly detects and stops early. Architecture verified: LLM plans searches → LinkedIn executes → contacts saved with web_search source
+- [x] STEP 3 FOLLOW-UP: Add selective Apollo enrichment rules
+- [x] Review current Apollo integration, enrichment flow, weekly brief selection, priority system
+- [x] Build Apollo eligibility rule engine: hot priority, pipeline-claimed, explicit user request, warm+zero-contacts gap-fill
+- [x] Apollo fills gaps: verified email, additional stakeholders — gap analysis (contacts missing email, projects below threshold), gap-fill plan generation
+- [x] Update enrichment endpoints and daily pipeline step 11 (Apollo gap-fill) to enforce selective rules with budget controls (50/day, 500/month, 10/project)
+- [x] Update Admin UI: Apollo Selective Enrichment panel with budget status, eligible projects list, eligibility rules legend
+- [x] Update project cards: "Enrich with Apollo" button with eligibility indicator (explicit_request bypasses budget)
+- [x] Write vitest tests for Apollo eligibility rules (41 tests: config validation, module exports, type coverage, non-existent project handling, rule priority, budget constraints, gap analysis, gap-fill plans, integration)

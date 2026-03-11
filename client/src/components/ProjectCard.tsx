@@ -5,7 +5,7 @@
  * Enhanced: Shows multiple contacts with verification scores, LinkedIn links, and verify buttons
  */
 import { useState, useMemo } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award, KeyRound } from "lucide-react";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -331,6 +331,21 @@ function EnrichProjectButton({ projectId, projectName, onOutreach, project }: { 
     { staleTime: 60_000 } // Cache for 1 minute client-side
   );
 
+  const apolloExplicitMut = trpc.dataPipeline.apolloEnrichExplicit.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Apollo found ${data.totalFound} contact${data.totalFound !== 1 ? "s" : ""} (${data.enrichCreditsUsed} credit${data.enrichCreditsUsed !== 1 ? "s" : ""} used)`, {
+        description: `Contacts with verified emails added to project. Search used ${data.searchCreditsUsed} search + ${data.enrichCreditsUsed} reveal credits.`,
+        duration: 8000,
+      });
+      utils.report.invalidate();
+      utils.pipeline.invalidate();
+      cacheQuery.refetch();
+    },
+    onError: (err: { message: string }) => {
+      toast.error(`Apollo enrichment failed: ${err.message}`);
+    },
+  });
+
   const enrichMutation = trpc.dataPipeline.enrichProject.useMutation({
     onSuccess: (data) => {
       if ((data as any).quotaExhausted) {
@@ -440,10 +455,35 @@ function EnrichProjectButton({ projectId, projectName, onOutreach, project }: { 
           </button>
         </div>
       </div>
+      {/* Apollo Deep Enrichment — explicit request */}
+      {isCached && cachedContacts > 0 && (
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toast.info(`Running Apollo deep enrichment on ${projectName}...`, {
+                description: "Searching Apollo's 275M+ database for verified emails and additional stakeholders. Uses Apollo credits.",
+                duration: 5000,
+              });
+              apolloExplicitMut.mutate({ projectId, enrichEmails: true, maxPerCompany: 5 });
+            }}
+            disabled={apolloExplicitMut.isPending}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors disabled:opacity-50 disabled:cursor-wait"
+            title="Use Apollo credits to find verified emails and additional stakeholders"
+          >
+            {apolloExplicitMut.isPending ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> Apollo Enriching...</>
+            ) : (
+              <><KeyRound className="w-3 h-3" /> Enrich with Apollo</>
+            )}
+          </button>
+          <span className="text-[10px] text-muted-foreground">Uses credits</span>
+        </div>
+      )}
       {enrichMutation.isPending && (
         <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground bg-teal/5 rounded-md px-3 py-2 border border-teal/10">
           <Loader2 className="w-3 h-3 animate-spin text-teal" />
-          Searching Apollo for contacts matching your preferred buyer roles...
+          Searching for contacts matching your preferred buyer roles...
         </div>
       )}
       {enrichMutation.isSuccess && enrichMutation.data.contactsFound > 0 && !enrichMutation.data.fromCache && (

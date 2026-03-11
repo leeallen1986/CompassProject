@@ -550,6 +550,8 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`Web discovery failed: ${e.message}`),
   });
   const { data: webDiscoveryStats, refetch: refetchWebStats } = trpc.dataPipeline.webDiscoveryStats.useQuery();
+  const { data: apolloBudget, refetch: refetchBudget } = trpc.dataPipeline.apolloBudget.useQuery();
+  const { data: apolloEligible, refetch: refetchEligible } = trpc.dataPipeline.apolloEligibleProjects.useQuery();
 
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
@@ -799,6 +801,76 @@ function PipelineOpsTab() {
           <p className="text-[11px] text-muted-foreground mt-2">Contacts discovered from public web sources (project announcements, company websites, news articles). Source URLs stored for attribution.</p>
         </div>
       )}
+
+      {/* Apollo Selective Enrichment */}
+      <div className="bg-card rounded-lg border border-amber-200 p-4">
+        <h3 className="text-sm font-bold text-navy mb-3 flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-amber-600" /> Apollo Selective Enrichment
+        </h3>
+        <p className="text-[11px] text-muted-foreground mb-3">
+          Apollo credits are reserved for high-priority projects, pipeline-claimed projects, and explicit user requests. The daily pipeline auto-fills gaps (missing emails, insufficient contacts) on eligible projects only.
+        </p>
+
+        {/* Budget Status */}
+        {apolloBudget && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="bg-amber-50 rounded-lg border border-amber-100 p-3">
+              <div className="text-lg font-bold text-amber-700">{apolloBudget.dailyUsed}/{apolloBudget.dailyCap}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Daily Credits</div>
+            </div>
+            <div className="bg-amber-50 rounded-lg border border-amber-100 p-3">
+              <div className="text-lg font-bold text-amber-700">{apolloBudget.monthlyUsed}/{apolloBudget.monthlyCap}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Credits</div>
+            </div>
+            <div className="bg-amber-50 rounded-lg border border-amber-100 p-3">
+              <div className="text-lg font-bold text-amber-700">{apolloBudget.dailyRemaining}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Daily Remaining</div>
+            </div>
+            <div className={`rounded-lg border p-3 ${apolloBudget.withinBudget ? 'bg-teal/10 border-teal/30' : 'bg-hot/10 border-hot/30'}`}>
+              <div className={`text-lg font-bold ${apolloBudget.withinBudget ? 'text-teal' : 'text-hot'}`}>
+                {apolloBudget.withinBudget ? 'Active' : 'Exhausted'}
+              </div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Budget Status</div>
+            </div>
+          </div>
+        )}
+
+        {/* Eligible Projects */}
+        {apolloEligible && apolloEligible.eligible.length > 0 && (
+          <div className="mb-3">
+            <h4 className="text-xs font-bold text-navy mb-2 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-amber-500" /> Auto-Eligible Projects ({apolloEligible.eligible.length})
+            </h4>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {apolloEligible.eligible.map((proj: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-xs bg-amber-50/50 rounded px-3 py-2 border border-amber-100/50">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                      proj.reason === 'hot_priority' ? 'bg-hot text-white' :
+                      proj.reason === 'pipeline_claimed' ? 'bg-gold text-navy' :
+                      'bg-navy text-white'
+                    }`}>{proj.reason.replace('_', ' ')}</span>
+                    <span className="font-medium text-navy">{proj.projectName}</span>
+                  </div>
+                  <span className="text-muted-foreground">max {proj.maxCredits} credits</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {apolloEligible && apolloEligible.eligible.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">No projects currently eligible for auto Apollo enrichment. Projects become eligible when marked as hot priority or claimed into the pipeline.</p>
+        )}
+
+        <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="inline-block w-2 h-2 rounded-full bg-hot" /> Hot Priority
+            <span className="inline-block w-2 h-2 rounded-full bg-gold ml-2" /> Pipeline Claimed
+            <span className="inline-block w-2 h-2 rounded-full bg-navy ml-2" /> Explicit Request
+          </div>
+        </div>
+      </div>
 
       {/* Contact Enrichment Stats */}
       {enrichStats && (

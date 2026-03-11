@@ -11,8 +11,10 @@
  * 7. AEMO Scrape (Fridays)
  * 8. ICN Gateway Scrape (Saturdays)
  * 9. Contact Enrichment
- * 10. Weekly Digest (Mondays)
- * 11. Staleness Check
+ * 10. Web Stakeholder Discovery
+ * 11. Apollo Selective Gap-Fill
+ * 12. Weekly Digest (Mondays)
+ * 13. Staleness Check
  *
  * Every step is logged with timing, counts, and error detail into the pipelineRuns table.
  */
@@ -27,6 +29,8 @@ import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
 import { sendWeeklyDigests } from "./emailDigest";
 import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
+import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
+import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
 import { markStaleProjects, getDb } from "./db";
 import { pipelineRuns, type PipelineStep } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -469,10 +473,93 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(webDiscoveryStep);
 
-  // ── Step 11: Weekly Digest (Mondays) ──
+  // ── Step 11: Apollo Selective Gap-Fill ──
+  const apolloStep = startStep("Apollo Gap-Fill");
+  console.log("[DailyPipeline] Step 11: Running selective Apollo gap-fill...");
+  try {
+    const eligibility = await findEligibleProjects(10); // Max 10 projects per day
+    if (!eligibility.budgetStatus.withinBudget) {
+      skipStep(apolloStep, `Budget exhausted — daily: ${eligibility.budgetStatus.dailyUsed}/${eligibility.budgetStatus.dailyCap}, monthly: ${eligibility.budgetStatus.monthlyUsed}/${eligibility.budgetStatus.monthlyCap}`);
+      console.log(`[DailyPipeline] Apollo gap-fill skipped: budget exhausted`);
+    } else if (eligibility.eligible.length === 0) {
+      skipStep(apolloStep, "No eligible projects with gaps to fill");
+      console.log(`[DailyPipeline] Apollo gap-fill skipped: no eligible projects`);
+    } else {
+      let totalVerified = 0;
+      let totalNewContacts = 0;
+      let totalCreditsUsed = 0;
+      let projectsProcessed = 0;
+
+      for (const proj of eligibility.eligible) {
+        try {
+          // Check budget before each project
+          const currentBudget = await getBudgetStatus();
+          if (!currentBudget.withinBudget) {
+            console.log(`[DailyPipeline] Apollo budget hit during gap-fill, stopping`);
+            break;
+          }
+
+          const plan = await buildGapFillPlan(proj.projectId, proj.maxCredits);
+          if (plan.actions.length === 0) continue;
+
+          // Execute email verifications
+          for (const action of plan.actions) {
+            if (action.type === "verify_email" && action.contactId) {
+              try {
+                const result = await revealContactEmail(action.contactId, {
+                  userId: 0,
+                  userName: "pipeline-auto",
+                });
+                if (result) {
+                  totalVerified++;
+                  totalCreditsUsed++;
+                }
+              } catch (revealErr) {
+                console.warn(`[DailyPipeline] Apollo reveal failed for contact ${action.contactId}:`, revealErr instanceof Error ? revealErr.message : String(revealErr));
+              }
+            } else if (action.type === "find_additional") {
+              // Use Apollo search to find new contacts
+              try {
+                const searchResult = await enrichProjectContacts(
+                  proj.projectId,
+                  0,
+                  { maxPerCompany: 3, enrichEmails: true }
+                );
+                totalNewContacts += searchResult.totalFound;
+                totalCreditsUsed += searchResult.enrichCreditsUsed;
+              } catch (searchErr) {
+                console.warn(`[DailyPipeline] Apollo search failed for project ${proj.projectId}:`, searchErr instanceof Error ? searchErr.message : String(searchErr));
+              }
+            }
+          }
+          projectsProcessed++;
+          console.log(`[DailyPipeline] Apollo gap-fill: ${proj.projectName} (${proj.reason}) — ${plan.actions.length} actions`);
+        } catch (projErr) {
+          console.warn(`[DailyPipeline] Apollo gap-fill failed for project ${proj.projectId}:`, projErr instanceof Error ? projErr.message : String(projErr));
+        }
+      }
+
+      completeStep(apolloStep, {
+        projectsProcessed,
+        emailsVerified: totalVerified,
+        newContacts: totalNewContacts,
+        creditsUsed: totalCreditsUsed,
+        eligibleProjects: eligibility.eligible.length,
+      });
+      console.log(`[DailyPipeline] Apollo gap-fill complete: ${projectsProcessed} projects, ${totalVerified} emails verified, ${totalNewContacts} new contacts, ${totalCreditsUsed} credits used`);
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Apollo gap-fill failed:", errMsg);
+    errors.push(`Apollo Gap-Fill: ${errMsg}`);
+    failStep(apolloStep, errMsg);
+  }
+  steps.push(apolloStep);
+
+  // ── Step 12: Weekly Digest (Mondays) ──
   const digestStep = startStep("Weekly Digest");
   if (isMonday) {
-    console.log("[DailyPipeline] Step 11: Sending weekly intelligence digest (Monday run)...");
+    console.log("[DailyPipeline] Step 12: Sending weekly intelligence digest (Monday run)...");
     try {
       const digestResult = await sendWeeklyDigests();
       completeStep(digestStep, {
@@ -488,13 +575,13 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     }
   } else {
     skipStep(digestStep, "Runs on Mondays only");
-    console.log("[DailyPipeline] Skipping weekly digest (runs on Mondays only)");
+    console.log("[DailyPipeline] Step 12: Skipping weekly digest (runs on Mondays only)");
   }
   steps.push(digestStep);
 
-  // ── Step 12: Staleness Check ──
+  // ── Step 13: Staleness Check ──
   const stalenessStep = startStep("Staleness Check");
-  console.log("[DailyPipeline] Step 12: Running project staleness check...");
+  console.log("[DailyPipeline] Step 13: Running project staleness check...");
   try {
     const staleCount = await markStaleProjects();
     completeStep(stalenessStep, { markedStale: staleCount });
