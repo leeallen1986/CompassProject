@@ -115,7 +115,7 @@ export const SEGMENT_PAIN_POINTS: Record<string, string[]> = {
 
 // ── Core NBA Generation ──
 
-export async function generateNBA(projectId: number): Promise<NBAOutput> {
+export async function generateNBA(projectId: number, userBLs?: string[]): Promise<NBAOutput> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -173,7 +173,7 @@ export async function generateNBA(projectId: number): Promise<NBAOutput> {
   const segmentPains = SEGMENT_PAIN_POINTS[project.sector] || SEGMENT_PAIN_POINTS.infrastructure;
 
   // Build LLM prompt
-  const prompt = buildNBAPrompt(project, bestContact, topBLs, activities, segmentPains);
+  const prompt = buildNBAPrompt(project, bestContact, topBLs, activities, segmentPains, userBLs);
 
   try {
     const response = await invokeLLM({
@@ -246,14 +246,14 @@ export async function generateNBA(projectId: number): Promise<NBAOutput> {
 }
 
 /** Generate NBA for multiple projects in batch (for This Week page) */
-export async function generateNBABatch(projectIds: number[]): Promise<NBAOutput[]> {
+export async function generateNBABatch(projectIds: number[], userBLs?: string[]): Promise<NBAOutput[]> {
   const results: NBAOutput[] = [];
   // Process in parallel batches of 5 to avoid overwhelming the LLM
   const batchSize = 5;
   for (let i = 0; i < projectIds.length; i += batchSize) {
     const batch = projectIds.slice(i, i + batchSize);
     const batchResults = await Promise.allSettled(
-      batch.map(id => generateNBA(id))
+      batch.map(id => generateNBA(id, userBLs))
     );
     for (const result of batchResults) {
       if (result.status === "fulfilled") {
@@ -347,7 +347,8 @@ function buildNBAPrompt(
   bestContact: any,
   topBLs: string[],
   activities: { activity: string }[],
-  segmentPains: string[]
+  segmentPains: string[],
+  userBLs?: string[]
 ): string {
   const activityNames = activities.map(a => a.activity);
   const contactInfo = bestContact
@@ -375,6 +376,7 @@ SEGMENT PAIN POINTS: ${segmentPains.join("; ")}
 
 ${contactInfo}
 
+${userBLs && userBLs.length > 0 ? `\nREP'S ASSIGNED BUSINESS LINES: ${userBLs.join(", ")}\nIMPORTANT: Tailor recommendations to the rep's assigned BLs. Highlight how their specific products (${userBLs.join(", ")}) apply to this project. If the project is more relevant to other BLs, mention that but focus the call angle on the rep's products.\n` : ""}
 Generate:
 1. whyItMattersNow — 2-3 sentences on why this project needs attention RIGHT NOW (be specific about timing, stage, or signals)
 2. likelyPainPoints — 3-5 pain points most relevant to THIS specific project (not generic)

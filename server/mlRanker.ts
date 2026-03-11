@@ -8,10 +8,11 @@
  *
  * Zero AI credits — pure math on user feedback data.
  */
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   feedbackWeights, projectFeedback, userProfiles, projects,
+  projectBusinessLineScores,
   type FeedbackWeight, type Project, type UserProfile,
 } from "../drizzle/schema";
 
@@ -29,11 +30,13 @@ interface ScoredProject {
   relevanceScore: number;   // 0-100
   profileMatch: number;     // 0-100 (from onboarding profile)
   feedbackBoost: number;    // -50 to +50 (from learned weights)
+  blBoost: number;          // 0-30 (from BL match)
   matchDetails: {
     territory: number;
     industry: number;
     sector: number;
     dealSize: number;
+    businessLine: number;
   };
 }
 
@@ -291,6 +294,53 @@ function applyFeedbackWeights(
   return Math.max(-50, Math.min(50, boost));
 }
 
+// ── BL matching ──
+
+/** Fetch BL scores for a batch of projects and compute BL match boost per project */
+async function computeBLBoosts(
+  projectIds: number[],
+  userBLs: string[],
+  userSectorFocus: string[],
+): Promise<Map<number, { blBoost: number; blScore: number }>> {
+  const result = new Map<number, { blBoost: number; blScore: number }>();
+  if (projectIds.length === 0 || userBLs.length === 0) return result;
+
+  const db = await getDb();
+  if (!db) return result;
+
+  try {
+    const rows = await db.select().from(projectBusinessLineScores)
+      .where(inArray(projectBusinessLineScores.projectId, projectIds));
+
+    // Group by project
+    const byProject = new Map<number, { dimension: string; score: number }[]>();
+    for (const r of rows) {
+      const arr = byProject.get(r.projectId) || [];
+      arr.push({ dimension: r.scoringDimension, score: r.score });
+      byProject.set(r.projectId, arr);
+    }
+
+    for (const pid of projectIds) {
+      const scores = byProject.get(pid) || [];
+      // Find max score among user's assigned BLs
+      const matchingScores = scores.filter(s => userBLs.includes(s.dimension));
+      if (matchingScores.length === 0) {
+        result.set(pid, { blBoost: 0, blScore: 0 });
+        continue;
+      }
+      const maxScore = Math.max(...matchingScores.map(s => s.score));
+      const avgScore = matchingScores.reduce((sum, s) => sum + s.score, 0) / matchingScores.length;
+      // Boost: 0-30 points based on how well the project matches user's BLs
+      const blBoost = Math.round((maxScore / 100) * 20 + (avgScore / 100) * 10);
+      result.set(pid, { blBoost, blScore: maxScore });
+    }
+  } catch {
+    // Fallback to no boost
+  }
+
+  return result;
+}
+
 // ── Main ranking function ──
 
 export async function rankProjectsForUser(
@@ -303,7 +353,8 @@ export async function rankProjectsForUser(
     relevanceScore: 50,
     profileMatch: 50,
     feedbackBoost: 0,
-    matchDetails: { territory: 12.5, industry: 12.5, sector: 12.5, dealSize: 12.5 },
+    blBoost: 0,
+    matchDetails: { territory: 12.5, industry: 12.5, sector: 12.5, dealSize: 12.5, businessLine: 0 },
   }));
 
   // Get user profile
@@ -313,28 +364,49 @@ export async function rankProjectsForUser(
   // Get learned weights
   const weights = await getOrInitWeights(userId);
 
+  // Get BL boosts if user has assigned BLs
+  const userBLs = (profile?.assignedBusinessLines as string[]) || [];
+  const userSectorFocus = (profile?.sectorFocus as string[]) || [];
+  const projectIds = projectList.map(p => p.id);
+  const blBoosts = userBLs.length > 0
+    ? await computeBLBoosts(projectIds, userBLs, userSectorFocus)
+    : new Map<number, { blBoost: number; blScore: number }>();
+
   const scored: ScoredProject[] = projectList.map(project => {
-    // Base profile score
+    // Base profile score (territory + industry + sector + deal size = 0-100)
     const profileScore = profile
       ? scoreByProfile(project, profile)
       : { total: 50, territory: 12.5, industry: 12.5, sector: 12.5, dealSize: 12.5 };
 
+    // Sector focus boost: if user has sectorFocus set, boost matching sectors
+    let sectorFocusBoost = 0;
+    if (userSectorFocus.length > 0) {
+      sectorFocusBoost = userSectorFocus.includes(project.sector) ? 10 : -5;
+    }
+
     // Feedback-based adjustment
     const feedbackBoost = applyFeedbackWeights(project, weights);
 
+    // BL match boost
+    const blData = blBoosts.get(project.id) || { blBoost: 0, blScore: 0 };
+
     // Combined score (clamped 0-100)
-    const relevanceScore = Math.max(0, Math.min(100, profileScore.total + feedbackBoost));
+    const relevanceScore = Math.max(0, Math.min(100,
+      profileScore.total + feedbackBoost + blData.blBoost + sectorFocusBoost
+    ));
 
     return {
       project,
       relevanceScore,
       profileMatch: profileScore.total,
       feedbackBoost,
+      blBoost: blData.blBoost,
       matchDetails: {
         territory: profileScore.territory,
         industry: profileScore.industry,
         sector: profileScore.sector,
         dealSize: profileScore.dealSize,
+        businessLine: blData.blBoost,
       },
     };
   });

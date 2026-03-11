@@ -134,7 +134,7 @@ export default function ThisWeek() {
   }
   if (isLoading || !summary) return <ThisWeekSkeleton />;
 
-  const { topProjects, newStakeholders, stageChanges, suggestedActions, stats, weekLabel } = summary;
+  const { topProjects, newStakeholders, stageChanges, suggestedActions, stats, weekLabel, userContext } = summary;
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,6 +158,28 @@ export default function ThisWeek() {
               <p className="text-sm sm:text-base text-slate-300 mt-1 font-medium">
                 Atlas Copco Power Technique — Weekly Intelligence Summary
               </p>
+              {userContext?.hasPreferences && (
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {userContext.territories.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[11px] font-medium border border-white/10">
+                      <MapPin className="w-3 h-3" /> {userContext.territories.join(", ")}
+                    </span>
+                  )}
+                  {userContext.assignedBusinessLines.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/15 text-gold text-[11px] font-medium border border-gold/20">
+                      <Layers className="w-3 h-3" /> {userContext.assignedBusinessLines.join(", ")}
+                    </span>
+                  )}
+                  {userContext.sectorFocus.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal/15 text-teal text-[11px] font-medium border border-teal/20">
+                      <Globe className="w-3 h-3" /> {userContext.sectorFocus.map((s: string) => sectorLabels[s] || s).join(", ")}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-slate-500">
+                    {stats.totalInScope} of {stats.totalProjects} projects in your scope
+                  </span>
+                </div>
+              )}
             </div>
             <div className="text-right flex flex-col items-end gap-2">
               <div className="text-xl sm:text-2xl font-bold text-gold tracking-wider">ATLAS COPCO</div>

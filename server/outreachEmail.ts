@@ -34,6 +34,7 @@ export interface OutreachInput {
   // Sender info
   senderName: string;
   senderCompany?: string;
+  senderBusinessLines?: string[]; // User's assigned BLs — used to focus the outreach on their products
 
   // Tone / Style
   tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
@@ -221,6 +222,7 @@ ${equipmentContext}
 ${businessLineContext}
 
 SENDER: ${input.senderName}${input.senderCompany ? ` from ${input.senderCompany}` : " from Atlas Copco Power Technique"}
+${input.senderBusinessLines && input.senderBusinessLines.length > 0 ? `SENDER'S PRODUCT FOCUS: The sender specialises in ${input.senderBusinessLines.join(", ")}. Prioritise these business lines in the email while remaining relevant to the project needs. If the project is more relevant to other BLs, briefly mention the sender's products but focus on the best-fit solution.` : ""}
 
 TONE: ${toneGuide[input.tone]}
 

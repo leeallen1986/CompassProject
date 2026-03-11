@@ -77,9 +77,18 @@ export interface SuggestedAction {
   contactName?: string;
 }
 
+export interface UserContext {
+  territories: string[];
+  assignedBusinessLines: string[];
+  sectorFocus: string[];
+  hasPreferences: boolean;
+}
+
 export interface ThisWeekSummary {
   weekLabel: string;
   generatedAt: string;
+  // User's configured preferences for display
+  userContext: UserContext;
   // Top priority projects (Tier 1 + hot Tier 2, ranked by relevance)
   topProjects: ThisWeekProject[];
   // New stakeholders discovered this week (high/medium relevance only)
@@ -91,6 +100,7 @@ export interface ThisWeekSummary {
   // Summary stats
   stats: {
     totalProjects: number;
+    totalInScope: number; // projects matching user's territory/BL
     tier1Count: number;
     tier2Count: number;
     tier3Count: number;
@@ -136,6 +146,30 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   const report = await getLatestReport();
   const weekLabel = report?.weekEnding ?? new Date().toISOString().slice(0, 10);
 
+  // ── Load user preferences for personalisation ──
+  let userContext: UserContext = {
+    territories: [],
+    assignedBusinessLines: [],
+    sectorFocus: [],
+    hasPreferences: false,
+  };
+  let userProfile: any = null;
+  if (userId && db) {
+    try {
+      userProfile = await getProfileByUserId(userId);
+      if (userProfile) {
+        userContext = {
+          territories: (userProfile.territories as string[]) || [],
+          assignedBusinessLines: (userProfile.assignedBusinessLines as string[]) || [],
+          sectorFocus: (userProfile.sectorFocus as string[]) || [],
+          hasPreferences:
+            ((userProfile.territories as string[]) || []).length > 0 ||
+            ((userProfile.assignedBusinessLines as string[]) || []).length > 0,
+        };
+      }
+    } catch { /* continue without preferences */ }
+  }
+
   // ── 1. Top Priority Projects ──
   // Filter to Tier 1 and hot/warm Tier 2, then rank
   const actionableProjects = activeProjects.filter(p => {
@@ -144,7 +178,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     return shouldIncludeInBrief(tier ?? "tier3_monitor", priority);
   });
 
-  // Apply ML ranking if user is provided
+  // Apply ML ranking if user is provided (now includes BL + sector focus boosting)
   let rankedProjects = actionableProjects;
   if (userId && db) {
     try {
@@ -441,8 +475,38 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     p.contractors && (p.contractors as any[]).length > 0
   ).length;
 
+  // Count in-scope projects (matching user territory or BL)
+  let totalInScope = activeProjects.length;
+  if (userContext.hasPreferences) {
+    totalInScope = activeProjects.filter(p => {
+      // Territory match
+      if (userContext.territories.length > 0) {
+        const loc = p.location.toLowerCase();
+        const stateKeywords: Record<string, string[]> = {
+          WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha"],
+          QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone"],
+          NSW: ["new south wales", "nsw", "sydney", "newcastle", "wollongong"],
+          VIC: ["victoria", "vic", "melbourne"],
+          SA: ["south australia", "sa", "adelaide"],
+          NT: ["northern territory", "nt", "darwin"],
+          TAS: ["tasmania", "tas", "hobart"],
+          ACT: ["act", "canberra"],
+        };
+        const matchesTerritory = userContext.territories.some(t => {
+          const kws = stateKeywords[t] || [t.toLowerCase()];
+          return kws.some(kw => loc.includes(kw));
+        });
+        if (matchesTerritory) return true;
+      }
+      // Sector match
+      if (userContext.sectorFocus.length > 0 && userContext.sectorFocus.includes(p.sector)) return true;
+      return userContext.territories.length === 0; // no territory filter = all in scope
+    }).length;
+  }
+
   const stats = {
     totalProjects: activeProjects.length,
+    totalInScope,
     tier1Count: activeProjects.filter(p => (p as any).actionTier === "tier1_actionable").length,
     tier2Count: activeProjects.filter(p => (p as any).actionTier === "tier2_warm").length,
     tier3Count: activeProjects.filter(p => (p as any).actionTier === "tier3_monitor").length,
@@ -458,6 +522,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   return {
     weekLabel,
     generatedAt: new Date().toISOString(),
+    userContext,
     topProjects,
     newStakeholders,
     stageChanges,

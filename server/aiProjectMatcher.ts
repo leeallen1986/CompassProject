@@ -13,9 +13,9 @@
  * 1. Pre-filter: keyword-based scoring to narrow 500+ projects to top ~60
  * 2. LLM ranking: deep analysis of the shortlist with reasoning
  */
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "./db";
-import { projects, contacts, type Project, type Contact } from "../drizzle/schema";
+import { projects, contacts, userProfiles, type Project, type Contact } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 
 // ── Types ──
@@ -45,6 +45,7 @@ export interface MatchResult {
   matches: MatchedProject[];
   searchInsight: string;        // Overall market insight for this search
   suggestedKeywords: string[];  // Related searches the user might want to try
+  personalised: boolean;        // Whether results were boosted by user preferences
 }
 
 // ── Atlas Copco PT Product Knowledge Base ──
@@ -289,12 +290,35 @@ ${projectSummaries}`,
 
 // ── Main search function ──
 
-export async function searchProjects(query: string): Promise<MatchResult> {
+/**
+ * Search projects with optional user-preference boosting.
+ * When userId is provided, results matching the user's territory and BL are boosted.
+ * Users can still find projects outside their scope — they just rank lower by default.
+ */
+export async function searchProjects(query: string, userId?: number): Promise<MatchResult> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   if (!query || query.trim().length < 2) {
     throw new Error("Search query must be at least 2 characters");
+  }
+
+  // Load user preferences for boosting
+  let userTerritories: string[] = [];
+  let userBLs: string[] = [];
+  let userSectorFocus: string[] = [];
+  let personalised = false;
+  if (userId) {
+    try {
+      const [profile] = await db.select().from(userProfiles)
+        .where(eq(userProfiles.userId, userId)).limit(1);
+      if (profile) {
+        userTerritories = (profile.territories as string[]) || [];
+        userBLs = (profile.assignedBusinessLines as string[]) || [];
+        userSectorFocus = (profile.sectorFocus as string[]) || [];
+        personalised = userTerritories.length > 0 || userBLs.length > 0;
+      }
+    } catch { /* continue without preferences */ }
   }
 
   // Step 1: Load all projects
@@ -311,6 +335,7 @@ export async function searchProjects(query: string): Promise<MatchResult> {
       matches: [],
       searchInsight: "No projects matched your search terms. Try broader keywords or check the product knowledge base.",
       suggestedKeywords: ["compressor", "generator", "pump", "bess", "mining", "drilling"],
+      personalised,
     };
   }
 
@@ -319,9 +344,6 @@ export async function searchProjects(query: string): Promise<MatchResult> {
 
   // Step 4: Enrich with contact counts
   if (matches.length > 0) {
-    const projectIds = matches.map(m => m.projectId);
-    const projectNames = matches.map(m => m.name);
-
     const allContacts = await db.select()
       .from(contacts)
       .orderBy(desc(contacts.id));
@@ -340,6 +362,67 @@ export async function searchProjects(query: string): Promise<MatchResult> {
     }
   }
 
+  // Step 5: Apply user-preference boosting to re-rank results
+  if (personalised && matches.length > 1) {
+    const STATE_KEYWORDS: Record<string, string[]> = {
+      WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland"],
+      QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "bowen basin"],
+      NSW: ["new south wales", "nsw", "sydney", "newcastle", "wollongong", "hunter valley"],
+      VIC: ["victoria", "vic", "melbourne"],
+      SA: ["south australia", "sa", "adelaide", "olympic dam"],
+      NT: ["northern territory", "nt", "darwin"],
+      TAS: ["tasmania", "tas", "hobart"],
+      ACT: ["act", "canberra"],
+    };
+
+    // BL keyword matching for product alignment
+    const BL_KEYWORDS: Record<string, string[]> = {
+      "Portable Air": ["compressor", "portable air", "air compressor", "cfm", "pneumatic"],
+      "PAL": ["generator", "lighting", "power", "qas", "qes", "hilight", "pal"],
+      "BESS": ["bess", "battery", "energy storage", "hybrid", "zenergize"],
+      "Pump/Dewatering": ["pump", "dewatering", "submersible", "wellpoint", "weda", "flow"],
+      "Generators": ["generator", "genset", "power", "diesel", "qas", "qes"],
+      "Nitrogen": ["nitrogen", "n2", "purging", "inerting"],
+      "Booster": ["booster", "high pressure", "hp"],
+      "Service Potential": ["service", "maintenance", "aftermarket", "parts"],
+      "Rental Influence": ["rental", "hire", "fleet"],
+    };
+
+    for (const match of matches) {
+      let boost = 0;
+      const loc = match.location.toLowerCase();
+
+      // Territory boost: +15 if project is in user's territory
+      if (userTerritories.length > 0) {
+        const inTerritory = userTerritories.some(t => {
+          const kws = STATE_KEYWORDS[t] || [t.toLowerCase()];
+          return kws.some(kw => loc.includes(kw));
+        });
+        if (inTerritory) boost += 15;
+      }
+
+      // Sector boost: +8 if project sector matches user's sector focus
+      if (userSectorFocus.length > 0 && userSectorFocus.includes(match.sector)) {
+        boost += 8;
+      }
+
+      // BL boost: +12 if project mentions products matching user's BLs
+      if (userBLs.length > 0) {
+        const projText = `${match.name} ${match.overview} ${(match.matchedProducts || []).join(" ")}`.toLowerCase();
+        const blMatch = userBLs.some(bl => {
+          const kws = BL_KEYWORDS[bl] || [];
+          return kws.some(kw => projText.includes(kw));
+        });
+        if (blMatch) boost += 12;
+      }
+
+      match.relevanceScore = Math.min(100, match.relevanceScore + boost);
+    }
+
+    // Re-sort by boosted relevance score
+    matches.sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
   return {
     query,
     totalProjectsSearched: allProjects.length,
@@ -347,6 +430,7 @@ export async function searchProjects(query: string): Promise<MatchResult> {
     matches,
     searchInsight,
     suggestedKeywords,
+    personalised,
   };
 }
 

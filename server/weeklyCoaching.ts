@@ -127,8 +127,10 @@ export async function getWeeklyCoaching(userId: number): Promise<WeeklyCoaching>
 
   // ── Gather user profile for territory/BL preferences ──
   const profile = await getProfileByUserId(userId);
-  const userTerritories = profile?.territories || [];
-  const userIndustries = profile?.industries || [];
+  const userTerritories = (profile?.territories as string[]) || [];
+  const userIndustries = (profile?.industries as string[]) || [];
+  const userBLs = (profile?.assignedBusinessLines as string[]) || [];
+  const userSectorFocus = (profile?.sectorFocus as string[]) || [];
 
   // ── Gather all actionable projects ──
   const allProjects = await db
@@ -180,8 +182,53 @@ export async function getWeeklyCoaching(userId: number): Promise<WeeklyCoaching>
     }
   }
 
-  // ── 1. Top 5 Actions ──
-  const topActions = generateTopActions(allProjects, viewedProjectIds, blScoresMap, tier1);
+  // ── Pre-filter: prioritise projects in user's territory and BL scope ──
+  const STATE_KEYWORDS: Record<string, string[]> = {
+    WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha"],
+    QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone"],
+    NSW: ["new south wales", "nsw", "sydney", "newcastle", "wollongong"],
+    VIC: ["victoria", "vic", "melbourne"],
+    SA: ["south australia", "sa", "adelaide"],
+    NT: ["northern territory", "nt", "darwin"],
+    TAS: ["tasmania", "tas", "hobart"],
+    ACT: ["act", "canberra"],
+  };
+
+  function isInUserTerritory(location: string): boolean {
+    if (userTerritories.length === 0) return true;
+    const loc = location.toLowerCase();
+    return userTerritories.some(t => {
+      const kws = STATE_KEYWORDS[t] || [t.toLowerCase()];
+      return kws.some(kw => loc.includes(kw));
+    });
+  }
+
+  function isInUserBLScope(projectId: number): boolean {
+    if (userBLs.length === 0) return true;
+    const scores = blScoresMap.get(projectId) || [];
+    return scores.some(s => userBLs.includes(s.dimension) && s.score >= 40);
+  }
+
+  // Sort all projects: in-scope first, then out-of-scope
+  const scoredProjects = allProjects.map(p => ({
+    ...p,
+    inScope: isInUserTerritory(p.location) || isInUserBLScope(p.id),
+  }));
+  scoredProjects.sort((a, b) => {
+    if (a.inScope && !b.inScope) return -1;
+    if (!a.inScope && b.inScope) return 1;
+    return 0;
+  });
+
+  // ── 1. Top 5 Actions (prioritise in-scope projects) ──
+  const inScopeProjects = scoredProjects.filter(p => p.inScope);
+  const inScopeTier1 = inScopeProjects.filter(p => p.actionTier === "tier1_actionable");
+  const topActions = generateTopActions(
+    inScopeProjects.length > 0 ? inScopeProjects : allProjects,
+    viewedProjectIds,
+    blScoresMap,
+    inScopeTier1.length > 0 ? inScopeTier1 : tier1
+  );
 
   // ── 2. Overlooked Opportunities ──
   const overlooked = findOverlookedOpportunities(allProjects, viewedProjectIds, tier1, hotProjects);

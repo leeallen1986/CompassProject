@@ -233,6 +233,8 @@ export const appRouter = router({
         buyerRoles: z.array(z.string()).optional(),
         keyAccounts: z.array(z.string()).optional(),
         excludeAccounts: z.array(z.string()).optional(),
+        assignedBusinessLines: z.array(z.string()).optional(),
+        sectorFocus: z.array(z.string()).optional(),
         aiSegments: z.array(z.object({
           name: z.string(),
           description: z.string(),
@@ -539,7 +541,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Track search activity
         await trackActivity(ctx.user.id, "search_performed", { metadata: { query: input.query } });
-        return searchProjects(input.query);
+        return searchProjects(input.query, ctx.user.id);
       }),
   }),
 
@@ -1798,9 +1800,13 @@ export const appRouter = router({
         style: z.enum(["standard", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Load user's assigned BLs to personalise the outreach
+        const profile = await getProfileByUserId(ctx.user.id);
+        const userBLs = (profile?.assignedBusinessLines as string[]) || [];
         const result = await generateOutreachEmail({
           ...input,
           senderName: ctx.user.name || "Team",
+          senderBusinessLines: userBLs.length > 0 ? userBLs : undefined,
         });
         // Track outreach drafted
         await trackActivity(ctx.user.id, "outreach_drafted", {
@@ -2278,17 +2284,21 @@ export const appRouter = router({
   }),
   // ── Next Best Action ──
   nba: router({
-    /** Get NBA for a single project */
+    /** Get NBA for a single project (tailored to user's BLs) */
     forProject: protectedProcedure
       .input(z.object({ projectId: z.number() }))
-      .query(async ({ input }) => {
-        return generateNBA(input.projectId);
+      .query(async ({ ctx, input }) => {
+        const profile = await getProfileByUserId(ctx.user.id);
+        const userBLs = (profile?.assignedBusinessLines as string[]) || [];
+        return generateNBA(input.projectId, userBLs.length > 0 ? userBLs : undefined);
       }),
-    /** Get NBA for multiple projects (batch) */
+    /** Get NBA for multiple projects (batch, tailored to user's BLs) */
     forProjects: protectedProcedure
       .input(z.object({ projectIds: z.array(z.number()).max(20) }))
-      .query(async ({ input }) => {
-        return generateNBABatch(input.projectIds);
+      .query(async ({ ctx, input }) => {
+        const profile = await getProfileByUserId(ctx.user.id);
+        const userBLs = (profile?.assignedBusinessLines as string[]) || [];
+        return generateNBABatch(input.projectIds, userBLs.length > 0 ? userBLs : undefined);
       }),
   }),
   // ── Weekly Coaching ──

@@ -542,3 +542,20 @@
 - [x] PERSONA: Add tRPC endpoints (persona.preCallCoaching, persona.segmentPainPoints, persona.allSegmentPainPoints, persona.rolePersona, persona.allRolePersonas)
 - [x] PERSONA: Build PreCallCoaching UI component with collapsible sections for talk track, questions, objections, persona insights, pain points
 - [x] PERSONA: Write vitest tests for persona coaching service
+
+## Territory & Business Line Personalisation
+- [x] SCHEMA: Add assignedBusinessLines (JSON string array) to userProfiles schema
+- [x] SCHEMA: Add sectorFocus (JSON string array) to userProfiles schema for optional sector focus
+- [x] SCHEMA: Run pnpm db:push to sync schema changes
+- [x] ROUTER: Update profile.update endpoint to accept assignedBusinessLines and sectorFocus
+- [x] SETTINGS: Add Business Lines selector to Settings page (multi-select from active BLs)
+- [x] SETTINGS: Add Sector Focus selector to Settings page
+- [x] ONBOARDING: Add BL selection step to onboarding flow
+- [x] THIS WEEK: Filter and rank projects by user's territory + BL preferences before displaying
+- [x] THIS WEEK: Show user's territory and BL context in the header
+- [x] AI SEARCH: Pass user preferences to searchProjects, boost results matching user territory and BL
+- [x] AI SEARCH: Allow users to explore outside their scope but default ranking favours their responsibilities
+- [x] NBA: Pass user BL preferences to NBA generation so recommendations align with user's product scope
+- [x] COACHING: Ensure weekly coaching prioritises projects in user's territory and BL
+- [x] OUTREACH: Pre-fill outreach with user's relevant BL context
+- [x] TESTS: Write vitest tests for personalised filtering and ranking

@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
   MapPin, Package, Users, DollarSign, UserCheck, Building,
-  ChevronRight, ChevronLeft, Check, Sparkles, Globe, Loader2,
+  ChevronRight, ChevronLeft, Check, Sparkles, Globe, Loader2, Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IMAGES } from "@/lib/images";
@@ -95,6 +95,38 @@ const BUYER_ROLES = [
   { id: "commercial", label: "Commercial / Contracts" },
 ];
 
+// ── Business Line Chips (fetches from DB) ──
+
+function BusinessLineChips({ selected, onChange }: { selected: string[]; onChange: (v: string[]) => void }) {
+  const { data: activeLines, isLoading } = trpc.businessLines.active.useQuery();
+  if (isLoading) return <Loader2 className="w-4 h-4 animate-spin text-gold" />;
+  const blOptions = (activeLines || []).map((bl: { id: number; name: string }) => bl.name);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {blOptions.map((name: string) => (
+        <button
+          key={name}
+          onClick={() => {
+            if (selected.includes(name)) {
+              onChange(selected.filter(s => s !== name));
+            } else {
+              onChange([...selected, name]);
+            }
+          }}
+          className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+            selected.includes(name)
+              ? "bg-navy text-white border-navy shadow-sm"
+              : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-slate-50"
+          }`}
+        >
+          {name}
+          {selected.includes(name) && <Check className="inline-block w-3.5 h-3.5 ml-1.5 -mt-0.5" />}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Chip component ──
 
 function Chip({
@@ -150,6 +182,8 @@ export default function Onboarding() {
   const [dealSizes, setDealSizes] = useState<string[]>([]);
   const [stageTiming, setStageTiming] = useState<string[]>([]);
   const [buyerRoles, setBuyerRoles] = useState<string[]>([]);
+  const [assignedBusinessLines, setAssignedBusinessLines] = useState<string[]>([]);
+  const [sectorFocus, setSectorFocus] = useState<string[]>([]);
   const [keyAccountsText, setKeyAccountsText] = useState("");
   const [excludeAccountsText, setExcludeAccountsText] = useState("");
 
@@ -157,7 +191,7 @@ export default function Onboarding() {
   const updateProfile = trpc.profile.update.useMutation();
   const completeOnboarding = trpc.profile.completeOnboarding.useMutation();
 
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 7;
 
   const toggleItem = (arr: string[], setArr: (v: string[]) => void, id: string) => {
     setArr(arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
@@ -166,14 +200,15 @@ export default function Onboarding() {
   const canProceed = useMemo(() => {
     switch (step) {
       case 0: return territories.length > 0 && industries.length > 0;
-      case 1: return offerCategories.length > 0 && customerTypes.length > 0;
-      case 2: return dealSizes.length > 0 && stageTiming.length > 0;
-      case 3: return buyerRoles.length >= 1;
-      case 4: return true; // optional
-      case 5: return true; // confirmation
+      case 1: return assignedBusinessLines.length > 0;
+      case 2: return offerCategories.length > 0 && customerTypes.length > 0;
+      case 3: return dealSizes.length > 0 && stageTiming.length > 0;
+      case 4: return buyerRoles.length >= 1;
+      case 5: return true; // optional
+      case 6: return true; // confirmation
       default: return false;
     }
-  }, [step, territories, industries, offerCategories, customerTypes, dealSizes, stageTiming, buyerRoles]);
+  }, [step, territories, industries, assignedBusinessLines, offerCategories, customerTypes, dealSizes, stageTiming, buyerRoles]);
 
   const saveCurrentStep = async () => {
     try {
@@ -188,19 +223,22 @@ export default function Onboarding() {
           });
           break;
         case 1:
-          await updateProfile.mutateAsync({ offerCategories, customerTypes });
+          await updateProfile.mutateAsync({ assignedBusinessLines, sectorFocus });
           break;
         case 2:
+          await updateProfile.mutateAsync({ offerCategories, customerTypes });
+          break;
+        case 3:
           await updateProfile.mutateAsync({
             dealSizeMin: dealSizes[0],
             dealSizeMax: dealSizes[dealSizes.length - 1],
             stageTiming,
           });
           break;
-        case 3:
+        case 4:
           await updateProfile.mutateAsync({ buyerRoles });
           break;
-        case 4:
+        case 5:
           await updateProfile.mutateAsync({
             keyAccounts: keyAccountsText ? keyAccountsText.split("\n").map(s => s.trim()).filter(Boolean) : [],
             excludeAccounts: excludeAccountsText ? excludeAccountsText.split("\n").map(s => s.trim()).filter(Boolean) : [],
@@ -264,6 +302,8 @@ export default function Onboarding() {
   const summaryDealSize = dealSizes.map(d => DEAL_SIZES.find(x => x.id === d)?.label || d).join(", ");
   const summaryStage = stageTiming.map(s => STAGE_TIMINGS.find(x => x.id === s)?.label || s).join(", ");
   const summaryRoles = buyerRoles.map(r => BUYER_ROLES.find(x => x.id === r)?.label || r).join(", ");
+  const summaryBLs = assignedBusinessLines.join(", ");
+  const summarySectorFocus = sectorFocus.map(s => s === "oil_gas" ? "Oil & Gas" : s.charAt(0).toUpperCase() + s.slice(1)).join(", ");
 
   return (
     <div className="min-h-screen bg-background">
@@ -387,8 +427,53 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* ===== SCREEN 2: Offer Category + Customer Type ===== */}
+            {/* ===== SCREEN 2: Business Lines + Sector Focus ===== */}
             {step === 1 && (
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Briefcase className="w-5 h-5 text-gold" />
+                    <h2 className="text-xl font-bold text-navy">Your Business Lines</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Select the Atlas Copco business lines you are responsible for. This personalises project rankings, coaching, and outreach.</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-navy uppercase tracking-wider mb-2 block">Assigned Business Lines</label>
+                  <BusinessLineChips selected={assignedBusinessLines} onChange={setAssignedBusinessLines} />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-navy uppercase tracking-wider mb-2 block">Sector Focus (Optional)</label>
+                  <p className="text-xs text-muted-foreground mb-2">Optionally narrow your focus. Leave empty to see all sectors.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "mining", label: "Mining" },
+                      { id: "oil_gas", label: "Oil & Gas" },
+                      { id: "infrastructure", label: "Infrastructure" },
+                      { id: "energy", label: "Energy" },
+                      { id: "defence", label: "Defence" },
+                    ].map(s => (
+                      <Chip
+                        key={s.id}
+                        label={s.label}
+                        selected={sectorFocus.includes(s.id)}
+                        onClick={() => toggleItem(sectorFocus, setSectorFocus, s.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gold/10 border border-gold/25 rounded-lg p-4">
+                  <p className="text-xs text-foreground/70">
+                    <strong className="text-navy">How this works:</strong> Projects matching your business lines will be ranked higher in your weekly brief and AI search. You can still explore outside your assigned BLs — they just won't be prioritised by default.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ===== SCREEN 3: Offer Category + Customer Type ===== */}
+            {step === 2 && (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -418,8 +503,8 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* ===== SCREEN 3: Deal Size + Stage Timing ===== */}
-            {step === 2 && (
+            {/* ===== SCREEN 4: Deal Size + Stage Timing ===== */}
+            {step === 3 && (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -465,8 +550,8 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* ===== SCREEN 4: Contact Roles ===== */}
-            {step === 3 && (
+            {/* ===== SCREEN 5: Contact Roles ===== */}
+            {step === 4 && (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -484,8 +569,8 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* ===== SCREEN 5: Key Accounts (Optional) ===== */}
-            {step === 4 && (
+            {/* ===== SCREEN 6: Key Accounts (Optional) ===== */}
+            {step === 5 && (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -519,8 +604,8 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* ===== SCREEN 6: Summary + Confirm ===== */}
-            {step === 5 && (
+            {/* ===== SCREEN 7: Summary + Confirm ===== */}
+            {step === 6 && (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -539,6 +624,16 @@ export default function Onboarding() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Industries</p>
                     <p className="text-sm font-medium text-navy mt-0.5">{summaryIndustries || "Not set"}</p>
                   </div>
+                  <div className="px-4 py-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Lines</p>
+                    <p className="text-sm font-medium text-navy mt-0.5">{summaryBLs || "Not set"}</p>
+                  </div>
+                  {summarySectorFocus && (
+                    <div className="px-4 py-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sector Focus</p>
+                      <p className="text-sm font-medium text-navy mt-0.5">{summarySectorFocus}</p>
+                    </div>
+                  )}
                   <div className="px-4 py-3">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Offer Categories</p>
                     <p className="text-sm font-medium text-navy mt-0.5">{summaryOffers || "Not set"}</p>

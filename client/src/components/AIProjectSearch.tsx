@@ -43,6 +43,7 @@ interface MatchResult {
   matches: MatchedProject[];
   searchInsight: string;
   suggestedKeywords: string[];
+  personalised?: boolean;
 }
 
 interface ProjectContact {
@@ -628,10 +629,15 @@ export default function AIProjectSearch({ onNavigateToProject }: { onNavigateToP
 
           {/* Stats Bar */}
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>
+            <span className="flex items-center gap-2">
               <strong className="text-navy">{result.matches.length}</strong> matches from{" "}
               <strong className="text-navy">{result.preFilteredCount}</strong> pre-filtered /{" "}
               <strong className="text-navy">{result.totalProjectsSearched}</strong> total projects
+              {result.personalised && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gold/10 text-gold-dark text-[10px] font-medium border border-gold/20">
+                  <Sparkles className="w-3 h-3" /> Personalised for your territory & BL
+                </span>
+              )}
             </span>
             {result.suggestedKeywords.length > 0 && (
               <div className="flex items-center gap-1.5">

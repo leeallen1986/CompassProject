@@ -56,6 +56,10 @@ export const userProfiles = mysqlTable("userProfiles", {
   keyAccounts: json("keyAccounts").$type<string[]>(),          // company names to prioritize
   excludeAccounts: json("excludeAccounts").$type<string[]>(),  // company names to exclude
 
+  // Atlas Copco business line assignments (e.g. ["Portable Air", "Nitrogen", "BESS"])
+  assignedBusinessLines: json("assignedBusinessLines").$type<string[]>(),
+  // Optional sector focus — overrides industries for ranking (e.g. ["mining", "oil_gas"])
+  sectorFocus: json("sectorFocus").$type<string[]>(),
   // AI-generated segments (Screen 6)
   aiSegments: json("aiSegments").$type<{ name: string; description: string; expectedLeads: number }[]>(),
 
