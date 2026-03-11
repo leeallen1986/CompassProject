@@ -141,6 +141,13 @@
       "when": 1771570363342,
       "tag": "0019_nostalgic_jazinda",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1773195890598,
+      "tag": "0020_powerful_vengeance",
+      "breakpoints": true
     }
   ]
 }

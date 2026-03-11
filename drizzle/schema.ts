@@ -468,3 +468,43 @@ export const outreachTemplates = mysqlTable("outreachTemplates", {
 
 export type OutreachTemplate = typeof outreachTemplates.$inferSelect;
 export type InsertOutreachTemplate = typeof outreachTemplates.$inferInsert;
+
+/**
+ * Pipeline run logs — tracks every execution of the daily/weekly pipeline.
+ * Records timing, article counts, project counts, errors, and source-level stats.
+ * Used for the Admin dashboard pipeline health monitoring.
+ */
+export const pipelineRuns = mysqlTable("pipelineRuns", {
+  id: int("id").autoincrement().primaryKey(),
+  runType: mysqlEnum("runType", ["daily", "weekly", "manual"]).notNull(),
+  status: mysqlEnum("status", ["running", "completed", "failed"]).notNull().default("running"),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+  durationMs: int("durationMs"),
+  // RSS harvest stats
+  feedsFetched: int("feedsFetched").default(0),
+  feedErrors: int("feedErrors").default(0),
+  articlesIngested: int("articlesIngested").default(0),
+  articlesSkippedKeyword: int("articlesSkippedKeyword").default(0),
+  articlesDuplicate: int("articlesDuplicate").default(0),
+  // Extraction stats
+  articlesExtracted: int("articlesExtracted").default(0),
+  projectsCreated: int("projectsCreated").default(0),
+  projectsDuplicate: int("projectsDuplicate").default(0),
+  drillingCampaignsCreated: int("drillingCampaignsCreated").default(0),
+  awardedProjectsCreated: int("awardedProjectsCreated").default(0),
+  // Scraper stats
+  austenderContracts: int("austenderContracts").default(0),
+  dmirsProjects: int("dmirsProjects").default(0),
+  // Contact enrichment stats
+  contactsEnriched: int("contactsEnriched").default(0),
+  apolloCreditsUsed: int("apolloCreditsUsed").default(0),
+  // Error details
+  errors: json("errors").$type<string[]>(),
+  // Source-level breakdown
+  sourceStats: json("sourceStats").$type<Record<string, { fetched: number; ingested: number; errors: number }>>(),
+  triggeredBy: varchar("triggeredBy", { length: 256 }),
+});
+
+export type PipelineRun = typeof pipelineRuns.$inferSelect;
+export type InsertPipelineRun = typeof pipelineRuns.$inferInsert;

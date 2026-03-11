@@ -22,7 +22,9 @@ import { runGovScraper } from "./govScraper";
 import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
 import { sendWeeklyDigests } from "./emailDigest";
-import { markStaleProjects } from "./db";
+import { markStaleProjects, getDb } from "./db";
+import { pipelineRuns } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -95,9 +97,27 @@ export interface DailyPipelineResult {
   completedAt: string;
 }
 
-export async function runDailyPipeline(): Promise<DailyPipelineResult> {
+export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipelineResult> {
   const startTime = Date.now();
   console.log("[DailyPipeline] Starting daily pipeline run...");
+
+  // Create pipeline run log entry
+  let runId: number | null = null;
+  const errors: string[] = [];
+  try {
+    const db = await getDb();
+    if (db) {
+      const [inserted] = await db.insert(pipelineRuns).values({
+        runType: "daily",
+        status: "running",
+        triggeredBy: triggeredBy || "scheduler",
+      });
+      runId = inserted.insertId;
+      console.log(`[DailyPipeline] Pipeline run logged: ID ${runId}`);
+    }
+  } catch (err) {
+    console.error("[DailyPipeline] Failed to create pipeline run log:", err);
+  }
 
   // Step 1: RSS Harvest
   console.log("[DailyPipeline] Step 1/3: Harvesting RSS feeds...");
@@ -108,7 +128,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       `[DailyPipeline] Harvest complete: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources`
     );
   } catch (err: unknown) {
-    console.error("[DailyPipeline] Harvest failed:", err instanceof Error ? err.message : String(err));
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Harvest failed:", errMsg);
+    errors.push(`Harvest: ${errMsg}`);
     harvestResult = { totalSources: 0, totalFetched: 0, totalNew: 0, totalDuplicates: 0, totalErrors: 1 };
   }
 
@@ -121,7 +143,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       `[DailyPipeline] Extraction complete: ${extractionResult.extracted} projects from ${extractionResult.processed} articles`
     );
   } catch (err: unknown) {
-    console.error("[DailyPipeline] Extraction failed:", err instanceof Error ? err.message : String(err));
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Extraction failed:", errMsg);
+    errors.push(`Extraction: ${errMsg}`);
     extractionResult = { processed: 0, extracted: 0, duplicates: 0, skipped: 0, failed: 0, creditsUsed: 0, results: [] };
   }
 
@@ -142,7 +166,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       };
       console.log(`[DailyPipeline] Projectory complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
-      console.error("[DailyPipeline] Projectory scrape failed:", err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Projectory scrape failed:", errMsg);
+      errors.push(`Projectory: ${errMsg}`);
       projectoryResult.totalErrors = 1;
     }
   } else {
@@ -165,7 +191,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       };
       console.log(`[DailyPipeline] DMIRS complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
-      console.error("[DailyPipeline] DMIRS scrape failed:", err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] DMIRS scrape failed:", errMsg);
+      errors.push(`DMIRS: ${errMsg}`);
       dmirsResult.totalErrors = 1;
     }
   } else {
@@ -189,7 +217,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       };
       console.log(`[DailyPipeline] AEMO complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
-      console.error("[DailyPipeline] AEMO scrape failed:", err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] AEMO scrape failed:", errMsg);
+      errors.push(`AEMO: ${errMsg}`);
       aemoResult.totalErrors = 1;
     }
   } else {
@@ -212,7 +242,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       };
       console.log(`[DailyPipeline] Gov complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
-      console.error("[DailyPipeline] Gov scrape failed:", err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Gov scrape failed:", errMsg);
+      errors.push(`Gov: ${errMsg}`);
       govResult.totalErrors = 1;
     }
   } else {
@@ -237,7 +269,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       };
       console.log(`[DailyPipeline] AusTender complete: ${scrapeResult.totalNewProjects} new projects from ${scrapeResult.totalRelevant} relevant contracts`);
     } catch (err: unknown) {
-      console.error("[DailyPipeline] AusTender scrape failed:", err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] AusTender scrape failed:", errMsg);
+      errors.push(`AusTender: ${errMsg}`);
       austenderResult.totalErrors = 1;
     }
   } else {
@@ -260,7 +294,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       };
       console.log(`[DailyPipeline] ICN complete: ${scrapeResult.totalNewProjects} new projects`);
     } catch (err: unknown) {
-      console.error("[DailyPipeline] ICN scrape failed:", err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] ICN scrape failed:", errMsg);
+      errors.push(`ICN: ${errMsg}`);
       icnResult.totalErrors = 1;
     }
   } else {
@@ -276,7 +312,9 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
       `[DailyPipeline] Enrichment complete: ${enrichmentResult.enriched} contacts enriched`
     );
   } catch (err: unknown) {
-    console.error("[DailyPipeline] Enrichment failed:", err instanceof Error ? err.message : String(err));
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Enrichment failed:", errMsg);
+    errors.push(`Enrichment: ${errMsg}`);
     enrichmentResult = { processed: 0, enriched: 0, notFound: 0, failed: 0, dailyUsed: 0, results: [] };
   }
 
@@ -338,6 +376,36 @@ export async function runDailyPipeline(): Promise<DailyPipelineResult> {
     }
   } catch (err: unknown) {
     console.error("[DailyPipeline] Staleness check failed:", err instanceof Error ? err.message : String(err));
+  }
+
+  // Save pipeline run results to database
+  if (runId) {
+    try {
+      const db = await getDb();
+      if (!db) throw new Error("No database connection");
+      await db.update(pipelineRuns).set({
+        status: errors.length > 0 ? "completed" : "completed",
+        completedAt: new Date(),
+        durationMs: duration * 1000,
+        feedsFetched: harvestResult.totalSources,
+        feedErrors: harvestResult.totalErrors,
+        articlesIngested: harvestResult.totalNew,
+        articlesDuplicate: harvestResult.totalDuplicates,
+        articlesExtracted: extractionResult.extracted,
+        projectsCreated: extractionResult.extracted,
+        projectsDuplicate: extractionResult.duplicates,
+        drillingCampaignsCreated: (extractionResult as any).drillingCampaignsInserted || 0,
+        awardedProjectsCreated: (extractionResult as any).awardedProjectsInserted || 0,
+        austenderContracts: austenderResult.totalNewProjects,
+        dmirsProjects: dmirsResult.totalNewProjects,
+        contactsEnriched: enrichmentResult.enriched,
+        apolloCreditsUsed: enrichmentResult.dailyUsed,
+        errors: errors.length > 0 ? errors : null,
+      }).where(eq(pipelineRuns.id, runId));
+      console.log(`[DailyPipeline] Pipeline run ${runId} logged successfully`);
+    } catch (err) {
+      console.error("[DailyPipeline] Failed to update pipeline run log:", err);
+    }
   }
 
   console.log(`[DailyPipeline] Pipeline complete in ${duration}s`);

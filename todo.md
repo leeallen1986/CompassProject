@@ -354,3 +354,15 @@
 - [x] Template usage tracking (incrementTemplateUsage on each personalise call)
 - [x] Write vitest tests for template library (20 tests: schema validation, CRUD functions, filter interfaces, personalise input, tone values, stats structure)
 - [x] All 596 tests passing
+- [x] AUDIT FIX: Remove all overseas/US projects — deleted 62 overseas projects (US, Canada, Brazil, South Africa, Cambodia, Indonesia, Iraq, Azerbaijan, Tanzania, Botswana, NZ, Germany, Sweden, Serbia, Scotland, France, Estonia, Lithuania, Inner Mongolia, Norway, UK) and 73 orphaned contacts. DB now 712 projects, 56 contacts
+- [x] AUDIT FIX: Add geo-filter to AI extraction pipeline — added CRITICAL GEO-FILTER instruction to LLM prompt rejecting any non-Australian project even if Australian company is involved
+- [x] AUDIT FIX: Mining Journal RSS feed — deactivated (403 blocked, no alternative available)
+- [x] AUDIT FIX: Fix Small Caps RSS feed — updated URL from /feed/ to /feed (trailing slash caused 308 redirect), reset error count to 0
+- [x] AUDIT FIX: The Australian RSS feed — deactivated (returns empty content)
+- [x] AUDIT FIX: Deactivated 10 overseas/dead RSS feeds: Construction Equipment Guide (US), Diesel Progress (US), International Mining (global), Mining Weekly SA (South Africa), Renewables Now (global), Rigzone (US), Mining Journal (403 blocked), Build Australia (0 articles), Fluid Handling Magazine (0 articles), The Australian (empty content). 22 active feeds remaining
+- [x] AUDIT FIX: AusTender API — confirmed working (HTTP 200, 100 releases returned). The 403 was transient. Date format already correct (ISO 8601). No code change needed.
+- [x] AUDIT FIX: Cleared 222-article extraction backlog — deleted 31 from deactivated overseas sources, processed remaining 191 (40 extracted, 7 awarded projects, 8 drilling campaigns, 108 skipped non-relevant, 0 failed). Increased daily cap from 100 to 300. DB now at 765 projects.
+- [x] AUDIT FIX: Reduced skip rate — deactivated 2 irrelevant feeds (ABC News Australia 100% skip, One Step Off The Grid 100% skip). Added 54 new keywords to Portable Air (construction projects, defence facilities, infrastructure, mining development, project approvals) and 13 to PAL (defence, construction sites, tunnels, data centres). 20 active feeds remaining.
+- [x] AUDIT FIX: Added pipelineRuns table (23 columns: runType, status, triggeredBy, startedAt, completedAt, durationMs, feedsFetched, feedErrors, articlesIngested, articlesDuplicate, articlesExtracted, projectsCreated, projectsDuplicate, drillingCampaignsCreated, awardedProjectsCreated, austenderContracts, dmirsProjects, contactsEnriched, apolloCreditsUsed, errors). Wired into dailyPipeline with error tracking. Added admin tRPC endpoint for pipeline run history.
+- [x] All 596 tests passing (28 test files)
+- [x] AUDIT FIX: Build Australia and Fluid Handling Magazine — deactivated (0 articles ever)

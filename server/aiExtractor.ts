@@ -24,7 +24,7 @@ import { generateAndEnrichContacts } from "./contactEnrichment";
 
 // ── Configuration ──
 
-const DAILY_EXTRACTION_CAP = 100;
+const DAILY_EXTRACTION_CAP = 300;
 const BATCH_SIZE = 5;
 const MAX_ARTICLE_AGE_DAYS = 30;
 
@@ -125,11 +125,13 @@ Analyze the following articles and extract structured project intelligence relev
 - Pump / Flow (dewatering pumps, submersible pumps, wellpoint systems — PAS/WEDA series)
 - BESS (battery energy storage systems, hybrid power, solar hybrid, peak shaving, microgrids — ZenergiZe range)
 
+CRITICAL GEO-FILTER: Only extract projects, awarded contracts, and drilling campaigns that are located in AUSTRALIA (any Australian state/territory: NSW, QLD, VIC, WA, SA, TAS, NT, ACT). Reject any project located overseas (USA, Canada, UK, Europe, Asia, Africa, South America, New Zealand, etc.) even if an Australian company is involved. If an Australian company (e.g. BHP, Rio Tinto) has a project overseas, mark it as NOT relevant. The location must be within Australia.
+
 For each article, extract THREE types of intelligence:
 
-1. **Project** — The main project or opportunity described in the article
-2. **Awarded Projects** — Any contracts that have been awarded to specific contractors. Look for phrases like "awarded to", "contract won by", "selected as preferred contractor", "appointed", "engaged to deliver", "contract signed". These are high-value because sales teams need to sell to the winning contractor.
-3. **Drilling Campaigns** — Any drilling or exploration activity. Look for: drill programs, exploration campaigns, RC drilling, diamond drilling, blast hole drilling, production drilling, water bore drilling. Include the operator, drill type, location, timing, and estimated compressed air requirement.
+1. **Project** — The main project or opportunity described in the article. Must be located in Australia.
+2. **Awarded Projects** — Any contracts that have been awarded to specific contractors. Look for phrases like "awarded to", "contract won by", "selected as preferred contractor", "appointed", "engaged to deliver", "contract signed". These are high-value because sales teams need to sell to the winning contractor. Must be in Australia.
+3. **Drilling Campaigns** — Any drilling or exploration activity. Look for: drill programs, exploration campaigns, RC drilling, diamond drilling, blast hole drilling, production drilling, water bore drilling. Include the operator, drill type, location, timing, and estimated compressed air requirement. Must be in Australia.
 
 ${articleList}
 

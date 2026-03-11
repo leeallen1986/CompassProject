@@ -64,8 +64,8 @@ import {
   type ApolloEnrichmentResult, type ApolloSearchResult,
 } from "./apolloEnrichment";
 import { getDb } from "./db";
-import { projects, contacts } from "../drizzle/schema";
-import { eq, sql } from "drizzle-orm";
+import { projects, contacts, pipelineRuns as pipelineRunsTable } from "../drizzle/schema";
+import { eq, sql, desc } from "drizzle-orm";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1436,10 +1436,19 @@ export const appRouter = router({
 
   // ── Full daily pipeline (admin only) ──
   dailyPipeline: router({
-    run: adminProcedure.mutation(async () => {
-      const result = await runDailyPipeline();
+    run: adminProcedure.mutation(async ({ ctx }) => {
+      const result = await runDailyPipeline(ctx.user.name || "admin");
       return result;
     }),
+    history: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).optional() }).optional())
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const limit = input?.limit ?? 20;
+        const rows = await db.select().from(pipelineRunsTable).orderBy(desc(pipelineRunsTable.startedAt)).limit(limit);
+        return rows;
+      }),
   }),
 
   // ── Weekly mega-scrape pipeline (admin only) ──
