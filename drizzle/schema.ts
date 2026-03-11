@@ -470,6 +470,19 @@ export type OutreachTemplate = typeof outreachTemplates.$inferSelect;
 export type InsertOutreachTemplate = typeof outreachTemplates.$inferInsert;
 
 /**
+ * Step-level tracking for pipeline runs.
+ */
+export interface PipelineStep {
+  name: string;
+  status: "completed" | "failed" | "skipped";
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  counts?: Record<string, number>;
+  error?: string;
+}
+
+/**
  * Pipeline run logs — tracks every execution of the daily/weekly pipeline.
  * Records timing, article counts, project counts, errors, and source-level stats.
  * Used for the Admin dashboard pipeline health monitoring.
@@ -499,6 +512,13 @@ export const pipelineRuns = mysqlTable("pipelineRuns", {
   // Contact enrichment stats
   contactsEnriched: int("contactsEnriched").default(0),
   apolloCreditsUsed: int("apolloCreditsUsed").default(0),
+  // Scraper stats (additional)
+  projectoryProjects: int("projectoryProjects").default(0),
+  govProjects: int("govProjects").default(0),
+  aemoProjects: int("aemoProjects").default(0),
+  icnProjects: int("icnProjects").default(0),
+  // Step-level tracking
+  steps: json("steps").$type<PipelineStep[]>(),
   // Error details
   errors: json("errors").$type<string[]>(),
   // Source-level breakdown

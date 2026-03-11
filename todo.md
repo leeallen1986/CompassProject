@@ -378,3 +378,10 @@
 - [x] 43 vitest tests for normaliseLocation (overseas rejection, empty handling, state abbreviations, city+state combos, region inference, complex multi-part)
 - [x] Final state: 715 projects, 0 unmapped, 0 issues. Distribution: NSW 175, WA 162, QLD 111, VIC 86, National 79, SA 48, NT 27, TAS 18, ACT 9
 - [x] All 639 tests passing (29 test files)
+- [x] STEP 2B: Implement and verify pipeline execution logging
+- [x] Review existing pipelineRuns schema and daily pipeline logging code
+- [x] Enhance logging with step-level status tracking (each pipeline step: RSS harvest, extraction, enrichment, scrapers)
+- [x] Add error detail capture per step
+- [x] Build Pipeline Run History panel on Admin dashboard
+- [x] Trigger a full pipeline run and verify records are written correctly
+- [x] Write vitest tests for pipeline logging

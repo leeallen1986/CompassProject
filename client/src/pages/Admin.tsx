@@ -1217,6 +1217,253 @@ function ApolloCreditsTab() {
   );
 }
 
+// ── Pipeline Run History Tab ──
+
+interface PipelineStepDisplay {
+  name: string;
+  status: "completed" | "failed" | "skipped";
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  counts?: Record<string, number>;
+  error?: string;
+}
+
+function PipelineRunHistoryTab() {
+  const { data: runs, isLoading } = trpc.dailyPipeline.history.useQuery({ limit: 30 });
+  const [expandedRun, setExpandedRun] = useState<number | null>(null);
+
+  if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
+
+  const formatDuration = (ms: number | null | undefined) => {
+    if (!ms) return "—";
+    const seconds = Math.round(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return `${minutes}m ${remaining}s`;
+  };
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "completed": return "bg-teal/15 text-teal";
+      case "failed": return "bg-hot/15 text-hot";
+      case "running": return "bg-warm/15 text-warm";
+      case "skipped": return "bg-slate-200 text-slate-500";
+      default: return "bg-slate-200 text-slate-500";
+    }
+  };
+
+  const statusIcon = (status: string) => {
+    switch (status) {
+      case "completed": return <CheckCircle2 className="w-3 h-3" />;
+      case "failed": return <XCircle className="w-3 h-3" />;
+      case "running": return <Loader2 className="w-3 h-3 animate-spin" />;
+      case "skipped": return <Clock className="w-3 h-3" />;
+      default: return null;
+    }
+  };
+
+  // Compute summary stats
+  const totalRuns = runs?.length || 0;
+  const successRuns = runs?.filter(r => r.status === "completed").length || 0;
+  const failedRuns = runs?.filter(r => r.status === "failed").length || 0;
+  const avgDuration = totalRuns > 0
+    ? Math.round((runs?.reduce((sum, r) => sum + (r.durationMs || 0), 0) || 0) / totalRuns / 1000)
+    : 0;
+  const totalProjectsCreated = runs?.reduce((sum, r) => sum + (r.projectsCreated || 0), 0) || 0;
+  const totalContactsEnriched = runs?.reduce((sum, r) => sum + (r.contactsEnriched || 0), 0) || 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StatsCard label="Total Runs" value={totalRuns} icon={<Activity className="w-4 h-4" />} color="text-navy" />
+        <StatsCard label="Successful" value={successRuns} icon={<CheckCircle2 className="w-4 h-4" />} color="text-teal" />
+        <StatsCard label="Failed" value={failedRuns} icon={<XCircle className="w-4 h-4" />} color="text-hot" />
+        <StatsCard label="Avg Duration" value={`${avgDuration}s`} icon={<Clock className="w-4 h-4" />} color="text-warm" />
+        <StatsCard label="Projects Created" value={totalProjectsCreated} icon={<Database className="w-4 h-4" />} color="text-gold" />
+        <StatsCard label="Contacts Enriched" value={totalContactsEnriched} icon={<Users className="w-4 h-4" />} color="text-teal" />
+      </div>
+
+      {/* Run History Table */}
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-navy/5">
+          <h3 className="text-sm font-bold text-navy flex items-center gap-2">
+            <Activity className="w-4 h-4 text-gold" /> Pipeline Run History (Last {totalRuns})
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-navy text-white">
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Run</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Type</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Started</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Duration</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Articles</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Projects</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Contacts</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Triggered By</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Steps</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs?.map((run, i) => {
+                const steps = (run.steps as PipelineStepDisplay[] | null) || [];
+                const completedSteps = steps.filter(s => s.status === "completed").length;
+                const failedSteps = steps.filter(s => s.status === "failed").length;
+                const skippedSteps = steps.filter(s => s.status === "skipped").length;
+                const isExpanded = expandedRun === run.id;
+
+                return (
+                  <>
+                    <tr
+                      key={run.id}
+                      className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors cursor-pointer`}
+                      onClick={() => setExpandedRun(isExpanded ? null : run.id)}
+                    >
+                      <td className="px-4 py-2.5 font-mono text-xs text-navy">#{run.id}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          run.runType === "daily" ? "bg-navy/10 text-navy" :
+                          run.runType === "weekly" ? "bg-purple-100 text-purple-700" :
+                          "bg-gold/15 text-gold-dark"
+                        }`}>{run.runType}</span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${statusBadge(run.status)}`}>
+                          {statusIcon(run.status)} {run.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {run.startedAt ? new Date(run.startedAt).toLocaleString() : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs font-medium">{formatDuration(run.durationMs)}</td>
+                      <td className="px-4 py-2.5 text-xs">{run.articlesIngested || 0}</td>
+                      <td className="px-4 py-2.5 text-xs font-medium text-gold-dark">{run.projectsCreated || 0}</td>
+                      <td className="px-4 py-2.5 text-xs">{run.contactsEnriched || 0}</td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{run.triggeredBy || "—"}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1 text-[10px]">
+                          {completedSteps > 0 && <span className="text-teal font-bold">{completedSteps}✓</span>}
+                          {failedSteps > 0 && <span className="text-hot font-bold">{failedSteps}✗</span>}
+                          {skippedSteps > 0 && <span className="text-slate-400">{skippedSteps}⊘</span>}
+                          <Eye className="w-3 h-3 text-muted-foreground ml-1" />
+                        </div>
+                      </td>
+                    </tr>
+                    {/* Expanded step detail */}
+                    {isExpanded && steps.length > 0 && (
+                      <tr key={`${run.id}-detail`}>
+                        <td colSpan={10} className="px-4 py-3 bg-slate-50 border-t border-border">
+                          <div className="space-y-3">
+                            <h4 className="text-xs font-bold text-navy uppercase tracking-wider">Step-by-Step Breakdown</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {steps.map((step, si) => (
+                                <div key={si} className={`rounded-md border p-3 ${
+                                  step.status === "completed" ? "border-teal/30 bg-teal/5" :
+                                  step.status === "failed" ? "border-hot/30 bg-hot/5" :
+                                  "border-slate-200 bg-white"
+                                }`}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-semibold text-navy">{step.name}</span>
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${statusBadge(step.status)}`}>
+                                      {step.status}
+                                    </span>
+                                  </div>
+                                  {step.durationMs !== undefined && step.durationMs > 0 && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                      Duration: {formatDuration(step.durationMs)}
+                                    </div>
+                                  )}
+                                  {step.counts && Object.keys(step.counts).length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {Object.entries(step.counts).map(([k, v]) => (
+                                        <span key={k} className="px-1.5 py-0.5 rounded bg-navy/8 text-navy text-[9px] font-medium">
+                                          {k}: {v}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {step.error && (
+                                    <div className="mt-1 text-[10px] text-hot break-all">
+                                      {step.error}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Scraper breakdown */}
+                            <div className="mt-3">
+                              <h4 className="text-xs font-bold text-navy uppercase tracking-wider mb-2">Source Breakdown</h4>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-navy">{run.articlesIngested || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">RSS Articles</div>
+                                </div>
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-navy">{run.articlesExtracted || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">AI Extracted</div>
+                                </div>
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-purple-700">{run.projectoryProjects || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">Projectory</div>
+                                </div>
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-blue-600">{run.govProjects || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">Gov</div>
+                                </div>
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-amber-600">{run.dmirsProjects || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">DMIRS</div>
+                                </div>
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-emerald-600">{run.aemoProjects || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">AEMO</div>
+                                </div>
+                                <div className="bg-white rounded border border-border p-2 text-center">
+                                  <div className="text-sm font-bold text-cyan-600">{run.icnProjects || 0}</div>
+                                  <div className="text-[9px] text-muted-foreground uppercase">ICN</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Errors */}
+                            {run.errors && (run.errors as string[]).length > 0 && (
+                              <div className="mt-2">
+                                <h4 className="text-xs font-bold text-hot uppercase tracking-wider mb-1">Errors</h4>
+                                <div className="space-y-1">
+                                  {(run.errors as string[]).map((err, ei) => (
+                                    <div key={ei} className="text-[10px] text-hot bg-hot/5 border border-hot/20 rounded px-2 py-1">
+                                      {err}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {(!runs || runs.length === 0) && (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            No pipeline runs recorded yet. Run the daily pipeline to start tracking.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Admin Page ──
 
 export default function Admin() {
@@ -1288,6 +1535,9 @@ export default function Admin() {
             <TabsTrigger value="apollo" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Apollo Credits
             </TabsTrigger>
+            <TabsTrigger value="runhistory" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
+              <Activity className="w-3.5 h-3.5 mr-1.5" /> Run History
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -1308,6 +1558,10 @@ export default function Admin() {
 
           <TabsContent value="apollo">
             <ApolloCreditsTab />
+          </TabsContent>
+
+          <TabsContent value="runhistory">
+            <PipelineRunHistoryTab />
           </TabsContent>
         </Tabs>
       </main>
