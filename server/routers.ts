@@ -81,6 +81,11 @@ import { validateProject as icnValidateProject, validateAllProjects as icnValida
 import { scanTargetCompanies, getAsxWatchlist, addToWatchlist, removeFromWatchlist, getRecentAsxFindings } from "./asxMonitor";
 import { getSourceMonitoringSummary } from "./sourceMonitoring";
 import { getSourceSummary, ALL_SOURCES } from "./sourceConfig";
+import {
+  runContractorEngine, buildContractorRegistry, detectPairings,
+  scoreContractors, detectEmergingPatterns, generateEmergingPatternsSection,
+  getContractorLeaderboard, getContractorProfile, getActivePatterns,
+} from "./contractorEngine";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2043,6 +2048,54 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getRecentAsxFindings(input.limit);
       }),
+  }),
+
+  // ── Contractor & Delivery Pattern Engine ──
+  contractorEngine: router({
+    /** Run the full contractor engine: registry, pairings, scoring, patterns */
+    runFull: adminProcedure.mutation(async () => {
+      return runContractorEngine();
+    }),
+    /** Build/update the contractor registry from project data */
+    buildRegistry: adminProcedure.mutation(async () => {
+      return buildContractorRegistry();
+    }),
+    /** Detect recurring pairings between companies */
+    detectPairings: adminProcedure.mutation(async () => {
+      return detectPairings();
+    }),
+    /** Score all contractors for momentum, recurrence, relevance, early-signal */
+    scoreContractors: adminProcedure.mutation(async () => {
+      return scoreContractors();
+    }),
+    /** Detect emerging patterns from contractor activity */
+    detectPatterns: adminProcedure.mutation(async () => {
+      return detectEmergingPatterns();
+    }),
+    /** Get the contractor leaderboard */
+    leaderboard: protectedProcedure
+      .input(z.object({
+        limit: z.number().min(1).max(100).default(20),
+        role: z.string().optional(),
+        sector: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        return getContractorLeaderboard(input.limit, input.role, input.sector);
+      }),
+    /** Get a contractor's full profile with project links and pairings */
+    profile: protectedProcedure
+      .input(z.object({ contractorId: z.number() }))
+      .query(async ({ input }) => {
+        return getContractorProfile(input.contractorId);
+      }),
+    /** Get active emerging patterns */
+    activePatterns: protectedProcedure.query(async () => {
+      return getActivePatterns();
+    }),
+    /** Generate the Emerging Patterns section for the weekly brief */
+    emergingPatternsSection: protectedProcedure.query(async () => {
+      return generateEmergingPatternsSection();
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

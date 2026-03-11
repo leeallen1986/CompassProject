@@ -1,0 +1,15 @@
+{
+  "query": "SELECT COUNT(*) as total, SUM(CASE WHEN contractors IS NOT NULL AND contractors != '[]' AND contractors != 'null' THEN 1 ELSE 0 END) as with_contractors, SUM(CASE WHEN owner IS NOT NULL AND owner != '' THEN 1 ELSE 0 END) as with_owner FROM projects;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total, SUM(CASE WHEN contractors IS NOT NULL AND contractors != '[]' AND contractors != 'null' THEN 1 ELSE 0 END) as with_contractors, SUM(CASE WHEN owner IS NOT NULL AND owner != '' THEN 1 ELSE 0 END) as with_owner FROM projects;",
+  "rows": [
+    {
+      "total": "741",
+      "with_contractors": "741",
+      "with_owner": "741"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\twith_contractors\twith_owner\n741\t741\t741\n",
+  "stderr": "",
+  "execution_time_ms": 1650
+}

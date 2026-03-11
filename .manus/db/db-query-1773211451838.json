@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, name, owner, sector, location, contractors FROM projects WHERE contractors IS NOT NULL AND contractors != '[]' AND contractors != 'null' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, owner, sector, location, contractors FROM projects WHERE contractors IS NOT NULL AND contractors != '[]' AND contractors != 'null' LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "West Angelas Sustaining Project (WASP) — Bulk Earthworks",
+      "owner": "Rio Tinto",
+      "sector": "mining",
+      "location": "Pilbara, WA",
+      "contractors": "[{\"detail\": \"$175M bulk earthworks (Deposit H)\", \"name\": \"NRW Civil & Mining\", \"status\": \"confirmed\"}, {\"detail\": \"$120M heavy haulage roads (Western Hill)\", \"name\": \"Decmil (Macmahon)\", \"status\": \"confirmed\"}]"
+    },
+    {
+      "id": "2",
+      "name": "Monadelphous Rio Tinto Pilbara Maintenance Services",
+      "owner": "Rio Tinto",
+      "sector": "mining",
+      "location": "Pilbara, WA",
+      "contractors": "[{\"detail\": \"$300M (5-year term)\", \"name\": \"Monadelphous Group\", \"status\": \"confirmed\"}]"
+    },
+    {
+      "id": "3",
+      "name": "Golding Meandu Coal Mine MSA",
+      "owner": "TEC Coal / Stanwell",
+      "sector": "mining",
+      "location": "South Burnett, QLD",
+      "contractors": "[{\"detail\": \"$750M MSA\", \"name\": \"Golding Contractors (NRW Holdings)\", \"status\": \"confirmed\"}, {\"confidence\": 0.7, \"detail\": \"drilling/blasting\", \"name\": \"Action Drill & Blast (NRW)\", \"status\": \"predicted\"}]"
+    },
+    {
+      "id": "4",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning",
+      "owner": "Santos / BW Offshore",
+      "sector": "oil_gas",
+      "location": "Darwin, NT",
+      "contractors": "[{\"detail\": \"FPSO operations\", \"name\": \"BW Offshore Australia\", \"status\": \"confirmed\"}, {\"confidence\": 0.7, \"name\": \"Monadelphous\", \"status\": \"predicted\"}]"
+    },
+    {
+      "id": "5",
+      "name": "Thiess Mount Pleasant Operation Expansion",
+      "owner": "MACH Energy",
+      "sector": "mining",
+      "location": "Hunter Valley, NSW",
+      "contractors": "[{\"detail\": \"6-year mining services\", \"name\": \"Thiess (CIMIC Group)\", \"status\": \"confirmed\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\towner\tsector\tlocation\tcontractors\n1\tWest Angelas Sustaining Project (WASP) — Bulk Earthworks\tRio Tinto\tmining\tPilbara, WA\t[{\"detail\": \"$175M bulk earthworks (Deposit H)\", \"name\": \"NRW Civil & Mining\", \"status\": \"confirmed\"}, {\"detail\": \"$120M heavy haulage roads (Western Hill)\", \"name\": \"Decmil (Macmahon)\", \"status\": \"confirmed\"}]\n2\tMonadelphous Rio Tinto Pilbara Maintenance Services\tRio Tinto\tmining\tPilbara, WA\t[{\"detail\": \"$300M (5-year term)\", \"name\": \"Monadelphous Group\", \"status\": \"confirmed\"}]\n3\tGolding Meandu Coal Mine MSA\tTEC Coal / Stanwell\tmining\tSouth Burnett, QLD\t[{\"detail\": \"$750M MSA\", \"name\": \"Golding Contractors (NRW Holdings)\", \"status\": \"confirmed\"}, {\"confidence\": 0.7, \"detail\": \"drilling/blasting\", \"name\": \"Action Drill & Blast (NRW)\", \"status\": \"predicted\"}]\n4\tBW Opal FPSO / Barossa LNG Commissioning\tSantos / BW Offshore\toil_gas\tDarwin, NT\t[{\"detail\": \"FPSO operations\", \"name\": \"BW Offshore Australia\", \"status\": \"confirmed\"}, {\"confidence\": 0.7, \"name\": \"Monadelphous\", \"status\": \"predicted\"}]\n5\tThiess Mount Pleasant Operation Expansion\tMACH Energy\tmining\tHunter Valley, NSW\t[{\"detail\": \"6-year mining services\", \"name\": \"Thiess (CIMIC Group)\", \"status\": \"confirmed\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 1523
+}

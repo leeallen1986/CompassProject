@@ -48,6 +48,7 @@ import { scanTargetCompanies } from "./asxMonitor";
 import { enrichUnenrichedProjects, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
 import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { recordSourceRun } from "./sourceMonitoring";
+import { runContractorEngine } from "./contractorEngine";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -789,9 +790,34 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(stalenessStep);
 
-  // ── Step 16: Source Monitoring Snapshot ──
+  // ── Step 16: Contractor & Delivery Pattern Engine (Wednesdays + Saturdays) ──
+  const contractorStep = startStep("Contractor Engine");
+  if (dayOfWeek === 3 || dayOfWeek === 6) {
+    console.log("[DailyPipeline] Step 16: Running contractor & delivery pattern engine...");
+    try {
+      const ceResult = await runContractorEngine();
+      completeStep(contractorStep, {
+        companies: ceResult.registry.totalCompanies,
+        newCompanies: ceResult.registry.newCompanies,
+        pairings: ceResult.pairings.totalPairings,
+        patterns: ceResult.patterns.totalPatterns,
+      });
+      console.log(`[DailyPipeline] Contractor engine complete: ${ceResult.registry.totalCompanies} companies, ${ceResult.pairings.totalPairings} pairings, ${ceResult.patterns.totalPatterns} patterns`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      failStep(contractorStep, errMsg);
+      errors.push(`Contractor engine: ${errMsg}`);
+      console.error("[DailyPipeline] Contractor engine failed:", errMsg);
+    }
+  } else {
+    skipStep(contractorStep, "Runs on Wednesdays and Saturdays");
+    console.log("[DailyPipeline] Step 16: Skipping contractor engine (runs Wed/Sat)");
+  }
+  steps.push(contractorStep);
+
+  // ── Step 17: Source Monitoring Snapshot ──
   const monitorStep = startStep("Source Monitoring Snapshot");
-  console.log("[DailyPipeline] Step 16: Recording source monitoring snapshot...");
+  console.log("[DailyPipeline] Step 17: Recording source monitoring snapshot...");
   try {
     completeStep(monitorStep, {
       totalSteps: steps.length,

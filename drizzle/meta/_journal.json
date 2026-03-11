@@ -190,6 +190,13 @@
       "when": 1773210171015,
       "tag": "0026_wooden_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1773211619090,
+      "tag": "0027_wet_gambit",
+      "breakpoints": true
     }
   ]
 }

@@ -24,6 +24,7 @@ import { scoreAndRankProjects, locationMatchesTerritory, type UserProfileData, t
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import AIProjectSearch from "@/components/AIProjectSearch";
 import ApolloContactSearch from "@/components/ApolloContactSearch";
+import ContractorPatterns from "@/components/ContractorPatterns";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -977,6 +978,7 @@ export default function Home() {
               <TabsTrigger value="drilling" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
               <TabsTrigger value="ai-search" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI Search</TabsTrigger>
               <TabsTrigger value="contacts" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({territoryFilteredContacts.length})</TabsTrigger>
+              <TabsTrigger value="contractors" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><BarChart3 className="w-3.5 h-3.5" />Contractors</TabsTrigger>
               <TabsTrigger value="sources" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Sources & Methodology</TabsTrigger>
             </TabsList>
           </div>
@@ -1271,6 +1273,11 @@ export default function Home() {
                 }
               }, 150);
             }} />
+          </TabsContent>
+
+          {/* ===== CONTRACTORS TAB ===== */}
+          <TabsContent value="contractors" className="space-y-5">
+            <ContractorPatterns />
           </TabsContent>
 
           {/* ===== SOURCES TAB ===== */}

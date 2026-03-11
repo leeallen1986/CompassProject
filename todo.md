@@ -444,3 +444,12 @@
 - [x] SOURCE MONITORING: Track last successful fetch, articles retrieved, projects extracted, error rate, response time per source
 - [x] SOURCE MONITORING: Expose enhanced metrics in admin pipeline view (tRPC endpoints added)
 - [ ] PIPELINE VALIDATION: Run full pipeline cycle and report discovery/enrichment/contact/success metrics (pending)
+- [x] CONTRACTOR ENGINE: Design schema for contractor registry, role classifications, pairings, and pattern scores
+- [x] CONTRACTOR ENGINE: Build role classification system (owner, EPC, contractor, subcontractor, consultant, supplier, rental)
+- [x] CONTRACTOR ENGINE: Track company frequency by sector, state, project stage, and recent activity period
+- [x] CONTRACTOR ENGINE: Build recurring pairing detection (owner/EPC, contractor/consultant, contractor/region)
+- [x] CONTRACTOR ENGINE: Build scoring engine (activity momentum, recurrence, Atlas relevance, early-signal value)
+- [x] CONTRACTOR ENGINE: Build Emerging Patterns weekly brief generator
+- [x] CONTRACTOR ENGINE: Add tRPC endpoints and integrate into daily pipeline
+- [x] CONTRACTOR ENGINE: Build frontend UI for contractor patterns and emerging patterns section
+- [x] CONTRACTOR ENGINE: Write tests and validate with existing project data (30 tests, 849 total passing)

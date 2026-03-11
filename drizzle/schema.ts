@@ -604,3 +604,131 @@ export const projectoryContractorFrequency = mysqlTable("projectoryContractorFre
 
 export type ProjectoryContractorFrequencyRow = typeof projectoryContractorFrequency.$inferSelect;
 export type InsertProjectoryContractorFrequency = typeof projectoryContractorFrequency.$inferInsert;
+
+/**
+ * Contractor registry — master list of all companies discovered across projects.
+ * Each company has a canonical name, classified role(s), and frequency metrics
+ * broken down by sector, state, project stage, and time period.
+ */
+export const contractorRegistry = mysqlTable("contractorRegistry", {
+  id: int("id").autoincrement().primaryKey(),
+  canonicalName: varchar("canonicalName", { length: 256 }).notNull().unique(),
+  aliases: json("aliases").$type<string[]>(),
+  primaryRole: mysqlEnum("primaryRole", [
+    "owner", "epc", "contractor", "subcontractor",
+    "consultant", "supplier", "rental", "government", "unknown"
+  ]).notNull().default("unknown"),
+  additionalRoles: json("additionalRoles").$type<string[]>(),
+  // Frequency by dimension
+  projectCount: int("projectCount").notNull().default(0),
+  confirmedCount: int("confirmedCount").notNull().default(0),
+  predictedCount: int("predictedCount").notNull().default(0),
+  sectorBreakdown: json("sectorBreakdown").$type<Record<string, number>>(),   // { mining: 12, energy: 5 }
+  stateBreakdown: json("stateBreakdown").$type<Record<string, number>>(),     // { WA: 8, QLD: 4 }
+  stageBreakdown: json("stageBreakdown").$type<Record<string, number>>(),     // { awarded: 5, tendering: 3 }
+  // Recent activity
+  recentProjectIds: json("recentProjectIds").$type<number[]>(),
+  firstSeenAt: timestamp("firstSeenAt"),
+  lastSeenAt: timestamp("lastSeenAt"),
+  // Scoring
+  momentumScore: int("momentumScore").default(0),       // 0-100: how active recently
+  recurrenceScore: int("recurrenceScore").default(0),   // 0-100: how often they appear
+  atlasRelevanceScore: int("atlasRelevanceScore").default(0), // 0-100: relevance to Atlas business lines
+  earlySignalScore: int("earlySignalScore").default(0), // 0-100: how often they appear in early-stage projects
+  compositeScore: int("compositeScore").default(0),     // weighted combination
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContractorRegistryRow = typeof contractorRegistry.$inferSelect;
+export type InsertContractorRegistry = typeof contractorRegistry.$inferInsert;
+
+/**
+ * Contractor-project links — junction table linking contractors to projects with role classification.
+ * One contractor can appear on many projects; one project can have many contractors.
+ */
+export const contractorProjectLinks = mysqlTable("contractorProjectLinks", {
+  id: int("id").autoincrement().primaryKey(),
+  contractorId: int("contractorId").notNull(),
+  projectId: int("projectId").notNull(),
+  role: mysqlEnum("role", [
+    "owner", "epc", "contractor", "subcontractor",
+    "consultant", "supplier", "rental", "government", "unknown"
+  ]).notNull().default("unknown"),
+  status: mysqlEnum("status", ["confirmed", "predicted", "tendering", "historical"]).notNull().default("predicted"),
+  detail: text("detail"),
+  confidence: int("confidence").default(50), // 0-100
+  source: varchar("source", { length: 128 }),  // e.g. "seed_data", "projectory", "austender", "rss"
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContractorProjectLinkRow = typeof contractorProjectLinks.$inferSelect;
+export type InsertContractorProjectLink = typeof contractorProjectLinks.$inferInsert;
+
+/**
+ * Contractor pairings — detected recurring relationships between companies.
+ * Tracks owner/EPC, contractor/consultant, contractor/region, etc.
+ */
+export const contractorPairings = mysqlTable("contractorPairings", {
+  id: int("id").autoincrement().primaryKey(),
+  companyAId: int("companyAId").notNull(),
+  companyAName: varchar("companyAName", { length: 256 }).notNull(),
+  companyARoleInPairing: varchar("companyARoleInPairing", { length: 64 }).notNull(),
+  companyBId: int("companyBId").notNull(),
+  companyBName: varchar("companyBName", { length: 256 }).notNull(),
+  companyBRoleInPairing: varchar("companyBRoleInPairing", { length: 64 }).notNull(),
+  pairingType: mysqlEnum("pairingType", [
+    "owner_epc", "owner_contractor", "contractor_consultant",
+    "contractor_subcontractor", "contractor_region", "epc_subcontractor", "other"
+  ]).notNull(),
+  coOccurrenceCount: int("coOccurrenceCount").notNull().default(1),
+  projectIds: json("projectIds").$type<number[]>(),
+  sectors: json("sectors").$type<string[]>(),
+  states: json("states").$type<string[]>(),
+  strengthScore: int("strengthScore").default(0),  // 0-100
+  lastSeenAt: timestamp("lastSeenAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContractorPairingRow = typeof contractorPairings.$inferSelect;
+export type InsertContractorPairing = typeof contractorPairings.$inferInsert;
+
+/**
+ * Emerging patterns — detected signals from contractor/delivery-chain analysis.
+ * These are practical opportunity signals for the weekly brief.
+ */
+export const emergingPatterns = mysqlTable("emergingPatterns", {
+  id: int("id").autoincrement().primaryKey(),
+  patternType: mysqlEnum("patternType", [
+    "contractor_surge",       // Company appearing on multiple new projects
+    "sector_clustering",      // Multiple projects in same sector/region
+    "pairing_activation",     // Known pairing appearing on new project
+    "stage_progression",      // Multiple projects advancing stage
+    "new_entrant",           // New company appearing for first time
+    "regional_momentum",     // Cluster of activity in a region
+    "supply_chain_signal"    // Equipment/rental demand pattern
+  ]).notNull(),
+  title: varchar("title", { length: 512 }).notNull(),
+  description: text("description").notNull(),
+  signalStrength: mysqlEnum("signalStrength", ["strong", "moderate", "emerging"]).notNull(),
+  // Linked entities
+  contractorIds: json("contractorIds").$type<number[]>(),
+  projectIds: json("projectIds").$type<number[]>(),
+  pairingIds: json("pairingIds").$type<number[]>(),
+  // Context
+  sectors: json("sectors").$type<string[]>(),
+  states: json("states").$type<string[]>(),
+  atlasRelevance: text("atlasRelevance"),  // Why this matters for Atlas Copco
+  suggestedAction: text("suggestedAction"), // What sales should do
+  // Lifecycle
+  detectedAt: timestamp("detectedAt").defaultNow().notNull(),
+  reportId: int("reportId"),  // linked to weekly report when included
+  isActive: boolean("isActive").notNull().default(true),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmergingPatternRow = typeof emergingPatterns.$inferSelect;
+export type InsertEmergingPattern = typeof emergingPatterns.$inferInsert;
