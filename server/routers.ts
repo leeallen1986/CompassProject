@@ -94,6 +94,14 @@ import {
   runContractorEnrichmentPass, getEnrichmentPassStats,
   getProjectsMissingContractors, getMissingContractorCount,
 } from "./contractorEnrichmentPass";
+import {
+  classifyAllContactRelevance, getRoleRelevanceDistribution,
+  classifySingleContactRelevance, classifyRoleRelevance,
+} from "./roleRelevance";
+import {
+  runBulkSecondPass, getSecondPassGapCount,
+  runSecondPassForProject,
+} from "./secondPassContactSearch";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2152,6 +2160,38 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getProjectsMissingContractors(input?.limit ?? 20);
       }),
+  }),
+
+  // ── Role Relevance Classification ──
+  roleRelevance: router({
+    /** Classify all contacts by role relevance (admin only) */
+    classifyAll: adminProcedure.mutation(async () => {
+      return classifyAllContactRelevance();
+    }),
+    /** Get role relevance distribution */
+    distribution: protectedProcedure.query(async () => {
+      return getRoleRelevanceDistribution();
+    }),
+    /** Classify a single contact's role relevance */
+    classifySingle: adminProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input }) => {
+        return classifySingleContactRelevance(input.contactId);
+      }),
+  }),
+
+  // ── Second-Pass Contact Search ──
+  secondPassSearch: router({
+    /** Run the second-pass search on projects with few relevant contacts (admin only) */
+    runBulk: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(30) }).optional())
+      .mutation(async ({ input }) => {
+        return runBulkSecondPass(input?.limit ?? 30);
+      }),
+    /** Get count of projects needing more relevant contacts */
+    gapCount: protectedProcedure.query(async () => {
+      return getSecondPassGapCount();
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

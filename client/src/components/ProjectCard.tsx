@@ -160,6 +160,7 @@ export interface ContactData {
   linkedinProfileUrl?: string | null;
   verifiedByUserId?: string | null;
   verifiedAt?: Date | null;
+  roleRelevance?: "high" | "medium" | "low" | null;
 }
 
 /** Stopwords to ignore during keyword matching */
@@ -246,6 +247,10 @@ function findProjectContacts(
     if (projectNameLower.includes(cProject) || cProject.includes(projectNameLower)) score += 3;
     // Boost verified contacts
     if (c.verificationStatus === "verified") score += 8;
+    // Boost by role relevance (high = +12, medium = +6, low = -5)
+    if (c.roleRelevance === "high") score += 12;
+    else if (c.roleRelevance === "medium") score += 6;
+    else if (c.roleRelevance === "low") score -= 5;
     return { contact: c, score };
   });
 
@@ -721,6 +726,16 @@ function ProjectContactCard({
             {isPreferredRole && (
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal/15 text-teal uppercase" title="Matches your preferred buyer roles">
                 Preferred Role
+              </span>
+            )}
+            {contact.roleRelevance === "high" && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase" title="High relevance: directly influences equipment decisions">
+                Key Decision Maker
+              </span>
+            )}
+            {contact.roleRelevance === "low" && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500 uppercase" title="Low relevance: corporate executive, unlikely to influence equipment decisions">
+                Corporate
               </span>
             )}
           </div>

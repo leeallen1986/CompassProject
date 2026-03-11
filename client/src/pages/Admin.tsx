@@ -13,7 +13,7 @@ import {
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
-  CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash, Target,
+  CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash, Target, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -584,6 +584,29 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`Contractor enrichment failed: ${e.message}`),
   });
 
+  // Role Relevance Classification
+  const { data: relevanceDist, refetch: refetchRelevanceDist } = trpc.roleRelevance.distribution.useQuery();
+  const classifyRelevanceMut = trpc.roleRelevance.classifyAll.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Role Relevance: ${data.total} contacts classified — High:${data.highCount} Medium:${data.mediumCount} Low:${data.lowCount}`);
+      refetchStats();
+      refetchRelevanceDist();
+    },
+    onError: (e) => toast.error(`Role relevance classification failed: ${e.message}`),
+  });
+
+  // Second-Pass Contact Search
+  const { data: gapCount, refetch: refetchGapCount } = trpc.secondPassSearch.gapCount.useQuery();
+  const secondPassMut = trpc.secondPassSearch.runBulk.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Second-Pass Search: ${data.totalContactsAdded} contacts added across ${data.projectsImproved} projects`);
+      refetchStats();
+      refetchGapCount();
+      refetchRelevanceDist();
+    },
+    onError: (e) => toast.error(`Second-pass search failed: ${e.message}`),
+  });
+
   if (isLoading) return <Loader2 className="w-6 h-6 animate-spin text-gold mx-auto my-8" />;
 
   const rawArticleStats = stats?.articles;
@@ -742,6 +765,22 @@ function PipelineOpsTab() {
         >
           {contractorEnrichMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
           Enrich Contractors {missingContractorCount !== undefined ? `(${missingContractorCount} missing)` : ""}
+        </Button>
+        <Button
+          onClick={() => classifyRelevanceMut.mutate()}
+          disabled={classifyRelevanceMut.isPending}
+          className="bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
+        >
+          {classifyRelevanceMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+          Classify Roles {relevanceDist ? `(H:${relevanceDist.high} M:${relevanceDist.medium} L:${relevanceDist.low})` : ""}
+        </Button>
+        <Button
+          onClick={() => secondPassMut.mutate({})}
+          disabled={secondPassMut.isPending}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white gap-1.5"
+        >
+          {secondPassMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          2nd Pass Contacts {gapCount !== undefined ? `(${gapCount} gaps)` : ""}
         </Button>
       </div>
 

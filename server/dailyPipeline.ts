@@ -54,6 +54,8 @@ import { recordSourceRun } from "./sourceMonitoring";
 import { runContractorEngine } from "./contractorEngine";
 import { classifyAllProjects } from "./tierClassification";
 import { runContractorEnrichmentPass } from "./contractorEnrichmentPass";
+import { classifyAllContactRelevance } from "./roleRelevance";
+import { runBulkSecondPass } from "./secondPassContactSearch";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -865,9 +867,51 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(contractorEnrichStep);
 
-  // ── Step 19: Source Monitoring Snapshot ──
+  // ── Step 20: Role Relevance Classification (daily — classify all contacts) ──
+  const roleRelevanceStep = startStep("Role Relevance Classification");
+  console.log("[DailyPipeline] Step 20: Classifying contact role relevance...");
+  try {
+    const roleResult = await classifyAllContactRelevance();
+    completeStep(roleRelevanceStep, {
+      total: roleResult.total,
+      high: roleResult.highCount,
+      medium: roleResult.mediumCount,
+      low: roleResult.lowCount,
+    });
+    console.log(`[DailyPipeline] Role relevance classification complete: ${roleResult.highCount} high, ${roleResult.mediumCount} medium, ${roleResult.lowCount} low`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    failStep(roleRelevanceStep, errMsg);
+    console.error("[DailyPipeline] Role relevance classification failed:", errMsg);
+  }
+  steps.push(roleRelevanceStep);
+
+  // ── Step 21: Second-Pass Contact Search (Wednesdays + Saturdays) ──
+  const dayOfWeekForSecondPass = new Date().getDay();
+  if (dayOfWeekForSecondPass === 3 || dayOfWeekForSecondPass === 6) {
+    const secondPassStep = startStep("Second-Pass Contact Search");
+    console.log("[DailyPipeline] Step 21: Running second-pass contact search for projects with few relevant contacts...");
+    try {
+      const spResult = await runBulkSecondPass(30);
+      completeStep(secondPassStep, {
+        projectsProcessed: spResult.projectsProcessed,
+        totalContactsAdded: spResult.totalContactsAdded,
+        projectsImproved: spResult.projectsImproved,
+      });
+      console.log(`[DailyPipeline] Second-pass complete: ${spResult.totalContactsAdded} contacts added across ${spResult.projectsImproved} projects`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      failStep(secondPassStep, errMsg);
+      console.error("[DailyPipeline] Second-pass contact search failed:", errMsg);
+    }
+    steps.push(secondPassStep);
+  } else {
+    console.log("[DailyPipeline] Step 21: Skipping second-pass contact search (runs Wed/Sat)");
+  }
+
+  // ── Step 22: Source Monitoring Snapshot ──
   const monitorStep = startStep("Source Monitoring Snapshot");
-  console.log("[DailyPipeline] Step 19: Recording source monitoring snapshot...");
+  console.log("[DailyPipeline] Step 22: Recording source monitoring snapshot...");
   try {
     completeStep(monitorStep, {
       totalSteps: steps.length,

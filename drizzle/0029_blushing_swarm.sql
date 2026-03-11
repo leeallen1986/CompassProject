@@ -1,0 +1,1 @@
+ALTER TABLE `contacts` ADD `roleRelevance` enum('high','medium','low') DEFAULT 'medium';

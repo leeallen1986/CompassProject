@@ -14,6 +14,7 @@
 import { eq, and, sql, isNull, or, desc, gte } from "drizzle-orm";
 import { getDb } from "./db";
 import { contacts, projects, userProfiles, projectEnrichmentCache, type InsertContact } from "../drizzle/schema";
+import { classifyRoleRelevance } from "./roleRelevance";
 import { callDataApi } from "./_core/dataApi";
 
 // ── Configuration ──
@@ -411,6 +412,8 @@ export async function generateAndEnrichContacts(
             : "other";
 
           // Insert the contact
+          const roleRelevance = classifyRoleRelevance(person.headline || role, roleBucket);
+
           const contactData: InsertContact = {
             reportId,
             name: person.fullName,
@@ -427,6 +430,7 @@ export async function generateAndEnrichContacts(
             linkedinHeadline: person.headline,
             linkedinLocation: person.location,
             linkedinProfilePic: person.profilePicture,
+            roleRelevance,
           };
 
           await db.insert(contacts).values(contactData);

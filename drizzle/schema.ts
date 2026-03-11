@@ -178,6 +178,7 @@ export const contacts = mysqlTable("contacts", {
   linkedinSearchUrl: varchar("linkedinSearchUrl", { length: 1024 }),
   linkedinProfileUrl: varchar("linkedinProfileUrl", { length: 1024 }),
   verificationScore: int("verificationScore").default(0),
+  roleRelevance: mysqlEnum("roleRelevance", ["high", "medium", "low"]).default("medium"),
   emailVerified: boolean("emailVerified").default(false),
   verifiedByUserId: int("verifiedByUserId"),
   verifiedAt: timestamp("verifiedAt"),

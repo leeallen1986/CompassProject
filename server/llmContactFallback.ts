@@ -23,6 +23,7 @@ import { getDb } from "./db";
 import { contacts, projects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
+import { classifyRoleRelevance } from "./roleRelevance";
 
 // ── Types ──
 
@@ -341,6 +342,8 @@ export async function generateAndSaveLLMContacts(
       // No guessed profile URL — use search URL instead (more reliable)
       const linkedinProfileUrl: string | null = null;
 
+      const roleRelevance = classifyRoleRelevance(contact.title, contact.roleBucket);
+
       const contactData: InsertContact = {
         reportId,
         name: contact.name,
@@ -361,6 +364,7 @@ export async function generateAndSaveLLMContacts(
         confidenceScore: contact.confidence || "medium",
         linkedinSearchUrl,
         linkedinProfileUrl: linkedinProfileUrl || null,
+        roleRelevance,
         emailVerified: false,
       };
 

@@ -20,6 +20,7 @@ import { getDb } from "./db";
 import { contacts, projects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
+import { classifyRoleRelevance } from "./roleRelevance";
 
 // ── Types ──
 
@@ -515,6 +516,8 @@ export async function discoverAndSaveStakeholders(project: {
       // Build LinkedIn search URL if no direct URL was found
       const linkedinSearchUrl = contact.linkedinUrl || generateLinkedInSearchUrl(contact.name, contact.company, contact.title);
 
+      const roleRelevance = classifyRoleRelevance(contact.title, contact.roleBucket);
+
       const contactData: InsertContact = {
         reportId: project.reportId,
         name: contact.name,
@@ -536,6 +539,7 @@ export async function discoverAndSaveStakeholders(project: {
         confidenceScore: contact.confidence,
         linkedinSearchUrl,
         linkedinProfileUrl: contact.linkedinUrl || null,
+        roleRelevance,
         emailVerified: false,
       };
 

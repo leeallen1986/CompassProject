@@ -469,3 +469,14 @@
 - [x] CONTRACTOR ENRICHMENT PASS: Add admin UI buttons (Classify Tiers, Enrich Contractors with counts)
 - [x] CONTRACTOR ENRICHMENT PASS: Write tests for tier classification (64 tests passing)
 - [x] TIER CLASSIFICATION: Run bulk classification on all 741 projects (T1: 301 Actionable, T2: 288 Warm, T3: 152 Monitor, 0 unclassified)
+- [x] ROLE RELEVANCE: Build role relevance scoring module (high/medium/low tiers for equipment-decision roles)
+- [x] ROLE RELEVANCE: Add roleRelevance column to contacts schema + db:push
+- [x] ROLE RELEVANCE: Score existing contacts and sort stakeholder lists by relevance (52 high, 2 medium, 15 low)
+- [x] ROLE RELEVANCE: Word-boundary matching fix for short abbreviations (ceo/cfo/cto/coo) to prevent false positives
+- [x] ROLE RELEVANCE: Ensure low-relevance roles (CEO, director, corporate) don't dominate stakeholder lists
+- [x] SECOND-PASS SEARCH: Build second-pass contact search for projects with <2 relevant contacts
+- [x] SECOND-PASS SEARCH: Use targeted role+project/company/contractor search patterns
+- [x] SECOND-PASS SEARCH: Wire into daily pipeline (steps 17 & 18) and add admin trigger buttons
+- [x] ROLE RELEVANCE: Update frontend — KEY/CORP badges on contacts, relevance filter (All/High/Medium/Low), CSV export column
+- [x] ROLE RELEVANCE: Write vitest tests — 86 tests (keyword matching, priority ordering, edge cases, word boundaries, sorting impact)
+- [x] ROLE RELEVANCE: Run bulk role scoring on all 69 existing contacts (52 high, 2 medium, 15 low, 0 unclassified)

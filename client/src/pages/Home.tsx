@@ -106,6 +106,7 @@ interface ContactRow {
   verificationScore: number | null;
   linkedinProfileUrl: string | null;
   sourceUrl: string | null;
+  roleRelevance: "high" | "medium" | "low" | null;
 }
 
 /** Deduplicated contact — one row per unique person, with all their projects */
@@ -149,6 +150,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"all" | "verified" | "ai_suggested" | "web_search">("all");
   const [roleFilter, setRoleFilter] = useState<"all" | "preferred" | string>("preferred");
+  const [relevanceFilter, setRelevanceFilter] = useState<"all" | "high" | "medium" | "low">("all");
 
   // Build the set of preferred role buckets from onboarding buyer roles
   const preferredRoleBuckets = useMemo(() => {
@@ -282,6 +284,10 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
     } else if (roleFilter !== "all" && roleFilter !== "preferred") {
       result = result.filter(c => (c.roleBucket?.toLowerCase() || "") === roleFilter);
     }
+    // Relevance filter
+    if (relevanceFilter !== "all") {
+      result = result.filter(c => c.roleRelevance === relevanceFilter);
+    }
     // Search filter
     if (!search) return result;
     const q = search.toLowerCase();
@@ -292,7 +298,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       c.project.toLowerCase().includes(q) ||
       c.allProjects.some(p => p.toLowerCase().includes(q))
     );
-  }, [deduplicatedData, search, sourceFilter, roleFilter, preferredRoleBuckets]);
+  }, [deduplicatedData, search, sourceFilter, roleFilter, relevanceFilter, preferredRoleBuckets]);
 
   // Count contacts by role for filter badges (use deduplicated data)
   const preferredCount = preferredRoleBuckets.size > 0 ? deduplicatedData.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "")).length : 0;
@@ -302,8 +308,8 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
   const totalUniqueContacts = deduplicatedData.length;
 
   const exportCSV = () => {
-    const headers = ["Name", "Title", "Company", "Projects", "# Projects", "Priority", "Role Bucket", "Email", "Email Verified", "LinkedIn Profile", "LinkedIn Search", "Source", "Verification", "Confidence", "Verification Score"];
-    const rows = filtered.map(c => [c.name, c.title, c.company, c.allProjects.join(" | "), String(c.projectCount), c.priority, c.roleBucket, c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || c.linkedinProfileUrl || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || "", String(c.verificationScore ?? 0)]);
+    const headers = ["Name", "Title", "Company", "Projects", "# Projects", "Priority", "Role Bucket", "Role Relevance", "Email", "Email Verified", "LinkedIn Profile", "LinkedIn Search", "Source", "Verification", "Confidence", "Verification Score"];
+    const rows = filtered.map(c => [c.name, c.title, c.company, c.allProjects.join(" | "), String(c.projectCount), c.priority, c.roleBucket, c.roleRelevance || "unclassified", c.email || "", c.emailVerified ? "Yes" : "No", c.linkedin || c.linkedinProfileUrl || "", c.linkedinSearchUrl || "", c.enrichmentSource || "", c.verificationStatus || "", c.confidenceScore || "", String(c.verificationScore ?? 0)]);
     const csv = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -431,6 +437,35 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
         })}
       </div>
 
+      {/* Role relevance filter tabs */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Relevance:</span>
+        <button onClick={() => setRelevanceFilter("all")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            relevanceFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+          }`}>
+          All ({totalUniqueContacts})
+        </button>
+        <button onClick={() => setRelevanceFilter("high")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            relevanceFilter === "high" ? "bg-emerald-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-emerald-300"
+          }`}>
+          Key Decision Makers ({deduplicatedData.filter(c => c.roleRelevance === "high").length})
+        </button>
+        <button onClick={() => setRelevanceFilter("medium")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            relevanceFilter === "medium" ? "bg-amber-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-amber-300"
+          }`}>
+          Medium ({deduplicatedData.filter(c => c.roleRelevance === "medium").length})
+        </button>
+        <button onClick={() => setRelevanceFilter("low")}
+          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            relevanceFilter === "low" ? "bg-slate-500 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-slate-300"
+          }`}>
+          Corporate ({deduplicatedData.filter(c => c.roleRelevance === "low").length})
+        </button>
+      </div>
+
       {/* Warning banner for AI contacts */}
       {sourceFilter !== "verified" && aiSuggestedCount > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex items-start gap-2">
@@ -473,6 +508,12 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                         {roleBucketLabels[c.roleBucket?.toLowerCase() || ""] || c.roleBucket}
                         {preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "") && (
                           <span className="px-1 py-0 rounded bg-gold/20 text-gold-dark text-[8px] font-bold" title="Matches your preferred buyer roles">YOUR ROLE</span>
+                        )}
+                        {c.roleRelevance === "high" && (
+                          <span className="px-1 py-0 rounded bg-emerald-100 text-emerald-700 text-[8px] font-bold" title="High relevance: directly influences equipment decisions">KEY</span>
+                        )}
+                        {c.roleRelevance === "low" && (
+                          <span className="px-1 py-0 rounded bg-slate-100 text-slate-500 text-[8px] font-bold" title="Low relevance: corporate executive">CORP</span>
                         )}
                       </div>
                     </div>
