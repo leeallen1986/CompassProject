@@ -1,0 +1,58 @@
+{
+  "query": "SELECT COUNT(*) as total_projects FROM projects;\nSELECT lifecycleStatus, COUNT(*) as cnt FROM projects GROUP BY lifecycleStatus ORDER BY cnt DESC;\nSELECT priority, COUNT(*) as cnt FROM projects GROUP BY priority ORDER BY cnt DESC;\nSELECT sector, COUNT(*) as cnt FROM projects GROUP BY sector ORDER BY cnt DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total_projects FROM projects;\nSELECT lifecycleStatus, COUNT(*) as cnt FROM projects GROUP BY lifecycleStatus ORDER BY cnt DESC;\nSELECT priority, COUNT(*) as cnt FROM projects GROUP BY priority ORDER BY cnt DESC;\nSELECT sector, COUNT(*) as cnt FROM projects GROUP BY sector ORDER BY cnt DESC",
+  "rows": [
+    {
+      "total_projects": "765"
+    },
+    {
+      "total_projects": "lifecycleStatus\tcnt"
+    },
+    {
+      "total_projects": "active\t760"
+    },
+    {
+      "total_projects": "stale\t3"
+    },
+    {
+      "total_projects": "completed\t1"
+    },
+    {
+      "total_projects": "archived\t1"
+    },
+    {
+      "total_projects": "priority\tcnt"
+    },
+    {
+      "total_projects": "warm\t409"
+    },
+    {
+      "total_projects": "hot\t262"
+    },
+    {
+      "total_projects": "cold\t94"
+    },
+    {
+      "total_projects": "sector\tcnt"
+    },
+    {
+      "total_projects": "energy\t276"
+    },
+    {
+      "total_projects": "infrastructure\t238"
+    },
+    {
+      "total_projects": "mining\t177"
+    },
+    {
+      "total_projects": "defence\t42"
+    },
+    {
+      "total_projects": "oil_gas\t32"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_projects\n765\nlifecycleStatus\tcnt\nactive\t760\nstale\t3\ncompleted\t1\narchived\t1\npriority\tcnt\nwarm\t409\nhot\t262\ncold\t94\nsector\tcnt\nenergy\t276\ninfrastructure\t238\nmining\t177\ndefence\t42\noil_gas\t32\n",
+  "stderr": "",
+  "execution_time_ms": 2185
+}

@@ -1,0 +1,8 @@
+{
+  "query": "SELECT 'total' as metric, COUNT(*) as cnt FROM projects\nUNION ALL\nSELECT CONCAT('status:', lifecycleStatus), COUNT(*) FROM projects GROUP BY lifecycleStatus\nUNION ALL\nSELECT CONCAT('priority:', priority), COUNT(*) FROM projects GROUP BY priority\nUNION ALL\nSELECT CONCAT('sector:', sector), COUNT(*) FROM projects GROUP BY sector\nUNION ALL\nSELECT CONCAT('location:', SUBSTRING_INDEX(location, ',', -1)), COUNT(*) FROM projects GROUP BY SUBSTRING_INDEX(location, ',', -1)\nORDER BY cnt DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT 'total' as metric, COUNT(*) as cnt FROM projects\nUNION ALL\nSELECT CONCAT('status:', lifecycleStatus), COUNT(*) FROM projects GROUP BY lifecycleStatus\nUNION ALL\nSELECT CONCAT('priority:', priority), COUNT(*) FROM projects GROUP BY priority\nUNION ALL\nSELECT CONCAT('sector:', sector), COUNT(*) FROM projects GROUP BY sector\nUNION ALL\nSELECT CONCAT('location:', SUBSTRING_INDEX(location, ',', -1)), COUNT(*) FROM projects GROUP BY SUBSTRING_INDEX(location, ',', -1)\nORDER BY cnt DESC",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1055 (42000) at line 1: Expression #1 of SELECT list is not in GROUP BY clause and contains nonaggregated column '3SMu786VMCWdCnmNSx6pxw.projects.location' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by"
+  ]
+}

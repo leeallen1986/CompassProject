@@ -366,3 +366,15 @@
 - [x] AUDIT FIX: Added pipelineRuns table (23 columns: runType, status, triggeredBy, startedAt, completedAt, durationMs, feedsFetched, feedErrors, articlesIngested, articlesDuplicate, articlesExtracted, projectsCreated, projectsDuplicate, drillingCampaignsCreated, awardedProjectsCreated, austenderContracts, dmirsProjects, contactsEnriched, apolloCreditsUsed, errors). Wired into dailyPipeline with error tracking. Added admin tRPC endpoint for pipeline run history.
 - [x] All 596 tests passing (28 test files)
 - [x] AUDIT FIX: Build Australia and Fluid Handling Magazine — deactivated (0 articles ever)
+- [x] STEP 2A: Clean and normalise project geography
+- [x] Removed 50+ overseas projects across 3 cleanup passes (USA, UK, Zambia, Greenland, Canada, Tunisia, Ukraine, Saudi Arabia, Mali, Argentina, Vietnam, Netherlands, Ethiopia, India, Cambodia, Indonesia, Iraq, Azerbaijan, Tanzania, Botswana, NZ, Germany, Sweden, Serbia, Scotland, France, Estonia, Lithuania, Inner Mongolia, Norway)
+- [x] Standardised all state names (Western Australia → WA, New South Wales → NSW, Queensland → QLD, Victoria → VIC, South Australia → SA, Tasmania → TAS, Northern Territory → NT, Australian Capital Territory → ACT)
+- [x] Mapped 70+ sub-regions/cities to parent states (Pilbara → WA, Gladstone → QLD, Hunter Valley → NSW, Gippsland → VIC, Cooper Basin → SA, etc.)
+- [x] Normalised "Australia" and "Nationwide" to "National"
+- [x] Removed trailing ", Australia" from all locations
+- [x] Deduplicated state abbreviations ("WA, WA" → "WA")
+- [x] Added normaliseLocation() function to aiExtractor.ts — applied to all future project/awarded/drilling inserts
+- [x] Fixed normaliseLocation bug: state name replacement now runs BEFORE Australia stripping
+- [x] 43 vitest tests for normaliseLocation (overseas rejection, empty handling, state abbreviations, city+state combos, region inference, complex multi-part)
+- [x] Final state: 715 projects, 0 unmapped, 0 issues. Distribution: NSW 175, WA 162, QLD 111, VIC 86, National 79, SA 48, NT 27, TAS 18, ACT 9
+- [x] All 639 tests passing (29 test files)

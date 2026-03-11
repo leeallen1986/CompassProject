@@ -28,6 +28,142 @@ const DAILY_EXTRACTION_CAP = 300;
 const BATCH_SIZE = 5;
 const MAX_ARTICLE_AGE_DAYS = 30;
 
+// ── Location normalisation ──
+
+const VALID_AU_STATES = ["WA", "NSW", "QLD", "VIC", "SA", "TAS", "NT", "ACT"] as const;
+
+const STATE_FULL_TO_ABBREV: Record<string, string> = {
+  "western australia": "WA",
+  "new south wales": "NSW",
+  "queensland": "QLD",
+  "victoria": "VIC",
+  "south australia": "SA",
+  "tasmania": "TAS",
+  "northern territory": "NT",
+  "australian capital territory": "ACT",
+};
+
+const CITY_TO_STATE: Record<string, string> = {
+  "perth": "WA", "karratha": "WA", "port hedland": "WA", "kalgoorlie": "WA",
+  "newman": "WA", "geraldton": "WA", "bunbury": "WA", "collie": "WA", "kwinana": "WA",
+  "sydney": "NSW", "newcastle": "NSW", "wollongong": "NSW", "broken hill": "NSW",
+  "dubbo": "NSW", "muswellbrook": "NSW",
+  "brisbane": "QLD", "townsville": "QLD", "cairns": "QLD", "gladstone": "QLD",
+  "mackay": "QLD", "rockhampton": "QLD", "mount isa": "QLD", "moranbah": "QLD",
+  "toowoomba": "QLD", "gold coast": "QLD",
+  "melbourne": "VIC", "geelong": "VIC", "ballarat": "VIC", "bendigo": "VIC",
+  "adelaide": "SA", "port augusta": "SA", "whyalla": "SA", "roxby downs": "SA",
+  "hobart": "TAS", "launceston": "TAS", "burnie": "TAS", "devonport": "TAS",
+  "darwin": "NT", "alice springs": "NT", "katherine": "NT", "tennant creek": "NT",
+  "canberra": "ACT",
+};
+
+const REGION_TO_STATE: Record<string, string> = {
+  "pilbara": "WA", "kimberley": "WA", "goldfields": "WA", "goldfields-esperance": "WA",
+  "mid west": "WA", "gascoyne": "WA", "wheatbelt": "WA",
+  "hunter valley": "NSW", "hunter region": "NSW", "central coast": "NSW",
+  "western sydney": "NSW", "illawarra": "NSW",
+  "bowen basin": "QLD", "surat basin": "QLD", "galilee basin": "QLD",
+  "gippsland": "VIC", "latrobe valley": "VIC",
+  "eyre peninsula": "SA", "cooper basin": "SA", "flinders ranges": "SA",
+  "olympic dam": "SA",
+};
+
+/**
+ * Normalise a location string to "Region/City, STATE" format.
+ * Returns null if the location is clearly overseas (triggers geo-filter rejection).
+ */
+export function normaliseLocation(raw: string): string | null {
+  let loc = raw.trim();
+  if (!loc || loc === "Unknown") return "National";
+
+  // Reject obvious overseas locations
+  const overseasPatterns = [
+    /\busa\b/i, /\bunited states\b/i, /\bcanada\b/i, /\buk\b/i, /\bunited kingdom\b/i,
+    /\bbrazil\b/i, /\bargentina\b/i, /\bchile\b/i, /\bperu\b/i, /\bmexico\b/i,
+    /\bindia\b/i, /\bchina\b/i, /\bindonesia\b/i, /\bvietnam\b/i, /\bjapan\b/i,
+    /\bsouth africa\b/i, /\bzambia\b/i, /\btanzania\b/i, /\bmali\b/i, /\bethiopia\b/i,
+    /\bsaudi arabia\b/i, /\brussia\b/i, /\bukraine\b/i, /\bgermany\b/i, /\bfrance\b/i,
+    /\bsweden\b/i, /\bnorway\b/i, /\bnetherlands\b/i, /\bnew zealand\b/i,
+    /\bpapua new guinea\b/i, /\bgreenland\b/i, /\btunisia\b/i, /\begypt\b/i,
+  ];
+  if (overseasPatterns.some(p => p.test(loc))) return null;
+
+  // Step 1: Replace full state names with abbreviations BEFORE stripping "Australia"
+  // (otherwise "Western Australia" → strip "Australia" → leaves orphan "Western")
+  for (const [full, abbrev] of Object.entries(STATE_FULL_TO_ABBREV)) {
+    const regex = new RegExp(full.replace(/\s+/g, "\\s+"), "gi");
+    if (regex.test(loc)) {
+      loc = loc.replace(regex, abbrev);
+    }
+  }
+
+  // Step 2: Remove trailing ", Australia" or "Australia" suffixes
+  loc = loc.replace(/,?\s*Australia\s*$/i, "").trim();
+  // Also remove embedded "Australia" like ", Australia," mid-string
+  loc = loc.replace(/,\s*Australia\s*,/gi, ",").trim();
+
+  // Step 3: Clean up any resulting double commas or trailing commas
+  loc = loc.replace(/,\s*,/g, ",").replace(/^,\s*/, "").replace(/,\s*$/, "").trim();
+
+  // If empty after cleanup, it was just "Australia"
+  if (!loc) return "National";
+
+  // Step 4: Check if it already ends with a valid state abbreviation
+  const parts = loc.split(",").map(s => s.trim()).filter(Boolean);
+  const lastPart = parts[parts.length - 1];
+  if (VALID_AU_STATES.includes(lastPart as any)) {
+    return parts.join(", ");
+  }
+
+  // Check if the whole string is a state abbreviation
+  if (VALID_AU_STATES.includes(loc as any)) return loc;
+  if (loc.toLowerCase() === "national" || loc.toLowerCase() === "nationwide" || loc.toLowerCase() === "australia-wide") return "National";
+
+  const lower = loc.toLowerCase();
+
+  // Step 5: Try to infer state from city names and append
+  for (const [city, state] of Object.entries(CITY_TO_STATE)) {
+    if (lower.includes(city)) {
+      // Check if state abbreviation already present
+      if (VALID_AU_STATES.some(s => new RegExp(`\\b${s}\\b`).test(loc))) {
+        return parts.join(", ");
+      }
+      if (lower === city) return `${loc}, ${state}`;
+      return `${parts.join(", ")}, ${state}`;
+    }
+  }
+
+  // Step 6: Try to infer state from region names
+  for (const [region, state] of Object.entries(REGION_TO_STATE)) {
+    if (lower.includes(region)) {
+      if (VALID_AU_STATES.some(s => new RegExp(`\\b${s}\\b`).test(loc))) {
+        return parts.join(", ");
+      }
+      return `${parts.join(", ")}, ${state}`;
+    }
+  }
+
+  // Step 7: Check for state abbreviation anywhere in the string
+  for (const state of VALID_AU_STATES) {
+    if (new RegExp(`\\b${state}\\b`).test(loc)) return parts.join(", ");
+  }
+
+  // Step 8: Deduplicate any state abbreviation that appears more than once
+  for (const st of VALID_AU_STATES) {
+    const dupeEnd = new RegExp(`,\\s*${st},\\s*${st}$`);
+    if (dupeEnd.test(loc)) {
+      loc = loc.replace(dupeEnd, `, ${st}`);
+    }
+  }
+
+  // Step 9: If "Australia" still appears (e.g. in parens), treat as National
+  if (/australia/i.test(loc)) return "National";
+
+  // Can't determine — default to National rather than rejecting
+  return "National";
+}
+
 // ── Types ──
 
 interface ExtractedProject {
@@ -126,6 +262,8 @@ Analyze the following articles and extract structured project intelligence relev
 - BESS (battery energy storage systems, hybrid power, solar hybrid, peak shaving, microgrids — ZenergiZe range)
 
 CRITICAL GEO-FILTER: Only extract projects, awarded contracts, and drilling campaigns that are located in AUSTRALIA (any Australian state/territory: NSW, QLD, VIC, WA, SA, TAS, NT, ACT). Reject any project located overseas (USA, Canada, UK, Europe, Asia, Africa, South America, New Zealand, etc.) even if an Australian company is involved. If an Australian company (e.g. BHP, Rio Tinto) has a project overseas, mark it as NOT relevant. The location must be within Australia.
+
+LOCATION FORMAT: Always output location in the format "Region/City, STATE" where STATE is the two-letter abbreviation (WA, NSW, QLD, VIC, SA, TAS, NT, ACT). Examples: "Pilbara, WA", "Hunter Valley, NSW", "Bowen Basin, QLD", "Gippsland, VIC". For projects spanning multiple states or Australia-wide, use "National". Never include "Australia" in the location — the state abbreviation is sufficient.
 
 For each article, extract THREE types of intelligence:
 
@@ -535,7 +673,7 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
             project: ap.project.slice(0, 256),
             value: ap.value.slice(0, 64),
             winningContractor: ap.winningContractor.slice(0, 256),
-            location: ap.location.slice(0, 256),
+            location: (normaliseLocation(ap.location) || ap.location).slice(0, 256),
             stage: ap.stage.slice(0, 128),
             opportunity: ap.opportunity,
             sourceLabel: ap.sourceLabel?.slice(0, 256) || article?.title?.slice(0, 256) || "RSS Feed",
@@ -559,7 +697,7 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
             reportId,
             campaign: dc.campaign.slice(0, 256),
             operator: dc.operator.slice(0, 256),
-            location: dc.location.slice(0, 256),
+            location: (normaliseLocation(dc.location) || dc.location).slice(0, 256),
             drillType: dc.drillType.slice(0, 128),
             timing: dc.timing.slice(0, 128),
             airRequirement: dc.airRequirement.slice(0, 128),
@@ -602,7 +740,7 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
         reportId,
         projectKey,
         name: result.project.name,
-        location: result.project.location,
+        location: (normaliseLocation(result.project.location) || result.project.location).slice(0, 256),
         value: result.project.value,
         owner: result.project.owner,
         priority: result.project.priority,
