@@ -330,7 +330,14 @@ export const rssSources = mysqlTable("rssSources", {
   isActive: boolean("isActive").notNull().default(true),
   lastFetchedAt: timestamp("lastFetchedAt"),
   lastFetchCount: int("lastFetchCount").default(0),
+  totalArticles: int("totalArticles").default(0),
+  successCount: int("successCount").default(0),
+  failureCount: int("failureCount").default(0),
+  consecutiveErrors: int("consecutiveErrors").default(0),
   errorCount: int("errorCount").default(0),
+  lastError: text("lastError"),
+  lastErrorAt: timestamp("lastErrorAt"),
+  lastSuccessAt: timestamp("lastSuccessAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

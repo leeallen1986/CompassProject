@@ -13,7 +13,7 @@ import {
   Plus, Trash2, ToggleLeft, ToggleRight, RefreshCw, Zap,
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
-  CreditCard, TrendingUp, Activity, Eye,
+  CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -157,6 +157,34 @@ function BusinessLinesTab() {
 
 // ── RSS Sources Tab ──
 
+function getSourceHealth(src: { isActive: boolean; consecutiveErrors: number | null; lastSuccessAt: Date | string | null; lastFetchedAt: Date | string | null; failureCount: number | null; successCount: number | null }) {
+  if (!src.isActive) return { color: "text-slate-400", bg: "bg-slate-100", label: "Inactive", icon: "inactive" as const };
+  const consec = src.consecutiveErrors || 0;
+  const success = src.successCount || 0;
+  const failure = src.failureCount || 0;
+  const total = success + failure;
+  const successRate = total > 0 ? (success / total) * 100 : 100;
+  if (consec >= 3) return { color: "text-hot", bg: "bg-hot/10", label: "Failing", icon: "error" as const };
+  if (consec >= 1 || successRate < 80) return { color: "text-warm", bg: "bg-warm/10", label: "Degraded", icon: "warning" as const };
+  if (!src.lastFetchedAt) return { color: "text-slate-400", bg: "bg-slate-100", label: "Never Fetched", icon: "unknown" as const };
+  return { color: "text-teal", bg: "bg-teal/10", label: "Healthy", icon: "ok" as const };
+}
+
+function formatTimeAgo(date: Date | string | null): string {
+  if (!date) return "Never";
+  const d = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString();
+}
+
 function RssSourcesTab() {
   const { data: sources, isLoading } = trpc.rssSources.list.useQuery();
   const utils = trpc.useUtils();
@@ -177,6 +205,7 @@ function RssSourcesTab() {
   const [formName, setFormName] = useState("");
   const [formUrl, setFormUrl] = useState("");
   const [formCategory, setFormCategory] = useState("industry");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const handleCreate = () => {
     if (!formName.trim() || !formUrl.trim()) return toast.error("Name and URL are required");
@@ -194,8 +223,53 @@ function RssSourcesTab() {
     asx: "bg-gold/15 text-gold-dark",
   };
 
+  // Compute summary stats
+  const activeSources = sources?.filter(s => s.isActive) || [];
+  const inactiveSources = sources?.filter(s => !s.isActive) || [];
+  const healthySources = activeSources.filter(s => getSourceHealth(s).icon === "ok");
+  const degradedSources = activeSources.filter(s => getSourceHealth(s).icon === "warning");
+  const failingSources = activeSources.filter(s => getSourceHealth(s).icon === "error");
+  const totalArticlesAll = sources?.reduce((sum, s) => sum + (s.totalArticles || 0), 0) || 0;
+  const totalSuccesses = sources?.reduce((sum, s) => sum + (s.successCount || 0), 0) || 0;
+  const totalFailures = sources?.reduce((sum, s) => sum + (s.failureCount || 0), 0) || 0;
+  const overallSuccessRate = (totalSuccesses + totalFailures) > 0
+    ? Math.round((totalSuccesses / (totalSuccesses + totalFailures)) * 100)
+    : 100;
+
   return (
     <div className="space-y-4">
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-navy">{activeSources.length}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Active</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-teal">{healthySources.length}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Healthy</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-warm">{degradedSources.length}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Degraded</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-hot">{failingSources.length}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Failing</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-navy">{totalArticlesAll.toLocaleString()}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Articles</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-teal">{overallSuccessRate}%</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Success Rate</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-slate-400">{inactiveSources.length}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Inactive</div>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-navy">RSS Sources ({sources?.length || 0})</h3>
         <Button onClick={() => setShowForm(!showForm)} size="sm" className="bg-gold hover:bg-gold-light text-navy gap-1.5">
@@ -229,54 +303,115 @@ function RssSourcesTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-navy text-white">
+              <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider w-6"></th>
               <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Source</th>
               <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Category</th>
+              <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Health</th>
               <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Last Fetch</th>
-              <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Items</th>
-              <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Status</th>
+              <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Last Items</th>
+              <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Total Articles</th>
+              <th className="text-center px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Success / Fail</th>
               <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {sources?.map((src, i) => (
-              <tr key={src.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
-                <td className="px-4 py-2.5">
-                  <div className="font-medium text-navy">{src.name}</div>
-                  <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">{src.feedUrl}</div>
-                </td>
-                <td className="px-4 py-2.5">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${categoryColors[src.category] || "bg-slate-200 text-slate-600"}`}>
-                    {src.category}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                  {src.lastFetchedAt ? new Date(src.lastFetchedAt).toLocaleString() : "Never"}
-                </td>
-                <td className="px-4 py-2.5 text-xs">{src.lastFetchCount || 0}</td>
-                <td className="px-4 py-2.5">
-                  {src.isActive ? (
-                    <span className="flex items-center gap-1 text-teal text-xs"><CheckCircle2 className="w-3 h-3" /> Active</span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-slate-400 text-xs"><XCircle className="w-3 h-3" /> Inactive</span>
+            {sources?.map((src, i) => {
+              const health = getSourceHealth(src);
+              const isExpanded = expandedId === src.id;
+              return (
+                <>
+                  <tr
+                    key={src.id}
+                    className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors cursor-pointer`}
+                    onClick={() => setExpandedId(isExpanded ? null : src.id)}
+                  >
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      <span className={`text-[10px] transition-transform inline-block ${isExpanded ? "rotate-90" : ""}`}>&#9654;</span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium text-navy">{src.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate max-w-[200px]">{src.feedUrl}</div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${categoryColors[src.category] || "bg-slate-200 text-slate-600"}`}>
+                        {src.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${health.bg} ${health.color}`}>
+                        {health.icon === "ok" && <Wifi className="w-3 h-3" />}
+                        {health.icon === "warning" && <AlertTriangle className="w-3 h-3" />}
+                        {health.icon === "error" && <WifiOff className="w-3 h-3" />}
+                        {health.icon === "inactive" && <XCircle className="w-3 h-3" />}
+                        {health.icon === "unknown" && <CircleDot className="w-3 h-3" />}
+                        {health.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                      {formatTimeAgo(src.lastFetchedAt)}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-right">{src.lastFetchCount || 0}</td>
+                    <td className="px-4 py-2.5 text-xs text-right font-medium">{(src.totalArticles || 0).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-xs text-center">
+                      <span className="text-teal font-medium">{src.successCount || 0}</span>
+                      <span className="text-muted-foreground mx-1">/</span>
+                      <span className={`font-medium ${(src.failureCount || 0) > 0 ? "text-hot" : "text-muted-foreground"}`}>{src.failureCount || 0}</span>
+                    </td>
+                    <td className="px-4 py-2.5" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => updateSrc.mutate({ id: src.id, isActive: !src.isActive })}
+                          className="p-1 rounded hover:bg-slate-100" title={src.isActive ? "Deactivate" : "Activate"}>
+                          {src.isActive ? <ToggleRight className="w-3.5 h-3.5 text-teal" /> : <ToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
+                        </button>
+                        <button onClick={() => { if (confirm("Delete this source?")) deleteSrc.mutate({ id: src.id }); }}
+                          className="p-1 rounded hover:bg-red-50">
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr key={`${src.id}-detail`} className="border-t border-border bg-slate-50/50">
+                      <td colSpan={9} className="px-6 py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                          <div>
+                            <div className="text-muted-foreground uppercase tracking-wider text-[10px] font-medium mb-1">Last Success</div>
+                            <div className="font-medium text-navy">{src.lastSuccessAt ? new Date(src.lastSuccessAt as unknown as string).toLocaleString() : "Never"}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground uppercase tracking-wider text-[10px] font-medium mb-1">Last Error</div>
+                            <div className="font-medium text-navy">{src.lastErrorAt ? new Date(src.lastErrorAt as unknown as string).toLocaleString() : "Never"}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground uppercase tracking-wider text-[10px] font-medium mb-1">Consecutive Errors</div>
+                            <div className={`font-medium ${(src.consecutiveErrors || 0) > 0 ? "text-hot" : "text-teal"}`}>{src.consecutiveErrors || 0}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground uppercase tracking-wider text-[10px] font-medium mb-1">Success Rate</div>
+                            <div className="font-medium text-navy">
+                              {((src.successCount || 0) + (src.failureCount || 0)) > 0
+                                ? `${Math.round(((src.successCount || 0) / ((src.successCount || 0) + (src.failureCount || 0))) * 100)}%`
+                                : "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                        {src.lastError && (
+                          <div className="mt-3 p-2 rounded bg-hot/5 border border-hot/20">
+                            <div className="text-[10px] text-hot font-semibold uppercase tracking-wider mb-1">Last Error Message</div>
+                            <div className="text-xs text-foreground/80 font-mono">{src.lastError}</div>
+                          </div>
+                        )}
+                        <div className="mt-3 text-[10px] text-muted-foreground">
+                          Feed URL: <a href={src.feedUrl} target="_blank" rel="noopener noreferrer" className="text-navy hover:underline">{src.feedUrl}</a>
+                          {" | "}Created: {new Date(src.createdAt).toLocaleDateString()}
+                          {" | "}Total fetches: {(src.successCount || 0) + (src.failureCount || 0)}
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                  {(src.errorCount || 0) > 0 && (
-                    <span className="text-[10px] text-hot ml-1">({src.errorCount} errors)</span>
-                  )}
-                </td>
-                <td className="px-4 py-2.5">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => updateSrc.mutate({ id: src.id, isActive: !src.isActive })}
-                      className="p-1 rounded hover:bg-slate-100" title={src.isActive ? "Deactivate" : "Activate"}>
-                      {src.isActive ? <ToggleRight className="w-3.5 h-3.5 text-teal" /> : <ToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
-                    </button>
-                    <button onClick={() => { if (confirm("Delete this source?")) deleteSrc.mutate({ id: src.id }); }}
-                      className="p-1 rounded hover:bg-red-50">
-                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                </>
+              );
+            })}
           </tbody>
         </table>
       </div>

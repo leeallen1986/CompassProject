@@ -385,3 +385,8 @@
 - [x] Build Pipeline Run History panel on Admin dashboard
 - [x] Trigger a full pipeline run and verify records are written correctly
 - [x] Write vitest tests for pipeline logging
+- [x] STEP 2C: Update RSS/source harvester with per-source tracking
+- [x] Add lastFetchedAt, totalArticles, successCount, failureCount, consecutiveErrors, lastError, lastErrorAt columns to rssSources schema
+- [x] Update RSS harvester to write per-source stats on each fetch (success/failure, article count, error details)
+- [x] Enhance Admin RSS Sources tab with health indicators (green/yellow/red), last fetched time, article counts, error details
+- [x] Write vitest tests for source tracking logic (25 tests: health classification, formatTimeAgo, schema columns, harvester exports)

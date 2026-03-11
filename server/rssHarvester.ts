@@ -208,9 +208,16 @@ export async function harvestAllFeeds(): Promise<HarvestSummary> {
     const { items, error } = await fetchFeed(source);
     if (error) {
       result.errors.push(error);
-      // Increment error count
+      // Update failure tracking
       await db.update(rssSources)
-        .set({ errorCount: sql`${rssSources.errorCount} + 1` })
+        .set({
+          errorCount: sql`${rssSources.errorCount} + 1`,
+          failureCount: sql`${rssSources.failureCount} + 1`,
+          consecutiveErrors: sql`${rssSources.consecutiveErrors} + 1`,
+          lastError: error,
+          lastErrorAt: new Date(),
+          lastFetchedAt: new Date(),
+        })
         .where(eq(rssSources.id, source.id));
       results.push(result);
       continue;
@@ -265,11 +272,14 @@ export async function harvestAllFeeds(): Promise<HarvestSummary> {
       }
     }
 
-    // Update source metadata
+    // Update source metadata on success
     await db.update(rssSources).set({
       lastFetchedAt: new Date(),
       lastFetchCount: result.fetched,
-      errorCount: 0, // Reset on success
+      totalArticles: sql`${rssSources.totalArticles} + ${result.newArticles}`,
+      successCount: sql`${rssSources.successCount} + 1`,
+      consecutiveErrors: 0, // Reset on success
+      lastSuccessAt: new Date(),
     }).where(eq(rssSources.id, source.id));
 
     results.push(result);
