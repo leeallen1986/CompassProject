@@ -1,0 +1,55 @@
+{
+  "query": "SELECT scoringDimension, COUNT(*) as cnt, AVG(score) as avgScore FROM projectBusinessLineScores GROUP BY scoringDimension ORDER BY cnt DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT scoringDimension, COUNT(*) as cnt, AVG(score) as avgScore FROM projectBusinessLineScores GROUP BY scoringDimension ORDER BY cnt DESC",
+  "rows": [
+    {
+      "scoringDimension": "Portable Air",
+      "cnt": "770",
+      "avgScore": "62.9468"
+    },
+    {
+      "scoringDimension": "Rental Influence",
+      "cnt": "770",
+      "avgScore": "68.8455"
+    },
+    {
+      "scoringDimension": "Booster",
+      "cnt": "770",
+      "avgScore": "24.6857"
+    },
+    {
+      "scoringDimension": "Service Potential",
+      "cnt": "770",
+      "avgScore": "83.1247"
+    },
+    {
+      "scoringDimension": "Pump/Dewatering",
+      "cnt": "770",
+      "avgScore": "63.2974"
+    },
+    {
+      "scoringDimension": "Nitrogen",
+      "cnt": "770",
+      "avgScore": "24.4740"
+    },
+    {
+      "scoringDimension": "PAL",
+      "cnt": "770",
+      "avgScore": "73.9519"
+    },
+    {
+      "scoringDimension": "BESS",
+      "cnt": "770",
+      "avgScore": "64.1688"
+    },
+    {
+      "scoringDimension": "Generators",
+      "cnt": "770",
+      "avgScore": "67.1740"
+    }
+  ],
+  "messages": [],
+  "stdout": "scoringDimension\tcnt\tavgScore\nPortable Air\t770\t62.9468\nRental Influence\t770\t68.8455\nBooster\t770\t24.6857\nService Potential\t770\t83.1247\nPump/Dewatering\t770\t63.2974\nNitrogen\t770\t24.4740\nPAL\t770\t73.9519\nBESS\t770\t64.1688\nGenerators\t770\t67.1740\n",
+  "stderr": "",
+  "execution_time_ms": 1584
+}

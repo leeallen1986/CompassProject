@@ -570,3 +570,9 @@
 - [x] Add Thursday mid-week reminder email with personalized content tailored to each sales user
 - [x] Update pipeline schedule to trigger emails on Monday and Thursday
 - [x] Write vitest tests for compulsory digest and Thursday reminder
+- [x] Fix email delivery: switch from notifyOwner() to direct SMTP/email API so digests go to each user's own email address
+- [x] Fix business-line scoring in digest: differentiate NATIONAL users by their assignedBusinessLines (Josh=Pump, Ryan=Portable Air, Dan=PAL, etc.)
+- [x] Update business line assignments for all users (Leo=Portable Air, Amit=PAL+BESS, Dan=Pump, Josh=Pump, Lee=Portable Air, Ray=PAL+BESS+Pump, Tim=All, Ryan=Portable Air, Daniel Zec=Portable Air, Brett=Pump, Egor=already set)
+- [x] Integrate Resend email API for direct delivery to each user's real email address
+- [x] Update emailDigest.ts to use Resend instead of notifyOwner()
+- [x] Add BL-based scoring boost in digest so NATIONAL users get differentiated content by their assigned business lines

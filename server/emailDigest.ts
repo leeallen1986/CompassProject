@@ -1,13 +1,13 @@
 /**
  * Email Digest Generator
  * Builds personalized intelligence summaries for each user based on their profile preferences.
- * Uses the built-in notification API to deliver digests.
+ * Uses Resend API to deliver emails directly to each user's corporate email address.
  *
  * COMPULSORY DELIVERY: All users with profiles receive emails regardless of opt-in.
  *   - Monday: Full weekly digest (personalized projects, contacts, pipeline, This Week highlights)
  *   - Thursday: Mid-week reminder (urgent actions, pipeline nudges, new hot projects since Monday)
  */
-import { notifyOwner } from "./_core/notification";
+import { sendEmail } from "./emailSender";
 import {
   getAllUsersWithProfiles,
   getLatestReport,
@@ -17,6 +17,7 @@ import {
   getDb,
 } from "./db";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
+import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 
 interface DigestProject {
@@ -44,7 +45,21 @@ interface DigestContact {
 }
 
 /**
- * Score a project against a user's profile for relevance (0-100)
+ * Map user's assignedBusinessLines to scoring dimensions.
+ * User profiles use "Pump (Flow)" but scoring uses "Pump/Dewatering", etc.
+ */
+const BL_TO_DIMENSION_MAP: Record<string, string[]> = {
+  "Portable Air": ["Portable Air"],
+  "PAL": ["PAL", "Generators"],
+  "BESS": ["BESS"],
+  "Pump (Flow)": ["Pump/Dewatering"],
+  "Nitrogen": ["Nitrogen"],
+  "Booster": ["Booster"],
+};
+
+/**
+ * Score a project against a user's profile for relevance (0-100).
+ * Now includes BL-based scoring when blScores are provided.
  */
 function scoreProjectForUser(
   project: DigestProject,
@@ -55,7 +70,9 @@ function scoreProjectForUser(
     customerTypes: string[] | null;
     dealSizeMin: string | null;
     dealSizeMax: string | null;
-  }
+    assignedBusinessLines?: string[] | null;
+  },
+  blScores?: DimensionScore[],
 ): number {
   let score = 50; // base score
 
@@ -111,6 +128,46 @@ function scoreProjectForUser(
       return false;
     });
     if (matched) score += 10;
+  }
+
+  // ── Business Line scoring boost (major differentiator) ──
+  if (profile.assignedBusinessLines && profile.assignedBusinessLines.length > 0 && blScores && blScores.length > 0) {
+    // Map user's BLs to scoring dimensions
+    const userDimensions = new Set<string>();
+    for (const bl of profile.assignedBusinessLines) {
+      const dims = BL_TO_DIMENSION_MAP[bl];
+      if (dims) dims.forEach(d => userDimensions.add(d));
+    }
+
+    if (userDimensions.size > 0) {
+      // Get the max score across the user's assigned BL dimensions
+      let maxBLScore = 0;
+      let avgBLScore = 0;
+      let matchCount = 0;
+
+      for (const dim of Array.from(userDimensions)) {
+        const dimScore = blScores.find(s => s.dimension === dim);
+        if (dimScore && dimScore.score > 0) {
+          maxBLScore = Math.max(maxBLScore, dimScore.score);
+          avgBLScore += dimScore.score;
+          matchCount++;
+        }
+      }
+
+      if (matchCount > 0) {
+        avgBLScore = avgBLScore / matchCount;
+        // Strong boost for high BL relevance (up to +25 points)
+        // This ensures a Pump guy sees pump projects first, not generic ones
+        score += Math.round((maxBLScore / 100) * 25);
+        // Additional boost if multiple BL dimensions match well
+        if (matchCount > 1 && avgBLScore > 50) {
+          score += 5;
+        }
+      } else {
+        // Penalize projects with zero relevance to user's BLs
+        score -= 15;
+      }
+    }
   }
 
   // Priority boost
@@ -331,7 +388,7 @@ function generateThursdayReminder(
 /**
  * Core function: score and filter projects for a specific user profile.
  */
-function scoreAndFilterProjects(
+async function scoreAndFilterProjects(
   allProjects: any[],
   profile: {
     territories: string[] | null;
@@ -340,39 +397,53 @@ function scoreAndFilterProjects(
     customerTypes: string[] | null;
     dealSizeMin: string | null;
     dealSizeMax: string | null;
+    assignedBusinessLines?: string[] | null;
   },
-): Array<DigestProject & { relevanceScore: number }> {
-  const scoredProjects = allProjects.map(p => ({
-    id: p.id,
-    name: p.name,
-    location: p.location,
-    value: p.value,
-    owner: p.owner,
-    priority: p.priority,
-    sector: p.sector,
-    opportunityRoute: p.opportunityRoute,
-    isNew: p.isNew,
-    stage: p.stage,
-    overview: p.overview,
-    actionTier: (p as any).actionTier as ActionTier | null,
-    relevanceScore: scoreProjectForUser(
-      {
-        id: p.id,
-        name: p.name,
-        location: p.location,
-        value: p.value,
-        owner: p.owner,
-        priority: p.priority,
-        sector: p.sector,
-        opportunityRoute: p.opportunityRoute,
-        isNew: p.isNew,
-        stage: p.stage,
-        overview: p.overview,
-        actionTier: (p as any).actionTier as ActionTier | null,
-      },
-      profile,
-    ),
-  }));
+): Promise<Array<DigestProject & { relevanceScore: number }>> {
+  // Fetch BL scores for all projects in one batch
+  const projectIds = allProjects.map(p => p.id).filter(Boolean);
+  let blScoresMap = new Map<number, DimensionScore[]>();
+  try {
+    blScoresMap = await getProjectScoresBatch(projectIds);
+  } catch (err) {
+    console.warn("[EmailDigest] Failed to fetch BL scores, proceeding without:", err);
+  }
+
+  const scoredProjects = allProjects.map(p => {
+    const projectBLScores = blScoresMap.get(p.id) || [];
+    return {
+      id: p.id,
+      name: p.name,
+      location: p.location,
+      value: p.value,
+      owner: p.owner,
+      priority: p.priority,
+      sector: p.sector,
+      opportunityRoute: p.opportunityRoute,
+      isNew: p.isNew,
+      stage: p.stage,
+      overview: p.overview,
+      actionTier: (p as any).actionTier as ActionTier | null,
+      relevanceScore: scoreProjectForUser(
+        {
+          id: p.id,
+          name: p.name,
+          location: p.location,
+          value: p.value,
+          owner: p.owner,
+          priority: p.priority,
+          sector: p.sector,
+          opportunityRoute: p.opportunityRoute,
+          isNew: p.isNew,
+          stage: p.stage,
+          overview: p.overview,
+          actionTier: (p as any).actionTier as ActionTier | null,
+        },
+        profile,
+        projectBLScores,
+      ),
+    };
+  });
 
   // Sort by relevance
   scoredProjects.sort((a, b) => b.relevanceScore - a.relevanceScore);
@@ -431,14 +502,15 @@ export async function sendWeeklyDigests(force = false): Promise<{
         thisWeekSection = "";
       }
 
-      // Score projects for this user
-      const matchedProjects = scoreAndFilterProjects(allProjects, {
+      // Score projects for this user (with BL-based personalization)
+      const matchedProjects = await scoreAndFilterProjects(allProjects, {
         territories: profile.territories as string[] | null,
         industries: profile.industries as string[] | null,
         offerCategories: profile.offerCategories as string[] | null,
         customerTypes: profile.customerTypes as string[] | null,
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
+        assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
       });
 
       if (matchedProjects.length === 0) {
@@ -474,10 +546,20 @@ export async function sendWeeklyDigests(force = false): Promise<{
         territories,
       );
 
-      // Send via notification API
-      const sent = await notifyOwner({
-        title: `📊 Weekly Brief for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`,
-        content,
+      // Send directly to user's email via Resend
+      const userEmail = user.email;
+      if (!userEmail) {
+        console.warn(`[EmailDigest] No email for user ${user.name}, skipping`);
+        results.skipped++;
+        continue;
+      }
+
+      const subject = `📊 Weekly Brief for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`;
+      const sent = await sendEmail({
+        to: userEmail,
+        subject,
+        markdownContent: content,
+        textContent: content,
       });
 
       if (sent) {
@@ -544,14 +626,15 @@ export async function sendThursdayReminders(): Promise<{
         thisWeekSection = "";
       }
 
-      // Score projects for this user — only hot/actionable
-      const matchedProjects = scoreAndFilterProjects(allProjects, {
+      // Score projects for this user — only hot/actionable (with BL personalization)
+      const matchedProjects = await scoreAndFilterProjects(allProjects, {
         territories: profile.territories as string[] | null,
         industries: profile.industries as string[] | null,
         offerCategories: profile.offerCategories as string[] | null,
         customerTypes: profile.customerTypes as string[] | null,
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
+        assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
       });
 
       const hotProjects = matchedProjects.filter(p =>
@@ -573,10 +656,20 @@ export async function sendThursdayReminders(): Promise<{
         territories,
       );
 
-      // Send via notification API
-      const sent = await notifyOwner({
-        title: `⚡ Mid-Week Reminder for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`,
-        content,
+      // Send directly to user's email via Resend
+      const userEmail = user.email;
+      if (!userEmail) {
+        console.warn(`[EmailDigest] No email for user ${user.name}, skipping Thursday reminder`);
+        results.skipped++;
+        continue;
+      }
+
+      const subject = `⚡ Mid-Week Reminder for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`;
+      const sent = await sendEmail({
+        to: userEmail,
+        subject,
+        markdownContent: content,
+        textContent: content,
       });
 
       if (sent) {

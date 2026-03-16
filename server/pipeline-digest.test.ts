@@ -172,5 +172,5 @@ describe("digest admin trigger", () => {
     expect(typeof result.sent).toBe("number");
     expect(typeof result.failed).toBe("number");
     expect(typeof result.skipped).toBe("number");
-  }, 30_000);
+  }, 120_000);
 });

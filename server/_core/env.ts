@@ -10,4 +10,5 @@ export const ENV = {
   apolloApiKey: process.env.APOLLO_API_KEY ?? "",
   projectoryEmail: process.env.PROJECTORY_EMAIL ?? "",
   projectoryPassword: process.env.PROJECTORY_PASSWORD ?? "",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
 };

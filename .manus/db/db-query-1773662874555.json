@@ -1,0 +1,98 @@
+{
+  "query": "SELECT u.id, u.name, u.email, u.authMethod, p.territories, p.assignedBusinessLines FROM users u LEFT JOIN userProfiles p ON p.userId = u.id ORDER BY u.name",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.id, u.name, u.email, u.authMethod, p.territories, p.assignedBusinessLines FROM users u LEFT JOIN userProfiles p ON p.userId = u.id ORDER BY u.name",
+  "rows": [
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "authMethod": "email",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\", \"ACT\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]"
+    },
+    {
+      "id": "2340050",
+      "name": "Josh Lipscombe",
+      "email": "josh.lipscombe@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "1",
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "authMethod": "oauth",
+      "territories": "[\"WA\", \"NSW\", \"VIC\", \"SA\", \"ACT\", \"TAS\", \"QLD\", \"NT\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"WA\", \"QLD\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "3360134",
+      "name": "Ray Clinch",
+      "email": "ray.clinch@atlascopco.com",
+      "authMethod": "email",
+      "territories": "NULL",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "authMethod": "email",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "3360129",
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "authMethod": "email",
+      "territories": "NULL",
+      "assignedBusinessLines": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tauthMethod\tterritories\tassignedBusinessLines\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\temail\t[\"NATIONAL\"]\tNULL\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\temail\t[\"WA\", \"NT\"]\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\temail\t[\"NATIONAL\"]\tNULL\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\temail\t[\"NSW\", \"VIC\", \"SA\", \"TAS\", \"ACT\"]\tNULL\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\temail\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\n2340050\tJosh Lipscombe\tjosh.lipscombe@atlascopco.com\temail\t[\"NATIONAL\"]\tNULL\n1\tLee\tlee.allen@atlascopco.com\toauth\t[\"WA\", \"NSW\", \"VIC\", \"SA\", \"ACT\", \"TAS\", \"QLD\", \"NT\"]\tNULL\n840008\tLeo Williams \tleo.williams@atlascopco.com\temail\t[\"WA\", \"QLD\"]\tNULL\n3360134\tRay Clinch\tray.clinch@atlascopco.com\temail\tNULL\tNULL\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\temail\t[\"WA\"]\tNULL\n3360129\tTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\temail\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1618
+}
