@@ -1,0 +1,100 @@
+{
+  "query": "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME",
+  "rows": [
+    {
+      "TABLE_NAME": "__drizzle_migrations"
+    },
+    {
+      "TABLE_NAME": "apolloCreditLog"
+    },
+    {
+      "TABLE_NAME": "awardedProjects"
+    },
+    {
+      "TABLE_NAME": "businessLines"
+    },
+    {
+      "TABLE_NAME": "contactProjects"
+    },
+    {
+      "TABLE_NAME": "contacts"
+    },
+    {
+      "TABLE_NAME": "contractorPairings"
+    },
+    {
+      "TABLE_NAME": "contractorProjectLinks"
+    },
+    {
+      "TABLE_NAME": "contractorRegistry"
+    },
+    {
+      "TABLE_NAME": "drillingCampaigns"
+    },
+    {
+      "TABLE_NAME": "emailDigestPrefs"
+    },
+    {
+      "TABLE_NAME": "emergingPatterns"
+    },
+    {
+      "TABLE_NAME": "feedbackWeights"
+    },
+    {
+      "TABLE_NAME": "outreachEmails"
+    },
+    {
+      "TABLE_NAME": "outreachTemplates"
+    },
+    {
+      "TABLE_NAME": "pipelineActivity"
+    },
+    {
+      "TABLE_NAME": "pipelineClaims"
+    },
+    {
+      "TABLE_NAME": "pipelineRuns"
+    },
+    {
+      "TABLE_NAME": "projectBusinessLineScores"
+    },
+    {
+      "TABLE_NAME": "projectEnrichmentCache"
+    },
+    {
+      "TABLE_NAME": "projectFeedback"
+    },
+    {
+      "TABLE_NAME": "projectoryContractorFrequency"
+    },
+    {
+      "TABLE_NAME": "projectoryEnrichmentLog"
+    },
+    {
+      "TABLE_NAME": "projects"
+    },
+    {
+      "TABLE_NAME": "rawArticles"
+    },
+    {
+      "TABLE_NAME": "reports"
+    },
+    {
+      "TABLE_NAME": "rssSources"
+    },
+    {
+      "TABLE_NAME": "userActivity"
+    },
+    {
+      "TABLE_NAME": "userProfiles"
+    },
+    {
+      "TABLE_NAME": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "TABLE_NAME\n__drizzle_migrations\napolloCreditLog\nawardedProjects\nbusinessLines\ncontactProjects\ncontacts\ncontractorPairings\ncontractorProjectLinks\ncontractorRegistry\ndrillingCampaigns\nemailDigestPrefs\nemergingPatterns\nfeedbackWeights\noutreachEmails\noutreachTemplates\npipelineActivity\npipelineClaims\npipelineRuns\nprojectBusinessLineScores\nprojectEnrichmentCache\nprojectFeedback\nprojectoryContractorFrequency\nprojectoryEnrichmentLog\nprojects\nrawArticles\nreports\nrssSources\nuserActivity\nuserProfiles\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 1541
+}

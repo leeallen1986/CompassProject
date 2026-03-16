@@ -1,0 +1,40 @@
+{
+  "query": "SELECT edp.*, u.name, u.email, u.role FROM emailDigestPrefs edp LEFT JOIN users u ON edp.userId = u.id",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT edp.*, u.name, u.email, u.role FROM emailDigestPrefs edp LEFT JOIN users u ON edp.userId = u.id",
+  "rows": [
+    {
+      "id": "1",
+      "userId": "1",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "1",
+      "includeContacts": "0",
+      "includePipelineUpdates": "0",
+      "lastSentAt": "2026-03-16 08:33:43",
+      "createdAt": "2026-02-10 22:39:44",
+      "updatedAt": "2026-03-16 08:33:43",
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "role": "admin"
+    },
+    {
+      "id": "30001",
+      "userId": "2340050",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "1",
+      "includeContacts": "1",
+      "includePipelineUpdates": "1",
+      "lastSentAt": "2026-03-16 08:33:44",
+      "createdAt": "2026-03-06 05:20:13",
+      "updatedAt": "2026-03-16 08:33:44",
+      "name": "Josh Lipscombe",
+      "email": "josh.lipscombe@atlascopco.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tenabled\tfrequency\tincludeHotOnly\tincludeContacts\tincludePipelineUpdates\tlastSentAt\tcreatedAt\tupdatedAt\tname\temail\trole\n1\t1\t1\tweekly\t1\t0\t0\t2026-03-16 08:33:43\t2026-02-10 22:39:44\t2026-03-16 08:33:43\tLee\tlee.allen@atlascopco.com\tadmin\n30001\t2340050\t1\tweekly\t1\t1\t1\t2026-03-16 08:33:44\t2026-03-06 05:20:13\t2026-03-16 08:33:44\tJosh Lipscombe\tjosh.lipscombe@atlascopco.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1586
+}

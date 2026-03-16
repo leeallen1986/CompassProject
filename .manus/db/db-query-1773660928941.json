@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM emailDigestPrefs WHERE userId IN (4590020, 390156, 4230001); DELETE FROM userProfiles WHERE userId IN (4590020, 390156, 4230001); DELETE FROM pipelineClaims WHERE userId IN (4590020, 390156, 4230001); DELETE FROM pipelineActivity WHERE userId IN (4590020, 390156, 4230001); DELETE FROM projectFeedback WHERE userId IN (4590020, 390156, 4230001); DELETE FROM users WHERE id IN (4590020, 390156, 4230001)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DELETE FROM emailDigestPrefs WHERE userId IN (4590020, 390156, 4230001); DELETE FROM userProfiles WHERE userId IN (4590020, 390156, 4230001); DELETE FROM pipelineClaims WHERE userId IN (4590020, 390156, 4230001); DELETE FROM pipelineActivity WHERE userId IN (4590020, 390156, 4230001); DELETE FROM projectFeedback WHERE userId IN (4590020, 390156, 4230001); DELETE FROM users WHERE id IN (4590020, 390156, 4230001)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2854
+}

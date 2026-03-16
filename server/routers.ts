@@ -54,7 +54,7 @@ import {
   createTemplate, listTemplates, getTemplateById, updateTemplate,
   deleteTemplate, incrementTemplateUsage, personaliseTemplate, getTemplateStats,
 } from "./outreachTemplates";
-import { sendWeeklyDigests } from "./emailDigest";
+import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
 import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
 import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { searchProjects } from "./aiProjectMatcher";
@@ -527,9 +527,14 @@ export const appRouter = router({
 
   // ── Admin Digest Trigger ──
   digest: router({
-    /** Send digest now — uses force=true to bypass deduplication guard */
+    /** Send Monday digest now — compulsory to all users with profiles */
     sendNow: adminProcedure.mutation(async () => {
       const results = await sendWeeklyDigests(true);
+      return results;
+    }),
+    /** Send Thursday reminder now — compulsory to all users with profiles */
+    sendThursdayReminder: adminProcedure.mutation(async () => {
+      const results = await sendThursdayReminders();
       return results;
     }),
   }),

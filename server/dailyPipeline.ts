@@ -38,7 +38,7 @@ import { runAemoScraper } from "./aemoScraper";
 import { runGovScraper } from "./govScraper";
 import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
-import { sendWeeklyDigests } from "./emailDigest";
+import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
 import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
 import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
@@ -778,6 +778,29 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.log("[DailyPipeline] Step 14: Skipping weekly digest (runs on Mondays only)");
   }
   steps.push(digestStep);
+
+  // ── Step 14b: Thursday Mid-Week Reminder (Thursdays) ──
+  const reminderStep = startStep("Thursday Reminder");
+  if (isThursday) {
+    console.log("[DailyPipeline] Step 14b: Sending mid-week reminder emails (Thursday run)...");
+    try {
+      const reminderResult = await sendThursdayReminders();
+      completeStep(reminderStep, {
+        sent: reminderResult.sent,
+        failed: reminderResult.failed,
+        skipped: reminderResult.skipped,
+      });
+      console.log(`[DailyPipeline] Thursday reminders sent: ${reminderResult.sent} sent, ${reminderResult.failed} failed, ${reminderResult.skipped} skipped`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Thursday reminder failed:", errMsg);
+      failStep(reminderStep, errMsg);
+    }
+  } else {
+    skipStep(reminderStep, "Runs on Thursdays only");
+    console.log("[DailyPipeline] Step 14b: Skipping Thursday reminder (runs on Thursdays only)");
+  }
+  steps.push(reminderStep);
 
   // ── Step 15: Staleness Check ──
   const stalenessStep = startStep("Staleness Check");

@@ -565,3 +565,8 @@
 - [x] Fix legacy Projectory scraper listing page parser — regex doesn't match c-teaser__title HTML structure
 - [x] Fix Projectory enrichment search parser — regex doesn't match actual search result HTML structure
 - [x] Write vitest tests for updated Projectory parsers with real HTML samples
+- [x] Remove invalid users from DB: Kevin (4590020), britferrol (390156), duplicate Leo Williams (4230001)
+- [x] Make Monday weekly digest compulsory for all users with profiles (no opt-in required)
+- [x] Add Thursday mid-week reminder email with personalized content tailored to each sales user
+- [x] Update pipeline schedule to trigger emails on Monday and Thursday
+- [x] Write vitest tests for compulsory digest and Thursday reminder

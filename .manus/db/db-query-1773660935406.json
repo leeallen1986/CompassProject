@@ -1,0 +1,76 @@
+{
+  "query": "SELECT id, name, email, role FROM users ORDER BY id",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, email, role FROM users ORDER BY id",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "role": "admin"
+    },
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "2340050",
+      "name": "Josh Lipscombe",
+      "email": "josh.lipscombe@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "3360129",
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "role": "admin"
+    },
+    {
+      "id": "3360134",
+      "name": "Ray Clinch",
+      "email": "ray.clinch@atlascopco.com",
+      "role": "admin"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n1\tLee\tlee.allen@atlascopco.com\tadmin\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\n2340050\tJosh Lipscombe\tjosh.lipscombe@atlascopco.com\tuser\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\n3360129\tTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\tadmin\n3360134\tRay Clinch\tray.clinch@atlascopco.com\tadmin\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1514
+}

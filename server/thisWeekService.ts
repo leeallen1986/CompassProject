@@ -535,14 +535,14 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
  * Get a compact version of This Week for the email digest.
  * Returns top 3 projects, top 2 stakeholders, and 1 urgent action.
  */
-export async function getThisWeekForEmail(): Promise<{
+export async function getThisWeekForEmail(userId?: number): Promise<{
   top3Projects: ThisWeekProject[];
   top2Stakeholders: ThisWeekStakeholder[];
   urgentAction: SuggestedAction | null;
   weekLabel: string;
   stats: ThisWeekSummary["stats"];
 }> {
-  const summary = await getThisWeekSummary();
+  const summary = await getThisWeekSummary(userId);
   return {
     top3Projects: summary.topProjects.slice(0, 3),
     top2Stakeholders: summary.newStakeholders.slice(0, 2),

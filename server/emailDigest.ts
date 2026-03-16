@@ -3,20 +3,19 @@
  * Builds personalized intelligence summaries for each user based on their profile preferences.
  * Uses the built-in notification API to deliver digests.
  *
- * Updated: Now includes "This Week" summary data — top 3 projects, top 2 stakeholder
- * discoveries, 1 urgent action, and a link back to the "This Week" page.
+ * COMPULSORY DELIVERY: All users with profiles receive emails regardless of opt-in.
+ *   - Monday: Full weekly digest (personalized projects, contacts, pipeline, This Week highlights)
+ *   - Thursday: Mid-week reminder (urgent actions, pipeline nudges, new hot projects since Monday)
  */
 import { notifyOwner } from "./_core/notification";
 import {
-  getAllEnabledDigestUsers,
+  getAllUsersWithProfiles,
   getLatestReport,
   getProjectsByReportId,
   getContactsByReportId,
   getPipelineClaimsByUser,
   getDb,
 } from "./db";
-import { emailDigestPrefs } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 
@@ -77,7 +76,7 @@ function scoreProjectForUser(
 
     let matched = false;
     for (const terr of territories) {
-      if (terr === "National") { matched = true; break; }
+      if (terr === "National" || terr === "NATIONAL") { matched = true; break; }
       const keywords = stateMap[terr] || [terr.toLowerCase()];
       if (keywords.some(k => loc.includes(k))) { matched = true; break; }
     }
@@ -187,19 +186,17 @@ function formatThisWeekSection(
 }
 
 /**
- * Generate a personalized digest for a single user.
- * Now includes the "This Week" highlight section at the top.
+ * Generate a personalized Monday weekly digest for a single user.
+ * Includes This Week highlights + personalized project matches.
  */
-function generateDigestContent(
+function generateMondayDigest(
   userName: string,
   reportWeek: string,
   matchedProjects: Array<DigestProject & { relevanceScore: number }>,
   matchedContacts: DigestContact[],
   pipelineCount: number,
-  includeHotOnly: boolean,
-  includeContacts: boolean,
-  includePipelineUpdates: boolean,
   thisWeekSection: string,
+  territories: string[],
 ): string {
   // Apply tier-based filtering: only Tier 1 and select Tier 2 reach the brief
   const tierFiltered = matchedProjects.filter(p => {
@@ -208,14 +205,16 @@ function generateDigestContent(
     return shouldIncludeInBrief(tier, priority);
   });
 
-  const filtered = includeHotOnly
-    ? tierFiltered.filter(p => p.priority === "hot")
-    : tierFiltered;
-
-  const top10 = filtered.slice(0, 10);
+  const top10 = tierFiltered.slice(0, 10);
+  const territoryLabel = territories.length > 0
+    ? territories.includes("NATIONAL") || territories.includes("National")
+      ? "National"
+      : territories.join(", ")
+    : "All Regions";
 
   let content = `**Weekly Intelligence Digest — ${reportWeek}**\n\n`;
   content += `Hi ${userName || "there"},\n\n`;
+  content += `Here's your personalised weekly intelligence brief for **${territoryLabel}**.\n\n`;
 
   // ── This Week Highlights (top of email) ──
   content += thisWeekSection;
@@ -223,15 +222,15 @@ function generateDigestContent(
 
   // ── Personalized Matches ──
   content += `---\n\n`;
-  content += `**Your Personalized Project Matches:**\n\n`;
+  content += `**Your Personalised Project Matches:**\n\n`;
 
   // Summary stats
-  const hotCount = filtered.filter(p => p.priority === "hot").length;
-  const warmCount = filtered.filter(p => p.priority === "warm").length;
-  const newCount = filtered.filter(p => p.isNew).length;
-  const tier1Count = filtered.filter(p => p.actionTier === "tier1_actionable").length;
-  const tier2Count = filtered.filter(p => p.actionTier === "tier2_warm").length;
-  content += `**Summary:** ${filtered.length} matching projects (${hotCount} hot, ${warmCount} warm, ${newCount} new this week)\n`;
+  const hotCount = tierFiltered.filter(p => p.priority === "hot").length;
+  const warmCount = tierFiltered.filter(p => p.priority === "warm").length;
+  const newCount = tierFiltered.filter(p => p.isNew).length;
+  const tier1Count = tierFiltered.filter(p => p.actionTier === "tier1_actionable").length;
+  const tier2Count = tierFiltered.filter(p => p.actionTier === "tier2_warm").length;
+  content += `**Summary:** ${tierFiltered.length} matching projects (${hotCount} hot, ${warmCount} warm, ${newCount} new this week)\n`;
   content += `**Action Tiers:** ${tier1Count} actionable, ${tier2Count} warm pipeline\n\n`;
 
   // Top projects
@@ -249,7 +248,7 @@ function generateDigestContent(
   }
 
   // Contacts
-  if (includeContacts && matchedContacts.length > 0) {
+  if (matchedContacts.length > 0) {
     content += `\n**Key Contacts (${Math.min(matchedContacts.length, 5)} of ${matchedContacts.length}):**\n\n`;
     for (const c of matchedContacts.slice(0, 5)) {
       content += `• **${c.name}** — ${c.title} at ${c.company}`;
@@ -259,53 +258,132 @@ function generateDigestContent(
   }
 
   // Pipeline
-  if (includePipelineUpdates && pipelineCount > 0) {
+  if (pipelineCount > 0) {
     content += `\n**Your Pipeline:** ${pipelineCount} active opportunities\n`;
   }
 
   content += `\n---\n`;
   content += `View the full dashboard for detailed project cards, contractor info, and source links.\n`;
-  content += `Update your preferences in Settings to refine your matches.`;
+  content += `Update your territory and industry preferences in Settings to refine your matches.`;
 
   return content;
 }
 
 /**
- * Check if a digest was already sent within the user's frequency window.
- * Weekly: 6-day guard, Fortnightly: 13-day guard, Daily: 20-hour guard.
+ * Generate a personalized Thursday mid-week reminder for a single user.
+ * Lighter than the Monday digest — focuses on urgent actions, pipeline nudges,
+ * and any new hot projects discovered since Monday.
  */
-function wasDigestSentRecently(lastSentAt: Date | null, frequency: string): boolean {
-  if (!lastSentAt) return false;
-  const guardMs: Record<string, number> = {
-    daily: 20 * 60 * 60 * 1000,       // 20 hours
-    weekly: 6 * 24 * 60 * 60 * 1000,  // 6 days
-    fortnightly: 13 * 24 * 60 * 60 * 1000, // 13 days
-  };
-  const window = guardMs[frequency] ?? guardMs.weekly;
-  return (Date.now() - lastSentAt.getTime()) < window;
+function generateThursdayReminder(
+  userName: string,
+  reportWeek: string,
+  hotProjects: Array<DigestProject & { relevanceScore: number }>,
+  pipelineCount: number,
+  thisWeekSection: string,
+  territories: string[],
+): string {
+  const territoryLabel = territories.length > 0
+    ? territories.includes("NATIONAL") || territories.includes("National")
+      ? "National"
+      : territories.join(", ")
+    : "All Regions";
+
+  let content = `**Mid-Week Intelligence Reminder — ${reportWeek}**\n\n`;
+  content += `Hi ${userName || "there"},\n\n`;
+  content += `Quick mid-week check-in for **${territoryLabel}** — here's what needs your attention.\n\n`;
+
+  // ── This Week Highlights (urgent actions + top projects) ──
+  content += thisWeekSection;
+  content += `\n`;
+
+  // ── Hot projects only ──
+  const actionable = hotProjects.filter(p =>
+    p.actionTier === "tier1_actionable" || p.priority === "hot"
+  );
+
+  if (actionable.length > 0) {
+    content += `---\n\n`;
+    content += `**🔥 Hot & Actionable Projects in Your Territory (${actionable.length}):**\n\n`;
+    for (const p of actionable.slice(0, 5)) {
+      const newBadge = p.isNew ? " [NEW]" : "";
+      content += `🔥 **${p.name}**${newBadge}\n`;
+      content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
+      if (p.overview) {
+        content += `   ${p.overview.substring(0, 100)}...\n`;
+      }
+      content += `\n`;
+    }
+  }
+
+  // Pipeline nudge
+  if (pipelineCount > 0) {
+    content += `\n**📋 Pipeline Reminder:** You have ${pipelineCount} active opportunities — have you updated their status this week?\n`;
+  } else {
+    content += `\n**📋 Pipeline Tip:** No active pipeline claims yet. Check the dashboard for projects worth adding to your pipeline.\n`;
+  }
+
+  content += `\n---\n`;
+  content += `Open the dashboard to review all projects and take action before the weekend.`;
+
+  return content;
 }
 
 /**
- * Update the lastSentAt timestamp for a user's digest preference
+ * Core function: score and filter projects for a specific user profile.
  */
-async function markDigestSent(userId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  await db.update(emailDigestPrefs)
-    .set({ lastSentAt: new Date() })
-    .where(eq(emailDigestPrefs.userId, userId));
+function scoreAndFilterProjects(
+  allProjects: any[],
+  profile: {
+    territories: string[] | null;
+    industries: string[] | null;
+    offerCategories: string[] | null;
+    customerTypes: string[] | null;
+    dealSizeMin: string | null;
+    dealSizeMax: string | null;
+  },
+): Array<DigestProject & { relevanceScore: number }> {
+  const scoredProjects = allProjects.map(p => ({
+    id: p.id,
+    name: p.name,
+    location: p.location,
+    value: p.value,
+    owner: p.owner,
+    priority: p.priority,
+    sector: p.sector,
+    opportunityRoute: p.opportunityRoute,
+    isNew: p.isNew,
+    stage: p.stage,
+    overview: p.overview,
+    actionTier: (p as any).actionTier as ActionTier | null,
+    relevanceScore: scoreProjectForUser(
+      {
+        id: p.id,
+        name: p.name,
+        location: p.location,
+        value: p.value,
+        owner: p.owner,
+        priority: p.priority,
+        sector: p.sector,
+        opportunityRoute: p.opportunityRoute,
+        isNew: p.isNew,
+        stage: p.stage,
+        overview: p.overview,
+        actionTier: (p as any).actionTier as ActionTier | null,
+      },
+      profile,
+    ),
+  }));
+
+  // Sort by relevance
+  scoredProjects.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+  // Filter to relevant projects (score > 40)
+  return scoredProjects.filter(p => p.relevanceScore > 40);
 }
 
 /**
- * Send personalized digests to all enabled users.
- * Called when a new report is published or via admin trigger.
- * Includes deduplication: skips users who already received a digest this week.
- *
- * Now includes "This Week" highlights at the top of every digest:
- * - Top 3 priority projects
- * - Top 2 stakeholder discoveries
- * - 1 urgent action
- * - Link back to the "This Week" page
+ * Send compulsory personalized Monday weekly digests to ALL users with profiles.
+ * No opt-in required — every user who has completed onboarding gets a digest.
  */
 export async function sendWeeklyDigests(force = false): Promise<{
   sent: number;
@@ -326,87 +404,46 @@ export async function sendWeeklyDigests(force = false): Promise<{
   const allProjects = await getProjectsByReportId(report.id);
   const allContacts = await getContactsByReportId(report.id);
 
-  // Get "This Week" summary data for the email highlight section
-  let thisWeekSection = "";
-  try {
-    const thisWeekData = await getThisWeekForEmail();
-    // Build the "This Week" URL — use relative path since we don't know the domain
-    const thisWeekUrl = "/";
-    thisWeekSection = formatThisWeekSection(
-      thisWeekData.top3Projects,
-      thisWeekData.top2Stakeholders,
-      thisWeekData.urgentAction,
-      thisWeekUrl,
-    );
-  } catch (err) {
-    console.warn("[EmailDigest] Failed to get This Week data, continuing without highlights:", err);
-    thisWeekSection = "";
-  }
+  // Get ALL users with profiles (compulsory — no opt-in check)
+  const allUsers = await getAllUsersWithProfiles();
+  console.log(`[EmailDigest] Monday digest: ${allUsers.length} users with profiles`);
 
-  // Get all users with enabled digests
-  const digestUsers = await getAllEnabledDigestUsers();
-
-  for (const { pref, user, profile } of digestUsers) {
+  for (const { user, profile } of allUsers) {
     if (!user || !profile) {
       results.skipped++;
       continue;
     }
 
-    // Deduplication guard: skip if digest was already sent within the user's frequency window
-    if (!force && wasDigestSentRecently(pref.lastSentAt, pref.frequency)) {
-      results.alreadySent++;
-      continue;
-    }
-
     try {
+      // Get personalized "This Week" data for this specific user
+      let thisWeekSection = "";
+      try {
+        const thisWeekData = await getThisWeekForEmail(user.id);
+        const thisWeekUrl = "/";
+        thisWeekSection = formatThisWeekSection(
+          thisWeekData.top3Projects,
+          thisWeekData.top2Stakeholders,
+          thisWeekData.urgentAction,
+          thisWeekUrl,
+        );
+      } catch (err) {
+        console.warn(`[EmailDigest] Failed to get This Week data for user ${user.id}:`, err);
+        thisWeekSection = "";
+      }
+
       // Score projects for this user
-      const scoredProjects = allProjects.map(p => ({
-        id: p.id,
-        name: p.name,
-        location: p.location,
-        value: p.value,
-        owner: p.owner,
-        priority: p.priority,
-        sector: p.sector,
-        opportunityRoute: p.opportunityRoute,
-        isNew: p.isNew,
-        stage: p.stage,
-        overview: p.overview,
-        actionTier: (p as any).actionTier as ActionTier | null,
-        relevanceScore: scoreProjectForUser(
-          {
-            id: p.id,
-            name: p.name,
-            location: p.location,
-            value: p.value,
-            owner: p.owner,
-            priority: p.priority,
-            sector: p.sector,
-            opportunityRoute: p.opportunityRoute,
-            isNew: p.isNew,
-            stage: p.stage,
-            overview: p.overview,
-            actionTier: (p as any).actionTier as ActionTier | null,
-          },
-          {
-            territories: profile.territories as string[] | null,
-            industries: profile.industries as string[] | null,
-            offerCategories: profile.offerCategories as string[] | null,
-            customerTypes: profile.customerTypes as string[] | null,
-            dealSizeMin: profile.dealSizeMin,
-            dealSizeMax: profile.dealSizeMax,
-          }
-        ),
-      }));
-
-      // Sort by relevance
-      scoredProjects.sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-      // Filter to relevant projects (score > 40)
-      const matchedProjects = scoredProjects.filter(p => p.relevanceScore > 40);
+      const matchedProjects = scoreAndFilterProjects(allProjects, {
+        territories: profile.territories as string[] | null,
+        industries: profile.industries as string[] | null,
+        offerCategories: profile.offerCategories as string[] | null,
+        customerTypes: profile.customerTypes as string[] | null,
+        dealSizeMin: profile.dealSizeMin,
+        dealSizeMax: profile.dealSizeMax,
+      });
 
       if (matchedProjects.length === 0) {
         results.skipped++;
+        console.log(`[EmailDigest] Skipping ${user.name} — no matching projects`);
         continue;
       }
 
@@ -417,8 +454,10 @@ export async function sendWeeklyDigests(force = false): Promise<{
       const matchedProjectNames = new Set(matchedProjects.map(p => p.name));
       const matchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
 
-      // Generate the digest content (now includes This Week section)
-      const content = generateDigestContent(
+      const territories = (profile.territories as string[]) || [];
+
+      // Generate the personalized Monday digest
+      const content = generateMondayDigest(
         user.name || "Team Member",
         report.weekEnding,
         matchedProjects,
@@ -431,27 +470,124 @@ export async function sendWeeklyDigests(force = false): Promise<{
           email: c.email,
         })),
         pipeline.length,
-        pref.includeHotOnly,
-        pref.includeContacts,
-        pref.includePipelineUpdates,
         thisWeekSection,
+        territories,
       );
 
       // Send via notification API
       const sent = await notifyOwner({
-        title: `📊 Atlas Copco Intelligence — Week of ${report.weekEnding}`,
+        title: `📊 Weekly Brief for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`,
         content,
       });
 
       if (sent) {
         results.sent++;
-        // Mark digest as sent for this user to prevent duplicates
-        await markDigestSent(user.id);
+        console.log(`[EmailDigest] ✓ Monday digest sent for ${user.name} (${territories.join(", ")})`);
       } else {
         results.failed++;
+        console.warn(`[EmailDigest] ✗ Failed to send Monday digest for ${user.name}`);
       }
     } catch (error) {
       console.error(`[EmailDigest] Failed for user ${user.id}:`, error);
+      results.failed++;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Send compulsory personalized Thursday mid-week reminders to ALL users with profiles.
+ * Lighter than Monday — focuses on urgent actions, hot projects, and pipeline nudges.
+ */
+export async function sendThursdayReminders(): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+}> {
+  const results = { sent: 0, failed: 0, skipped: 0 };
+
+  // Get the latest report
+  const report = await getLatestReport();
+  if (!report) {
+    console.warn("[EmailDigest] No report found, skipping Thursday reminder");
+    return results;
+  }
+
+  // Get all projects for this report
+  const allProjects = await getProjectsByReportId(report.id);
+
+  // Get ALL users with profiles (compulsory)
+  const allUsers = await getAllUsersWithProfiles();
+  console.log(`[EmailDigest] Thursday reminder: ${allUsers.length} users with profiles`);
+
+  for (const { user, profile } of allUsers) {
+    if (!user || !profile) {
+      results.skipped++;
+      continue;
+    }
+
+    try {
+      // Get personalized "This Week" data for this specific user
+      let thisWeekSection = "";
+      try {
+        const thisWeekData = await getThisWeekForEmail(user.id);
+        const thisWeekUrl = "/";
+        thisWeekSection = formatThisWeekSection(
+          thisWeekData.top3Projects,
+          thisWeekData.top2Stakeholders,
+          thisWeekData.urgentAction,
+          thisWeekUrl,
+        );
+      } catch (err) {
+        console.warn(`[EmailDigest] Failed to get This Week data for user ${user.id}:`, err);
+        thisWeekSection = "";
+      }
+
+      // Score projects for this user — only hot/actionable
+      const matchedProjects = scoreAndFilterProjects(allProjects, {
+        territories: profile.territories as string[] | null,
+        industries: profile.industries as string[] | null,
+        offerCategories: profile.offerCategories as string[] | null,
+        customerTypes: profile.customerTypes as string[] | null,
+        dealSizeMin: profile.dealSizeMin,
+        dealSizeMax: profile.dealSizeMax,
+      });
+
+      const hotProjects = matchedProjects.filter(p =>
+        p.priority === "hot" || p.actionTier === "tier1_actionable"
+      );
+
+      // Get pipeline count
+      const pipeline = await getPipelineClaimsByUser(user.id);
+
+      const territories = (profile.territories as string[]) || [];
+
+      // Generate the personalized Thursday reminder
+      const content = generateThursdayReminder(
+        user.name || "Team Member",
+        report.weekEnding,
+        hotProjects,
+        pipeline.length,
+        thisWeekSection,
+        territories,
+      );
+
+      // Send via notification API
+      const sent = await notifyOwner({
+        title: `⚡ Mid-Week Reminder for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`,
+        content,
+      });
+
+      if (sent) {
+        results.sent++;
+        console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
+      } else {
+        results.failed++;
+        console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);
+      }
+    } catch (error) {
+      console.error(`[EmailDigest] Thursday reminder failed for user ${user.id}:`, error);
       results.failed++;
     }
   }

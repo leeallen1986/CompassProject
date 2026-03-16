@@ -559,6 +559,23 @@ export async function getAllEnabledDigestUsers() {
     .where(eq(emailDigestPrefs.enabled, true));
 }
 
+/**
+ * Get ALL users who have a profile set up (completed onboarding).
+ * Used for compulsory digest emails — no opt-in required.
+ * Returns user + profile data for personalization.
+ */
+export async function getAllUsersWithProfiles() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select({
+    user: users,
+    profile: userProfiles,
+  })
+    .from(userProfiles)
+    .innerJoin(users, eq(userProfiles.userId, users.id));
+}
+
 // ── Crowdsourced Contact Verification ──
 
 /**
