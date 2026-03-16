@@ -576,3 +576,5 @@
 - [x] Integrate Resend email API for direct delivery to each user's real email address
 - [x] Update emailDigest.ts to use Resend instead of notifyOwner()
 - [x] Add BL-based scoring boost in digest so NATIONAL users get differentiated content by their assigned business lines
+- [x] Fix: New projects not getting BL scores during pipeline ingest — score on creation (added to all 9 ingest services + increased daily pipeline limit to 100)
+- [x] Verify weekly digest dashboard uses BL-personalized scoring for project ranking (added BL scoring to client-side personalization engine + 5 new tests)

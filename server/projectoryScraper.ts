@@ -19,6 +19,7 @@ import {
   type InsertProject, type InsertContact,
 } from "../drizzle/schema";
 import crypto from "crypto";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Configuration ──
 
@@ -532,6 +533,7 @@ export async function runProjectoryScraper(
 
       const [insertResult] = await db.insert(projects).values(projectData);
       const newProjectId = Number(insertResult.insertId);
+      scoreProjectAsync(newProjectId, "Projectory");
       totalNewProjects++;
       console.log(`[Projectory] New project: ${project.name} (ID: ${newProjectId})`);
 

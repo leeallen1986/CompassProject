@@ -736,7 +736,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   console.log("[DailyPipeline] Step 13: Scoring projects across 9 business lines...");
   try {
     const { getUnscoredProjectIds: getUnscored, scoreAndSaveProjects: bulkScore } = await import("./businessLineScoring");
-    const unscoredIds = await getUnscored(30);
+    const unscoredIds = await getUnscored(100);
     if (unscoredIds.length > 0) {
       const blResult = await bulkScore(unscoredIds);
       completeStep(blScoringStep, {

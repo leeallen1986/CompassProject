@@ -19,6 +19,7 @@ import { getDb } from "./db";
 import { projects, reports, businessLines } from "../drizzle/schema";
 import type { InsertProject } from "../drizzle/schema";
 import { generateAndEnrichContacts } from "./contactEnrichment";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Types ──
 
@@ -679,6 +680,7 @@ export async function runIcnScraper(): Promise<IcnScrapeResult> {
 
     try {
       const [inserted] = await db.insert(projects).values(projectData).$returningId();
+      scoreProjectAsync(inserted.id, "ICN");
       totalNewProjects++;
       console.log(`[ICN] New project: ${icnProject.name} (${icnProject.estimatedValue || "N/A"}, ${icnProject.state})`);
 

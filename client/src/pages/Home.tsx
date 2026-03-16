@@ -796,6 +796,14 @@ export default function Home() {
     return map;
   }, [activeBusinessLines]);
 
+  // Build BL name → ID map for personalization scoring
+  const blNameToIdMap: Record<string, number> = useMemo(() => {
+    if (!activeBusinessLines) return {};
+    const map: Record<string, number> = {};
+    activeBusinessLines.forEach((bl: any) => { map[bl.name] = bl.id; });
+    return map;
+  }, [activeBusinessLines]);
+
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
@@ -827,6 +835,7 @@ export default function Home() {
     dealSizeMax: profile.dealSizeMax,
     stageTiming: profile.stageTiming as string[] | null,
     buyerRoles: profile.buyerRoles as string[] | null,
+    assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
   } : null;
 
   const feedbackData: FeedbackData[] = (feedbackList ?? []).map((f: any) => ({
@@ -845,7 +854,8 @@ export default function Home() {
   const personalizedProjects = scoreAndRankProjects(
     projects as ProjectData[],
     profileData,
-    feedbackData
+    feedbackData,
+    blNameToIdMap
   );
 
   // ── Action Tier filter: filter by sales action classification ──

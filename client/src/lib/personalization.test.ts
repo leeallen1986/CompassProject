@@ -216,4 +216,88 @@ describe("scoreAndRankProjects", () => {
     expect(result[0].relevanceScore!).toBeLessThanOrEqual(100);
     expect(result[0].relevanceScore!).toBeGreaterThanOrEqual(0);
   });
+
+  // ── Business Line scoring tests ──
+
+  it("boosts score for business line match", () => {
+    const blMap = { "Portable Air": 1, "Pump (Flow)": 2, "PAL": 3 };
+    const projects = [
+      makeProject({ id: 1, matchedBusinessLines: [1] }),     // Portable Air
+      makeProject({ id: 2, matchedBusinessLines: [2] }),     // Pump
+      makeProject({ id: 3, matchedBusinessLines: [3] }),     // PAL
+    ];
+    const profile: UserProfileData = {
+      assignedBusinessLines: ["Pump (Flow)"],
+    };
+    const result = scoreAndRankProjects(projects, profile, [], blMap);
+
+    const pumpProject = result.find(p => p.id === 2)!;
+    const airProject = result.find(p => p.id === 1)!;
+    expect(pumpProject.relevanceScore!).toBeGreaterThan(airProject.relevanceScore!);
+    expect(pumpProject.relevanceReasons).toContain("Business line match");
+  });
+
+  it("differentiates Josh (Pump) vs Ryan (Portable Air)", () => {
+    const blMap = { "Portable Air": 1, "Pump (Flow)": 2, "PAL": 3, "BESS": 4 };
+    const projects = [
+      makeProject({ id: 1, name: "Water Treatment Plant", matchedBusinessLines: [2] }),
+      makeProject({ id: 2, name: "Mine Site Compressors", matchedBusinessLines: [1] }),
+      makeProject({ id: 3, name: "Battery Storage", matchedBusinessLines: [4] }),
+    ];
+
+    const joshProfile: UserProfileData = { assignedBusinessLines: ["Pump (Flow)"] };
+    const ryanProfile: UserProfileData = { assignedBusinessLines: ["Portable Air"] };
+
+    const joshResult = scoreAndRankProjects(projects, joshProfile, [], blMap);
+    const ryanResult = scoreAndRankProjects(projects, ryanProfile, [], blMap);
+
+    // Josh should see Water Treatment (Pump) ranked higher
+    expect(joshResult[0].id).toBe(1);
+    // Ryan should see Mine Site Compressors (Portable Air) ranked higher
+    expect(ryanResult[0].id).toBe(2);
+  });
+
+  it("gives extra boost for multiple BL matches", () => {
+    const blMap = { "PAL": 1, "BESS": 2, "Pump (Flow)": 3 };
+    const projects = [
+      makeProject({ id: 1, matchedBusinessLines: [1, 2] }),  // PAL + BESS
+      makeProject({ id: 2, matchedBusinessLines: [1] }),     // PAL only
+    ];
+    const profile: UserProfileData = {
+      assignedBusinessLines: ["PAL", "BESS"],
+    };
+    const result = scoreAndRankProjects(projects, profile, [], blMap);
+
+    const dualMatch = result.find(p => p.id === 1)!;
+    const singleMatch = result.find(p => p.id === 2)!;
+    expect(dualMatch.relevanceScore!).toBeGreaterThan(singleMatch.relevanceScore!);
+  });
+
+  it("applies slight penalty when project BLs don't match user BLs", () => {
+    const blMap = { "Portable Air": 1, "Pump (Flow)": 2 };
+    const projects = [
+      makeProject({ id: 1, matchedBusinessLines: [1] }),     // Portable Air
+      makeProject({ id: 2, matchedBusinessLines: null }),    // No BL data
+    ];
+    const profile: UserProfileData = {
+      assignedBusinessLines: ["Pump (Flow)"],
+    };
+    const result = scoreAndRankProjects(projects, profile, [], blMap);
+
+    const mismatchProject = result.find(p => p.id === 1)!;
+    const unscoredProject = result.find(p => p.id === 2)!;
+    // Mismatched project gets -5 penalty, unscored gets no penalty
+    expect(mismatchProject.relevanceScore!).toBeLessThan(unscoredProject.relevanceScore!);
+  });
+
+  it("works without BL map (backward compatible)", () => {
+    const projects = [makeProject({ id: 1, matchedBusinessLines: [1, 2] })];
+    const profile: UserProfileData = {
+      assignedBusinessLines: ["Pump (Flow)"],
+    };
+    // No blMap passed — should not crash, BL scoring just skipped
+    const result = scoreAndRankProjects(projects, profile, []);
+    expect(result).toHaveLength(1);
+    expect(result[0].relevanceReasons).not.toContain("Business line match");
+  });
 });

@@ -2,12 +2,13 @@
  * Personalization Engine — soft-ranks projects based on user profile preferences.
  *
  * Scoring dimensions (each 0–100, weighted):
- *  1. Territory match (25%)     — does the project location match the user's territories?
- *  2. Industry match (25%)      — does the project sector match the user's industries?
- *  3. Opportunity route (15%)   — does the project route match the user's offer categories?
- *  4. Customer type (15%)       — does the contractor type match the user's customer types?
- *  5. Key account boost (10%)   — is the owner or contractor a key account?
- *  6. Feedback learning (10%)   — has the user thumbs-up'd similar projects?
+ *  1. Territory match (20%)     — does the project location match the user's territories?
+ *  2. Industry match (20%)      — does the project sector match the user's industries?
+ *  3. Business line match (20%) — does the project's BL match the user's assigned BLs?
+ *  4. Opportunity route (10%)   — does the project route match the user's offer categories?
+ *  5. Customer type (10%)       — does the contractor type match the user's customer types?
+ *  6. Key account boost (10%)   — is the owner or contractor a key account?
+ *  7. Feedback learning (10%)   — has the user thumbs-up'd similar projects?
  *
  * Returns projects sorted by relevance score (highest first), with score and reasons attached.
  */
@@ -25,6 +26,7 @@ export interface UserProfileData {
   dealSizeMax?: string | null;
   stageTiming?: string[] | null;
   buyerRoles?: string[] | null;
+  assignedBusinessLines?: string[] | null;
 }
 
 export interface FeedbackData {
@@ -32,6 +34,9 @@ export interface FeedbackData {
   vote: "up" | "down";
   reason: string | null;
 }
+
+/** Maps BL name → BL ID for matching user's assigned BLs to project's matchedBusinessLines */
+export type BusinessLineMap = Record<string, number>;
 
 // ── State abbreviation mapping ──
 const stateAbbreviations: Record<string, string[]> = {
@@ -98,21 +103,30 @@ function isExcludedAccount(project: ProjectData, excludeAccounts: string[]): boo
 export function scoreAndRankProjects(
   projects: ProjectData[],
   profile: UserProfileData | null,
-  feedback: FeedbackData[]
+  feedback: FeedbackData[],
+  blMap?: BusinessLineMap | null
 ): ProjectData[] {
   // If no profile, return projects as-is (no personalization)
   if (!profile) return projects;
 
   const feedbackMap = new Map(feedback.map(f => [f.projectId, f]));
 
+  // Build set of BL IDs that the user is assigned to
+  const userBLIds = new Set<number>();
+  if (profile.assignedBusinessLines && profile.assignedBusinessLines.length > 0 && blMap) {
+    for (const blName of profile.assignedBusinessLines) {
+      // Try exact match first, then case-insensitive
+      const id = blMap[blName] ?? Object.entries(blMap).find(
+        ([name]) => name.toLowerCase() === blName.toLowerCase()
+      )?.[1];
+      if (id !== undefined) userBLIds.add(id);
+    }
+  }
+
   // Track sectors/locations that got thumbs up for learning
-  const upvotedSectors = new Set<string>();
   const downvotedReasons = new Map<string, number>();
 
   feedback.forEach(f => {
-    if (f.vote === "up") {
-      // We don't have the project data here, but we track by ID
-    }
     if (f.vote === "down" && f.reason) {
       downvotedReasons.set(f.reason, (downvotedReasons.get(f.reason) || 0) + 1);
     }
@@ -122,35 +136,53 @@ export function scoreAndRankProjects(
     let score = 50; // Base score
     const reasons: string[] = [];
 
-    // 1. Territory match (25 points)
+    // 1. Territory match (20 points)
     if (profile.territories && profile.territories.length > 0) {
       if (locationMatchesTerritory(project.location, profile.territories)) {
-        score += 25;
+        score += 20;
         reasons.push("Territory match");
       } else {
         score -= 10;
       }
     }
 
-    // 2. Industry match (25 points)
+    // 2. Industry match (20 points)
     if (profile.industries && profile.industries.length > 0) {
       if (sectorMatchesIndustries(project.sector, profile.industries)) {
-        score += 25;
+        score += 20;
         reasons.push("Industry match");
       } else {
         score -= 10;
       }
     }
 
-    // 3. Opportunity route match (15 points)
+    // 3. Business line match (20 points) — NEW
+    if (userBLIds.size > 0) {
+      const projectBLs = project.matchedBusinessLines;
+      if (projectBLs && projectBLs.length > 0) {
+        const matchCount = projectBLs.filter(blId => userBLIds.has(blId)).length;
+        if (matchCount > 0) {
+          // Scale boost: 1 match = 15pts, 2+ matches = 20pts
+          const blBoost = matchCount >= 2 ? 20 : 15;
+          score += blBoost;
+          reasons.push("Business line match");
+        } else {
+          // Project has BLs but none match user's — slight penalty
+          score -= 5;
+        }
+      }
+      // If project has no BL data at all, no penalty (unscored)
+    }
+
+    // 4. Opportunity route match (10 points)
     if (profile.offerCategories && profile.offerCategories.length > 0) {
       if (routeMatchesOfferCategories(project.opportunityRoute, profile.offerCategories)) {
-        score += 15;
+        score += 10;
         reasons.push("Offer category match");
       }
     }
 
-    // 4. Customer type match (15 points)
+    // 5. Customer type match (10 points)
     if (profile.customerTypes && profile.customerTypes.length > 0) {
       const hasContractor = project.contractors?.some(c => c.status === "confirmed") ?? false;
       const isOwnerOperator = !hasContractor;
@@ -159,12 +191,12 @@ export function scoreAndRankProjects(
         (profile.customerTypes.includes("owner_operator") && isOwnerOperator) ||
         profile.customerTypes.includes("both")
       ) {
-        score += 15;
+        score += 10;
         reasons.push("Customer type match");
       }
     }
 
-    // 5. Key account boost (10 points)
+    // 6. Key account boost (10 points)
     if (profile.keyAccounts && profile.keyAccounts.length > 0) {
       if (isKeyAccount(project, profile.keyAccounts)) {
         score += 10;
@@ -172,7 +204,7 @@ export function scoreAndRankProjects(
       }
     }
 
-    // 6. Exclude accounts (hard filter — set score to 0)
+    // 7. Exclude accounts (hard filter — set score to 0)
     if (profile.excludeAccounts && profile.excludeAccounts.length > 0) {
       if (isExcludedAccount(project, profile.excludeAccounts)) {
         score = 0;
@@ -181,7 +213,7 @@ export function scoreAndRankProjects(
       }
     }
 
-    // 7. Feedback learning (10 points)
+    // 8. Feedback learning (10 points)
     const fb = feedbackMap.get(project.id);
     if (fb) {
       if (fb.vote === "up") {

@@ -120,6 +120,27 @@ BUSINESS LINES:
 9. **Rental Influence**: Rental fleet opportunity — short-term hire, OPEX model rather than CAPEX purchase. Score high for short-duration projects, contractor-led work, shutdown/turnaround, projects where rental is more likely than purchase.`;
 }
 
+// ── Fire-and-forget scoring for newly inserted projects ──
+
+/**
+ * Non-blocking BL scoring for a newly inserted project.
+ * Call this immediately after inserting a project in any ingest service.
+ * Logs success/failure but never throws.
+ */
+export function scoreProjectAsync(projectId: number, source: string = "unknown"): void {
+  scoreProject(projectId)
+    .then(scores => {
+      if (scores) {
+        saveProjectScores(scores).then(() => {
+          console.log(`[BL-Scoring] Scored project ${projectId} from ${source}: top=${scores.topDimensions.join(", ")}`);
+        });
+      }
+    })
+    .catch(err => {
+      console.error(`[BL-Scoring] Failed to score project ${projectId} from ${source}:`, err instanceof Error ? err.message : String(err));
+    });
+}
+
 // ── Score a single project ──
 
 export async function scoreProject(projectId: number): Promise<ProjectScores | null> {

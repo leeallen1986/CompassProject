@@ -22,6 +22,7 @@ import {
 import { invokeLLM } from "./_core/llm";
 import { generateAndEnrichContacts } from "./contactEnrichment";
 import { classifyStage } from "./tierClassification";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Configuration ──
 
@@ -768,6 +769,9 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       await db.update(rawArticles)
         .set({ status: "extracted", extractedAt: new Date(), extractedData: result.project as unknown as Record<string, unknown> })
         .where(eq(rawArticles.id, result.articleId));
+
+      // Auto-score business lines for the new project (non-blocking)
+      scoreProjectAsync(newProjectId, "AIExtractor");
 
       // Auto-enrich contacts for the new project (non-blocking)
       generateAndEnrichContacts(

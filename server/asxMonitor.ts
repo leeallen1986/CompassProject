@@ -19,6 +19,7 @@ import { projects, reports, businessLines } from "../drizzle/schema";
 import type { InsertProject } from "../drizzle/schema";
 import { ASX_WATCHLIST, ASX_PROJECT_KEYWORDS, ASX_FINANCIAL_DISCARD_KEYWORDS } from "./sourceConfig";
 import { invokeLLM } from "./_core/llm";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Types ──
 
@@ -455,7 +456,8 @@ export async function runAsxMonitor(daysBack: number = 7): Promise<AsxMonitorRes
         };
 
         try {
-          await db.insert(projects).values(projectData);
+          const [asxInserted] = await db.insert(projects).values(projectData).$returningId();
+          scoreProjectAsync(asxInserted.id, "ASX");
           totalNewProjects++;
           console.log(`[ASX] New project: ${signal.projectName} (${signal.companyCode}, ${signal.location})`);
         } catch (insertErr) {

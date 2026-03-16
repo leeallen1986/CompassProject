@@ -12,6 +12,7 @@ import {
   type InsertProject, type InsertContact,
 } from "../drizzle/schema";
 import crypto from "crypto";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Types (matches client-side types) ──
 
@@ -259,6 +260,7 @@ export async function ingestProjectoryArticles(
 
       const [insertResult] = await db.insert(projects).values(projectData);
       const newProjectId = Number(insertResult.insertId);
+      scoreProjectAsync(newProjectId, "Projectory");
       totalNewProjects++;
       console.log(`[Projectory Ingest] New project: ${item.project.name} (ID: ${newProjectId})`);
 

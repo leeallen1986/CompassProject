@@ -27,6 +27,7 @@ import { getDb } from "./db";
 import { projects, reports, businessLines } from "../drizzle/schema";
 import type { InsertProject } from "../drizzle/schema";
 import { generateAndEnrichContacts } from "./contactEnrichment";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Types ──
 
@@ -540,6 +541,7 @@ export async function runAusTenderScraper(): Promise<AusTenderScrapeResult> {
 
     try {
       const [inserted] = await db.insert(projects).values(projectData).$returningId();
+      scoreProjectAsync(inserted.id, "AusTender");
       totalNewProjects++;
       console.log(`[AusTender] New: ${projectName} (${formatCurrency(value)}, ${location})`);
 

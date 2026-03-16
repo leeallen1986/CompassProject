@@ -16,6 +16,7 @@ import { getDb } from "./db";
 import { projects, reports, businessLines } from "../drizzle/schema";
 import type { InsertProject } from "../drizzle/schema";
 import { generateAndEnrichContacts } from "./contactEnrichment";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Types ──
 
@@ -571,6 +572,7 @@ export async function runAemoScraper(): Promise<AemoScrapeResult> {
 
     try {
       const [inserted] = await db.insert(projects).values(projectData).$returningId();
+      scoreProjectAsync(inserted.id, "AEMO");
       totalNewProjects++;
       console.log(`[AEMO] New project: ${aemoProject.name} (${aemoProject.capacity}, ${aemoProject.status})`);
 

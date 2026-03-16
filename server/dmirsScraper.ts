@@ -23,6 +23,7 @@ import {
   type InsertProject,
 } from "../drizzle/schema";
 import crypto from "crypto";
+import { scoreProjectAsync } from "./businessLineScoring";
 
 // ── Configuration ──
 
@@ -446,7 +447,8 @@ export async function runDmirsScraper(
     };
 
     try {
-      await db.insert(projects).values(projectData);
+      const [dmInserted] = await db.insert(projects).values(projectData).$returningId();
+      scoreProjectAsync(dmInserted.id, "DMIRS");
       totalNewProjects++;
       console.log(`[DMIRS] New project: ${cleanedName} (Reg ${reg.id}, Operator: ${operator})`);
     } catch (insertErr) {
