@@ -528,13 +528,19 @@ describe("target roles by sector", () => {
 import { parseListingPage, parseArticlePage } from "./projectoryScraper";
 
 describe("parseListingPage", () => {
-  it("extracts article links from a typical listing page", () => {
+  it("extracts article links from a typical c-teaser listing page", () => {
     const html = `
-      <div class="article-list">
-        <h3 class="entry-title"><a href="https://www.projectory.com.au/article/new-gold-mine-wa">New Gold Mine in WA</a></h3>
-        <span>on January 15, 2026</span>
-        <h3 class="entry-title"><a href="https://www.projectory.com.au/article/solar-farm-qld">Solar Farm QLD Expansion</a></h3>
-        <span>on February 1, 2026</span>
+      <div class="c-teaser">
+        <h3 class="c-teaser__title">
+          <a class="c-teaser__link" href="https://www.projectory.com.au/article/new-gold-mine-wa" title="New Gold Mine in WA">New Gold Mine in WA</a>
+        </h3>
+        <div class="c-teaser__footer"><div>By Staff on January 15, 2026</div></div>
+      </div>
+      <div class="c-teaser">
+        <h3 class="c-teaser__title">
+          <a class="c-teaser__link" href="https://www.projectory.com.au/article/solar-farm-qld" title="Solar Farm QLD Expansion">Solar Farm QLD Expansion</a>
+        </h3>
+        <div class="c-teaser__footer"><div>By Staff on February 1, 2026</div></div>
       </div>
     `;
     const articles = parseListingPage(html);
@@ -553,7 +559,9 @@ describe("parseListingPage", () => {
 
   it("handles articles without dates gracefully", () => {
     const html = `
-      <h3 class="entry-title"><a href="https://www.projectory.com.au/article/test-project">Test Project</a></h3>
+      <h3 class="c-teaser__title">
+        <a class="c-teaser__link" href="https://www.projectory.com.au/article/test-project" title="Test Project">Test Project</a>
+      </h3>
     `;
     const articles = parseListingPage(html);
     expect(articles).toHaveLength(1);

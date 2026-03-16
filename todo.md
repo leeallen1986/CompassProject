@@ -562,3 +562,6 @@
 
 ## Bug Fixes
 - [x] BUG: Clicking project cards and suggested actions on This Week page navigates to Full Dashboard instead of the specific project — fixed with deep-link: ?project=ID auto-switches to Projects tab, scrolls to card, highlights it, and auto-expands
+- [x] Fix legacy Projectory scraper listing page parser — regex doesn't match c-teaser__title HTML structure
+- [x] Fix Projectory enrichment search parser — regex doesn't match actual search result HTML structure
+- [x] Write vitest tests for updated Projectory parsers with real HTML samples

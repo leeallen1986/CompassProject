@@ -226,29 +226,42 @@ async function searchProject(projectName: string): Promise<{ url: string; title:
   const html = await authenticatedFetch(searchUrl);
 
   const results: { url: string; title: string }[] = [];
+  const seenUrls = new Set<string>();
 
-  // Match article links with titles
-  const articleRegex = /href="(\/article\/[^"]+)"[^>]*>([^<]*)/g;
+  // Primary: Match c-teaser blocks (Projectory's actual HTML structure)
+  // <h3 class="c-teaser__title">
+  //   <a class="c-teaser__link" href="https://www.projectory.com.au/article/...">Title</a>
+  // </h3>
+  const teaserRegex = /<h3[^>]*class="[^"]*c-teaser__title[^"]*"[^>]*>[\s\S]*?<a[^>]*href="(https?:\/\/www\.projectory\.com\.au\/(?:article|project)\/[^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h3>/gi;
   let match;
-  while ((match = articleRegex.exec(html)) !== null) {
-    const title = match[2].trim();
-    if (title) {
-      results.push({
-        url: `https://www.projectory.com.au${match[1]}`,
-        title,
-      });
+  while ((match = teaserRegex.exec(html)) !== null) {
+    const url = match[1].trim();
+    const title = match[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (title && !seenUrls.has(url)) {
+      seenUrls.add(url);
+      results.push({ url, title });
     }
   }
 
-  // Match project links
-  const projectRegex = /href="(\/project\/[^"]+)"[^>]*>([^<]*)/g;
-  while ((match = projectRegex.exec(html)) !== null) {
+  // Fallback: Match any article/project links with full URLs (covers both relative and absolute)
+  const fullUrlRegex = /href="(https?:\/\/www\.projectory\.com\.au\/(?:article|project)\/[^"]+)"[^>]*>([^<]*)/g;
+  while ((match = fullUrlRegex.exec(html)) !== null) {
+    const url = match[1].trim();
     const title = match[2].trim();
-    if (title) {
-      results.push({
-        url: `https://www.projectory.com.au${match[1]}`,
-        title,
-      });
+    if (title && !seenUrls.has(url)) {
+      seenUrls.add(url);
+      results.push({ url, title });
+    }
+  }
+
+  // Fallback: Match relative article/project links (legacy format)
+  const relativeRegex = /href="(\/(?:article|project)\/[^"]+)"[^>]*>([^<]*)/g;
+  while ((match = relativeRegex.exec(html)) !== null) {
+    const url = `https://www.projectory.com.au${match[1].trim()}`;
+    const title = match[2].trim();
+    if (title && !seenUrls.has(url)) {
+      seenUrls.add(url);
+      results.push({ url, title });
     }
   }
 

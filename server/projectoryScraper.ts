@@ -172,37 +172,42 @@ async function fetchPage(url: string): Promise<string> {
 export function parseListingPage(html: string): ProjectoryArticle[] {
   const articles: ProjectoryArticle[] = [];
 
-  // Each article is in an <article> or similar block with an h3 link
-  // Pattern: <h3...><a href="https://www.projectory.com.au/article/...">Title</a></h3>
-  const articleLinkRegex = /<h3[^>]*>\s*<a\s+href="(https?:\/\/www\.projectory\.com\.au\/article\/[^"]+)"[^>]*>([^<]+)<\/a>\s*<\/h3>/gi;
+  // Projectory uses c-teaser blocks with structure:
+  // <h3 class="c-teaser__title">
+  //   <a class="c-teaser__link" href="https://www.projectory.com.au/article/...">Title</a>
+  // </h3>
+  // Followed by c-teaser__footer with date, categories, and regions
+  const articleLinkRegex = /<h3[^>]*class="[^"]*c-teaser__title[^"]*"[^>]*>[\s\S]*?<a[^>]*href="(https?:\/\/www\.projectory\.com\.au\/article\/[^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h3>/gi;
   let match;
 
   while ((match = articleLinkRegex.exec(html)) !== null) {
     const url = match[1];
     const title = stripHtml(match[2]);
 
-    // Try to find the date near this article
-    const afterMatch = html.slice(match.index, match.index + 2000);
+    // Look ahead into the c-teaser__footer block for date, categories, regions
+    const afterMatch = html.slice(match.index, match.index + 3000);
+
+    // Extract date: "on March 16, 2026" or "on March 9, 2026"
     const dateMatch = afterMatch.match(/on\s+((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})/i);
     const date = dateMatch ? dateMatch[1] : "";
 
-    // Extract category tags
-    const categoryRegex = /category\/([^"]+)"[^>]*>\s*([^<]+)/gi;
+    // Extract category tags from /category/ links
     const categories: string[] = [];
+    const catRegex = /href="https?:\/\/www\.projectory\.com\.au\/category\/[^"]+"[^>]*title="([^"]+)"/gi;
+    const footerSection = afterMatch.slice(0, 2000);
     let catMatch;
-    const catSection = afterMatch.slice(0, 1000);
-    while ((catMatch = categoryRegex.exec(catSection)) !== null) {
-      categories.push(stripHtml(catMatch[2]));
+    while ((catMatch = catRegex.exec(footerSection)) !== null) {
+      const cat = stripHtml(catMatch[1]);
+      if (cat && !categories.includes(cat)) categories.push(cat);
     }
 
-    // Extract region tags (after location icon)
+    // Extract region tags from /region/ links
     const regions: string[] = [];
-    const regionMatch = catSection.match(/(?:📍|location|region)[^<]*(?:<[^>]+>)*\s*<a[^>]*>([^<]+)<\/a>/gi);
-    if (regionMatch) {
-      for (const rm of regionMatch) {
-        const nameMatch = rm.match(/>([^<]+)<\/a>/i);
-        if (nameMatch) regions.push(stripHtml(nameMatch[1]));
-      }
+    const regionRegex = /href="https?:\/\/www\.projectory\.com\.au\/region\/[^"]+"[^>]*title="([^"]+)"/gi;
+    let regionMatch;
+    while ((regionMatch = regionRegex.exec(footerSection)) !== null) {
+      const region = stripHtml(regionMatch[1]);
+      if (region && !regions.includes(region)) regions.push(region);
     }
 
     articles.push({ title, url, date, categories, regions });
