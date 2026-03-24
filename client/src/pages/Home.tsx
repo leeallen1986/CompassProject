@@ -14,7 +14,7 @@ import {
   BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
   ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
   ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp,
-  Archive, Clock, Award, Check, Eye
+  Archive, Clock, Award, Check, Eye, CalendarDays
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -973,6 +973,10 @@ export default function Home() {
               {/* User info & settings & logout */}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
+                <Link href="/" className="text-xs text-gold hover:text-gold-light flex items-center gap-1 transition-colors font-semibold">
+                  <CalendarDays className="w-3 h-3" /> This Week
+                </Link>
+                <span className="text-slate-600">|</span>
                 <Link href="/pipeline" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Target className="w-3 h-3" /> Pipeline
                 </Link>

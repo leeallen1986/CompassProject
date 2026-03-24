@@ -615,3 +615,9 @@
 
 ## Deep-Link Navigation Fix
 - [x] Fix /dashboard?project=ID deep-link: clicking project cards on This Week page navigates to dashboard but does NOT auto-scroll/highlight/expand the specific project
+
+## Dashboard Navigation
+- [x] Add 'This Week' navigation button to Dashboard header (alongside Pipeline, Settings, Admin)
+
+## Weekly Monday Email
+- [x] Send Monday weekly email to all logins with top 3 projects, top 2 stakeholder discoveries, 1 urgent action, and link to This Week page

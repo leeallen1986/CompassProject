@@ -1,0 +1,98 @@
+{
+  "query": "SELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE up.userId IS NOT NULL ORDER BY u.id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE up.userId IS NOT NULL ORDER BY u.id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"WA\", \"NSW\", \"VIC\", \"SA\", \"ACT\", \"TAS\", \"QLD\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"QLD\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "id": "2340050",
+      "name": "Josh Lipscombe",
+      "email": "josh.lipscombe@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\"]"
+    },
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\"]"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "id": "3360129",
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"PAL\", \"BESS\", \"Pump (Flow)\"]"
+    },
+    {
+      "id": "3360134",
+      "name": "Ray Clinch",
+      "email": "ray.clinch@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"PAL\", \"BESS\", \"Pump (Flow)\"]"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\"]"
+    },
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"PAL\", \"BESS\"]"
+    },
+    {
+      "id": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tterritories\tassignedBusinessLines\n1\tLee\tlee.allen@atlascopco.com\tadmin\t[\"WA\", \"NSW\", \"VIC\", \"SA\", \"ACT\", \"TAS\", \"QLD\", \"NT\"]\t[\"Portable Air\"]\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\t[\"WA\", \"QLD\"]\t[\"Portable Air\"]\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t[\"WA\"]\t[\"Portable Air\"]\n2340050\tJosh Lipscombe\tjosh.lipscombe@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"Pump (Flow)\"]\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\t[\"WA\", \"NT\"]\t[\"Pump (Flow)\"]\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\t[\"NSW\", \"VIC\", \"SA\", \"TAS\", \"ACT\"]\t[\"Portable Air\"]\n3360129\tTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\tadmin\t[\"NATIONAL\"]\t[\"Portable Air\", \"PAL\", \"BESS\", \"Pump (Flow)\"]\n3360134\tRay Clinch\tray.clinch@atlascopco.com\tadmin\t[\"NATIONAL\"]\t[\"PAL\", \"BESS\", \"Pump (Flow)\"]\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"Pump (Flow)\"]\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"PAL\", \"BESS\"]\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1566
+}
