@@ -20,6 +20,12 @@ import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClass
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 
+/**
+ * Base URL for the published app — used to build clickable links in digest emails.
+ * Falls back to compasspt.manus.space if no env var is set.
+ */
+const APP_BASE_URL = (process.env.APP_BASE_URL || "https://compasspt.manus.space").replace(/\/$/, "");
+
 interface DigestProject {
   id: number;
   name: string;
@@ -206,16 +212,23 @@ function formatThisWeekSection(
       const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
       const newBadge = p.isNew ? " [NEW]" : "";
       const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
-      section += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
+      const projectUrl = `${APP_BASE_URL}/projects/${p.id}`;
+      section += `${priorityEmoji} **[${p.name}](${projectUrl})**${newBadge}${tierBadge}\n`;
       section += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
       if (p.detectedActivities.length > 0) {
         section += `   🏗️ Activities: ${p.detectedActivities.slice(0, 3).join(", ")}\n`;
       }
       if (p.contractors && p.contractors.length > 0) {
-        section += `   🔧 Contractors: ${p.contractors.slice(0, 2).map(c => c.name).join(", ")}\n`;
+        // Strip any HTML tags from contractor names (data may contain raw HTML)
+        const cleanNames = p.contractors.slice(0, 2).map(c => c.name.replace(/<[^>]*>/g, "").trim()).filter(Boolean);
+        if (cleanNames.length > 0) {
+          section += `   🔧 Contractors: ${cleanNames.join(", ")}\n`;
+        }
       }
       if (p.overview) {
-        section += `   ${p.overview.substring(0, 120)}...\n`;
+        // Strip any HTML tags from overview text
+        const cleanOverview = p.overview.replace(/<[^>]*>/g, "").trim();
+        section += `   ${cleanOverview.substring(0, 120)}...\n`;
       }
       section += `\n`;
     }
@@ -295,11 +308,13 @@ function generateMondayDigest(
     const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
     const newBadge = p.isNew ? " [NEW]" : "";
     const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
-    content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
+    const projectUrl = `${APP_BASE_URL}/projects/${p.id}`;
+    content += `${priorityEmoji} **[${p.name}](${projectUrl})**${newBadge}${tierBadge}\n`;
     content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
     content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}%\n`;
     if (p.overview) {
-      content += `   ${p.overview.substring(0, 120)}...\n`;
+      const cleanOverview = p.overview.replace(/<[^>]*>/g, "").trim();
+      content += `   ${cleanOverview.substring(0, 120)}...\n`;
     }
     content += `\n`;
   }
@@ -320,8 +335,9 @@ function generateMondayDigest(
   }
 
   content += `\n---\n`;
-  content += `View the full dashboard for detailed project cards, contractor info, and source links.\n`;
-  content += `Update your territory and industry preferences in Settings to refine your matches.`;
+  content += `[**→ Open Your Dashboard**](${APP_BASE_URL})\n\n`;
+  content += `View detailed project cards, contractor info, source links, and take action on your pipeline.\n`;
+  content += `[Update your preferences](${APP_BASE_URL}/settings) to refine your matches.`;
 
   return content;
 }
@@ -363,10 +379,12 @@ function generateThursdayReminder(
     content += `**🔥 Hot & Actionable Projects in Your Territory (${actionable.length}):**\n\n`;
     for (const p of actionable.slice(0, 5)) {
       const newBadge = p.isNew ? " [NEW]" : "";
-      content += `🔥 **${p.name}**${newBadge}\n`;
+      const projectUrl = `${APP_BASE_URL}/projects/${p.id}`;
+      content += `🔥 **[${p.name}](${projectUrl})**${newBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
       if (p.overview) {
-        content += `   ${p.overview.substring(0, 100)}...\n`;
+        const cleanOverview = p.overview.replace(/<[^>]*>/g, "").trim();
+        content += `   ${cleanOverview.substring(0, 100)}...\n`;
       }
       content += `\n`;
     }
@@ -380,7 +398,8 @@ function generateThursdayReminder(
   }
 
   content += `\n---\n`;
-  content += `Open the dashboard to review all projects and take action before the weekend.`;
+  content += `[**→ Open Your Dashboard**](${APP_BASE_URL})\n\n`;
+  content += `Review all projects and take action before the weekend.`;
 
   return content;
 }
@@ -501,7 +520,7 @@ export async function sendWeeklyDigests(force = false, targetUserIds?: number[])
       let thisWeekSection = "";
       try {
         const thisWeekData = await getThisWeekForEmail(user.id);
-        const thisWeekUrl = "/";
+        const thisWeekUrl = APP_BASE_URL;
         thisWeekSection = formatThisWeekSection(
           thisWeekData.top3Projects,
           thisWeekData.top2Stakeholders,
@@ -631,7 +650,7 @@ export async function sendThursdayReminders(): Promise<{
       let thisWeekSection = "";
       try {
         const thisWeekData = await getThisWeekForEmail(user.id);
-        const thisWeekUrl = "/";
+        const thisWeekUrl = APP_BASE_URL;
         thisWeekSection = formatThisWeekSection(
           thisWeekData.top3Projects,
           thisWeekData.top2Stakeholders,
@@ -643,7 +662,7 @@ export async function sendThursdayReminders(): Promise<{
         thisWeekSection = "";
       }
 
-      // Score projects for this user — only hot/actionable (with BL personalization)
+      // Only hot projects for this user — only hot/actionable (with BL personalization)
       const matchedProjects = await scoreAndFilterProjects(allProjects, {
         territories: profile.territories as string[] | null,
         industries: profile.industries as string[] | null,

@@ -52,8 +52,10 @@ function markdownToHtml(md: string): string {
     .replace(/^\*\*(.+?)\*\*$/gm, '<h3 style="color:#0d2137;margin:16px 0 8px;">$1</h3>')
     // Bold inline
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#c8a951;">$1</a>')
+    // Links — detect "Open Your Dashboard" CTA and render as button
+    .replace(/\[\*\*→ Open Your Dashboard\*\*\]\(([^)]+)\)/g, '<div style="text-align:center;margin:20px 0;"><a href="$1" style="display:inline-block;background:#c8a951;color:#0d2137;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;">→ Open Your Dashboard</a></div>')
+    // Regular links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#c8a951;text-decoration:underline;">$1</a>')
     // Horizontal rules
     .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0;">')
     // Bullet points

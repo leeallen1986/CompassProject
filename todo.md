@@ -600,3 +600,10 @@
 
 ## Email FROM Address Update
 - [x] Update FROM address in emailSender to digest@ptaltascopcointel.com (verified domain)
+
+## Email Digest Hyperlinks
+- [x] Add clickable "View Dashboard" CTA button linking to the website
+- [x] Add hyperlinks on project names linking to project detail pages
+- [x] Add "View This Week" link in the This Week section
+- [x] Fix raw HTML leak in contractors section (visible HTML tags in email)
+- [x] Re-test send to Lee and Ryan after fixes
