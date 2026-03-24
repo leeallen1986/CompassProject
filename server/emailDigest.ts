@@ -456,7 +456,7 @@ async function scoreAndFilterProjects(
  * Send compulsory personalized Monday weekly digests to ALL users with profiles.
  * No opt-in required — every user who has completed onboarding gets a digest.
  */
-export async function sendWeeklyDigests(force = false): Promise<{
+export async function sendWeeklyDigests(force = false, targetUserIds?: number[]): Promise<{
   sent: number;
   failed: number;
   skipped: number;
@@ -464,8 +464,8 @@ export async function sendWeeklyDigests(force = false): Promise<{
 }> {
   const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 
-  // Kill switch: skip all email sending when disabled
-  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+  // Kill switch: skip all email sending when disabled (bypass for targeted test sends)
+  if (process.env.EMAIL_DIGESTS_ENABLED !== "true" && !targetUserIds) {
     console.log("[EmailDigest] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Skipping weekly digest.");
     return results;
   }
@@ -481,9 +481,14 @@ export async function sendWeeklyDigests(force = false): Promise<{
   const allProjects = await getProjectsByReportId(report.id);
   const allContacts = await getContactsByReportId(report.id);
 
-  // Get ALL users with profiles (compulsory — no opt-in check)
-  const allUsers = await getAllUsersWithProfiles();
-  console.log(`[EmailDigest] Monday digest: ${allUsers.length} users with profiles`);
+  // Get users — either targeted subset or ALL users with profiles
+  let allUsers = await getAllUsersWithProfiles();
+  if (targetUserIds && targetUserIds.length > 0) {
+    allUsers = allUsers.filter(({ user }) => user && targetUserIds.includes(user.id));
+    console.log(`[EmailDigest] Targeted test send: ${allUsers.length} users (IDs: ${targetUserIds.join(", ")})`);
+  } else {
+    console.log(`[EmailDigest] Monday digest: ${allUsers.length} users with profiles`);
+  }
 
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
