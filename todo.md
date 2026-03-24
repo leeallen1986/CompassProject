@@ -621,3 +621,6 @@
 
 ## Weekly Monday Email
 - [x] Send Monday weekly email to all logins with top 3 projects, top 2 stakeholder discoveries, 1 urgent action, and link to This Week page
+
+## Email Deliverability
+- [x] Add 5-second delay between each email send to avoid Exchange bulk-send quarantine

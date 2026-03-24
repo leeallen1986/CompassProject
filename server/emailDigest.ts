@@ -595,6 +595,8 @@ export async function sendWeeklyDigests(force = false, targetUserIds?: number[])
       if (sent) {
         results.sent++;
         console.log(`[EmailDigest] ✓ Monday digest sent for ${user.name} (${territories.join(", ")})`);
+        // Delay between sends to avoid Exchange/O365 bulk-send quarantine
+        await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
         results.failed++;
         console.warn(`[EmailDigest] ✗ Failed to send Monday digest for ${user.name}`);
@@ -711,6 +713,8 @@ export async function sendThursdayReminders(): Promise<{
       if (sent) {
         results.sent++;
         console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
+        // Delay between sends to avoid Exchange/O365 bulk-send quarantine
+        await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
         results.failed++;
         console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);
