@@ -464,6 +464,12 @@ export async function sendWeeklyDigests(force = false): Promise<{
 }> {
   const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 
+  // Kill switch: skip all email sending when disabled
+  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+    console.log("[EmailDigest] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Skipping weekly digest.");
+    return results;
+  }
+
   // Get the latest report
   const report = await getLatestReport();
   if (!report) {
@@ -588,6 +594,12 @@ export async function sendThursdayReminders(): Promise<{
   skipped: number;
 }> {
   const results = { sent: 0, failed: 0, skipped: 0 };
+
+  // Kill switch: skip all email sending when disabled
+  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+    console.log("[EmailDigest] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Skipping Thursday reminder.");
+    return results;
+  }
 
   // Get the latest report
   const report = await getLatestReport();

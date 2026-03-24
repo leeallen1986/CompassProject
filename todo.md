@@ -592,3 +592,8 @@
 - [x] Weekly pipeline runs enrichment BEFORE digest — zero manual admin clicks
 - [x] Update weekly pipeline tests for new enrichment steps
 - [x] Verify both pipelines compile and pass tests
+
+## Email Digest Kill Switch
+- [x] Add environment variable EMAIL_DIGESTS_ENABLED to control email sending
+- [x] Disable email digests by default until Resend domain is verified
+- [x] Ensure both weekly brief and mid-week reminder respect the kill switch
