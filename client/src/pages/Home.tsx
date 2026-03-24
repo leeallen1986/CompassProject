@@ -8,7 +8,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
@@ -719,26 +719,34 @@ export default function Home() {
   const [highlightedProjectId, setHighlightedProjectId] = useState<number | null>(null);
 
   const [, navigate] = useLocation();
+  const searchString = useSearch();
 
-  // ── Read ?project= and ?tab= from URL to deep-link into specific project ──
-  const [pendingProjectId, setPendingProjectId] = useState<number | null>(() => {
-    const params = new URLSearchParams(window.location.search);
+  // ── Deep-link: read ?project= and ?tab= from URL reactively ──
+  const [pendingProjectId, setPendingProjectId] = useState<number | null>(null);
+
+  // This effect fires on every navigation that changes the search string,
+  // including the first mount AND subsequent navigations from This Week page.
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
     const pid = params.get("project");
     const tab = params.get("tab");
-    // Clean up URL immediately
+    if (pid) {
+      const numPid = Number(pid);
+      setPendingProjectId(numPid);
+      // Reset filters so the project is visible
+      setPriorityFilter("all");
+      setSectorFilter("all");
+      setTierFilter("all");
+      setBusinessLineFilter("all");
+      setActionTierFilter("all");
+      if (!tab) setActiveTab("projects");
+    }
+    if (tab) setActiveTab(tab);
+    // Clean up URL after reading params
     if (pid || tab) {
       window.history.replaceState({}, "", window.location.pathname);
     }
-    return pid ? Number(pid) : null;
-  });
-
-  // On mount: read tab param
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-    if (tab) setActiveTab(tab);
-    if (pendingProjectId && !tab) setActiveTab("projects");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchString]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep-link scroll effect is placed after fullReport query below
 
@@ -754,25 +762,36 @@ export default function Home() {
     { enabled: isAuthenticated }
    );
 
-  // Once data loads and we have a pending project, scroll to it
+  // Once data loads and we have a pending project, scroll to it.
+  // Uses polling because the tab switch + card rendering can take variable time.
   useEffect(() => {
     if (!pendingProjectId || reportLoading || !fullReport) return;
-    // Give the tab + cards time to render
-    const timer = setTimeout(() => {
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 200ms = 6 seconds max wait
+    const poll = setInterval(() => {
+      attempts++;
       const el = document.getElementById(`project-${pendingProjectId}`);
       if (el) {
+        clearInterval(poll);
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("ring-2", "ring-gold", "ring-offset-2");
-        // Auto-expand the card
-        const clickTarget = el.querySelector('[role="button"]') as HTMLElement;
-        if (clickTarget) clickTarget.click();
+        setHighlightedProjectId(pendingProjectId);
+        // Auto-expand the card after scroll completes
+        setTimeout(() => {
+          const clickTarget = el.querySelector('[role="button"]') as HTMLElement;
+          if (clickTarget) clickTarget.click();
+        }, 500);
         setTimeout(() => {
           el.classList.remove("ring-2", "ring-gold", "ring-offset-2");
-        }, 3000);
+          setHighlightedProjectId(null);
+        }, 4000);
+        setPendingProjectId(null);
+      } else if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        setPendingProjectId(null);
       }
-      setPendingProjectId(null);
-    }, 600);
-    return () => clearTimeout(timer);
+    }, 200);
+    return () => clearInterval(poll);
   }, [pendingProjectId, reportLoading, fullReport]);
 
   // Fetch feedback for personalization

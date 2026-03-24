@@ -612,3 +612,6 @@
 - [x] Make project cards (Top Actions, Overlooked Opportunities, etc.) clickable → navigate to /dashboard?project=:id (auto-opens detail)
 - [x] Change contact email buttons to open Outreach Generator modal instead of mailto:
 - [x] LinkedIn buttons remain as external links opening in new tab
+
+## Deep-Link Navigation Fix
+- [x] Fix /dashboard?project=ID deep-link: clicking project cards on This Week page navigates to dashboard but does NOT auto-scroll/highlight/expand the specific project
