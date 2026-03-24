@@ -22,10 +22,10 @@ function getResendClient(): Resend | null {
 
 /**
  * The "from" address for all digest emails.
- * Resend free tier allows sending from onboarding@resend.dev.
- * With a verified domain, use a custom from address.
+ * Using verified custom domain: ptatlascopcointel.com
+ * Falls back to onboarding@resend.dev if custom domain is not yet verified.
  */
-const FROM_ADDRESS = "Atlas Copco PT Intelligence <onboarding@resend.dev>";
+const FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS ?? "Atlas Copco PT Intelligence <digest@ptaltascopcointel.com>";
 
 export interface SendEmailOptions {
   to: string;

@@ -597,3 +597,6 @@
 - [x] Add environment variable EMAIL_DIGESTS_ENABLED to control email sending
 - [x] Disable email digests by default until Resend domain is verified
 - [x] Ensure both weekly brief and mid-week reminder respect the kill switch
+
+## Email FROM Address Update
+- [x] Update FROM address in emailSender to digest@ptaltascopcointel.com (verified domain)
