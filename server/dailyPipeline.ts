@@ -6,26 +6,29 @@
  *   SECONDARY CONFIRM   — Gov major projects, AEMO, old Projectory scraper
  *   ENRICHMENT          — Projectory authenticated enrichment, ICN validation
  *
- * Pipeline order:
+ * Pipeline order (v3 — enrichment-before-digest):
  *  1. RSS Harvest (daily)
  *  2. AI Extraction (daily)
- *  3. ASX Targeted Monitoring (daily — lightweight, keyword-filtered)
+ *  3. ASX Targeted Monitoring (daily)
  *  4. AusTender OCDS API (Thursdays)
  *  5. DMIRS MINEDEX API (Wednesdays)
  *  6. Gov Major Projects (Tuesdays)
  *  7. AEMO Generation Info (Fridays)
- *  8. Projectory Enrichment (daily — enriches existing projects, not discovery)
- *  9. ICN Validation (Saturdays — validates existing projects, not discovery)
+ *  8. Projectory Enrichment (daily)
+ *  9. ICN Validation (Saturdays)
  * 10. Contact Enrichment
  * 11. Web Stakeholder Discovery
  * 12. Apollo Selective Gap-Fill
  * 13. Business Line Scoring
- * 14. Weekly Digest (Mondays)
- * 15. Staleness Check
- * 16. Contractor & Delivery Pattern Engine (Wed/Sat)
- * 17. Tier Classification (daily)
- * 18. Contractor Enrichment Pass (Tue/Fri)
- * 19. Source Monitoring Snapshot
+ * 14. Tier Classification (daily)
+ * 15. Contractor & Delivery Pattern Engine (Wed/Sat)
+ * 16. Contractor Enrichment Pass (Tue/Fri)
+ * 17. Role Relevance Classification (daily)
+ * 18. Second-Pass Contact Search (Wed/Sat)
+ * 19. Weekly Digest (Mondays)
+ * 20. Thursday Mid-Week Reminder (Thursdays)
+ * 21. Staleness Check
+ * 22. Source Monitoring Snapshot
  *
  * Every step is logged with timing, counts, and error detail into the pipelineRuns table.
  */
@@ -756,98 +759,9 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(blScoringStep);
 
-  // ── Step 14: Weekly Digest (Mondays) ──
-  const digestStep = startStep("Weekly Digest");
-  if (isMonday) {
-    console.log("[DailyPipeline] Step 14: Sending weekly intelligence digest (Monday run)...");
-    try {
-      const digestResult = await sendWeeklyDigests();
-      completeStep(digestStep, {
-        sent: digestResult.sent,
-        failed: digestResult.failed,
-        skipped: digestResult.skipped,
-      });
-      console.log(`[DailyPipeline] Weekly digest sent: ${digestResult.sent} sent, ${digestResult.failed} failed, ${digestResult.skipped} skipped`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Weekly digest failed:", errMsg);
-      failStep(digestStep, errMsg);
-    }
-  } else {
-    skipStep(digestStep, "Runs on Mondays only");
-    console.log("[DailyPipeline] Step 14: Skipping weekly digest (runs on Mondays only)");
-  }
-  steps.push(digestStep);
-
-  // ── Step 14b: Thursday Mid-Week Reminder (Thursdays) ──
-  const reminderStep = startStep("Thursday Reminder");
-  if (isThursday) {
-    console.log("[DailyPipeline] Step 14b: Sending mid-week reminder emails (Thursday run)...");
-    try {
-      const reminderResult = await sendThursdayReminders();
-      completeStep(reminderStep, {
-        sent: reminderResult.sent,
-        failed: reminderResult.failed,
-        skipped: reminderResult.skipped,
-      });
-      console.log(`[DailyPipeline] Thursday reminders sent: ${reminderResult.sent} sent, ${reminderResult.failed} failed, ${reminderResult.skipped} skipped`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Thursday reminder failed:", errMsg);
-      failStep(reminderStep, errMsg);
-    }
-  } else {
-    skipStep(reminderStep, "Runs on Thursdays only");
-    console.log("[DailyPipeline] Step 14b: Skipping Thursday reminder (runs on Thursdays only)");
-  }
-  steps.push(reminderStep);
-
-  // ── Step 15: Staleness Check ──
-  const stalenessStep = startStep("Staleness Check");
-  console.log("[DailyPipeline] Step 15: Running project staleness check...");
-  try {
-    const staleCount = await markStaleProjects();
-    completeStep(stalenessStep, { markedStale: staleCount });
-    if (staleCount > 0) {
-      console.log(`[DailyPipeline] Marked ${staleCount} projects as stale (no activity in 30+ days, no pipeline claims)`);
-    } else {
-      console.log("[DailyPipeline] No new stale projects found");
-    }
-  } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.error("[DailyPipeline] Staleness check failed:", errMsg);
-    failStep(stalenessStep, errMsg);
-  }
-  steps.push(stalenessStep);
-
-  // ── Step 16: Contractor & Delivery Pattern Engine (Wednesdays + Saturdays) ──
-  const contractorStep = startStep("Contractor Engine");
-  if (dayOfWeek === 3 || dayOfWeek === 6) {
-    console.log("[DailyPipeline] Step 16: Running contractor & delivery pattern engine...");
-    try {
-      const ceResult = await runContractorEngine();
-      completeStep(contractorStep, {
-        companies: ceResult.registry.totalCompanies,
-        newCompanies: ceResult.registry.newCompanies,
-        pairings: ceResult.pairings.totalPairings,
-        patterns: ceResult.patterns.totalPatterns,
-      });
-      console.log(`[DailyPipeline] Contractor engine complete: ${ceResult.registry.totalCompanies} companies, ${ceResult.pairings.totalPairings} pairings, ${ceResult.patterns.totalPatterns} patterns`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      failStep(contractorStep, errMsg);
-      errors.push(`Contractor engine: ${errMsg}`);
-      console.error("[DailyPipeline] Contractor engine failed:", errMsg);
-    }
-  } else {
-    skipStep(contractorStep, "Runs on Wednesdays and Saturdays");
-    console.log("[DailyPipeline] Step 16: Skipping contractor engine (runs Wed/Sat)");
-  }
-  steps.push(contractorStep);
-
-  // ── Step 17: Tier Classification (daily — classify new/unclassified projects) ──
+  // ── Step 14: Tier Classification (daily — classify new/unclassified projects) ──
   const tierStep = startStep("Tier Classification");
-  console.log("[DailyPipeline] Step 17: Running tier classification on projects...");
+  console.log("[DailyPipeline] Step 14: Running tier classification on projects...");
   try {
     const tierResult = await classifyAllProjects();
     completeStep(tierStep, {
@@ -865,10 +779,35 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(tierStep);
 
-  // ── Step 18: Contractor Enrichment Pass (Tuesdays + Fridays) ──
+  // ── Step 15: Contractor & Delivery Pattern Engine (Wednesdays + Saturdays) ──
+  const contractorStep = startStep("Contractor Engine");
+  if (dayOfWeek === 3 || dayOfWeek === 6) {
+    console.log("[DailyPipeline] Step 15: Running contractor & delivery pattern engine...");
+    try {
+      const ceResult = await runContractorEngine();
+      completeStep(contractorStep, {
+        companies: ceResult.registry.totalCompanies,
+        newCompanies: ceResult.registry.newCompanies,
+        pairings: ceResult.pairings.totalPairings,
+        patterns: ceResult.patterns.totalPatterns,
+      });
+      console.log(`[DailyPipeline] Contractor engine complete: ${ceResult.registry.totalCompanies} companies, ${ceResult.pairings.totalPairings} pairings, ${ceResult.patterns.totalPatterns} patterns`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      failStep(contractorStep, errMsg);
+      errors.push(`Contractor engine: ${errMsg}`);
+      console.error("[DailyPipeline] Contractor engine failed:", errMsg);
+    }
+  } else {
+    skipStep(contractorStep, "Runs on Wednesdays and Saturdays");
+    console.log("[DailyPipeline] Step 15: Skipping contractor engine (runs Wed/Sat)");
+  }
+  steps.push(contractorStep);
+
+  // ── Step 16: Contractor Enrichment Pass (Tuesdays + Fridays) ──
   const contractorEnrichStep = startStep("Contractor Enrichment Pass");
   if (dayOfWeek === 2 || dayOfWeek === 5) {
-    console.log("[DailyPipeline] Step 18: Running contractor enrichment pass on projects missing contractors...");
+    console.log("[DailyPipeline] Step 16: Running contractor enrichment pass on projects missing contractors...");
     try {
       const ceResult = await runContractorEnrichmentPass(20);
       completeStep(contractorEnrichStep, {
@@ -886,13 +825,13 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     }
   } else {
     skipStep(contractorEnrichStep, "Runs on Tuesdays and Fridays");
-    console.log("[DailyPipeline] Step 18: Skipping contractor enrichment pass (runs Tue/Fri)");
+    console.log("[DailyPipeline] Step 16: Skipping contractor enrichment pass (runs Tue/Fri)");
   }
   steps.push(contractorEnrichStep);
 
-  // ── Step 20: Role Relevance Classification (daily — classify all contacts) ──
+  // ── Step 17: Role Relevance Classification (daily — classify all contacts) ──
   const roleRelevanceStep = startStep("Role Relevance Classification");
-  console.log("[DailyPipeline] Step 20: Classifying contact role relevance...");
+  console.log("[DailyPipeline] Step 17: Classifying contact role relevance...");
   try {
     const roleResult = await classifyAllContactRelevance();
     completeStep(roleRelevanceStep, {
@@ -909,11 +848,10 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   }
   steps.push(roleRelevanceStep);
 
-  // ── Step 21: Second-Pass Contact Search (Wednesdays + Saturdays) ──
-  const dayOfWeekForSecondPass = new Date().getDay();
-  if (dayOfWeekForSecondPass === 3 || dayOfWeekForSecondPass === 6) {
-    const secondPassStep = startStep("Second-Pass Contact Search");
-    console.log("[DailyPipeline] Step 21: Running second-pass contact search for projects with few relevant contacts...");
+  // ── Step 18: Second-Pass Contact Search (Wednesdays + Saturdays) ──
+  const secondPassStep = startStep("Second-Pass Contact Search");
+  if (dayOfWeek === 3 || dayOfWeek === 6) {
+    console.log("[DailyPipeline] Step 18: Running second-pass contact search for projects with few relevant contacts...");
     try {
       const spResult = await runBulkSecondPass(30);
       completeStep(secondPassStep, {
@@ -927,10 +865,83 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
       failStep(secondPassStep, errMsg);
       console.error("[DailyPipeline] Second-pass contact search failed:", errMsg);
     }
-    steps.push(secondPassStep);
   } else {
-    console.log("[DailyPipeline] Step 21: Skipping second-pass contact search (runs Wed/Sat)");
+    skipStep(secondPassStep, "Runs on Wednesdays and Saturdays");
+    console.log("[DailyPipeline] Step 18: Skipping second-pass contact search (runs Wed/Sat)");
   }
+  steps.push(secondPassStep);
+
+  // ════════════════════════════════════════════════════════════
+  // DIGEST & NOTIFICATIONS (after ALL enrichment is complete)
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 19: Weekly Digest (Mondays) ──
+  const digestStep = startStep("Weekly Digest");
+  if (isMonday) {
+    console.log("[DailyPipeline] Step 19: Sending weekly intelligence digest (Monday run)...");
+    try {
+      const digestResult = await sendWeeklyDigests();
+      completeStep(digestStep, {
+        sent: digestResult.sent,
+        failed: digestResult.failed,
+        skipped: digestResult.skipped,
+      });
+      console.log(`[DailyPipeline] Weekly digest sent: ${digestResult.sent} sent, ${digestResult.failed} failed, ${digestResult.skipped} skipped`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Weekly digest failed:", errMsg);
+      failStep(digestStep, errMsg);
+    }
+  } else {
+    skipStep(digestStep, "Runs on Mondays only");
+    console.log("[DailyPipeline] Step 19: Skipping weekly digest (runs on Mondays only)");
+  }
+  steps.push(digestStep);
+
+  // ── Step 20: Thursday Mid-Week Reminder (Thursdays) ──
+  const reminderStep = startStep("Thursday Reminder");
+  if (isThursday) {
+    console.log("[DailyPipeline] Step 20: Sending mid-week reminder emails (Thursday run)...");
+    try {
+      const reminderResult = await sendThursdayReminders();
+      completeStep(reminderStep, {
+        sent: reminderResult.sent,
+        failed: reminderResult.failed,
+        skipped: reminderResult.skipped,
+      });
+      console.log(`[DailyPipeline] Thursday reminders sent: ${reminderResult.sent} sent, ${reminderResult.failed} failed, ${reminderResult.skipped} skipped`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[DailyPipeline] Thursday reminder failed:", errMsg);
+      failStep(reminderStep, errMsg);
+    }
+  } else {
+    skipStep(reminderStep, "Runs on Thursdays only");
+    console.log("[DailyPipeline] Step 20: Skipping Thursday reminder (runs on Thursdays only)");
+  }
+  steps.push(reminderStep);
+
+  // ════════════════════════════════════════════════════════════
+  // HOUSEKEEPING
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 21: Staleness Check ──
+  const stalenessStep = startStep("Staleness Check");
+  console.log("[DailyPipeline] Step 21: Running project staleness check...");
+  try {
+    const staleCount = await markStaleProjects();
+    completeStep(stalenessStep, { markedStale: staleCount });
+    if (staleCount > 0) {
+      console.log(`[DailyPipeline] Marked ${staleCount} projects as stale (no activity in 30+ days, no pipeline claims)`);
+    } else {
+      console.log("[DailyPipeline] No new stale projects found");
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Staleness check failed:", errMsg);
+    failStep(stalenessStep, errMsg);
+  }
+  steps.push(stalenessStep);
 
   // ── Step 22: Source Monitoring Snapshot ──
   const monitorStep = startStep("Source Monitoring Snapshot");

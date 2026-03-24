@@ -578,3 +578,17 @@
 - [x] Add BL-based scoring boost in digest so NATIONAL users get differentiated content by their assigned business lines
 - [x] Fix: New projects not getting BL scores during pipeline ingest — score on creation (added to all 9 ingest services + increased daily pipeline limit to 100)
 - [x] Verify weekly digest dashboard uses BL-personalized scoring for project ranking (added BL scoring to client-side personalization engine + 5 new tests)
+
+## Full Pipeline Automation (Zero Manual Intervention)
+- [x] Integrate all enrichment steps into automated weekly pipeline before digest: Classify Tiers, Enrich Contractors, Classify Roles, Score BLs, 2nd Pass Contacts, Web Stakeholder Discovery
+- [x] Integrate all enrichment steps into automated daily pipeline before digest
+- [x] Ensure weekly summary is regenerated only AFTER all enrichment steps complete
+- [x] Remove need for any manual admin button clicks for normal operation
+- [x] Write vitest tests for full pipeline automation
+
+## Full Pipeline Automation — Enrichment Before Digest
+- [x] Reorder daily pipeline: move Tier Classification, Contractor Enrichment, Role Relevance, Second-Pass Contacts BEFORE the weekly digest step
+- [x] Add all missing enrichment steps to weekly pipeline (Tier Classification, Contractor Enrichment, Role Relevance, BL Scoring, Second-Pass Contacts, Web Stakeholder Discovery, Apollo Gap-Fill, Projectory Enrichment, Contractor Engine, ASX Monitoring)
+- [x] Weekly pipeline runs enrichment BEFORE digest — zero manual admin clicks
+- [x] Update weekly pipeline tests for new enrichment steps
+- [x] Verify both pipelines compile and pass tests

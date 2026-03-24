@@ -1,0 +1,55 @@
+{
+  "query": "SELECT id, runType, status, startedAt, durationMs, projectsCreated, contactsEnriched FROM pipelineRuns ORDER BY startedAt DESC LIMIT 5",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, runType, status, startedAt, durationMs, projectsCreated, contactsEnriched FROM pipelineRuns ORDER BY startedAt DESC LIMIT 5",
+  "rows": [
+    {
+      "id": "180001",
+      "runType": "daily",
+      "status": "running",
+      "startedAt": "2026-03-18 14:00:33",
+      "durationMs": "NULL",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "150001",
+      "runType": "daily",
+      "status": "running",
+      "startedAt": "2026-03-17 06:00:01",
+      "durationMs": "NULL",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "120001",
+      "runType": "daily",
+      "status": "completed",
+      "startedAt": "2026-03-16 06:31:55",
+      "durationMs": "1607000",
+      "projectsCreated": "28",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "90001",
+      "runType": "daily",
+      "status": "running",
+      "startedAt": "2026-03-15 07:43:49",
+      "durationMs": "NULL",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "60001",
+      "runType": "daily",
+      "status": "running",
+      "startedAt": "2026-03-11 20:30:24",
+      "durationMs": "NULL",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunType\tstatus\tstartedAt\tdurationMs\tprojectsCreated\tcontactsEnriched\n180001\tdaily\trunning\t2026-03-18 14:00:33\tNULL\t0\t0\n150001\tdaily\trunning\t2026-03-17 06:00:01\tNULL\t0\t0\n120001\tdaily\tcompleted\t2026-03-16 06:31:55\t1607000\t28\t0\n90001\tdaily\trunning\t2026-03-15 07:43:49\tNULL\t0\t0\n60001\tdaily\trunning\t2026-03-11 20:30:24\tNULL\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1534
+}
