@@ -607,3 +607,8 @@
 - [x] Add "View This Week" link in the This Week section
 - [x] Fix raw HTML leak in contractors section (visible HTML tags in email)
 - [x] Re-test send to Lee and Ryan after fixes
+
+## This Week Page Navigation
+- [x] Make project cards (Top Actions, Overlooked Opportunities, etc.) clickable → navigate to /dashboard?project=:id (auto-opens detail)
+- [x] Change contact email buttons to open Outreach Generator modal instead of mailto:
+- [x] LinkedIn buttons remain as external links opening in new tab
