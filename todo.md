@@ -614,3 +614,9 @@
 - [x] Display predicted contractors in the UI with appropriate visual distinction
 - [x] Run bulk enrichment on all 290 missing-contractor projects (212 enriched, 1286 contractors discovered, coverage 15% → 77%)
 - [x] Write 25 vitest tests for contractor enrichment pass (awarded patterns, context formatting, filtering, merge logic, confidence mapping)
+
+## Contractor-to-Contact Pipeline Fix
+- [x] Fix case-insensitive contractor status matching in webStakeholderDiscovery (confirmed/Confirmed)
+- [x] Fix case-insensitive contractor status matching in secondPassContactSearch (confirmed/Confirmed)
+- [x] Include "Predicted" contractors (medium/high confidence) in contact search pipeline
+- [x] Write vitest tests for the status matching fix (7 new tests: case-insensitive Confirmed/Predicted/awarded, exclusion of unknown/empty, priority ordering)

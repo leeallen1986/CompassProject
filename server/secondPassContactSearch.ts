@@ -219,12 +219,13 @@ export async function runSecondPassForProject(
     };
   }
 
-  // Build company list: owner + confirmed contractors
+  // Build company list: owner + contractors (confirmed, awarded, and predicted)
   const companies: string[] = [];
   if (owner && owner !== "Unknown") companies.push(owner);
   if (contractors) {
     for (const c of contractors) {
-      if (c.name && !companies.includes(c.name) && (c.status === "confirmed" || c.status === "awarded")) {
+      const s = (c.status || "").toLowerCase();
+      if (c.name && !companies.includes(c.name) && (s === "confirmed" || s === "awarded" || s === "predicted")) {
         companies.push(c.name);
       }
     }

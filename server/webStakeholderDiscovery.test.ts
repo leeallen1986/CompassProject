@@ -59,11 +59,24 @@ describe("buildSearchQueries", () => {
     expect(contractorQuery).toBeDefined();
   });
 
-  it("falls back to owner when no confirmed contractors", () => {
+  it("includes predicted contractors in search queries", () => {
     const queries = buildSearchQueries({
       name: "Test Project",
       owner: "Owner Co",
       contractors: [{ name: "Acme", status: "predicted" }],
+      sector: "mining",
+      location: "WA",
+    });
+    // Predicted contractors should now be included in search
+    const acmeQuery = queries.find(q => q.includes("Acme"));
+    expect(acmeQuery).toBeDefined();
+  });
+
+  it("falls back to owner when no eligible contractors", () => {
+    const queries = buildSearchQueries({
+      name: "Test Project",
+      owner: "Owner Co",
+      contractors: [{ name: "Acme", status: "unknown" }],
       sector: "mining",
       location: "WA",
     });
@@ -188,6 +201,88 @@ describe("inferEmail", () => {
 
   it("returns null for single-word name", () => {
     expect(_inferEmail("John", "BHP")).toBeNull();
+  });
+});
+
+// ── Contractor status matching (case-insensitive + Predicted) ──
+
+describe("buildSearchQueries — contractor status matching", () => {
+  it("includes contractors with uppercase 'Confirmed' status", () => {
+    const queries = buildSearchQueries({
+      name: "Iron Bridge Magnetite",
+      owner: "Fortescue",
+      contractors: [{ name: "Monadelphous", status: "Confirmed" }],
+      sector: "mining",
+      location: "WA",
+    });
+    const contractorQuery = queries.find(q => q.includes("Monadelphous"));
+    expect(contractorQuery).toBeDefined();
+  });
+
+  it("includes contractors with uppercase 'Predicted' status", () => {
+    const queries = buildSearchQueries({
+      name: "Olympic Dam Expansion",
+      owner: "BHP",
+      contractors: [{ name: "Thiess", status: "Predicted" }],
+      sector: "mining",
+      location: "SA",
+    });
+    const contractorQuery = queries.find(q => q.includes("Thiess"));
+    expect(contractorQuery).toBeDefined();
+  });
+
+  it("includes contractors with lowercase 'confirmed' status", () => {
+    const queries = buildSearchQueries({
+      name: "West Gate Tunnel",
+      owner: "Transurban",
+      contractors: [{ name: "CPB Contractors", status: "confirmed" }],
+      sector: "infrastructure",
+      location: "VIC",
+    });
+    const contractorQuery = queries.find(q => q.includes("CPB Contractors"));
+    expect(contractorQuery).toBeDefined();
+  });
+
+  it("includes contractors with 'awarded' status", () => {
+    const queries = buildSearchQueries({
+      name: "Snowy 2.0",
+      owner: "Snowy Hydro",
+      contractors: [{ name: "Webuild", status: "awarded" }],
+      sector: "energy",
+      location: "NSW",
+    });
+    const contractorQuery = queries.find(q => q.includes("Webuild"));
+    expect(contractorQuery).toBeDefined();
+  });
+
+  it("excludes contractors with 'unknown' or empty status", () => {
+    const queries = buildSearchQueries({
+      name: "Test Project",
+      owner: "TestOwner",
+      contractors: [
+        { name: "BadCo", status: "unknown" },
+        { name: "EmptyCo", status: "" },
+      ],
+      sector: "mining",
+      location: "WA",
+    });
+    const badQuery = queries.find(q => q.includes("BadCo") || q.includes("EmptyCo"));
+    expect(badQuery).toBeUndefined();
+  });
+
+  it("prioritises first eligible contractor for search query", () => {
+    const queries = buildSearchQueries({
+      name: "Test Project",
+      owner: "TestOwner",
+      contractors: [
+        { name: "FirstCo", status: "Predicted" },
+        { name: "SecondCo", status: "Confirmed" },
+      ],
+      sector: "mining",
+      location: "QLD",
+    });
+    const firstCoQuery = queries.find(q => q.includes("FirstCo"));
+    expect(firstCoQuery).toBeDefined();
   });
 });
 

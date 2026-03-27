@@ -148,15 +148,18 @@ export function buildSearchQueries(project: {
     );
   }
 
-  // Query 3: Contractor-focused
-  const confirmedContractors = (project.contractors || [])
-    .filter(c => c.status === "confirmed" || c.status === "awarded")
+  // Query 3: Contractor-focused (include confirmed, awarded, and predicted contractors)
+  const eligibleContractors = (project.contractors || [])
+    .filter(c => {
+      const s = (c.status || "").toLowerCase();
+      return s === "confirmed" || s === "awarded" || s === "predicted";
+    })
     .map(c => c.name)
     .slice(0, 2);
 
-  if (confirmedContractors.length > 0) {
+  if (eligibleContractors.length > 0) {
     queries.push(
-      `${confirmedContractors[0]} project manager site manager`
+      `${eligibleContractors[0]} project manager site manager`
     );
   } else {
     queries.push(
@@ -308,7 +311,10 @@ Return a JSON object with a "searches" array of { company, roles } objects.`,
         roles: ["Project Manager", "Procurement Manager", "Operations Manager"],
       });
     }
-    const contractors = (project.contractors || []).filter(c => c.status === "confirmed" || c.status === "awarded");
+    const contractors = (project.contractors || []).filter(c => {
+      const s = (c.status || "").toLowerCase();
+      return s === "confirmed" || s === "awarded" || s === "predicted";
+    });
     if (contractors.length > 0) {
       fallback.push({
         company: contractors[0].name,
