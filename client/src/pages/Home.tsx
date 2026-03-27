@@ -805,6 +805,19 @@ export default function Home() {
     return map;
   }, [activeBusinessLines]);
 
+  // ── Business line assigned IDs (must be above early returns to respect hooks rules) ──
+  const userAssignedBLIds = useMemo(() => {
+    if (!profile?.assignedBusinessLines || (profile.assignedBusinessLines as string[]).length === 0) return new Set<number>();
+    const ids = new Set<number>();
+    for (const blName of (profile.assignedBusinessLines as string[])) {
+      const id = blNameToIdMap[blName] ?? Object.entries(blNameToIdMap).find(
+        ([name]) => name.toLowerCase() === blName.toLowerCase()
+      )?.[1];
+      if (id !== undefined) ids.add(id);
+    }
+    return ids;
+  }, [profile?.assignedBusinessLines, blNameToIdMap]);
+
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
@@ -900,18 +913,6 @@ export default function Home() {
       );
 
   // ── Business line hard-filter: hide projects outside user's assigned BLs ──
-  const userAssignedBLIds = useMemo(() => {
-    if (!profileData?.assignedBusinessLines || profileData.assignedBusinessLines.length === 0) return new Set<number>();
-    const ids = new Set<number>();
-    for (const blName of profileData.assignedBusinessLines) {
-      const id = blNameToIdMap[blName] ?? Object.entries(blNameToIdMap).find(
-        ([name]) => name.toLowerCase() === blName.toLowerCase()
-      )?.[1];
-      if (id !== undefined) ids.add(id);
-    }
-    return ids;
-  }, [profileData?.assignedBusinessLines, blNameToIdMap]);
-
   const blHardFiltered = (showAllBusinessLines || userAssignedBLIds.size === 0)
     ? territoryFiltered
     : territoryFiltered.filter((p: ProjectData) => {

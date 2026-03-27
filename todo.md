@@ -603,3 +603,6 @@
 
 ## Filtering Bug Fix
 - [x] Fix territory and business line filtering — users are seeing all projects/states/BLs instead of only their assigned scope (e.g. Ryan should only see WA + Portable Air)
+
+## React Error #310 Fix
+- [x] Fix React error #310 (Rendered fewer hooks than expected) on published site — caused by conditional hook calls in Home.tsx
