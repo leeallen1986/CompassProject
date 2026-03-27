@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_active,\n  SUM(CASE WHEN c.contact_count = 0 THEN 1 ELSE 0 END) as no_contacts,\n  SUM(CASE WHEN c.contact_count > 0 THEN 1 ELSE 0 END) as has_contacts\nFROM projects p\nLEFT JOIN (\n  SELECT project, COUNT(*) as contact_count FROM contacts GROUP BY project\n) c ON c.project = p.name\nWHERE p.lifecycleStatus = 'active';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as total_active,\n  SUM(CASE WHEN c.contact_count = 0 THEN 1 ELSE 0 END) as no_contacts,\n  SUM(CASE WHEN c.contact_count > 0 THEN 1 ELSE 0 END) as has_contacts\nFROM projects p\nLEFT JOIN (\n  SELECT project, COUNT(*) as contact_count FROM contacts GROUP BY project\n) c ON c.project = p.name\nWHERE p.lifecycleStatus = 'active';\n",
+  "rows": [
+    {
+      "total_active": "344",
+      "no_contacts": "0",
+      "has_contacts": "117"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_active\tno_contacts\thas_contacts\n344\t0\t117\n",
+  "stderr": "",
+  "execution_time_ms": 1617
+}

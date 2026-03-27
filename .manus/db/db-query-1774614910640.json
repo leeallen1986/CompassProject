@@ -1,0 +1,18 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_contacts,\n  SUM(CASE WHEN enrichmentSource = 'web_search' THEN 1 ELSE 0 END) as web_search_contacts,\n  SUM(CASE WHEN roleRelevance = 'high' THEN 1 ELSE 0 END) as high_relevance,\n  SUM(CASE WHEN roleRelevance = 'medium' THEN 1 ELSE 0 END) as medium_relevance,\n  SUM(CASE WHEN roleRelevance = 'low' THEN 1 ELSE 0 END) as low_relevance,\n  COUNT(DISTINCT project) as projects_with_contacts\nFROM contacts;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as total_contacts,\n  SUM(CASE WHEN enrichmentSource = 'web_search' THEN 1 ELSE 0 END) as web_search_contacts,\n  SUM(CASE WHEN roleRelevance = 'high' THEN 1 ELSE 0 END) as high_relevance,\n  SUM(CASE WHEN roleRelevance = 'medium' THEN 1 ELSE 0 END) as medium_relevance,\n  SUM(CASE WHEN roleRelevance = 'low' THEN 1 ELSE 0 END) as low_relevance,\n  COUNT(DISTINCT project) as projects_with_contacts\nFROM contacts;\n",
+  "rows": [
+    {
+      "total_contacts": "874",
+      "web_search_contacts": "382",
+      "high_relevance": "601",
+      "medium_relevance": "71",
+      "low_relevance": "202",
+      "projects_with_contacts": "246"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_contacts\tweb_search_contacts\thigh_relevance\tmedium_relevance\tlow_relevance\tprojects_with_contacts\n874\t382\t601\t71\t202\t246\n",
+  "stderr": "",
+  "execution_time_ms": 1540
+}

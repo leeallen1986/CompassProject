@@ -1,0 +1,13 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as projects_needing_contacts\nFROM projects p\nWHERE p.lifecycleStatus = 'active'\nAND (\n  SELECT COUNT(*) FROM contacts c \n  WHERE c.project = p.name \n  AND c.roleRelevance IN ('high', 'medium')\n) < 2;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as projects_needing_contacts\nFROM projects p\nWHERE p.lifecycleStatus = 'active'\nAND (\n  SELECT COUNT(*) FROM contacts c \n  WHERE c.project = p.name \n  AND c.roleRelevance IN ('high', 'medium')\n) < 2;\n",
+  "rows": [
+    {
+      "projects_needing_contacts": "270"
+    }
+  ],
+  "messages": [],
+  "stdout": "projects_needing_contacts\n270\n",
+  "stderr": "",
+  "execution_time_ms": 1601
+}

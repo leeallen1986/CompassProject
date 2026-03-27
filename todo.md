@@ -620,3 +620,8 @@
 - [x] Fix case-insensitive contractor status matching in secondPassContactSearch (confirmed/Confirmed)
 - [x] Include "Predicted" contractors (medium/high confidence) in contact search pipeline
 - [x] Write vitest tests for the status matching fix (7 new tests: case-insensitive Confirmed/Predicted/awarded, exclusion of unknown/empty, priority ordering)
+
+## Manual Contact Discovery Run (Post-Contractor Enrichment)
+- [x] Run Web Stakeholder Discovery on all projects with newly enriched contractors (50 projects, 201 new contacts)
+- [x] Run Second-Pass Contact Search on projects with fewer than 2 relevant contacts (2 remaining projects already met threshold)
+- [x] Final contact count: 874 total (382 via web search), 672 high/medium relevance, 246 projects covered
