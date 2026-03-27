@@ -1,0 +1,17 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_contacts,\n  SUM(CASE WHEN emailVerified = 1 THEN 1 ELSE 0 END) as verified_emails,\n  SUM(CASE WHEN email IS NOT NULL AND emailVerified = 0 THEN 1 ELSE 0 END) as unverified_emails,\n  SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) as no_email,\n  SUM(CASE WHEN enrichmentSource = 'apollo' THEN 1 ELSE 0 END) as apollo_contacts\nFROM contacts;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as total_contacts,\n  SUM(CASE WHEN emailVerified = 1 THEN 1 ELSE 0 END) as verified_emails,\n  SUM(CASE WHEN email IS NOT NULL AND emailVerified = 0 THEN 1 ELSE 0 END) as unverified_emails,\n  SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) as no_email,\n  SUM(CASE WHEN enrichmentSource = 'apollo' THEN 1 ELSE 0 END) as apollo_contacts\nFROM contacts;\n",
+  "rows": [
+    {
+      "total_contacts": "1093",
+      "verified_emails": "108",
+      "unverified_emails": "979",
+      "no_email": "6",
+      "apollo_contacts": "99"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_contacts\tverified_emails\tunverified_emails\tno_email\tapollo_contacts\n1093\t108\t979\t6\t99\n",
+  "stderr": "",
+  "execution_time_ms": 1591
+}

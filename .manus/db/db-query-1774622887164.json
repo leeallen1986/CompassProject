@@ -1,0 +1,20 @@
+{
+  "query": "\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as project_count,\n  SUM(\n    (SELECT COUNT(*) FROM contacts c WHERE c.project = p.name AND (c.email IS NULL OR c.emailVerified = 0))\n  ) as contacts_missing_email\nFROM projects p\nWHERE p.lifecycleStatus = 'active'\n  AND p.priority IN ('hot', 'warm')\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as project_count,\n  SUM(\n    (SELECT COUNT(*) FROM contacts c WHERE c.project = p.name AND (c.email IS NULL OR c.emailVerified = 0))\n  ) as contacts_missing_email\nFROM projects p\nWHERE p.lifecycleStatus = 'active'\n  AND p.priority IN ('hot', 'warm')\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm');\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "project_count": "96",
+      "contacts_missing_email": "303"
+    },
+    {
+      "priority": "warm",
+      "project_count": "202",
+      "contacts_missing_email": "435"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tproject_count\tcontacts_missing_email\nhot\t96\t303\nwarm\t202\t435\n",
+  "stderr": "",
+  "execution_time_ms": 1621
+}

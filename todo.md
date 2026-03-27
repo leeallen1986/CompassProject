@@ -628,3 +628,6 @@
 
 ## Second Web Discovery Batch
 - [x] Run second web discovery batch on remaining ~98 projects with no contacts (2 batches of 50: 219 new contacts, 100 projects covered, total now 1,093 contacts across 309 projects)
+
+## Apollo Enrichment Run (Top Hot/Warm Projects)
+- [x] Run Apollo enrichment on top 50 hot/warm projects to add verified emails to existing contacts (49 credits used, 27 emails verified across 13 projects, total verified emails: 108/1093)
