@@ -625,3 +625,6 @@
 - [x] Run Web Stakeholder Discovery on all projects with newly enriched contractors (50 projects, 201 new contacts)
 - [x] Run Second-Pass Contact Search on projects with fewer than 2 relevant contacts (2 remaining projects already met threshold)
 - [x] Final contact count: 874 total (382 via web search), 672 high/medium relevance, 246 projects covered
+
+## Second Web Discovery Batch
+- [x] Run second web discovery batch on remaining ~98 projects with no contacts (2 batches of 50: 219 new contacts, 100 projects covered, total now 1,093 contacts across 309 projects)
