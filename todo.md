@@ -631,3 +631,6 @@
 
 ## Apollo Enrichment Run (Top Hot/Warm Projects)
 - [x] Run Apollo enrichment on top 50 hot/warm projects to add verified emails to existing contacts (49 credits used, 27 emails verified across 13 projects, total verified emails: 108/1093)
+
+## Pipeline Schedule Change
+- [x] Shift daily pipeline from 06:00 UTC to 23:00 UTC (9am AEST)

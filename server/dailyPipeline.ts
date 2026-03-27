@@ -1048,7 +1048,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
 }
 
 // ── In-process scheduler ──
-// Runs daily at 06:00 UTC (16:00 AEST)
+// Runs daily at 23:00 UTC (09:00 AEST / 07:00 AWST)
 
 let schedulerStarted = false;
 
@@ -1059,7 +1059,7 @@ export function startDailyScheduler(): void {
   function scheduleNext(): void {
     const now = new Date();
     const next = new Date(now);
-    next.setUTCHours(6, 0, 0, 0);
+    next.setUTCHours(23, 0, 0, 0);
     if (next <= now) {
       next.setDate(next.getDate() + 1);
     }
