@@ -599,28 +599,7 @@
 - [x] Ensure both weekly brief and mid-week reminder respect the kill switch
 
 ## Email FROM Address Update
-- [x] Update FROM address in emailSender to digest@ptaltascopcointel.com (verified domain)
+- [ ] Update FROM address in emailSender to digest@ptatlascopcointel.com
 
-## Email Digest Hyperlinks
-- [x] Add clickable "View Dashboard" CTA button linking to the website
-- [x] Add hyperlinks on project names linking to project detail pages
-- [x] Add "View This Week" link in the This Week section
-- [x] Fix raw HTML leak in contractors section (visible HTML tags in email)
-- [x] Re-test send to Lee and Ryan after fixes
-
-## This Week Page Navigation
-- [x] Make project cards (Top Actions, Overlooked Opportunities, etc.) clickable → navigate to /dashboard?project=:id (auto-opens detail)
-- [x] Change contact email buttons to open Outreach Generator modal instead of mailto:
-- [x] LinkedIn buttons remain as external links opening in new tab
-
-## Deep-Link Navigation Fix
-- [x] Fix /dashboard?project=ID deep-link: clicking project cards on This Week page navigates to dashboard but does NOT auto-scroll/highlight/expand the specific project
-
-## Dashboard Navigation
-- [x] Add 'This Week' navigation button to Dashboard header (alongside Pipeline, Settings, Admin)
-
-## Weekly Monday Email
-- [x] Send Monday weekly email to all logins with top 3 projects, top 2 stakeholder discoveries, 1 urgent action, and link to This Week page
-
-## Email Deliverability
-- [x] Add 5-second delay between each email send to avoid Exchange bulk-send quarantine
+## Filtering Bug Fix
+- [x] Fix territory and business line filtering — users are seeing all projects/states/BLs instead of only their assigned scope (e.g. Ryan should only see WA + Portable Air)

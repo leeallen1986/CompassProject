@@ -537,13 +537,6 @@ export const appRouter = router({
       const results = await sendThursdayReminders();
       return results;
     }),
-    /** Send Monday digest to specific user IDs only — for testing */
-    sendToUsers: adminProcedure
-      .input(z.object({ userIds: z.array(z.number()).min(1).max(20) }))
-      .mutation(async ({ input }) => {
-        const results = await sendWeeklyDigests(true, input.userIds);
-        return results;
-      }),
   }),
 
   // ── AI Project Search / Matching ──

@@ -8,13 +8,13 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { useLocation, useSearch } from "wouter";
+import { useLocation } from "wouter";
 import {
   Flame, TrendingUp, Users, Search, Download, ExternalLink,
   BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
   ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
   ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp,
-  Archive, Clock, Award, Check, Eye, CalendarDays
+  Archive, Clock, Award, Check, Eye, Briefcase
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -711,7 +711,8 @@ export default function Home() {
   const [tierFilter, setTierFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
   const [actionTierFilter, setActionTierFilter] = useState<"all" | "tier1_actionable" | "tier2_warm" | "tier3_monitor">("all");
-  const [showAllTerritories, setShowAllTerritories] = useState(false);
+  const [showAllTerritories, setShowAllTerritories] = useState(false); // default: filter ON
+  const [showAllBusinessLines, setShowAllBusinessLines] = useState(false); // default: filter ON
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
     return !localStorage.getItem("atlas-scoring-guide-dismissed");
   });
@@ -719,34 +720,26 @@ export default function Home() {
   const [highlightedProjectId, setHighlightedProjectId] = useState<number | null>(null);
 
   const [, navigate] = useLocation();
-  const searchString = useSearch();
 
-  // ── Deep-link: read ?project= and ?tab= from URL reactively ──
-  const [pendingProjectId, setPendingProjectId] = useState<number | null>(null);
-
-  // This effect fires on every navigation that changes the search string,
-  // including the first mount AND subsequent navigations from This Week page.
-  useEffect(() => {
-    const params = new URLSearchParams(searchString);
+  // ── Read ?project= and ?tab= from URL to deep-link into specific project ──
+  const [pendingProjectId, setPendingProjectId] = useState<number | null>(() => {
+    const params = new URLSearchParams(window.location.search);
     const pid = params.get("project");
     const tab = params.get("tab");
-    if (pid) {
-      const numPid = Number(pid);
-      setPendingProjectId(numPid);
-      // Reset filters so the project is visible
-      setPriorityFilter("all");
-      setSectorFilter("all");
-      setTierFilter("all");
-      setBusinessLineFilter("all");
-      setActionTierFilter("all");
-      if (!tab) setActiveTab("projects");
-    }
-    if (tab) setActiveTab(tab);
-    // Clean up URL after reading params
+    // Clean up URL immediately
     if (pid || tab) {
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [searchString]); // eslint-disable-line react-hooks/exhaustive-deps
+    return pid ? Number(pid) : null;
+  });
+
+  // On mount: read tab param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab) setActiveTab(tab);
+    if (pendingProjectId && !tab) setActiveTab("projects");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep-link scroll effect is placed after fullReport query below
 
@@ -762,36 +755,25 @@ export default function Home() {
     { enabled: isAuthenticated }
    );
 
-  // Once data loads and we have a pending project, scroll to it.
-  // Uses polling because the tab switch + card rendering can take variable time.
+  // Once data loads and we have a pending project, scroll to it
   useEffect(() => {
     if (!pendingProjectId || reportLoading || !fullReport) return;
-    let attempts = 0;
-    const maxAttempts = 30; // 30 * 200ms = 6 seconds max wait
-    const poll = setInterval(() => {
-      attempts++;
+    // Give the tab + cards time to render
+    const timer = setTimeout(() => {
       const el = document.getElementById(`project-${pendingProjectId}`);
       if (el) {
-        clearInterval(poll);
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("ring-2", "ring-gold", "ring-offset-2");
-        setHighlightedProjectId(pendingProjectId);
-        // Auto-expand the card after scroll completes
-        setTimeout(() => {
-          const clickTarget = el.querySelector('[role="button"]') as HTMLElement;
-          if (clickTarget) clickTarget.click();
-        }, 500);
+        // Auto-expand the card
+        const clickTarget = el.querySelector('[role="button"]') as HTMLElement;
+        if (clickTarget) clickTarget.click();
         setTimeout(() => {
           el.classList.remove("ring-2", "ring-gold", "ring-offset-2");
-          setHighlightedProjectId(null);
-        }, 4000);
-        setPendingProjectId(null);
-      } else if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        setPendingProjectId(null);
+        }, 3000);
       }
-    }, 200);
-    return () => clearInterval(poll);
+      setPendingProjectId(null);
+    }, 600);
+    return () => clearTimeout(timer);
   }, [pendingProjectId, reportLoading, fullReport]);
 
   // Fetch feedback for personalization
@@ -917,10 +899,32 @@ export default function Home() {
         locationMatchesTerritory(dc.location || "", userTerritories)
       );
 
-  // Apply business line filter, then priority/sector
-  const businessLineFiltered = businessLineFilter === "all"
+  // ── Business line hard-filter: hide projects outside user's assigned BLs ──
+  const userAssignedBLIds = useMemo(() => {
+    if (!profileData?.assignedBusinessLines || profileData.assignedBusinessLines.length === 0) return new Set<number>();
+    const ids = new Set<number>();
+    for (const blName of profileData.assignedBusinessLines) {
+      const id = blNameToIdMap[blName] ?? Object.entries(blNameToIdMap).find(
+        ([name]) => name.toLowerCase() === blName.toLowerCase()
+      )?.[1];
+      if (id !== undefined) ids.add(id);
+    }
+    return ids;
+  }, [profileData?.assignedBusinessLines, blNameToIdMap]);
+
+  const blHardFiltered = (showAllBusinessLines || userAssignedBLIds.size === 0)
     ? territoryFiltered
     : territoryFiltered.filter((p: ProjectData) => {
+        const blIds = p.matchedBusinessLines;
+        // If project has no BL data, include it (unscored projects shouldn't be hidden)
+        if (!blIds || blIds.length === 0) return true;
+        return blIds.some(id => userAssignedBLIds.has(id));
+      });
+
+  // Apply business line dropdown filter, then priority/sector
+  const businessLineFiltered = businessLineFilter === "all"
+    ? blHardFiltered
+    : blHardFiltered.filter((p: ProjectData) => {
         const blIds = p.matchedBusinessLines;
         if (!blIds || blIds.length === 0) return false;
         return blIds.includes(Number(businessLineFilter));
@@ -973,10 +977,6 @@ export default function Home() {
               {/* User info & settings & logout */}
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
-                <Link href="/" className="text-xs text-gold hover:text-gold-light flex items-center gap-1 transition-colors font-semibold">
-                  <CalendarDays className="w-3 h-3" /> This Week
-                </Link>
-                <span className="text-slate-600">|</span>
                 <Link href="/pipeline" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Target className="w-3 h-3" /> Pipeline
                 </Link>
@@ -1028,6 +1028,34 @@ export default function Home() {
             >
               <Filter className="w-3 h-3" />
               {showAllTerritories ? "Apply Territory Filter" : "Show All Territories"}
+            </button>
+          </div>
+        )}
+
+        {/* Business Line Filter Bar */}
+        {userAssignedBLIds.size > 0 && profileData?.assignedBusinessLines && profileData.assignedBusinessLines.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mb-3 bg-card rounded-lg border border-border px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-gold" />
+              <span className="text-xs font-semibold text-foreground">
+                {showAllBusinessLines ? "Showing all business lines" : `BL: ${profileData.assignedBusinessLines.join(", ")}`}
+              </span>
+              {!showAllBusinessLines && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({blHardFiltered.length} of {territoryFiltered.length} projects)
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowAllBusinessLines(!showAllBusinessLines)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                showAllBusinessLines
+                  ? "bg-gold/15 text-gold-dark border border-gold/30 hover:bg-gold/25"
+                  : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+              }`}
+            >
+              <Filter className="w-3 h-3" />
+              {showAllBusinessLines ? "Apply BL Filter" : "Show All BLs"}
             </button>
           </div>
         )}

@@ -20,12 +20,6 @@ import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClass
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 
-/**
- * Base URL for the published app — used to build clickable links in digest emails.
- * Falls back to compasspt.manus.space if no env var is set.
- */
-const APP_BASE_URL = (process.env.APP_BASE_URL || "https://compasspt.manus.space").replace(/\/$/, "");
-
 interface DigestProject {
   id: number;
   name: string;
@@ -212,23 +206,16 @@ function formatThisWeekSection(
       const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
       const newBadge = p.isNew ? " [NEW]" : "";
       const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
-      const projectUrl = `${APP_BASE_URL}/projects/${p.id}`;
-      section += `${priorityEmoji} **[${p.name}](${projectUrl})**${newBadge}${tierBadge}\n`;
+      section += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
       section += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
       if (p.detectedActivities.length > 0) {
         section += `   🏗️ Activities: ${p.detectedActivities.slice(0, 3).join(", ")}\n`;
       }
       if (p.contractors && p.contractors.length > 0) {
-        // Strip any HTML tags from contractor names (data may contain raw HTML)
-        const cleanNames = p.contractors.slice(0, 2).map(c => c.name.replace(/<[^>]*>/g, "").trim()).filter(Boolean);
-        if (cleanNames.length > 0) {
-          section += `   🔧 Contractors: ${cleanNames.join(", ")}\n`;
-        }
+        section += `   🔧 Contractors: ${p.contractors.slice(0, 2).map(c => c.name).join(", ")}\n`;
       }
       if (p.overview) {
-        // Strip any HTML tags from overview text
-        const cleanOverview = p.overview.replace(/<[^>]*>/g, "").trim();
-        section += `   ${cleanOverview.substring(0, 120)}...\n`;
+        section += `   ${p.overview.substring(0, 120)}...\n`;
       }
       section += `\n`;
     }
@@ -308,13 +295,11 @@ function generateMondayDigest(
     const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
     const newBadge = p.isNew ? " [NEW]" : "";
     const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
-    const projectUrl = `${APP_BASE_URL}/projects/${p.id}`;
-    content += `${priorityEmoji} **[${p.name}](${projectUrl})**${newBadge}${tierBadge}\n`;
+    content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
     content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
     content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}%\n`;
     if (p.overview) {
-      const cleanOverview = p.overview.replace(/<[^>]*>/g, "").trim();
-      content += `   ${cleanOverview.substring(0, 120)}...\n`;
+      content += `   ${p.overview.substring(0, 120)}...\n`;
     }
     content += `\n`;
   }
@@ -335,9 +320,8 @@ function generateMondayDigest(
   }
 
   content += `\n---\n`;
-  content += `[**→ Open Your Dashboard**](${APP_BASE_URL})\n\n`;
-  content += `View detailed project cards, contractor info, source links, and take action on your pipeline.\n`;
-  content += `[Update your preferences](${APP_BASE_URL}/settings) to refine your matches.`;
+  content += `View the full dashboard for detailed project cards, contractor info, and source links.\n`;
+  content += `Update your territory and industry preferences in Settings to refine your matches.`;
 
   return content;
 }
@@ -379,12 +363,10 @@ function generateThursdayReminder(
     content += `**🔥 Hot & Actionable Projects in Your Territory (${actionable.length}):**\n\n`;
     for (const p of actionable.slice(0, 5)) {
       const newBadge = p.isNew ? " [NEW]" : "";
-      const projectUrl = `${APP_BASE_URL}/projects/${p.id}`;
-      content += `🔥 **[${p.name}](${projectUrl})**${newBadge}\n`;
+      content += `🔥 **${p.name}**${newBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
       if (p.overview) {
-        const cleanOverview = p.overview.replace(/<[^>]*>/g, "").trim();
-        content += `   ${cleanOverview.substring(0, 100)}...\n`;
+        content += `   ${p.overview.substring(0, 100)}...\n`;
       }
       content += `\n`;
     }
@@ -398,8 +380,7 @@ function generateThursdayReminder(
   }
 
   content += `\n---\n`;
-  content += `[**→ Open Your Dashboard**](${APP_BASE_URL})\n\n`;
-  content += `Review all projects and take action before the weekend.`;
+  content += `Open the dashboard to review all projects and take action before the weekend.`;
 
   return content;
 }
@@ -475,7 +456,7 @@ async function scoreAndFilterProjects(
  * Send compulsory personalized Monday weekly digests to ALL users with profiles.
  * No opt-in required — every user who has completed onboarding gets a digest.
  */
-export async function sendWeeklyDigests(force = false, targetUserIds?: number[]): Promise<{
+export async function sendWeeklyDigests(force = false): Promise<{
   sent: number;
   failed: number;
   skipped: number;
@@ -483,8 +464,8 @@ export async function sendWeeklyDigests(force = false, targetUserIds?: number[])
 }> {
   const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 
-  // Kill switch: skip all email sending when disabled (bypass for targeted test sends)
-  if (process.env.EMAIL_DIGESTS_ENABLED !== "true" && !targetUserIds) {
+  // Kill switch: skip all email sending when disabled
+  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
     console.log("[EmailDigest] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Skipping weekly digest.");
     return results;
   }
@@ -500,14 +481,9 @@ export async function sendWeeklyDigests(force = false, targetUserIds?: number[])
   const allProjects = await getProjectsByReportId(report.id);
   const allContacts = await getContactsByReportId(report.id);
 
-  // Get users — either targeted subset or ALL users with profiles
-  let allUsers = await getAllUsersWithProfiles();
-  if (targetUserIds && targetUserIds.length > 0) {
-    allUsers = allUsers.filter(({ user }) => user && targetUserIds.includes(user.id));
-    console.log(`[EmailDigest] Targeted test send: ${allUsers.length} users (IDs: ${targetUserIds.join(", ")})`);
-  } else {
-    console.log(`[EmailDigest] Monday digest: ${allUsers.length} users with profiles`);
-  }
+  // Get ALL users with profiles (compulsory — no opt-in check)
+  const allUsers = await getAllUsersWithProfiles();
+  console.log(`[EmailDigest] Monday digest: ${allUsers.length} users with profiles`);
 
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
@@ -520,7 +496,7 @@ export async function sendWeeklyDigests(force = false, targetUserIds?: number[])
       let thisWeekSection = "";
       try {
         const thisWeekData = await getThisWeekForEmail(user.id);
-        const thisWeekUrl = APP_BASE_URL;
+        const thisWeekUrl = "/";
         thisWeekSection = formatThisWeekSection(
           thisWeekData.top3Projects,
           thisWeekData.top2Stakeholders,
@@ -595,8 +571,6 @@ export async function sendWeeklyDigests(force = false, targetUserIds?: number[])
       if (sent) {
         results.sent++;
         console.log(`[EmailDigest] ✓ Monday digest sent for ${user.name} (${territories.join(", ")})`);
-        // Delay between sends to avoid Exchange/O365 bulk-send quarantine
-        await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
         results.failed++;
         console.warn(`[EmailDigest] ✗ Failed to send Monday digest for ${user.name}`);
@@ -652,7 +626,7 @@ export async function sendThursdayReminders(): Promise<{
       let thisWeekSection = "";
       try {
         const thisWeekData = await getThisWeekForEmail(user.id);
-        const thisWeekUrl = APP_BASE_URL;
+        const thisWeekUrl = "/";
         thisWeekSection = formatThisWeekSection(
           thisWeekData.top3Projects,
           thisWeekData.top2Stakeholders,
@@ -664,7 +638,7 @@ export async function sendThursdayReminders(): Promise<{
         thisWeekSection = "";
       }
 
-      // Only hot projects for this user — only hot/actionable (with BL personalization)
+      // Score projects for this user — only hot/actionable (with BL personalization)
       const matchedProjects = await scoreAndFilterProjects(allProjects, {
         territories: profile.territories as string[] | null,
         industries: profile.industries as string[] | null,
@@ -713,8 +687,6 @@ export async function sendThursdayReminders(): Promise<{
       if (sent) {
         results.sent++;
         console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
-        // Delay between sends to avoid Exchange/O365 bulk-send quarantine
-        await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
         results.failed++;
         console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);

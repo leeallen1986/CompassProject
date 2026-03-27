@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as wa_portable_air_projects FROM projects WHERE (lifecycleStatus = 'active' OR lifecycleStatus IS NULL) AND (location LIKE '%WA%' OR location LIKE '%Western Australia%' OR location LIKE '%Perth%' OR location LIKE '%Pilbara%' OR location LIKE '%Karratha%' OR location LIKE '%Kalgoorlie%') AND matchedBusinessLines IS NOT NULL AND JSON_CONTAINS(matchedBusinessLines, '1');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as wa_portable_air_projects FROM projects WHERE (lifecycleStatus = 'active' OR lifecycleStatus IS NULL) AND (location LIKE '%WA%' OR location LIKE '%Western Australia%' OR location LIKE '%Perth%' OR location LIKE '%Pilbara%' OR location LIKE '%Karratha%' OR location LIKE '%Kalgoorlie%') AND matchedBusinessLines IS NOT NULL AND JSON_CONTAINS(matchedBusinessLines, '1');",
+  "rows": [
+    {
+      "wa_portable_air_projects": "51"
+    }
+  ],
+  "messages": [],
+  "stdout": "wa_portable_air_projects\n51\n",
+  "stderr": "",
+  "execution_time_ms": 1542
+}

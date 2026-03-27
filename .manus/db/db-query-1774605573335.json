@@ -1,0 +1,15 @@
+{
+  "query": "SELECT COUNT(*) as total_projects, SUM(CASE WHEN matchedBusinessLines IS NOT NULL AND JSON_CONTAINS(matchedBusinessLines, '1') THEN 1 ELSE 0 END) as has_portable_air, SUM(CASE WHEN location LIKE '%WA%' OR location LIKE '%Western Australia%' OR location LIKE '%Perth%' OR location LIKE '%Pilbara%' THEN 1 ELSE 0 END) as in_wa FROM projects WHERE lifecycleStatus = 'active' OR lifecycleStatus IS NULL LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total_projects, SUM(CASE WHEN matchedBusinessLines IS NOT NULL AND JSON_CONTAINS(matchedBusinessLines, '1') THEN 1 ELSE 0 END) as has_portable_air, SUM(CASE WHEN location LIKE '%WA%' OR location LIKE '%Western Australia%' OR location LIKE '%Perth%' OR location LIKE '%Pilbara%' THEN 1 ELSE 0 END) as in_wa FROM projects WHERE lifecycleStatus = 'active' OR lifecycleStatus IS NULL LIMIT 1;",
+  "rows": [
+    {
+      "total_projects": "344",
+      "has_portable_air": "149",
+      "in_wa": "88"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_projects\thas_portable_air\tin_wa\n344\t149\t88\n",
+  "stderr": "",
+  "execution_time_ms": 1483
+}

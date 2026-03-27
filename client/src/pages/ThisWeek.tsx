@@ -3,12 +3,10 @@
  * Surfaces the most actionable intelligence: top priorities, new stakeholders,
  * stage changes, and suggested actions. The existing dashboard is the drill-down layer.
  */
-import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { IMAGES } from "@/lib/images";
-import OutreachEmailModal from "@/components/OutreachEmailModal";
 import {
   Flame, TrendingUp, Users, ArrowRight, ArrowUpRight,
   MapPin, Calendar, ChevronRight, Sparkles, Target,
@@ -114,28 +112,6 @@ function LoginPage() {
 export default function ThisWeek() {
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
-
-  // Outreach modal state
-  const [outreachOpen, setOutreachOpen] = useState(false);
-  const [outreachContact, setOutreachContact] = useState<{ name: string; title: string; company: string; email: string; roleBucket: string } | null>(null);
-  const [outreachProject, setOutreachProject] = useState<{ name: string; location: string; value: string; sector: string; stage: string | null; overview: string | null; equipmentSignals: string[] | null; opportunityRoute: string; matchedBusinessLines: string[]; id?: number } | null>(null);
-
-  const openOutreach = (contact: { name: string; title: string; company: string; email: string; roleBucket: string }, project: { id?: number; name: string; location: string; value: string; sector: string; stage?: string | null; overview?: string | null }) => {
-    setOutreachContact(contact);
-    setOutreachProject({
-      name: project.name,
-      location: project.location,
-      value: project.value,
-      sector: project.sector,
-      stage: project.stage || null,
-      overview: project.overview || null,
-      equipmentSignals: null,
-      opportunityRoute: "direct",
-      matchedBusinessLines: [],
-      id: project.id,
-    });
-    setOutreachOpen(true);
-  };
 
   // Fetch the This Week summary
   const { data: summary, isLoading } = trpc.thisWeek.summary.useQuery(undefined, {
@@ -412,18 +388,9 @@ export default function ThisWeek() {
                             {project.bestStakeholder.relevance === "high" ? "KEY" : "MED"}
                           </span>
                           {project.bestStakeholder.email && (
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                openOutreach(
-                                  { name: project.bestStakeholder!.name, title: project.bestStakeholder!.title, company: project.owner, email: project.bestStakeholder!.email!, roleBucket: project.bestStakeholder!.relevance === "high" ? "Key Decision Maker" : "Stakeholder" },
-                                  { id: project.id, name: project.name, location: project.location, value: project.value, sector: project.sector, stage: project.stage }
-                                );
-                              }}
-                              className="text-teal hover:text-teal-light"
-                            >
+                            <a href={`mailto:${project.bestStakeholder.email}`} onClick={e => e.stopPropagation()} className="text-teal hover:text-teal-light">
                               <Mail className="w-3 h-3" />
-                            </button>
+                            </a>
                           )}
                           {project.bestStakeholder.linkedin && (
                             <a href={project.bestStakeholder.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-navy hover:text-gold-dark">
@@ -523,18 +490,9 @@ export default function ThisWeek() {
                       </div>
                       <div className="flex items-center gap-2">
                         {contact.email && (
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              openOutreach(
-                                { name: contact.name, title: contact.title, company: contact.company, email: contact.email!, roleBucket: contact.roleRelevance === "high" ? "Key Decision Maker" : "Stakeholder" },
-                                { name: contact.project, location: "Australia", value: "Unknown", sector: "infrastructure" }
-                              );
-                            }}
-                            className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal/15 text-teal hover:bg-teal/25 transition-colors"
-                          >
-                            <Mail className="w-3 h-3 inline mr-0.5" />Outreach
-                          </button>
+                          <a href={`mailto:${contact.email}`} onClick={e => e.stopPropagation()} className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal/15 text-teal hover:bg-teal/25 transition-colors">
+                            <Mail className="w-3 h-3 inline mr-0.5" />Email
+                          </a>
                         )}
                         {contact.linkedin && (
                           <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-navy/10 text-navy hover:bg-navy/20 transition-colors">
@@ -631,16 +589,6 @@ export default function ThisWeek() {
           </div>
         </div>
       </main>
-
-      {/* Outreach Email Modal */}
-      {outreachOpen && outreachContact && outreachProject && (
-        <OutreachEmailModal
-          isOpen={outreachOpen}
-          onClose={() => setOutreachOpen(false)}
-          contact={outreachContact}
-          project={outreachProject}
-        />
-      )}
     </div>
   );
 }

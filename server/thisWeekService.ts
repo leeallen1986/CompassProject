@@ -11,6 +11,7 @@ import { type ActionTier, getTierLabel, shouldIncludeInBrief } from "./tierClass
 import { detectActivities, type DetectedActivity } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { rankProjectsForUser } from "./mlRanker";
+import { getActiveBusinessLines } from "./pipelineDb";
 
 // ── Types ──
 
@@ -187,6 +188,68 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     } catch {
       // Fall back to default ordering
     }
+  }
+
+  // ── Hard-filter by user's territory and assigned business lines ──
+  // Only apply when user has explicit preferences set
+  const stateKeywords: Record<string, string[]> = {
+    WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland", "newman", "geraldton", "bunbury", "broome"],
+    QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "rockhampton", "cairns", "bowen basin", "moranbah", "emerald"],
+    NSW: ["new south wales", "nsw", "sydney", "newcastle", "hunter valley", "wollongong", "broken hill", "orange", "dubbo", "mudgee"],
+    VIC: ["victoria", "vic", "melbourne", "geelong", "ballarat", "bendigo", "latrobe valley"],
+    SA: ["south australia", "sa", "adelaide", "olympic dam", "whyalla", "port augusta"],
+    NT: ["northern territory", "nt", "darwin", "alice springs", "tennant creek", "katherine"],
+    TAS: ["tasmania", "tas", "hobart", "launceston"],
+    ACT: ["australian capital territory", "act", "canberra"],
+    NATIONAL: ["national", "australia", "multi-state", "nationwide"],
+    OFFSHORE: ["offshore", "fpso", "nwshelf", "north west shelf", "browse", "timor sea", "bass strait"],
+  };
+
+  const locationMatchesTerritories = (location: string, territories: string[]): boolean => {
+    const loc = location.toLowerCase();
+    return territories.some(t => {
+      if (t.toUpperCase() === "NATIONAL") return true; // NATIONAL users see everything
+      const keywords = stateKeywords[t.toUpperCase()] || [t.toLowerCase()];
+      return keywords.some(kw => loc.includes(kw));
+    });
+  };
+
+  if (userContext.territories.length > 0 || userContext.assignedBusinessLines.length > 0) {
+    // Build BL name → ID map for matching
+    let blNameToId: Record<string, number> = {};
+    try {
+      const allBLs = await getActiveBusinessLines();
+      allBLs.forEach(bl => { blNameToId[bl.name] = bl.id; });
+    } catch { /* fallback: no BL filter */ }
+
+    const userBLIds = new Set<number>(
+      userContext.assignedBusinessLines
+        .map(name => blNameToId[name] ?? Object.entries(blNameToId).find(
+          ([n]) => n.toLowerCase() === name.toLowerCase()
+        )?.[1])
+        .filter((id): id is number => id !== undefined)
+    );
+
+    rankedProjects = rankedProjects.filter(p => {
+      // Territory check: if user has territories set, project must match one
+      if (userContext.territories.length > 0) {
+        const isNational = userContext.territories.some(t => t.toUpperCase() === "NATIONAL");
+        if (!isNational && !locationMatchesTerritories(p.location, userContext.territories)) {
+          return false;
+        }
+      }
+
+      // BL check: if user has assigned BLs and project has BL data, at least one must match
+      if (userBLIds.size > 0) {
+        const projectBLs = (p as any).matchedBusinessLines as number[] | null;
+        if (projectBLs && projectBLs.length > 0) {
+          if (!projectBLs.some(id => userBLIds.has(id))) return false;
+        }
+        // If project has no BL data, include it (unscored projects shouldn't be hidden)
+      }
+
+      return true;
+    });
   }
 
   // Sort by tier (T1 first), then priority (hot first), then by isNew

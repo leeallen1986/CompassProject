@@ -1,0 +1,17 @@
+{
+  "query": "SELECT u.name, u.email, p.territories, p.assignedBusinessLines, p.sectorFocus FROM users u JOIN userProfiles p ON p.userId = u.id WHERE u.name LIKE '%Ryan%' OR u.name LIKE '%Pemberton%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.name, u.email, p.territories, p.assignedBusinessLines, p.sectorFocus FROM users u JOIN userProfiles p ON p.userId = u.id WHERE u.name LIKE '%Ryan%' OR u.name LIKE '%Pemberton%';",
+  "rows": [
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tterritories\tassignedBusinessLines\tsectorFocus\nRyan Pemberton\tryan.pemberton@atlascopco.com\t[\"WA\"]\t[\"Portable Air\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1535
+}

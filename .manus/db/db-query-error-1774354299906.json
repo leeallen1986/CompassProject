@@ -1,8 +1,0 @@
-{
-  "query": "\nSELECT u.id, u.name, u.email, u.role,\n       p.id as profile_id, p.territories, p.businessLines, p.sectorFocus\nFROM users u\nLEFT JOIN userProfiles p ON p.userId = u.id\nWHERE u.name LIKE '%Lee%' OR u.name LIKE '%Ryan%' OR u.email LIKE '%lee%' OR u.email LIKE '%ryan%' OR u.email LIKE '%pemberton%' OR u.email LIKE '%allen%'\nORDER BY u.name;\n",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, u.role,\n       p.id as profile_id, p.territories, p.businessLines, p.sectorFocus\nFROM users u\nLEFT JOIN userProfiles p ON p.userId = u.id\nWHERE u.name LIKE '%Lee%' OR u.name LIKE '%Ryan%' OR u.email LIKE '%lee%' OR u.email LIKE '%ryan%' OR u.email LIKE '%pemberton%' OR u.email LIKE '%allen%'\nORDER BY u.name;\n",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1054 (42S22) at line 2: Unknown column 'p.businesslines' in 'field list'"
-  ]
-}
