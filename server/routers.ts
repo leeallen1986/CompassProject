@@ -2179,7 +2179,7 @@ export const appRouter = router({
   contractorEnrichment: router({
     /** Run the contractor enrichment pass on projects missing contractors */
     runPass: adminProcedure
-      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
+      .input(z.object({ limit: z.number().min(1).max(500).default(20) }).optional())
       .mutation(async ({ input }) => {
         return runContractorEnrichmentPass(input?.limit ?? 20);
       }),

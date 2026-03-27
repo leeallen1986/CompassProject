@@ -1,0 +1,15 @@
+{
+  "query": "SELECT COUNT(*) as total, SUM(CASE WHEN contractors IS NULL OR contractors = 'null' OR contractors = '[]' OR contractors = '' THEN 1 ELSE 0 END) as null_contractors, SUM(CASE WHEN JSON_LENGTH(contractors) = 0 THEN 1 ELSE 0 END) as empty_array FROM projects WHERE reportId = (SELECT MAX(id) FROM reports);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total, SUM(CASE WHEN contractors IS NULL OR contractors = 'null' OR contractors = '[]' OR contractors = '' THEN 1 ELSE 0 END) as null_contractors, SUM(CASE WHEN JSON_LENGTH(contractors) = 0 THEN 1 ELSE 0 END) as empty_array FROM projects WHERE reportId = (SELECT MAX(id) FROM reports);",
+  "rows": [
+    {
+      "total": "26",
+      "null_contractors": "0",
+      "empty_array": "24"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tnull_contractors\tempty_array\n26\t0\t24\n",
+  "stderr": "",
+  "execution_time_ms": 1535
+}

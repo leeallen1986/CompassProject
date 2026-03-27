@@ -1,0 +1,37 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE() ORDER BY ORDINAL_POSITION LIMIT 10 OFFSET 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE() ORDER BY ORDINAL_POSITION LIMIT 10 OFFSET 20;",
+  "rows": [
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "matchedBusinessLines"
+    },
+    {
+      "COLUMN_NAME": "lifecycleStatus"
+    },
+    {
+      "COLUMN_NAME": "lastActivityAt"
+    },
+    {
+      "COLUMN_NAME": "archivedBy"
+    },
+    {
+      "COLUMN_NAME": "archivedAt"
+    },
+    {
+      "COLUMN_NAME": "projectoryEnriched"
+    },
+    {
+      "COLUMN_NAME": "updatedAt"
+    },
+    {
+      "COLUMN_NAME": "actionTier"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\ncreatedAt\nmatchedBusinessLines\nlifecycleStatus\nlastActivityAt\narchivedBy\narchivedAt\nprojectoryEnriched\nupdatedAt\nactionTier\n",
+  "stderr": "",
+  "execution_time_ms": 1606
+}

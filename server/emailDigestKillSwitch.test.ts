@@ -91,10 +91,10 @@ describe("EMAIL_DIGESTS_ENABLED kill switch", () => {
     expect(getLatestReport).not.toHaveBeenCalled();
   });
 
-  it("validates EMAIL_DIGESTS_ENABLED env var is currently set to disable emails", () => {
+  it("validates EMAIL_DIGESTS_ENABLED env var is currently set to enable emails", () => {
     // This test validates the actual env var is set correctly in the current environment
     const value = process.env.EMAIL_DIGESTS_ENABLED;
-    // It should NOT be "true" right now (we just set it to "false")
-    expect(value).not.toBe("true");
+    // Email digests are now enabled (Resend domain verified, SPF/DKIM/DMARC configured)
+    expect(value).toBe("true");
   });
 });

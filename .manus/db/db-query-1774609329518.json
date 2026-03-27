@@ -1,0 +1,31 @@
+{
+  "query": "SELECT id, name, location, sector, contractors FROM projects WHERE contractors IS NOT NULL AND contractors != 'null' AND contractors != '[]' LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, location, sector, contractors FROM projects WHERE contractors IS NOT NULL AND contractors != 'null' AND contractors != '[]' LIMIT 3;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "West Angelas Sustaining Project (WASP) — Bulk Earthworks",
+      "location": "Pilbara, WA",
+      "sector": "mining",
+      "contractors": "[{\"detail\": \"$175M bulk earthworks (Deposit H)\", \"name\": \"NRW Civil & Mining\", \"status\": \"confirmed\"}, {\"detail\": \"$120M heavy haulage roads (Western Hill)\", \"name\": \"Decmil (Macmahon)\", \"status\": \"confirmed\"}]"
+    },
+    {
+      "id": "2",
+      "name": "Monadelphous Rio Tinto Pilbara Maintenance Services",
+      "location": "Pilbara, WA",
+      "sector": "mining",
+      "contractors": "[{\"detail\": \"$300M (5-year term)\", \"name\": \"Monadelphous Group\", \"status\": \"confirmed\"}]"
+    },
+    {
+      "id": "3",
+      "name": "Golding Meandu Coal Mine MSA",
+      "location": "South Burnett, QLD",
+      "sector": "mining",
+      "contractors": "[{\"detail\": \"$750M MSA\", \"name\": \"Golding Contractors (NRW Holdings)\", \"status\": \"confirmed\"}, {\"confidence\": 0.7, \"detail\": \"drilling/blasting\", \"name\": \"Action Drill & Blast (NRW)\", \"status\": \"predicted\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tsector\tcontractors\n1\tWest Angelas Sustaining Project (WASP) — Bulk Earthworks\tPilbara, WA\tmining\t[{\"detail\": \"$175M bulk earthworks (Deposit H)\", \"name\": \"NRW Civil & Mining\", \"status\": \"confirmed\"}, {\"detail\": \"$120M heavy haulage roads (Western Hill)\", \"name\": \"Decmil (Macmahon)\", \"status\": \"confirmed\"}]\n2\tMonadelphous Rio Tinto Pilbara Maintenance Services\tPilbara, WA\tmining\t[{\"detail\": \"$300M (5-year term)\", \"name\": \"Monadelphous Group\", \"status\": \"confirmed\"}]\n3\tGolding Meandu Coal Mine MSA\tSouth Burnett, QLD\tmining\t[{\"detail\": \"$750M MSA\", \"name\": \"Golding Contractors (NRW Holdings)\", \"status\": \"confirmed\"}, {\"confidence\": 0.7, \"detail\": \"drilling/blasting\", \"name\": \"Action Drill & Blast (NRW)\", \"status\": \"predicted\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 1550
+}

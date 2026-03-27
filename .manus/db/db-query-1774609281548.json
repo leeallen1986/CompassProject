@@ -1,0 +1,60 @@
+{
+  "query": "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND COLUMN_NAME LIKE '%contractor%' OR COLUMN_NAME LIKE '%company%' OR COLUMN_NAME LIKE '%builder%' OR COLUMN_NAME LIKE '%epc%' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND COLUMN_NAME LIKE '%contractor%' OR COLUMN_NAME LIKE '%company%' OR COLUMN_NAME LIKE '%builder%' OR COLUMN_NAME LIKE '%epc%' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "companyAId",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "companyName",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "companyAName",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "companyWebsite",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(512)"
+    },
+    {
+      "COLUMN_NAME": "companyARoleInPairing",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "companyBId",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "company",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "companyBName",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "companyBRoleInPairing",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "contractors",
+      "DATA_TYPE": "json",
+      "COLUMN_TYPE": "json"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tDATA_TYPE\tCOLUMN_TYPE\ncompanyAId\tint\tint\ncompanyName\tvarchar\tvarchar(256)\ncompanyAName\tvarchar\tvarchar(256)\ncompanyWebsite\tvarchar\tvarchar(512)\ncompanyARoleInPairing\tvarchar\tvarchar(64)\ncompanyBId\tint\tint\ncompany\tvarchar\tvarchar(256)\ncompanyBName\tvarchar\tvarchar(256)\ncompanyBRoleInPairing\tvarchar\tvarchar(64)\ncontractors\tjson\tjson\n",
+  "stderr": "",
+  "execution_time_ms": 1537
+}

@@ -1,0 +1,15 @@
+{
+  "query": "SELECT \n  COUNT(*) as total_active,\n  SUM(CASE WHEN contractors IS NOT NULL AND JSON_LENGTH(contractors) > 0 AND NOT (JSON_LENGTH(contractors) = 1 AND JSON_EXTRACT(contractors, '$[0].name') = 'Unknown') THEN 1 ELSE 0 END) as with_contractors,\n  SUM(CASE WHEN contractors IS NULL OR JSON_LENGTH(contractors) = 0 OR (JSON_LENGTH(contractors) = 1 AND JSON_EXTRACT(contractors, '$[0].name') = 'Unknown') THEN 1 ELSE 0 END) as missing_contractors\nFROM projects \nWHERE lifecycleStatus IN ('active', 'awarded')",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  COUNT(*) as total_active,\n  SUM(CASE WHEN contractors IS NOT NULL AND JSON_LENGTH(contractors) > 0 AND NOT (JSON_LENGTH(contractors) = 1 AND JSON_EXTRACT(contractors, '$[0].name') = 'Unknown') THEN 1 ELSE 0 END) as with_contractors,\n  SUM(CASE WHEN contractors IS NULL OR JSON_LENGTH(contractors) = 0 OR (JSON_LENGTH(contractors) = 1 AND JSON_EXTRACT(contractors, '$[0].name') = 'Unknown') THEN 1 ELSE 0 END) as missing_contractors\nFROM projects \nWHERE lifecycleStatus IN ('active', 'awarded')",
+  "rows": [
+    {
+      "total_active": "344",
+      "with_contractors": "266",
+      "missing_contractors": "78"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_active\twith_contractors\tmissing_contractors\n344\t266\t78\n",
+  "stderr": "",
+  "execution_time_ms": 1520
+}

@@ -606,3 +606,11 @@
 
 ## React Error #310 Fix
 - [x] Fix React error #310 (Rendered fewer hooks than expected) on published site — caused by conditional hook calls in Home.tsx
+
+## Contractor Prediction Engine
+- [x] Build cross-reference engine: match missing-contractor projects against awarded projects by sector/location/value to predict likely contractors
+- [x] Build LLM-powered contractor prediction: use project details to predict likely contractors with confidence scores
+- [x] Integrate predictions into project data (mark as "predicted" vs "confirmed")
+- [x] Display predicted contractors in the UI with appropriate visual distinction
+- [x] Run bulk enrichment on all 290 missing-contractor projects (212 enriched, 1286 contractors discovered, coverage 15% → 77%)
+- [x] Write 25 vitest tests for contractor enrichment pass (awarded patterns, context formatting, filtering, merge logic, confidence mapping)

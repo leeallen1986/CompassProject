@@ -14,7 +14,7 @@
  */
 
 import { getDb } from "./db";
-import { projects } from "../drizzle/schema";
+import { projects, awardedProjects } from "../drizzle/schema";
 import { eq, sql, and, or, isNull } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 
@@ -116,6 +116,106 @@ export async function getMissingContractorCount(): Promise<number> {
   return Number(result.count);
 }
 
+// ─── Awarded Project Cross-Reference ────────────────────────────
+
+interface AwardedPattern {
+  contractor: string;
+  projects: string[];
+  locations: string[];
+}
+
+/**
+ * Build a contractor pattern map from awarded projects.
+ * Groups by location region (state) to identify which contractors
+ * typically win work in each area.
+ */
+async function getAwardedProjectPatterns(): Promise<{
+  byLocation: Map<string, AwardedPattern[]>;
+  allPatterns: AwardedPattern[];
+}> {
+  const db = await getDb();
+  if (!db) return { byLocation: new Map(), allPatterns: [] };
+
+  const awarded = await db.select({
+    project: awardedProjects.project,
+    winningContractor: awardedProjects.winningContractor,
+    location: awardedProjects.location,
+    value: awardedProjects.value,
+  }).from(awardedProjects);
+
+  // Group by contractor
+  const contractorMap = new Map<string, { projects: string[]; locations: string[] }>();
+  for (const a of awarded) {
+    const name = a.winningContractor.trim();
+    if (!contractorMap.has(name)) {
+      contractorMap.set(name, { projects: [], locations: [] });
+    }
+    const entry = contractorMap.get(name)!;
+    entry.projects.push(`${a.project} (${a.value})`);
+    if (!entry.locations.includes(a.location)) {
+      entry.locations.push(a.location);
+    }
+  }
+
+  const allPatterns: AwardedPattern[] = [];
+  for (const [contractor, data] of Array.from(contractorMap.entries())) {
+    allPatterns.push({ contractor, projects: data.projects, locations: data.locations });
+  }
+
+  // Group by state extracted from location
+  const byLocation = new Map<string, AwardedPattern[]>();
+  const stateAbbrevs = ["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"];
+  for (const pattern of allPatterns) {
+    for (const loc of pattern.locations) {
+      for (const state of stateAbbrevs) {
+        if (loc.toUpperCase().includes(state)) {
+          if (!byLocation.has(state)) byLocation.set(state, []);
+          const stateList = byLocation.get(state)!;
+          if (!stateList.find(p => p.contractor === pattern.contractor)) {
+            stateList.push(pattern);
+          }
+        }
+      }
+    }
+  }
+
+  return { byLocation, allPatterns };
+}
+
+/**
+ * Format awarded project patterns as context for the LLM prompt.
+ */
+function formatAwardedContext(project: { location: string; sector: string }, patterns: {
+  byLocation: Map<string, AwardedPattern[]>;
+  allPatterns: AwardedPattern[];
+}): string {
+  const stateAbbrevs = ["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"];
+  const projectState = stateAbbrevs.find(s => project.location.toUpperCase().includes(s));
+
+  const lines: string[] = [];
+  lines.push("\n\nAWARDED PROJECT DATABASE (real contract wins in Australia):");
+
+  // Show contractors active in the same state
+  if (projectState && patterns.byLocation.has(projectState)) {
+    const statePatterns = patterns.byLocation.get(projectState)!;
+    lines.push(`\nContractors active in ${projectState}:`);
+    for (const p of statePatterns.slice(0, 10)) {
+      lines.push(`- ${p.contractor}: won ${p.projects.slice(0, 3).join("; ")}`);
+    }
+  }
+
+  // Show top contractors overall
+  const sorted = [...patterns.allPatterns].sort((a, b) => b.projects.length - a.projects.length);
+  lines.push(`\nTop contractors by awarded project count:`);
+  for (const p of sorted.slice(0, 8)) {
+    lines.push(`- ${p.contractor} (${p.projects.length} wins): active in ${p.locations.join(", ")}`);
+  }
+
+  lines.push("\nUse this awarded project data to inform your predictions. If a contractor has won similar projects in the same region, they are more likely to be involved.");
+
+  return lines.join("\n");
+}
+
 // ─── LLM-Powered Contractor Search ──────────────────────────────
 
 const CONTRACTOR_EXTRACTION_PROMPT = `You are an Australian construction and mining industry expert.
@@ -139,6 +239,7 @@ IMPORTANT RULES:
 - If you don't know the contractors, return an empty array
 - Focus on Australian operations of these companies
 - Consider the project sector, location, and scale when identifying likely contractors
+- Prioritise contractors that have won similar projects in the same region (see AWARDED PROJECT DATABASE below)
 - For mining projects in WA, consider companies like Monadelphous, NRW, Macmahon, MACA, Byrnecut
 - For infrastructure in NSW/VIC, consider CPB, John Holland, Acciona, Lendlease, Multiplex
 - For energy projects, consider Clough, McDermott, Worley, Wood, Bechtel
@@ -149,6 +250,19 @@ Return JSON array only. No markdown, no explanation outside the JSON.`;
 /**
  * Use LLM to identify likely contractors for a project.
  */
+// Cache awarded patterns so we don't re-query for every project
+let _awardedPatternsCache: Awaited<ReturnType<typeof getAwardedProjectPatterns>> | null = null;
+let _awardedPatternsCacheTime = 0;
+
+async function getCachedAwardedPatterns() {
+  const now = Date.now();
+  if (!_awardedPatternsCache || now - _awardedPatternsCacheTime > 10 * 60 * 1000) {
+    _awardedPatternsCache = await getAwardedProjectPatterns();
+    _awardedPatternsCacheTime = now;
+  }
+  return _awardedPatternsCache;
+}
+
 export async function searchContractorsForProject(project: {
   id: number;
   name: string;
@@ -164,9 +278,13 @@ export async function searchContractorsForProject(project: {
   ];
 
   try {
+    // Get awarded project patterns for cross-referencing
+    const awardedPatterns = await getCachedAwardedPatterns();
+    const awardedContext = formatAwardedContext(project, awardedPatterns);
+
     const response = await invokeLLM({
       messages: [
-        { role: "system", content: CONTRACTOR_EXTRACTION_PROMPT },
+        { role: "system", content: CONTRACTOR_EXTRACTION_PROMPT + awardedContext },
         {
           role: "user",
           content: `Project: ${project.name}
@@ -176,6 +294,7 @@ Location: ${project.location}
 Stage: ${project.stage || "Unknown"}
 
 Identify the contractors, EPC firms, and construction partners most likely involved in this project.
+Use the awarded project database above to inform your predictions where relevant.
 Return a JSON array of objects with fields: name, role, confidence, detail.
 If you don't know, return an empty array [].`,
         },

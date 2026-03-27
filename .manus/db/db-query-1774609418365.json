@@ -1,0 +1,54 @@
+{
+  "query": "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'awardedProjects' AND TABLE_SCHEMA = DATABASE() ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'awardedProjects' AND TABLE_SCHEMA = DATABASE() ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "reportId",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "project",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "value",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "winningContractor",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "location",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "stage",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "opportunity",
+      "DATA_TYPE": "enum"
+    },
+    {
+      "COLUMN_NAME": "sourceLabel",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "sourceUrl",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "DATA_TYPE": "timestamp"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tDATA_TYPE\nid\tint\nreportId\tint\nproject\tvarchar\nvalue\tvarchar\nwinningContractor\tvarchar\nlocation\tvarchar\nstage\tvarchar\nopportunity\tenum\nsourceLabel\tvarchar\nsourceUrl\tvarchar\ncreatedAt\ttimestamp\n",
+  "stderr": "",
+  "execution_time_ms": 1517
+}

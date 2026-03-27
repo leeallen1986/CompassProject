@@ -1,0 +1,70 @@
+{
+  "query": "SELECT project, winningContractor, location, value FROM awardedProjects LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT project, winningContractor, location, value FROM awardedProjects LIMIT 10;",
+  "rows": [
+    {
+      "project": "WASP Deposit H",
+      "winningContractor": "NRW Civil & Mining",
+      "location": "Pilbara, WA",
+      "value": "$175M"
+    },
+    {
+      "project": "WASP Western Hill",
+      "winningContractor": "Decmil (Macmahon)",
+      "location": "Pilbara, WA",
+      "value": "$120M"
+    },
+    {
+      "project": "Rio Tinto Maintenance",
+      "winningContractor": "Monadelphous",
+      "location": "Pilbara, WA",
+      "value": "$300M"
+    },
+    {
+      "project": "Meandu Coal MSA",
+      "winningContractor": "Golding (NRW)",
+      "location": "S. Burnett, QLD",
+      "value": "$750M"
+    },
+    {
+      "project": "Mt Pleasant Expansion",
+      "winningContractor": "Thiess (CIMIC)",
+      "location": "Hunter Valley, NSW",
+      "value": "$900M+"
+    },
+    {
+      "project": "Logan-GC Faster Rail",
+      "winningContractor": "ActivUs (ACCIONA, CPB, UGL)",
+      "location": "QLD",
+      "value": "$5.75B"
+    },
+    {
+      "project": "Orchard Hills Defence",
+      "winningContractor": "Hansen Yuncken, ADCO",
+      "location": "W. Sydney, NSW",
+      "value": "$508M"
+    },
+    {
+      "project": "Gold Duke Pre-Mining",
+      "winningContractor": "SSH Mining, Delta Drilling",
+      "location": "Wiluna, WA",
+      "value": "$6.75M"
+    },
+    {
+      "project": "Dampier Link Bridge",
+      "winningContractor": "NRW + Brady Marine JV",
+      "location": "Dampier, WA",
+      "value": "$49M"
+    },
+    {
+      "project": "Toodyay Road",
+      "winningContractor": "NRW Civil & Mining",
+      "location": "WA",
+      "value": "$46M"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\twinningContractor\tlocation\tvalue\nWASP Deposit H\tNRW Civil & Mining\tPilbara, WA\t$175M\nWASP Western Hill\tDecmil (Macmahon)\tPilbara, WA\t$120M\nRio Tinto Maintenance\tMonadelphous\tPilbara, WA\t$300M\nMeandu Coal MSA\tGolding (NRW)\tS. Burnett, QLD\t$750M\nMt Pleasant Expansion\tThiess (CIMIC)\tHunter Valley, NSW\t$900M+\nLogan-GC Faster Rail\tActivUs (ACCIONA, CPB, UGL)\tQLD\t$5.75B\nOrchard Hills Defence\tHansen Yuncken, ADCO\tW. Sydney, NSW\t$508M\nGold Duke Pre-Mining\tSSH Mining, Delta Drilling\tWiluna, WA\t$6.75M\nDampier Link Bridge\tNRW + Brady Marine JV\tDampier, WA\t$49M\nToodyay Road\tNRW Civil & Mining\tWA\t$46M\n",
+  "stderr": "",
+  "execution_time_ms": 1541
+}
