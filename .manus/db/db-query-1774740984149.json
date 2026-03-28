@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE collateralItems SET sectorTags = '[\"mining\", \"oil_gas\", \"infrastructure\"]', applicationTags = '[\"sandblasting\", \"pipeline_testing\"]' WHERE name LIKE '%XAVS1800%'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE collateralItems SET sectorTags = '[\"mining\", \"oil_gas\", \"infrastructure\"]', applicationTags = '[\"sandblasting\", \"pipeline_testing\"]' WHERE name LIKE '%XAVS1800%'",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1517
+}

@@ -1,0 +1,210 @@
+{
+  "query": "SELECT p.id, p.name, p.value, p.capexGrade, p.priority, p.sector, cpm.matchScore, cpm.matchReason FROM collateralProjectMatches cpm JOIN projects p ON cpm.projectId = p.id JOIN collateralItems ci ON cpm.collateralId = ci.id WHERE ci.name LIKE '%XAVS1800%' AND p.value NOT IN ('Unknown', 'Undisclosed', 'Unspecified', 'Not specified') AND p.value NOT LIKE '%Confidential%' ORDER BY cpm.matchScore DESC LIMIT 20",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.value, p.capexGrade, p.priority, p.sector, cpm.matchScore, cpm.matchReason FROM collateralProjectMatches cpm JOIN projects p ON cpm.projectId = p.id JOIN collateralItems ci ON cpm.collateralId = ci.id WHERE ci.name LIKE '%XAVS1800%' AND p.value NOT IN ('Unknown', 'Undisclosed', 'Unspecified', 'Not specified') AND p.value NOT LIKE '%Confidential%' ORDER BY cpm.matchScore DESC LIMIT 20",
+  "rows": [
+    {
+      "id": "360007",
+      "name": "Forelands Gold Project",
+      "value": "A$3.5m (exploration funding)",
+      "capexGrade": "A",
+      "priority": "hot",
+      "sector": "mining",
+      "matchScore": "90",
+      "matchReason": "Sector match: mining; 2 application tag(s) matched; 1 keyword(s) matched; Portable air relevant to drilling/compressor context"
+    },
+    {
+      "id": "510035",
+      "name": "Boyne Aluminium Smelter Investment",
+      "value": "A$2bn ($1.4bn)",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "mining",
+      "matchScore": "80",
+      "matchReason": "Sector match: mining; 2 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "300022",
+      "name": "Octopus Energy's Solar-BESS Park",
+      "value": "USD-640m",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "energy",
+      "matchScore": "80",
+      "matchReason": "Sector match: energy; 2 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "570020",
+      "name": "Bruce Highway Targeted Safety Program (BHTSP)",
+      "value": "$9 billion",
+      "capexGrade": "A",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "matchScore": "80",
+      "matchReason": "Sector match: infrastructure; 2 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "450035",
+      "name": "Top End Solar and Battery Project",
+      "value": "Multi-gigawatt",
+      "capexGrade": "B",
+      "priority": "warm",
+      "sector": "energy",
+      "matchScore": "80",
+      "matchReason": "Sector match: energy; 2 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "330014",
+      "name": "Youanmi Gold Mine Production Funding",
+      "value": "$350 million",
+      "capexGrade": "A",
+      "priority": "hot",
+      "sector": "mining",
+      "matchScore": "80",
+      "matchReason": "Sector match: mining; 2 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "510016",
+      "name": "Boyne Smelter Future-Proofing (Storage-Firmed Renewables)",
+      "value": "AU$2 billion",
+      "capexGrade": "A",
+      "priority": "hot",
+      "sector": "energy",
+      "matchScore": "80",
+      "matchReason": "Sector match: energy; 2 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "240001",
+      "name": "National Housing Accord - 1.2 Million New Homes",
+      "value": "Multi-billion dollar (implied)",
+      "capexGrade": "B",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "matchScore": "70",
+      "matchReason": "Sector match: infrastructure; 2 application tag(s) matched"
+    },
+    {
+      "id": "450039",
+      "name": "SA Government's $27.3B Investment in Infrastructure Projects",
+      "value": "$27.3B",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "matchScore": "70",
+      "matchReason": "Sector match: infrastructure; 3 application tag(s) matched"
+    },
+    {
+      "id": "480072",
+      "name": "Alkimos Seawater Desalination Plant",
+      "value": "$2.8B",
+      "capexGrade": "A",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "matchScore": "70",
+      "matchReason": "Sector match: infrastructure; 2 application tag(s) matched"
+    },
+    {
+      "id": "240024",
+      "name": "Dampier Seawater Desalination Plant (DSDP) Expansion",
+      "value": "AUD 606 million",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "matchScore": "70",
+      "matchReason": "Sector match: infrastructure; 2 application tag(s) matched"
+    },
+    {
+      "id": "450019",
+      "name": "Bygoo Tin Project",
+      "value": "6M AUD",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "mining",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; Portable air relevant to drilling/compressor context"
+    },
+    {
+      "id": "330041",
+      "name": "M1 to Raymond Terrace extension and Hexham Straight Widening project",
+      "value": "Over $2.238 billion",
+      "capexGrade": "A",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "matchScore": "60",
+      "matchReason": "Sector match: infrastructure; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "480011",
+      "name": "Queensland Renewable Energy & Microgrid Fund",
+      "value": "AUD 200 million",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "energy",
+      "matchScore": "60",
+      "matchReason": "Sector match: energy; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "450014",
+      "name": "Victorian Water Sector Construction Activity Increase",
+      "value": "$1 billion",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "matchScore": "60",
+      "matchReason": "Sector match: infrastructure; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "id": "450018",
+      "name": "MGA Thermal Commercial Scale-Up",
+      "value": "AU$17 million",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "energy",
+      "matchScore": "50",
+      "matchReason": "Sector match: energy; 1 application tag(s) matched"
+    },
+    {
+      "id": "240004",
+      "name": "Kardinia Energy Printed Solar Production Scale-up",
+      "value": "2.15 million AUD",
+      "capexGrade": "A",
+      "priority": "warm",
+      "sector": "energy",
+      "matchScore": "50",
+      "matchReason": "Sector match: energy; 1 application tag(s) matched"
+    },
+    {
+      "id": "240019",
+      "name": "Noarlunga Heights Super Centre Redevelopment",
+      "value": "$17.5 million",
+      "capexGrade": "A",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "matchScore": "50",
+      "matchReason": "Sector match: infrastructure; 1 application tag(s) matched"
+    },
+    {
+      "id": "240011",
+      "name": "Dinawan Solar Farm",
+      "value": "Unknown (part of $34 billion total for 14 projects)",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "sector": "energy",
+      "matchScore": "50",
+      "matchReason": "Sector match: energy; 1 application tag(s) matched"
+    },
+    {
+      "id": "450016",
+      "name": "Victoria Water Sector Construction Activity Increase",
+      "value": "$1bn",
+      "capexGrade": "B",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "matchScore": "50",
+      "matchReason": "Sector match: infrastructure; 1 application tag(s) matched"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tvalue\tcapexGrade\tpriority\tsector\tmatchScore\tmatchReason\n360007\tForelands Gold Project\tA$3.5m (exploration funding)\tA\thot\tmining\t90\tSector match: mining; 2 application tag(s) matched; 1 keyword(s) matched; Portable air relevant to drilling/compressor context\n510035\tBoyne Aluminium Smelter Investment\tA$2bn ($1.4bn)\tA\twarm\tmining\t80\tSector match: mining; 2 application tag(s) matched; 1 keyword(s) matched\n300022\tOctopus Energy's Solar-BESS Park\tUSD-640m\tA\twarm\tenergy\t80\tSector match: energy; 2 application tag(s) matched; 1 keyword(s) matched\n570020\tBruce Highway Targeted Safety Program (BHTSP)\t$9 billion\tA\thot\tinfrastructure\t80\tSector match: infrastructure; 2 application tag(s) matched; 1 keyword(s) matched\n450035\tTop End Solar and Battery Project\tMulti-gigawatt\tB\twarm\tenergy\t80\tSector match: energy; 2 application tag(s) matched; 1 keyword(s) matched\n330014\tYouanmi Gold Mine Production Funding\t$350 million\tA\thot\tmining\t80\tSector match: mining; 2 application tag(s) matched; 1 keyword(s) matched\n510016\tBoyne Smelter Future-Proofing (Storage-Firmed Renewables)\tAU$2 billion\tA\thot\tenergy\t80\tSector match: energy; 2 application tag(s) matched; 1 keyword(s) matched\n240001\tNational Housing Accord - 1.2 Million New Homes\tMulti-billion dollar (implied)\tB\twarm\tinfrastructure\t70\tSector match: infrastructure; 2 application tag(s) matched\n450039\tSA Government's $27.3B Investment in Infrastructure Projects\t$27.3B\tA\twarm\tinfrastructure\t70\tSector match: infrastructure; 3 application tag(s) matched\n480072\tAlkimos Seawater Desalination Plant\t$2.8B\tA\thot\tinfrastructure\t70\tSector match: infrastructure; 2 application tag(s) matched\n240024\tDampier Seawater Desalination Plant (DSDP) Expansion\tAUD 606 million\tA\twarm\tinfrastructure\t70\tSector match: infrastructure; 2 application tag(s) matched\n450019\tBygoo Tin Project\t6M AUD\tA\twarm\tmining\t60\tSector match: mining; 1 application tag(s) matched; Portable air relevant to drilling/compressor context\n330041\tM1 to Raymond Terrace extension and Hexham Straight Widening project\tOver $2.238 billion\tA\tcold\tinfrastructure\t60\tSector match: infrastructure; 1 application tag(s) matched; 1 keyword(s) matched\n480011\tQueensland Renewable Energy & Microgrid Fund\tAUD 200 million\tA\twarm\tenergy\t60\tSector match: energy; 1 application tag(s) matched; 1 keyword(s) matched\n450014\tVictorian Water Sector Construction Activity Increase\t$1 billion\tA\twarm\tinfrastructure\t60\tSector match: infrastructure; 1 application tag(s) matched; 1 keyword(s) matched\n450018\tMGA Thermal Commercial Scale-Up\tAU$17 million\tA\twarm\tenergy\t50\tSector match: energy; 1 application tag(s) matched\n240004\tKardinia Energy Printed Solar Production Scale-up\t2.15 million AUD\tA\twarm\tenergy\t50\tSector match: energy; 1 application tag(s) matched\n240019\tNoarlunga Heights Super Centre Redevelopment\t$17.5 million\tA\thot\tinfrastructure\t50\tSector match: infrastructure; 1 application tag(s) matched\n240011\tDinawan Solar Farm\tUnknown (part of $34 billion total for 14 projects)\tUnknown\twarm\tenergy\t50\tSector match: energy; 1 application tag(s) matched\n450016\tVictoria Water Sector Construction Activity Increase\t$1bn\tB\twarm\tinfrastructure\t50\tSector match: infrastructure; 1 application tag(s) matched\n",
+  "stderr": "",
+  "execution_time_ms": 1517
+}

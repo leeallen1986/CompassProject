@@ -648,3 +648,11 @@
 - [x] Add navigation entry in App.tsx and all page headers
 - [x] Write vitest tests for matching engine (28 tests: tag presets, scoring algorithm, X1300 scenarios)
 - [x] Seed X1350 DrillAir flyer (191 project matches) and XAVS1800 blasting flyer (337 project matches) — 528 total matches across 344 projects
+
+## XAVS1800 Large Project Filter
+- [x] Add project size/value filter to collateral matching engine for large-equipment items like XAVS1800
+- [x] Tighten XAVS1800 tags (removed broad sectors energy/construction, fixed 'ship' false positive keyword)
+- [x] Add keyword-required gate for size-restricted collateral (sector match alone no longer enough)
+- [x] Re-run XAVS1800 matches with size + keyword filter (reduced from 337 to 30 genuinely relevant projects — 91% reduction)
+- [x] Fix parseProjectValue regex to handle '+' in values like '$10+ billion'
+- [x] Write vitest tests for size filtering logic (47 tests passing: parseProjectValue, classifyProjectSize, size-restricted matching gate)

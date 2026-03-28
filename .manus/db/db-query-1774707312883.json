@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, name, applicationTags, sectorTags, keywordTags, minProjectSize FROM collateralItems WHERE name LIKE '%XAVS1800%'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, applicationTags, sectorTags, keywordTags, minProjectSize FROM collateralItems WHERE name LIKE '%XAVS1800%'",
+  "rows": [
+    {
+      "id": "2",
+      "name": "XAVS1800 — High-Volume Air for Demanding Abrasive Blasting",
+      "applicationTags": "[\"sandblasting\", \"pipeline_testing\", \"construction_general\", \"mining_production\"]",
+      "sectorTags": "[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"construction\"]",
+      "keywordTags": "[\"blasting\", \"abrasive\", \"high volume\", \"dual pressure\", \"multi-operator\", \"surface prep\", \"surface preparation\", \"shutdown\", \"tank blasting\", \"structural steel\", \"sandblast\", \"nozzle pressure\", \"aftercooler\", \"bunded\", \"maintenance\", \"coating\", \"paint removal\", \"corrosion\"]",
+      "minProjectSize": "large"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tapplicationTags\tsectorTags\tkeywordTags\tminProjectSize\n2\tXAVS1800 — High-Volume Air for Demanding Abrasive Blasting\t[\"sandblasting\", \"pipeline_testing\", \"construction_general\", \"mining_production\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"construction\"]\t[\"blasting\", \"abrasive\", \"high volume\", \"dual pressure\", \"multi-operator\", \"surface prep\", \"surface preparation\", \"shutdown\", \"tank blasting\", \"structural steel\", \"sandblast\", \"nozzle pressure\", \"aftercooler\", \"bunded\", \"maintenance\", \"coating\", \"paint removal\", \"corrosion\"]\tlarge\n",
+  "stderr": "",
+  "execution_time_ms": 4971
+}

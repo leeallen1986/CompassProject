@@ -1,0 +1,55 @@
+{
+  "query": "SELECT capexGrade, priority, COUNT(*) as cnt FROM projects GROUP BY capexGrade, priority ORDER BY capexGrade, priority",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT capexGrade, priority, COUNT(*) as cnt FROM projects GROUP BY capexGrade, priority ORDER BY capexGrade, priority",
+  "rows": [
+    {
+      "capexGrade": "A",
+      "priority": "hot",
+      "cnt": "171"
+    },
+    {
+      "capexGrade": "A",
+      "priority": "warm",
+      "cnt": "83"
+    },
+    {
+      "capexGrade": "A",
+      "priority": "cold",
+      "cnt": "6"
+    },
+    {
+      "capexGrade": "B",
+      "priority": "hot",
+      "cnt": "24"
+    },
+    {
+      "capexGrade": "B",
+      "priority": "warm",
+      "cnt": "168"
+    },
+    {
+      "capexGrade": "B",
+      "priority": "cold",
+      "cnt": "21"
+    },
+    {
+      "capexGrade": "Unknown",
+      "priority": "hot",
+      "cnt": "111"
+    },
+    {
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "cnt": "269"
+    },
+    {
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "cnt": "86"
+    }
+  ],
+  "messages": [],
+  "stdout": "capexGrade\tpriority\tcnt\nA\thot\t171\nA\twarm\t83\nA\tcold\t6\nB\thot\t24\nB\twarm\t168\nB\tcold\t21\nUnknown\thot\t111\nUnknown\twarm\t269\nUnknown\tcold\t86\n",
+  "stderr": "",
+  "execution_time_ms": 1480
+}

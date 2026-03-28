@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE collateralItems SET keywordTags = '[\"blasting\", \"abrasive\", \"abrasive blasting\", \"sandblast\", \"sandblasting\", \"blast nozzle\", \"nozzle pressure\", \"surface prep\", \"surface preparation\", \"coating\", \"paint removal\", \"corrosion\", \"protective coating\", \"anti-corrosion\", \"shutdown\", \"turnaround\", \"planned shutdown\", \"maintenance shutdown\", \"overhaul\", \"outage\", \"tank blasting\", \"structural steel\", \"pipeline coating\", \"shipyard\", \"shipbuilding\", \"dry dock\", \"ship hull\", \"vessel maintenance\", \"bridge maintenance\", \"wharf\", \"high volume\", \"dual pressure\", \"multi-operator\", \"aftercooler\", \"bunded\"]' WHERE name LIKE '%XAVS1800%'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE collateralItems SET keywordTags = '[\"blasting\", \"abrasive\", \"abrasive blasting\", \"sandblast\", \"sandblasting\", \"blast nozzle\", \"nozzle pressure\", \"surface prep\", \"surface preparation\", \"coating\", \"paint removal\", \"corrosion\", \"protective coating\", \"anti-corrosion\", \"shutdown\", \"turnaround\", \"planned shutdown\", \"maintenance shutdown\", \"overhaul\", \"outage\", \"tank blasting\", \"structural steel\", \"pipeline coating\", \"shipyard\", \"shipbuilding\", \"dry dock\", \"ship hull\", \"vessel maintenance\", \"bridge maintenance\", \"wharf\", \"high volume\", \"dual pressure\", \"multi-operator\", \"aftercooler\", \"bunded\"]' WHERE name LIKE '%XAVS1800%'",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1575
+}

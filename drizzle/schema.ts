@@ -796,6 +796,8 @@ export const collateralItems = mysqlTable("collateralItems", {
   applicationTags: json("applicationTags").$type<string[]>(),  // e.g. ["rc_drilling", "waterwell", "exploration"]
   sectorTags: json("sectorTags").$type<string[]>(),            // e.g. ["mining", "oil_gas"]
   keywordTags: json("keywordTags").$type<string[]>(),          // free-form keywords for matching
+  // Size filter — restrict matching to projects above a certain scale
+  minProjectSize: mysqlEnum("minProjectSize", ["any", "large", "mega"]).notNull().default("any"),  // any=all projects, large=$50M+/Grade A, mega=$500M+
   // Usage tracking
   matchCount: int("matchCount").notNull().default(0),          // how many times matched to a project
   attachCount: int("attachCount").notNull().default(0),        // how many times attached to an outreach email

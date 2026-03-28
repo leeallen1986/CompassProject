@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, name, applicationTags, sectorTags, keywordTags, minProjectSize, matchCount FROM collateralItems WHERE name LIKE '%XAVS1800%'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, applicationTags, sectorTags, keywordTags, minProjectSize, matchCount FROM collateralItems WHERE name LIKE '%XAVS1800%'",
+  "rows": [
+    {
+      "id": "2",
+      "name": "XAVS1800 — High-Volume Air for Demanding Abrasive Blasting",
+      "applicationTags": "[\"sandblasting\", \"pipeline_testing\"]",
+      "sectorTags": "[\"mining\", \"oil_gas\", \"infrastructure\"]",
+      "keywordTags": "[\"blasting\", \"abrasive\", \"abrasive blasting\", \"sandblast\", \"sandblasting\", \"blast nozzle\", \"nozzle pressure\", \"surface prep\", \"surface preparation\", \"coating\", \"paint removal\", \"corrosion\", \"protective coating\", \"anti-corrosion\", \"shutdown\", \"turnaround\", \"planned shutdown\", \"maintenance shutdown\", \"overhaul\", \"outage\", \"tank blasting\", \"structural steel\", \"pipeline coating\", \"shipyard\", \"shipbuilding\", \"dry dock\", \"ship hull\", \"vessel maintenance\", \"bridge maintenance\", \"wharf\", \"high volume\", \"dual pressure\", \"multi-operator\", \"aftercooler\", \"bunded\"]",
+      "minProjectSize": "large",
+      "matchCount": "30"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tapplicationTags\tsectorTags\tkeywordTags\tminProjectSize\tmatchCount\n2\tXAVS1800 — High-Volume Air for Demanding Abrasive Blasting\t[\"sandblasting\", \"pipeline_testing\"]\t[\"mining\", \"oil_gas\", \"infrastructure\"]\t[\"blasting\", \"abrasive\", \"abrasive blasting\", \"sandblast\", \"sandblasting\", \"blast nozzle\", \"nozzle pressure\", \"surface prep\", \"surface preparation\", \"coating\", \"paint removal\", \"corrosion\", \"protective coating\", \"anti-corrosion\", \"shutdown\", \"turnaround\", \"planned shutdown\", \"maintenance shutdown\", \"overhaul\", \"outage\", \"tank blasting\", \"structural steel\", \"pipeline coating\", \"shipyard\", \"shipbuilding\", \"dry dock\", \"ship hull\", \"vessel maintenance\", \"bridge maintenance\", \"wharf\", \"high volume\", \"dual pressure\", \"multi-operator\", \"aftercooler\", \"bunded\"]\tlarge\t30\n",
+  "stderr": "",
+  "execution_time_ms": 1575
+}

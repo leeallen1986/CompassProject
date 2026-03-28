@@ -2387,6 +2387,7 @@ export const appRouter = router({
         applicationTags: z.array(z.string()),
         sectorTags: z.array(z.string()),
         keywordTags: z.array(z.string()),
+        minProjectSize: z.enum(["any", "large", "mega"]).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const fileBuffer = Buffer.from(input.fileBase64, "base64");
@@ -2401,6 +2402,7 @@ export const appRouter = router({
           applicationTags: input.applicationTags,
           sectorTags: input.sectorTags,
           keywordTags: input.keywordTags,
+          minProjectSize: input.minProjectSize || "any",
           uploadedBy: ctx.user!.id,
           uploadedByName: ctx.user!.name || ctx.user!.email || "Unknown",
         });
@@ -2416,6 +2418,7 @@ export const appRouter = router({
         applicationTags: z.array(z.string()).optional(),
         sectorTags: z.array(z.string()).optional(),
         keywordTags: z.array(z.string()).optional(),
+        minProjectSize: z.enum(["any", "large", "mega"]).optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;

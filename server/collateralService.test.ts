@@ -10,6 +10,8 @@ import {
   APPLICATION_TAGS,
   SECTOR_TAGS,
   PRODUCT_LINES,
+  classifyProjectSize,
+  parseProjectValue,
 } from "./collateralService";
 
 // ── Tag Presets ──
@@ -343,6 +345,253 @@ describe("Collateral matching scoring algorithm", () => {
     );
     // Only partial sector credit (10) since no sector tags
     expect(result.score).toBe(10);
+  });
+});
+
+// ── Project Size Classification ──
+
+describe("parseProjectValue", () => {
+  it("should parse billion values", () => {
+    expect(parseProjectValue("$10+ billion")).toBe(10_000_000_000);
+    expect(parseProjectValue("AUD$3.5 billion")).toBe(3_500_000_000);
+    expect(parseProjectValue("AU$2 billion")).toBe(2_000_000_000);
+  });
+
+  it("should parse million values", () => {
+    expect(parseProjectValue("$300M")).toBe(300_000_000);
+    expect(parseProjectValue("AUD$260 million")).toBe(260_000_000);
+    expect(parseProjectValue("$6.75M")).toBe(6_750_000);
+  });
+
+  it("should parse raw large numbers", () => {
+    expect(parseProjectValue("AUD 1,100,000,000")).toBeGreaterThanOrEqual(1_000_000_000);
+  });
+
+  it("should return null for undisclosed values", () => {
+    expect(parseProjectValue("Undisclosed")).toBeNull();
+    expect(parseProjectValue("")).toBeNull();
+  });
+});
+
+describe("classifyProjectSize", () => {
+  it("should classify >$500M as mega", () => {
+    expect(classifyProjectSize({
+      value: "$10+ billion",
+      capexGrade: "A",
+      priority: "hot",
+    })).toBe("mega");
+  });
+
+  it("should classify $50M-$500M as large", () => {
+    expect(classifyProjectSize({
+      value: "$300M",
+      capexGrade: "A",
+      priority: "hot",
+    })).toBe("large");
+  });
+
+  it("should classify <$50M as standard when no other signals", () => {
+    expect(classifyProjectSize({
+      value: "$6.75M",
+      capexGrade: "B",
+      priority: "warm",
+    })).toBe("standard");
+  });
+
+  it("should classify Grade A with $20M+ as large", () => {
+    expect(classifyProjectSize({
+      value: "$25M",
+      capexGrade: "A",
+      priority: "warm",
+    })).toBe("large");
+  });
+
+  it("should classify multi-billion text as mega", () => {
+    expect(classifyProjectSize({
+      value: "Undisclosed (multi-billion AUD potential)",
+      capexGrade: "Unknown",
+      priority: "cold",
+    })).toBe("mega");
+  });
+
+  it("should classify undisclosed value with no signals as standard", () => {
+    expect(classifyProjectSize({
+      value: "Undisclosed",
+      capexGrade: "B",
+      priority: "warm",
+    })).toBe("standard");
+  });
+
+  it("should classify Grade A + hot + strong infrastructure signal as large", () => {
+    expect(classifyProjectSize({
+      value: "Undisclosed",
+      capexGrade: "A",
+      priority: "hot",
+      name: "Osborne Naval Shipyard Expansion",
+      overview: "Major naval shipbuilding facility expansion",
+    })).toBe("large");
+  });
+
+  it("should NOT classify Grade A + hot without strong signal as large", () => {
+    expect(classifyProjectSize({
+      value: "Undisclosed",
+      capexGrade: "A",
+      priority: "hot",
+      name: "Small Gold Exploration",
+      overview: "Early stage exploration program",
+    })).toBe("standard");
+  });
+});
+
+// ── Size-Restricted Matching Gate ──
+
+describe("Size-restricted collateral matching", () => {
+  // Replicate the size + keyword gate logic
+  function scoreSizeRestricted(
+    collateral: {
+      productLine: string;
+      sectorTags: string[];
+      applicationTags: string[];
+      keywordTags: string[];
+      minProjectSize: string;
+    },
+    projectText: string,
+    projectSector: string,
+    projectSize: "mega" | "large" | "standard"
+  ): { score: number; reasons: string[] } | null {
+    // Size gate
+    if (collateral.minProjectSize === "mega" && projectSize !== "mega") return null;
+    if (collateral.minProjectSize === "large" && projectSize === "standard") return null;
+
+    let score = 0;
+    const reasons: string[] = [];
+    let hasApplicationOrKeywordMatch = false;
+    const text = projectText.toLowerCase();
+
+    // Sector
+    const sectorTags = collateral.sectorTags.map(s => s.toLowerCase());
+    if (sectorTags.includes(projectSector.toLowerCase())) {
+      score += 30;
+      reasons.push(`Sector match: ${projectSector.toLowerCase()}`);
+    }
+
+    // Application tags
+    const appTags = collateral.applicationTags.map(t => t.toLowerCase().replace(/_/g, " "));
+    let appMatchCount = 0;
+    for (const tag of appTags) {
+      const tagWords = tag.split(" ");
+      const anyWordMatch = tagWords.some(w => w.length > 3 && text.includes(w));
+      if (text.includes(tag) || anyWordMatch) appMatchCount++;
+    }
+    if (appMatchCount > 0) {
+      score += Math.min(40, appMatchCount * 20);
+      reasons.push(`${appMatchCount} application tag(s) matched`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Keywords
+    const keywords = collateral.keywordTags.map(k => k.toLowerCase());
+    let kwMatchCount = 0;
+    for (const kw of keywords) {
+      if (text.includes(kw)) kwMatchCount++;
+    }
+    if (kwMatchCount > 0) {
+      score += Math.min(20, kwMatchCount * 10);
+      reasons.push(`${kwMatchCount} keyword(s) matched`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Size-restricted gate: require keyword/app match
+    if (collateral.minProjectSize !== "any" && !hasApplicationOrKeywordMatch) return null;
+
+    return { score: Math.min(100, score), reasons };
+  }
+
+  const xavs1800 = {
+    productLine: "portable_air",
+    sectorTags: ["mining", "oil_gas", "infrastructure"],
+    applicationTags: ["sandblasting", "pipeline_testing"],
+    keywordTags: ["blasting", "shutdown", "turnaround", "overhaul", "shipyard", "wharf"],
+    minProjectSize: "large",
+  };
+
+  it("should reject standard-size projects for XAVS1800", () => {
+    const result = scoreSizeRestricted(
+      xavs1800,
+      "Small gold exploration with blasting at mine site",
+      "mining",
+      "standard"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should reject large mining project with no blasting keywords", () => {
+    const result = scoreSizeRestricted(
+      xavs1800,
+      "New Footscray Hospital — major construction project",
+      "infrastructure",
+      "large"
+    );
+    // Sector matches but no keyword/app match → null
+    expect(result).toBeNull();
+  });
+
+  it("should match large mining project with shutdown keyword", () => {
+    const result = scoreSizeRestricted(
+      xavs1800,
+      "Monadelphous Rio Tinto Pilbara maintenance shutdown services",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(40);
+  });
+
+  it("should match mega oil & gas project with turnaround keyword", () => {
+    const result = scoreSizeRestricted(
+      xavs1800,
+      "Chevron Gorgon LNG major turnaround and maintenance program",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(40);
+  });
+
+  it("should match infrastructure project with pipeline application tag", () => {
+    const result = scoreSizeRestricted(
+      xavs1800,
+      "South West Pipeline Duplication — 60km gas pipeline construction",
+      "infrastructure",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("should not match energy sector (not in XAVS1800 sector tags)", () => {
+    const result = scoreSizeRestricted(
+      xavs1800,
+      "Solar farm construction with sandblasting of steel structures",
+      "energy",
+      "mega"
+    );
+    // Has keyword match (sandblasting) but no sector match
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeLessThan(40); // No sector bonus
+  });
+
+  it("should allow any-size collateral to match with sector only", () => {
+    const anySize = { ...xavs1800, minProjectSize: "any" };
+    const result = scoreSizeRestricted(
+      anySize,
+      "New hospital construction project",
+      "infrastructure",
+      "standard"
+    );
+    // minProjectSize=any, so sector-only match is allowed
+    expect(result).not.toBeNull();
+    expect(result!.score).toBe(30);
   });
 });
 

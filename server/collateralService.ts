@@ -70,6 +70,7 @@ export async function createCollateralItem(data: {
   applicationTags: string[];
   sectorTags: string[];
   keywordTags: string[];
+  minProjectSize?: string;
   uploadedBy: number;
   uploadedByName: string;
 }): Promise<CollateralItem> {
@@ -97,6 +98,7 @@ export async function createCollateralItem(data: {
     applicationTags: data.applicationTags,
     sectorTags: data.sectorTags,
     keywordTags: data.keywordTags,
+    minProjectSize: (data.minProjectSize || "any") as any,
     uploadedBy: data.uploadedBy,
     uploadedByName: data.uploadedByName,
   });
@@ -152,6 +154,7 @@ export async function updateCollateralItem(id: number, data: {
   if (data.applicationTags !== undefined) updateData.applicationTags = data.applicationTags;
   if (data.sectorTags !== undefined) updateData.sectorTags = data.sectorTags;
   if (data.keywordTags !== undefined) updateData.keywordTags = data.keywordTags;
+  if ((data as any).minProjectSize !== undefined) updateData.minProjectSize = (data as any).minProjectSize;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
   await db.update(collateralItems).set(updateData).where(eq(collateralItems.id, id));
@@ -165,11 +168,122 @@ export async function deleteCollateralItem(id: number): Promise<void> {
   await db.update(collateralItems).set({ isActive: false }).where(eq(collateralItems.id, id));
 }
 
+// ── Project Size Classifier ──
+
+/**
+ * Parse a free-text project value string into a numeric AUD estimate.
+ * Returns null if the value cannot be parsed.
+ */
+export function parseProjectValue(valueStr: string): number | null {
+  if (!valueStr) return null;
+  const v = valueStr.toLowerCase().replace(/,/g, "");
+
+  // Skip unknowns
+  if (/unknown|undisclosed|unspecified|not specified|confidential|n\/a/i.test(v)) return null;
+
+  // Try to extract a number + multiplier
+  // Patterns: "$9 billion", "AUD 200 million", "A$2bn", "AUD$100-200 million", "$2.8B", "6M AUD"
+  const patterns = [
+    // "$X billion" / "$X bn" / "$XB"
+    /\$?\s*(\d+(?:\.\d+)?)\s*(?:billion|bn|b)\b/i,
+    // "$X million" / "$X mn" / "$XM"
+    /\$?\s*(\d+(?:\.\d+)?)\s*(?:million|mn|m)\b/i,
+    // "$X,XXX,XXX,XXX" (raw large number)
+    /\$?\s*(\d{7,})/,
+    // Range: "$100-200 million"
+    /\$?\s*\d+(?:\.\d+)?\s*-\s*(\d+(?:\.\d+)?)\s*(?:billion|bn|b)/i,
+    /\$?\s*\d+(?:\.\d+)?\s*-\s*(\d+(?:\.\d+)?)\s*(?:million|mn|m)/i,
+  ];
+
+  // Try billion patterns first
+  const bnMatch = v.match(/\$?\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:billion|bn|b)\b/i)
+    || v.match(/\$?\s*\d+(?:\.\d+)?\s*-\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:billion|bn|b)/i);
+  if (bnMatch) return parseFloat(bnMatch[1]) * 1_000_000_000;
+
+  // Try million patterns
+  const mnMatch = v.match(/\$?\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:million|mn|m)\b/i)
+    || v.match(/\$?\s*\d+(?:\.\d+)?\s*-\s*(\d+(?:\.\d+)?)\s*\+?\s*(?:million|mn|m)/i);
+  if (mnMatch) return parseFloat(mnMatch[1]) * 1_000_000;
+
+  // Try raw large numbers (e.g. "AUD 1,000,000,000" → already cleaned commas)
+  const rawMatch = v.match(/\$?\s*(\d{7,})/);
+  if (rawMatch) return parseInt(rawMatch[1], 10);
+
+  return null;
+}
+
+/**
+ * Large-scale project signals in description text.
+ * These indicate major construction/production work even when value is unknown.
+ */
+const LARGE_PROJECT_SIGNALS = [
+  "production", "expansion", "construction phase", "major", "billion",
+  "smelter", "refinery", "processing plant", "desalination", "highway",
+  "rail", "port", "terminal", "shutdown", "turnaround", "overhaul",
+  "lng", "fpso", "pipeline", "transmission", "substation",
+  "wind farm", "solar farm", "battery storage", "pumped hydro",
+  "defence", "naval", "submarine", "frigate",
+];
+
+/**
+ * Classify a project's size tier based on value, capexGrade, and description signals.
+ * Returns "mega" (>$500M), "large" (>$50M), or "standard".
+ * 
+ * The classification is primarily value-driven:
+ * - If a numeric value can be parsed, it determines the tier directly
+ * - For unknown-value projects, Grade A + specific large-infrastructure signals qualify as "large"
+ * - Text signals in the value field ("multi-billion") also qualify
+ */
+export function classifyProjectSize(project: {
+  value: string;
+  capexGrade: string;
+  priority: string;
+  overview?: string | null;
+  name?: string;
+}): "mega" | "large" | "standard" {
+  const numericValue = parseProjectValue(project.value);
+
+  // Multi-billion/multi-gigawatt text signals in value field
+  const valueText = (project.value || "").toLowerCase();
+  if (/multi.?billion|multi.?gigawatt|hundreds of millions/i.test(valueText)) return "mega";
+
+  // Mega: >$500M
+  if (numericValue !== null && numericValue >= 500_000_000) return "mega";
+
+  // Large: >$50M
+  if (numericValue !== null && numericValue >= 50_000_000) return "large";
+
+  // Grade A with known value >$20M
+  if (project.capexGrade === "A" && numericValue !== null && numericValue >= 20_000_000) return "large";
+
+  // For unknown-value projects: Grade A + hot + strong infrastructure signals
+  // (more restrictive than before — excludes generic "production" or "expansion" alone)
+  if (project.capexGrade === "A" && project.priority === "hot" && numericValue === null) {
+    const text = [
+      project.name || "",
+      project.overview || "",
+    ].join(" ").toLowerCase();
+    // Only count truly large-scale infrastructure signals
+    const strongSignals = [
+      "billion", "smelter", "refinery", "processing plant", "desalination",
+      "highway", "motorway", "freeway", "rail", "port", "terminal",
+      "lng", "fpso", "pipeline", "transmission line", "substation",
+      "wind farm", "solar farm", "battery storage", "pumped hydro",
+      "naval", "submarine", "frigate", "defence base",
+      "dam", "tunnel", "bridge", "airport",
+    ];
+    const hasStrongSignal = strongSignals.some(s => text.includes(s));
+    if (hasStrongSignal) return "large";
+  }
+
+  return "standard";
+}
+
 // ── Matching Engine ──
 
 /**
  * Match collateral items against a project based on sector, description keywords,
- * and application tags. Returns scored matches sorted by relevance.
+ * application tags, and project size requirements. Returns scored matches sorted by relevance.
  */
 export async function matchCollateralToProject(projectId: number): Promise<{
   collateralId: number;
@@ -185,6 +299,9 @@ export async function matchCollateralToProject(projectId: number): Promise<{
   // Get the project
   const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
   if (!project) return [];
+
+  // Classify project size
+  const projectSize = classifyProjectSize(project);
 
   // Get all active collateral
   const allCollateral = await db.select().from(collateralItems)
@@ -206,8 +323,14 @@ export async function matchCollateralToProject(projectId: number): Promise<{
 
   // Score each collateral item
   const scored = allCollateral.map(item => {
+    // ── Size gate: skip collateral that requires larger projects ──
+    const minSize = item.minProjectSize || "any";
+    if (minSize === "mega" && projectSize !== "mega") return null;
+    if (minSize === "large" && projectSize === "standard") return null;
+
     let score = 0;
     const reasons: string[] = [];
+    let hasApplicationOrKeywordMatch = false;
 
     // 1. Sector match (0-30 points)
     const sectorTags = (item.sectorTags || []).map(s => s.toLowerCase());
@@ -234,6 +357,7 @@ export async function matchCollateralToProject(projectId: number): Promise<{
       const appScore = Math.min(40, appMatchCount * 20);
       score += appScore;
       reasons.push(`${appMatchCount} application tag(s) matched`);
+      hasApplicationOrKeywordMatch = true;
     }
 
     // 3. Keyword match against project description (0-20 points)
@@ -248,6 +372,7 @@ export async function matchCollateralToProject(projectId: number): Promise<{
       const kwScore = Math.min(20, kwMatchCount * 10);
       score += kwScore;
       reasons.push(`${kwMatchCount} keyword(s) matched`);
+      hasApplicationOrKeywordMatch = true;
     }
 
     // 4. Product line relevance bonus (0-10 points)
@@ -257,6 +382,12 @@ export async function matchCollateralToProject(projectId: number): Promise<{
       score += 10;
       reasons.push("Portable air relevant to drilling/compressor context");
     }
+
+    // For size-restricted collateral (large/mega), require at least one
+    // application or keyword match — a sector match alone is too broad.
+    // This prevents e.g. XAVS1800 matching every large infrastructure project
+    // when only a few actually involve abrasive blasting.
+    if (minSize !== "any" && !hasApplicationOrKeywordMatch) return null;
 
     return {
       collateralId: item.id,
@@ -268,9 +399,10 @@ export async function matchCollateralToProject(projectId: number): Promise<{
     };
   });
 
-  // Filter to items with score > 20 and sort by score descending
+  // Filter nulls (size-gated out or no keyword match for restricted items),
+  // items with score > 20, sort by score descending
   return scored
-    .filter(s => s.matchScore > 20)
+    .filter((s): s is NonNullable<typeof s> => s !== null && s.matchScore > 20)
     .sort((a, b) => b.matchScore - a.matchScore);
 }
 

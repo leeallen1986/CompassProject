@@ -1,0 +1,1 @@
+ALTER TABLE `collateralItems` ADD `minProjectSize` enum('any','large','mega') DEFAULT 'any' NOT NULL;

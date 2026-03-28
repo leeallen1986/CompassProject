@@ -1,0 +1,130 @@
+{
+  "query": "SELECT value, COUNT(*) as cnt FROM projects GROUP BY value ORDER BY cnt DESC LIMIT 30",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT value, COUNT(*) as cnt FROM projects GROUP BY value ORDER BY cnt DESC LIMIT 30",
+  "rows": [
+    {
+      "value": "Unknown",
+      "cnt": "405"
+    },
+    {
+      "value": "Undisclosed",
+      "cnt": "31"
+    },
+    {
+      "value": "Confidential, part of ongoing exploration budget",
+      "cnt": "31"
+    },
+    {
+      "value": "AUD $100-200 million",
+      "cnt": "8"
+    },
+    {
+      "value": "AUD 100 million",
+      "cnt": "7"
+    },
+    {
+      "value": "Confidential, part of ongoing operations",
+      "cnt": "6"
+    },
+    {
+      "value": "AUD 50 million",
+      "cnt": "6"
+    },
+    {
+      "value": "Hundreds of millions AUD (cumulative)",
+      "cnt": "5"
+    },
+    {
+      "value": "Unspecified",
+      "cnt": "5"
+    },
+    {
+      "value": "AUD 200 million",
+      "cnt": "5"
+    },
+    {
+      "value": "AUD$100-200 million (estimated for current expansion)",
+      "cnt": "4"
+    },
+    {
+      "value": "AUD 1 billion",
+      "cnt": "4"
+    },
+    {
+      "value": "Confidential, part of exploration budget",
+      "cnt": "4"
+    },
+    {
+      "value": "AUD 1.5 billion",
+      "cnt": "4"
+    },
+    {
+      "value": "$1.1 billion",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 1,000,000,000",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 200,000,000",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 250 million",
+      "cnt": "3"
+    },
+    {
+      "value": "Not specified",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 20 million",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 150 million",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 300 million",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 60 million",
+      "cnt": "3"
+    },
+    {
+      "value": "AUD 1 billion+",
+      "cnt": "2"
+    },
+    {
+      "value": "AUD 10 billion (estimated total investment)",
+      "cnt": "2"
+    },
+    {
+      "value": "AUD 30 million",
+      "cnt": "2"
+    },
+    {
+      "value": "AUD 1.2 billion",
+      "cnt": "2"
+    },
+    {
+      "value": "AUD 1,300,000,000",
+      "cnt": "2"
+    },
+    {
+      "value": "$27.3B",
+      "cnt": "2"
+    },
+    {
+      "value": "AUD $1.1 billion",
+      "cnt": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "value\tcnt\nUnknown\t405\nUndisclosed\t31\nConfidential, part of ongoing exploration budget\t31\nAUD $100-200 million\t8\nAUD 100 million\t7\nConfidential, part of ongoing operations\t6\nAUD 50 million\t6\nHundreds of millions AUD (cumulative)\t5\nUnspecified\t5\nAUD 200 million\t5\nAUD$100-200 million (estimated for current expansion)\t4\nAUD 1 billion\t4\nConfidential, part of exploration budget\t4\nAUD 1.5 billion\t4\n$1.1 billion\t3\nAUD 1,000,000,000\t3\nAUD 200,000,000\t3\nAUD 250 million\t3\nNot specified\t3\nAUD 20 million\t3\nAUD 150 million\t3\nAUD 300 million\t3\nAUD 60 million\t3\nAUD 1 billion+\t2\nAUD 10 billion (estimated total investment)\t2\nAUD 30 million\t2\nAUD 1.2 billion\t2\nAUD 1,300,000,000\t2\n$27.3B\t2\nAUD $1.1 billion\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1504
+}
