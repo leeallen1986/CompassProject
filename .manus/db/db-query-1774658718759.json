@@ -1,0 +1,13 @@
+{
+  "query": "\nSELECT COUNT(*) as projects_without_contacts\nFROM projects p\nWHERE NOT EXISTS (\n  SELECT 1 FROM contactProjects cp WHERE cp.projectId = p.id\n);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COUNT(*) as projects_without_contacts\nFROM projects p\nWHERE NOT EXISTS (\n  SELECT 1 FROM contactProjects cp WHERE cp.projectId = p.id\n);\n",
+  "rows": [
+    {
+      "projects_without_contacts": "746"
+    }
+  ],
+  "messages": [],
+  "stdout": "projects_without_contacts\n746\n",
+  "stderr": "",
+  "execution_time_ms": 1518
+}

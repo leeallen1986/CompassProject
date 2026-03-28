@@ -634,3 +634,6 @@
 
 ## Pipeline Schedule Change
 - [x] Shift daily pipeline from 06:00 UTC to 23:00 UTC (9am AEST)
+
+## Third Web Discovery Pass
+- [x] Run third web discovery pass on remaining ~35 projects with no contacts (50 processed, 57 new contacts found, total now 1,150 contacts)
