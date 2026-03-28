@@ -14,7 +14,7 @@ import {
   BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
   ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
   ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp,
-  Archive, Clock, Award, Check, Eye, Briefcase
+  Archive, Clock, Award, Check, Eye, Briefcase, Layers
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -980,6 +980,10 @@ export default function Home() {
                 <span className="text-xs text-slate-400">{user?.name || user?.email}</span>
                 <Link href="/pipeline" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Target className="w-3 h-3" /> Pipeline
+                </Link>
+                <span className="text-slate-600">|</span>
+                <Link href="/collateral" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                  <Layers className="w-3 h-3" /> Collateral
                 </Link>
                 <span className="text-slate-600">|</span>
                 <button onClick={() => navigate("/settings")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">

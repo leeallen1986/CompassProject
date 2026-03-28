@@ -232,6 +232,13 @@
       "when": 1773236322381,
       "tag": "0032_stiff_natasha_romanoff",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1774698743285,
+      "tag": "0033_tricky_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

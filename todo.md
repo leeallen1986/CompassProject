@@ -637,3 +637,14 @@
 
 ## Third Web Discovery Pass
 - [x] Run third web discovery pass on remaining ~35 projects with no contacts (50 processed, 57 new contacts found, total now 1,150 contacts)
+
+## Collateral Library Feature
+- [x] Design database schema for collateral items (name, description, file URL, business line, uploaded by)
+- [x] Design collateral tags table (application keywords, sectors, project types)
+- [x] Build tRPC CRUD procedures (create, list, update, delete collateral)
+- [x] Build file upload endpoint (PDF to S3)
+- [x] Build matching engine (score collateral against project attributes)
+- [x] Build Collateral Library frontend page (upload, tag, browse, match preview)
+- [x] Add navigation entry in App.tsx and all page headers
+- [x] Write vitest tests for matching engine (28 tests: tag presets, scoring algorithm, X1300 scenarios)
+- [ ] Seed the X1300 flyer as initial collateral item (user to upload via UI)

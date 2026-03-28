@@ -769,3 +769,61 @@ export const userActivity = mysqlTable("userActivity", {
 });
 export type UserActivityRow = typeof userActivity.$inferSelect;
 export type InsertUserActivity = typeof userActivity.$inferInsert;
+
+
+/**
+ * Collateral items — product flyers, case studies, and solution briefs uploaded by sales reps.
+ * Each item is stored in S3 and tagged with applications, sectors, and product lines
+ * to enable automatic matching against projects for outreach.
+ */
+export const collateralItems = mysqlTable("collateralItems", {
+  id: int("id").autoincrement().primaryKey(),
+  // Core metadata
+  name: varchar("name", { length: 256 }).notNull(),
+  description: text("description"),
+  productLine: mysqlEnum("productLine", [
+    "portable_air", "dewatering", "generators", "bess", "nitrogen", "lighting", "other"
+  ]).notNull().default("portable_air"),
+  // File storage
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  fileUrl: varchar("fileUrl", { length: 1024 }).notNull(),
+  fileName: varchar("fileName", { length: 256 }).notNull(),
+  fileMimeType: varchar("fileMimeType", { length: 128 }).notNull().default("application/pdf"),
+  fileSizeBytes: int("fileSizeBytes"),
+  // Thumbnail (auto-generated or uploaded)
+  thumbnailUrl: varchar("thumbnailUrl", { length: 1024 }),
+  // Matching tags
+  applicationTags: json("applicationTags").$type<string[]>(),  // e.g. ["rc_drilling", "waterwell", "exploration"]
+  sectorTags: json("sectorTags").$type<string[]>(),            // e.g. ["mining", "oil_gas"]
+  keywordTags: json("keywordTags").$type<string[]>(),          // free-form keywords for matching
+  // Usage tracking
+  matchCount: int("matchCount").notNull().default(0),          // how many times matched to a project
+  attachCount: int("attachCount").notNull().default(0),        // how many times attached to an outreach email
+  // Ownership
+  uploadedBy: int("uploadedBy").notNull(),
+  uploadedByName: varchar("uploadedByName", { length: 256 }),
+  // Lifecycle
+  isActive: boolean("isActive").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CollateralItem = typeof collateralItems.$inferSelect;
+export type InsertCollateralItem = typeof collateralItems.$inferInsert;
+
+/**
+ * Collateral-project matches — tracks which collateral items have been matched to which projects.
+ * Used for outreach email attachment suggestions and analytics.
+ */
+export const collateralProjectMatches = mysqlTable("collateralProjectMatches", {
+  id: int("id").autoincrement().primaryKey(),
+  collateralId: int("collateralId").notNull(),
+  projectId: int("projectId").notNull(),
+  matchScore: int("matchScore").notNull().default(0),  // 0-100 relevance score
+  matchReason: text("matchReason"),                     // why this was matched
+  wasUsedInOutreach: boolean("wasUsedInOutreach").notNull().default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CollateralProjectMatch = typeof collateralProjectMatches.$inferSelect;
+export type InsertCollateralProjectMatch = typeof collateralProjectMatches.$inferInsert;

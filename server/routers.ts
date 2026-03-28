@@ -114,6 +114,12 @@ import {
   getPreCallCoaching, getSegmentPainLibrary, getAllSegmentPainLibraries,
   getRolePersona, getAllRolePersonas,
 } from "./personaCoaching";
+import {
+  createCollateralItem, listCollateralItems, getCollateralItemById,
+  updateCollateralItem, deleteCollateralItem, matchCollateralToProject,
+  getProjectCollateralSuggestions, getCollateralStats,
+  APPLICATION_TAGS, SECTOR_TAGS, PRODUCT_LINES,
+} from "./collateralService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2349,6 +2355,107 @@ export const appRouter = router({
     /** Get all role personas */
     allRolePersonas: protectedProcedure.query(async () => {
       return getAllRolePersonas();
+    }),
+  }),
+
+  // ── Collateral Library ──
+  collateral: router({
+    /** List all active collateral items, optionally filtered by product line */
+    list: protectedProcedure
+      .input(z.object({ productLine: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return listCollateralItems({ productLine: input?.productLine, activeOnly: true });
+      }),
+
+    /** Get a single collateral item by ID */
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getCollateralItemById(input.id);
+      }),
+
+    /** Upload a new collateral item (file as base64) */
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).max(256),
+        description: z.string().max(2000).optional(),
+        productLine: z.string(),
+        fileBase64: z.string(),
+        fileName: z.string(),
+        fileMimeType: z.string(),
+        fileSizeBytes: z.number(),
+        applicationTags: z.array(z.string()),
+        sectorTags: z.array(z.string()),
+        keywordTags: z.array(z.string()),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const fileBuffer = Buffer.from(input.fileBase64, "base64");
+        return createCollateralItem({
+          name: input.name,
+          description: input.description,
+          productLine: input.productLine,
+          fileBuffer,
+          fileName: input.fileName,
+          fileMimeType: input.fileMimeType,
+          fileSizeBytes: input.fileSizeBytes,
+          applicationTags: input.applicationTags,
+          sectorTags: input.sectorTags,
+          keywordTags: input.keywordTags,
+          uploadedBy: ctx.user!.id,
+          uploadedByName: ctx.user!.name || ctx.user!.email || "Unknown",
+        });
+      }),
+
+    /** Update collateral item metadata and tags */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(256).optional(),
+        description: z.string().max(2000).optional(),
+        productLine: z.string().optional(),
+        applicationTags: z.array(z.string()).optional(),
+        sectorTags: z.array(z.string()).optional(),
+        keywordTags: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        return updateCollateralItem(id, data);
+      }),
+
+    /** Soft-delete a collateral item */
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCollateralItem(input.id);
+        return { success: true };
+      }),
+
+    /** Match collateral against a specific project */
+    matchToProject: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return matchCollateralToProject(input.projectId);
+      }),
+
+    /** Get collateral suggestions for a project (for outreach) */
+    suggestionsForProject: protectedProcedure
+      .input(z.object({ projectId: z.number(), limit: z.number().optional() }))
+      .query(async ({ input }) => {
+        return getProjectCollateralSuggestions(input.projectId, input.limit);
+      }),
+
+    /** Get collateral library stats */
+    stats: protectedProcedure.query(async () => {
+      return getCollateralStats();
+    }),
+
+    /** Get available tag options for the UI */
+    tagOptions: protectedProcedure.query(() => {
+      return {
+        applicationTags: APPLICATION_TAGS,
+        sectorTags: SECTOR_TAGS,
+        productLines: PRODUCT_LINES,
+      };
     }),
   }),
 });
