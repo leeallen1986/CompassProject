@@ -647,4 +647,4 @@
 - [x] Build Collateral Library frontend page (upload, tag, browse, match preview)
 - [x] Add navigation entry in App.tsx and all page headers
 - [x] Write vitest tests for matching engine (28 tests: tag presets, scoring algorithm, X1300 scenarios)
-- [ ] Seed the X1300 flyer as initial collateral item (user to upload via UI)
+- [x] Seed X1350 DrillAir flyer (191 project matches) and XAVS1800 blasting flyer (337 project matches) — 528 total matches across 344 projects
