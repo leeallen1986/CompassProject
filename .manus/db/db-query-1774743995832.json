@@ -1,0 +1,28 @@
+{
+  "query": "SELECT \n  ci.name,\n  COUNT(*) as total_matches,\n  SUM(CASE WHEN cpm.matchScore < 60 THEN 1 ELSE 0 END) as below_60,\n  SUM(CASE WHEN cpm.matchScore >= 60 THEN 1 ELSE 0 END) as at_or_above_60\nFROM collateralProjectMatches cpm\nJOIN collateralItems ci ON ci.id = cpm.collateralId\nGROUP BY ci.name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  ci.name,\n  COUNT(*) as total_matches,\n  SUM(CASE WHEN cpm.matchScore < 60 THEN 1 ELSE 0 END) as below_60,\n  SUM(CASE WHEN cpm.matchScore >= 60 THEN 1 ELSE 0 END) as at_or_above_60\nFROM collateralProjectMatches cpm\nJOIN collateralItems ci ON ci.id = cpm.collateralId\nGROUP BY ci.name;",
+  "rows": [
+    {
+      "name": "XAVS1800 — High-Volume Air for Demanding Abrasive Blasting",
+      "total_matches": "30",
+      "below_60": "27",
+      "at_or_above_60": "3"
+    },
+    {
+      "name": "CDR Portable Desiccant Dryers (CDR 850/1200/1700)",
+      "total_matches": "44",
+      "below_60": "0",
+      "at_or_above_60": "44"
+    },
+    {
+      "name": "DrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor",
+      "total_matches": "34",
+      "below_60": "21",
+      "at_or_above_60": "13"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\ttotal_matches\tbelow_60\tat_or_above_60\nXAVS1800 — High-Volume Air for Demanding Abrasive Blasting\t30\t27\t3\nCDR Portable Desiccant Dryers (CDR 850/1200/1700)\t44\t0\t44\nDrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor\t34\t21\t13\n",
+  "stderr": "",
+  "execution_time_ms": 1651
+}

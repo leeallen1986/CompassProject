@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, name, productLine, matchCount, minProjectSize, \n  JSON_LENGTH(sectorTags) as sectorTagCount,\n  JSON_LENGTH(applicationTags) as appTagCount,\n  JSON_LENGTH(keywordTags) as kwTagCount\nFROM collateralItems WHERE isActive = true;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, productLine, matchCount, minProjectSize, \n  JSON_LENGTH(sectorTags) as sectorTagCount,\n  JSON_LENGTH(applicationTags) as appTagCount,\n  JSON_LENGTH(keywordTags) as kwTagCount\nFROM collateralItems WHERE isActive = true;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "DrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor",
+      "productLine": "portable_air",
+      "matchCount": "34",
+      "minProjectSize": "large",
+      "sectorTagCount": "2",
+      "appTagCount": "5",
+      "kwTagCount": "31"
+    },
+    {
+      "id": "2",
+      "name": "XAVS1800 — High-Volume Air for Demanding Abrasive Blasting",
+      "productLine": "portable_air",
+      "matchCount": "30",
+      "minProjectSize": "large",
+      "sectorTagCount": "3",
+      "appTagCount": "2",
+      "kwTagCount": "35"
+    },
+    {
+      "id": "30001",
+      "name": "CDR Portable Desiccant Dryers (CDR 850/1200/1700)",
+      "productLine": "portable_air",
+      "matchCount": "44",
+      "minProjectSize": "large",
+      "sectorTagCount": "2",
+      "appTagCount": "5",
+      "kwTagCount": "29"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLine\tmatchCount\tminProjectSize\tsectorTagCount\tappTagCount\tkwTagCount\n1\tDrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor\tportable_air\t34\tlarge\t2\t5\t31\n2\tXAVS1800 — High-Volume Air for Demanding Abrasive Blasting\tportable_air\t30\tlarge\t3\t2\t35\n30001\tCDR Portable Desiccant Dryers (CDR 850/1200/1700)\tportable_air\t44\tlarge\t2\t5\t29\n",
+  "stderr": "",
+  "execution_time_ms": 1590
+}

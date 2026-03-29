@@ -400,9 +400,10 @@ export async function matchCollateralToProject(projectId: number): Promise<{
   });
 
   // Filter nulls (size-gated out or no keyword match for restricted items),
-  // items with score > 20, sort by score descending
+  // require score >= 60 for high-concentration matches (multiple signals needed).
+  // This ensures sector + at least one keyword/application match.
   return scored
-    .filter((s): s is NonNullable<typeof s> => s !== null && s.matchScore > 20)
+    .filter((s): s is NonNullable<typeof s> => s !== null && s.matchScore >= 60)
     .sort((a, b) => b.matchScore - a.matchScore);
 }
 
@@ -446,6 +447,24 @@ export async function runCollateralMatching(projectIds: number[]): Promise<{
   }
 
   return { projectsProcessed: projectIds.length, matchesCreated };
+}
+
+/**
+ * Non-blocking collateral matching for a newly inserted project.
+ * Call this immediately after inserting a project in any ingest service.
+ * Follows the same fire-and-forget pattern as scoreProjectAsync.
+ * Logs success/failure but never throws.
+ */
+export function matchCollateralAsync(projectId: number, source: string = "unknown"): void {
+  runCollateralMatching([projectId])
+    .then(result => {
+      if (result.matchesCreated > 0) {
+        console.log(`[Collateral] Matched ${result.matchesCreated} collateral item(s) to project ${projectId} from ${source}`);
+      }
+    })
+    .catch(err => {
+      console.error(`[Collateral] Failed to match project ${projectId} from ${source}:`, err instanceof Error ? err.message : String(err));
+    });
 }
 
 /**

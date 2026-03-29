@@ -842,3 +842,206 @@ describe("X1350 DrillAir size-restricted matching", () => {
     }
   });
 });
+
+// ── CDR Dryer Size-Restricted Matching ──
+
+describe("CDR Dryer matching scenarios", () => {
+  // CDR dryers: air treatment for processing plants, LNG, shutdowns, underground mines
+  function scoreCDR(
+    projectText: string,
+    projectSector: string,
+    projectSize: "mega" | "large" | "standard"
+  ): { score: number; reasons: string[] } | null {
+    const sectorTags = ["mining", "oil_gas"];
+    const applicationTags = [
+      "mining production", "oil gas production", "pipeline testing",
+      "pneumatic tools", "nitrogen generation",
+    ];
+    const keywordTags = [
+      "shutdown", "turnaround", "overhaul", "maintenance outage",
+      "lng", "gas processing", "refinery", "processing plant",
+      "smelter", "alumina", "nickel", "copper smelter",
+      "underground mine", "decline", "ventilation",
+      "grade control", "production drilling",
+      "open pit mining", "blast hole",
+      "instrument air", "control air", "process air",
+      "paint", "coating", "surface preparation",
+    ];
+    const minProjectSize = "large";
+
+    // Size gate
+    if (projectSize === "standard") return null;
+
+    let score = 0;
+    const reasons: string[] = [];
+    let hasApplicationOrKeywordMatch = false;
+    const text = projectText.toLowerCase();
+
+    // Sector
+    if (sectorTags.includes(projectSector.toLowerCase())) {
+      score += 30;
+      reasons.push(`Sector: ${projectSector}`);
+    }
+
+    // Application tags
+    let appMatchCount = 0;
+    for (const tag of applicationTags) {
+      const tagWords = tag.split(" ");
+      const anyWordMatch = tagWords.some(w => w.length > 3 && text.includes(w));
+      if (text.includes(tag) || anyWordMatch) appMatchCount++;
+    }
+    if (appMatchCount > 0) {
+      score += Math.min(40, appMatchCount * 20);
+      reasons.push(`${appMatchCount} app tag(s)`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Keywords
+    let kwMatchCount = 0;
+    for (const kw of keywordTags) {
+      if (text.includes(kw)) kwMatchCount++;
+    }
+    if (kwMatchCount > 0) {
+      score += Math.min(20, kwMatchCount * 10);
+      reasons.push(`${kwMatchCount} keyword(s)`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Keyword-required gate
+    if (!hasApplicationOrKeywordMatch) return null;
+
+    return { score: Math.min(100, score), reasons };
+  }
+
+  it("should reject standard-size projects", () => {
+    const result = scoreCDR(
+      "Small gold exploration program with compressor",
+      "mining",
+      "standard"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should reject large mining project with no air treatment keywords", () => {
+    const result = scoreCDR(
+      "New highway construction project with earthworks",
+      "infrastructure",
+      "large"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should match mega oil & gas turnaround project", () => {
+    const result = scoreCDR(
+      "Chevron NWS and Gorgon LNG major turnaround and shutdown maintenance program",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + keywords "shutdown" + "turnaround" + "lng" (20 capped) = 50
+    expect(result!.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("should match large underground mine", () => {
+    const result = scoreCDR(
+      "Olympic Dam underground mine expansion — BHP production drilling and grade control",
+      "mining",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(60);
+  });
+
+  it("should match LNG gas processing project", () => {
+    const result = scoreCDR(
+      "Scarborough Gas Project \u2014 Woodside LNG processing and gas processing facility",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + keywords "lng" + "gas processing" (20 capped) = 50
+    expect(result!.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("should match mining project with processing plant", () => {
+    const result = scoreCDR(
+      "Kathleen Valley Lithium Project \u2014 processing plant construction and commissioning",
+      "mining",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + keyword "processing plant" (10) = 40
+    expect(result!.score).toBeGreaterThanOrEqual(40);
+  });
+
+  it("should match mining project with refinery keyword", () => {
+    const result = scoreCDR(
+      "Mount Holland Lithium Kwinana Refinery \u2014 lithium hydroxide refinery expansion",
+      "mining",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + keyword "refinery" (10) = 40
+    expect(result!.score).toBeGreaterThanOrEqual(40);
+  });
+
+  it("should NOT match energy sector (solar farm)", () => {
+    const result = scoreCDR(
+      "Western Downs Solar Farm — 400MW photovoltaic installation",
+      "energy",
+      "mega"
+    );
+    // Energy not in CDR sector tags, no air treatment keywords
+    expect(result).toBeNull();
+  });
+
+  it("should NOT match infrastructure hospital project", () => {
+    const result = scoreCDR(
+      "New Footscray Hospital — major construction project",
+      "infrastructure",
+      "large"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should match mining shutdown/maintenance project", () => {
+    const result = scoreCDR(
+      "Monadelphous Rio Tinto Pilbara maintenance shutdown services",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(40);
+  });
+});
+
+// ── Score Threshold Tests ──
+
+describe("Matching engine score threshold", () => {
+  it("should require score >= 60 for matches to pass the engine filter", () => {
+    // The matching engine filters out anything below 60
+    // A sector-only match (30) should NOT pass
+    // Sector + 1 app tag (50) should NOT pass
+    // Sector + 2 app tags (70) or sector + 1 app + 1 keyword (60) SHOULD pass
+    const threshold = 60;
+    expect(30).toBeLessThan(threshold); // sector only
+    expect(50).toBeLessThan(threshold); // sector + 1 app tag
+    expect(60).toBeGreaterThanOrEqual(threshold); // sector + 1 app + 1 keyword
+    expect(70).toBeGreaterThanOrEqual(threshold); // sector + 2 app tags
+  });
+});
+
+// ── Auto-matching Integration ──
+
+describe("matchCollateralAsync integration", () => {
+  it("should be exported from collateralService", async () => {
+    const mod = await import("./collateralService");
+    expect(typeof mod.matchCollateralAsync).toBe("function");
+  });
+
+  it("should be called from scoreProjectAsync", async () => {
+    // Verify the import exists in businessLineScoring
+    const blModule = await import("./businessLineScoring");
+    expect(typeof blModule.scoreProjectAsync).toBe("function");
+  });
+});

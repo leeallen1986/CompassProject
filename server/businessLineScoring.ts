@@ -18,6 +18,7 @@
 
 import { getDb } from "./db";
 import { projectBusinessLineScores, projects } from "../drizzle/schema";
+import { matchCollateralAsync } from "./collateralService";
 import { eq, and, inArray } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 import { computeScoreModifiers, applyScoreAdjustments, type ActivityScoreModifiers } from "./activitySignalLayer";
@@ -139,6 +140,9 @@ export function scoreProjectAsync(projectId: number, source: string = "unknown")
     .catch(err => {
       console.error(`[BL-Scoring] Failed to score project ${projectId} from ${source}:`, err instanceof Error ? err.message : String(err));
     });
+
+  // Also run collateral matching for the new project (non-blocking)
+  matchCollateralAsync(projectId, source);
 }
 
 // ── Score a single project ──

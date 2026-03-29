@@ -662,3 +662,11 @@
 - [x] Tighten X1350 tags (set minProjectSize=large, removed infrastructure sector, focused on sustained drilling keywords)
 - [x] Re-run X1350 matches — reduced from 191 to 34 matches (82% reduction), removed BAE frigate false positive
 - [x] Update vitest tests for X1350 size-restricted matching (55 tests passing)
+
+## CDR Dryer Collateral + Auto-Matching
+- [x] Review CDR dryer flyer (CDR 850/1200/1700 portable desiccant dryers for air treatment)
+- [x] Upload CDR flyer to collateral library with precise tags (mining, oil_gas sectors; air treatment keywords)
+- [x] Run matching and tighten to 44 high-concentration projects (score >= 60, down from 315 — 86% reduction)
+- [x] Raise matching engine threshold to >= 60 for all items (multiple signals required)
+- [x] Wire auto-matching via matchCollateralAsync in scoreProjectAsync — new projects auto-matched against all collateral
+- [x] Write vitest tests for CDR matching and auto-matching integration (68 tests passing)
