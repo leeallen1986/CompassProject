@@ -1,0 +1,16 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_project_linked,\n  SUM(CASE WHEN title LIKE '%LATAM%' OR title LIKE '%Latin America%' OR title LIKE '%Americas%' OR title LIKE '%EMEA%' OR title LIKE '%Europe%' OR title LIKE '%Africa%' OR title LIKE '%Middle East%' OR title LIKE '%North America%' OR title LIKE '%South America%' OR title LIKE '%USA%' OR title LIKE '% UK %' OR title LIKE '%India%' OR title LIKE '%China%' OR title LIKE '%Japan%' OR title LIKE '%Global%' THEN 1 ELSE 0 END) as non_au_in_title,\n  SUM(CASE WHEN linkedinHeadline LIKE '%LATAM%' OR linkedinHeadline LIKE '%Americas%' OR linkedinHeadline LIKE '%EMEA%' OR linkedinHeadline LIKE '%Europe%' OR linkedinHeadline LIKE '%Africa%' OR linkedinHeadline LIKE '%Middle East%' THEN 1 ELSE 0 END) as non_au_in_headline,\n  SUM(CASE WHEN linkedinLocation IS NOT NULL AND linkedinLocation NOT LIKE '%Australia%' AND linkedinLocation NOT LIKE '%Sydney%' AND linkedinLocation NOT LIKE '%Melbourne%' AND linkedinLocation NOT LIKE '%Perth%' AND linkedinLocation NOT LIKE '%Brisbane%' AND linkedinLocation NOT LIKE '%Adelaide%' AND linkedinLocation NOT LIKE '%Darwin%' AND linkedinLocation NOT LIKE '%Hobart%' AND linkedinLocation NOT LIKE '%Canberra%' AND linkedinLocation != '' THEN 1 ELSE 0 END) as non_au_location\nFROM contacts\nWHERE id IN (SELECT contactId FROM contactProjects)\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as total_project_linked,\n  SUM(CASE WHEN title LIKE '%LATAM%' OR title LIKE '%Latin America%' OR title LIKE '%Americas%' OR title LIKE '%EMEA%' OR title LIKE '%Europe%' OR title LIKE '%Africa%' OR title LIKE '%Middle East%' OR title LIKE '%North America%' OR title LIKE '%South America%' OR title LIKE '%USA%' OR title LIKE '% UK %' OR title LIKE '%India%' OR title LIKE '%China%' OR title LIKE '%Japan%' OR title LIKE '%Global%' THEN 1 ELSE 0 END) as non_au_in_title,\n  SUM(CASE WHEN linkedinHeadline LIKE '%LATAM%' OR linkedinHeadline LIKE '%Americas%' OR linkedinHeadline LIKE '%EMEA%' OR linkedinHeadline LIKE '%Europe%' OR linkedinHeadline LIKE '%Africa%' OR linkedinHeadline LIKE '%Middle East%' THEN 1 ELSE 0 END) as non_au_in_headline,\n  SUM(CASE WHEN linkedinLocation IS NOT NULL AND linkedinLocation NOT LIKE '%Australia%' AND linkedinLocation NOT LIKE '%Sydney%' AND linkedinLocation NOT LIKE '%Melbourne%' AND linkedinLocation NOT LIKE '%Perth%' AND linkedinLocation NOT LIKE '%Brisbane%' AND linkedinLocation NOT LIKE '%Adelaide%' AND linkedinLocation NOT LIKE '%Darwin%' AND linkedinLocation NOT LIKE '%Hobart%' AND linkedinLocation NOT LIKE '%Canberra%' AND linkedinLocation != '' THEN 1 ELSE 0 END) as non_au_location\nFROM contacts\nWHERE id IN (SELECT contactId FROM contactProjects)\n",
+  "rows": [
+    {
+      "total_project_linked": "6393",
+      "non_au_in_title": "0",
+      "non_au_in_headline": "0",
+      "non_au_location": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_project_linked\tnon_au_in_title\tnon_au_in_headline\tnon_au_location\n6393\t0\t0\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1556
+}

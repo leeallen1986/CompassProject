@@ -200,6 +200,9 @@ export const contacts = mysqlTable("contacts", {
   source: mysqlEnum("source", ["scraper", "crm", "manual", "apollo"]).default("scraper"),
   sectorTag: varchar("sectorTag", { length: 64 }),
   enrichmentPriority: mysqlEnum("enrichmentPriority", ["high", "medium", "low"]).default("medium"),
+  // Geographic filtering fields
+  regionClassification: mysqlEnum("regionClassification", ["australia", "non_australia", "unknown"]).default("unknown"),
+  geoFilterReason: varchar("geoFilterReason", { length: 256 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

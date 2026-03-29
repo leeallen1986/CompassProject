@@ -1,0 +1,130 @@
+{
+  "query": "\nSELECT name, title, company, enrichmentSource\nFROM contacts\nWHERE source = 'scraper'\nAND (title LIKE '%LATAM%' OR title LIKE '%Latin America%' OR title LIKE '%Americas%' OR title LIKE '%EMEA%' OR title LIKE '%Europe%' OR title LIKE '%Africa%' OR title LIKE '%Middle East%' OR title LIKE '%North America%' OR title LIKE '%South America%' OR title LIKE '%USA%' OR title LIKE '% UK %' OR title LIKE '%India %' OR title LIKE '%China%' OR title LIKE '%Japan%' OR title LIKE '%Asia Pacific%' OR title LIKE '%APAC%' OR title LIKE '%Global%' OR title LIKE '%International%' OR title LIKE '%Worldwide%')\nLIMIT 20\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT name, title, company, enrichmentSource\nFROM contacts\nWHERE source = 'scraper'\nAND (title LIKE '%LATAM%' OR title LIKE '%Latin America%' OR title LIKE '%Americas%' OR title LIKE '%EMEA%' OR title LIKE '%Europe%' OR title LIKE '%Africa%' OR title LIKE '%Middle East%' OR title LIKE '%North America%' OR title LIKE '%South America%' OR title LIKE '%USA%' OR title LIKE '% UK %' OR title LIKE '%India %' OR title LIKE '%China%' OR title LIKE '%Japan%' OR title LIKE '%Asia Pacific%' OR title LIKE '%APAC%' OR title LIKE '%Global%' OR title LIKE '%International%' OR title LIKE '%Worldwide%')\nLIMIT 20\n",
+  "rows": [
+    {
+      "name": "Maria Jose Galvez",
+      "title": "Senior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.",
+      "company": "Boart Longyear",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Antika Sehgal",
+      "title": "Senior Manager @ SMS group India - Strategic Procurement | Total Cost of Ownership | Spend analysis | Risk Mitigation | Supplier Relationship Management | Cost Estimation l Ongoing Certification CIPP, CIPM, CIPC",
+      "company": "SMS Group",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Richard Relyea",
+      "title": "Global Water Loss/Water Meter/AMI Lead",
+      "company": "GHD",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Carlos Aros",
+      "title": "Procurement Manager | Mining | Tech | Sustainability | Global Tech procurement manager at BHP | Mentor at Endeavor",
+      "company": "BHP",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Rachel Feenan",
+      "title": "Manager Global Procurement",
+      "company": "BHP",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Carlos Alexander",
+      "title": "Chief Operating Officer at 4th Odyssey Global Group",
+      "company": "Odyssey Gold",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Jakob Hatlestad",
+      "title": "UVA Management Research Assistant | CSUSM Global Business Management Student | CSUSM Entrepreneurship Research Assistant | Entrepreneurship Society Treasurer",
+      "company": "Odyssey Gold",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Loay Khaleel",
+      "title": "Operations and Legal Affairs Manager | Corporate Counsel | Real Estate Consultant - International Law and legal studies",
+      "company": "UGL",
+      "enrichmentSource": "apollo"
+    },
+    {
+      "name": "Ludvig Ramskov Nielsen",
+      "title": "Strategic Sourcing & Procurement Manager @ European Energy",
+      "company": "European Energy",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Mark Clough",
+      "title": "International development and finance expert | Non-executive Board/Committee member | NFP and government advisor | Financial policy, product and strategy development/structuring | Programme, project and risk management",
+      "company": "NSW Government, Federal Government",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Allan Chao",
+      "title": "Trinasolar Group - Global Manufacturing Leader and Plant Manager of Trinatracker China",
+      "company": "Trinasolar",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Catherine louise Ngo um",
+      "title": "Customer operations Manager chez AFrica Global Logistics ( AGL)",
+      "company": "AGL",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "graham crowther",
+      "title": "Project Manager @ Bilfinger UK GSK Capital Projects",
+      "company": "Chevron",
+      "enrichmentSource": "apollo"
+    },
+    {
+      "name": "Greg N.",
+      "title": "Maintenance Area Manager, International",
+      "company": "Byrnecut",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Gareth Phillip",
+      "title": "Global Procurement Asset Management Contractor",
+      "company": "Multiplex",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Adrienne Doolan",
+      "title": "Managing Director CEBC | Founder Sustain Global | Board Member UNGC Local Network UAE | Regional NGO Coalition | Trainer ESG/SDGs | Cities of Tomorrow BIP | Global Verification Director Mostadaam",
+      "company": "Clean Energy Council",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Kamalesh Sampathkumar",
+      "title": "Senior Manager - Global Procurement & Analytics (Direct & Indirect) at Enphase Energy",
+      "company": "Enphase Energy",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Emad Morsy",
+      "title": "Regional HSE&Regulatory Manager |24+ Years International Leadership in Oil& Gas & EPC |Transforming HSE Culture| Specialist in Multi-jurisdictional Regulatory Compliance & Sustainability | NEBOSH/OSHA Instructor | CMQ-OE",
+      "company": "Chevron",
+      "enrichmentSource": "linkedin"
+    },
+    {
+      "name": "Ethan S. Parker",
+      "title": "Operations Manager at WestWind Energy Australia | Senior Clean Energy Engineer | Renewable Energy Projects |Technical Due International | Construction & Commissioning Oversight | Sustainablity-driven Projects.",
+      "company": "Energy Australia",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "name": "Nandkumar Ture",
+      "title": "Project Engineering Manager at Worley India ltd.",
+      "company": "Worley",
+      "enrichmentSource": "web_search"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\ttitle\tcompany\tenrichmentSource\nMaria Jose Galvez\tSenior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.\tBoart Longyear\tweb_search\nAntika Sehgal\tSenior Manager @ SMS group India - Strategic Procurement | Total Cost of Ownership | Spend analysis | Risk Mitigation | Supplier Relationship Management | Cost Estimation l Ongoing Certification CIPP, CIPM, CIPC\tSMS Group\tweb_search\nRichard Relyea\tGlobal Water Loss/Water Meter/AMI Lead\tGHD\tweb_search\nCarlos Aros\tProcurement Manager | Mining | Tech | Sustainability | Global Tech procurement manager at BHP | Mentor at Endeavor\tBHP\tlinkedin\nRachel Feenan\tManager Global Procurement\tBHP\tlinkedin\nCarlos Alexander\tChief Operating Officer at 4th Odyssey Global Group\tOdyssey Gold\tlinkedin\nJakob Hatlestad\tUVA Management Research Assistant | CSUSM Global Business Management Student | CSUSM Entrepreneurship Research Assistant | Entrepreneurship Society Treasurer\tOdyssey Gold\tlinkedin\nLoay Khaleel\tOperations and Legal Affairs Manager | Corporate Counsel | Real Estate Consultant - International Law and legal studies\tUGL\tapollo\nLudvig Ramskov Nielsen\tStrategic Sourcing & Procurement Manager @ European Energy\tEuropean Energy\tlinkedin\nMark Clough\tInternational development and finance expert | Non-executive Board/Committee member | NFP and government advisor | Financial policy, product and strategy development/structuring | Programme, project and risk management\tNSW Government, Federal Government\tlinkedin\nAllan Chao\tTrinasolar Group - Global Manufacturing Leader and Plant Manager of Trinatracker China\tTrinasolar\tlinkedin\nCatherine louise Ngo um\tCustomer operations Manager chez AFrica Global Logistics ( AGL)\tAGL\tlinkedin\ngraham crowther\tProject Manager @ Bilfinger UK GSK Capital Projects\tChevron\tapollo\nGreg N.\tMaintenance Area Manager, International\tByrnecut\tweb_search\nGareth Phillip\tGlobal Procurement Asset Management Contractor\tMultiplex\tweb_search\nAdrienne Doolan\tManaging Director CEBC | Founder Sustain Global | Board Member UNGC Local Network UAE | Regional NGO Coalition | Trainer ESG/SDGs | Cities of Tomorrow BIP | Global Verification Director Mostadaam\tClean Energy Council\tweb_search\nKamalesh Sampathkumar\tSenior Manager - Global Procurement & Analytics (Direct & Indirect) at Enphase Energy\tEnphase Energy\tlinkedin\nEmad Morsy\tRegional HSE&Regulatory Manager |24+ Years International Leadership in Oil& Gas & EPC |Transforming HSE Culture| Specialist in Multi-jurisdictional Regulatory Compliance & Sustainability | NEBOSH/OSHA Instructor | CMQ-OE\tChevron\tlinkedin\nEthan S. Parker\tOperations Manager at WestWind Energy Australia | Senior Clean Energy Engineer | Renewable Energy Projects |Technical Due International | Construction & Commissioning Oversight | Sustainablity-driven Projects.\tEnergy Australia\tweb_search\nNandkumar Ture\tProject Engineering Manager at Worley India ltd.\tWorley\tweb_search\n",
+  "stderr": "",
+  "execution_time_ms": 1544
+}

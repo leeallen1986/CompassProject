@@ -12,6 +12,7 @@ import { detectActivities, type DetectedActivity } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { rankProjectsForUser } from "./mlRanker";
 import { getActiveBusinessLines } from "./pipelineDb";
+import { isAustralianRelevant } from "./geoFilter";
 
 // ── Types ──
 
@@ -301,7 +302,13 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
       p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
     );
-    const relevantContacts = projectContacts.filter(c =>
+    // Geographic filter: exclude non-Australian contacts from project displays
+    const auProjectContacts = projectContacts.filter(c => isAustralianRelevant({
+      title: c.title,
+      linkedinHeadline: (c as any).linkedinHeadline,
+      linkedinLocation: (c as any).linkedinLocation,
+    }));
+    const relevantContacts = auProjectContacts.filter(c =>
       (c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium"
     );
     relevantContacts.sort((a, b) => {
@@ -326,7 +333,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     let suggestedAction = "Review project details and assess opportunity";
     if (bestContact && (bestContact as any).roleRelevance === "high") {
       suggestedAction = `Reach out to ${bestContact.name} (${bestContact.title}) — high-relevance contact`;
-    } else if (relevantContacts.length === 0 && projectContacts.length === 0) {
+    } else if (relevantContacts.length === 0 && auProjectContacts.length === 0) {
       suggestedAction = "Run stakeholder discovery — no contacts found yet";
     } else if (relevantContacts.length === 0) {
       suggestedAction = "Run second-pass contact search — no high-relevance contacts";
@@ -371,9 +378,15 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
 
   // ── 2. New Stakeholders ──
   // Contacts created in the last 7 days with high or medium relevance
+  // Also filter out non-Australian contacts
   const recentContacts = allContacts.filter(c =>
     isRecent(c.createdAt) &&
-    ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium")
+    ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium") &&
+    isAustralianRelevant({
+      title: c.title,
+      linkedinHeadline: (c as any).linkedinHeadline,
+      linkedinLocation: (c as any).linkedinLocation,
+    })
   );
 
   // Sort by relevance (high first), then by date (newest first)

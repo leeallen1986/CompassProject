@@ -17,6 +17,7 @@ import { projects, contacts, projectBusinessLineScores } from "../drizzle/schema
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { detectActivities } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
+import { isAustralianRelevant } from "./geoFilter";
 
 // ── Types ──
 
@@ -154,11 +155,17 @@ export async function generateNBA(projectId: number, userBLs?: string[]): Promis
     project.sector
   );
 
-  // Classify contact relevance
-  const rankedContacts = projectContacts.map(c => ({
-    ...c,
-    relevance: classifyRoleRelevance(c.title, c.roleBucket),
-  }));
+  // Classify contact relevance and filter to Australian-relevant contacts
+  const rankedContacts = projectContacts
+    .filter(c => isAustralianRelevant({
+      title: c.title,
+      linkedinHeadline: c.linkedinHeadline,
+      linkedinLocation: c.linkedinLocation,
+    }))
+    .map(c => ({
+      ...c,
+      relevance: classifyRoleRelevance(c.title, c.roleBucket),
+    }));
   const highContacts = rankedContacts.filter(c => c.relevance === "high");
   const bestContact = highContacts[0] || rankedContacts[0] || null;
 

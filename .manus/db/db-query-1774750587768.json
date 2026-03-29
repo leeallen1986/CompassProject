@@ -1,0 +1,20 @@
+{
+  "query": "\nSELECT id, name, title, company, project, source, enrichmentSource, roleBucket\nFROM contacts\nWHERE name LIKE '%Maria Jose%'\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, title, company, project, source, enrichmentSource, roleBucket\nFROM contacts\nWHERE name LIKE '%Maria Jose%'\n",
+  "rows": [
+    {
+      "id": "450001",
+      "name": "Maria Jose Galvez",
+      "title": "Senior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.",
+      "company": "Boart Longyear",
+      "project": "Forelands Gold Project",
+      "source": "scraper",
+      "enrichmentSource": "web_search",
+      "roleBucket": "commercial"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tproject\tsource\tenrichmentSource\troleBucket\n450001\tMaria Jose Galvez\tSenior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.\tBoart Longyear\tForelands Gold Project\tscraper\tweb_search\tcommercial\n",
+  "stderr": "",
+  "execution_time_ms": 1551
+}

@@ -696,3 +696,16 @@
 - [x] Tag sector-relevant contacts and queue for Apollo enrichment: 1,178 HIGH (project-linked + sector), 869 MEDIUM (sector-relevant), 18,196 LOW (general industrial)
 - [x] Write vitest tests for CRM import (21 tests: schema, counts, dedup, sector classification, enrichment priority, data quality, project linking)
 - [x] All 1,367 tests passing across 55 test files
+
+## Fix Non-Australian Contacts Surfacing on Project Cards
+- [x] Investigate scope — scanned 27,039 contacts, found 62 non-Australian (LATAM/EMEA/Americas/Asia) and 281 confirmed Australian
+- [x] Build geoFilter.ts module with title-based + location-based region detection (NON_AU_TITLE_PATTERNS, AU_APAC_TITLE_PATTERNS, NON_AU_LOCATION_PATTERNS, AU_LOCATION_PATTERNS)
+- [x] Add region filter to webStakeholderDiscovery.ts (LinkedIn search results filtered before saving)
+- [x] Add region filter to secondPassContactSearch.ts (LinkedIn search results filtered before saving)
+- [x] Add region filter to thisWeekService.ts (contacts filtered before matching to project cards + new stakeholders section)
+- [x] Add region filter to nextBestAction.ts (contacts filtered before selecting best stakeholder)
+- [x] Add regionClassification + geoFilterReason fields to contacts schema
+- [x] Backfill all 27,039 existing contacts with region classification (62 non_australia, 281 australia, 26,696 unknown)
+- [x] Apollo enrichment already had organizationLocations: ["australia"] filter (no change needed)
+- [x] Write vitest tests for region filtering (69 tests: title classification, location classification, contact classification, filtering, LinkedIn results, real-world edge cases)
+- [x] All 1,436 tests passing across 56 test files

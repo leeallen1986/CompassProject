@@ -24,6 +24,7 @@ import { contacts, projects, type InsertContact } from "../drizzle/schema";
 import { callDataApi } from "./_core/dataApi";
 import { classifyRoleRelevance, getProjectsWithFewRelevantContacts } from "./roleRelevance";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
+import { isLinkedInResultAustralianRelevant } from "./geoFilter";
 
 // ── Types ──
 
@@ -278,6 +279,12 @@ export async function runSecondPassForProject(
 
         for (const person of people) {
           if (!person.fullName) continue;
+
+          // Geographic filter: skip non-Australian contacts
+          if (!isLinkedInResultAustralianRelevant(person)) {
+            console.log(`[SecondPass] Skipping non-Australian contact "${person.fullName}" (headline: ${person.headline}, location: ${person.location})`);
+            continue;
+          }
 
           // Check for duplicates
           const nameKey = person.fullName.toLowerCase().trim();

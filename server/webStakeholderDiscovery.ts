@@ -21,6 +21,7 @@ import { contacts, projects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
 import { classifyRoleRelevance } from "./roleRelevance";
+import { isLinkedInResultAustralianRelevant } from "./geoFilter";
 
 // ── Types ──
 
@@ -386,6 +387,12 @@ export async function discoverStakeholders(project: {
         for (const person of people) {
           if (allContacts.length >= MAX_CONTACTS_PER_PROJECT) break;
           if (!person.fullName) continue;
+
+          // Geographic filter: skip non-Australian contacts
+          if (!isLinkedInResultAustralianRelevant(person)) {
+            console.log(`[WebDiscovery] Skipping non-Australian contact "${person.fullName}" (headline: ${person.headline}, location: ${person.location})`);
+            continue;
+          }
 
           const nameKey = person.fullName.toLowerCase().trim();
           if (seenNames.has(nameKey)) continue;

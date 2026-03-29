@@ -1,0 +1,73 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contacts' ORDER BY ORDINAL_POSITION LIMIT 41 OFFSET 20",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contacts' ORDER BY ORDINAL_POSITION LIMIT 41 OFFSET 20",
+  "rows": [
+    {
+      "COLUMN_NAME": "linkedinSearchUrl"
+    },
+    {
+      "COLUMN_NAME": "emailVerified"
+    },
+    {
+      "COLUMN_NAME": "linkedinProfileUrl"
+    },
+    {
+      "COLUMN_NAME": "verificationScore"
+    },
+    {
+      "COLUMN_NAME": "verifiedByUserId"
+    },
+    {
+      "COLUMN_NAME": "verifiedAt"
+    },
+    {
+      "COLUMN_NAME": "verifiedLinkedinUrl"
+    },
+    {
+      "COLUMN_NAME": "rejectedByUserId"
+    },
+    {
+      "COLUMN_NAME": "rejectedAt"
+    },
+    {
+      "COLUMN_NAME": "rejectionReason"
+    },
+    {
+      "COLUMN_NAME": "sourceUrl"
+    },
+    {
+      "COLUMN_NAME": "roleRelevance"
+    },
+    {
+      "COLUMN_NAME": "crmId"
+    },
+    {
+      "COLUMN_NAME": "crmAccountId"
+    },
+    {
+      "COLUMN_NAME": "department"
+    },
+    {
+      "COLUMN_NAME": "mobilePhone"
+    },
+    {
+      "COLUMN_NAME": "crmOwner"
+    },
+    {
+      "COLUMN_NAME": "lastCrmModified"
+    },
+    {
+      "COLUMN_NAME": "source"
+    },
+    {
+      "COLUMN_NAME": "sectorTag"
+    },
+    {
+      "COLUMN_NAME": "enrichmentPriority"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nlinkedinSearchUrl\nemailVerified\nlinkedinProfileUrl\nverificationScore\nverifiedByUserId\nverifiedAt\nverifiedLinkedinUrl\nrejectedByUserId\nrejectedAt\nrejectionReason\nsourceUrl\nroleRelevance\ncrmId\ncrmAccountId\ndepartment\nmobilePhone\ncrmOwner\nlastCrmModified\nsource\nsectorTag\nenrichmentPriority\n",
+  "stderr": "",
+  "execution_time_ms": 1527
+}

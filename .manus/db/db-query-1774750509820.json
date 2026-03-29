@@ -1,0 +1,21 @@
+{
+  "query": "\nSELECT id, name, title, company, source, enrichmentSource, linkedinLocation, linkedinHeadline, email\nFROM contacts\nWHERE name LIKE '%Maria Jose%' OR name LIKE '%Galvez%'\nLIMIT 10\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, title, company, source, enrichmentSource, linkedinLocation, linkedinHeadline, email\nFROM contacts\nWHERE name LIKE '%Maria Jose%' OR name LIKE '%Galvez%'\nLIMIT 10\n",
+  "rows": [
+    {
+      "id": "450001",
+      "name": "Maria Jose Galvez",
+      "title": "Senior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.",
+      "company": "Boart Longyear",
+      "source": "scraper",
+      "enrichmentSource": "web_search",
+      "linkedinLocation": "NULL",
+      "linkedinHeadline": "Senior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.",
+      "email": "maria.galvez@boartlongyear.com.au"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tsource\tenrichmentSource\tlinkedinLocation\tlinkedinHeadline\temail\n450001\tMaria Jose Galvez\tSenior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.\tBoart Longyear\tscraper\tweb_search\tNULL\tSenior Business Development Manager for LATAM at Boart Longyear, focusing on commercial and technology solutions.\tmaria.galvez@boartlongyear.com.au\n",
+  "stderr": "",
+  "execution_time_ms": 1553
+}

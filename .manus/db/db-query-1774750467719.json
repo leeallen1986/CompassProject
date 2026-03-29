@@ -1,0 +1,19 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contacts' AND COLUMN_NAME LIKE '%desc%' OR COLUMN_NAME LIKE '%bio%' OR COLUMN_NAME LIKE '%summary%' OR COLUMN_NAME LIKE '%note%' ORDER BY COLUMN_NAME\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contacts' AND COLUMN_NAME LIKE '%desc%' OR COLUMN_NAME LIKE '%bio%' OR COLUMN_NAME LIKE '%summary%' OR COLUMN_NAME LIKE '%note%' ORDER BY COLUMN_NAME\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "note"
+    },
+    {
+      "COLUMN_NAME": "notes"
+    },
+    {
+      "COLUMN_NAME": "summary"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nnote\nnotes\nsummary\n",
+  "stderr": "",
+  "execution_time_ms": 1586
+}
