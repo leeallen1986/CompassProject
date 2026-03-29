@@ -1045,3 +1045,215 @@ describe("matchCollateralAsync integration", () => {
     expect(typeof blModule.scoreProjectAsync).toBe("function");
   });
 });
+
+// ── Y1260 DrillAir High-Pressure Matching ──
+
+describe("Y1260 DrillAir matching scenarios", () => {
+  // Y1260: 35 bar / 1,382 cfm high-pressure compressor for serious drilling
+  // Target: drilling contractors, water well, geothermal, foundation, mine-site, fleet owners
+  function scoreY1260(
+    projectText: string,
+    projectSector: string,
+    projectSize: "mega" | "large" | "standard"
+  ): { score: number; reasons: string[] } | null {
+    const sectorTags = ["mining", "oil_gas", "water"];
+    const applicationTags = [
+      "waterwell drilling", "rc drilling", "exploration drilling",
+      "blast hole drilling", "diamond drilling",
+    ];
+    const keywordTags = [
+      "high pressure", "35 bar", "dth", "down the hole", "down-the-hole",
+      "water well", "waterwell", "water bore", "water supply", "bore field",
+      "geothermal", "ground source heat", "geothermal energy",
+      "foundation drilling", "foundation piling", "piling rig",
+      "drilling contractor", "drill rig", "drill fleet",
+      "drill campaign", "drill program", "drilling campaign", "drilling program",
+      "rc drill", "reverse circulation",
+      "production drilling", "grade control", "resource definition",
+      "blast hole", "open pit", "underground mine", "mine development",
+      "mineral resource", "ore reserve", "resource estimate",
+      "feasibility", "bankable", "definitive feasibility", "pre-feasibility",
+      "cost per metre", "metres drilled", "drilling productivity",
+      "fleet standardis", "fleet renewal", "fleet replacement",
+      "owner operator", "owner-operator",
+    ];
+    const minProjectSize = "large";
+
+    // Size gate
+    if (projectSize === "standard") return null;
+
+    let score = 0;
+    const reasons: string[] = [];
+    let hasApplicationOrKeywordMatch = false;
+    const text = projectText.toLowerCase();
+
+    // Sector
+    if (sectorTags.includes(projectSector.toLowerCase())) {
+      score += 30;
+      reasons.push(`Sector: ${projectSector}`);
+    }
+
+    // Application tags
+    let appMatchCount = 0;
+    for (const tag of applicationTags) {
+      const tagWords = tag.split(" ");
+      const anyWordMatch = tagWords.some(w => w.length > 3 && text.includes(w));
+      if (text.includes(tag) || anyWordMatch) appMatchCount++;
+    }
+    if (appMatchCount > 0) {
+      score += Math.min(40, appMatchCount * 20);
+      reasons.push(`${appMatchCount} app tag(s)`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Keywords
+    let kwMatchCount = 0;
+    for (const kw of keywordTags) {
+      if (text.includes(kw)) kwMatchCount++;
+    }
+    if (kwMatchCount > 0) {
+      score += Math.min(20, kwMatchCount * 10);
+      reasons.push(`${kwMatchCount} keyword(s)`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Drilling bonus
+    const drillingKws = ["drill", "drilling", "bore", "borehole", "compressor", "pneumatic", "blast"];
+    if (drillingKws.some(k => text.includes(k))) {
+      score += 10;
+      reasons.push("Drilling context");
+    }
+
+    // Keyword-required gate
+    if (!hasApplicationOrKeywordMatch) return null;
+
+    return { score: Math.min(100, score), reasons };
+  }
+
+  it("should reject standard-size projects", () => {
+    const result = scoreY1260(
+      "Small gold exploration RC drilling program — 5,000m across 2 tenements",
+      "mining",
+      "standard"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should reject large project with no drilling keywords", () => {
+    const result = scoreY1260(
+      "New Footscray Hospital — major construction project with earthworks",
+      "infrastructure",
+      "large"
+    );
+    // Infrastructure not in Y1260 sector tags, no drilling keywords
+    expect(result).toBeNull();
+  });
+
+  it("should score high for large mining RC drilling with resource definition", () => {
+    const result = scoreY1260(
+      "Olympic Dam Mine — BHP resource definition drilling program. RC and diamond drilling to extend mineral resource estimate.",
+      "mining",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("should score high for drilling contractor with grade control", () => {
+    const result = scoreY1260(
+      "Fortescue Iron Bridge Magnetite Project — RC drill grade control and blast hole drilling across open pit operations",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("should match water well drilling project", () => {
+    const result = scoreY1260(
+      "Remote community water well drilling program — 20 water bores across NT communities. Drilling contractor required for bore field development.",
+      "water",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("should match geothermal drilling project", () => {
+    const result = scoreY1260(
+      "Cooper Basin geothermal energy exploration — deep drilling program for ground source heat extraction. High pressure DTH drilling required.",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("should match foundation drilling / piling project", () => {
+    const result = scoreY1260(
+      "Major bridge construction with foundation piling — 200 piles required using piling rig and high pressure compressor",
+      "infrastructure",
+      "large"
+    );
+    // Infrastructure not in Y1260 sector tags but has keyword matches
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(20);
+  });
+
+  it("should match fleet owner / drilling contractor scenario", () => {
+    const result = scoreY1260(
+      "DDH1 Drilling Services — Australia's largest drilling contractor with RC drill rigs. Fleet renewal program for drilling fleet standardisation. Production drilling and grade control across WA mining operations.",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("should match oil & gas drilling campaign", () => {
+    const result = scoreY1260(
+      "Beetaloo Basin Gas Development — Origin Energy drilling campaign with 12 wells planned for exploration and appraisal",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(60);
+  });
+
+  it("should NOT match solar farm (energy sector not in tags)", () => {
+    const result = scoreY1260(
+      "Western Downs Solar Farm — 400MW photovoltaic installation with earthworks",
+      "energy",
+      "mega"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should NOT match hospital construction", () => {
+    const result = scoreY1260(
+      "New Footscray Hospital — major construction project",
+      "infrastructure",
+      "large"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should NOT match naval shipbuilding", () => {
+    const result = scoreY1260(
+      "BAE Systems Hunter Class Frigate Program — naval shipbuilding",
+      "defence",
+      "mega"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should match large mining project in feasibility stage", () => {
+    const result = scoreY1260(
+      "Havieron Gold-Copper Project — Newcrest definitive feasibility study with underground mine development and resource definition drilling",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+});

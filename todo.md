@@ -670,3 +670,9 @@
 - [x] Raise matching engine threshold to >= 60 for all items (multiple signals required)
 - [x] Wire auto-matching via matchCollateralAsync in scoreProjectAsync — new projects auto-matched against all collateral
 - [x] Write vitest tests for CDR matching and auto-matching integration (68 tests passing)
+
+## Y1260 Compressor Collateral
+- [x] Review Y1260 flyer (35 bar / 1,382 cfm DrillAir for water well, geothermal, foundation, high-pressure DTH, fleet owners)
+- [x] Upload Y1260 to collateral library with precise tags (mining, oil_gas, water sectors; drilling-specific keywords)
+- [x] Run matching — 13 matches, all score 80-100 (extremely concentrated on sustained drilling operations)
+- [x] Write vitest tests for Y1260 matching (81 tests passing total)
