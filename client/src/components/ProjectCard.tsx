@@ -5,7 +5,7 @@
  * Enhanced: Shows multiple contacts with verification scores, LinkedIn links, and verify buttons
  */
 import { useState, useMemo } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award, KeyRound } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award, KeyRound, FileText, Download } from "lucide-react";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -968,6 +968,12 @@ export default function ProjectCard({
     { enabled: open }
   );
 
+  // Fetch matched collateral for this project when expanded
+  const collateralQuery = trpc.collateral.suggestionsForProject.useQuery(
+    { projectId: project.id, limit: 5 },
+    { enabled: open }
+  );
+
   const cfg = priorityConfig[project.priority];
   const equipmentSignals = project.equipmentSignals ?? [];
   const contractors = project.contractors ?? [];
@@ -1311,6 +1317,63 @@ export default function ProjectCard({
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     Loading business line scores...
+                  </div>
+                </div>
+              )}
+
+              {/* Recommended Collateral */}
+              {collateralQuery.data && collateralQuery.data.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-3 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> Recommended Collateral
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-teal/10 text-teal text-[10px] font-bold">
+                      {collateralQuery.data.length}
+                    </span>
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {collateralQuery.data.map((item: { id: number; name: string; fileUrl: string; productLine: string; matchScore: number; matchReason: string }) => {
+                      const scoreColor = item.matchScore >= 80 ? "text-teal" : item.matchScore >= 60 ? "text-gold-dark" : "text-muted-foreground";
+                      const scoreBg = item.matchScore >= 80 ? "bg-teal" : item.matchScore >= 60 ? "bg-gold" : "bg-slate-300";
+                      const plConfig = businessLineBadgeConfig[item.productLine] || { bg: "bg-slate-100", text: "text-slate-600", short: item.productLine };
+                      return (
+                        <div key={item.id} className="bg-card border border-border rounded-lg p-3 hover:shadow-md hover:border-teal/30 transition-all group">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-navy truncate" title={item.name}>{item.name}</p>
+                              <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold ${plConfig.bg} ${plConfig.text}`}>
+                                {plConfig.short}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className={`text-sm font-bold ${scoreColor}`}>{item.matchScore}</span>
+                            </div>
+                          </div>
+                          <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden mb-2">
+                            <div className={`h-full rounded-full transition-all ${scoreBg}`} style={{ width: `${item.matchScore}%` }} />
+                          </div>
+                          {item.matchReason && (
+                            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-2" title={item.matchReason}>{item.matchReason}</p>
+                          )}
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-semibold bg-teal/10 text-teal hover:bg-teal/20 transition-colors w-full justify-center"
+                          >
+                            <Download className="w-3 h-3" /> Download Flyer
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {collateralQuery.isLoading && open && (
+                <div className="mt-5 pt-4 border-t border-border">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Loading recommended collateral...
                   </div>
                 </div>
               )}

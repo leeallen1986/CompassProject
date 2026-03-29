@@ -676,3 +676,9 @@
 - [x] Upload Y1260 to collateral library with precise tags (mining, oil_gas, water sectors; drilling-specific keywords)
 - [x] Run matching — 13 matches, all score 80-100 (extremely concentrated on sustained drilling operations)
 - [x] Write vitest tests for Y1260 matching (81 tests passing total)
+
+## Recommended Collateral on Project Detail Cards
+- [x] tRPC procedure already exists (collateral.suggestionsForProject) — no new backend work needed
+- [x] Build "Recommended Collateral" UI section on project detail cards (shows product name, score, match details, Download Flyer link)
+- [x] Show matched flyer name, product line, match score, keyword/sector match details, and download link
+- [x] Verified visually in browser (Fortescue Iron Bridge shows X1350 score 100, Y1260 score 100, CDR score 80 — all with download links)
