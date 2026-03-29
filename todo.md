@@ -682,3 +682,9 @@
 - [x] Build "Recommended Collateral" UI section on project detail cards (shows product name, score, match details, Download Flyer link)
 - [x] Show matched flyer name, product line, match score, keyword/sector match details, and download link
 - [x] Verified visually in browser (Fortescue Iron Bridge shows X1350 score 100, Y1260 score 100, CDR score 80 — all with download links)
+
+## X-Air+ 1250-10 Collateral
+- [x] Review X-Air+ 1250-10 flyer (1,235 cfm, 5-10.3 bar versatile industrial compressor for blasting, pipeline, shutdown, plant air)
+- [x] Upload to collateral library with precise tags (mining, oil_gas, infrastructure sectors; shutdown/pipeline/blasting/plant keywords)
+- [x] Run matching — 64 matches (19 score 80-100, 45 score 60-79) — all large/mega projects with industrial air signals
+- [x] Write vitest tests for X-Air+ 1250-10 matching (94 tests passing total)

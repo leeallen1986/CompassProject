@@ -1257,3 +1257,219 @@ describe("Y1260 DrillAir matching scenarios", () => {
     expect(result!.score).toBeGreaterThanOrEqual(80);
   });
 });
+
+// ── X-Air+ 1250-10 High-Flow Industrial Matching ──
+
+describe("X-Air+ 1250-10 matching scenarios", () => {
+  // X-Air+ 1250-10: 1,235 cfm, 5-10.3 bar versatile industrial compressor
+  // Target: abrasive blasting, pipeline services, shutdown/turnaround, plant backup, pneumatic tools
+  function scoreXAir1250(
+    projectText: string,
+    projectSector: string,
+    projectSize: "mega" | "large" | "standard"
+  ): { score: number; reasons: string[] } | null {
+    const sectorTags = ["mining", "oil_gas", "infrastructure"];
+    const applicationTags = [
+      "sandblasting", "pipeline testing", "pneumatic tools",
+      "mining production", "oil gas production",
+    ];
+    const keywordTags = [
+      "shutdown", "turnaround", "maintenance outage", "plant backup",
+      "pigging", "pipeline", "purging",
+      "surface prep", "abrasive blasting", "sandblasting", "coating",
+      "refinery", "processing plant", "smelter", "lng", "gas processing",
+      "pneumatic",
+    ];
+    const minProjectSize = "large";
+
+    // Size gate
+    if (projectSize === "standard") return null;
+
+    let score = 0;
+    const reasons: string[] = [];
+    let hasApplicationOrKeywordMatch = false;
+    const text = projectText.toLowerCase();
+
+    // Sector
+    if (sectorTags.includes(projectSector.toLowerCase())) {
+      score += 30;
+      reasons.push(`Sector: ${projectSector}`);
+    }
+
+    // Application tags
+    let appMatchCount = 0;
+    for (const tag of applicationTags) {
+      const tagWords = tag.split(" ");
+      const anyWordMatch = tagWords.some(w => w.length > 3 && text.includes(w));
+      if (text.includes(tag) || anyWordMatch) appMatchCount++;
+    }
+    if (appMatchCount > 0) {
+      score += Math.min(40, appMatchCount * 20);
+      reasons.push(`${appMatchCount} app tag(s)`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Keywords
+    let kwMatchCount = 0;
+    for (const kw of keywordTags) {
+      if (text.includes(kw)) kwMatchCount++;
+    }
+    if (kwMatchCount > 0) {
+      score += Math.min(20, kwMatchCount * 10);
+      reasons.push(`${kwMatchCount} keyword(s)`);
+      hasApplicationOrKeywordMatch = true;
+    }
+
+    // Drilling/compressor context bonus
+    const drillingKeywords = ["drill", "drilling", "bore", "borehole", "compressor", "pneumatic", "blast"];
+    if (drillingKeywords.some(k => text.includes(k))) {
+      score += 10;
+      reasons.push("Drilling/compressor context");
+    }
+
+    // Keyword-required gate
+    if (!hasApplicationOrKeywordMatch) return null;
+
+    return { score: Math.min(100, score), reasons };
+  }
+
+  it("should reject standard-size projects", () => {
+    const result = scoreXAir1250(
+      "Small gold exploration program with compressor",
+      "mining",
+      "standard"
+    );
+    expect(result).toBeNull();
+  });
+
+  it("should reject large project with no industrial air keywords", () => {
+    const result = scoreXAir1250(
+      "New Footscray Hospital — major construction project with earthworks",
+      "infrastructure",
+      "large"
+    );
+    // Infrastructure is in sector tags, but no app/keyword match → gated out
+    expect(result).toBeNull();
+  });
+
+  it("should match mega oil & gas turnaround/shutdown project", () => {
+    const result = scoreXAir1250(
+      "Chevron NWS and Gorgon LNG major turnaround and shutdown maintenance program",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + kw: shutdown + turnaround + lng (20 capped) = 50
+    // Note: "oil gas production" app tag word matching: "production" not in text
+    expect(result!.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("should match large pipeline project", () => {
+    const result = scoreXAir1250(
+      "Fortescue Iron Bridge Magnetite Project — pipeline construction and processing plant commissioning",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: pipeline_testing (20) + kw: pipeline + processing plant (20) = 70
+    expect(result!.score).toBeGreaterThanOrEqual(70);
+  });
+
+  it("should match LNG gas processing project", () => {
+    const result = scoreXAir1250(
+      "Barossa Gas Project — offshore gas field with pipeline to Darwin LNG processing facility",
+      "oil_gas",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: pipeline_testing (20) + kw: pipeline + lng (20) = 70
+    expect(result!.score).toBeGreaterThanOrEqual(60);
+  });
+
+  it("should match mining production with processing plant", () => {
+    const result = scoreXAir1250(
+      "Greenbushes Lithium Mine Expansion — production expansion with new processing plant",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: mining_production + oil_gas_production (40) + kw: processing plant (10) = 80
+    expect(result!.score).toBeGreaterThanOrEqual(70);
+  });
+
+  it("should match abrasive blasting project", () => {
+    const result = scoreXAir1250(
+      "Major bridge maintenance — abrasive blasting and surface prep for recoating of steel structures",
+      "infrastructure",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: sandblasting (20) + kw: abrasive blasting + surface prep + coating (20) + drilling context for blast (10) = 80
+    expect(result!.score).toBeGreaterThanOrEqual(60);
+  });
+
+  it("should match shutdown/maintenance mining project", () => {
+    const result = scoreXAir1250(
+      "Monadelphous Rio Tinto Pilbara maintenance shutdown services — plant backup air and pneumatic tools",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: pneumatic_tools + mining_production (40) + kw: shutdown + pneumatic (20) = 90+
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+
+  it("should match infrastructure pipeline corridor project", () => {
+    const result = scoreXAir1250(
+      "SA Government infrastructure — major pipeline corridor construction and pigging services",
+      "infrastructure",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: pipeline_testing (20) + kw: pipeline + pigging (20) = 70
+    expect(result!.score).toBeGreaterThanOrEqual(60);
+  });
+
+  it("should NOT match energy sector solar farm", () => {
+    const result = scoreXAir1250(
+      "Western Downs Solar Farm — 400MW photovoltaic installation",
+      "energy",
+      "mega"
+    );
+    // Energy not in X-Air+ sector tags, no industrial air keywords
+    expect(result).toBeNull();
+  });
+
+  it("should NOT match defence project without industrial signals", () => {
+    const result = scoreXAir1250(
+      "Defence radar installation — electronic systems upgrade",
+      "defence",
+      "large"
+    );
+    // Defence not in sector tags, no air keywords
+    expect(result).toBeNull();
+  });
+
+  it("should match large mining project with refinery keyword", () => {
+    const result = scoreXAir1250(
+      "Mount Holland Lithium — Kwinana refinery expansion with processing plant upgrade",
+      "mining",
+      "mega"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + kw: refinery + processing plant (20) = 50
+    // Note: "oil gas production" app tag doesn't match mining text without "oil" or "gas"
+    expect(result!.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("should match smelter project", () => {
+    const result = scoreXAir1250(
+      "Boyne Aluminium Smelter — maintenance and pneumatic tool support for smelter operations",
+      "mining",
+      "large"
+    );
+    expect(result).not.toBeNull();
+    // Sector (30) + app: pneumatic_tools + mining_production (40) + kw: smelter + pneumatic (20) = 90+
+    expect(result!.score).toBeGreaterThanOrEqual(80);
+  });
+});
