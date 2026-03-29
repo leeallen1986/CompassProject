@@ -1,0 +1,8 @@
+{
+  "query": "SELECT \n  CASE \n    WHEN matchScore >= 80 THEN '80-100 (Strong)'\n    WHEN matchScore >= 60 THEN '60-79 (Good)'\n    WHEN matchScore >= 40 THEN '40-59 (Medium)'\n    WHEN matchScore >= 21 THEN '21-39 (Weak)'\n    ELSE '0-20 (Minimal)'\n  END as scoreTier,\n  COUNT(*) as cnt\nFROM collateralProjectMatches \nWHERE collateralItemId = '1'\nGROUP BY scoreTier\nORDER BY scoreTier DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  CASE \n    WHEN matchScore >= 80 THEN '80-100 (Strong)'\n    WHEN matchScore >= 60 THEN '60-79 (Good)'\n    WHEN matchScore >= 40 THEN '40-59 (Medium)'\n    WHEN matchScore >= 21 THEN '21-39 (Weak)'\n    ELSE '0-20 (Minimal)'\n  END as scoreTier,\n  COUNT(*) as cnt\nFROM collateralProjectMatches \nWHERE collateralItemId = '1'\nGROUP BY scoreTier\nORDER BY scoreTier DESC;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'collateralitemid' in 'where clause'"
+  ]
+}

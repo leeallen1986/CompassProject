@@ -1,0 +1,190 @@
+{
+  "query": "SELECT m.matchScore, m.matchReason, p.name, p.sector, p.value, p.capexGrade, p.priority\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore >= 60\nORDER BY m.matchScore DESC\nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT m.matchScore, m.matchReason, p.name, p.sector, p.value, p.capexGrade, p.priority\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore >= 60\nORDER BY m.matchScore DESC\nLIMIT 20;",
+  "rows": [
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Ausgold Gold Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Bygoo Tin Project",
+      "sector": "mining",
+      "value": "6M AUD",
+      "capexGrade": "A",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "North Stanmore Rare Earth Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Paris Gold Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Leonora South Gold Project Exploration",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Mulgabbie North Gold Project - Stage One Open Pit Mining and Heap Leach",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Australian Lithium, Copper, and Tungsten Exploration",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Genesis Minerals - Leonora Gold Project - Exploration",
+      "sector": "mining",
+      "value": "Confidential, part of ongoing exploration budget",
+      "capexGrade": "A",
+      "priority": "hot"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Zelica Gold Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Harts Range Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Mt Stirling Gold Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Leonora South Gold Project",
+      "sector": "mining",
+      "value": "Undisclosed",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Kookynie Gold Project BFS",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Rabbit Trap Scandium Project",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Flint Project",
+      "sector": "mining",
+      "value": "Undisclosed",
+      "capexGrade": "Unknown",
+      "priority": "hot"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Western Australian Gold Exploration Surge",
+      "sector": "mining",
+      "value": "Undisclosed",
+      "capexGrade": "B",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Sheoak Gold Prospect Exploration",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Christmas Gift Gold System Expansion",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Mulgabbie North Gold Project Stage 1 Development",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "100",
+      "matchReason": "Sector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context",
+      "name": "Forelands Gold Project",
+      "sector": "mining",
+      "value": "A$3.5m (exploration funding)",
+      "capexGrade": "A",
+      "priority": "hot"
+    }
+  ],
+  "messages": [],
+  "stdout": "matchScore\tmatchReason\tname\tsector\tvalue\tcapexGrade\tpriority\n100\tSector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context\tAusgold Gold Project\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tBygoo Tin Project\tmining\t6M AUD\tA\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tNorth Stanmore Rare Earth Project\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tParis Gold Project\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tLeonora South Gold Project Exploration\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context\tMulgabbie North Gold Project - Stage One Open Pit Mining and Heap Leach\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tAustralian Lithium, Copper, and Tungsten Exploration\tmining\tUnknown\tUnknown\tcold\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tGenesis Minerals - Leonora Gold Project - Exploration\tmining\tConfidential, part of ongoing exploration budget\tA\thot\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tZelica Gold Project\tmining\tUnknown\tUnknown\tcold\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tHarts Range Project\tmining\tUnknown\tUnknown\tcold\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tMt Stirling Gold Project\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tLeonora South Gold Project\tmining\tUndisclosed\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context\tKookynie Gold Project BFS\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tRabbit Trap Scandium Project\tmining\tUnknown\tUnknown\tcold\n100\tSector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context\tFlint Project\tmining\tUndisclosed\tUnknown\thot\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tWestern Australian Gold Exploration Surge\tmining\tUndisclosed\tB\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tSheoak Gold Prospect Exploration\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tChristmas Gift Gold System Expansion\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context\tMulgabbie North Gold Project Stage 1 Development\tmining\tUnknown\tUnknown\twarm\n100\tSector match: mining; 4 application tag(s) matched; 3 keyword(s) matched; Portable air relevant to drilling/compressor context\tForelands Gold Project\tmining\tA$3.5m (exploration funding)\tA\thot\n",
+  "stderr": "",
+  "execution_time_ms": 1521
+}

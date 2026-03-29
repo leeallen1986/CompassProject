@@ -1,0 +1,170 @@
+{
+  "query": "SELECT p.name, p.value, p.capexGrade, p.priority, LEFT(p.overview, 150) as overview_start, m.matchScore\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore >= 80\nORDER BY p.value ASC\nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.name, p.value, p.capexGrade, p.priority, LEFT(p.overview, 150) as overview_start, m.matchScore\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore >= 80\nORDER BY p.value ASC\nLIMIT 20;",
+  "rows": [
+    {
+      "name": "Bygoo Tin Project",
+      "value": "6M AUD",
+      "capexGrade": "A",
+      "priority": "warm",
+      "overview_start": "Caspin has secured $6 million in funding to accelerate drilling and broader exploration activities at its Bygoo Tin Project.",
+      "matchScore": "100"
+    },
+    {
+      "name": "Forelands Gold Project",
+      "value": "A$3.5m (exploration funding)",
+      "capexGrade": "A",
+      "priority": "hot",
+      "overview_start": "BPM Minerals has launched a major 7,500m RC drill program at its Beachcomber and Forelands prospects within the Forelands Gold Project. Maiden drillin",
+      "matchScore": "100"
+    },
+    {
+      "name": "Genesis Minerals - Leonora Gold Project - Exploration",
+      "value": "Confidential, part of ongoing exploration budget",
+      "capexGrade": "A",
+      "priority": "hot",
+      "overview_start": "Intensive RC and diamond drilling across the combined Leonora Gold Project (St Barbara acquisition) to define and expand resources.",
+      "matchScore": "100"
+    },
+    {
+      "name": "Western Australian Gold Exploration Surge",
+      "value": "Undisclosed",
+      "capexGrade": "B",
+      "priority": "warm",
+      "overview_start": "A surge in Australian dollar gold prices has led to record levels of gold exploration activity across regional Western Australia. This indicates incre",
+      "matchScore": "100"
+    },
+    {
+      "name": "Mulgine Trench Project",
+      "value": "Undisclosed",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Tungsten Mining plans a 40,000m drilling campaign at its Mt Mulgine Trench project to extend the Mineral Resource Estimate (MRE) and potentially unloc",
+      "matchScore": "100"
+    },
+    {
+      "name": "Flint Project",
+      "value": "Undisclosed",
+      "capexGrade": "Unknown",
+      "priority": "hot",
+      "overview_start": "Australian Critical Minerals (ASX: ACM) has appointed a drilling contractor for its Flint project, signalling imminent drilling operations, a key step",
+      "matchScore": "100"
+    },
+    {
+      "name": "Leonora South Gold Project",
+      "value": "Undisclosed",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "GoldArc is conducting an exploration program at the Leonora South gold project, where it has hit shallow high-grade gold. The program is testing an ar",
+      "matchScore": "100"
+    },
+    {
+      "name": "Mulgine Trench Tungsten Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Tungsten Mining is planning a 40,000m drilling campaign at its Mt Mulgine Trench project to extend the Mineral Resource Estimate (MRE) and potentially",
+      "matchScore": "100"
+    },
+    {
+      "name": "Australian Lithium, Copper, and Tungsten Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "Australian resources stocks, including lithium, copper, and tungsten explorers, are seeing renewed interest with fresh approvals and drilling activiti",
+      "matchScore": "100"
+    },
+    {
+      "name": "Kookynie Gold Project BFS",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Carnavale Resources has completed drilling to support a Bankable Feasibility Study (BFS) for the Kookynie gold project, which is now entering its fina",
+      "matchScore": "100"
+    },
+    {
+      "name": "Rabbit Trap Scandium Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "Rimfire Pacific Mining is validating historic drilling results at its Rabbit Trap scandium project in NSW, Australia.",
+      "matchScore": "100"
+    },
+    {
+      "name": "Side Well Gold Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Great Boulder Resources has achieved bonanza-grade gold hits at its Side Well project, indicating potential to grow the 1 Moz resource. The project is",
+      "matchScore": "100"
+    },
+    {
+      "name": "Sheoak Gold Prospect Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Auravelle has confirmed high-grade gold within a +600m trend at its Sheoak prospect through resampling of reverse circulation (RC) drilling results. T",
+      "matchScore": "100"
+    },
+    {
+      "name": "Christmas Gift Gold System Expansion",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Tarrina Resources' drilling and sampling activities have confirmed the expansion potential of the Christmas Gift gold system, utilizing zinc and coppe",
+      "matchScore": "100"
+    },
+    {
+      "name": "Mulgabbie North Gold Project Stage 1 Development",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "OzAurum Resources has secured environmental approval from the WA Department of Water and Environmental Regulation (DWER) for Stage 1 of its Mulgabbie ",
+      "matchScore": "100"
+    },
+    {
+      "name": "Cobar Copper-Antimony Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "West Cobar Metals has acquired two new exploration licence applications in the Cobar district of New South Wales for copper and antimony.",
+      "matchScore": "100"
+    },
+    {
+      "name": "Leonora South Gold Project Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "GoldArc has hit shallow high-grade gold at its Leonora South gold project in an area with limited historical exploration and no previous drilling.",
+      "matchScore": "100"
+    },
+    {
+      "name": "Mulgabbie North Gold Project - Stage One Open Pit Mining and Heap Leach",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Approval for stage one open pit mining and heap leach at Mulgabbie North was granted under WA’s Small Mining Operation approval process, clearing a ke",
+      "matchScore": "100"
+    },
+    {
+      "name": "Gold consolidation story",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "Antipa Minerals is a gold developer in the Paterson region of Western Australia, engaged in a gold consolidation story.",
+      "matchScore": "100"
+    },
+    {
+      "name": "Ausgold Gold Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Ausgold's updated Definitive Feasibility Study (DFS) outlines average gold production of 121,000 ounces per annum over 10 years.",
+      "matchScore": "100"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tvalue\tcapexGrade\tpriority\toverview_start\tmatchScore\nBygoo Tin Project\t6M AUD\tA\twarm\tCaspin has secured $6 million in funding to accelerate drilling and broader exploration activities at its Bygoo Tin Project.\t100\nForelands Gold Project\tA$3.5m (exploration funding)\tA\thot\tBPM Minerals has launched a major 7,500m RC drill program at its Beachcomber and Forelands prospects within the Forelands Gold Project. Maiden drillin\t100\nGenesis Minerals - Leonora Gold Project - Exploration\tConfidential, part of ongoing exploration budget\tA\thot\tIntensive RC and diamond drilling across the combined Leonora Gold Project (St Barbara acquisition) to define and expand resources.\t100\nWestern Australian Gold Exploration Surge\tUndisclosed\tB\twarm\tA surge in Australian dollar gold prices has led to record levels of gold exploration activity across regional Western Australia. This indicates incre\t100\nMulgine Trench Project\tUndisclosed\tUnknown\twarm\tTungsten Mining plans a 40,000m drilling campaign at its Mt Mulgine Trench project to extend the Mineral Resource Estimate (MRE) and potentially unloc\t100\nFlint Project\tUndisclosed\tUnknown\thot\tAustralian Critical Minerals (ASX: ACM) has appointed a drilling contractor for its Flint project, signalling imminent drilling operations, a key step\t100\nLeonora South Gold Project\tUndisclosed\tUnknown\twarm\tGoldArc is conducting an exploration program at the Leonora South gold project, where it has hit shallow high-grade gold. The program is testing an ar\t100\nMulgine Trench Tungsten Project\tUnknown\tUnknown\twarm\tTungsten Mining is planning a 40,000m drilling campaign at its Mt Mulgine Trench project to extend the Mineral Resource Estimate (MRE) and potentially\t100\nAustralian Lithium, Copper, and Tungsten Exploration\tUnknown\tUnknown\tcold\tAustralian resources stocks, including lithium, copper, and tungsten explorers, are seeing renewed interest with fresh approvals and drilling activiti\t100\nKookynie Gold Project BFS\tUnknown\tUnknown\twarm\tCarnavale Resources has completed drilling to support a Bankable Feasibility Study (BFS) for the Kookynie gold project, which is now entering its fina\t100\nRabbit Trap Scandium Project\tUnknown\tUnknown\tcold\tRimfire Pacific Mining is validating historic drilling results at its Rabbit Trap scandium project in NSW, Australia.\t100\nSide Well Gold Project\tUnknown\tUnknown\twarm\tGreat Boulder Resources has achieved bonanza-grade gold hits at its Side Well project, indicating potential to grow the 1 Moz resource. The project is\t100\nSheoak Gold Prospect Exploration\tUnknown\tUnknown\twarm\tAuravelle has confirmed high-grade gold within a +600m trend at its Sheoak prospect through resampling of reverse circulation (RC) drilling results. T\t100\nChristmas Gift Gold System Expansion\tUnknown\tUnknown\twarm\tTarrina Resources' drilling and sampling activities have confirmed the expansion potential of the Christmas Gift gold system, utilizing zinc and coppe\t100\nMulgabbie North Gold Project Stage 1 Development\tUnknown\tUnknown\twarm\tOzAurum Resources has secured environmental approval from the WA Department of Water and Environmental Regulation (DWER) for Stage 1 of its Mulgabbie \t100\nCobar Copper-Antimony Exploration\tUnknown\tUnknown\tcold\tWest Cobar Metals has acquired two new exploration licence applications in the Cobar district of New South Wales for copper and antimony.\t100\nLeonora South Gold Project Exploration\tUnknown\tUnknown\twarm\tGoldArc has hit shallow high-grade gold at its Leonora South gold project in an area with limited historical exploration and no previous drilling.\t100\nMulgabbie North Gold Project - Stage One Open Pit Mining and Heap Leach\tUnknown\tUnknown\twarm\tApproval for stage one open pit mining and heap leach at Mulgabbie North was granted under WA’s Small Mining Operation approval process, clearing a ke\t100\nGold consolidation story\tUnknown\tUnknown\tcold\tAntipa Minerals is a gold developer in the Paterson region of Western Australia, engaged in a gold consolidation story.\t100\nAusgold Gold Project\tUnknown\tUnknown\twarm\tAusgold's updated Definitive Feasibility Study (DFS) outlines average gold production of 121,000 ounces per annum over 10 years.\t100\n",
+  "stderr": "",
+  "execution_time_ms": 1550
+}

@@ -1,0 +1,190 @@
+{
+  "query": "SELECT m.matchScore, m.matchReason, p.name, p.sector, p.value, p.capexGrade, p.priority\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore BETWEEN 21 AND 39\nORDER BY m.matchScore DESC\nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT m.matchScore, m.matchReason, p.name, p.sector, p.value, p.capexGrade, p.priority\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore BETWEEN 21 AND 39\nORDER BY m.matchScore DESC\nLIMIT 20;",
+  "rows": [
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "National Housing Accord - 1.2 Million New Homes",
+      "sector": "infrastructure",
+      "value": "Multi-billion dollar (implied)",
+      "capexGrade": "B",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Brisbane 2032 Olympic and Paralympic Games Infrastructure Development",
+      "sector": "infrastructure",
+      "value": "Millions of tonnes of aggregates, concrete, and asphalt required",
+      "capexGrade": "B",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Melbourne Airport Rail project - Stage 1",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "High Speed Rail Newcastle to Sydney",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Yarrabilba Retail Precinct",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "hot"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Inland Rail Project - Broadford Bridge Demolition",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "hot"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Noarlunga Heights Super Centre Redevelopment",
+      "sector": "infrastructure",
+      "value": "$17.5 million",
+      "capexGrade": "A",
+      "priority": "hot"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Cardinia Dam Upgrade",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Dampier Seawater Desalination Plant (DSDP) Expansion",
+      "sector": "infrastructure",
+      "value": "AUD 606 million",
+      "capexGrade": "A",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Queanbeyan Wastewater Treatment Plant Upgrade",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Regional WA water pipeline",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "hot"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Lenswood pump station facelift",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Cairns Water Security Stage 1",
+      "sector": "infrastructure",
+      "value": "472 million AUD",
+      "capexGrade": "A",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Darwin Water Pump Station Issues",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: oil_gas",
+      "name": "Chevron Gas Supply to Horizon Power",
+      "sector": "oil_gas",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Harpers Hill Reservoir and Pipeline Upgrade",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Queensland road upgrade",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: mining",
+      "name": "Long-life silver build",
+      "sector": "mining",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Darwin River Dam pump station restoration",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    },
+    {
+      "matchScore": "30",
+      "matchReason": "Sector match: infrastructure",
+      "name": "Victorian Offshore Wind Hub Port Development",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm"
+    }
+  ],
+  "messages": [],
+  "stdout": "matchScore\tmatchReason\tname\tsector\tvalue\tcapexGrade\tpriority\n30\tSector match: infrastructure\tNational Housing Accord - 1.2 Million New Homes\tinfrastructure\tMulti-billion dollar (implied)\tB\twarm\n30\tSector match: infrastructure\tBrisbane 2032 Olympic and Paralympic Games Infrastructure Development\tinfrastructure\tMillions of tonnes of aggregates, concrete, and asphalt required\tB\twarm\n30\tSector match: infrastructure\tMelbourne Airport Rail project - Stage 1\tinfrastructure\tUnknown\tUnknown\twarm\n30\tSector match: infrastructure\tHigh Speed Rail Newcastle to Sydney\tinfrastructure\tUnknown\tUnknown\twarm\n30\tSector match: infrastructure\tYarrabilba Retail Precinct\tinfrastructure\tUnknown\tUnknown\thot\n30\tSector match: infrastructure\tInland Rail Project - Broadford Bridge Demolition\tinfrastructure\tUnknown\tUnknown\thot\n30\tSector match: infrastructure\tNoarlunga Heights Super Centre Redevelopment\tinfrastructure\t$17.5 million\tA\thot\n30\tSector match: infrastructure\tCardinia Dam Upgrade\tinfrastructure\tUnknown\tUnknown\twarm\n30\tSector match: infrastructure\tDampier Seawater Desalination Plant (DSDP) Expansion\tinfrastructure\tAUD 606 million\tA\twarm\n30\tSector match: infrastructure\tQueanbeyan Wastewater Treatment Plant Upgrade\tinfrastructure\tUnknown\tUnknown\twarm\n30\tSector match: infrastructure\tRegional WA water pipeline\tinfrastructure\tUnknown\tUnknown\thot\n30\tSector match: infrastructure\tLenswood pump station facelift\tinfrastructure\tUnknown\tUnknown\tcold\n30\tSector match: infrastructure\tCairns Water Security Stage 1\tinfrastructure\t472 million AUD\tA\twarm\n30\tSector match: infrastructure\tDarwin Water Pump Station Issues\tinfrastructure\tUnknown\tUnknown\tcold\n30\tSector match: oil_gas\tChevron Gas Supply to Horizon Power\toil_gas\tUnknown\tUnknown\tcold\n30\tSector match: infrastructure\tHarpers Hill Reservoir and Pipeline Upgrade\tinfrastructure\tUnknown\tUnknown\tcold\n30\tSector match: infrastructure\tQueensland road upgrade\tinfrastructure\tUnknown\tUnknown\twarm\n30\tSector match: mining\tLong-life silver build\tmining\tUnknown\tUnknown\twarm\n30\tSector match: infrastructure\tDarwin River Dam pump station restoration\tinfrastructure\tUnknown\tUnknown\twarm\n30\tSector match: infrastructure\tVictorian Offshore Wind Hub Port Development\tinfrastructure\tUnknown\tUnknown\twarm\n",
+  "stderr": "",
+  "execution_time_ms": 1548
+}

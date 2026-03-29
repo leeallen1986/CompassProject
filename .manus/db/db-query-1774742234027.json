@@ -1,0 +1,154 @@
+{
+  "query": "SELECT p.name, p.value, p.capexGrade, p.priority, LEFT(p.overview, 200) as overview_start, m.matchScore, m.matchReason\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore BETWEEN 40 AND 79\nORDER BY m.matchScore DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.name, p.value, p.capexGrade, p.priority, LEFT(p.overview, 200) as overview_start, m.matchScore, m.matchReason\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1 AND m.matchScore BETWEEN 40 AND 79\nORDER BY m.matchScore DESC;",
+  "rows": [
+    {
+      "name": "Mt Ida Gold Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Ballard Mining has reported encouraging results from regional prospects at its Mt Ida gold project in Western Australia, indicating potential for further development.",
+      "matchScore": "70",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 2 keyword(s) matched"
+    },
+    {
+      "name": "Renewable Energy Development",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Planning approval has been granted for a large renewable energy development in regional Western Australia. This project will involve significant construction and potentially drilling.",
+      "matchScore": "70",
+      "matchReason": "4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context"
+    },
+    {
+      "name": "Litchfield Minerals NT Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Litchfield Minerals has appointed a new senior exploration geologist, Matt McGloin, to lead the company's exploration efforts in the Northern Territory. This indicates a renewed or strengthened focus ",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Cobar District Copper-Antimony Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "West Cobar Metals has acquired two new exploration licence applications in New South Wales' Cobar district for copper-antimony exploration.",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Wyemandoo Project Acquisition",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "Coppermoly has acquired a 100% stake in the Wyemandoo Project in Western Australia, expanding its Australian portfolio.",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Mt Oxide Copper Hunt",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "True North Copper received a $250k government grant to accelerate its Queensland copper exploration quest over two years.",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Nuckulla Hill Gold Project Exploration",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "cold",
+      "overview_start": "Auravelle Metals is undertaking a detailed aeromagnetic survey covering the 40km strike extent of the Yarlbrinda Shear at its Nuckulla Hill gold project.",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Queensland Petroleum Acreage Release",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "The Queensland government has released 12 new petroleum acreage areas for investment prospects in the Bowen/Surat and Cooper/Eromanga Basins. This initiative aims to attract new exploration and develo",
+      "matchScore": "60",
+      "matchReason": "Sector match: oil_gas; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Tuckanarra Gold Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Odyssey Gold has confirmed gold mineralization at its Tuckanarra Gold Project, indicating ongoing exploration and potential for future development in Australia's gold sector.",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "North Stanmore Project",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Victory Metals has recorded the highest rare earths intercept at its North Stanmore project in WA to date, indicating promising exploration results.",
+      "matchScore": "60",
+      "matchReason": "Sector match: mining; 1 application tag(s) matched; 1 keyword(s) matched"
+    },
+    {
+      "name": "Northern Territory Flood Damaged Roads Repair",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Widespread flooding across the Northern Territory has closed over 100 sections of road, requiring significant repair work, including filling more than 1,000 potholes. The cost of repairs is expected t",
+      "matchScore": "50",
+      "matchReason": "Sector match: infrastructure; 1 application tag(s) matched"
+    },
+    {
+      "name": "Cooper Basin Infrastructure Upgrade",
+      "value": "Unknown",
+      "capexGrade": "B",
+      "priority": "hot",
+      "overview_start": "Santos is replacing seven aging gas-run compressor stations with one electric compressor station to debottleneck upstream infrastructure and unlock future production growth from the Central Fields.",
+      "matchScore": "40",
+      "matchReason": "Sector match: oil_gas; Portable air relevant to drilling/compressor context"
+    },
+    {
+      "name": "Bass Strait Decommissioning Project (Umbilicals and Flexibles)",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "ExxonMobil has lodged the next stage of decommissioning plans for umbilicals and flexibles in Bass Strait with the offshore regulator. This involves the removal and disposal of subsea infrastructure.",
+      "matchScore": "40",
+      "matchReason": "Sector match: oil_gas; 1 keyword(s) matched"
+    },
+    {
+      "name": "Iron ore expansion proposal",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "An iron ore expansion proposal has been referred for environmental assessment, signalling potential future development activities.",
+      "matchScore": "40",
+      "matchReason": "Sector match: mining; 1 keyword(s) matched"
+    },
+    {
+      "name": "Bass Strait Decommissioning Program",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Victorian government inquiry into the decommissioning program for oil and gas infrastructure in the Bass Strait. Committee hears from Woodside, ExxonMobil, MUA, and NOPSEMA regarding the scope and met",
+      "matchScore": "40",
+      "matchReason": "Sector match: oil_gas; 1 keyword(s) matched"
+    },
+    {
+      "name": "Pluto Seismic Survey",
+      "value": "Unknown",
+      "capexGrade": "Unknown",
+      "priority": "warm",
+      "overview_start": "Woodside has submitted a proposal for a seismic survey as part of its ongoing reservoir management and surveillance program for the Pluto project.",
+      "matchScore": "40",
+      "matchReason": "Sector match: oil_gas; 1 keyword(s) matched"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tvalue\tcapexGrade\tpriority\toverview_start\tmatchScore\tmatchReason\nMt Ida Gold Project\tUnknown\tUnknown\twarm\tBallard Mining has reported encouraging results from regional prospects at its Mt Ida gold project in Western Australia, indicating potential for further development.\t70\tSector match: mining; 1 application tag(s) matched; 2 keyword(s) matched\nRenewable Energy Development\tUnknown\tUnknown\twarm\tPlanning approval has been granted for a large renewable energy development in regional Western Australia. This project will involve significant construction and potentially drilling.\t70\t4 application tag(s) matched; 2 keyword(s) matched; Portable air relevant to drilling/compressor context\nLitchfield Minerals NT Exploration\tUnknown\tUnknown\twarm\tLitchfield Minerals has appointed a new senior exploration geologist, Matt McGloin, to lead the company's exploration efforts in the Northern Territory. This indicates a renewed or strengthened focus \t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nCobar District Copper-Antimony Exploration\tUnknown\tUnknown\tcold\tWest Cobar Metals has acquired two new exploration licence applications in New South Wales' Cobar district for copper-antimony exploration.\t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nWyemandoo Project Acquisition\tUnknown\tUnknown\tcold\tCoppermoly has acquired a 100% stake in the Wyemandoo Project in Western Australia, expanding its Australian portfolio.\t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nMt Oxide Copper Hunt\tUnknown\tUnknown\twarm\tTrue North Copper received a $250k government grant to accelerate its Queensland copper exploration quest over two years.\t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nNuckulla Hill Gold Project Exploration\tUnknown\tUnknown\tcold\tAuravelle Metals is undertaking a detailed aeromagnetic survey covering the 40km strike extent of the Yarlbrinda Shear at its Nuckulla Hill gold project.\t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nQueensland Petroleum Acreage Release\tUnknown\tUnknown\twarm\tThe Queensland government has released 12 new petroleum acreage areas for investment prospects in the Bowen/Surat and Cooper/Eromanga Basins. This initiative aims to attract new exploration and develo\t60\tSector match: oil_gas; 1 application tag(s) matched; 1 keyword(s) matched\nTuckanarra Gold Project\tUnknown\tUnknown\twarm\tOdyssey Gold has confirmed gold mineralization at its Tuckanarra Gold Project, indicating ongoing exploration and potential for future development in Australia's gold sector.\t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nNorth Stanmore Project\tUnknown\tUnknown\twarm\tVictory Metals has recorded the highest rare earths intercept at its North Stanmore project in WA to date, indicating promising exploration results.\t60\tSector match: mining; 1 application tag(s) matched; 1 keyword(s) matched\nNorthern Territory Flood Damaged Roads Repair\tUnknown\tUnknown\twarm\tWidespread flooding across the Northern Territory has closed over 100 sections of road, requiring significant repair work, including filling more than 1,000 potholes. The cost of repairs is expected t\t50\tSector match: infrastructure; 1 application tag(s) matched\nCooper Basin Infrastructure Upgrade\tUnknown\tB\thot\tSantos is replacing seven aging gas-run compressor stations with one electric compressor station to debottleneck upstream infrastructure and unlock future production growth from the Central Fields.\t40\tSector match: oil_gas; Portable air relevant to drilling/compressor context\nBass Strait Decommissioning Project (Umbilicals and Flexibles)\tUnknown\tUnknown\twarm\tExxonMobil has lodged the next stage of decommissioning plans for umbilicals and flexibles in Bass Strait with the offshore regulator. This involves the removal and disposal of subsea infrastructure.\t40\tSector match: oil_gas; 1 keyword(s) matched\nIron ore expansion proposal\tUnknown\tUnknown\twarm\tAn iron ore expansion proposal has been referred for environmental assessment, signalling potential future development activities.\t40\tSector match: mining; 1 keyword(s) matched\nBass Strait Decommissioning Program\tUnknown\tUnknown\twarm\tVictorian government inquiry into the decommissioning program for oil and gas infrastructure in the Bass Strait. Committee hears from Woodside, ExxonMobil, MUA, and NOPSEMA regarding the scope and met\t40\tSector match: oil_gas; 1 keyword(s) matched\nPluto Seismic Survey\tUnknown\tUnknown\twarm\tWoodside has submitted a proposal for a seismic survey as part of its ongoing reservoir management and surveillance program for the Pluto project.\t40\tSector match: oil_gas; 1 keyword(s) matched\n",
+  "stderr": "",
+  "execution_time_ms": 1582
+}

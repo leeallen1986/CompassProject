@@ -1,0 +1,26 @@
+{
+  "query": "SELECT \n  CASE \n    WHEN matchScore >= 80 THEN '80-100 (Strong)'\n    WHEN matchScore >= 60 THEN '60-79 (Good)'\n    WHEN matchScore >= 40 THEN '40-59 (Medium)'\n    WHEN matchScore >= 21 THEN '21-39 (Weak)'\n    ELSE '0-20 (Minimal)'\n  END as scoreTier,\n  COUNT(*) as cnt\nFROM collateralProjectMatches \nWHERE collateralId = 1\nGROUP BY scoreTier\nORDER BY scoreTier DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  CASE \n    WHEN matchScore >= 80 THEN '80-100 (Strong)'\n    WHEN matchScore >= 60 THEN '60-79 (Good)'\n    WHEN matchScore >= 40 THEN '40-59 (Medium)'\n    WHEN matchScore >= 21 THEN '21-39 (Weak)'\n    ELSE '0-20 (Minimal)'\n  END as scoreTier,\n  COUNT(*) as cnt\nFROM collateralProjectMatches \nWHERE collateralId = 1\nGROUP BY scoreTier\nORDER BY scoreTier DESC;",
+  "rows": [
+    {
+      "scoreTier": "80-100 (Strong)",
+      "cnt": "38"
+    },
+    {
+      "scoreTier": "60-79 (Good)",
+      "cnt": "10"
+    },
+    {
+      "scoreTier": "40-59 (Medium)",
+      "cnt": "6"
+    },
+    {
+      "scoreTier": "21-39 (Weak)",
+      "cnt": "137"
+    }
+  ],
+  "messages": [],
+  "stdout": "scoreTier\tcnt\n80-100 (Strong)\t38\n60-79 (Good)\t10\n40-59 (Medium)\t6\n21-39 (Weak)\t137\n",
+  "stderr": "",
+  "execution_time_ms": 1572
+}

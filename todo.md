@@ -656,3 +656,9 @@
 - [x] Re-run XAVS1800 matches with size + keyword filter (reduced from 337 to 30 genuinely relevant projects — 91% reduction)
 - [x] Fix parseProjectValue regex to handle '+' in values like '$10+ billion'
 - [x] Write vitest tests for size filtering logic (47 tests passing: parseProjectValue, classifyProjectSize, size-restricted matching gate)
+
+## X1350 DrillAir Large Project Filter ($200K+ asset)
+- [x] Review current X1350 tags and match distribution (191 matches — 78% unknown value, 137 sector-only)
+- [x] Tighten X1350 tags (set minProjectSize=large, removed infrastructure sector, focused on sustained drilling keywords)
+- [x] Re-run X1350 matches — reduced from 191 to 34 matches (82% reduction), removed BAE frigate false positive
+- [x] Update vitest tests for X1350 size-restricted matching (55 tests passing)

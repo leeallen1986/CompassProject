@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, name, sectorTags, applicationTags, keywordTags, minProjectSize FROM collateralItems WHERE name LIKE '%1350%' OR name LIKE '%X1300%' OR name LIKE '%DrillAir%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, sectorTags, applicationTags, keywordTags, minProjectSize FROM collateralItems WHERE name LIKE '%1350%' OR name LIKE '%X1300%' OR name LIKE '%DrillAir%';",
+  "rows": [
+    {
+      "id": "1",
+      "name": "DrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor",
+      "sectorTags": "[\"mining\", \"oil_gas\", \"infrastructure\", \"water\"]",
+      "applicationTags": "[\"rc_drilling\", \"waterwell_drilling\", \"exploration_drilling\", \"blast_hole_drilling\"]",
+      "keywordTags": "[\"25 bar\", \"truck-deck\", \"short package\", \"cummins\", \"drillair\", \"drill support\", \"rig builder\", \"oiltronix\", \"high pressure\", \"tray space\", \"drill\", \"drilling\", \"bore\", \"borehole\", \"exploration\", \"geotechnical\"]",
+      "minProjectSize": "any"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsectorTags\tapplicationTags\tkeywordTags\tminProjectSize\n1\tDrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor\t[\"mining\", \"oil_gas\", \"infrastructure\", \"water\"]\t[\"rc_drilling\", \"waterwell_drilling\", \"exploration_drilling\", \"blast_hole_drilling\"]\t[\"25 bar\", \"truck-deck\", \"short package\", \"cummins\", \"drillair\", \"drill support\", \"rig builder\", \"oiltronix\", \"high pressure\", \"tray space\", \"drill\", \"drilling\", \"bore\", \"borehole\", \"exploration\", \"geotechnical\"]\tany\n",
+  "stderr": "",
+  "execution_time_ms": 1593
+}

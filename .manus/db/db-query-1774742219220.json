@@ -1,0 +1,26 @@
+{
+  "query": "SELECT \n  CASE \n    WHEN p.value LIKE '%billion%' OR p.value LIKE '%bn%' THEN 'Billion+'\n    WHEN p.value LIKE '%million%' OR p.value LIKE '%M %' OR p.value LIKE '%M\"' OR p.value LIKE '%$%M' THEN 'Millions'\n    WHEN p.value IN ('Unknown', 'Undisclosed', '') OR p.value IS NULL OR p.value LIKE '%unknown%' OR p.value LIKE '%undisclosed%' OR p.value LIKE '%confidential%' THEN 'Unknown/Undisclosed'\n    ELSE 'Other'\n  END as valueCategory,\n  COUNT(*) as cnt\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1\nGROUP BY valueCategory;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  CASE \n    WHEN p.value LIKE '%billion%' OR p.value LIKE '%bn%' THEN 'Billion+'\n    WHEN p.value LIKE '%million%' OR p.value LIKE '%M %' OR p.value LIKE '%M\"' OR p.value LIKE '%$%M' THEN 'Millions'\n    WHEN p.value IN ('Unknown', 'Undisclosed', '') OR p.value IS NULL OR p.value LIKE '%unknown%' OR p.value LIKE '%undisclosed%' OR p.value LIKE '%confidential%' THEN 'Unknown/Undisclosed'\n    ELSE 'Other'\n  END as valueCategory,\n  COUNT(*) as cnt\nFROM collateralProjectMatches m \nJOIN projects p ON m.projectId = p.id\nWHERE m.collateralId = 1\nGROUP BY valueCategory;",
+  "rows": [
+    {
+      "valueCategory": "Billion+",
+      "cnt": "11"
+    },
+    {
+      "valueCategory": "Unknown/Undisclosed",
+      "cnt": "149"
+    },
+    {
+      "valueCategory": "Millions",
+      "cnt": "24"
+    },
+    {
+      "valueCategory": "Other",
+      "cnt": "7"
+    }
+  ],
+  "messages": [],
+  "stdout": "valueCategory\tcnt\nBillion+\t11\nUnknown/Undisclosed\t149\nMillions\t24\nOther\t7\n",
+  "stderr": "",
+  "execution_time_ms": 1572
+}
