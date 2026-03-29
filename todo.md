@@ -688,3 +688,11 @@
 - [x] Upload to collateral library with precise tags (mining, oil_gas, infrastructure sectors; shutdown/pipeline/blasting/plant keywords)
 - [x] Run matching — 64 matches (19 score 80-100, 45 score 60-79) — all large/mega projects with industrial air signals
 - [x] Write vitest tests for X-Air+ 1250-10 matching (94 tests passing total)
+
+## CRM Contact Import (55,875 contacts)
+- [x] Add CRM-specific fields to contacts schema (crmId, crmAccountId, department, mobilePhone, crmOwner, lastCrmModified, source, sectorTag, enrichmentPriority)
+- [x] Build CRM import pipeline — parsed 55,875 rows, deduplicated to 25,889 unique contacts, batch inserted
+- [x] Fuzzy-match CRM companies to tracked projects — 6,338 contacts linked to 414 projects
+- [x] Tag sector-relevant contacts and queue for Apollo enrichment: 1,178 HIGH (project-linked + sector), 869 MEDIUM (sector-relevant), 18,196 LOW (general industrial)
+- [x] Write vitest tests for CRM import (21 tests: schema, counts, dedup, sector classification, enrichment priority, data quality, project linking)
+- [x] All 1,367 tests passing across 55 test files

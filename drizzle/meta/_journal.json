@@ -246,6 +246,13 @@
       "when": 1774706254452,
       "tag": "0034_mute_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1774749071558,
+      "tag": "0035_last_scream",
+      "breakpoints": true
     }
   ]
 }

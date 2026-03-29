@@ -190,6 +190,16 @@ export const contacts = mysqlTable("contacts", {
   rejectedByUserId: int("rejectedByUserId"),
   rejectedAt: timestamp("rejectedAt"),
   rejectionReason: varchar("rejectionReason", { length: 256 }),
+  // CRM import fields
+  crmId: varchar("crmId", { length: 64 }),
+  crmAccountId: varchar("crmAccountId", { length: 64 }),
+  department: varchar("department", { length: 128 }),
+  mobilePhone: varchar("mobilePhone", { length: 64 }),
+  crmOwner: varchar("crmOwner", { length: 128 }),
+  lastCrmModified: timestamp("lastCrmModified"),
+  source: mysqlEnum("source", ["scraper", "crm", "manual", "apollo"]).default("scraper"),
+  sectorTag: varchar("sectorTag", { length: 64 }),
+  enrichmentPriority: mysqlEnum("enrichmentPriority", ["high", "medium", "low"]).default("medium"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

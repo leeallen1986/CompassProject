@@ -1,0 +1,16 @@
+{
+  "query": "SELECT COUNT(*) as total, SUM(CASE WHEN enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched, SUM(CASE WHEN enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email FROM contacts;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total, SUM(CASE WHEN enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched, SUM(CASE WHEN enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email FROM contacts;",
+  "rows": [
+    {
+      "total": "1150",
+      "enriched": "1120",
+      "pending": "0",
+      "has_email": "1144"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tenriched\tpending\thas_email\n1150\t1120\t0\t1144\n",
+  "stderr": "",
+  "execution_time_ms": 2938
+}
