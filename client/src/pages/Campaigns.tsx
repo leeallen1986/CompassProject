@@ -25,7 +25,7 @@ import {
   Megaphone, Users, Mail, CheckCircle2, Send, Search,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
-  Target, Zap, Clock, AlertCircle, RefreshCw,
+  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle,
 } from "lucide-react";
 
 // ── Types ──
@@ -71,6 +71,7 @@ const OUTREACH_CONFIG: Record<string, { label: string; color: string }> = {
   email_drafted: { label: "Drafted", color: "bg-blue-100 text-blue-700" },
   pending_approval: { label: "Pending Approval", color: "bg-amber-100 text-amber-700" },
   approved: { label: "Approved", color: "bg-green-100 text-green-700" },
+  rejected: { label: "Rejected", color: "bg-red-100 text-red-700" },
   sent: { label: "Sent", color: "bg-green-500 text-white" },
   replied: { label: "Replied", color: "bg-emerald-500 text-white" },
   bounced: { label: "Bounced", color: "bg-red-100 text-red-700" },
@@ -87,11 +88,37 @@ const RELEVANCE_CONFIG: Record<string, { label: string; color: string }> = {
 
 // ── Main Component ──
 
+const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com'];
+
 export default function Campaigns() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
 
-  const campaignsQuery = trpc.campaign.list.useQuery();
+  // Access control: only admin + Ryan can access campaigns
+  const hasAccess = user?.role === 'admin' || (user?.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase()));
+
+  const campaignsQuery = trpc.campaign.list.useQuery(undefined, {
+    enabled: !!hasAccess,
+  });
+
+  if (loading) {
+    return (
+      <div className="container py-8 flex items-center gap-3">
+        <Loader2 className="w-5 h-5 animate-spin text-gold" />
+        <span className="text-muted-foreground">Loading...</span>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="container py-16 text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-navy mb-2">Access Restricted</h2>
+        <p className="text-muted-foreground">Campaign management is restricted to authorized users only.</p>
+      </div>
+    );
+  }
 
   if (!selectedCampaignId && campaignsQuery.data?.length) {
     // Auto-select first campaign
@@ -255,6 +282,15 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
       toast.success("Email approved for sending");
     },
     onError: (err) => toast.error(`Failed to approve: ${err.message}`),
+  });
+
+  const rejectEmailMut = trpc.campaign.rejectEmail.useMutation({
+    onSuccess: () => {
+      contactsQuery.refetch();
+      setShowEmailDialog(false);
+      toast.success("Email rejected — contact pushed back for re-generation");
+    },
+    onError: (err) => toast.error(`Failed to reject: ${err.message}`),
   });
 
   const sendEmailMut = trpc.campaign.sendEmail.useMutation({
@@ -446,6 +482,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <option value="not_started">Not Started</option>
               <option value="pending_approval">Pending Approval</option>
               <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
               <option value="sent">Sent</option>
             </select>
           </div>
@@ -567,6 +604,21 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                             <Send className="w-3 h-3" />
                           </Button>
                         )}
+                        {c.outreachStatus === "rejected" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-blue-600"
+                            onClick={() => {
+                              generateEmailMut.mutate({ contactId: c.id, tone: "first_touch" });
+                              setSelectedContact(c);
+                            }}
+                            disabled={generateEmailMut.isPending}
+                            title="Re-generate email"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -678,6 +730,18 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <RefreshCw className="w-4 h-4 mr-2" /> Regenerate
             </Button>
             <Button
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50"
+              onClick={() => {
+                if (selectedContact) {
+                  rejectEmailMut.mutate({ contactId: selectedContact.id });
+                }
+              }}
+              disabled={rejectEmailMut.isPending || approveEmailMut.isPending}
+            >
+              <ThumbsDown className="w-4 h-4 mr-2" /> Reject
+            </Button>
+            <Button
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => {
                 if (selectedContact) {
@@ -725,12 +789,30 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
     sortDir: "desc",
   });
 
+  const rejectedQuery = trpc.campaign.contacts.useQuery({
+    campaignId,
+    outreachStatus: "rejected",
+    limit: 100,
+    offset: 0,
+    sortBy: "score",
+    sortDir: "desc",
+  });
+
   const approveEmailMut = trpc.campaign.approveEmail.useMutation({
     onSuccess: () => {
       pendingQuery.refetch();
       approvedQuery.refetch();
       toast.success("Email approved");
     },
+  });
+
+  const rejectEmailMut = trpc.campaign.rejectEmail.useMutation({
+    onSuccess: () => {
+      pendingQuery.refetch();
+      rejectedQuery.refetch();
+      toast.success("Email rejected — contact pushed back for re-generation");
+    },
+    onError: (err) => toast.error(`Failed to reject: ${err.message}`),
   });
 
   const sendEmailMut = trpc.campaign.sendEmail.useMutation({
@@ -746,6 +828,7 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
 
   const pending = pendingQuery.data?.contacts ?? [];
   const approved = approvedQuery.data?.contacts ?? [];
+  const rejected = rejectedQuery.data?.contacts ?? [];
 
   return (
     <div className="space-y-6">
@@ -789,14 +872,25 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
                         </div>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                      onClick={() => approveEmailMut.mutate({ contactId: c.id })}
-                      disabled={approveEmailMut.isPending}
-                    >
-                      <ThumbsUp className="w-3 h-3 mr-1" /> Approve
-                    </Button>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => approveEmailMut.mutate({ contactId: c.id })}
+                        disabled={approveEmailMut.isPending || rejectEmailMut.isPending}
+                      >
+                        <ThumbsUp className="w-3 h-3 mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => rejectEmailMut.mutate({ contactId: c.id })}
+                        disabled={rejectEmailMut.isPending || approveEmailMut.isPending}
+                      >
+                        <ThumbsDown className="w-3 h-3 mr-1" /> Reject
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -804,6 +898,54 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Rejected — Pushed Back */}
+      {rejected.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-red-500" />
+              Rejected — Pushed Back ({rejected.length})
+            </CardTitle>
+            <CardDescription>Emails rejected during review. These contacts can be re-generated or removed.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {rejected.map(c => (
+                <div key={c.id} className="p-3 rounded-lg border border-red-200 bg-red-50/50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-navy text-sm">
+                          {[c.firstName, c.lastName].filter(Boolean).join(" ")}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${TIER_CONFIG[c.tier]?.color || ""}`}>
+                          {TIER_CONFIG[c.tier]?.label?.split("\u2014")[1]?.trim() || c.tier}
+                        </span>
+                        <Badge variant="outline" className="border-red-300 text-red-600 text-[9px]">Rejected</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.enrichedTitle || c.title} at {c.reviewedCompanyName || c.company}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-blue-300 text-blue-600 hover:bg-blue-50 shrink-0"
+                      onClick={() => {
+                        // Re-generate by calling generateEmail which resets status
+                        toast.info("Use the Contacts tab to re-generate this email");
+                      }}
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" /> Re-generate
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Approved — Ready to Send */}
       <Card>

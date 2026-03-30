@@ -43,3 +43,30 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+/** Campaign procedure: restricted to admin users + Ryan Pemberton (ryan.pemberton@atlascopco.com) */
+const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com'];
+
+export const campaignProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    const isAdmin = ctx.user.role === 'admin';
+    const isAllowedEmail = ctx.user.email && CAMPAIGN_ALLOWED_EMAILS.includes(ctx.user.email.toLowerCase());
+
+    if (!isAdmin && !isAllowedEmail) {
+      throw new TRPCError({ code: "FORBIDDEN", message: 'Campaign access restricted' });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);

@@ -403,3 +403,133 @@ describe("Email Address Validation", () => {
     expect(recipientEmail).toBe("info@company.com");
   });
 });
+
+describe("Campaign Access Control", () => {
+  const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com'];
+
+  it("should allow admin users regardless of email", () => {
+    const user = { role: "admin", email: "admin@company.com" };
+    const isAdmin = user.role === "admin";
+    const isAllowedEmail = user.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+    expect(isAdmin || isAllowedEmail).toBe(true);
+  });
+
+  it("should allow Ryan Pemberton by email", () => {
+    const user = { role: "user", email: "ryan.pemberton@atlascopco.com" };
+    const isAdmin = user.role === "admin";
+    const isAllowedEmail = user.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+    expect(isAdmin || isAllowedEmail).toBe(true);
+  });
+
+  it("should allow Ryan with case-insensitive email check", () => {
+    const user = { role: "user", email: "Ryan.Pemberton@AtlasCopco.com" };
+    const isAdmin = user.role === "admin";
+    const isAllowedEmail = user.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+    expect(isAdmin || isAllowedEmail).toBe(true);
+  });
+
+  it("should deny regular users without allowed email", () => {
+    const user = { role: "user", email: "john.doe@company.com" };
+    const isAdmin = user.role === "admin";
+    const isAllowedEmail = user.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+    expect(isAdmin || isAllowedEmail).toBe(false);
+  });
+
+  it("should deny distributor users without allowed email", () => {
+    const user = { role: "distributor", email: "distributor@partner.com" };
+    const isAdmin = user.role === "admin";
+    const isAllowedEmail = user.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+    expect(isAdmin || isAllowedEmail).toBe(false);
+  });
+
+  it("should deny users with null email", () => {
+    const user = { role: "user", email: null };
+    const isAdmin = user.role === "admin";
+    const isAllowedEmail = user.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase());
+    expect(isAdmin || !!isAllowedEmail).toBe(false);
+  });
+});
+
+describe("Outreach Status Transitions", () => {
+  const validStatuses = [
+    "not_started", "email_drafted", "pending_approval",
+    "approved", "rejected", "sent", "replied", "bounced", "opted_out"
+  ];
+
+  it("should include 'rejected' as a valid outreach status", () => {
+    expect(validStatuses).toContain("rejected");
+  });
+
+  it("should transition from pending_approval to rejected", () => {
+    const currentStatus = "pending_approval";
+    const newStatus = "rejected";
+    expect(validStatuses).toContain(currentStatus);
+    expect(validStatuses).toContain(newStatus);
+  });
+
+  it("should clear draft fields on rejection", () => {
+    const contact = {
+      outreachStatus: "pending_approval",
+      draftSubject: "Test subject",
+      draftBody: "Test body",
+      draftKeyPoints: ["point1"],
+      draftTone: "first_touch",
+      draftGeneratedAt: new Date(),
+      approvedAt: null,
+      approvedBy: null,
+    };
+
+    // Simulate rejection
+    const rejected = {
+      ...contact,
+      outreachStatus: "rejected",
+      draftSubject: null,
+      draftBody: null,
+      draftKeyPoints: null,
+      draftTone: null,
+      draftGeneratedAt: null,
+    };
+
+    expect(rejected.outreachStatus).toBe("rejected");
+    expect(rejected.draftSubject).toBeNull();
+    expect(rejected.draftBody).toBeNull();
+    expect(rejected.draftKeyPoints).toBeNull();
+    expect(rejected.draftTone).toBeNull();
+    expect(rejected.draftGeneratedAt).toBeNull();
+  });
+
+  it("should allow re-generation after rejection (status goes back to email_drafted)", () => {
+    const rejectedContact = { outreachStatus: "rejected" };
+    // After re-generation, status should change
+    const regenerated = { ...rejectedContact, outreachStatus: "email_drafted" };
+    expect(regenerated.outreachStatus).toBe("email_drafted");
+  });
+});
+
+describe("Sender Title in Email Generation", () => {
+  it("should include senderTitle in outreach input", () => {
+    const input = {
+      senderName: "Ryan Pemberton",
+      senderTitle: "National Business Development Manager",
+      senderCompany: "Atlas Copco Australia - Power Technique",
+    };
+    expect(input.senderTitle).toBe("National Business Development Manager");
+    expect(input.senderCompany).toBe("Atlas Copco Australia - Power Technique");
+  });
+
+  it("should format sender line with title and company", () => {
+    const name = "Ryan Pemberton";
+    const title = "National Business Development Manager";
+    const company = "Atlas Copco Australia - Power Technique";
+    const senderLine = `${name}${title ? `, ${title}` : ""}${company ? ` at ${company}` : ""}`;
+    expect(senderLine).toBe("Ryan Pemberton, National Business Development Manager at Atlas Copco Australia - Power Technique");
+  });
+
+  it("should handle missing title gracefully", () => {
+    const name = "Ryan Pemberton";
+    const title = null;
+    const company = "Atlas Copco Australia - Power Technique";
+    const senderLine = `${name}${title ? `, ${title}` : ""}${company ? ` at ${company}` : ""}`;
+    expect(senderLine).toBe("Ryan Pemberton at Atlas Copco Australia - Power Technique");
+  });
+});

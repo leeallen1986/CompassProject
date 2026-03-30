@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, name, senderName, senderEmail, senderTitle FROM campaigns;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, senderName, senderEmail, senderTitle FROM campaigns;",
+  "rows": [
+    {
+      "id": "2",
+      "name": "XAVS1800 Abrasive Blasting Campaign",
+      "senderName": "Ryan Pemberton",
+      "senderEmail": "ryan.pemberton@atlascopco.com",
+      "senderTitle": "Business Line Manager — Portable Air"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsenderName\tsenderEmail\tsenderTitle\n2\tXAVS1800 Abrasive Blasting Campaign\tRyan Pemberton\tryan.pemberton@atlascopco.com\tBusiness Line Manager — Portable Air\n",
+  "stderr": "",
+  "execution_time_ms": 1576
+}

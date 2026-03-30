@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, name, email, role FROM users WHERE name LIKE '%Ryan%' OR email LIKE '%ryan%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, email, role FROM users WHERE name LIKE '%Ryan%' OR email LIKE '%ryan%';",
+  "rows": [
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1540
+}

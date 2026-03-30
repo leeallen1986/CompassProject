@@ -1,7 +1,7 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   getLatestReport, getAllReports, getReportById, createReport,
@@ -124,7 +124,7 @@ import {
   createCampaign, getCampaign, listCampaigns, updateCampaignStatus,
   getCampaignContacts, getCampaignContact, getCampaignStats,
   importCampaignContacts, matchContactsToProjects,
-  generateCampaignEmail, approveEmail, updateDraft, sendApprovedEmail,
+  generateCampaignEmail, approveEmail, rejectEmail, updateDraft, sendApprovedEmail,
   enrichCampaignContacts, updateCampaignStats,
 } from "./campaignService";
 import { parseBlastContactList } from "./campaignImport";
@@ -2481,26 +2481,26 @@ export const appRouter = router({
   // ── Campaigns ──
   campaign: router({
     /** List all campaigns */
-    list: protectedProcedure.query(async () => {
+    list: campaignProcedure.query(async () => {
       return listCampaigns();
     }),
 
     /** Get a single campaign by ID */
-    get: protectedProcedure
+    get: campaignProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return getCampaign(input.id);
       }),
 
     /** Get campaign stats (tier breakdown, outreach status, etc.) */
-    stats: protectedProcedure
+    stats: campaignProcedure
       .input(z.object({ campaignId: z.number() }))
       .query(async ({ input }) => {
         return getCampaignStats(input.campaignId);
       }),
 
     /** Create a new campaign */
-    create: protectedProcedure
+    create: campaignProcedure
       .input(z.object({
         name: z.string().min(1),
         description: z.string().optional(),
@@ -2516,7 +2516,7 @@ export const appRouter = router({
       }),
 
     /** Update campaign status */
-    updateStatus: protectedProcedure
+    updateStatus: campaignProcedure
       .input(z.object({
         id: z.number(),
         status: z.enum(["draft", "active", "paused", "completed"]),
@@ -2555,7 +2555,7 @@ export const appRouter = router({
       }),
 
     /** Get campaign contacts with filtering and pagination */
-    contacts: protectedProcedure
+    contacts: campaignProcedure
       .input(z.object({
         campaignId: z.number(),
         tier: z.string().optional(),
@@ -2572,14 +2572,14 @@ export const appRouter = router({
       }),
 
     /** Get a single campaign contact */
-    getContact: protectedProcedure
+    getContact: campaignProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return getCampaignContact(input.id);
       }),
 
     /** Match campaign contacts to collateral-matched projects */
-    matchToProjects: protectedProcedure
+    matchToProjects: campaignProcedure
       .input(z.object({ campaignId: z.number() }))
       .mutation(async ({ input }) => {
         return matchContactsToProjects(input.campaignId);
@@ -2600,7 +2600,7 @@ export const appRouter = router({
       }),
 
     /** Generate a personalised outreach email for a contact */
-    generateEmail: protectedProcedure
+    generateEmail: campaignProcedure
       .input(z.object({
         contactId: z.number(),
         tone: z.enum(["first_touch", "professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led"]).optional(),
@@ -2610,7 +2610,7 @@ export const appRouter = router({
       }),
 
     /** Update email draft (subject and/or body) */
-    updateDraft: protectedProcedure
+    updateDraft: campaignProcedure
       .input(z.object({
         contactId: z.number(),
         subject: z.string().optional(),
@@ -2622,15 +2622,26 @@ export const appRouter = router({
       }),
 
     /** Approve an email draft for sending */
-    approveEmail: protectedProcedure
+    approveEmail: campaignProcedure
       .input(z.object({ contactId: z.number() }))
       .mutation(async ({ input, ctx }) => {
         await approveEmail(input.contactId, ctx.user!.id);
         return { success: true };
       }),
 
+    /** Reject an email draft — pushes it back for regeneration */
+    rejectEmail: campaignProcedure
+      .input(z.object({
+        contactId: z.number(),
+        reason: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await rejectEmail(input.contactId, ctx.user!.id, input.reason);
+        return { success: true };
+      }),
+
     /** Send an approved email */
-    sendEmail: protectedProcedure
+    sendEmail: campaignProcedure
       .input(z.object({ contactId: z.number() }))
       .mutation(async ({ input }) => {
         return sendApprovedEmail(input.contactId);

@@ -1002,10 +1002,14 @@ export default function Home() {
                 <Link href="/collateral" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Layers className="w-3 h-3" /> Collateral
                 </Link>
-                <span className="text-slate-600">|</span>
-                <Link href="/campaigns" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
-                  <Megaphone className="w-3 h-3" /> Campaigns
-                </Link>
+                {(user?.role === "admin" || user?.email === "ryan.pemberton@atlascopco.com") && (
+                  <>
+                    <span className="text-slate-600">|</span>
+                    <Link href="/campaigns" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+                      <Megaphone className="w-3 h-3" /> Campaigns
+                    </Link>
+                  </>
+                )}
                 <span className="text-slate-600">|</span>
                 <button onClick={() => navigate("/settings")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Settings className="w-3 h-3" /> Settings

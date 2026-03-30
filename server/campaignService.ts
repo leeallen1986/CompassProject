@@ -489,6 +489,8 @@ The XAVS1800 is Atlas Copco's high-volume portable air compressor designed for d
     opportunityRoute: "Direct CAPEX",
     matchedBusinessLines: ["Portable Air", "Sandblasting"],
     senderName: campaign.senderName,
+    senderTitle: campaign.senderTitle || "National Business Development Manager",
+    senderCompany: "Atlas Copco Australia - Power Technique",
     senderBusinessLines: ["Portable Air"],
     tone: options?.tone || "first_touch",
   });
@@ -529,6 +531,24 @@ export async function approveEmail(contactId: number, approvedBy: number): Promi
     outreachStatus: "approved",
     approvedAt: new Date(),
     approvedBy,
+  }).where(eq(campaignContacts.id, contactId));
+}
+
+/**
+ * Reject an email draft — pushes it back to draft status for regeneration.
+ */
+export async function rejectEmail(contactId: number, rejectedBy: number, reason?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(campaignContacts).set({
+    outreachStatus: "rejected",
+    draftSubject: null,
+    draftBody: null,
+    draftKeyPoints: null,
+    draftTone: null,
+    draftGeneratedAt: null,
+    approvedAt: null,
+    approvedBy: null,
   }).where(eq(campaignContacts.id, contactId));
 }
 

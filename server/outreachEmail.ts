@@ -33,6 +33,7 @@ export interface OutreachInput {
 
   // Sender info
   senderName: string;
+  senderTitle?: string;
   senderCompany?: string;
   senderBusinessLines?: string[]; // User's assigned BLs — used to focus the outreach on their products
 
@@ -221,7 +222,7 @@ PROJECT CONTEXT:
 ${equipmentContext}
 ${businessLineContext}
 
-SENDER: ${input.senderName}${input.senderCompany ? ` from ${input.senderCompany}` : " from Atlas Copco Power Technique"}
+SENDER: ${input.senderName}${input.senderTitle ? `, ${input.senderTitle}` : ""}${input.senderCompany ? ` at ${input.senderCompany}` : " at Atlas Copco Australia - Power Technique"}
 ${input.senderBusinessLines && input.senderBusinessLines.length > 0 ? `SENDER'S PRODUCT FOCUS: The sender specialises in ${input.senderBusinessLines.join(", ")}. Prioritise these business lines in the email while remaining relevant to the project needs. If the project is more relevant to other BLs, briefly mention the sender's products but focus on the best-fit solution.` : ""}
 
 TONE: ${toneGuide[input.tone]}
@@ -234,7 +235,7 @@ RULES:
 5. Keep the email concise — 3-4 short paragraphs maximum
 6. Do NOT use generic phrases like "I hope this email finds you well" or "I wanted to reach out"
 7. Do NOT include [placeholder] brackets — use real product names and specific details
-8. Sign off with just the sender's first name
+8. Sign off with the sender's full name, title, and company on separate lines. Use the SENDER information above for the signature. The signature MUST include: sender name, sender title, company name, and sender email address on separate lines.
 9. The subject line should reference the project name and be compelling
 10. The opening line should hook them by referencing something specific about their project or role — NOT a self-introduction
 

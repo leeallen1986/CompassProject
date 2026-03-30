@@ -1,0 +1,1 @@
+ALTER TABLE `campaignContacts` MODIFY COLUMN `outreachStatus` enum('not_started','email_drafted','pending_approval','approved','rejected','sent','replied','bounced','opted_out') NOT NULL DEFAULT 'not_started';

@@ -926,7 +926,7 @@ export const campaignContacts = mysqlTable("campaignContacts", {
   matchedProjectIds: json("matchedProjectIds").$type<number[]>(),
   matchedProjectCount: int("matchedProjectCount").notNull().default(0),
   // Outreach status
-  outreachStatus: mysqlEnum("outreachStatus", ["not_started", "email_drafted", "pending_approval", "approved", "sent", "replied", "bounced", "opted_out"]).notNull().default("not_started"),
+  outreachStatus: mysqlEnum("outreachStatus", ["not_started", "email_drafted", "pending_approval", "approved", "rejected", "sent", "replied", "bounced", "opted_out"]).notNull().default("not_started"),
   draftSubject: text("draftSubject"),
   draftBody: text("draftBody"),
   draftKeyPoints: json("draftKeyPoints").$type<string[]>(),

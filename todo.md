@@ -768,3 +768,12 @@
 - [x] Step 1: Apollo enrichment on top 25 — 6 enriched with emails (Peter Bradley, Gavin Mulroy, Chris Burkill, Derek Allen, Gary Mead, Tane Samson), 19 no email available
 - [x] Step 2: Matched 22 contacts to XAVS1800 projects (Rio Tinto, BAE Systems, Chevron, Fortescue, Santos, Water Corporation, etc.)
 - [x] Step 3: Generated 5 pilot emails — all saved as drafts pending Ryan's approval in the Approval Queue
+
+## Campaign Improvements: Title, Access Control, Reject Workflow
+- [x] Fix Ryan's title from "Business Line Manager — Portable Air" to "National Business Development Manager, Atlas Copco Australia - Power Technique"
+- [x] Update campaign record senderTitle in database
+- [x] Update LLM email generation prompt to use correct title
+- [ ] Regenerate existing 5 pilot emails with corrected title
+- [x] Restrict campaigns page to Ryan + Admin role only (other team members cannot see or access)
+- [x] Add reject/disapprove button to approval queue alongside Approve
+- [x] Rejected contacts move back to contacts list with status reset for re-generation or removal
