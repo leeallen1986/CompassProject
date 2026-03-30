@@ -15,6 +15,7 @@ import Pipeline from "./pages/Pipeline";
 import Admin from "./pages/Admin";
 import MyProfile from "./pages/MyProfile";
 import CollateralLibrary from "./pages/CollateralLibrary";
+import Campaigns from "./pages/Campaigns";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -31,6 +32,7 @@ function Router() {
       <Route path={"/admin"} component={Admin} />
       <Route path={"/my-profile"} component={MyProfile} />
       <Route path={"/collateral"} component={CollateralLibrary} />
+      <Route path={"/campaigns"} component={Campaigns} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

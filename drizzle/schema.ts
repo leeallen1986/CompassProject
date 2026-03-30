@@ -859,3 +859,91 @@ export const collateralProjectMatches = mysqlTable("collateralProjectMatches", {
 
 export type CollateralProjectMatch = typeof collateralProjectMatches.$inferSelect;
 export type InsertCollateralProjectMatch = typeof collateralProjectMatches.$inferInsert;
+
+
+/**
+ * Campaigns — tracks targeted outreach campaigns (e.g., XAVS1800 Blasting Campaign).
+ * Each campaign links to a collateral item and has a sender identity.
+ */
+export const campaigns = mysqlTable("campaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 256 }).notNull(),
+  description: text("description"),
+  // Linked collateral item (e.g., XAVS1800 flyer)
+  collateralId: int("collateralId"),
+  collateralName: varchar("collateralName", { length: 256 }),
+  // Sender identity
+  senderName: varchar("senderName", { length: 128 }).notNull(),
+  senderEmail: varchar("senderEmail", { length: 320 }).notNull(),
+  senderTitle: varchar("senderTitle", { length: 256 }),
+  // Campaign targeting
+  targetSegment: varchar("targetSegment", { length: 128 }),  // e.g., "blasting", "painting", "corrosion"
+  // Status
+  status: mysqlEnum("status", ["draft", "active", "paused", "completed"]).notNull().default("draft"),
+  // Stats (denormalized for quick display)
+  totalContacts: int("totalContacts").notNull().default(0),
+  enrichedContacts: int("enrichedContacts").notNull().default(0),
+  emailsDrafted: int("emailsDrafted").notNull().default(0),
+  emailsApproved: int("emailsApproved").notNull().default(0),
+  emailsSent: int("emailsSent").notNull().default(0),
+  // Ownership
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Campaign = typeof campaigns.$inferSelect;
+export type InsertCampaign = typeof campaigns.$inferInsert;
+
+/**
+ * Campaign contacts — individual contacts imported into a campaign.
+ * Scored and tiered for prioritised outreach.
+ */
+export const campaignContacts = mysqlTable("campaignContacts", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+  // Contact identity
+  firstName: varchar("firstName", { length: 128 }),
+  lastName: varchar("lastName", { length: 128 }),
+  title: varchar("title", { length: 256 }),
+  company: varchar("company", { length: 256 }).notNull(),
+  reviewedCompanyName: varchar("reviewedCompanyName", { length: 256 }),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 64 }),
+  mobile: varchar("mobile", { length: 64 }),
+  // Scoring
+  score: int("score").notNull().default(0),  // 0-100 composite score
+  tier: mysqlEnum("tier", ["tier1_hot", "tier2_warm", "tier3_enrich", "tier4_low", "excluded"]).notNull().default("tier3_enrich"),
+  titleRelevance: mysqlEnum("titleRelevance", ["blasting_specialist", "decision_maker", "operations", "other", "unknown"]).notNull().default("unknown"),
+  // Enrichment
+  enrichmentStatus: mysqlEnum("enrichmentStatus", ["not_needed", "pending", "enriched", "not_found", "failed"]).notNull().default("pending"),
+  apolloPersonId: varchar("apolloPersonId", { length: 128 }),
+  enrichedEmail: varchar("enrichedEmail", { length: 320 }),
+  enrichedTitle: varchar("enrichedTitle", { length: 256 }),
+  enrichedLinkedin: varchar("enrichedLinkedin", { length: 512 }),
+  enrichedAt: timestamp("enrichedAt"),
+  // Project intelligence match
+  matchedProjectIds: json("matchedProjectIds").$type<number[]>(),
+  matchedProjectCount: int("matchedProjectCount").notNull().default(0),
+  // Outreach status
+  outreachStatus: mysqlEnum("outreachStatus", ["not_started", "email_drafted", "pending_approval", "approved", "sent", "replied", "bounced", "opted_out"]).notNull().default("not_started"),
+  draftSubject: text("draftSubject"),
+  draftBody: text("draftBody"),
+  draftKeyPoints: json("draftKeyPoints").$type<string[]>(),
+  draftTone: varchar("draftTone", { length: 64 }),
+  draftGeneratedAt: timestamp("draftGeneratedAt"),
+  approvedAt: timestamp("approvedAt"),
+  approvedBy: int("approvedBy"),
+  sentAt: timestamp("sentAt"),
+  sentEmailId: varchar("sentEmailId", { length: 128 }),  // Resend email ID
+  // Source tracking
+  sourceRow: int("sourceRow"),  // Original row number in the spreadsheet
+  nameCheckStatus: varchar("nameCheckStatus", { length: 128 }),
+  reviewNotes: text("reviewNotes"),
+  // Metadata
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CampaignContact = typeof campaignContacts.$inferSelect;
+export type InsertCampaignContact = typeof campaignContacts.$inferInsert;

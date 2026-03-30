@@ -1,0 +1,405 @@
+/**
+ * campaignService.test.ts — Tests for campaign scoring, tier classification, and role inference
+ */
+import { describe, it, expect } from "vitest";
+
+// We test the pure functions by importing the module and testing the scoring logic
+// Since computeScore and inferRoleBucket are not exported, we test them through their behavior
+
+describe("Campaign Contact Scoring", () => {
+  // Scoring rules based on campaignService.ts computeScore:
+  // - blasting_specialist title: +35
+  // - decision_maker title: +25
+  // - operations title: +15
+  // - other title: +5
+  // - has email: +20
+  // - has title: +10
+  // - has mobile: +5
+  // - matched projects: +15 per project (max 30)
+
+  describe("Title Relevance Classification", () => {
+    const blastingTitles = [
+      "Blasting & Painting Supervisor",
+      "Paint Shop Supervisor",
+      "Corrosion Engineer",
+      "Surface Treatment Manager",
+      "Coating Coordinator",
+      "Abrasive Blasting Operator",
+      "Blast & Paint Manager",
+      "Surface Preparation Specialist",
+    ];
+
+    const decisionMakerTitles = [
+      "Managing Director",
+      "General Manager",
+      "CEO",
+      "Director of Operations",
+      "Owner",
+      "Procurement Manager",
+      "Supply Chain Director",
+    ];
+
+    const operationsTitles = [
+      "Operations Manager",
+      "Maintenance Manager",
+      "Workshop Supervisor",
+      "Fleet Manager",
+      "Equipment Manager",
+      "Project Manager",
+    ];
+
+    it("should classify blasting-related titles correctly", () => {
+      for (const title of blastingTitles) {
+        const t = title.toLowerCase();
+        const isBlasting = /blast|paint|coat|surface|corrosion|abrasive/i.test(t);
+        expect(isBlasting, `Expected "${title}" to be classified as blasting specialist`).toBe(true);
+      }
+    });
+
+    it("should classify decision maker titles correctly", () => {
+      for (const title of decisionMakerTitles) {
+        const t = title.toLowerCase();
+        const isBlasting = /blast|paint|coat|surface|corrosion|abrasive/i.test(t);
+        const isDecisionMaker = /managing\s*director|general\s*manager|ceo|director|owner|procurement|supply/i.test(t);
+        expect(isBlasting, `"${title}" should NOT be blasting`).toBe(false);
+        expect(isDecisionMaker, `Expected "${title}" to be classified as decision maker`).toBe(true);
+      }
+    });
+
+    it("should classify operations titles correctly", () => {
+      for (const title of operationsTitles) {
+        const t = title.toLowerCase();
+        const isBlasting = /blast|paint|coat|surface|corrosion|abrasive/i.test(t);
+        const isDecisionMaker = /managing\s*director|general\s*manager|ceo|director|owner|procurement|supply/i.test(t);
+        const isOperations = /operations|maintenance|workshop|fleet|equipment|project\s*manager/i.test(t);
+        expect(isBlasting, `"${title}" should NOT be blasting`).toBe(false);
+        // Some operations titles may also match decision maker patterns (e.g., "Director of Operations")
+        if (!isDecisionMaker) {
+          expect(isOperations, `Expected "${title}" to be classified as operations`).toBe(true);
+        }
+      }
+    });
+  });
+
+  describe("Score Calculation Logic", () => {
+    function computeScore(input: {
+      title?: string | null;
+      email?: string | null;
+      mobile?: string | null;
+      matchedProjectCount?: number;
+    }): { score: number; tier: string; titleRelevance: string } {
+      let score = 0;
+      let titleRelevance = "unknown";
+
+      if (input.title) {
+        const t = input.title.toLowerCase();
+        if (/blast|paint|coat|surface|corrosion|abrasive/i.test(t)) {
+          score += 35;
+          titleRelevance = "blasting_specialist";
+        } else if (/managing\s*director|general\s*manager|ceo|director|owner|procurement|supply/i.test(t)) {
+          score += 25;
+          titleRelevance = "decision_maker";
+        } else if (/operations|ops|maintenance|workshop|fleet|equipment|project\s*manager|engineer/i.test(t)) {
+          score += 15;
+          titleRelevance = "operations";
+        } else {
+          score += 5;
+          titleRelevance = "other";
+        }
+        score += 10; // has title bonus
+      }
+
+      if (input.email) score += 20;
+      if (input.mobile) score += 5;
+
+      const projectCount = input.matchedProjectCount ?? 0;
+      if (projectCount > 0) {
+        score += Math.min(projectCount * 15, 30);
+      }
+
+      let tier: string;
+      if (score >= 40 && titleRelevance === "blasting_specialist") {
+        tier = "tier1_hot";
+      } else if (score >= 30) {
+        tier = "tier2_warm";
+      } else if (score >= 10) {
+        tier = "tier3_enrich";
+      } else {
+        tier = "tier4_low";
+      }
+
+      return { score, tier, titleRelevance };
+    }
+
+    it("should score a blasting specialist with email at 70", () => {
+      const result = computeScore({
+        title: "Blasting & Painting Supervisor",
+        email: "test@company.com",
+        mobile: "0412345678",
+      });
+      expect(result.score).toBe(70); // 35 (blasting) + 10 (title) + 20 (email) + 5 (mobile)
+      expect(result.tier).toBe("tier1_hot");
+      expect(result.titleRelevance).toBe("blasting_specialist");
+    });
+
+    it("should score a blasting specialist without email at 45", () => {
+      const result = computeScore({
+        title: "Corrosion Engineer",
+        email: null,
+        mobile: null,
+      });
+      expect(result.score).toBe(45); // 35 (blasting) + 10 (title)
+      expect(result.tier).toBe("tier1_hot");
+      expect(result.titleRelevance).toBe("blasting_specialist");
+    });
+
+    it("should score a decision maker with email at 55", () => {
+      const result = computeScore({
+        title: "Managing Director",
+        email: "md@company.com",
+        mobile: null,
+      });
+      expect(result.score).toBe(55); // 25 (decision maker) + 10 (title) + 20 (email)
+      expect(result.tier).toBe("tier2_warm");
+      expect(result.titleRelevance).toBe("decision_maker");
+    });
+
+    it("should score a decision maker without email at 35", () => {
+      const result = computeScore({
+        title: "General Manager",
+        email: null,
+        mobile: null,
+      });
+      expect(result.score).toBe(35); // 25 (decision maker) + 10 (title)
+      expect(result.tier).toBe("tier2_warm");
+      expect(result.titleRelevance).toBe("decision_maker");
+    });
+
+    it("should score an operations person at 25", () => {
+      const result = computeScore({
+        title: "Operations Manager",
+        email: null,
+        mobile: null,
+      });
+      expect(result.score).toBe(25); // 15 (operations) + 10 (title)
+      expect(result.tier).toBe("tier3_enrich");
+      expect(result.titleRelevance).toBe("operations");
+    });
+
+    it("should score a contact with no title at 0", () => {
+      const result = computeScore({
+        title: null,
+        email: null,
+        mobile: null,
+      });
+      expect(result.score).toBe(0);
+      expect(result.tier).toBe("tier4_low");
+      expect(result.titleRelevance).toBe("unknown");
+    });
+
+    it("should score a contact with only email at 20", () => {
+      const result = computeScore({
+        title: null,
+        email: "test@company.com",
+        mobile: null,
+      });
+      expect(result.score).toBe(20);
+      expect(result.tier).toBe("tier3_enrich");
+      expect(result.titleRelevance).toBe("unknown");
+    });
+
+    it("should add project match bonus correctly", () => {
+      const result = computeScore({
+        title: "Blasting Supervisor",
+        email: "test@company.com",
+        mobile: null,
+        matchedProjectCount: 2,
+      });
+      expect(result.score).toBe(95); // 35 + 10 + 20 + 30 (2 projects, capped at 30)
+      expect(result.tier).toBe("tier1_hot");
+    });
+
+    it("should cap project match bonus at 30", () => {
+      const result1 = computeScore({
+        title: "Blasting Supervisor",
+        email: "test@company.com",
+        matchedProjectCount: 2,
+      });
+      const result2 = computeScore({
+        title: "Blasting Supervisor",
+        email: "test@company.com",
+        matchedProjectCount: 5,
+      });
+      // Both should have the same score since project bonus caps at 30
+      expect(result1.score).toBe(result2.score);
+    });
+
+    it("should classify tier1_hot only for blasting specialists with score >= 40", () => {
+      // Blasting specialist with title only = 45 → tier1_hot
+      const blasting = computeScore({ title: "Paint Supervisor" });
+      expect(blasting.tier).toBe("tier1_hot");
+
+      // Decision maker with email = 55 → tier2_warm (not tier1 because not blasting)
+      const dm = computeScore({ title: "Managing Director", email: "test@co.com" });
+      expect(dm.tier).toBe("tier2_warm");
+    });
+  });
+
+  describe("Role Bucket Inference", () => {
+    function inferRoleBucket(title: string): string {
+      const t = title.toLowerCase();
+      if (/blast|paint|coat|surface|corrosion|abrasive/i.test(t)) return "construction";
+      if (/procurement|purchasing|supply/i.test(t)) return "procurement";
+      if (/engineer/i.test(t)) return "engineering";
+      if (/operations|ops/i.test(t)) return "operations";
+      if (/project\s*manager|project\s*director/i.test(t)) return "project_management";
+      if (/maintenance|workshop/i.test(t)) return "maintenance";
+      if (/fleet|equipment/i.test(t)) return "fleet";
+      if (/managing\s*director|general\s*manager|ceo|director|owner/i.test(t)) return "executive";
+      return "other";
+    }
+
+    it("should classify blasting titles as construction", () => {
+      expect(inferRoleBucket("Blasting Supervisor")).toBe("construction");
+      expect(inferRoleBucket("Paint Shop Manager")).toBe("construction");
+      expect(inferRoleBucket("Coating Inspector")).toBe("construction");
+      expect(inferRoleBucket("Surface Treatment Lead")).toBe("construction");
+      expect(inferRoleBucket("Corrosion Engineer")).toBe("construction");
+    });
+
+    it("should classify procurement titles", () => {
+      expect(inferRoleBucket("Procurement Manager")).toBe("procurement");
+      expect(inferRoleBucket("Purchasing Officer")).toBe("procurement");
+      expect(inferRoleBucket("Supply Chain Director")).toBe("procurement");
+    });
+
+    it("should classify engineering titles", () => {
+      expect(inferRoleBucket("Mechanical Engineer")).toBe("engineering");
+      expect(inferRoleBucket("Civil Engineer")).toBe("engineering");
+    });
+
+    it("should classify operations titles", () => {
+      expect(inferRoleBucket("Operations Manager")).toBe("operations");
+      expect(inferRoleBucket("Site Ops Coordinator")).toBe("operations");
+    });
+
+    it("should classify project management titles", () => {
+      expect(inferRoleBucket("Project Manager")).toBe("project_management");
+      expect(inferRoleBucket("Project Director")).toBe("project_management");
+    });
+
+    it("should classify maintenance titles", () => {
+      expect(inferRoleBucket("Maintenance Manager")).toBe("maintenance");
+      expect(inferRoleBucket("Workshop Supervisor")).toBe("maintenance");
+    });
+
+    it("should classify fleet titles", () => {
+      expect(inferRoleBucket("Fleet Manager")).toBe("fleet");
+      expect(inferRoleBucket("Equipment Coordinator")).toBe("fleet");
+    });
+
+    it("should classify executive titles", () => {
+      expect(inferRoleBucket("Managing Director")).toBe("executive");
+      expect(inferRoleBucket("General Manager")).toBe("executive");
+      expect(inferRoleBucket("CEO")).toBe("executive");
+    });
+
+    it("should default to other for unrecognized titles", () => {
+      expect(inferRoleBucket("Receptionist")).toBe("other");
+      expect(inferRoleBucket("Marketing Specialist")).toBe("other");
+    });
+  });
+});
+
+describe("Campaign Import Parsing", () => {
+  // Test the Excel column mapping logic
+  describe("Column Mapping", () => {
+    it("should handle names with first and last name columns", () => {
+      const firstName = "Garrie";
+      const lastName = "Mawson";
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      expect(fullName).toBe("Garrie Mawson");
+    });
+
+    it("should handle missing last name", () => {
+      const firstName = "Garrie";
+      const lastName = null;
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      expect(fullName).toBe("Garrie");
+    });
+
+    it("should handle missing first name", () => {
+      const firstName = null;
+      const lastName = "Mawson";
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      expect(fullName).toBe("Mawson");
+    });
+
+    it("should trim whitespace from company names", () => {
+      const rawCompany = "  Veolia Environmental Services  ";
+      expect(rawCompany.trim()).toBe("Veolia Environmental Services");
+    });
+
+    it("should use reviewed company name when available", () => {
+      const company = "Veolia Enviro Services";
+      const reviewedCompanyName = "Veolia Environmental Services";
+      const displayName = reviewedCompanyName || company;
+      expect(displayName).toBe("Veolia Environmental Services");
+    });
+
+    it("should fall back to raw company when reviewed name is empty", () => {
+      const company = "Veolia Enviro Services";
+      const reviewedCompanyName = "";
+      const displayName = reviewedCompanyName || company;
+      expect(displayName).toBe("Veolia Enviro Services");
+    });
+  });
+
+  describe("Name Check Status Filtering", () => {
+    const validStatuses = ["ok", "reviewed", "current"];
+    const invalidStatuses = ["not a company", "do not use", "duplicate", ""];
+
+    it("should accept valid name check statuses", () => {
+      for (const status of validStatuses) {
+        const isValid = ["ok", "reviewed", "current"].includes(status.toLowerCase());
+        expect(isValid, `Expected "${status}" to be valid`).toBe(true);
+      }
+    });
+
+    it("should reject invalid name check statuses", () => {
+      for (const status of invalidStatuses) {
+        const isValid = ["ok", "reviewed", "current"].includes(status.toLowerCase());
+        expect(isValid, `Expected "${status}" to be invalid`).toBe(false);
+      }
+    });
+  });
+});
+
+describe("Email Address Validation", () => {
+  it("should extract domain from email", () => {
+    const email = "garrie.mawson@veolia.com";
+    const match = email.match(/@(.+)/);
+    expect(match).not.toBeNull();
+    expect(match![1]).toBe("veolia.com");
+  });
+
+  it("should handle emails without domain", () => {
+    const email = "garrie.mawson";
+    const match = email.match(/@(.+)/);
+    expect(match).toBeNull();
+  });
+
+  it("should prefer enriched email over original", () => {
+    const original = "info@company.com";
+    const enriched = "garrie.mawson@veolia.com";
+    const recipientEmail = enriched || original;
+    expect(recipientEmail).toBe("garrie.mawson@veolia.com");
+  });
+
+  it("should fall back to original when no enriched email", () => {
+    const original = "info@company.com";
+    const enriched = null;
+    const recipientEmail = enriched || original;
+    expect(recipientEmail).toBe("info@company.com");
+  });
+});

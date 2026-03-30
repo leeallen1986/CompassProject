@@ -754,3 +754,18 @@
 - [x] Fixed filter logic to use collateralProjectIds.includes(p.id) instead of non-existent collateralMatches
 - [x] Added collateral filter banner with "Clear filter" button on All Projects tab
 - [x] No TypeScript errors, dev server running
+
+## XAVS1800 Blasting Campaign Feature
+- [x] Phase 1: Campaign data model — campaigns, campaignContacts, campaignOutreach tables in schema
+- [x] Phase 1: Import pipeline — parsed Blast_Paint_contact_list_checked.xlsx, imported 4,392 contacts with scoring
+- [x] Phase 2: Apollo batch enrichment queue — priority-ordered (Tier 1 blasting specialists first), Enrich Top 25 button
+- [x] Phase 3: Contact scoring algorithm — blasting specialist +35, decision maker +25, operations +15, email +20, title +10, mobile +5, project match +15 (cap 30)
+- [x] Phase 3: Tier classification — Tier 1 Hot (90 blasting specialists), Tier 2 Warm (588 decision makers), Tier 3 Enrich (954), Tier 4 Low (2,760)
+- [ ] Phase 3: Cross-reference contacts against XAVS1800 collateral-matched projects (Match to Projects button exists)
+- [x] Phase 4: Campaign dashboard UI — /campaigns page with overview KPIs, contact list, tier filters, search
+- [x] Phase 4: Contact detail view with score, tier badge, title relevance, enrichment status
+- [x] Phase 5: LLM-powered personalised email composer with XAVS1800 context — generate email button on each contact
+- [x] Phase 5: Ryan Pemberton approval workflow — Approval Queue tab with review/edit/approve/reject actions
+- [x] Phase 5: Email sending via Resend with reply-to ryan.pemberton@atlascopco.com
+- [x] Phase 6: Write tests for campaign service functions — scoring, tier classification, role inference, import parsing (1,470 tests passing)
+- [x] Phase 6: End-to-end verification — UI confirmed working, all tests passing

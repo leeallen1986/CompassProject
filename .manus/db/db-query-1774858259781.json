@@ -1,0 +1,26 @@
+{
+  "query": "UPDATE campaignContacts SET tier = 'tier1_hot' WHERE campaignId = 1 AND titleRelevance = 'blasting_specialist' AND title IS NOT NULL; UPDATE campaignContacts SET tier = 'tier2_warm' WHERE campaignId = 1 AND titleRelevance = 'decision_maker' AND title IS NOT NULL AND tier != 'tier1_hot'; UPDATE campaignContacts SET tier = 'tier3_enrich' WHERE campaignId = 1 AND titleRelevance = 'operations' AND title IS NOT NULL AND tier = 'tier4_low'; SELECT tier, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY tier ORDER BY cnt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE campaignContacts SET tier = 'tier1_hot' WHERE campaignId = 1 AND titleRelevance = 'blasting_specialist' AND title IS NOT NULL; UPDATE campaignContacts SET tier = 'tier2_warm' WHERE campaignId = 1 AND titleRelevance = 'decision_maker' AND title IS NOT NULL AND tier != 'tier1_hot'; UPDATE campaignContacts SET tier = 'tier3_enrich' WHERE campaignId = 1 AND titleRelevance = 'operations' AND title IS NOT NULL AND tier = 'tier4_low'; SELECT tier, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY tier ORDER BY cnt DESC;",
+  "rows": [
+    {
+      "tier": "tier4_low",
+      "cnt": "2760"
+    },
+    {
+      "tier": "tier3_enrich",
+      "cnt": "954"
+    },
+    {
+      "tier": "tier2_warm",
+      "cnt": "588"
+    },
+    {
+      "tier": "tier1_hot",
+      "cnt": "90"
+    }
+  ],
+  "messages": [],
+  "stdout": "tier\tcnt\ntier4_low\t2760\ntier3_enrich\t954\ntier2_warm\t588\ntier1_hot\t90\n",
+  "stderr": "",
+  "execution_time_ms": 2209
+}

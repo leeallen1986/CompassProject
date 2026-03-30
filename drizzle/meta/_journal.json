@@ -267,6 +267,13 @@
       "when": 1774833303338,
       "tag": "0037_shallow_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1774856457642,
+      "tag": "0038_parallel_whizzer",
+      "breakpoints": true
     }
   ]
 }

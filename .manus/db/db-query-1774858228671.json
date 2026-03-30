@@ -1,0 +1,82 @@
+{
+  "query": "SELECT tier, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY tier ORDER BY cnt DESC; SELECT titleRelevance, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY titleRelevance ORDER BY cnt DESC; SELECT score, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY score ORDER BY score DESC LIMIT 15; SELECT id, firstName, lastName, title, company, email, score, tier, titleRelevance, nameCheckStatus FROM campaignContacts WHERE campaignId = 1 ORDER BY score DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT tier, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY tier ORDER BY cnt DESC; SELECT titleRelevance, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY titleRelevance ORDER BY cnt DESC; SELECT score, COUNT(*) as cnt FROM campaignContacts WHERE campaignId = 1 GROUP BY score ORDER BY score DESC LIMIT 15; SELECT id, firstName, lastName, title, company, email, score, tier, titleRelevance, nameCheckStatus FROM campaignContacts WHERE campaignId = 1 ORDER BY score DESC LIMIT 10;",
+  "rows": [
+    {
+      "tier": "tier4_low",
+      "cnt": "2760"
+    },
+    {
+      "tier": "tier3_enrich",
+      "cnt": "954"
+    },
+    {
+      "tier": "tier2_warm",
+      "cnt": "678"
+    },
+    {
+      "tier": "titleRelevance",
+      "cnt": "cnt"
+    },
+    {
+      "tier": "unknown",
+      "cnt": "2760"
+    },
+    {
+      "tier": "other",
+      "cnt": "630"
+    },
+    {
+      "tier": "decision_maker",
+      "cnt": "588"
+    },
+    {
+      "tier": "operations",
+      "cnt": "324"
+    },
+    {
+      "tier": "blasting_specialist",
+      "cnt": "90"
+    },
+    {
+      "tier": "score",
+      "cnt": "cnt"
+    },
+    {
+      "tier": "45",
+      "cnt": "90"
+    },
+    {
+      "tier": "35",
+      "cnt": "588"
+    },
+    {
+      "tier": "25",
+      "cnt": "324"
+    },
+    {
+      "tier": "15",
+      "cnt": "630"
+    },
+    {
+      "tier": "0",
+      "cnt": "2760"
+    }
+  ],
+  "messages": [
+    "id\tfirstName\tlastName\ttitle\tcompany\temail\tscore\ttier\ttitleRelevance\tnameCheckStatus",
+    "503\tJohn\tRevill\tPaint Shop Supervisor\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "254\tNathaniel\tEverist\tBlaster/Painter\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "461\tNeil\tBb\tCoating Coordinator\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "276\tTony\tPascoe\tPaint Manager\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "143\tFranklin\tBeck - INACTIVE\tSenior Coating Supervisor\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "71\tNathan\tBoxell\tBlast & Paint Supervisor\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "441\tahmad\tRawas\tCOATING  Coordinator\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "308\tAnthony\tRankin\tLeading Hanbd Blast/Paint\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "256\tBen\tStrasdat\tCoating Inspector LH CBH GSSR Project\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown",
+    "639\tJohn\tChalupa\tPaint & Blast Manager\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown"
+  ],
+  "stdout": "tier\tcnt\ntier4_low\t2760\ntier3_enrich\t954\ntier2_warm\t678\ntitleRelevance\tcnt\nunknown\t2760\nother\t630\ndecision_maker\t588\noperations\t324\nblasting_specialist\t90\nscore\tcnt\n45\t90\n35\t588\n25\t324\n15\t630\n0\t2760\nid\tfirstName\tlastName\ttitle\tcompany\temail\tscore\ttier\ttitleRelevance\tnameCheckStatus\n503\tJohn\tRevill\tPaint Shop Supervisor\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n254\tNathaniel\tEverist\tBlaster/Painter\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n461\tNeil\tBb\tCoating Coordinator\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n276\tTony\tPascoe\tPaint Manager\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n143\tFranklin\tBeck - INACTIVE\tSenior Coating Supervisor\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n71\tNathan\tBoxell\tBlast & Paint Supervisor\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n441\tahmad\tRawas\tCOATING  Coordinator\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n308\tAnthony\tRankin\tLeading Hanbd Blast/Paint\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n256\tBen\tStrasdat\tCoating Inspector LH CBH GSSR Project\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n639\tJohn\tChalupa\tPaint & Blast Manager\t\tNULL\t45\ttier2_warm\tblasting_specialist\tunknown\n",
+  "stderr": "",
+  "execution_time_ms": 5159
+}

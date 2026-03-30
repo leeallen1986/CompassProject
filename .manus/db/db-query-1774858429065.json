@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, firstName, lastName, company, reviewedCompanyName, email FROM campaignContacts WHERE campaignId = 1 AND tier = 'tier1_hot' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, firstName, lastName, company, reviewedCompanyName, email FROM campaignContacts WHERE campaignId = 1 AND tier = 'tier1_hot' LIMIT 5;",
+  "rows": [
+    {
+      "id": "71",
+      "firstName": "Nathan",
+      "lastName": "Boxell",
+      "company": "",
+      "reviewedCompanyName": "",
+      "email": "NULL"
+    },
+    {
+      "id": "143",
+      "firstName": "Franklin",
+      "lastName": "Beck - INACTIVE",
+      "company": "",
+      "reviewedCompanyName": "",
+      "email": "NULL"
+    },
+    {
+      "id": "254",
+      "firstName": "Nathaniel",
+      "lastName": "Everist",
+      "company": "",
+      "reviewedCompanyName": "",
+      "email": "NULL"
+    },
+    {
+      "id": "256",
+      "firstName": "Ben",
+      "lastName": "Strasdat",
+      "company": "",
+      "reviewedCompanyName": "",
+      "email": "NULL"
+    },
+    {
+      "id": "276",
+      "firstName": "Tony",
+      "lastName": "Pascoe",
+      "company": "",
+      "reviewedCompanyName": "",
+      "email": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfirstName\tlastName\tcompany\treviewedCompanyName\temail\n71\tNathan\tBoxell\t\t\tNULL\n143\tFranklin\tBeck - INACTIVE\t\t\tNULL\n254\tNathaniel\tEverist\t\t\tNULL\n256\tBen\tStrasdat\t\t\tNULL\n276\tTony\tPascoe\t\t\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1543
+}

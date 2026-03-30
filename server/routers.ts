@@ -120,6 +120,15 @@ import {
   getProjectCollateralSuggestions, getCollateralStats, getMatchedProjectIds,
   APPLICATION_TAGS, SECTOR_TAGS, PRODUCT_LINES,
 } from "./collateralService";
+import {
+  createCampaign, getCampaign, listCampaigns, updateCampaignStatus,
+  getCampaignContacts, getCampaignContact, getCampaignStats,
+  importCampaignContacts, matchContactsToProjects,
+  generateCampaignEmail, approveEmail, updateDraft, sendApprovedEmail,
+  enrichCampaignContacts, updateCampaignStats,
+} from "./campaignService";
+import { parseBlastContactList } from "./campaignImport";
+import { storagePut } from "./storage";
 
 export const appRouter = router({
   system: systemRouter,
@@ -2466,6 +2475,165 @@ export const appRouter = router({
       .input(z.object({ collateralId: z.number() }))
       .query(async ({ input }) => {
         return getMatchedProjectIds(input.collateralId);
+      }),
+  }),
+
+  // ── Campaigns ──
+  campaign: router({
+    /** List all campaigns */
+    list: protectedProcedure.query(async () => {
+      return listCampaigns();
+    }),
+
+    /** Get a single campaign by ID */
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getCampaign(input.id);
+      }),
+
+    /** Get campaign stats (tier breakdown, outreach status, etc.) */
+    stats: protectedProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        return getCampaignStats(input.campaignId);
+      }),
+
+    /** Create a new campaign */
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        collateralId: z.number().optional(),
+        collateralName: z.string().optional(),
+        senderName: z.string().min(1),
+        senderEmail: z.string().email(),
+        senderTitle: z.string().optional(),
+        targetSegment: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return createCampaign({ ...input, createdBy: ctx.user!.id });
+      }),
+
+    /** Update campaign status */
+    updateStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["draft", "active", "paused", "completed"]),
+      }))
+      .mutation(async ({ input }) => {
+        await updateCampaignStatus(input.id, input.status);
+        return { success: true };
+      }),
+
+    /** Import contacts from uploaded spreadsheet */
+    importContacts: protectedProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        fileUrl: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        // Fetch the file from S3
+        const response = await fetch(input.fileUrl);
+        if (!response.ok) throw new Error("Failed to fetch uploaded file");
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const rawContacts = parseBlastContactList(buffer);
+        return importCampaignContacts(input.campaignId, rawContacts);
+      }),
+
+    /** Import contacts directly from server-side file path (for initial setup) */
+    importFromPath: adminProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        filePath: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const fs = await import("fs");
+        const buffer = fs.readFileSync(input.filePath);
+        const rawContacts = parseBlastContactList(buffer);
+        return importCampaignContacts(input.campaignId, rawContacts);
+      }),
+
+    /** Get campaign contacts with filtering and pagination */
+    contacts: protectedProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        tier: z.string().optional(),
+        outreachStatus: z.string().optional(),
+        enrichmentStatus: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().min(1).max(200).optional(),
+        offset: z.number().min(0).optional(),
+        sortBy: z.enum(["score", "company", "tier", "outreachStatus"]).optional(),
+        sortDir: z.enum(["asc", "desc"]).optional(),
+      }))
+      .query(async ({ input }) => {
+        return getCampaignContacts(input.campaignId, input);
+      }),
+
+    /** Get a single campaign contact */
+    getContact: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getCampaignContact(input.id);
+      }),
+
+    /** Match campaign contacts to collateral-matched projects */
+    matchToProjects: protectedProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .mutation(async ({ input }) => {
+        return matchContactsToProjects(input.campaignId);
+      }),
+
+    /** Enrich campaign contacts via Apollo (batch, priority-ordered) */
+    enrichContacts: adminProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        maxContacts: z.number().min(1).max(100).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return enrichCampaignContacts(input.campaignId, {
+          maxContacts: input.maxContacts ?? 50,
+          userId: ctx.user!.id,
+          userName: ctx.user!.name ?? undefined,
+        });
+      }),
+
+    /** Generate a personalised outreach email for a contact */
+    generateEmail: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        tone: z.enum(["first_touch", "professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return generateCampaignEmail(input.contactId, { tone: input.tone });
+      }),
+
+    /** Update email draft (subject and/or body) */
+    updateDraft: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        subject: z.string().optional(),
+        body: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await updateDraft(input.contactId, { subject: input.subject, body: input.body });
+        return { success: true };
+      }),
+
+    /** Approve an email draft for sending */
+    approveEmail: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        await approveEmail(input.contactId, ctx.user!.id);
+        return { success: true };
+      }),
+
+    /** Send an approved email */
+    sendEmail: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input }) => {
+        return sendApprovedEmail(input.contactId);
       }),
   }),
 });
