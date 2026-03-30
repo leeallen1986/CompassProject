@@ -735,3 +735,13 @@
 - [x] Added collateralFilterId query parameter parsing in Home.tsx
 - [x] Added collateral filtering to filteredProjects calculation
 - [x] Badge now clickable and navigates to matched projects
+
+## URGENT: Stop Repeated Digest Emails
+- [x] Checked digestScheduleLog — 2 records both with sentAt = NULL despite status = 'sent'
+- [x] Root cause 1: logDigestAttempt() never set sentAt field — fixed to populate sentAt = now on success
+- [x] Root cause 2: wasDigestSentToday() queried on sentAt (always NULL) — fixed to query on createdAt
+- [x] Root cause 3: getDelayUntilNextRun() didn't target specific weekday — fixed to use getDelayUntilNextWeekday(targetDay)
+- [x] Added double-check guard inside sendMondayDigestSafe/sendThursdayReminderSafe to prevent race conditions
+- [x] Changed error fallback in wasDigestSentToday to return true (assume sent) to prevent duplicates on DB errors
+- [x] Backfilled existing sent records: SET sentAt = createdAt WHERE status = 'sent' AND sentAt IS NULL
+- [x] Scheduler now correctly skips sends when already sent today

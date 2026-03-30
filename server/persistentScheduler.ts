@@ -15,18 +15,10 @@ import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
 import { digestScheduleLog } from "../drizzle/schema";
 import { eq, gte, and } from "drizzle-orm";
 
-interface ScheduleLog {
-  id?: number;
-  digestType: "monday" | "thursday";
-  scheduledFor: Date;
-  sentAt?: Date | null;
-  status: "pending" | "sent" | "failed";
-  error?: string | null;
-  createdAt?: Date;
-}
-
 /**
- * Check if a digest was already sent for a given day
+ * Check if a digest was already sent for a given day.
+ * Queries by createdAt (not sentAt) since sentAt is populated after the fact.
+ * Uses status = 'sent' to confirm it completed successfully.
  */
 async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<boolean> {
   try {
@@ -35,10 +27,8 @@ async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<bo
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Check if there's a successful send for this digest type today
+    // Check if there's a successful send record created today for this digest type
     const result = await db
       .select()
       .from(digestScheduleLog)
@@ -46,7 +36,7 @@ async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<bo
         and(
           eq(digestScheduleLog.digestType, digestType),
           eq(digestScheduleLog.status, "sent"),
-          gte(digestScheduleLog.sentAt, today)
+          gte(digestScheduleLog.createdAt, today)   // use createdAt — sentAt may be null
         )
       )
       .limit(1);
@@ -54,12 +44,13 @@ async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<bo
     return result.length > 0;
   } catch (err) {
     console.error("[PersistentScheduler] Error checking digest status:", err);
-    return false;
+    // On error, assume it was sent to avoid duplicate sends
+    return true;
   }
 }
 
 /**
- * Log a digest send attempt
+ * Log a digest send attempt with sentAt populated on success
  */
 async function logDigestAttempt(
   digestType: "monday" | "thursday",
@@ -70,9 +61,11 @@ async function logDigestAttempt(
     const db = await getDb();
     if (!db) return;
 
+    const now = new Date();
     await db.insert(digestScheduleLog).values({
       digestType,
-      scheduledFor: new Date(),
+      scheduledFor: now,
+      sentAt: status === "sent" ? now : null,   // populate sentAt on success
       status,
       error: error || null,
     });
@@ -85,6 +78,12 @@ async function logDigestAttempt(
  * Send Monday digest and log the result
  */
 async function sendMondayDigestSafe(): Promise<void> {
+  // Double-check guard: re-verify not already sent before sending
+  const alreadySent = await wasDigestSentToday("monday");
+  if (alreadySent) {
+    console.log("[PersistentScheduler] ✓ Monday digest already sent today — skipping");
+    return;
+  }
   try {
     console.log("[PersistentScheduler] 📧 Sending Monday digest...");
     const result = await sendWeeklyDigests();
@@ -103,6 +102,12 @@ async function sendMondayDigestSafe(): Promise<void> {
  * Send Thursday reminder and log the result
  */
 async function sendThursdayReminderSafe(): Promise<void> {
+  // Double-check guard: re-verify not already sent before sending
+  const alreadySent = await wasDigestSentToday("thursday");
+  if (alreadySent) {
+    console.log("[PersistentScheduler] ✓ Thursday reminder already sent today — skipping");
+    return;
+  }
   try {
     console.log("[PersistentScheduler] 📧 Sending Thursday reminder...");
     const result = await sendThursdayReminders();
@@ -133,18 +138,26 @@ function getCurrentUTCTime(): string {
 }
 
 /**
- * Calculate milliseconds until next target time (23:00 UTC)
+ * Calculate milliseconds until next target weekday at target hour (UTC).
+ * targetDay: 1 = Monday, 4 = Thursday
+ * targetHour: UTC hour to send (default 23)
  */
-function getDelayUntilNextRun(targetHour: number = 23): number {
+function getDelayUntilNextWeekday(targetDay: number, targetHour: number = 23): number {
   const now = new Date();
   const next = new Date(now);
   next.setUTCHours(targetHour, 0, 0, 0);
 
-  if (next <= now) {
-    // Already past target time today, schedule for tomorrow
-    next.setDate(next.getDate() + 1);
+  // Advance to the next occurrence of targetDay
+  const currentDay = now.getUTCDay();
+  let daysUntil = (targetDay - currentDay + 7) % 7;
+
+  // If today is the target day but we haven't reached the target hour yet,
+  // send today. Otherwise, advance to next week.
+  if (daysUntil === 0 && next <= now) {
+    daysUntil = 7; // Already past today's send time, wait until next week
   }
 
+  next.setDate(next.getDate() + daysUntil);
   return next.getTime() - now.getTime();
 }
 
@@ -184,32 +197,24 @@ export async function startPersistentScheduler(): Promise<void> {
 
   // ── Recurring: Schedule next Monday digest ──
   function scheduleNextMonday(): void {
-    const delay = getDelayUntilNextRun(23);
+    const delay = getDelayUntilNextWeekday(1, 23);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
     console.log(`[PersistentScheduler] Next Monday digest scheduled in ${hoursUntil}h`);
 
     setTimeout(async () => {
-      const nextDay = getTodayDayOfWeek();
-      if (nextDay === 1) {
-        // Only send if we're actually on Monday
-        await sendMondayDigestSafe();
-      }
+      await sendMondayDigestSafe(); // guard inside will prevent duplicates
       scheduleNextMonday();
     }, delay);
   }
 
   // ── Recurring: Schedule next Thursday reminder ──
   function scheduleNextThursday(): void {
-    const delay = getDelayUntilNextRun(23);
+    const delay = getDelayUntilNextWeekday(4, 23);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
     console.log(`[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h`);
 
     setTimeout(async () => {
-      const nextDay = getTodayDayOfWeek();
-      if (nextDay === 4) {
-        // Only send if we're actually on Thursday
-        await sendThursdayReminderSafe();
-      }
+      await sendThursdayReminderSafe(); // guard inside will prevent duplicates
       scheduleNextThursday();
     }, delay);
   }
