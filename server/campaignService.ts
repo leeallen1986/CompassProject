@@ -583,11 +583,43 @@ export async function sendApprovedEmail(contactId: number): Promise<{ success: b
   const subject = contact.draftSubject || "Atlas Copco — High-Volume Air Solutions";
   const body = contact.draftBody || "";
 
+  // Default-attach the XAVS1800 PDF collateral if the campaign has a linked collateral
+  const attachments: { path: string; filename: string; contentType?: string }[] = [];
+  try {
+    if (campaign.collateralId) {
+      const [collateral] = await db.select().from(collateralItems)
+        .where(eq(collateralItems.id, campaign.collateralId));
+      if (collateral && collateral.fileUrl) {
+        attachments.push({
+          path: collateral.fileUrl,
+          filename: collateral.fileName || "atlas_copco_xavs1800_flyer.pdf",
+          contentType: collateral.fileMimeType || "application/pdf",
+        });
+        console.log(`[Campaign] Attaching collateral: ${collateral.fileName} to email for ${recipientEmail}`);
+      }
+    } else {
+      // Fallback: always attach the XAVS1800 flyer even if no collateral is linked
+      const [xavs] = await db.select().from(collateralItems)
+        .where(like(collateralItems.name, "%XAVS1800%"));
+      if (xavs && xavs.fileUrl) {
+        attachments.push({
+          path: xavs.fileUrl,
+          filename: xavs.fileName || "atlas_copco_xavs1800_flyer.pdf",
+          contentType: xavs.fileMimeType || "application/pdf",
+        });
+        console.log(`[Campaign] Attaching XAVS1800 fallback collateral to email for ${recipientEmail}`);
+      }
+    }
+  } catch (err) {
+    console.warn("[Campaign] Failed to fetch collateral for attachment, sending without:", err);
+  }
+
   const success = await sendEmail({
     to: recipientEmail,
     subject,
     markdownContent: body,
     textContent: body,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 
   if (success) {

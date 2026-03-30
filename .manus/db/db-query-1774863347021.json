@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, name, fileUrl, fileName, productLine FROM collateralItems WHERE name LIKE '%XAVS%' OR name LIKE '%1800%' OR fileName LIKE '%XAVS%' OR fileName LIKE '%1800%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, fileUrl, fileName, productLine FROM collateralItems WHERE name LIKE '%XAVS%' OR name LIKE '%1800%' OR fileName LIKE '%XAVS%' OR fileName LIKE '%1800%';",
+  "rows": [
+    {
+      "id": "2",
+      "name": "XAVS1800 — High-Volume Air for Demanding Abrasive Blasting",
+      "fileUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/collateral/1/wo2srzvr-atlas_copco_xavs1800_flyer.pdf",
+      "fileName": "atlas_copco_xavs1800_flyer.pdf",
+      "productLine": "portable_air"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfileUrl\tfileName\tproductLine\n2\tXAVS1800 — High-Volume Air for Demanding Abrasive Blasting\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/collateral/1/wo2srzvr-atlas_copco_xavs1800_flyer.pdf\tatlas_copco_xavs1800_flyer.pdf\tportable_air\n",
+  "stderr": "",
+  "execution_time_ms": 1597
+}

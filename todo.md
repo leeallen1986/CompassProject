@@ -777,3 +777,5 @@
 - [x] Restrict campaigns page to Ryan + Admin role only (other team members cannot see or access)
 - [x] Add reject/disapprove button to approval queue alongside Approve
 - [x] Rejected contacts move back to contacts list with status reset for re-generation or removal
+- [x] Default-attach XAVS1800 PDF collateral document to all campaign outreach emails
+- [x] URGENT: Disable email digest notifications — duplicates still firing, blowing Resend quota

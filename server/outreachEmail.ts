@@ -238,6 +238,7 @@ RULES:
 8. Sign off with the sender's full name, title, and company on separate lines. Use the SENDER information above for the signature. The signature MUST include: sender name, sender title, company name, and sender email address on separate lines.
 9. The subject line should reference the project name and be compelling
 10. The opening line should hook them by referencing something specific about their project or role — NOT a self-introduction
+11. If the email is about portable air / blasting / high-volume compressors, naturally mention that you have attached the XAVS1800 product flyer for their reference (e.g., "I've attached our XAVS1800 flyer which covers the specs and dual-pressure capability"). Keep the mention brief and natural — do NOT make the attachment the focus of the email.
 
 Return your response as JSON with this exact structure:
 {

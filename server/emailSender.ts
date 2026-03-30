@@ -27,6 +27,17 @@ function getResendClient(): Resend | null {
  */
 const FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS ?? "Atlas Copco PT Intelligence <digest@ptatlascopcointel.com>";
 
+export interface EmailAttachment {
+  /** Remote URL where the file is hosted */
+  path?: string;
+  /** File content as Buffer or Base64 string (alternative to path) */
+  content?: Buffer | string;
+  /** Display filename */
+  filename: string;
+  /** MIME content type (optional, derived from filename if omitted) */
+  contentType?: string;
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -34,6 +45,8 @@ export interface SendEmailOptions {
   markdownContent: string;
   /** Plain text fallback */
   textContent?: string;
+  /** File attachments */
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -121,6 +134,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
       subject: options.subject,
       html: htmlContent,
       text: options.textContent || options.markdownContent,
+      ...(options.attachments && options.attachments.length > 0 ? { attachments: options.attachments } : {}),
     });
 
     if (error) {
