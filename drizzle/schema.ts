@@ -323,6 +323,23 @@ export type EmailDigestPref = typeof emailDigestPrefs.$inferSelect;
 export type InsertEmailDigestPref = typeof emailDigestPrefs.$inferInsert;
 
 /**
+ * Digest schedule log — tracks when Monday/Thursday digests are sent for recovery from restarts.
+ * Used by persistent scheduler to detect missed sends and recover gracefully.
+ */
+export const digestScheduleLog = mysqlTable("digestScheduleLog", {
+  id: int("id").autoincrement().primaryKey(),
+  digestType: mysqlEnum("digestType", ["monday", "thursday"]).notNull(),
+  scheduledFor: timestamp("scheduledFor").notNull(),
+  sentAt: timestamp("sentAt"),
+  status: mysqlEnum("status", ["pending", "sent", "failed"]).notNull().default("pending"),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DigestScheduleLog = typeof digestScheduleLog.$inferSelect;
+export type InsertDigestScheduleLog = typeof digestScheduleLog.$inferInsert;
+
+/**
  * Business lines — each Atlas Copco division with its own keyword dictionary.
  */
 export const businessLines = mysqlTable("businessLines", {
