@@ -748,6 +748,12 @@ export default function Home() {
     if (collateralFilterId && !tab) setActiveTab("projects");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch matched project IDs when filtering by collateral
+  const { data: collateralProjectIds } = trpc.collateral.matchedProjectIds.useQuery(
+    { collateralId: collateralFilterId! },
+    { enabled: !!collateralFilterId }
+  );
+
   // Deep-link scroll effect is placed after fullReport query below
 
   // Fetch user profile to check onboarding status
@@ -946,10 +952,9 @@ export default function Home() {
       if (tierFilter === "unclassified" && tier !== "unclassified" && tier !== null) return false;
       if (tierFilter !== "unclassified" && tier !== tierFilter) return false;
     }
-    // Filter by collateral if collateralId is set
-    if (collateralFilterId && (p as any).collateralMatches) {
-      const matches = (p as any).collateralMatches as number[];
-      if (!matches.includes(collateralFilterId)) return false;
+    // Filter by collateral if collateralId is set and project IDs are loaded
+    if (collateralFilterId && collateralProjectIds) {
+      if (!collateralProjectIds.includes((p as any).id)) return false;
     }
     return true;
   });
@@ -1288,6 +1293,23 @@ export default function Home() {
 
           {/* ===== ALL PROJECTS TAB ===== */}
           <TabsContent value="projects" className="space-y-5">
+            {/* Collateral filter banner */}
+            {collateralFilterId && (
+              <div className="flex items-center gap-3 bg-teal/10 border border-teal/30 rounded-lg px-4 py-3">
+                <span className="text-sm font-medium text-teal">
+                  Showing {collateralProjectIds ? filteredProjects.length : '...'} projects matched to collateral
+                </span>
+                <button
+                  onClick={() => {
+                    setCollateralFilterId(null);
+                    window.history.replaceState({}, "", window.location.pathname);
+                  }}
+                  className="ml-auto px-3 py-1 rounded-md text-xs font-semibold bg-teal/20 text-teal hover:bg-teal/30 transition-colors"
+                >
+                  Clear filter
+                </button>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: businessLineFiltered.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
               <SectorFilter active={sectorFilter} onChange={setSectorFilter} />

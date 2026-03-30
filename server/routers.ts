@@ -117,7 +117,7 @@ import {
 import {
   createCollateralItem, listCollateralItems, getCollateralItemById,
   updateCollateralItem, deleteCollateralItem, matchCollateralToProject,
-  getProjectCollateralSuggestions, getCollateralStats,
+  getProjectCollateralSuggestions, getCollateralStats, getMatchedProjectIds,
   APPLICATION_TAGS, SECTOR_TAGS, PRODUCT_LINES,
 } from "./collateralService";
 
@@ -2460,6 +2460,13 @@ export const appRouter = router({
         productLines: PRODUCT_LINES,
       };
     }),
+
+    /** Get matched project IDs for a collateral item (used by dashboard filter) */
+    matchedProjectIds: protectedProcedure
+      .input(z.object({ collateralId: z.number() }))
+      .query(async ({ input }) => {
+        return getMatchedProjectIds(input.collateralId);
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

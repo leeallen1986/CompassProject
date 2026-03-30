@@ -548,3 +548,20 @@ export async function getCollateralStats(): Promise<{
     byProductLine,
   };
 }
+
+/**
+ * Get all project IDs matched to a specific collateral item.
+ * Used by the dashboard to filter projects when navigating from collateral library.
+ */
+export async function getMatchedProjectIds(collateralId: number): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const matches = await db
+    .select({ projectId: collateralProjectMatches.projectId })
+    .from(collateralProjectMatches)
+    .where(eq(collateralProjectMatches.collateralId, collateralId))
+    .orderBy(desc(collateralProjectMatches.matchScore));
+
+  return matches.map(m => m.projectId);
+}

@@ -745,3 +745,12 @@
 - [x] Changed error fallback in wasDigestSentToday to return true (assume sent) to prevent duplicates on DB errors
 - [x] Backfilled existing sent records: SET sentAt = createdAt WHERE status = 'sent' AND sentAt IS NULL
 - [x] Scheduler now correctly skips sends when already sent today
+
+## Fix Collateral Project Matches Not Showing on Dashboard
+- [x] Investigated — collateralMatches field NOT returned from backend; project data has no collateral info
+- [x] Added getMatchedProjectIds() to collateralService.ts — queries collateralProjectMatches table
+- [x] Added collateral.matchedProjectIds tRPC endpoint in routers.ts
+- [x] Updated Home.tsx to fetch matched project IDs via tRPC when collateralId param is present
+- [x] Fixed filter logic to use collateralProjectIds.includes(p.id) instead of non-existent collateralMatches
+- [x] Added collateral filter banner with "Clear filter" button on All Projects tab
+- [x] No TypeScript errors, dev server running
