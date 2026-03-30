@@ -731,7 +731,7 @@
 ## Fix Collateral Project Matches Not Clickable
 - [x] Investigated where collateral materials are displayed (CollateralLibrary.tsx)
 - [x] Found the "30 project matches" badge component in CollateralCard
-- [x] Implemented click handler to navigate to /full-dashboard?collateralId={id}
+- [x] Implemented click handler to navigate to /dashboard?collateralId={id} (fixed 404 - route is /dashboard not /full-dashboard)
 - [x] Added collateralFilterId query parameter parsing in Home.tsx
 - [x] Added collateral filtering to filteredProjects calculation
 - [x] Badge now clickable and navigates to matched projects

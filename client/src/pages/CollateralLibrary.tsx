@@ -534,7 +534,7 @@ function CollateralCard({ item, onEdit, onDelete }: { item: any; onEdit: () => v
               <span>{new Date(item.createdAt).toLocaleDateString()}</span>
               {item.matchCount > 0 && (
                 <button
-                  onClick={() => navigate(`/full-dashboard?collateralId=${item.id}`)}
+                  onClick={() => navigate(`/dashboard?collateralId=${item.id}`)}
                   className="text-teal font-medium hover:text-teal/80 hover:underline cursor-pointer transition-colors"
                   title="View matched projects"
                 >
