@@ -727,3 +727,11 @@
 - [x] Persistent scheduler logs all send attempts to database for audit trail
 - [x] Scheduler recovers from server restarts by checking if today's digest was sent
 - [x] All 1,448 tests passing (removed flaky timer-based tests, kept core functionality tests)
+
+## Fix Collateral Project Matches Not Clickable
+- [x] Investigated where collateral materials are displayed (CollateralLibrary.tsx)
+- [x] Found the "30 project matches" badge component in CollateralCard
+- [x] Implemented click handler to navigate to /full-dashboard?collateralId={id}
+- [x] Added collateralFilterId query parameter parsing in Home.tsx
+- [x] Added collateral filtering to filteredProjects calculation
+- [x] Badge now clickable and navigates to matched projects

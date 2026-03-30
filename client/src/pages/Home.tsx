@@ -721,7 +721,7 @@ export default function Home() {
 
   const [, navigate] = useLocation();
 
-  // ── Read ?project= and ?tab= from URL to deep-link into specific project ──
+  // ── Read ?project=, ?tab=, and ?collateralId= from URL ──
   const [pendingProjectId, setPendingProjectId] = useState<number | null>(() => {
     const params = new URLSearchParams(window.location.search);
     const pid = params.get("project");
@@ -732,13 +732,20 @@ export default function Home() {
     }
     return pid ? Number(pid) : null;
   });
+  
+  const [collateralFilterId, setCollateralFilterId] = useState<number | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cid = params.get("collateralId");
+    return cid ? Number(cid) : null;
+  });
 
-  // On mount: read tab param
+  // On mount: read tab param and set to projects tab if collateral filter is active
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
     if (tab) setActiveTab(tab);
     if (pendingProjectId && !tab) setActiveTab("projects");
+    if (collateralFilterId && !tab) setActiveTab("projects");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep-link scroll effect is placed after fullReport query below
@@ -938,6 +945,11 @@ export default function Home() {
       const tier = (p as any).actionTier ?? "unclassified";
       if (tierFilter === "unclassified" && tier !== "unclassified" && tier !== null) return false;
       if (tierFilter !== "unclassified" && tier !== tierFilter) return false;
+    }
+    // Filter by collateral if collateralId is set
+    if (collateralFilterId && (p as any).collateralMatches) {
+      const matches = (p as any).collateralMatches as number[];
+      if (!matches.includes(collateralFilterId)) return false;
     }
     return true;
   });

@@ -448,6 +448,7 @@ function EditModal({ item, onClose, onSuccess }: { item: any; onClose: () => voi
 
 // ── Collateral Card ──
 function CollateralCard({ item, onEdit, onDelete }: { item: any; onEdit: () => void; onDelete: () => void }) {
+  const [, navigate] = useLocation();
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -532,7 +533,13 @@ function CollateralCard({ item, onEdit, onDelete }: { item: any; onEdit: () => v
               <span>Uploaded by {item.uploadedByName || "Unknown"}</span>
               <span>{new Date(item.createdAt).toLocaleDateString()}</span>
               {item.matchCount > 0 && (
-                <span className="text-teal font-medium">{item.matchCount} project matches</span>
+                <button
+                  onClick={() => navigate(`/full-dashboard?collateralId=${item.id}`)}
+                  className="text-teal font-medium hover:text-teal/80 hover:underline cursor-pointer transition-colors"
+                  title="View matched projects"
+                >
+                  {item.matchCount} project matches
+                </button>
               )}
             </div>
           </div>
