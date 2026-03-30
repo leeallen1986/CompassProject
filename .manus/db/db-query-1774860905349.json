@@ -1,0 +1,298 @@
+{
+  "query": "SHOW COLUMNS FROM campaignContacts;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW COLUMNS FROM campaignContacts;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "campaignId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "firstName",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lastName",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "title",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "company",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reviewedCompanyName",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "email",
+      "Type": "varchar(320)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "phone",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "mobile",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "score",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "tier",
+      "Type": "enum('tier1_hot','tier2_warm','tier3_enrich','tier4_low','excluded')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "tier3_enrich",
+      "Extra": ""
+    },
+    {
+      "Field": "titleRelevance",
+      "Type": "enum('blasting_specialist','decision_maker','operations','other','unknown')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "unknown",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichmentStatus",
+      "Type": "enum('not_needed','pending','enriched','not_found','failed')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "pending",
+      "Extra": ""
+    },
+    {
+      "Field": "apolloPersonId",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichedEmail",
+      "Type": "varchar(320)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichedTitle",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichedLinkedin",
+      "Type": "varchar(512)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "matchedProjectIds",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "matchedProjectCount",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "outreachStatus",
+      "Type": "enum('not_started','email_drafted','pending_approval','approved','sent','replied','bounced','opted_out')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "not_started",
+      "Extra": ""
+    },
+    {
+      "Field": "draftSubject",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "draftBody",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "draftKeyPoints",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "draftTone",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "draftGeneratedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "approvedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "approvedBy",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sentAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sentEmailId",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sourceRow",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "nameCheckStatus",
+      "Type": "varchar(128)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "reviewNotes",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\ncampaignId\tint\tNO\t\tNULL\t\nfirstName\tvarchar(128)\tYES\t\tNULL\t\nlastName\tvarchar(128)\tYES\t\tNULL\t\ntitle\tvarchar(256)\tYES\t\tNULL\t\ncompany\tvarchar(256)\tNO\t\tNULL\t\nreviewedCompanyName\tvarchar(256)\tYES\t\tNULL\t\nemail\tvarchar(320)\tYES\t\tNULL\t\nphone\tvarchar(64)\tYES\t\tNULL\t\nmobile\tvarchar(64)\tYES\t\tNULL\t\nscore\tint\tNO\t\t0\t\ntier\tenum('tier1_hot','tier2_warm','tier3_enrich','tier4_low','excluded')\tNO\t\ttier3_enrich\t\ntitleRelevance\tenum('blasting_specialist','decision_maker','operations','other','unknown')\tNO\t\tunknown\t\nenrichmentStatus\tenum('not_needed','pending','enriched','not_found','failed')\tNO\t\tpending\t\napolloPersonId\tvarchar(128)\tYES\t\tNULL\t\nenrichedEmail\tvarchar(320)\tYES\t\tNULL\t\nenrichedTitle\tvarchar(256)\tYES\t\tNULL\t\nenrichedLinkedin\tvarchar(512)\tYES\t\tNULL\t\nenrichedAt\ttimestamp\tYES\t\tNULL\t\nmatchedProjectIds\tjson\tYES\t\tNULL\t\nmatchedProjectCount\tint\tNO\t\t0\t\noutreachStatus\tenum('not_started','email_drafted','pending_approval','approved','sent','replied','bounced','opted_out')\tNO\t\tnot_started\t\ndraftSubject\ttext\tYES\t\tNULL\t\ndraftBody\ttext\tYES\t\tNULL\t\ndraftKeyPoints\tjson\tYES\t\tNULL\t\ndraftTone\tvarchar(64)\tYES\t\tNULL\t\ndraftGeneratedAt\ttimestamp\tYES\t\tNULL\t\napprovedAt\ttimestamp\tYES\t\tNULL\t\napprovedBy\tint\tYES\t\tNULL\t\nsentAt\ttimestamp\tYES\t\tNULL\t\nsentEmailId\tvarchar(128)\tYES\t\tNULL\t\nsourceRow\tint\tYES\t\tNULL\t\nnameCheckStatus\tvarchar(128)\tYES\t\tNULL\t\nreviewNotes\ttext\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\n",
+  "stderr": "",
+  "execution_time_ms": 1559
+}

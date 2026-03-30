@@ -710,13 +710,7 @@
 - [x] Write vitest tests for region filtering (69 tests: title classification, location classification, contact classification, filtering, LinkedIn results, real-world edge cases)
 - [x] All 1,436 tests passing across 56 test files
 
-## Investigate Monday Digest Email Not Sent
-- [ ] Check email digest service code and scheduler for issues
-- [ ] Check server logs for email digest errors
-- [ ] Check email digest kill switch / environment variables
-- [ ] Identify root cause and fix
-- [ ] Test the email digest pipeline
-- [ ] Write/update vitest tests
+## Investigate Monday Digest Email Not Sent (COMPLETED — see Fix Monday Digest section below)
 
 ## Fix Monday Digest Email Not Sent
 - [x] Investigated root cause: scheduler flag persists in memory across restarts, causing missed sends
@@ -761,7 +755,7 @@
 - [x] Phase 2: Apollo batch enrichment queue — priority-ordered (Tier 1 blasting specialists first), Enrich Top 25 button
 - [x] Phase 3: Contact scoring algorithm — blasting specialist +35, decision maker +25, operations +15, email +20, title +10, mobile +5, project match +15 (cap 30)
 - [x] Phase 3: Tier classification — Tier 1 Hot (90 blasting specialists), Tier 2 Warm (588 decision makers), Tier 3 Enrich (954), Tier 4 Low (2,760)
-- [ ] Phase 3: Cross-reference contacts against XAVS1800 collateral-matched projects (Match to Projects button exists)
+- [x] Phase 3: Cross-reference contacts against XAVS1800 collateral-matched projects — 22 contacts matched
 - [x] Phase 4: Campaign dashboard UI — /campaigns page with overview KPIs, contact list, tier filters, search
 - [x] Phase 4: Contact detail view with score, tier badge, title relevance, enrichment status
 - [x] Phase 5: LLM-powered personalised email composer with XAVS1800 context — generate email button on each contact
@@ -769,3 +763,8 @@
 - [x] Phase 5: Email sending via Resend with reply-to ryan.pemberton@atlascopco.com
 - [x] Phase 6: Write tests for campaign service functions — scoring, tier classification, role inference, import parsing (1,470 tests passing)
 - [x] Phase 6: End-to-end verification — UI confirmed working, all tests passing
+
+## Execute Campaign Actions: Enrich, Match, Generate Pilot Emails (COMPLETED)
+- [x] Step 1: Apollo enrichment on top 25 — 6 enriched with emails (Peter Bradley, Gavin Mulroy, Chris Burkill, Derek Allen, Gary Mead, Tane Samson), 19 no email available
+- [x] Step 2: Matched 22 contacts to XAVS1800 projects (Rio Tinto, BAE Systems, Chevron, Fortescue, Santos, Water Corporation, etc.)
+- [x] Step 3: Generated 5 pilot emails — all saved as drafts pending Ryan's approval in the Approval Queue

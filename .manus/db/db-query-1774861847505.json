@@ -1,0 +1,46 @@
+{
+  "query": "SELECT id, firstName, lastName, company, draftSubject, outreachStatus, draftGeneratedAt \nFROM campaignContacts \nWHERE outreachStatus = 'pending_approval' AND campaignId = 2\nORDER BY score DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, firstName, lastName, company, draftSubject, outreachStatus, draftGeneratedAt \nFROM campaignContacts \nWHERE outreachStatus = 'pending_approval' AND campaignId = 2\nORDER BY score DESC",
+  "rows": [
+    {
+      "id": "4646",
+      "firstName": "Nathaniel",
+      "lastName": "Everist",
+      "company": "ALTRAD SERVICES PTY LTD",
+      "draftSubject": "Optimising Abrasive Blasting with High-Volume Air – Atlas Copco XAVS1800",
+      "outreachStatus": "pending_approval",
+      "draftGeneratedAt": "2026-03-30 09:09:50"
+    },
+    {
+      "id": "4648",
+      "firstName": "Ben",
+      "lastName": "Strasdat",
+      "company": "ALTRAD SERVICES PTY LTD",
+      "draftSubject": "Optimising Abrasive Blasting on the LH CBH GSSR Project",
+      "outreachStatus": "pending_approval",
+      "draftGeneratedAt": "2026-03-30 09:09:41"
+    },
+    {
+      "id": "4700",
+      "firstName": "Anthony",
+      "lastName": "Rankin",
+      "company": "AngloGold Ashanti",
+      "draftSubject": "Optimising Abrasive Blasting with High-Volume Air – Atlas Copco XAVS1800",
+      "outreachStatus": "pending_approval",
+      "draftGeneratedAt": "2026-03-30 09:09:46"
+    },
+    {
+      "id": "4833",
+      "firstName": "ahmad",
+      "lastName": "Rawas",
+      "company": "AUSTAL SHIPS PTY LTD",
+      "draftSubject": "Optimising Abrasive Blasting at Austal Ships with High-Volume Air",
+      "outreachStatus": "pending_approval",
+      "draftGeneratedAt": "2026-03-30 09:09:37"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfirstName\tlastName\tcompany\tdraftSubject\toutreachStatus\tdraftGeneratedAt\n4646\tNathaniel\tEverist\tALTRAD SERVICES PTY LTD\tOptimising Abrasive Blasting with High-Volume Air – Atlas Copco XAVS1800\tpending_approval\t2026-03-30 09:09:50\n4648\tBen\tStrasdat\tALTRAD SERVICES PTY LTD\tOptimising Abrasive Blasting on the LH CBH GSSR Project\tpending_approval\t2026-03-30 09:09:41\n4700\tAnthony\tRankin\tAngloGold Ashanti\tOptimising Abrasive Blasting with High-Volume Air – Atlas Copco XAVS1800\tpending_approval\t2026-03-30 09:09:46\n4833\tahmad\tRawas\tAUSTAL SHIPS PTY LTD\tOptimising Abrasive Blasting at Austal Ships with High-Volume Air\tpending_approval\t2026-03-30 09:09:37\n",
+  "stderr": "",
+  "execution_time_ms": 1620
+}

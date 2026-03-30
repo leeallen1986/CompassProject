@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, firstName, lastName, draftSubject, outreachStatus, draftGeneratedAt FROM campaignContacts WHERE id = 7943",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, firstName, lastName, draftSubject, outreachStatus, draftGeneratedAt FROM campaignContacts WHERE id = 7943",
+  "rows": [
+    {
+      "id": "7943",
+      "firstName": "Corey",
+      "lastName": "Ward",
+      "draftSubject": "Optimising Abrasive Blasting Operations at Rio Tinto WA",
+      "outreachStatus": "approved",
+      "draftGeneratedAt": "2026-03-30 09:09:32"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tfirstName\tlastName\tdraftSubject\toutreachStatus\tdraftGeneratedAt\n7943\tCorey\tWard\tOptimising Abrasive Blasting Operations at Rio Tinto WA\tapproved\t2026-03-30 09:09:32\n",
+  "stderr": "",
+  "execution_time_ms": 1606
+}
