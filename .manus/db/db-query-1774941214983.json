@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE campaignContacts SET outreachStatus = 'not_started', draftSubject = NULL, draftBody = NULL, draftTone = NULL, draftKeyPoints = NULL, approvedAt = NULL, sentAt = NULL WHERE outreachStatus != 'not_started';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE campaignContacts SET outreachStatus = 'not_started', draftSubject = NULL, draftBody = NULL, draftTone = NULL, draftKeyPoints = NULL, approvedAt = NULL, sentAt = NULL WHERE outreachStatus != 'not_started';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 449
+}

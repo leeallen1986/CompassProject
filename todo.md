@@ -788,3 +788,4 @@
 - [x] Add role-based pain point targeting using contact title/role bucket (procurement=TCO, ops=uptime, engineering=specs, construction=mobility)
 - [x] Include ICP context in the prompt so LLM understands Atlas Copco's positioning
 - [ ] Regenerate pilot emails with the improved prompt (pending — user can trigger via Re-generate buttons)
+- [x] Clear all existing outreach emails and reset campaign contacts to fresh status for Ryan

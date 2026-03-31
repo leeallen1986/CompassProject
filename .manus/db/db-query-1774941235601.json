@@ -1,0 +1,17 @@
+{
+  "query": "SELECT COUNT(*) as total, outreachStatus FROM campaignContacts GROUP BY outreachStatus; SELECT COUNT(*) as total FROM outreachEmails;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total, outreachStatus FROM campaignContacts GROUP BY outreachStatus; SELECT COUNT(*) as total FROM outreachEmails;",
+  "rows": [
+    {
+      "total": "4392",
+      "outreachStatus": "not_started"
+    }
+  ],
+  "messages": [
+    "total",
+    "0"
+  ],
+  "stdout": "total\toutreachStatus\n4392\tnot_started\ntotal\n0\n",
+  "stderr": "",
+  "execution_time_ms": 410
+}

@@ -1,0 +1,28 @@
+{
+  "query": "SHOW TABLES LIKE '%outreach%'; SHOW TABLES LIKE '%campaign%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW TABLES LIKE '%outreach%'; SHOW TABLES LIKE '%campaign%';",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)": "outreachEmails"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)": "outreachTemplates"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%campaign%)"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)": "campaignContacts"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)": "campaigns"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)": "drillingCampaigns"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%outreach%)\noutreachEmails\noutreachTemplates\nTables_in_3SMu786VMCWdCnmNSx6pxw (%campaign%)\ncampaignContacts\ncampaigns\ndrillingCampaigns\n",
+  "stderr": "",
+  "execution_time_ms": 398
+}
