@@ -124,7 +124,7 @@ import {
   createCampaign, getCampaign, listCampaigns, updateCampaignStatus,
   getCampaignContacts, getCampaignContact, getCampaignStats,
   importCampaignContacts, matchContactsToProjects,
-  generateCampaignEmail, approveEmail, rejectEmail, updateDraft, sendApprovedEmail,
+  generateCampaignEmail, approveEmail, rejectEmail, updateDraft, sendApprovedEmail, markEmailAsSent,
   enrichCampaignContacts, updateCampaignStats,
 } from "./campaignService";
 import { parseBlastContactList } from "./campaignImport";
@@ -2640,11 +2640,18 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Send an approved email */
+    /** Send an approved email via Resend (legacy) */
     sendEmail: campaignProcedure
       .input(z.object({ contactId: z.number() }))
       .mutation(async ({ input }) => {
         return sendApprovedEmail(input.contactId);
+      }),
+
+    /** Mark an approved email as sent (for Outlook/external mail client flow) */
+    markAsSent: campaignProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input }) => {
+        return markEmailAsSent(input.contactId);
       }),
   }),
 });

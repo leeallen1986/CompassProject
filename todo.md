@@ -779,3 +779,6 @@
 - [x] Rejected contacts move back to contacts list with status reset for re-generation or removal
 - [x] Default-attach XAVS1800 PDF collateral document to all campaign outreach emails
 - [x] URGENT: Disable email digest notifications — duplicates still firing, blowing Resend quota
+- [x] Replace Resend Send button with Open in Outlook (mailto:) + Mark as Sent workflow
+- [x] Add markEmailAsSent backend endpoint (status update only, no Resend send)
+- [x] Add kill switch to PersistentScheduler so it does not schedule when EMAIL_DIGESTS_ENABLED != true

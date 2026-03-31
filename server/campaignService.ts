@@ -635,6 +635,27 @@ export async function sendApprovedEmail(contactId: number): Promise<{ success: b
   return { success, error: success ? undefined : "Failed to send email" };
 }
 
+/**
+ * Mark an approved email as sent (for Outlook/external mail client flow).
+ * Does NOT send via Resend — just updates the status to 'sent'.
+ */
+export async function markEmailAsSent(contactId: number): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Database not available" };
+
+  const [contact] = await db.select().from(campaignContacts).where(eq(campaignContacts.id, contactId));
+  if (!contact) return { success: false, error: "Contact not found" };
+  if (contact.outreachStatus !== "approved") return { success: false, error: "Email not approved yet" };
+
+  await db.update(campaignContacts).set({
+    outreachStatus: "sent",
+    sentAt: new Date(),
+  }).where(eq(campaignContacts.id, contactId));
+
+  await updateCampaignStats(contact.campaignId);
+  return { success: true };
+}
+
 // ── Project Matching ──
 
 /**

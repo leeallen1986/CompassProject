@@ -165,6 +165,12 @@ function getDelayUntilNextWeekday(targetDay: number, targetHour: number = 23): n
  * Main scheduler that runs on startup and periodically checks for missed digests
  */
 export async function startPersistentScheduler(): Promise<void> {
+  // Kill switch: if EMAIL_DIGESTS_ENABLED is not "true", do not schedule or send anything
+  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+    console.log("[PersistentScheduler] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Scheduler will not run.");
+    return;
+  }
+
   console.log("[PersistentScheduler] Starting persistent email digest scheduler...");
 
   // ── Startup: Check for missed digests ──

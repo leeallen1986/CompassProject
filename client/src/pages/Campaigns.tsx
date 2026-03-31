@@ -293,17 +293,28 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     onError: (err) => toast.error(`Failed to reject: ${err.message}`),
   });
 
-  const sendEmailMut = trpc.campaign.sendEmail.useMutation({
+  const markAsSentMut = trpc.campaign.markAsSent.useMutation({
     onSuccess: (result) => {
       contactsQuery.refetch();
       if (result.success) {
-        toast.success("Email sent successfully");
+        toast.success("Email marked as sent");
       } else {
-        toast.error(result.error || "Failed to send");
+        toast.error(result.error || "Failed to mark as sent");
       }
     },
-    onError: (err) => toast.error(`Failed to send: ${err.message}`),
+    onError: (err: { message: string }) => toast.error(`Failed to mark as sent: ${err.message}`),
   });
+
+  /** Open the approved email in the user's default mail client (Outlook) */
+  const openInOutlook = (c: CampaignContact) => {
+    const to = c.enrichedEmail || c.email || "";
+    const subject = encodeURIComponent(c.draftSubject || "Atlas Copco \u2014 High-Volume Air Solutions");
+    const body = encodeURIComponent(
+      (c.draftBody || "") +
+      "\n\n---\nReminder: Please attach the XAVS1800 product flyer before sending."
+    );
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_self");
+  };
 
   const matchProjectsMut = trpc.campaign.matchToProjects.useMutation({
     onSuccess: (result) => {
@@ -594,15 +605,27 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                           </Button>
                         )}
                         {c.outreachStatus === "approved" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-green-600"
-                            onClick={() => sendEmailMut.mutate({ contactId: c.id })}
-                            disabled={sendEmailMut.isPending}
-                          >
-                            <Send className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-blue-600"
+                              onClick={() => openInOutlook(c)}
+                              title="Open in Outlook"
+                            >
+                              <Mail className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-green-600"
+                              onClick={() => markAsSentMut.mutate({ contactId: c.id })}
+                              disabled={markAsSentMut.isPending}
+                              title="Mark as Sent"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         )}
                         {c.outreachStatus === "rejected" && (
                           <Button
@@ -815,16 +838,28 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
     onError: (err) => toast.error(`Failed to reject: ${err.message}`),
   });
 
-  const sendEmailMut = trpc.campaign.sendEmail.useMutation({
+  const markAsSentMut = trpc.campaign.markAsSent.useMutation({
     onSuccess: (result) => {
       approvedQuery.refetch();
       if (result.success) {
-        toast.success("Email sent");
+        toast.success("Email marked as sent");
       } else {
-        toast.error(result.error || "Failed to send");
+        toast.error(result.error || "Failed to mark as sent");
       }
     },
+    onError: (err: { message: string }) => toast.error(`Failed to mark as sent: ${err.message}`),
   });
+
+  /** Open the approved email in the user's default mail client (Outlook) */
+  const openInOutlook = (c: { enrichedEmail?: string | null; email?: string | null; draftSubject?: string | null; draftBody?: string | null }) => {
+    const to = c.enrichedEmail || c.email || "";
+    const subject = encodeURIComponent(c.draftSubject || "Atlas Copco \u2014 High-Volume Air Solutions");
+    const body = encodeURIComponent(
+      (c.draftBody || "") +
+      "\n\n---\nReminder: Please attach the XAVS1800 product flyer before sending."
+    );
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_self");
+  };
 
   const pending = pendingQuery.data?.contacts ?? [];
   const approved = approvedQuery.data?.contacts ?? [];
@@ -975,14 +1010,24 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
                         <div className="text-xs mt-1"><span className="font-semibold">Subject:</span> {c.draftSubject}</div>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-navy hover:bg-navy/90 text-white shrink-0"
-                      onClick={() => sendEmailMut.mutate({ contactId: c.id })}
-                      disabled={sendEmailMut.isPending}
-                    >
-                      <Send className="w-3 h-3 mr-1" /> Send
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={() => openInOutlook(c)}
+                      >
+                        <Mail className="w-3 h-3 mr-1" /> Open in Outlook
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => markAsSentMut.mutate({ contactId: c.id })}
+                        disabled={markAsSentMut.isPending}
+                      >
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> Mark Sent
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
