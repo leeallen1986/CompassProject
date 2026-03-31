@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, name, description, productLine, fileUrl, sectorTags, applicationTags, keywordTags FROM collateralItems WHERE name LIKE '%XAVS1800%' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, description, productLine, fileUrl, sectorTags, applicationTags, keywordTags FROM collateralItems WHERE name LIKE '%XAVS1800%' LIMIT 1;",
+  "rows": [
+    {
+      "id": "2",
+      "name": "XAVS1800 — High-Volume Air for Demanding Abrasive Blasting",
+      "description": "The XAVS1800 delivers 1,800 cfm at 7 bar (or 1,500 cfm at 14 bar dual pressure) to support high-production blasting where nozzle pressure and continuous airflow matter. Supports up to four 11mm blasting setups or three 12.5mm setups simultaneously. Features 975L fuel tank for full-shift runtime, aftercooler fitted for air quality, and fully bunded. Built for large surface preparation, shutdown work, tank blasting, structural steel, and multi-operator blasting crews.",
+      "productLine": "portable_air",
+      "fileUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/collateral/1/wo2srzvr-atlas_copco_xavs1800_flyer.pdf",
+      "sectorTags": "[\"mining\", \"oil_gas\", \"infrastructure\"]",
+      "applicationTags": "[\"sandblasting\", \"pipeline_testing\"]",
+      "keywordTags": "[\"blasting\", \"abrasive\", \"abrasive blasting\", \"sandblast\", \"sandblasting\", \"blast nozzle\", \"nozzle pressure\", \"surface prep\", \"surface preparation\", \"coating\", \"paint removal\", \"corrosion\", \"protective coating\", \"anti-corrosion\", \"shutdown\", \"turnaround\", \"planned shutdown\", \"maintenance shutdown\", \"overhaul\", \"outage\", \"tank blasting\", \"structural steel\", \"pipeline coating\", \"shipyard\", \"shipbuilding\", \"dry dock\", \"ship hull\", \"vessel maintenance\", \"bridge maintenance\", \"wharf\", \"high volume\", \"dual pressure\", \"multi-operator\", \"aftercooler\", \"bunded\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tdescription\tproductLine\tfileUrl\tsectorTags\tapplicationTags\tkeywordTags\n2\tXAVS1800 — High-Volume Air for Demanding Abrasive Blasting\tThe XAVS1800 delivers 1,800 cfm at 7 bar (or 1,500 cfm at 14 bar dual pressure) to support high-production blasting where nozzle pressure and continuous airflow matter. Supports up to four 11mm blasting setups or three 12.5mm setups simultaneously. Features 975L fuel tank for full-shift runtime, aftercooler fitted for air quality, and fully bunded. Built for large surface preparation, shutdown work, tank blasting, structural steel, and multi-operator blasting crews.\tportable_air\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/collateral/1/wo2srzvr-atlas_copco_xavs1800_flyer.pdf\t[\"mining\", \"oil_gas\", \"infrastructure\"]\t[\"sandblasting\", \"pipeline_testing\"]\t[\"blasting\", \"abrasive\", \"abrasive blasting\", \"sandblast\", \"sandblasting\", \"blast nozzle\", \"nozzle pressure\", \"surface prep\", \"surface preparation\", \"coating\", \"paint removal\", \"corrosion\", \"protective coating\", \"anti-corrosion\", \"shutdown\", \"turnaround\", \"planned shutdown\", \"maintenance shutdown\", \"overhaul\", \"outage\", \"tank blasting\", \"structural steel\", \"pipeline coating\", \"shipyard\", \"shipbuilding\", \"dry dock\", \"ship hull\", \"vessel maintenance\", \"bridge maintenance\", \"wharf\", \"high volume\", \"dual pressure\", \"multi-operator\", \"aftercooler\", \"bunded\"]\n",
+  "stderr": "",
+  "execution_time_ms": 357
+}

@@ -782,3 +782,9 @@
 - [x] Replace Resend Send button with Open in Outlook (mailto:) + Mark as Sent workflow
 - [x] Add markEmailAsSent backend endpoint (status update only, no Resend send)
 - [x] Add kill switch to PersistentScheduler so it does not schedule when EMAIL_DIGESTS_ENABLED != true
+## Outreach Email LLM Prompt Overhaul
+- [x] Embed XAVS1800 product highlights (key specs, features, visual snippet) directly in email body
+- [x] Remove all rental/hire language from LLM prompt — CAPEX/purchase only
+- [x] Add role-based pain point targeting using contact title/role bucket (procurement=TCO, ops=uptime, engineering=specs, construction=mobility)
+- [x] Include ICP context in the prompt so LLM understands Atlas Copco's positioning
+- [ ] Regenerate pilot emails with the improved prompt (pending — user can trigger via Re-generate buttons)

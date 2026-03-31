@@ -1,0 +1,115 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "apolloCreditLog"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "awardedProjects"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "businessLines"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "campaignContacts"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "campaigns"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "collateralItems"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "collateralProjectMatches"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "contactProjects"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "contacts"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "contractorPairings"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "contractorProjectLinks"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "contractorRegistry"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "digestScheduleLog"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "drillingCampaigns"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "emailDigestPrefs"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "emergingPatterns"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "feedbackWeights"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "outreachEmails"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "outreachTemplates"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "pipelineActivity"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "pipelineClaims"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "pipelineRuns"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "projectBusinessLineScores"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "projectEnrichmentCache"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "projectFeedback"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "projectoryContractorFrequency"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "projectoryEnrichmentLog"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "projects"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "rawArticles"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "reports"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "rssSources"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "userActivity"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "userProfiles"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw\n__drizzle_migrations\napolloCreditLog\nawardedProjects\nbusinessLines\ncampaignContacts\ncampaigns\ncollateralItems\ncollateralProjectMatches\ncontactProjects\ncontacts\ncontractorPairings\ncontractorProjectLinks\ncontractorRegistry\ndigestScheduleLog\ndrillingCampaigns\nemailDigestPrefs\nemergingPatterns\nfeedbackWeights\noutreachEmails\noutreachTemplates\npipelineActivity\npipelineClaims\npipelineRuns\nprojectBusinessLineScores\nprojectEnrichmentCache\nprojectFeedback\nprojectoryContractorFrequency\nprojectoryEnrichmentLog\nprojects\nrawArticles\nreports\nrssSources\nuserActivity\nuserProfiles\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 355
+}

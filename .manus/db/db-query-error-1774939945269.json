@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, name, description, productLine, fileUrl, sectorTags, applicationTags, keywordTags FROM collateral_items WHERE name LIKE '%XAVS1800%' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, description, productLine, fileUrl, sectorTags, applicationTags, keywordTags FROM collateral_items WHERE name LIKE '%XAVS1800%' LIMIT 1;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table '3smu786vmcwdcnmnsx6pxw.collateral_items' doesn't exist"
+  ]
+}
