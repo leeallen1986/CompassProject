@@ -1,0 +1,50 @@
+{
+  "query": "SELECT tier, COUNT(*) as cnt FROM campaignContacts GROUP BY tier ORDER BY tier;\nSELECT titleRelevance, COUNT(*) as cnt FROM campaignContacts GROUP BY titleRelevance ORDER BY cnt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT tier, COUNT(*) as cnt FROM campaignContacts GROUP BY tier ORDER BY tier;\nSELECT titleRelevance, COUNT(*) as cnt FROM campaignContacts GROUP BY titleRelevance ORDER BY cnt DESC;",
+  "rows": [
+    {
+      "tier": "tier1_hot",
+      "cnt": "91"
+    },
+    {
+      "tier": "tier2_warm",
+      "cnt": "593"
+    },
+    {
+      "tier": "tier3_enrich",
+      "cnt": "957"
+    },
+    {
+      "tier": "tier4_low",
+      "cnt": "2751"
+    },
+    {
+      "tier": "titleRelevance",
+      "cnt": "cnt"
+    },
+    {
+      "tier": "unknown",
+      "cnt": "2760"
+    },
+    {
+      "tier": "other",
+      "cnt": "630"
+    },
+    {
+      "tier": "decision_maker",
+      "cnt": "588"
+    },
+    {
+      "tier": "operations",
+      "cnt": "324"
+    },
+    {
+      "tier": "blasting_specialist",
+      "cnt": "90"
+    }
+  ],
+  "messages": [],
+  "stdout": "tier\tcnt\ntier1_hot\t91\ntier2_warm\t593\ntier3_enrich\t957\ntier4_low\t2751\ntitleRelevance\tcnt\nunknown\t2760\nother\t630\ndecision_maker\t588\noperations\t324\nblasting_specialist\t90\n",
+  "stderr": "",
+  "execution_time_ms": 408
+}

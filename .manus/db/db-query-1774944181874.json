@@ -1,0 +1,61 @@
+{
+  "query": "SELECT COUNT(*) as with_matches FROM campaignContacts WHERE matchedProjectCount > 0;\nSELECT DISTINCT company, title, email, score, tier, titleRelevance, matchedProjectCount \nFROM campaignContacts \nWHERE titleRelevance = 'blasting_specialist' AND email IS NOT NULL\nORDER BY score DESC LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as with_matches FROM campaignContacts WHERE matchedProjectCount > 0;\nSELECT DISTINCT company, title, email, score, tier, titleRelevance, matchedProjectCount \nFROM campaignContacts \nWHERE titleRelevance = 'blasting_specialist' AND email IS NOT NULL\nORDER BY score DESC LIMIT 15;",
+  "rows": [
+    {
+      "with_matches": "22"
+    },
+    {
+      "with_matches": "company\ttitle\temail\tscore\ttier\ttitleRelevance\tmatchedProjectCount"
+    },
+    {
+      "with_matches": "Rio Tinto WA\tCoating Advisor – Structural Integrity\tcorey.ward2@riotinto.com\t75\ttier1_hot\tblasting_specialist\t1"
+    },
+    {
+      "with_matches": "Master Flow Australia Pty Ltd\tSurface Treatment Manager\tmichael.patuto@masterflow.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "MID WEST PORTS AUTHORITY\tBlaster / Painter\tjason.pascoe@midwestports.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Matrix Composites & Engineering Ltd\tGM, Matrix Corrosion Technologies\tshane.smith@matrixengineered.com\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Woodside Energy Ltd\tT/L Materials, Inspection, Corrosion\tmichael.brameld@woodside.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Master Flow Australia Pty Ltd\tSurface Treatment Manager\tsergio.patuto@masterflow.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Support Vehicles Australia Pty Ltd\tPaint Supervisor\ttroy.tucker@svaust.com\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Rema Tip Top Industrie Pty Ltd\tSurface Protection Coordinator\taporter@rema-tiptop.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "MONADELPHOUS ENGINEERING ASSOCIATES PTY LIMITED\tPainting Supervisor\tthomas.jeffrey@bhpbilliton.com\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Rema Tip Top Industrie Pty Ltd\tTechnical Support Manager - Surface Protection\trbeets@rema-tiptop.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "KAEFER INTEGRATED SERVICES PTY LTD\tProject Coordinator NACE Certified Coating Inspector\tr.hall@kaefer.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Linkforce Procurement Pty Ltd\tBlast & Paint Supervisor\tfraser.lewis@linkforce.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "SG INspections\tPaint Inspector\tstewartgriffin20@gmail.com\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "W.A. Corrosion Control Pty Ltd\tCoating Inspector\tmatt@wacorrosion.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    },
+    {
+      "with_matches": "Woodside Energy Ltd\tMajor Maintenance Leader Painting & Structural\tnirmal.pullikundram@woodside.com.au\t70\ttier1_hot\tblasting_specialist\t0"
+    }
+  ],
+  "messages": [],
+  "stdout": "with_matches\n22\ncompany\ttitle\temail\tscore\ttier\ttitleRelevance\tmatchedProjectCount\nRio Tinto WA\tCoating Advisor – Structural Integrity\tcorey.ward2@riotinto.com\t75\ttier1_hot\tblasting_specialist\t1\nMaster Flow Australia Pty Ltd\tSurface Treatment Manager\tmichael.patuto@masterflow.com.au\t70\ttier1_hot\tblasting_specialist\t0\nMID WEST PORTS AUTHORITY\tBlaster / Painter\tjason.pascoe@midwestports.com.au\t70\ttier1_hot\tblasting_specialist\t0\nMatrix Composites & Engineering Ltd\tGM, Matrix Corrosion Technologies\tshane.smith@matrixengineered.com\t70\ttier1_hot\tblasting_specialist\t0\nWoodside Energy Ltd\tT/L Materials, Inspection, Corrosion\tmichael.brameld@woodside.com.au\t70\ttier1_hot\tblasting_specialist\t0\nMaster Flow Australia Pty Ltd\tSurface Treatment Manager\tsergio.patuto@masterflow.com.au\t70\ttier1_hot\tblasting_specialist\t0\nSupport Vehicles Australia Pty Ltd\tPaint Supervisor\ttroy.tucker@svaust.com\t70\ttier1_hot\tblasting_specialist\t0\nRema Tip Top Industrie Pty Ltd\tSurface Protection Coordinator\taporter@rema-tiptop.com.au\t70\ttier1_hot\tblasting_specialist\t0\nMONADELPHOUS ENGINEERING ASSOCIATES PTY LIMITED\tPainting Supervisor\tthomas.jeffrey@bhpbilliton.com\t70\ttier1_hot\tblasting_specialist\t0\nRema Tip Top Industrie Pty Ltd\tTechnical Support Manager - Surface Protection\trbeets@rema-tiptop.com.au\t70\ttier1_hot\tblasting_specialist\t0\nKAEFER INTEGRATED SERVICES PTY LTD\tProject Coordinator NACE Certified Coating Inspector\tr.hall@kaefer.com.au\t70\ttier1_hot\tblasting_specialist\t0\nLinkforce Procurement Pty Ltd\tBlast & Paint Supervisor\tfraser.lewis@linkforce.com.au\t70\ttier1_hot\tblasting_specialist\t0\nSG INspections\tPaint Inspector\tstewartgriffin20@gmail.com\t70\ttier1_hot\tblasting_specialist\t0\nW.A. Corrosion Control Pty Ltd\tCoating Inspector\tmatt@wacorrosion.com.au\t70\ttier1_hot\tblasting_specialist\t0\nWoodside Energy Ltd\tMajor Maintenance Leader Painting & Structural\tnirmal.pullikundram@woodside.com.au\t70\ttier1_hot\tblasting_specialist\t0\n",
+  "stderr": "",
+  "execution_time_ms": 429
+}

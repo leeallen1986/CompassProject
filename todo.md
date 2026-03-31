@@ -789,3 +789,11 @@
 - [x] Include ICP context in the prompt so LLM understands Atlas Copco's positioning
 - [ ] Regenerate pilot emails with the improved prompt (pending — user can trigger via Re-generate buttons)
 - [x] Clear all existing outreach emails and reset campaign contacts to fresh status for Ryan
+
+## Campaign Contact Prioritisation & Cleanup
+- [x] Sort campaign contacts with Hot tier at top (default sort: tier asc, score desc)
+- [x] Improve scoring to weight abrasive blasting relevance (+20 for blasting companies, +10 combo bonus)
+- [x] Remove 325 personal email addresses (gmail, hotmail, yahoo, bigpond, outlook etc.) from database
+- [x] Add personal email filter to import logic to prevent future imports
+- [x] Re-scored all 4,067 contacts: Hot 279, Warm 458, Enrich 2604, Low 726
+- [x] Ensure only corporate domain emails remain in the campaign list

@@ -1,0 +1,26 @@
+{
+  "query": "SELECT COUNT(*) as total, tier FROM campaignContacts GROUP BY tier ORDER BY tier;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total, tier FROM campaignContacts GROUP BY tier ORDER BY tier;",
+  "rows": [
+    {
+      "total": "85",
+      "tier": "tier1_hot"
+    },
+    {
+      "total": "551",
+      "tier": "tier2_warm"
+    },
+    {
+      "total": "935",
+      "tier": "tier3_enrich"
+    },
+    {
+      "total": "2496",
+      "tier": "tier4_low"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\ttier\n85\ttier1_hot\n551\ttier2_warm\n935\ttier3_enrich\n2496\ttier4_low\n",
+  "stderr": "",
+  "execution_time_ms": 382
+}

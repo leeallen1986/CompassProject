@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM campaignContacts WHERE \n  email LIKE '%@gmail.%' OR\n  email LIKE '%@hotmail.%' OR\n  email LIKE '%@yahoo.%' OR\n  email LIKE '%@outlook.%' OR\n  email LIKE '%@live.%' OR\n  email LIKE '%@icloud.%' OR\n  email LIKE '%@aol.%' OR\n  email LIKE '%@msn.%' OR\n  email LIKE '%@me.com' OR\n  email LIKE '%@protonmail.%' OR\n  email LIKE '%@mail.com' OR\n  email LIKE '%@bigpond.%' OR\n  email LIKE '%@optusnet.%' OR\n  email LIKE '%@telstra.%' OR\n  email LIKE '%@ymail.%' OR\n  email LIKE '%@rocketmail.%' OR\n  email LIKE '%@inbox.%' OR\n  email LIKE '%@zoho.%' OR\n  email LIKE '%@fastmail.%' OR\n  email LIKE '%@tpg.%' OR\n  email LIKE '%@iinet.%' OR\n  email LIKE '%@internode.%' OR\n  email LIKE '%@westnet.%' OR\n  email LIKE '%@adam.%' OR\n  email LIKE '%@dodo.%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DELETE FROM campaignContacts WHERE \n  email LIKE '%@gmail.%' OR\n  email LIKE '%@hotmail.%' OR\n  email LIKE '%@yahoo.%' OR\n  email LIKE '%@outlook.%' OR\n  email LIKE '%@live.%' OR\n  email LIKE '%@icloud.%' OR\n  email LIKE '%@aol.%' OR\n  email LIKE '%@msn.%' OR\n  email LIKE '%@me.com' OR\n  email LIKE '%@protonmail.%' OR\n  email LIKE '%@mail.com' OR\n  email LIKE '%@bigpond.%' OR\n  email LIKE '%@optusnet.%' OR\n  email LIKE '%@telstra.%' OR\n  email LIKE '%@ymail.%' OR\n  email LIKE '%@rocketmail.%' OR\n  email LIKE '%@inbox.%' OR\n  email LIKE '%@zoho.%' OR\n  email LIKE '%@fastmail.%' OR\n  email LIKE '%@tpg.%' OR\n  email LIKE '%@iinet.%' OR\n  email LIKE '%@internode.%' OR\n  email LIKE '%@westnet.%' OR\n  email LIKE '%@adam.%' OR\n  email LIKE '%@dodo.%';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 412
+}

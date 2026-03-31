@@ -55,6 +55,17 @@ const EXCLUDE_TITLE_PATTERNS = [
   /customer\s*care/i, /^sales$/i, /^sales\s*rep/i,
 ];
 
+/** Company name patterns that indicate abrasive blasting / surface prep focus */
+const BLASTING_COMPANY_PATTERNS = [
+  /blast/i, /abrasive/i, /surface\s*(prep|treat|protect)/i, /corrosion/i,
+  /coat(?:ing|s)/i, /paint(?:ing)?\s*(service|contractor|solution)/i,
+  /sandblast/i, /uhp/i, /hydro\s*blast/i, /grit\s*blast/i,
+  /rope\s*access/i, /scaffold/i, /insulation/i, /fireproof/i,
+  /\bkaefer\b/i, /\baltrad\b/i, /\bmonadelphous\b/i, /\blinkforce\b/i,
+  /\bmaster\s*flow\b/i, /\brema\s*tip/i, /\bcleanco\b/i,
+  /\bwa\s*corrosion/i, /\bmatrix\s*corrosion/i,
+];
+
 // ── Title Classification ──
 
 function classifyTitle(title: string | null | undefined): {
@@ -87,41 +98,76 @@ function classifyTitle(title: string | null | undefined): {
   return { relevance: "other", score: 10 };
 }
 
+/** Check if a company name indicates abrasive blasting / surface prep focus */
+function isBlastingCompany(company: string | null | undefined): boolean {
+  if (!company) return false;
+  return BLASTING_COMPANY_PATTERNS.some(p => p.test(company));
+}
+
 /** Compute composite score (0-100) for a campaign contact */
 function computeScore(contact: {
   title?: string | null;
   email?: string | null;
   mobile?: string | null;
+  company?: string | null;
   matchedProjectCount?: number;
 }): { score: number; tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded"; titleRelevance: "blasting_specialist" | "decision_maker" | "operations" | "other" | "unknown" } {
   const titleResult = classifyTitle(contact.title);
   let score = titleResult.score; // 0-40 from title
 
-  // Data completeness bonus (up to 30 points)
+  // Data completeness bonus (up to 20 points)
   if (contact.email) score += 15;
   if (contact.mobile) score += 5;
-  if (contact.title && contact.title.trim()) score += 10;
+
+  // Abrasive blasting company bonus (up to 20 points)
+  // Companies focused on blasting/coating/surface prep are highest priority
+  if (isBlastingCompany(contact.company)) {
+    score += 20;
+  }
 
   // Project match bonus (up to 30 points)
   const matchCount = contact.matchedProjectCount ?? 0;
   if (matchCount > 0) score += Math.min(matchCount * 5, 30);
 
+  // Combo bonus: blasting specialist at a blasting company = maximum priority
+  if (titleResult.relevance === "blasting_specialist" && isBlastingCompany(contact.company)) {
+    score += 10;
+  }
+
   // Cap at 100
   score = Math.min(score, 100);
 
-  // Determine tier
+  // Determine tier — blasting specialists and decision makers at blasting companies get Hot
   let tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded";
-  if (score >= 60 && contact.email) {
+  if (score >= 55 && contact.email) {
     tier = "tier1_hot";
-  } else if (score >= 40 && contact.email) {
+  } else if (score >= 35 && contact.email) {
     tier = "tier2_warm";
-  } else if (score >= 20) {
+  } else if (score >= 15) {
     tier = "tier3_enrich";
   } else {
     tier = "tier4_low";
   }
 
   return { score, tier, titleRelevance: titleResult.relevance };
+}
+
+// ── Personal Email Filter ──
+
+const PERSONAL_EMAIL_DOMAINS = [
+  'gmail.', 'hotmail.', 'yahoo.', 'outlook.', 'live.', 'icloud.', 'aol.',
+  'msn.', 'me.com', 'protonmail.', 'mail.com', 'bigpond.', 'optusnet.',
+  'telstra.', 'ymail.', 'rocketmail.', 'inbox.', 'zoho.', 'fastmail.',
+  'tpg.', 'iinet.', 'internode.', 'westnet.', 'adam.', 'dodo.',
+];
+
+export function isPersonalEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const lower = email.toLowerCase();
+  const atIndex = lower.indexOf('@');
+  if (atIndex === -1) return false;
+  const domain = lower.substring(atIndex + 1);
+  return PERSONAL_EMAIL_DOMAINS.some(d => domain.startsWith(d) || domain === d.replace('.', ''));
 }
 
 // ── Campaign CRUD ──
@@ -251,10 +297,18 @@ export async function importCampaignContacts(
       continue;
     }
 
+    // Skip personal email addresses — corporate only
+    if (isPersonalEmail(c.email)) {
+      excluded++;
+      tierBreakdown.excluded++;
+      continue;
+    }
+
     const scoring = computeScore({
       title: c.title,
       email: c.email,
       mobile: c.mobile,
+      company: c.reviewedCompanyName || c.company,
       matchedProjectCount: 0, // Will be updated after project matching
     });
 
@@ -348,21 +402,21 @@ export async function getCampaignContacts(
     .where(where);
   const total = Number(countResult?.count ?? 0);
 
-  // Sort
-  let orderBy;
+  // Sort — default: Hot tier first (tier1_hot sorts first alphabetically), then by score desc
   const dir = options?.sortDir === "asc" ? asc : desc;
+  let orderClauses;
   switch (options?.sortBy) {
-    case "company": orderBy = dir(campaignContacts.reviewedCompanyName); break;
-    case "tier": orderBy = asc(campaignContacts.tier); break;
-    case "outreachStatus": orderBy = asc(campaignContacts.outreachStatus); break;
-    default: orderBy = desc(campaignContacts.score);
+    case "company": orderClauses = [dir(campaignContacts.reviewedCompanyName)]; break;
+    case "tier": orderClauses = [asc(campaignContacts.tier), desc(campaignContacts.score)]; break;
+    case "outreachStatus": orderClauses = [asc(campaignContacts.outreachStatus), desc(campaignContacts.score)]; break;
+    default: orderClauses = [asc(campaignContacts.tier), desc(campaignContacts.score)];
   }
 
   const contactsList = await db
     .select()
     .from(campaignContacts)
     .where(where)
-    .orderBy(orderBy)
+    .orderBy(...orderClauses)
     .limit(options?.limit ?? 50)
     .offset(options?.offset ?? 0);
 

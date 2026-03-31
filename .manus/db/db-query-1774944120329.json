@@ -1,0 +1,54 @@
+{
+  "query": "SELECT \n  CASE \n    WHEN email LIKE '%@gmail.%' THEN 'gmail'\n    WHEN email LIKE '%@hotmail.%' THEN 'hotmail'\n    WHEN email LIKE '%@yahoo.%' THEN 'yahoo'\n    WHEN email LIKE '%@outlook.%' THEN 'outlook'\n    WHEN email LIKE '%@live.%' THEN 'live'\n    WHEN email LIKE '%@icloud.%' THEN 'icloud'\n    WHEN email LIKE '%@aol.%' THEN 'aol'\n    WHEN email LIKE '%@msn.%' THEN 'msn'\n    WHEN email LIKE '%@me.com' THEN 'me.com'\n    WHEN email LIKE '%@protonmail.%' THEN 'protonmail'\n    WHEN email LIKE '%@mail.com' THEN 'mail.com'\n    WHEN email LIKE '%@bigpond.%' THEN 'bigpond'\n    WHEN email LIKE '%@optusnet.%' THEN 'optusnet'\n    WHEN email LIKE '%@telstra.%' THEN 'telstra'\n    WHEN email IS NULL THEN 'no_email'\n    ELSE 'corporate'\n  END as email_type,\n  COUNT(*) as cnt\nFROM campaignContacts\nGROUP BY email_type\nORDER BY cnt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  CASE \n    WHEN email LIKE '%@gmail.%' THEN 'gmail'\n    WHEN email LIKE '%@hotmail.%' THEN 'hotmail'\n    WHEN email LIKE '%@yahoo.%' THEN 'yahoo'\n    WHEN email LIKE '%@outlook.%' THEN 'outlook'\n    WHEN email LIKE '%@live.%' THEN 'live'\n    WHEN email LIKE '%@icloud.%' THEN 'icloud'\n    WHEN email LIKE '%@aol.%' THEN 'aol'\n    WHEN email LIKE '%@msn.%' THEN 'msn'\n    WHEN email LIKE '%@me.com' THEN 'me.com'\n    WHEN email LIKE '%@protonmail.%' THEN 'protonmail'\n    WHEN email LIKE '%@mail.com' THEN 'mail.com'\n    WHEN email LIKE '%@bigpond.%' THEN 'bigpond'\n    WHEN email LIKE '%@optusnet.%' THEN 'optusnet'\n    WHEN email LIKE '%@telstra.%' THEN 'telstra'\n    WHEN email IS NULL THEN 'no_email'\n    ELSE 'corporate'\n  END as email_type,\n  COUNT(*) as cnt\nFROM campaignContacts\nGROUP BY email_type\nORDER BY cnt DESC;",
+  "rows": [
+    {
+      "email_type": "corporate",
+      "cnt": "2766"
+    },
+    {
+      "email_type": "no_email",
+      "cnt": "1350"
+    },
+    {
+      "email_type": "gmail",
+      "cnt": "108"
+    },
+    {
+      "email_type": "bigpond",
+      "cnt": "66"
+    },
+    {
+      "email_type": "hotmail",
+      "cnt": "52"
+    },
+    {
+      "email_type": "yahoo",
+      "cnt": "17"
+    },
+    {
+      "email_type": "live",
+      "cnt": "13"
+    },
+    {
+      "email_type": "outlook",
+      "cnt": "12"
+    },
+    {
+      "email_type": "icloud",
+      "cnt": "4"
+    },
+    {
+      "email_type": "optusnet",
+      "cnt": "3"
+    },
+    {
+      "email_type": "protonmail",
+      "cnt": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "email_type\tcnt\ncorporate\t2766\nno_email\t1350\ngmail\t108\nbigpond\t66\nhotmail\t52\nyahoo\t17\nlive\t13\noutlook\t12\nicloud\t4\noptusnet\t3\nprotonmail\t1\n",
+  "stderr": "",
+  "execution_time_ms": 377
+}
