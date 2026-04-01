@@ -855,3 +855,10 @@
 - [x] Fix Pipeline Overview sidebar to show scoped total (28) instead of global total (362)
 - [x] Fix "View all projects" link to show scoped count instead of global
 - [x] Add 14 new vitest tests for scoped stats, coaching panel behavior, and KPI card reduction (1,543 total tests passing)
+
+## Campaign Builder — Company-Level Import Fix
+- [x] Fix CSV parser to accept company-only rows (company name + domain, no email required)
+- [x] Auto-discover contacts at imported companies via Apollo people search + Hunter domain search
+- [x] Update campaign builder UI with company-list detection and target role selection
+- [x] Improve UX messaging for company-level imports vs contact-level imports
+- [x] Vitest tests for company-import flow (12 tests: analyseImportFile, parseCompanyList, previewImportFile)

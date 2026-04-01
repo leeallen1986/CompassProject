@@ -4,10 +4,12 @@
  * Multi-step flow:
  * 1. Campaign Details — name, description, product, sender info, target segment
  * 2. Add Contacts — upload CSV/Excel OR search by company domains via Hunter.io
+ *    - Smart detection: if uploaded file has companies/domains but no individual contacts,
+ *      automatically switches to "Find Contacts at These Companies" flow
  * 3. Review & Launch — see imported contacts, tier breakdown, trigger enrichment
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -22,9 +24,9 @@ import {
 import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, Check, Upload, Search, Globe,
-  Users, Loader2, FileSpreadsheet, Zap, Target, Megaphone,
+  Users, Loader2, FileSpreadsheet, Zap, Megaphone,
   Flame, TrendingUp, Database, Clock, AlertCircle, X,
-  Plus, Trash2, CheckCircle2, ArrowRight,
+  Plus, Trash2, CheckCircle2, ArrowRight, Building2,
 } from "lucide-react";
 
 // ── Types ──
@@ -68,6 +70,11 @@ interface SearchResult {
   totalFound: number;
   totalFiltered: number;
   domainBreakdown: { domain: string; organization: string; found: number; filtered: number }[];
+}
+
+interface CompanySearchResult extends SearchResult {
+  companies: any[];
+  companiesWithoutDomain: string[];
 }
 
 // ── Constants ──
@@ -122,6 +129,11 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   const [isUploading, setIsUploading] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
 
+  // Company-list detection state
+  const [fileType, setFileType] = useState<"contacts" | "companies" | null>(null);
+  const [isAnalysing, setIsAnalysing] = useState(false);
+  const [companySearchResult, setCompanySearchResult] = useState<CompanySearchResult | null>(null);
+
   // Search state
   const [searchDomains, setSearchDomains] = useState<string[]>([""]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -145,6 +157,8 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   const searchContacts = trpc.campaign.searchContacts.useMutation();
   const importSearchResults = trpc.campaign.importSearchResults.useMutation();
   const enrichContacts = trpc.campaign.enrichContacts.useMutation();
+  const analyseFile = trpc.campaign.analyseFile.useMutation();
+  const searchCompanyContacts = trpc.campaign.searchCompanyContacts.useMutation();
 
   // ── Step 1: Campaign Details ──
 
@@ -180,6 +194,8 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
 
     setIsUploading(true);
     setIsPreviewing(true);
+    setFileType(null);
+    setCompanySearchResult(null);
     try {
       // Upload file to S3 via server endpoint
       const uploadRes = await fetch("/api/upload-campaign-file", {
@@ -201,7 +217,29 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
       const preview = await previewFile.mutateAsync({ fileUrl });
       setFilePreview(preview);
       setColumnMapping(preview.detectedMapping);
-      toast.success(`File uploaded: ${preview.totalRows} rows detected`);
+
+      // Analyse the file to detect if it's contacts or companies
+      setIsAnalysing(true);
+      try {
+        const analysis = await analyseFile.mutateAsync({
+          fileUrl,
+          mapping: preview.detectedMapping,
+        });
+        setFileType(analysis.type);
+        if (analysis.type === "companies") {
+          toast.info(
+            `Detected ${analysis.rowsCompanyOnly} companies (no individual contacts). We'll help you find contacts at these companies.`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(`File uploaded: ${preview.totalRows} rows with contact data detected`);
+        }
+      } catch {
+        // If analysis fails, default to contacts
+        setFileType("contacts");
+        toast.success(`File uploaded: ${preview.totalRows} rows detected`);
+      }
+      setIsAnalysing(false);
     } catch (err) {
       toast.error("Failed to upload file: " + (err as Error).message);
     } finally {
@@ -214,11 +252,57 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     if (!createdCampaignId || !uploadedFileUrl) return;
     setIsImporting(true);
     try {
-      // Re-upload and import
       const result = await importWithMapping.mutateAsync({
         campaignId: createdCampaignId,
         fileUrl: uploadedFileUrl,
         mapping: columnMapping,
+      });
+      setImportResult(result);
+      toast.success(`Imported ${result.imported} contacts`);
+      setStep(3);
+    } catch (err) {
+      toast.error("Import failed: " + (err as Error).message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // ── Step 2: Company Contact Discovery ──
+
+  const handleSearchCompanyContacts = async () => {
+    if (!uploadedFileUrl) return;
+    if (selectedRoles.length === 0 && !customRolePattern) {
+      toast.error("Please select at least one target role to search for");
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const result = await searchCompanyContacts.mutateAsync({
+        fileUrl: uploadedFileUrl,
+        mapping: columnMapping,
+        targetRoles: selectedRoles,
+        customRolePatterns: customRolePattern ? [customRolePattern] : undefined,
+        maxPerDomain: 10,
+      });
+      setCompanySearchResult(result);
+      toast.success(
+        `Found ${result.totalFiltered} contacts across ${result.domainsWithResults} companies`
+      );
+    } catch (err) {
+      toast.error("Contact search failed: " + (err as Error).message);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleImportCompanySearchResults = async () => {
+    if (!createdCampaignId || !companySearchResult) return;
+    setIsImporting(true);
+    try {
+      const result = await importSearchResults.mutateAsync({
+        campaignId: createdCampaignId,
+        contacts: companySearchResult.contacts,
       });
       setImportResult(result);
       toast.success(`Imported ${result.imported} contacts`);
@@ -307,6 +391,41 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
       setIsEnriching(false);
     }
   };
+
+  // ── Shared: Role Selector ──
+
+  const RoleSelector = () => (
+    <div className="space-y-3">
+      <Label className="text-sm font-semibold">Target Roles</Label>
+      <p className="text-xs text-muted-foreground">
+        Select the types of contacts you're looking for. We'll search for people matching these roles.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {rolesQuery.data?.map((role: any) => (
+          <button
+            key={role.key}
+            onClick={() => toggleRole(role.key)}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+              selectedRoles.includes(role.key)
+                ? "bg-navy text-white shadow-sm"
+                : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+            }`}
+          >
+            {role.name}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Custom role keyword (optional)</Label>
+        <Input
+          placeholder="e.g., compressor|pneumatic|rental"
+          value={customRolePattern}
+          onChange={e => setCustomRolePattern(e.target.value)}
+          className="border-border text-sm"
+        />
+      </div>
+    </div>
+  );
 
   // ── Render ──
 
@@ -507,9 +626,9 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                   <div className="w-14 h-14 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-4">
                     <Upload className="w-7 h-7 text-gold" />
                   </div>
-                  <h3 className="text-lg font-bold text-navy mb-2">Upload Contact List</h3>
+                  <h3 className="text-lg font-bold text-navy mb-2">Upload a List</h3>
                   <p className="text-sm text-muted-foreground">
-                    Upload a CSV or Excel file with your existing contact list. We'll auto-detect columns and import them.
+                    Upload a CSV or Excel file with contacts <strong>or companies</strong>. We'll auto-detect the format and find contacts if needed.
                   </p>
                 </CardContent>
               </Card>
@@ -539,11 +658,20 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                   <div>
                     <CardTitle className="text-navy flex items-center gap-2">
                       <FileSpreadsheet className="w-5 h-5 text-gold" />
-                      Upload Contact List
+                      Upload a List
                     </CardTitle>
-                    <CardDescription>Upload a CSV or Excel file. We'll auto-detect columns.</CardDescription>
+                    <CardDescription>
+                      Upload a CSV or Excel file with contacts or companies. We'll auto-detect the format.
+                    </CardDescription>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => { setContactMethod(null); setFilePreview(null); }}>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    setContactMethod(null);
+                    setFilePreview(null);
+                    setFileType(null);
+                    setCompanySearchResult(null);
+                    setSelectedRoles([]);
+                    setCustomRolePattern("");
+                  }}>
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
@@ -553,8 +681,11 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                 {!filePreview && (
                   <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                     <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Drag & drop or click to select a CSV or Excel file
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Works with contact lists (name + email) <strong>and</strong> company lists (company name + domain)
                     </p>
                     <input
                       type="file"
@@ -585,86 +716,235 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                         <p className="text-sm font-semibold text-navy">{uploadedFileName}</p>
                         <p className="text-xs text-muted-foreground">{filePreview.totalRows} rows detected</p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => { setFilePreview(null); setUploadedFileUrl(null); }}>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        setFilePreview(null);
+                        setUploadedFileUrl(null);
+                        setFileType(null);
+                        setCompanySearchResult(null);
+                      }}>
                         Change File
                       </Button>
                     </div>
 
-                    {/* Column Mapping */}
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-navy mb-3">Column Mapping</h4>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        We auto-detected the columns below. Adjust if needed.
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {MAPPING_FIELDS.map(field => (
-                          <div key={field.key} className="space-y-1">
-                            <Label className="text-xs">
-                              {field.label} {field.required && <span className="text-red-500">*</span>}
-                            </Label>
-                            <Select
-                              value={columnMapping[field.key]?.toString() ?? "unmapped"}
-                              onValueChange={val => {
-                                setColumnMapping(prev => ({
-                                  ...prev,
-                                  [field.key]: val === "unmapped" ? undefined : Number(val),
-                                }));
-                              }}
-                            >
-                              <SelectTrigger className="h-8 text-xs border-border">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="unmapped">— Not mapped —</SelectItem>
-                                {filePreview.headers.map((h, i) => (
-                                  <SelectItem key={i} value={i.toString()}>{h}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        ))}
+                    {/* File Type Detection Banner */}
+                    {isAnalysing && (
+                      <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                        <span className="text-sm text-blue-700">Analysing file format...</span>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Sample Data Preview */}
-                    <div className="overflow-x-auto rounded-lg border border-border">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-navy text-white">
-                            {filePreview.headers.map((h, i) => (
-                              <th key={i} className="px-3 py-2 text-left font-semibold whitespace-nowrap">{h}</th>
+                    {fileType === "companies" && !companySearchResult && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <Building2 className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                          <div>
+                            <h4 className="text-sm font-bold text-amber-800 mb-1">
+                              Company List Detected
+                            </h4>
+                            <p className="text-xs text-amber-700 mb-3">
+                              This file contains company names and domains but no individual contacts.
+                              Select the roles you're targeting below and we'll search for contacts at these companies using Hunter.io.
+                            </p>
+                            <RoleSelector />
+                            <div className="flex justify-end mt-4">
+                              <Button
+                                onClick={handleSearchCompanyContacts}
+                                disabled={isSearching || (selectedRoles.length === 0 && !customRolePattern)}
+                                className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                              >
+                                {isSearching ? (
+                                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching companies...</>
+                                ) : (
+                                  <><Search className="w-4 h-4 mr-2" /> Find Contacts at These Companies</>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Company Search Results */}
+                    {companySearchResult && (
+                      <div className="space-y-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            <h4 className="text-sm font-bold text-green-800">
+                              Found {companySearchResult.totalFiltered} contacts at {companySearchResult.domainsWithResults} companies
+                            </h4>
+                          </div>
+
+                          {/* Domain Breakdown */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                            {companySearchResult.domainBreakdown.filter(d => d.filtered > 0).map(d => (
+                              <div key={d.domain} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100">
+                                <div>
+                                  <p className="text-xs font-semibold text-navy">{d.organization}</p>
+                                  <p className="text-[10px] text-muted-foreground">{d.domain}</p>
+                                </div>
+                                <Badge className="bg-teal/15 text-teal text-[10px]">{d.filtered} contacts</Badge>
+                              </div>
                             ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filePreview.sampleRows.map((row, ri) => (
-                            <tr key={ri} className={ri % 2 === 0 ? "bg-card" : "bg-slate-50"}>
-                              {row.map((cell, ci) => (
-                                <td key={ci} className="px-3 py-2 whitespace-nowrap max-w-[200px] truncate">{cell}</td>
+                          </div>
+
+                          {/* Companies without domain */}
+                          {companySearchResult.companiesWithoutDomain.length > 0 && (
+                            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mt-2">
+                              <p className="text-xs text-amber-700 font-medium mb-1">
+                                <AlertCircle className="w-3 h-3 inline mr-1" />
+                                {companySearchResult.companiesWithoutDomain.length} companies had no domain — could not search:
+                              </p>
+                              <p className="text-xs text-amber-600">
+                                {companySearchResult.companiesWithoutDomain.join(", ")}
+                              </p>
+                              <p className="text-[10px] text-amber-500 mt-1">
+                                Tip: Add a "Domain" or "Website" column to your spreadsheet for better results.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sample Contacts Table */}
+                        {companySearchResult.contacts.length > 0 && (
+                          <div className="overflow-x-auto rounded-lg border border-border">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="bg-navy text-white">
+                                  <th className="px-3 py-2 text-left font-semibold">Name</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Title</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Company</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Email</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {companySearchResult.contacts.slice(0, 15).map((c: any, i: number) => (
+                                  <tr key={i} className={i % 2 === 0 ? "bg-card" : "bg-slate-50"}>
+                                    <td className="px-3 py-2 font-medium text-navy">
+                                      {c.firstName} {c.lastName}
+                                    </td>
+                                    <td className="px-3 py-2 text-muted-foreground">{c.title || "—"}</td>
+                                    <td className="px-3 py-2">{c.company}</td>
+                                    <td className="px-3 py-2 text-teal">{c.email || "—"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {companySearchResult.contacts.length > 15 && (
+                              <div className="px-3 py-2 text-xs text-muted-foreground bg-slate-50 border-t border-border">
+                                Showing 15 of {companySearchResult.contacts.length} contacts
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Import / Retry */}
+                        <div className="flex justify-between pt-2">
+                          <Button variant="ghost" onClick={() => {
+                            setCompanySearchResult(null);
+                            setSelectedRoles([]);
+                            setCustomRolePattern("");
+                          }}>
+                            <ChevronLeft className="w-4 h-4 mr-1" /> Modify Search
+                          </Button>
+                          <Button
+                            onClick={handleImportCompanySearchResults}
+                            disabled={isImporting || companySearchResult.contacts.length === 0}
+                            className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                          >
+                            {isImporting ? (
+                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
+                            ) : (
+                              <>Import {companySearchResult.contacts.length} Contacts <ArrowRight className="w-4 h-4 ml-2" /></>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Standard Contact Import (when file has actual contacts) */}
+                    {fileType === "contacts" && (
+                      <>
+                        {/* Column Mapping */}
+                        <div className="bg-slate-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-navy mb-3">Column Mapping</h4>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            We auto-detected the columns below. Adjust if needed.
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {MAPPING_FIELDS.map(field => (
+                              <div key={field.key} className="space-y-1">
+                                <Label className="text-xs">
+                                  {field.label} {field.required && <span className="text-red-500">*</span>}
+                                </Label>
+                                <Select
+                                  value={columnMapping[field.key]?.toString() ?? "unmapped"}
+                                  onValueChange={val => {
+                                    setColumnMapping(prev => ({
+                                      ...prev,
+                                      [field.key]: val === "unmapped" ? undefined : Number(val),
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-xs border-border">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="unmapped">— Not mapped —</SelectItem>
+                                    {filePreview.headers.map((h, i) => (
+                                      <SelectItem key={i} value={i.toString()}>{h}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Import Button */}
+                        <div className="flex justify-between pt-2">
+                          <Button variant="ghost" onClick={() => { setContactMethod(null); setFilePreview(null); setFileType(null); }}>
+                            <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                          </Button>
+                          <Button
+                            onClick={handleImportFromFile}
+                            disabled={isImporting || !columnMapping.company}
+                            className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                          >
+                            {isImporting ? (
+                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
+                            ) : (
+                              <>Import {filePreview.totalRows} Contacts <ArrowRight className="w-4 h-4 ml-2" /></>
+                            )}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Sample Data Preview (always shown) */}
+                    {!companySearchResult && (
+                      <div className="overflow-x-auto rounded-lg border border-border">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-navy text-white">
+                              {filePreview.headers.map((h, i) => (
+                                <th key={i} className="px-3 py-2 text-left font-semibold whitespace-nowrap">{h}</th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Import Button */}
-                    <div className="flex justify-between pt-2">
-                      <Button variant="ghost" onClick={() => { setContactMethod(null); setFilePreview(null); }}>
-                        <ChevronLeft className="w-4 h-4 mr-1" /> Back
-                      </Button>
-                      <Button
-                        onClick={handleImportFromFile}
-                        disabled={isImporting || !columnMapping.company}
-                        className="bg-gold hover:bg-gold/90 text-navy font-semibold"
-                      >
-                        {isImporting ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
-                        ) : (
-                          <>Import {filePreview.totalRows} Contacts <ArrowRight className="w-4 h-4 ml-2" /></>
-                        )}
-                      </Button>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {filePreview.sampleRows.map((row, ri) => (
+                              <tr key={ri} className={ri % 2 === 0 ? "bg-card" : "bg-slate-50"}>
+                                {row.map((cell, ci) => (
+                                  <td key={ci} className="px-3 py-2 whitespace-nowrap max-w-[200px] truncate">{cell}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -716,38 +996,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                 </div>
 
                 {/* Target Roles */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-semibold">Target Roles</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Select the types of contacts you're looking for. We'll filter Hunter.io results to match.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {rolesQuery.data?.map((role: any) => (
-                      <button
-                        key={role.key}
-                        onClick={() => toggleRole(role.key)}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                          selectedRoles.includes(role.key)
-                            ? "bg-navy text-white shadow-sm"
-                            : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-                        }`}
-                      >
-                        {role.name}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom role pattern */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Custom role keyword (optional)</Label>
-                    <Input
-                      placeholder="e.g., compressor|pneumatic"
-                      value={customRolePattern}
-                      onChange={e => setCustomRolePattern(e.target.value)}
-                      className="border-border text-sm"
-                    />
-                  </div>
-                </div>
+                <RoleSelector />
 
                 {/* Search Button */}
                 {!searchResult && (

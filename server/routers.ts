@@ -128,7 +128,7 @@ import {
   enrichCampaignContacts, updateCampaignStats,
 } from "./campaignService";
 import { parseBlastContactList } from "./campaignImport";
-import { previewImportFile, parseImportFile, type ColumnMapping } from "./campaignCsvImport";
+import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList, type ColumnMapping } from "./campaignCsvImport";
 import { searchContactsByDomain, getAvailableRoles } from "./hunterContactSearch";
 import { storagePut } from "./storage";
 
@@ -2735,6 +2735,98 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         return importCampaignContacts(input.campaignId, input.contacts);
+      }),
+
+    /** Analyse an uploaded file to determine if it's contacts or company-only */
+    analyseFile: campaignProcedure
+      .input(z.object({
+        fileUrl: z.string(),
+        mapping: z.object({
+          firstName: z.number().optional(),
+          lastName: z.number().optional(),
+          fullName: z.number().optional(),
+          title: z.number().optional(),
+          company: z.number().optional(),
+          email: z.number().optional(),
+          phone: z.number().optional(),
+          mobile: z.number().optional(),
+          linkedin: z.number().optional(),
+          website: z.number().optional(),
+        }),
+        sheetName: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await fetch(input.fileUrl);
+        if (!response.ok) throw new Error("Failed to fetch uploaded file");
+        const buffer = Buffer.from(await response.arrayBuffer());
+        return analyseImportFile(buffer, input.mapping as ColumnMapping, { sheetName: input.sheetName });
+      }),
+
+    /** Parse a company-only file and search for contacts at those companies */
+    searchCompanyContacts: campaignProcedure
+      .input(z.object({
+        fileUrl: z.string(),
+        mapping: z.object({
+          firstName: z.number().optional(),
+          lastName: z.number().optional(),
+          fullName: z.number().optional(),
+          title: z.number().optional(),
+          company: z.number().optional(),
+          email: z.number().optional(),
+          phone: z.number().optional(),
+          mobile: z.number().optional(),
+          linkedin: z.number().optional(),
+          website: z.number().optional(),
+        }),
+        targetRoles: z.array(z.string()),
+        customRolePatterns: z.array(z.string()).optional(),
+        maxPerDomain: z.number().min(1).max(50).optional(),
+        sheetName: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await fetch(input.fileUrl);
+        if (!response.ok) throw new Error("Failed to fetch uploaded file");
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const parsed = parseCompanyList(buffer, input.mapping as ColumnMapping, { sheetName: input.sheetName });
+
+        if (parsed.companies.length === 0) {
+          return {
+            companies: [],
+            contacts: [],
+            domainsSearched: 0,
+            domainsWithResults: 0,
+            totalFound: 0,
+            totalFiltered: 0,
+            domainBreakdown: [],
+            companiesWithoutDomain: [],
+          };
+        }
+
+        // Separate companies with and without domains
+        const withDomain = parsed.companies.filter(c => c.domain);
+        const withoutDomain = parsed.companies.filter(c => !c.domain);
+
+        // Search contacts at companies with domains
+        let searchResult = null;
+        if (withDomain.length > 0) {
+          searchResult = await searchContactsByDomain({
+            domains: withDomain.map(c => c.domain!),
+            targetRoles: input.targetRoles,
+            customRolePatterns: input.customRolePatterns,
+            maxPerDomain: input.maxPerDomain ?? 10,
+          });
+        }
+
+        return {
+          companies: parsed.companies,
+          contacts: searchResult?.contacts || [],
+          domainsSearched: searchResult?.domainsSearched || 0,
+          domainsWithResults: searchResult?.domainsWithResults || 0,
+          totalFound: searchResult?.totalFound || 0,
+          totalFiltered: searchResult?.totalFiltered || 0,
+          domainBreakdown: searchResult?.domainBreakdown || [],
+          companiesWithoutDomain: withoutDomain.map(c => c.company),
+        };
       }),
 
     /** Get available predefined role categories for contact search */

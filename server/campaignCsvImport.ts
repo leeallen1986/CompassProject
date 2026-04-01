@@ -12,9 +12,45 @@
 import * as XLSX from "xlsx";
 import type { RawContactRow } from "./campaignService";
 
+// ── Company-only row type ──
+
+export interface CompanyRow {
+  company: string;
+  domain: string | null;
+  /** Optional extra columns from the spreadsheet */
+  location: string | null;
+  notes: string | null;
+  sourceRow: number;
+}
+
+export interface ParsedCompanies {
+  companies: CompanyRow[];
+  totalParsed: number;
+  skipped: number;
+  errors: string[];
+}
+
+/** Result of analysing an uploaded file to determine its type */
+export interface FileAnalysis {
+  type: "contacts" | "companies";
+  /** How many rows have individual names */
+  rowsWithNames: number;
+  /** How many rows have company/domain but no name */
+  rowsCompanyOnly: number;
+  totalRows: number;
+}
+
 // ── Column Detection ──
 
 /** Known header patterns for auto-detecting column mapping */
+/** Known header patterns for company-list columns */
+const COMPANY_LIST_PATTERNS: Record<string, RegExp[]> = {
+  company: [/^company$/i, /^organization$/i, /^organisation$/i, /^employer$/i, /^account\s*name$/i, /^company\s*name$/i, /^business$/i, /^name$/i],
+  domain: [/^domain$/i, /^website$/i, /^web$/i, /^url$/i, /^company\s*website$/i, /^company\s*domain$/i, /^site$/i],
+  location: [/^location$/i, /^city$/i, /^state$/i, /^region$/i, /^country$/i, /^address$/i, /^hq$/i],
+  notes: [/^notes?$/i, /^comment/i, /^description$/i, /^details?$/i, /^info$/i],
+};
+
 const COLUMN_PATTERNS: Record<keyof ColumnMapping, RegExp[]> = {
   firstName: [/^first\s*name$/i, /^first$/i, /^given\s*name$/i, /^fname$/i, /^contact\s*first/i],
   lastName: [/^last\s*name$/i, /^last$/i, /^surname$/i, /^family\s*name$/i, /^lname$/i, /^contact\s*last/i],
@@ -181,4 +217,128 @@ function clean(val: any): string | null {
   const s = String(val).trim();
   if (s === "" || s === "-" || s === "--" || s === "N/A" || s === "n/a") return null;
   return s;
+}
+
+/**
+ * Analyse a file to determine if it contains individual contacts or company-only rows.
+ * Returns a FileAnalysis with type="companies" when most rows lack individual names.
+ */
+export function analyseImportFile(
+  buffer: Buffer,
+  mapping: ColumnMapping,
+  options?: { sheetName?: string }
+): FileAnalysis {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const sheetName = options?.sheetName || workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet) throw new Error(`Sheet "${sheetName}" not found`);
+
+  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+  if (rows.length <= 1) return { type: "contacts", rowsWithNames: 0, rowsCompanyOnly: 0, totalRows: 0 };
+
+  let rowsWithNames = 0;
+  let rowsCompanyOnly = 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => !String(c).trim())) continue;
+
+    let hasName = false;
+    if (mapping.firstName !== undefined && clean(row[mapping.firstName])) hasName = true;
+    if (mapping.lastName !== undefined && clean(row[mapping.lastName])) hasName = true;
+    if (mapping.fullName !== undefined && clean(row[mapping.fullName])) hasName = true;
+
+    const hasCompany = mapping.company !== undefined && !!clean(row[mapping.company]);
+    const hasEmail = mapping.email !== undefined && !!clean(row[mapping.email]);
+
+    if (hasName || hasEmail) {
+      rowsWithNames++;
+    } else if (hasCompany) {
+      rowsCompanyOnly++;
+    }
+  }
+
+  const totalRows = rows.length - 1;
+  // If more than 60% of non-empty rows are company-only, treat as company list
+  const nonEmpty = rowsWithNames + rowsCompanyOnly;
+  const type = nonEmpty > 0 && rowsCompanyOnly / nonEmpty > 0.6 ? "companies" : "contacts";
+
+  return { type, rowsWithNames, rowsCompanyOnly, totalRows };
+}
+
+/**
+ * Parse a file as a company list — extracts company names and domains.
+ * Used when the file has company/domain columns but no individual contact names.
+ */
+export function parseCompanyList(
+  buffer: Buffer,
+  mapping: ColumnMapping,
+  options?: { sheetName?: string }
+): ParsedCompanies {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const sheetName = options?.sheetName || workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet) throw new Error(`Sheet "${sheetName}" not found`);
+
+  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+  if (rows.length <= 1) return { companies: [], totalParsed: 0, skipped: 0, errors: [] };
+
+  // Also detect company-list-specific columns from headers
+  const headers = rows[0].map(h => String(h).trim());
+  const companyListMapping: Record<string, number | undefined> = {};
+  for (const [field, patterns] of Object.entries(COMPANY_LIST_PATTERNS)) {
+    for (let i = 0; i < headers.length; i++) {
+      if (patterns.some(p => p.test(headers[i]))) {
+        companyListMapping[field] = i;
+        break;
+      }
+    }
+  }
+
+  // Use the generic mapping's company/website columns as fallback
+  const companyCol = mapping.company ?? companyListMapping.company;
+  const domainCol = mapping.website ?? companyListMapping.domain;
+  const locationCol = companyListMapping.location;
+  const notesCol = companyListMapping.notes;
+
+  const companies: CompanyRow[] = [];
+  const errors: string[] = [];
+  let skipped = 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => !String(c).trim())) {
+      skipped++;
+      continue;
+    }
+
+    try {
+      const company = clean(row[companyCol ?? -1]);
+      const rawDomain = clean(row[domainCol ?? -1]);
+
+      if (!company && !rawDomain) {
+        skipped++;
+        continue;
+      }
+
+      // Clean domain — strip protocol, trailing slashes, www prefix
+      let domain = rawDomain;
+      if (domain) {
+        domain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").replace(/^www\./i, "").trim();
+      }
+
+      companies.push({
+        company: company || domain || "",
+        domain,
+        location: clean(row[locationCol ?? -1]),
+        notes: clean(row[notesCol ?? -1]),
+        sourceRow: i + 1,
+      });
+    } catch (err) {
+      errors.push(`Row ${i + 1}: ${(err as Error).message}`);
+      skipped++;
+    }
+  }
+
+  return { companies, totalParsed: companies.length, skipped, errors };
 }
