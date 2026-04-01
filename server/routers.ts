@@ -129,7 +129,7 @@ import {
 } from "./campaignService";
 import { parseBlastContactList } from "./campaignImport";
 import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList, type ColumnMapping } from "./campaignCsvImport";
-import { searchContactsByDomain, getAvailableRoles } from "./hunterContactSearch";
+import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
 import { storagePut } from "./storage";
 
 export const appRouter = router({
@@ -2832,10 +2832,10 @@ export const appRouter = router({
         const withDomain = parsed.companies.filter(c => c.domain);
         const withoutDomain = parsed.companies.filter(c => !c.domain);
 
-        // Search contacts at companies with domains
-        let searchResult = null;
+        // Search contacts at companies with domains (via Hunter)
+        let domainSearchResult = null;
         if (withDomain.length > 0) {
-          searchResult = await searchContactsByDomain({
+          domainSearchResult = await searchContactsByDomain({
             domains: withDomain.map(c => c.domain!),
             targetRoles: input.targetRoles,
             customRolePatterns: input.customRolePatterns,
@@ -2843,15 +2843,42 @@ export const appRouter = router({
           });
         }
 
+        // Search contacts at companies without domains (via Apollo company name search)
+        let nameSearchResult = null;
+        if (withoutDomain.length > 0) {
+          nameSearchResult = await searchContactsByCompanyName({
+            companyNames: withoutDomain.map(c => c.company),
+            targetRoles: input.targetRoles,
+            customRolePatterns: input.customRolePatterns,
+            maxPerCompany: input.maxPerDomain ?? 10,
+          });
+        }
+
+        // Merge results from both searches
+        const allContacts = [
+          ...(domainSearchResult?.contacts || []),
+          ...(nameSearchResult?.contacts || []),
+        ];
+
+        const allBreakdown = [
+          ...(domainSearchResult?.domainBreakdown || []),
+          ...(nameSearchResult?.companyBreakdown || []).map(c => ({
+            domain: c.company, // use company name as domain placeholder
+            organization: c.company,
+            found: c.found,
+            filtered: c.filtered,
+          })),
+        ];
+
         return {
           companies: parsed.companies,
-          contacts: searchResult?.contacts || [],
-          domainsSearched: searchResult?.domainsSearched || 0,
-          domainsWithResults: searchResult?.domainsWithResults || 0,
-          totalFound: searchResult?.totalFound || 0,
-          totalFiltered: searchResult?.totalFiltered || 0,
-          domainBreakdown: searchResult?.domainBreakdown || [],
-          companiesWithoutDomain: withoutDomain.map(c => c.company),
+          contacts: allContacts,
+          domainsSearched: (domainSearchResult?.domainsSearched || 0) + (nameSearchResult?.companiesSearched || 0),
+          domainsWithResults: (domainSearchResult?.domainsWithResults || 0) + (nameSearchResult?.companiesWithResults || 0),
+          totalFound: (domainSearchResult?.totalFound || 0) + (nameSearchResult?.totalFound || 0),
+          totalFiltered: (domainSearchResult?.totalFiltered || 0) + (nameSearchResult?.totalFiltered || 0),
+          domainBreakdown: allBreakdown,
+          companiesWithoutDomain: [], // No longer "without domain" — we searched them by name
         };
       }),
 

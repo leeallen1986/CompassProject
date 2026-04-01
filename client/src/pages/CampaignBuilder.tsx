@@ -776,34 +776,38 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                             </h4>
                           </div>
 
-                          {/* Domain Breakdown */}
+                          {/* Company/Domain Breakdown */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                            {companySearchResult.domainBreakdown.filter(d => d.filtered > 0).map(d => (
-                              <div key={d.domain} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100">
+                            {companySearchResult.domainBreakdown.filter((d: any) => d.filtered > 0).map((d: any) => (
+                              <div key={d.domain || d.organization} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100">
                                 <div>
-                                  <p className="text-xs font-semibold text-navy">{d.organization}</p>
-                                  <p className="text-[10px] text-muted-foreground">{d.domain}</p>
+                                  <p className="text-xs font-semibold text-navy">{d.organization || d.domain}</p>
+                                  {d.domain && d.domain !== d.organization && (
+                                    <p className="text-[10px] text-muted-foreground">{d.domain}</p>
+                                  )}
                                 </div>
                                 <Badge className="bg-teal/15 text-teal text-[10px]">{d.filtered} contacts</Badge>
                               </div>
                             ))}
                           </div>
 
-                          {/* Companies without domain */}
-                          {companySearchResult.companiesWithoutDomain.length > 0 && (
-                            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mt-2">
+                          {/* Companies with no results */}
+                          {companySearchResult.domainBreakdown.filter((d: any) => d.filtered === 0).length > 0 && (
+                            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-3">
                               <p className="text-xs text-amber-700 font-medium mb-1">
                                 <AlertCircle className="w-3 h-3 inline mr-1" />
-                                {companySearchResult.companiesWithoutDomain.length} companies had no domain — could not search:
+                                {companySearchResult.domainBreakdown.filter((d: any) => d.filtered === 0).length} companies had no matching contacts:
                               </p>
                               <p className="text-xs text-amber-600">
-                                {companySearchResult.companiesWithoutDomain.join(", ")}
+                                {companySearchResult.domainBreakdown.filter((d: any) => d.filtered === 0).map((d: any) => d.organization || d.domain).join(", ")}
                               </p>
                               <p className="text-[10px] text-amber-500 mt-1">
-                                Tip: Add a "Domain" or "Website" column to your spreadsheet for better results.
+                                Try broadening the target roles or adding domains to your spreadsheet.
                               </p>
                             </div>
                           )}
+
+
                         </div>
 
                         {/* Sample Contacts Table */}
@@ -826,7 +830,13 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                                     </td>
                                     <td className="px-3 py-2 text-muted-foreground">{c.title || "—"}</td>
                                     <td className="px-3 py-2">{c.company}</td>
-                                    <td className="px-3 py-2 text-teal">{c.email || "—"}</td>
+                                    <td className="px-3 py-2">
+                                      {c.email ? (
+                                        <span className="text-teal">{c.email}</span>
+                                      ) : (
+                                        <span className="text-amber-500 text-[10px]">Needs enrichment</span>
+                                      )}
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>

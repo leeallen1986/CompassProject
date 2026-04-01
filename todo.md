@@ -869,3 +869,9 @@
 - [x] Add confirmation dialog for delete with campaign name shown
 - [x] Add edit dialog with all campaign fields (name, description, sender, segment)
 - [x] Test edit and delete in browser — both working correctly
+
+## Campaign — Company Name-Only Search Fix
+- [x] Update searchCompanyContacts to search by company name when domain is missing (Apollo people search with q_organization_name)
+- [x] Add searchContactsByCompanyName function to hunterContactSearch.ts
+- [x] Update frontend to show company-name search results without "no domain" warning
+- [x] Show "Needs enrichment" label for contacts found via Apollo (no email until enrichment)

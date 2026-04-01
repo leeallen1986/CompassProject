@@ -291,6 +291,7 @@ export async function getCreditUsageSummary(options?: {
  */
 export async function apolloPeopleSearch(params: {
   organizationDomains?: string[];
+  organizationName?: string;
   personTitles?: string[];
   personSeniorities?: string[];
   personLocations?: string[];
@@ -308,6 +309,9 @@ export async function apolloPeopleSearch(params: {
 
   if (params.organizationDomains?.length) {
     body.q_organization_domains_list = params.organizationDomains;
+  }
+  if (params.organizationName) {
+    body.q_organization_name = params.organizationName;
   }
   if (params.personTitles?.length) {
     body.person_titles = params.personTitles;
