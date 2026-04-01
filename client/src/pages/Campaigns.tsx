@@ -27,6 +27,7 @@ import {
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
   Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus,
 } from "lucide-react";
+import { Link } from "wouter";
 import CampaignBuilder from "./CampaignBuilder";
 
 // ── Types ──
@@ -181,6 +182,11 @@ function CampaignList({ campaigns, onSelect, onCreate, isLoading }: {
   if (campaigns.length === 0) {
     return (
       <div className="container py-8">
+        <Link href="/">
+          <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-navy transition-colors mb-4">
+            <ChevronLeft className="w-4 h-4" /> Back to Dashboard
+          </button>
+        </Link>
         <div className="text-center py-16">
           <Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold text-navy mb-2">No Campaigns Yet</h2>
@@ -199,6 +205,11 @@ function CampaignList({ campaigns, onSelect, onCreate, isLoading }: {
     <div className="container py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
+          <Link href="/">
+            <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-navy transition-colors mb-2">
+              <ChevronLeft className="w-4 h-4" /> Back to Dashboard
+            </button>
+          </Link>
           <h1 className="text-2xl font-bold text-navy">Campaigns</h1>
           <p className="text-sm text-muted-foreground mt-1">Targeted outreach campaigns with collateral intelligence</p>
         </div>

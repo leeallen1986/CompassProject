@@ -839,3 +839,6 @@
 - [x] Wire enrichment pipeline into campaign creation flow
 - [x] Vitest tests for campaign builder endpoints (CSV parser + role filtering tests)
 - [x] End-to-end browser test (DrillAir X1350 campaign created and verified)
+
+## UI Fix
+- [x] Add back-to-dashboard navigation button on Campaigns list page
