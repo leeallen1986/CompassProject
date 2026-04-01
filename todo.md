@@ -812,3 +812,8 @@
 - [x] Update enrichment buttons to show waterfall label (Enrich 25/100 Apollo → Hunter)
 - [x] Backfill enrichmentSource for 20 existing Apollo-enriched contacts
 - [x] Vitest tests for enrichment badge logic, filter logic, scoring, and waterfall flow (1510 tests passing)
+
+## Run Hunter.io Enrichment on Hot Tier Contacts
+- [x] Check current Hot tier contacts needing enrichment (Apollo missed)
+- [x] Run waterfall enrichment on Hot contacts via the API (192 enriched by Hunter.io)
+- [x] Review enrichment results (Apollo vs Hunter breakdown) - verified in UI with badges
