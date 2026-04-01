@@ -217,10 +217,34 @@ export async function listCampaigns(): Promise<Campaign[]> {
   return db.select().from(campaigns).orderBy(desc(campaigns.createdAt));
 }
 
+export async function updateCampaign(id: number, data: {
+  name?: string;
+  description?: string;
+  collateralId?: number | null;
+  collateralName?: string;
+  senderName?: string;
+  senderEmail?: string;
+  senderTitle?: string;
+  targetSegment?: string;
+  status?: "draft" | "active" | "paused" | "completed";
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(campaigns).set(data).where(eq(campaigns.id, id));
+}
+
 export async function updateCampaignStatus(id: number, status: "draft" | "active" | "paused" | "completed"): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(campaigns).set({ status }).where(eq(campaigns.id, id));
+}
+
+export async function deleteCampaign(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  // Delete all contacts first, then the campaign
+  await db.delete(campaignContacts).where(eq(campaignContacts.campaignId, id));
+  await db.delete(campaigns).where(eq(campaigns.id, id));
 }
 
 export async function updateCampaignStats(campaignId: number): Promise<void> {

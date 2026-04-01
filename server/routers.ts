@@ -121,7 +121,7 @@ import {
   APPLICATION_TAGS, SECTOR_TAGS, PRODUCT_LINES,
 } from "./collateralService";
 import {
-  createCampaign, getCampaign, listCampaigns, updateCampaignStatus,
+  createCampaign, getCampaign, listCampaigns, updateCampaign, updateCampaignStatus, deleteCampaign,
   getCampaignContacts, getCampaignContact, getCampaignStats,
   importCampaignContacts, matchContactsToProjects,
   generateCampaignEmail, approveEmail, rejectEmail, updateDraft, sendApprovedEmail, markEmailAsSent,
@@ -2517,6 +2517,24 @@ export const appRouter = router({
         return createCampaign({ ...input, createdBy: ctx.user!.id });
       }),
 
+    /** Update campaign details */
+    update: campaignProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).optional(),
+        description: z.string().optional(),
+        collateralName: z.string().optional(),
+        senderName: z.string().min(1).optional(),
+        senderEmail: z.string().email().optional(),
+        senderTitle: z.string().optional(),
+        targetSegment: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await updateCampaign(id, data);
+        return { success: true };
+      }),
+
     /** Update campaign status */
     updateStatus: campaignProcedure
       .input(z.object({
@@ -2525,6 +2543,14 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         await updateCampaignStatus(input.id, input.status);
+        return { success: true };
+      }),
+
+    /** Delete a campaign and all its contacts */
+    delete: campaignProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCampaign(input.id);
         return { success: true };
       }),
 

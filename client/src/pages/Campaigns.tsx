@@ -25,7 +25,7 @@ import {
   Megaphone, Users, Mail, CheckCircle2, Send, Search,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
-  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus,
+  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2,
 } from "lucide-react";
 import { Link } from "wouter";
 import CampaignBuilder from "./CampaignBuilder";
@@ -142,6 +142,7 @@ export default function Campaigns() {
       onSelect={setSelectedCampaignId}
       onCreate={() => setShowBuilder(true)}
       isLoading={campaignsQuery.isLoading}
+      onRefresh={() => campaignsQuery.refetch()}
     />;
   }
 
@@ -157,17 +158,53 @@ export default function Campaigns() {
     onSelect={setSelectedCampaignId}
     onCreate={() => setShowBuilder(true)}
     isLoading={campaignsQuery.isLoading}
+    onRefresh={() => campaignsQuery.refetch()}
   />;
 }
 
 // ── Campaign List ──
 
-function CampaignList({ campaigns, onSelect, onCreate, isLoading }: {
+function CampaignList({ campaigns, onSelect, onCreate, isLoading, onRefresh }: {
   campaigns: any[];
   onSelect: (id: number) => void;
   onCreate: () => void;
   isLoading: boolean;
+  onRefresh: () => void;
 }) {
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", senderName: "", senderEmail: "", senderTitle: "", targetSegment: "" });
+
+  const deleteMut = trpc.campaign.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Campaign deleted");
+      setDeleteTarget(null);
+      onRefresh();
+    },
+    onError: (err) => toast.error("Failed to delete: " + err.message),
+  });
+
+  const updateMut = trpc.campaign.update.useMutation({
+    onSuccess: () => {
+      toast.success("Campaign updated");
+      setEditTarget(null);
+      onRefresh();
+    },
+    onError: (err) => toast.error("Failed to update: " + err.message),
+  });
+
+  const openEdit = (c: any) => {
+    setEditTarget(c);
+    setEditForm({
+      name: c.name || "",
+      description: c.description || "",
+      senderName: c.senderName || "",
+      senderEmail: c.senderEmail || "",
+      senderTitle: c.senderTitle || "",
+      targetSegment: c.targetSegment || "",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="container py-8">
@@ -222,7 +259,7 @@ function CampaignList({ campaigns, onSelect, onCreate, isLoading }: {
         {campaigns.map((c: any) => (
           <Card
             key={c.id}
-            className="cursor-pointer hover:shadow-md transition-shadow border-border"
+            className="cursor-pointer hover:shadow-md transition-shadow border-border group"
             onClick={() => onSelect(c.id)}
           >
             <CardContent className="p-5">
@@ -250,16 +287,132 @@ function CampaignList({ campaigns, onSelect, onCreate, isLoading }: {
                     <span className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> {c.collateralName || "No collateral"}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground">From</div>
-                  <div className="text-sm font-semibold text-navy">{c.senderName}</div>
-                  <div className="text-xs text-muted-foreground">{c.senderEmail}</div>
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openEdit(c); }}
+                      className="p-1.5 rounded-md hover:bg-slate-100 text-muted-foreground hover:text-navy transition-colors"
+                      title="Edit campaign"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: c.id, name: c.name }); }}
+                      className="p-1.5 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
+                      title="Delete campaign"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">From</div>
+                    <div className="text-sm font-semibold text-navy">{c.senderName}</div>
+                    <div className="text-xs text-muted-foreground">{c.senderEmail}</div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Campaign</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This will permanently remove the campaign and all its contacts. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleteMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteMut.mutate({ id: deleteTarget.id })}
+              disabled={deleteMut.isPending}
+            >
+              {deleteMut.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Deleting...</> : "Delete Campaign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Campaign Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Campaign</DialogTitle>
+            <DialogDescription>Update the campaign details below.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-foreground">Campaign Name</label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Campaign name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Description</label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Campaign description"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Sender Name</label>
+                <Input
+                  value={editForm.senderName}
+                  onChange={(e) => setEditForm(f => ({ ...f, senderName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Sender Email</label>
+                <Input
+                  value={editForm.senderEmail}
+                  onChange={(e) => setEditForm(f => ({ ...f, senderEmail: e.target.value }))}
+                  type="email"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Sender Title</label>
+                <Input
+                  value={editForm.senderTitle}
+                  onChange={(e) => setEditForm(f => ({ ...f, senderTitle: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Target Segment</label>
+                <Input
+                  value={editForm.targetSegment}
+                  onChange={(e) => setEditForm(f => ({ ...f, targetSegment: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={updateMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-navy hover:bg-navy/90 text-white"
+              onClick={() => editTarget && updateMut.mutate({ id: editTarget.id, ...editForm })}
+              disabled={updateMut.isPending || !editForm.name.trim()}
+            >
+              {updateMut.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

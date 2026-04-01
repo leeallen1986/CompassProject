@@ -862,3 +862,10 @@
 - [x] Update campaign builder UI with company-list detection and target role selection
 - [x] Improve UX messaging for company-level imports vs contact-level imports
 - [x] Vitest tests for company-import flow (12 tests: analyseImportFile, parseCompanyList, previewImportFile)
+
+## Campaign List — Edit & Delete Actions
+- [x] Add delete campaign backend endpoint (deleteCampaign + updateCampaign in campaignService)
+- [x] Add edit/delete action buttons to campaign cards on list page (hover-reveal icons)
+- [x] Add confirmation dialog for delete with campaign name shown
+- [x] Add edit dialog with all campaign fields (name, description, sender, segment)
+- [x] Test edit and delete in browser — both working correctly
