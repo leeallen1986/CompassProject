@@ -875,3 +875,11 @@
 - [x] Add searchContactsByCompanyName function to hunterContactSearch.ts
 - [x] Update frontend to show company-name search results without "no domain" warning
 - [x] Show "Needs enrichment" label for contacts found via Apollo (no email until enrichment)
+
+## Campaign — Fix Waterfall Enrichment for Apollo-Sourced Contacts
+- [x] Fix enrichment to handle contacts with Apollo IDs and obfuscated last names
+- [x] Add Path A (direct enrichment via stored Apollo ID) to enrichCampaignContacts
+- [x] Extract and store apolloPersonId from reviewNotes during import
+- [x] Backfill 56 existing CDR Rental Campaign contacts with Apollo IDs from reviewNotes
+- [x] Reset 55 not_found contacts back to pending for re-enrichment via Path A
+- [x] Update names (firstName/lastName) when Apollo enrichment reveals full names

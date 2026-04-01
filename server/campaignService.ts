@@ -339,6 +339,13 @@ export async function importCampaignContacts(
 
     const enrichmentStatus = c.email ? "not_needed" : "pending";
 
+    // Extract Apollo ID from reviewNotes if present (e.g. "Apollo ID: abc123")
+    let apolloPersonId: string | undefined;
+    if (c.reviewNotes) {
+      const apolloIdMatch = c.reviewNotes.match(/Apollo ID:\s*(.+)/i);
+      if (apolloIdMatch) apolloPersonId = apolloIdMatch[1].trim();
+    }
+
     batch.push({
       campaignId,
       firstName: c.firstName,
@@ -357,6 +364,7 @@ export async function importCampaignContacts(
       sourceRow: c.sourceRow,
       nameCheckStatus: c.nameCheckStatus,
       reviewNotes: c.reviewNotes,
+      apolloPersonId,
     });
 
     tierBreakdown[scoring.tier]++;
@@ -848,7 +856,10 @@ export async function enrichCampaignContacts(
   let hunterFound = 0;
   let apolloFound = 0;
 
-  // ── Step 1: Apollo enrichment (existing, runs first as it's already paid) ──
+  // ── Step 1: Apollo enrichment ──
+  // Two paths:
+  //   A) Contact has apolloPersonId stored → direct enrichment via People Enrichment API (1 credit)
+  //   B) Contact has no apolloPersonId → search first, then enrich best match
   console.log(`[Campaign] Starting waterfall enrichment for ${toEnrich.length} contacts`);
   console.log(`[Campaign] Step 1: Apollo enrichment...`);
 
@@ -857,6 +868,82 @@ export async function enrichCampaignContacts(
   for (const contact of toEnrich) {
     try {
       const companyName = contact.reviewedCompanyName || contact.company;
+
+      // ── Path A: Direct enrichment via stored Apollo ID ──
+      if (contact.apolloPersonId) {
+        console.log(`[Campaign] Direct Apollo enrich for contact ${contact.id} (Apollo ID: ${contact.apolloPersonId})`);
+
+        const apolloResult: ApolloEnrichmentResult = {
+          contactId: contact.id,
+          apolloId: contact.apolloPersonId,
+          name: `${contact.firstName || ""} ${contact.lastName || ""}`.trim(),
+          firstName: contact.firstName || "",
+          lastNameObfuscated: contact.lastName ?? undefined,
+          title: contact.title || "",
+          company: companyName,
+          email: null, emailStatus: null, linkedinUrl: null, photoUrl: null,
+          city: null, state: null, country: null, seniority: null,
+          hasEmail: true, status: "found",
+        };
+
+        const enrichedResult = await enrichSingleContact(apolloResult, {
+          userId: options?.userId ?? 0,
+          userName: options?.userName ?? "campaign_system",
+        });
+
+        if (enrichedResult.status === "enriched" && enrichedResult.email) {
+          await db.update(campaignContacts).set({
+            enrichmentStatus: "enriched",
+            enrichmentSource: "apollo",
+            apolloPersonId: enrichedResult.apolloId,
+            firstName: enrichedResult.firstName || contact.firstName,
+            lastName: enrichedResult.name?.split(" ").slice(1).join(" ") || contact.lastName,
+            enrichedEmail: enrichedResult.email,
+            enrichedTitle: enrichedResult.title,
+            enrichedLinkedin: enrichedResult.linkedinUrl,
+            enrichedAt: new Date(),
+          }).where(eq(campaignContacts.id, contact.id));
+
+          const scoring = computeScore({
+            title: enrichedResult.title || contact.title,
+            email: enrichedResult.email,
+            mobile: contact.mobile,
+            matchedProjectCount: contact.matchedProjectCount,
+          });
+          await db.update(campaignContacts).set({
+            score: scoring.score, tier: scoring.tier,
+          }).where(eq(campaignContacts.id, contact.id));
+
+          enriched++;
+          apolloFound++;
+          creditsUsed++;
+          await new Promise(r => setTimeout(r, 300));
+          continue;
+        } else if (enrichedResult.status === "enriched" && !enrichedResult.email) {
+          // Apollo enriched but no email — update name at least, then try Hunter
+          await db.update(campaignContacts).set({
+            firstName: enrichedResult.firstName || contact.firstName,
+            lastName: enrichedResult.name?.split(" ").slice(1).join(" ") || contact.lastName,
+            apolloPersonId: enrichedResult.apolloId,
+          }).where(eq(campaignContacts.id, contact.id));
+          creditsUsed++;
+          apolloMissed.push({
+            ...contact,
+            firstName: enrichedResult.firstName || contact.firstName,
+            lastName: enrichedResult.name?.split(" ").slice(1).join(" ") || contact.lastName,
+            company: enrichedResult.company || contact.company,
+          });
+          await new Promise(r => setTimeout(r, 300));
+          continue;
+        }
+
+        // Enrichment failed — fall through to Hunter
+        apolloMissed.push(contact);
+        await new Promise(r => setTimeout(r, 300));
+        continue;
+      }
+
+      // ── Path B: Search-then-enrich (no stored Apollo ID) ──
       let domain: string | undefined;
       if (contact.email) {
         const match = contact.email.match(/@(.+)/);
