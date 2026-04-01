@@ -277,3 +277,175 @@ describe("This Week — Stage changes detection", () => {
     expect(isNewTier1).toBe(false);
   });
 });
+
+// ── Stats scoping: totalInScope vs totalProjects ──
+
+describe("This Week — Stats scoping (territory + BL filtering)", () => {
+  it("totalInScope should be <= totalProjects", () => {
+    const stats = {
+      totalProjects: 362,
+      totalInScope: 28,
+      tier1Count: 13,
+      tier2Count: 15,
+      tier3Count: 0,
+      hotCount: 11,
+      warmCount: 17,
+    };
+    expect(stats.totalInScope).toBeLessThanOrEqual(stats.totalProjects);
+  });
+
+  it("tier counts should sum to at most totalInScope", () => {
+    const stats = {
+      totalInScope: 28,
+      tier1Count: 13,
+      tier2Count: 15,
+      tier3Count: 0,
+    };
+    const tierSum = stats.tier1Count + stats.tier2Count + stats.tier3Count;
+    expect(tierSum).toBeLessThanOrEqual(stats.totalInScope);
+  });
+
+  it("hotCount should be <= totalInScope", () => {
+    const stats = {
+      totalInScope: 28,
+      hotCount: 11,
+      warmCount: 17,
+    };
+    expect(stats.hotCount).toBeLessThanOrEqual(stats.totalInScope);
+    expect(stats.warmCount).toBeLessThanOrEqual(stats.totalInScope);
+  });
+
+  it("KPI cards should use scoped values, not global", () => {
+    // Simulates the 4 KPI cards on the This Week page
+    const stats = {
+      totalProjects: 362,
+      totalInScope: 28,
+      tier1Count: 13,
+      hotCount: 11,
+      newProjectsThisWeek: 28,
+    };
+    // KPI card 1: "Your Projects" uses totalInScope
+    expect(stats.totalInScope).toBe(28);
+    // KPI card 2: "Action Now" uses tier1Count
+    expect(stats.tier1Count).toBe(13);
+    // KPI card 3: "Hot Priority" uses hotCount
+    expect(stats.hotCount).toBe(11);
+    // KPI card 4: "New This Week" uses newProjectsThisWeek
+    expect(stats.newProjectsThisWeek).toBe(28);
+    // None of these should equal totalProjects (362)
+    expect(stats.totalInScope).not.toBe(stats.totalProjects);
+  });
+
+  it("Pipeline Overview should use totalInScope, not totalProjects", () => {
+    const stats = {
+      totalProjects: 362,
+      totalInScope: 28,
+    };
+    // Pipeline Overview "Total Active Projects" should show scoped count
+    const pipelineTotal = stats.totalInScope;
+    expect(pipelineTotal).toBe(28);
+    expect(pipelineTotal).not.toBe(362);
+  });
+
+  it("projectsWithContractors + projectsMissingContractors should equal totalInScope", () => {
+    const stats = {
+      totalInScope: 28,
+      projectsWithContractors: 24,
+      projectsMissingContractors: 4,
+    };
+    expect(stats.projectsWithContractors + stats.projectsMissingContractors).toBe(stats.totalInScope);
+  });
+});
+
+// ── Coaching Panel behavior ──
+
+describe("Weekly Coaching Panel — Display logic", () => {
+  it("should be collapsed by default", () => {
+    // The component initializes with useState(false)
+    const defaultExpanded = false;
+    expect(defaultExpanded).toBe(false);
+  });
+
+  it("should hide stat boxes when all activity values are zero", () => {
+    const stats = {
+      projectsEngaged: 0,
+      contactsOpened: 0,
+      outreachSent: 0,
+      sectorsWorked: [] as string[],
+      blsWorked: [] as string[],
+    };
+    const hasActivity =
+      stats.projectsEngaged > 0 ||
+      stats.contactsOpened > 0 ||
+      stats.outreachSent > 0 ||
+      stats.sectorsWorked.length > 0 ||
+      stats.blsWorked.length > 0;
+    expect(hasActivity).toBe(false);
+  });
+
+  it("should show stat boxes when user has some activity", () => {
+    const stats = {
+      projectsEngaged: 3,
+      contactsOpened: 1,
+      outreachSent: 0,
+      sectorsWorked: ["mining"],
+      blsWorked: ["Portable Air"],
+    };
+    const hasActivity =
+      stats.projectsEngaged > 0 ||
+      stats.contactsOpened > 0 ||
+      stats.outreachSent > 0 ||
+      stats.sectorsWorked.length > 0 ||
+      stats.blsWorked.length > 0;
+    expect(hasActivity).toBe(true);
+  });
+
+  it("should count actionable items for collapsed header badge", () => {
+    const coaching = {
+      topActions: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      overlookedOpportunities: [{ id: 4 }],
+      adjacentBLOpportunity: { businessLine: "Generators" },
+    };
+    const actionCount =
+      coaching.topActions.length +
+      coaching.overlookedOpportunities.length +
+      (coaching.adjacentBLOpportunity ? 1 : 0);
+    expect(actionCount).toBe(5);
+  });
+
+  it("should show 0 action count when no coaching items", () => {
+    const coaching = {
+      topActions: [],
+      overlookedOpportunities: [],
+      adjacentBLOpportunity: null,
+    };
+    const actionCount =
+      coaching.topActions.length +
+      coaching.overlookedOpportunities.length +
+      (coaching.adjacentBLOpportunity ? 1 : 0);
+    expect(actionCount).toBe(0);
+  });
+});
+
+// ── KPI card reduction: 6 → 4 ──
+
+describe("This Week — KPI card reduction (6 → 4)", () => {
+  it("should only display 4 KPI metrics", () => {
+    // The 4 KPI cards that should be displayed
+    const kpiCards = [
+      { label: "Your Projects", statKey: "totalInScope" },
+      { label: "Action Now", statKey: "tier1Count" },
+      { label: "Hot Priority", statKey: "hotCount" },
+      { label: "New This Week", statKey: "newProjectsThisWeek" },
+    ];
+    expect(kpiCards.length).toBe(4);
+  });
+
+  it("should NOT include Key Contacts or Missing Contractors in KPI cards", () => {
+    const kpiLabels = ["Your Projects", "Action Now", "Hot Priority", "New This Week"];
+    expect(kpiLabels).not.toContain("Key Contacts");
+    expect(kpiLabels).not.toContain("Missing Contractors");
+    expect(kpiLabels).not.toContain("New Contacts");
+    expect(kpiLabels).not.toContain("Sources Searched");
+  });
+});

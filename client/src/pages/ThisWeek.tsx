@@ -233,14 +233,12 @@ export default function ThisWeek() {
       {/* ── Main Content ── */}
       <main className="container py-6 sm:py-8 space-y-6">
 
-        {/* ── KPI Strip ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-          <KPICard value={stats.tier1Count} label="Action Now" accent="teal" icon={<Zap className="w-4 h-4" />} />
-          <KPICard value={stats.hotCount} label="Hot Projects" accent="hot" icon={<Flame className="w-4 h-4" />} />
-          <KPICard value={stats.newProjectsThisWeek} label="New This Week" accent="gold" icon={<Sparkles className="w-4 h-4" />} />
-          <KPICard value={stats.newContactsThisWeek} label="New Contacts" accent="teal" icon={<UserPlus className="w-4 h-4" />} />
-          <KPICard value={stats.highRelevanceContacts} label="Key Contacts" accent="gold" icon={<Users className="w-4 h-4" />} />
-          <KPICard value={stats.projectsMissingContractors} label="Missing Contractors" accent="warm" icon={<AlertTriangle className="w-4 h-4" />} />
+        {/* ── KPI Strip ── 4 focused, scoped metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KPICard value={stats.totalInScope} label="Your Projects" accent="teal" icon={<BarChart3 className="w-4 h-4" />} />
+          <KPICard value={stats.tier1Count} label="Action Now" accent="hot" icon={<Zap className="w-4 h-4" />} />
+          <KPICard value={stats.hotCount} label="Hot Priority" accent="gold" icon={<Flame className="w-4 h-4" />} />
+          <KPICard value={stats.newProjectsThisWeek} label="New This Week" accent="warm" icon={<Sparkles className="w-4 h-4" />} />
         </div>
 
         {/* ── Weekly Coaching Panel ── */}
@@ -299,7 +297,7 @@ export default function ThisWeek() {
                 Top Priority Projects
               </h2>
               <Link href="/dashboard" className="text-xs text-teal hover:text-teal-light flex items-center gap-1 font-semibold transition-colors">
-                View all {stats.totalProjects} projects <ArrowRight className="w-3.5 h-3.5" />
+                View all {stats.totalInScope} projects <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
@@ -579,7 +577,7 @@ export default function ThisWeek() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <StatRow label="Total Active Projects" value={stats.totalProjects} />
+                  <StatRow label="Total Active Projects" value={stats.totalInScope} />
                   <Separator />
                   <StatRow label="Action Now" value={stats.tier1Count} color="text-emerald-600" />
                   <StatRow label="Warm" value={stats.tier2Count} color="text-amber-600" />

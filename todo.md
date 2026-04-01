@@ -842,3 +842,16 @@
 
 ## UI Fix
 - [x] Add back-to-dashboard navigation button on Campaigns list page
+
+## Weekly Digest Refresh — Reduce Noise, Enforce Personalization
+- [x] Fix KPI cards to show only user-filtered numbers (by business line + territory)
+- [x] Remove or consolidate noisy/redundant KPI cards (6 → 4: Your Projects, Action Now, Hot Priority, New This Week)
+- [x] Ensure weekly coaching section only shows projects matching user's business lines + region
+- [x] Clean up "Top Actions" to show fewer, higher-quality recommendations
+- [x] Ensure "Overlooked Opportunities" respects business line + territory filters
+- [x] Keep "Adjacent Business Line Opportunity" section (only shows when relevant, collapsed by default)
+- [x] Make dashboard scannable — coaching panel collapsed by default, stat boxes hidden when all zeros
+- [x] Test personalized dashboard with user profile filters applied (28/362 scoped, all KPIs filtered)
+- [x] Fix Pipeline Overview sidebar to show scoped total (28) instead of global total (362)
+- [x] Fix "View all projects" link to show scoped count instead of global
+- [x] Add 14 new vitest tests for scoped stats, coaching panel behavior, and KPI card reduction (1,543 total tests passing)

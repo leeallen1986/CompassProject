@@ -9,13 +9,14 @@
  * - Too-late warning
  * - Focus insight + coverage note
  *
+ * Collapsed by default to reduce noise. Stats hidden when all zeros.
  * Framed as a sharp sales coordinator, not performance surveillance.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import {
-  Sparkles, Target, Eye, TrendingUp, Clock, AlertTriangle,
+  Sparkles, Target, Eye, TrendingUp, Clock,
   ChevronDown, ChevronUp, Loader2, Zap, BarChart3,
   ArrowRight, Lightbulb, Shield, Layers
 } from "lucide-react";
@@ -37,13 +38,36 @@ const actionTypeIcons: Record<string, React.ReactNode> = {
 };
 
 export default function WeeklyCoachingPanel() {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false); // collapsed by default
   const [, navigate] = useLocation();
 
   const { data: coaching, isLoading, error } = trpc.coaching.weekly.useQuery(undefined, {
     staleTime: 1000 * 60 * 60, // 1 hour
     retry: 1,
   });
+
+  // Compute whether any stats are non-zero
+  const hasActivity = useMemo(() => {
+    if (!coaching?.stats) return false;
+    const s = coaching.stats;
+    return (
+      s.projectsEngaged > 0 ||
+      s.contactsOpened > 0 ||
+      s.outreachSent > 0 ||
+      s.sectorsWorked.length > 0 ||
+      s.blsWorked.length > 0
+    );
+  }, [coaching?.stats]);
+
+  // Count actionable items to show in collapsed header
+  const actionCount = useMemo(() => {
+    if (!coaching) return 0;
+    return (
+      coaching.topActions.length +
+      coaching.overlookedOpportunities.length +
+      (coaching.adjacentBLOpportunity ? 1 : 0)
+    );
+  }, [coaching]);
 
   if (isLoading) {
     return (
@@ -62,8 +86,11 @@ export default function WeeklyCoachingPanel() {
 
   return (
     <Card className="border-gold/30 overflow-hidden">
-      {/* Header */}
-      <CardHeader className="pb-2 bg-gradient-to-r from-gold/5 to-transparent">
+      {/* Header — always visible */}
+      <CardHeader
+        className="pb-2 bg-gradient-to-r from-gold/5 to-transparent cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-gold" />
@@ -71,17 +98,22 @@ export default function WeeklyCoachingPanel() {
             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gold/15 text-gold-dark">
               AI-Powered
             </span>
+            {!expanded && actionCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-navy/10 text-navy">
+                {actionCount} action{actionCount !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
           <Button
             variant="ghost"
             size="sm"
             className="h-7 px-2"
-            onClick={() => setExpanded(!expanded)}
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </div>
-        {/* Focus Insight — always visible */}
+        {/* Focus Insight — always visible as a one-liner */}
         <p className="text-sm text-foreground/70 mt-1 leading-relaxed italic">
           <Lightbulb className="w-3.5 h-3.5 inline mr-1 text-gold" />
           {coaching.focusInsight}
@@ -98,15 +130,24 @@ export default function WeeklyCoachingPanel() {
             </p>
           </div>
 
-          {/* Activity Stats */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <StatBadge value={coaching.stats.projectsEngaged} label="Projects Viewed" />
-            <StatBadge value={coaching.stats.totalActionable} label="Actionable" />
-            <StatBadge value={coaching.stats.contactsOpened} label="Contacts Opened" />
-            <StatBadge value={coaching.stats.outreachSent} label="Outreach Sent" />
-            <StatBadge value={coaching.stats.sectorsWorked.length} label="Sectors" />
-            <StatBadge value={coaching.stats.blsWorked.length} label="Business Lines" />
-          </div>
+          {/* Activity Stats — only show when user has some activity */}
+          {hasActivity && (
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {coaching.stats.projectsEngaged > 0 && (
+                <StatBadge value={coaching.stats.projectsEngaged} label="Projects Viewed" />
+              )}
+              <StatBadge value={coaching.stats.totalActionable} label="Actionable" />
+              {coaching.stats.contactsOpened > 0 && (
+                <StatBadge value={coaching.stats.contactsOpened} label="Contacts Opened" />
+              )}
+              {coaching.stats.outreachSent > 0 && (
+                <StatBadge value={coaching.stats.outreachSent} label="Outreach Sent" />
+              )}
+              {coaching.stats.sectorsWorked.length > 0 && (
+                <StatBadge value={coaching.stats.sectorsWorked.length} label="Sectors" />
+              )}
+            </div>
+          )}
 
           {/* Top 5 Actions */}
           {coaching.topActions.length > 0 && (
@@ -189,36 +230,38 @@ export default function WeeklyCoachingPanel() {
           )}
 
           {/* Early Stage + Too Late row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Early Stage Warm Up */}
-            {coaching.earlyStageWarmUp && (
-              <button
-                onClick={() => navigate(`/dashboard?project=${coaching.earlyStageWarmUp!.projectId}`)}
-                className="text-left rounded-md border border-blue-200 bg-blue-50/50 px-3 py-2.5 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Layers className="w-3.5 h-3.5 text-blue-600" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Worth Warming Up</span>
-                </div>
-                <div className="text-xs font-semibold text-navy">{coaching.earlyStageWarmUp.projectName}</div>
-                <div className="text-[10px] text-muted-foreground mb-1">{coaching.earlyStageWarmUp.stage}</div>
-                <p className="text-[11px] text-foreground/60 leading-relaxed">{coaching.earlyStageWarmUp.whyWarmUp}</p>
-              </button>
-            )}
+          {(coaching.earlyStageWarmUp || coaching.tooLateProject) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Early Stage Warm Up */}
+              {coaching.earlyStageWarmUp && (
+                <button
+                  onClick={() => navigate(`/dashboard?project=${coaching.earlyStageWarmUp!.projectId}`)}
+                  className="text-left rounded-md border border-blue-200 bg-blue-50/50 px-3 py-2.5 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Layers className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Worth Warming Up</span>
+                  </div>
+                  <div className="text-xs font-semibold text-navy">{coaching.earlyStageWarmUp.projectName}</div>
+                  <div className="text-[10px] text-muted-foreground mb-1">{coaching.earlyStageWarmUp.stage}</div>
+                  <p className="text-[11px] text-foreground/60 leading-relaxed">{coaching.earlyStageWarmUp.whyWarmUp}</p>
+                </button>
+              )}
 
-            {/* Too Late Warning */}
-            {coaching.tooLateProject && (
-              <div className="rounded-md border border-slate-200 bg-slate-50/50 px-3 py-2.5">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Probably Too Late</span>
+              {/* Too Late Warning */}
+              {coaching.tooLateProject && (
+                <div className="rounded-md border border-slate-200 bg-slate-50/50 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Probably Too Late</span>
+                  </div>
+                  <div className="text-xs font-semibold text-slate-700">{coaching.tooLateProject.projectName}</div>
+                  <div className="text-[10px] text-muted-foreground mb-1">{coaching.tooLateProject.stage}</div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">{coaching.tooLateProject.whyTooLate}</p>
                 </div>
-                <div className="text-xs font-semibold text-slate-700">{coaching.tooLateProject.projectName}</div>
-                <div className="text-[10px] text-muted-foreground mb-1">{coaching.tooLateProject.stage}</div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">{coaching.tooLateProject.whyTooLate}</p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </CardContent>
       )}
     </Card>

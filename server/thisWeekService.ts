@@ -543,56 +543,28 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     (priorityOrder[b.priority] ?? 0) - (priorityOrder[a.priority] ?? 0)
   );
 
-  // ── 5. Stats ──
-  const newProjectsThisWeek = activeProjects.filter(p => p.isNew).length;
+  // ── 5. Stats ── (use rankedProjects = filtered by territory + BL)
+  const scopedProjects = rankedProjects; // already filtered by territory & BL above
+  const newProjectsThisWeek = scopedProjects.filter(p => p.isNew).length;
   const newContactsThisWeek = allContacts.filter(c => isRecent(c.createdAt)).length;
   const highRelevanceContacts = allContacts.filter(c => (c as any).roleRelevance === "high").length;
-  const projectsWithContractors = activeProjects.filter(p =>
+  const projectsWithContractors = scopedProjects.filter(p =>
     p.contractors && (p.contractors as any[]).length > 0
   ).length;
 
-  // Count in-scope projects (matching user territory or BL)
-  let totalInScope = activeProjects.length;
-  if (userContext.hasPreferences) {
-    totalInScope = activeProjects.filter(p => {
-      // Territory match
-      if (userContext.territories.length > 0) {
-        const loc = p.location.toLowerCase();
-        const stateKeywords: Record<string, string[]> = {
-          WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha"],
-          QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone"],
-          NSW: ["new south wales", "nsw", "sydney", "newcastle", "wollongong"],
-          VIC: ["victoria", "vic", "melbourne"],
-          SA: ["south australia", "sa", "adelaide"],
-          NT: ["northern territory", "nt", "darwin"],
-          TAS: ["tasmania", "tas", "hobart"],
-          ACT: ["act", "canberra"],
-        };
-        const matchesTerritory = userContext.territories.some(t => {
-          const kws = stateKeywords[t] || [t.toLowerCase()];
-          return kws.some(kw => loc.includes(kw));
-        });
-        if (matchesTerritory) return true;
-      }
-      // Sector match
-      if (userContext.sectorFocus.length > 0 && userContext.sectorFocus.includes(p.sector)) return true;
-      return userContext.territories.length === 0; // no territory filter = all in scope
-    }).length;
-  }
-
   const stats = {
     totalProjects: activeProjects.length,
-    totalInScope,
-    tier1Count: activeProjects.filter(p => (p as any).actionTier === "tier1_actionable").length,
-    tier2Count: activeProjects.filter(p => (p as any).actionTier === "tier2_warm").length,
-    tier3Count: activeProjects.filter(p => (p as any).actionTier === "tier3_monitor").length,
-    hotCount: activeProjects.filter(p => p.priority === "hot").length,
-    warmCount: activeProjects.filter(p => p.priority === "warm").length,
+    totalInScope: scopedProjects.length,
+    tier1Count: scopedProjects.filter(p => (p as any).actionTier === "tier1_actionable").length,
+    tier2Count: scopedProjects.filter(p => (p as any).actionTier === "tier2_warm").length,
+    tier3Count: scopedProjects.filter(p => (p as any).actionTier === "tier3_monitor").length,
+    hotCount: scopedProjects.filter(p => p.priority === "hot").length,
+    warmCount: scopedProjects.filter(p => p.priority === "warm").length,
     newProjectsThisWeek,
     newContactsThisWeek,
     highRelevanceContacts,
     projectsWithContractors,
-    projectsMissingContractors: activeProjects.length - projectsWithContractors,
+    projectsMissingContractors: scopedProjects.length - projectsWithContractors,
   };
 
   return {

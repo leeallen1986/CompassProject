@@ -1034,61 +1034,46 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container py-6 sm:py-8">
-        {/* Territory Filter Bar */}
-        {userTerritories.length > 0 && (
-          <div className="flex items-center justify-between gap-3 mb-3 bg-card rounded-lg border border-border px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-gold" />
-              <span className="text-xs font-semibold text-foreground">
-                {showAllTerritories ? "Showing all territories" : `Filtered to: ${userTerritories.join(", ")}`}
-              </span>
-              {!showAllTerritories && (
-                <span className="text-[10px] text-muted-foreground">
-                  ({territoryFiltered.length} of {personalizedProjects.length} projects)
-                </span>
-              )}
-            </div>
+        {/* Compact Filter Strip — Territory + Business Line in one row */}
+        <div className="flex items-center gap-2 mb-3 bg-card rounded-lg border border-border px-4 py-2.5 flex-wrap">
+          <Filter className="w-4 h-4 text-gold shrink-0" />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Scope:</span>
+
+          {/* Territory badge */}
+          {userTerritories.length > 0 && (
             <button
               onClick={() => setShowAllTerritories(!showAllTerritories)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                showAllTerritories
-                  ? "bg-gold/15 text-gold-dark border border-gold/30 hover:bg-gold/25"
-                  : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                !showAllTerritories
+                  ? "bg-teal/15 text-teal border border-teal/30"
+                  : "bg-card text-muted-foreground border border-border hover:border-teal/30"
               }`}
             >
-              <Filter className="w-3 h-3" />
-              {showAllTerritories ? "Apply Territory Filter" : "Show All Territories"}
+              <Globe className="w-3 h-3" />
+              {showAllTerritories ? "All Territories" : userTerritories.join(", ")}
             </button>
-          </div>
-        )}
+          )}
 
-        {/* Business Line Filter Bar */}
-        {userAssignedBLIds.size > 0 && profileData?.assignedBusinessLines && profileData.assignedBusinessLines.length > 0 && (
-          <div className="flex items-center justify-between gap-3 mb-3 bg-card rounded-lg border border-border px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-gold" />
-              <span className="text-xs font-semibold text-foreground">
-                {showAllBusinessLines ? "Showing all business lines" : `BL: ${profileData.assignedBusinessLines.join(", ")}`}
-              </span>
-              {!showAllBusinessLines && (
-                <span className="text-[10px] text-muted-foreground">
-                  ({blHardFiltered.length} of {territoryFiltered.length} projects)
-                </span>
-              )}
-            </div>
+          {/* Business Line badge */}
+          {userAssignedBLIds.size > 0 && profileData?.assignedBusinessLines && profileData.assignedBusinessLines.length > 0 && (
             <button
               onClick={() => setShowAllBusinessLines(!showAllBusinessLines)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                showAllBusinessLines
-                  ? "bg-gold/15 text-gold-dark border border-gold/30 hover:bg-gold/25"
-                  : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                !showAllBusinessLines
+                  ? "bg-gold/15 text-gold-dark border border-gold/30"
+                  : "bg-card text-muted-foreground border border-border hover:border-gold/30"
               }`}
             >
-              <Filter className="w-3 h-3" />
-              {showAllBusinessLines ? "Apply BL Filter" : "Show All BLs"}
+              <Briefcase className="w-3 h-3" />
+              {showAllBusinessLines ? "All BLs" : profileData.assignedBusinessLines.join(", ")}
             </button>
-          </div>
-        )}
+          )}
+
+          {/* Project count */}
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            {businessLineFiltered.length} of {personalizedProjects.length} projects in your scope
+          </span>
+        </div>
 
         {/* Action Tier Filter Bar */}
         <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
@@ -1274,16 +1259,12 @@ export default function Home() {
               <p className="text-sm text-foreground/70">{report.executiveSummaryChanges}</p>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              <KPICard value={tier1Count} label="Action Now" accent="teal" />
-              <KPICard value={tier2Count} label="Warm Opportunity" accent="gold" />
-              <KPICard value={tier3Count} label="Monitor" />
-              <KPICard value={hotProjects.length} label="Hot Priority" accent="hot" />
-              <KPICard value={warmProjects.length} label="Warm Priority" accent="warm" />
-              <KPICard value={territoryFilteredContacts.length} label="Contacts" />
-              <KPICard value={territoryFilteredAwarded.length} label="Awarded" accent="gold" />
-              <KPICard value={businessLineFiltered.length} label="Total Projects" accent="teal" />
+            {/* KPI Cards — 4 focused metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <KPICard value={businessLineFiltered.length} label="Your Projects" accent="teal" />
+              <KPICard value={tier1Count} label="Action Now" accent="hot" />
+              <KPICard value={hotProjects.length} label="Hot Priority" accent="gold" />
+              <KPICard value={businessLineFiltered.filter((p: any) => p.isNew).length} label="New This Week" accent="warm" />
             </div>
 
             {/* Hot Projects */}
