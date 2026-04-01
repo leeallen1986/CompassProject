@@ -522,11 +522,11 @@ export async function generateCampaignEmail(
   if (!campaign) throw new Error("Campaign not found");
 
   // Get matched project context if available
-  let projectName = "Abrasive Blasting Operations";
-  let projectOverview = "";
+  let projectName = contact.company || "Target Company";
+  let projectOverview = campaign.description || "";
   let projectLocation = "Australia";
-  let projectSector = "infrastructure";
-  let equipmentSignals: string[] = ["abrasive blasting", "surface preparation", "high-volume air"];
+  let projectSector = "equipment_rental";
+  let equipmentSignals: string[] = [];
 
   if (contact.matchedProjectIds && (contact.matchedProjectIds as number[]).length > 0) {
     const matchedIds = contact.matchedProjectIds as number[];
@@ -538,27 +538,23 @@ export async function generateCampaignEmail(
     if (matchedProjects.length > 0) {
       const topProject = matchedProjects[0];
       projectName = topProject.name;
-      projectOverview = topProject.overview || "";
+      projectOverview = topProject.overview || projectOverview;
       projectLocation = topProject.location;
       projectSector = topProject.sector;
       equipmentSignals = (topProject.equipmentSignals as string[]) || equipmentSignals;
     }
   }
 
-  // Build collateral context for the LLM
-  const collateralCtx = options?.collateralContext || `
-The XAVS1800 is Atlas Copco's high-volume portable air compressor designed for demanding abrasive blasting operations:
-- 1,800 cfm at 7 bar (or 1,500 cfm at 14 bar dual pressure)
-- Built for continuous blasting operations requiring high air volumes
-- Dual pressure capability for versatile applications
-- Fuel-efficient design with low operating costs
-- Ideal for: abrasive blasting, sandblasting, surface preparation, pipeline coating, shipyard maintenance
-- Key differentiators: highest cfm-per-footprint ratio, dual pressure flexibility, proven reliability in harsh Australian conditions
-`;
-
   const contactName = [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Contact";
   const contactEmail = contact.enrichedEmail || contact.email || "";
   const contactTitle = contact.enrichedTitle || contact.title || "Operations";
+
+  // Determine business lines based on collateral
+  const collateralName = campaign.collateralName || "";
+  const isAirTreatment = /cdr|desiccant|dryer|air\s*treatment|moisture/i.test(collateralName);
+  const matchedBLs = isAirTreatment
+    ? ["Air Treatment", "Portable Air"]
+    : ["Portable Air"];
 
   const result = await generateOutreachEmail({
     contactName,
@@ -571,14 +567,16 @@ The XAVS1800 is Atlas Copco's high-volume portable air compressor designed for d
     projectValue: "Unknown",
     projectSector,
     projectStage: null,
-    projectOverview: projectOverview + "\n\n" + collateralCtx,
+    projectOverview,
     equipmentSignals,
     opportunityRoute: "Direct CAPEX",
-    matchedBusinessLines: ["Portable Air", "Sandblasting"],
+    matchedBusinessLines: matchedBLs,
     senderName: campaign.senderName,
     senderTitle: campaign.senderTitle || "National Business Development Manager",
     senderCompany: "Atlas Copco Australia - Power Technique",
-    senderBusinessLines: ["Portable Air"],
+    senderBusinessLines: matchedBLs,
+    collateralName: campaign.collateralName || undefined,
+    collateralDescription: campaign.description || undefined,
     tone: options?.tone || "first_touch",
   });
 

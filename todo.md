@@ -883,3 +883,13 @@
 - [x] Backfill 56 existing CDR Rental Campaign contacts with Apollo IDs from reviewNotes
 - [x] Reset 55 not_found contacts back to pending for re-enrichment via Path A
 - [x] Update names (firstName/lastName) when Apollo enrichment reveals full names
+
+## Campaign — Fix LLM Outreach Email Using Wrong Product
+- [x] Fix email generation prompt to use campaign collateral (CDR Dryers) instead of defaulting to XAVS1800
+- [x] Built CollateralProfile system with pattern matching for CDR dryers vs XAVS1800
+- [x] CDR profile includes rental-company role hooks (fleet, operations, procurement, executive, maintenance)
+- [x] Updated generateCampaignEmail to pass collateralName and description from campaign record
+- [x] Removed hardcoded XAVS1800 defaults from campaignService.ts
+- [x] CDR campaigns use rental-appropriate language ("your rental fleet", "fleet investment")
+- [x] XAVS1800 campaigns retain existing behaviour with no-rental-language rules
+- [x] All 1553 tests passing (2 pre-existing API timeout failures)
