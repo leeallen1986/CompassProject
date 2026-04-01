@@ -817,3 +817,10 @@
 - [x] Check current Hot tier contacts needing enrichment (Apollo missed)
 - [x] Run waterfall enrichment on Hot contacts via the API (192 enriched by Hunter.io)
 - [x] Review enrichment results (Apollo vs Hunter breakdown) - verified in UI with badges
+
+## Company Depth Expansion — Find Similar Roles at Verified Companies
+- [x] Analyze Hot contacts: company distribution, domains, role patterns (133 unique domains)
+- [x] Build Hunter.io Domain Search depth expansion (find similar roles at same companies)
+- [x] Run depth expansion on verified Hot contact companies (1,504 new contacts found)
+- [x] Add new contacts to campaign as Tier 1 Hot with enrichment source (deduped 31, moved 1,473 to campaign 2)
+- [x] Verify results in database and UI — re-tiered 104 irrelevant corporate roles to Warm
