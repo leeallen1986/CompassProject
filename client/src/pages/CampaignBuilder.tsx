@@ -1,0 +1,949 @@
+/**
+ * CampaignBuilder.tsx — Self-service campaign creation wizard
+ *
+ * Multi-step flow:
+ * 1. Campaign Details — name, description, product, sender info, target segment
+ * 2. Add Contacts — upload CSV/Excel OR search by company domains via Hunter.io
+ * 3. Review & Launch — see imported contacts, tier breakdown, trigger enrichment
+ */
+
+import { useState, useCallback, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  ChevronLeft, ChevronRight, Check, Upload, Search, Globe,
+  Users, Loader2, FileSpreadsheet, Zap, Target, Megaphone,
+  Flame, TrendingUp, Database, Clock, AlertCircle, X,
+  Plus, Trash2, CheckCircle2, ArrowRight,
+} from "lucide-react";
+
+// ── Types ──
+
+interface CampaignForm {
+  name: string;
+  description: string;
+  collateralId: number | null;
+  collateralName: string;
+  senderName: string;
+  senderEmail: string;
+  senderTitle: string;
+  targetSegment: string;
+}
+
+interface ColumnMapping {
+  firstName?: number;
+  lastName?: number;
+  fullName?: number;
+  title?: number;
+  company?: number;
+  email?: number;
+  phone?: number;
+  mobile?: number;
+  linkedin?: number;
+  website?: number;
+}
+
+interface FilePreview {
+  headers: string[];
+  sampleRows: string[][];
+  totalRows: number;
+  detectedMapping: ColumnMapping;
+  sheetNames?: string[];
+}
+
+interface SearchResult {
+  contacts: any[];
+  domainsSearched: number;
+  domainsWithResults: number;
+  totalFound: number;
+  totalFiltered: number;
+  domainBreakdown: { domain: string; organization: string; found: number; filtered: number }[];
+}
+
+// ── Constants ──
+
+const STEPS = [
+  { id: 1, label: "Campaign Details", icon: Megaphone },
+  { id: 2, label: "Add Contacts", icon: Users },
+  { id: 3, label: "Review & Launch", icon: Zap },
+];
+
+const MAPPING_FIELDS: { key: keyof ColumnMapping; label: string; required?: boolean }[] = [
+  { key: "firstName", label: "First Name" },
+  { key: "lastName", label: "Last Name" },
+  { key: "fullName", label: "Full Name" },
+  { key: "title", label: "Job Title" },
+  { key: "company", label: "Company", required: true },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone" },
+  { key: "mobile", label: "Mobile" },
+];
+
+// ── Main Component ──
+
+export default function CampaignBuilder({ onComplete, onCancel }: {
+  onComplete: (campaignId: number) => void;
+  onCancel: () => void;
+}) {
+  const { user } = useAuth();
+  const [step, setStep] = useState(1);
+  const [createdCampaignId, setCreatedCampaignId] = useState<number | null>(null);
+
+  // Step 1: Campaign details
+  const [form, setForm] = useState<CampaignForm>({
+    name: "",
+    description: "",
+    collateralId: null,
+    collateralName: "",
+    senderName: user?.name || "",
+    senderEmail: user?.email || "",
+    senderTitle: "",
+    targetSegment: "",
+  });
+
+  // Step 2: Contact source
+  const [contactMethod, setContactMethod] = useState<"upload" | "search" | null>(null);
+
+  // Upload state
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<FilePreview | null>(null);
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+
+  // Search state
+  const [searchDomains, setSearchDomains] = useState<string[]>([""]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [customRolePattern, setCustomRolePattern] = useState("");
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Step 3: Import state
+  const [importResult, setImportResult] = useState<any>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+
+  // Queries
+  const collateralQuery = trpc.collateral.list.useQuery({});
+  const rolesQuery = trpc.campaign.availableRoles.useQuery();
+
+  // Mutations
+  const createCampaign = trpc.campaign.create.useMutation();
+  const previewFile = trpc.campaign.previewFile.useMutation();
+  const importWithMapping = trpc.campaign.importWithMapping.useMutation();
+  const searchContacts = trpc.campaign.searchContacts.useMutation();
+  const importSearchResults = trpc.campaign.importSearchResults.useMutation();
+  const enrichContacts = trpc.campaign.enrichContacts.useMutation();
+
+  // ── Step 1: Campaign Details ──
+
+  const handleCreateCampaign = async () => {
+    if (!form.name || !form.senderName || !form.senderEmail) {
+      toast.error("Please fill in campaign name, sender name, and sender email");
+      return;
+    }
+    try {
+      const result = await createCampaign.mutateAsync({
+        name: form.name,
+        description: form.description || undefined,
+        collateralId: form.collateralId || undefined,
+        collateralName: form.collateralName || undefined,
+        senderName: form.senderName,
+        senderEmail: form.senderEmail,
+        senderTitle: form.senderTitle || undefined,
+        targetSegment: form.targetSegment || undefined,
+      });
+      setCreatedCampaignId(result.id);
+      toast.success(`Campaign "${form.name}" created`);
+      setStep(2);
+    } catch (err) {
+      toast.error("Failed to create campaign: " + (err as Error).message);
+    }
+  };
+
+  // ── Step 2: File Upload ──
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setIsPreviewing(true);
+    try {
+      // Upload file to S3 via server endpoint
+      const uploadRes = await fetch("/api/upload-campaign-file", {
+        method: "POST",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-Filename": file.name,
+        },
+        credentials: "include",
+      });
+      if (!uploadRes.ok) throw new Error("File upload failed");
+      const { url: fileUrl } = await uploadRes.json();
+
+      setUploadedFileUrl(fileUrl);
+      setUploadedFileName(file.name);
+
+      // Preview the file to detect columns
+      const preview = await previewFile.mutateAsync({ fileUrl });
+      setFilePreview(preview);
+      setColumnMapping(preview.detectedMapping);
+      toast.success(`File uploaded: ${preview.totalRows} rows detected`);
+    } catch (err) {
+      toast.error("Failed to upload file: " + (err as Error).message);
+    } finally {
+      setIsUploading(false);
+      setIsPreviewing(false);
+    }
+  };
+
+  const handleImportFromFile = async () => {
+    if (!createdCampaignId || !uploadedFileUrl) return;
+    setIsImporting(true);
+    try {
+      // Re-upload and import
+      const result = await importWithMapping.mutateAsync({
+        campaignId: createdCampaignId,
+        fileUrl: uploadedFileUrl,
+        mapping: columnMapping,
+      });
+      setImportResult(result);
+      toast.success(`Imported ${result.imported} contacts`);
+      setStep(3);
+    } catch (err) {
+      toast.error("Import failed: " + (err as Error).message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // ── Step 2: Domain Search ──
+
+  const addDomain = () => setSearchDomains(prev => [...prev, ""]);
+  const removeDomain = (idx: number) => setSearchDomains(prev => prev.filter((_, i) => i !== idx));
+  const updateDomain = (idx: number, val: string) => {
+    setSearchDomains(prev => prev.map((d, i) => i === idx ? val : d));
+  };
+
+  const toggleRole = (roleKey: string) => {
+    setSelectedRoles(prev =>
+      prev.includes(roleKey) ? prev.filter(r => r !== roleKey) : [...prev, roleKey]
+    );
+  };
+
+  const handleSearch = async () => {
+    const validDomains = searchDomains.filter(d => d.trim()).map(d => d.trim().toLowerCase());
+    if (validDomains.length === 0) {
+      toast.error("Please enter at least one company domain");
+      return;
+    }
+    if (selectedRoles.length === 0 && !customRolePattern) {
+      toast.error("Please select at least one target role");
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const result = await searchContacts.mutateAsync({
+        domains: validDomains,
+        targetRoles: selectedRoles,
+        customRolePatterns: customRolePattern ? [customRolePattern] : undefined,
+        maxPerDomain: 50,
+      });
+      setSearchResult(result);
+      toast.success(`Found ${result.totalFiltered} matching contacts across ${result.domainsWithResults} domains`);
+    } catch (err) {
+      toast.error("Search failed: " + (err as Error).message);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleImportSearchResults = async () => {
+    if (!createdCampaignId || !searchResult) return;
+    setIsImporting(true);
+    try {
+      const result = await importSearchResults.mutateAsync({
+        campaignId: createdCampaignId,
+        contacts: searchResult.contacts,
+      });
+      setImportResult(result);
+      toast.success(`Imported ${result.imported} contacts`);
+      setStep(3);
+    } catch (err) {
+      toast.error("Import failed: " + (err as Error).message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // ── Step 3: Enrichment ──
+
+  const handleEnrich = async () => {
+    if (!createdCampaignId) return;
+    setIsEnriching(true);
+    try {
+      const result = await enrichContacts.mutateAsync({
+        campaignId: createdCampaignId,
+        maxContacts: 100,
+      });
+      toast.success(`Enriched ${result.enriched} contacts (Apollo: ${result.apolloFound || 0}, Hunter: ${result.hunterFound || 0})`);
+    } catch (err) {
+      toast.error("Enrichment failed: " + (err as Error).message);
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
+  // ── Render ──
+
+  return (
+    <div className="container py-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground">
+          <ChevronLeft className="w-4 h-4 mr-1" /> Back to Campaigns
+        </Button>
+      </div>
+
+      <h1 className="text-2xl font-bold text-navy mb-2">Create New Campaign</h1>
+      <p className="text-sm text-muted-foreground mb-8">
+        Set up a targeted outreach campaign with contacts, enrichment, and email generation.
+      </p>
+
+      {/* Step Indicator */}
+      <div className="flex items-center gap-2 mb-8">
+        {STEPS.map((s, idx) => {
+          const Icon = s.icon;
+          const isActive = step === s.id;
+          const isCompleted = step > s.id;
+          return (
+            <div key={s.id} className="flex items-center gap-2">
+              {idx > 0 && (
+                <div className={`h-px w-8 sm:w-16 ${isCompleted ? "bg-gold" : "bg-border"}`} />
+              )}
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive ? "bg-navy text-white" :
+                isCompleted ? "bg-gold/15 text-gold-dark" :
+                "bg-card text-muted-foreground border border-border"
+              }`}>
+                {isCompleted ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                <span className="hidden sm:inline">{s.label}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Step 1: Campaign Details */}
+      {step === 1 && (
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle className="text-navy">Campaign Details</CardTitle>
+            <CardDescription>Define the campaign name, product, and sender information.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Campaign Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-semibold">Campaign Name *</Label>
+              <Input
+                id="name"
+                placeholder="e.g., DrillAir X1350 — RC Drilling Campaign"
+                value={form.name}
+                onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                className="border-border"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="desc" className="text-sm font-semibold">Description</Label>
+              <Textarea
+                id="desc"
+                placeholder="Brief description of the campaign objectives and target audience..."
+                value={form.description}
+                onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+                className="border-border"
+              />
+            </div>
+
+            {/* Product / Collateral */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Product / Collateral</Label>
+              <Select
+                value={form.collateralId?.toString() || "none"}
+                onValueChange={val => {
+                  if (val === "none") {
+                    setForm(prev => ({ ...prev, collateralId: null, collateralName: "" }));
+                  } else {
+                    const item = (collateralQuery.data as any[])?.find((c: any) => c.id === Number(val));
+                    setForm(prev => ({
+                      ...prev,
+                      collateralId: Number(val),
+                      collateralName: item?.name || "",
+                    }));
+                  }
+                }}
+              >
+                <SelectTrigger className="border-border">
+                  <SelectValue placeholder="Select a product or collateral..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No collateral linked</SelectItem>
+                  {(collateralQuery.data as any[])?.map((item: any) => (
+                    <SelectItem key={item.id} value={item.id.toString()}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!form.collateralId && (
+                <div className="space-y-2">
+                  <Label htmlFor="collateralName" className="text-xs text-muted-foreground">Or enter a product name manually</Label>
+                  <Input
+                    id="collateralName"
+                    placeholder="e.g., DrillAir X1350"
+                    value={form.collateralName}
+                    onChange={e => setForm(prev => ({ ...prev, collateralName: e.target.value }))}
+                    className="border-border"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Target Segment */}
+            <div className="space-y-2">
+              <Label htmlFor="segment" className="text-sm font-semibold">Target Segment</Label>
+              <Input
+                id="segment"
+                placeholder="e.g., RC Drillers, Water Well Drillers, Exploration Companies"
+                value={form.targetSegment}
+                onChange={e => setForm(prev => ({ ...prev, targetSegment: e.target.value }))}
+                className="border-border"
+              />
+            </div>
+
+            {/* Sender Info */}
+            <div className="border-t border-border pt-4">
+              <h3 className="text-sm font-semibold text-navy mb-3">Sender Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="senderName" className="text-xs">Sender Name *</Label>
+                  <Input
+                    id="senderName"
+                    placeholder="Ryan Pemberton"
+                    value={form.senderName}
+                    onChange={e => setForm(prev => ({ ...prev, senderName: e.target.value }))}
+                    className="border-border"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="senderEmail" className="text-xs">Sender Email *</Label>
+                  <Input
+                    id="senderEmail"
+                    type="email"
+                    placeholder="ryan.pemberton@atlascopco.com"
+                    value={form.senderEmail}
+                    onChange={e => setForm(prev => ({ ...prev, senderEmail: e.target.value }))}
+                    className="border-border"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="senderTitle" className="text-xs">Sender Title</Label>
+                  <Input
+                    id="senderTitle"
+                    placeholder="Business Line Manager — Portable Air Division"
+                    value={form.senderTitle}
+                    onChange={e => setForm(prev => ({ ...prev, senderTitle: e.target.value }))}
+                    className="border-border"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end pt-4">
+              <Button
+                onClick={handleCreateCampaign}
+                disabled={!form.name || !form.senderName || !form.senderEmail || createCampaign.isPending}
+                className="bg-navy hover:bg-navy/90 text-white"
+              >
+                {createCampaign.isPending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating...</>
+                ) : (
+                  <>Next: Add Contacts <ChevronRight className="w-4 h-4 ml-2" /></>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Add Contacts */}
+      {step === 2 && (
+        <div className="space-y-6">
+          {/* Contact Method Selection */}
+          {!contactMethod && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card
+                className="cursor-pointer hover:shadow-md transition-shadow border-border hover:border-gold/50"
+                onClick={() => setContactMethod("upload")}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-14 h-14 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-4">
+                    <Upload className="w-7 h-7 text-gold" />
+                  </div>
+                  <h3 className="text-lg font-bold text-navy mb-2">Upload Contact List</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a CSV or Excel file with your existing contact list. We'll auto-detect columns and import them.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="cursor-pointer hover:shadow-md transition-shadow border-border hover:border-teal/50"
+                onClick={() => setContactMethod("search")}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-14 h-14 rounded-full bg-teal/10 flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-7 h-7 text-teal" />
+                  </div>
+                  <h3 className="text-lg font-bold text-navy mb-2">Search for Contacts</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter company domains and target roles. We'll use Hunter.io to find the right contacts for you.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Upload Flow */}
+          {contactMethod === "upload" && (
+            <Card className="border-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-navy flex items-center gap-2">
+                      <FileSpreadsheet className="w-5 h-5 text-gold" />
+                      Upload Contact List
+                    </CardTitle>
+                    <CardDescription>Upload a CSV or Excel file. We'll auto-detect columns.</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => { setContactMethod(null); setFilePreview(null); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* File Input */}
+                {!filePreview && (
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                    <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Drag & drop or click to select a CSV or Excel file
+                    </p>
+                    <input
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label htmlFor="file-upload">
+                      <Button variant="outline" className="cursor-pointer" asChild>
+                        <span>
+                          {isUploading || isPreviewing ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                          ) : (
+                            <>Choose File</>
+                          )}
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
+                )}
+
+                {/* Preview & Column Mapping */}
+                {filePreview && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-navy">{uploadedFileName}</p>
+                        <p className="text-xs text-muted-foreground">{filePreview.totalRows} rows detected</p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => { setFilePreview(null); setUploadedFileUrl(null); }}>
+                        Change File
+                      </Button>
+                    </div>
+
+                    {/* Column Mapping */}
+                    <div className="bg-slate-50 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-navy mb-3">Column Mapping</h4>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        We auto-detected the columns below. Adjust if needed.
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {MAPPING_FIELDS.map(field => (
+                          <div key={field.key} className="space-y-1">
+                            <Label className="text-xs">
+                              {field.label} {field.required && <span className="text-red-500">*</span>}
+                            </Label>
+                            <Select
+                              value={columnMapping[field.key]?.toString() ?? "unmapped"}
+                              onValueChange={val => {
+                                setColumnMapping(prev => ({
+                                  ...prev,
+                                  [field.key]: val === "unmapped" ? undefined : Number(val),
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-xs border-border">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unmapped">— Not mapped —</SelectItem>
+                                {filePreview.headers.map((h, i) => (
+                                  <SelectItem key={i} value={i.toString()}>{h}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sample Data Preview */}
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-navy text-white">
+                            {filePreview.headers.map((h, i) => (
+                              <th key={i} className="px-3 py-2 text-left font-semibold whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filePreview.sampleRows.map((row, ri) => (
+                            <tr key={ri} className={ri % 2 === 0 ? "bg-card" : "bg-slate-50"}>
+                              {row.map((cell, ci) => (
+                                <td key={ci} className="px-3 py-2 whitespace-nowrap max-w-[200px] truncate">{cell}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Import Button */}
+                    <div className="flex justify-between pt-2">
+                      <Button variant="ghost" onClick={() => { setContactMethod(null); setFilePreview(null); }}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                      </Button>
+                      <Button
+                        onClick={handleImportFromFile}
+                        disabled={isImporting || !columnMapping.company}
+                        className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                      >
+                        {isImporting ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
+                        ) : (
+                          <>Import {filePreview.totalRows} Contacts <ArrowRight className="w-4 h-4 ml-2" /></>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Search Flow */}
+          {contactMethod === "search" && (
+            <Card className="border-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-navy flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-teal" />
+                      Search for Contacts
+                    </CardTitle>
+                    <CardDescription>Enter company domains and select target roles. Uses Hunter.io Domain Search.</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => { setContactMethod(null); setSearchResult(null); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Company Domains */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Company Domains</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enter the website domains of companies you want to find contacts at. One domain per line.
+                  </p>
+                  {searchDomains.map((domain, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input
+                        placeholder="e.g., monadelphous.com.au"
+                        value={domain}
+                        onChange={e => updateDomain(idx, e.target.value)}
+                        className="border-border"
+                      />
+                      {searchDomains.length > 1 && (
+                        <Button variant="ghost" size="icon" onClick={() => removeDomain(idx)} className="shrink-0">
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={addDomain} className="text-xs">
+                    <Plus className="w-3 h-3 mr-1" /> Add Domain
+                  </Button>
+                </div>
+
+                {/* Target Roles */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Target Roles</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Select the types of contacts you're looking for. We'll filter Hunter.io results to match.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {rolesQuery.data?.map((role: any) => (
+                      <button
+                        key={role.key}
+                        onClick={() => toggleRole(role.key)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                          selectedRoles.includes(role.key)
+                            ? "bg-navy text-white shadow-sm"
+                            : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                        }`}
+                      >
+                        {role.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom role pattern */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Custom role keyword (optional)</Label>
+                    <Input
+                      placeholder="e.g., compressor|pneumatic"
+                      value={customRolePattern}
+                      onChange={e => setCustomRolePattern(e.target.value)}
+                      className="border-border text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Search Button */}
+                {!searchResult && (
+                  <div className="flex justify-between pt-2">
+                    <Button variant="ghost" onClick={() => setContactMethod(null)}>
+                      <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                    </Button>
+                    <Button
+                      onClick={handleSearch}
+                      disabled={isSearching || searchDomains.every(d => !d.trim()) || (selectedRoles.length === 0 && !customRolePattern)}
+                      className="bg-teal hover:bg-teal/90 text-white font-semibold"
+                    >
+                      {isSearching ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching...</>
+                      ) : (
+                        <><Search className="w-4 h-4 mr-2" /> Search Contacts</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Search Results */}
+                {searchResult && (
+                  <div className="space-y-4 border-t border-border pt-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-navy">
+                        Search Results: {searchResult.totalFiltered} contacts found
+                      </h4>
+                      <Badge variant="outline" className="text-xs">
+                        {searchResult.domainsSearched} domains searched
+                      </Badge>
+                    </div>
+
+                    {/* Domain Breakdown */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {searchResult.domainBreakdown.filter(d => d.filtered > 0).map(d => (
+                        <div key={d.domain} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                          <div>
+                            <p className="text-xs font-semibold text-navy">{d.organization}</p>
+                            <p className="text-[10px] text-muted-foreground">{d.domain}</p>
+                          </div>
+                          <Badge className="bg-teal/15 text-teal text-[10px]">{d.filtered} contacts</Badge>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Sample Contacts */}
+                    {searchResult.contacts.length > 0 && (
+                      <div className="overflow-x-auto rounded-lg border border-border">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-navy text-white">
+                              <th className="px-3 py-2 text-left font-semibold">Name</th>
+                              <th className="px-3 py-2 text-left font-semibold">Title</th>
+                              <th className="px-3 py-2 text-left font-semibold">Company</th>
+                              <th className="px-3 py-2 text-left font-semibold">Email</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {searchResult.contacts.slice(0, 10).map((c: any, i: number) => (
+                              <tr key={i} className={i % 2 === 0 ? "bg-card" : "bg-slate-50"}>
+                                <td className="px-3 py-2 font-medium text-navy">
+                                  {c.firstName} {c.lastName}
+                                </td>
+                                <td className="px-3 py-2 text-muted-foreground">{c.title || "—"}</td>
+                                <td className="px-3 py-2">{c.company}</td>
+                                <td className="px-3 py-2 text-teal">{c.email || "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {searchResult.contacts.length > 10 && (
+                          <div className="px-3 py-2 text-xs text-muted-foreground bg-slate-50 border-t border-border">
+                            Showing 10 of {searchResult.contacts.length} contacts
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Import Button */}
+                    <div className="flex justify-between pt-2">
+                      <Button variant="ghost" onClick={() => setSearchResult(null)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Modify Search
+                      </Button>
+                      <Button
+                        onClick={handleImportSearchResults}
+                        disabled={isImporting || searchResult.contacts.length === 0}
+                        className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                      >
+                        {isImporting ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
+                        ) : (
+                          <>Import {searchResult.contacts.length} Contacts <ArrowRight className="w-4 h-4 ml-2" /></>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Step 3: Review & Launch */}
+      {step === 3 && (
+        <div className="space-y-6">
+          {/* Import Summary */}
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="text-navy flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                Contacts Imported Successfully
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {importResult && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-card rounded-lg border border-border p-3">
+                      <div className="text-2xl font-bold text-navy">{importResult.imported}</div>
+                      <div className="text-xs text-muted-foreground">Contacts Imported</div>
+                    </div>
+                    <div className="bg-card rounded-lg border border-border p-3">
+                      <div className="text-2xl font-bold text-muted-foreground">{importResult.excluded || 0}</div>
+                      <div className="text-xs text-muted-foreground">Excluded / Skipped</div>
+                    </div>
+                    {importResult.tierBreakdown && Object.entries(importResult.tierBreakdown).map(([tier, count]) => {
+                      const config: Record<string, { label: string; color: string; Icon: any }> = {
+                        tier1_hot: { label: "Hot", color: "text-red-500", Icon: Flame },
+                        tier2_warm: { label: "Warm", color: "text-amber-500", Icon: TrendingUp },
+                        tier3_enrich: { label: "Enrich", color: "text-blue-500", Icon: Database },
+                        tier4_low: { label: "Low", color: "text-slate-400", Icon: Clock },
+                      };
+                      const c = config[tier] || { label: tier, color: "text-slate-500", Icon: Users };
+                      return (
+                        <div key={tier} className="bg-card rounded-lg border border-border p-3">
+                          <div className={`text-2xl font-bold ${c.color}`}>{count as number}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <c.Icon className="w-3 h-3" /> {c.label}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Enrichment */}
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="text-navy flex items-center gap-2">
+                <Zap className="w-5 h-5 text-gold" />
+                Waterfall Enrichment
+              </CardTitle>
+              <CardDescription>
+                Run Apollo → Hunter.io waterfall to find verified email addresses for your contacts.
+                This will enrich up to 100 contacts per batch.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={handleEnrich}
+                  disabled={isEnriching}
+                  className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                >
+                  {isEnriching ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enriching...</>
+                  ) : (
+                    <><Zap className="w-4 h-4 mr-2" /> Run Enrichment (Apollo → Hunter)</>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  You can run enrichment multiple times to process more contacts.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Launch */}
+          <div className="flex justify-between pt-4">
+            <Button variant="ghost" onClick={() => setStep(2)}>
+              <ChevronLeft className="w-4 h-4 mr-1" /> Add More Contacts
+            </Button>
+            <Button
+              onClick={() => createdCampaignId && onComplete(createdCampaignId)}
+              className="bg-navy hover:bg-navy/90 text-white font-semibold"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" /> Go to Campaign Dashboard
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

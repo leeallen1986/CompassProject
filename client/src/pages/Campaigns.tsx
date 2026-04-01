@@ -25,8 +25,9 @@ import {
   Megaphone, Users, Mail, CheckCircle2, Send, Search,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
-  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle,
+  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus,
 } from "lucide-react";
+import CampaignBuilder from "./CampaignBuilder";
 
 // ── Types ──
 
@@ -95,6 +96,7 @@ const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com'];
 export default function Campaigns() {
   const { user, loading } = useAuth();
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const [showBuilder, setShowBuilder] = useState(false);
 
   // Access control: only admin + Ryan can access campaigns
   const hasAccess = user?.role === 'admin' || (user?.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase()));
@@ -122,11 +124,22 @@ export default function Campaigns() {
     );
   }
 
+  if (showBuilder) {
+    return <CampaignBuilder
+      onComplete={(id) => {
+        setShowBuilder(false);
+        setSelectedCampaignId(id);
+        campaignsQuery.refetch();
+      }}
+      onCancel={() => setShowBuilder(false)}
+    />;
+  }
+
   if (!selectedCampaignId && campaignsQuery.data?.length) {
-    // Auto-select first campaign
     return <CampaignList
       campaigns={campaignsQuery.data}
       onSelect={setSelectedCampaignId}
+      onCreate={() => setShowBuilder(true)}
       isLoading={campaignsQuery.isLoading}
     />;
   }
@@ -141,15 +154,17 @@ export default function Campaigns() {
   return <CampaignList
     campaigns={campaignsQuery.data ?? []}
     onSelect={setSelectedCampaignId}
+    onCreate={() => setShowBuilder(true)}
     isLoading={campaignsQuery.isLoading}
   />;
 }
 
 // ── Campaign List ──
 
-function CampaignList({ campaigns, onSelect, isLoading }: {
+function CampaignList({ campaigns, onSelect, onCreate, isLoading }: {
   campaigns: any[];
   onSelect: (id: number) => void;
+  onCreate: () => void;
   isLoading: boolean;
 }) {
   if (isLoading) {
@@ -170,8 +185,11 @@ function CampaignList({ campaigns, onSelect, isLoading }: {
           <Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold text-navy mb-2">No Campaigns Yet</h2>
           <p className="text-muted-foreground mb-6">
-            Campaigns will appear here once created. Contact your admin to set up the first campaign.
+            Create your first campaign to start building targeted outreach.
           </p>
+          <Button onClick={onCreate} className="bg-navy hover:bg-navy/90 text-white">
+            <Plus className="w-4 h-4 mr-2" /> Create Campaign
+          </Button>
         </div>
       </div>
     );
@@ -184,6 +202,9 @@ function CampaignList({ campaigns, onSelect, isLoading }: {
           <h1 className="text-2xl font-bold text-navy">Campaigns</h1>
           <p className="text-sm text-muted-foreground mt-1">Targeted outreach campaigns with collateral intelligence</p>
         </div>
+        <Button onClick={onCreate} className="bg-navy hover:bg-navy/90 text-white">
+          <Plus className="w-4 h-4 mr-2" /> New Campaign
+        </Button>
       </div>
 
       <div className="grid gap-4">

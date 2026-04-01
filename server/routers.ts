@@ -128,6 +128,8 @@ import {
   enrichCampaignContacts, updateCampaignStats,
 } from "./campaignService";
 import { parseBlastContactList } from "./campaignImport";
+import { previewImportFile, parseImportFile, type ColumnMapping } from "./campaignCsvImport";
+import { searchContactsByDomain, getAvailableRoles } from "./hunterContactSearch";
 import { storagePut } from "./storage";
 
 export const appRouter = router({
@@ -2652,6 +2654,93 @@ export const appRouter = router({
       .input(z.object({ contactId: z.number() }))
       .mutation(async ({ input }) => {
         return markEmailAsSent(input.contactId);
+      }),
+
+    // ── Campaign Builder endpoints ──
+
+    /** Preview an uploaded CSV/Excel file — returns headers, sample rows, and auto-detected column mapping */
+    previewFile: campaignProcedure
+      .input(z.object({
+        fileUrl: z.string(),
+        sheetName: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await fetch(input.fileUrl);
+        if (!response.ok) throw new Error("Failed to fetch uploaded file");
+        const buffer = Buffer.from(await response.arrayBuffer());
+        return previewImportFile(buffer, { sheetName: input.sheetName });
+      }),
+
+    /** Import contacts from CSV/Excel with user-confirmed column mapping */
+    importWithMapping: campaignProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        fileUrl: z.string(),
+        mapping: z.object({
+          firstName: z.number().optional(),
+          lastName: z.number().optional(),
+          fullName: z.number().optional(),
+          title: z.number().optional(),
+          company: z.number().optional(),
+          email: z.number().optional(),
+          phone: z.number().optional(),
+          mobile: z.number().optional(),
+          linkedin: z.number().optional(),
+          website: z.number().optional(),
+        }),
+        sheetName: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await fetch(input.fileUrl);
+        if (!response.ok) throw new Error("Failed to fetch uploaded file");
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const parsed = parseImportFile(buffer, input.mapping as ColumnMapping, { sheetName: input.sheetName });
+        if (parsed.contacts.length === 0) {
+          return { imported: 0, excluded: parsed.skipped, tierBreakdown: {}, errors: parsed.errors };
+        }
+        const result = await importCampaignContacts(input.campaignId, parsed.contacts);
+        return { ...result, errors: parsed.errors };
+      }),
+
+    /** Search for contacts at company domains using Hunter.io */
+    searchContacts: campaignProcedure
+      .input(z.object({
+        domains: z.array(z.string()).min(1).max(50),
+        targetRoles: z.array(z.string()),
+        customRolePatterns: z.array(z.string()).optional(),
+        includeNoTitle: z.boolean().optional(),
+        maxPerDomain: z.number().min(1).max(100).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return searchContactsByDomain(input);
+      }),
+
+    /** Import contacts from a Hunter.io search result into a campaign */
+    importSearchResults: campaignProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        contacts: z.array(z.object({
+          firstName: z.string().nullable(),
+          lastName: z.string().nullable(),
+          title: z.string().nullable(),
+          company: z.string(),
+          email: z.string().nullable(),
+          phone: z.string().nullable(),
+          mobile: z.string().nullable(),
+          reviewedCompanyName: z.string().nullable(),
+          nameCheckStatus: z.string().nullable(),
+          reviewNotes: z.string().nullable(),
+          sourceRow: z.number(),
+        })),
+      }))
+      .mutation(async ({ input }) => {
+        return importCampaignContacts(input.campaignId, input.contacts);
+      }),
+
+    /** Get available predefined role categories for contact search */
+    availableRoles: campaignProcedure
+      .query(async () => {
+        return getAvailableRoles();
       }),
   }),
 });

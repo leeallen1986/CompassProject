@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
+import { storagePut } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,6 +37,26 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // File upload endpoint for campaign CSV/Excel imports
+  app.post("/api/upload-campaign-file", express.raw({ type: "*/*", limit: "20mb" }), async (req, res) => {
+    try {
+      const filename = (req.headers["x-filename"] as string) || "upload.csv";
+      const buffer = req.body as Buffer;
+      if (!buffer || buffer.length === 0) {
+        return res.status(400).json({ error: "No file data received" });
+      }
+      const suffix = Math.random().toString(36).slice(2, 10);
+      const key = `campaign-imports/${Date.now()}-${suffix}-${filename}`;
+      const contentType = (req.headers["content-type"] as string) || "application/octet-stream";
+      const { url } = await storagePut(key, buffer, contentType);
+      res.json({ url, key, size: buffer.length });
+    } catch (err) {
+      console.error("[Upload] Campaign file upload failed:", err);
+      res.status(500).json({ error: "File upload failed" });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

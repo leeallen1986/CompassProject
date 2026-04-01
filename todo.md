@@ -824,3 +824,18 @@
 - [x] Run depth expansion on verified Hot contact companies (1,504 new contacts found)
 - [x] Add new contacts to campaign as Tier 1 Hot with enrichment source (deduped 31, moved 1,473 to campaign 2)
 - [x] Verify results in database and UI — re-tiered 104 irrelevant corporate roles to Warm
+
+## Self-Service Campaign Builder
+- [x] Review existing campaign schema, routes, and collateral data
+- [x] Add campaign creation API endpoint (name, description, product/collateral, target roles)
+- [x] Add CSV contact import endpoint (parse CSV, map columns, insert as campaign contacts)
+- [x] Add AI contact search endpoint (Hunter.io domain search by industry keywords)
+- [x] Add auto-enrichment trigger (waterfall Apollo → Hunter on new campaign contacts)
+- [x] Build Campaign Builder wizard UI (Step 1: Campaign details, Step 2: Add contacts, Step 3: Enrich & review)
+- [x] Step 1: Campaign name, description, select collateral product, define target roles/industries
+- [x] Step 2a: CSV upload with column mapping preview
+- [x] Step 2b: AI search — enter company domains or industry keywords to find contacts
+- [x] Step 3: Enrichment progress bar, tier assignment, review contacts before launch
+- [x] Wire enrichment pipeline into campaign creation flow
+- [x] Vitest tests for campaign builder endpoints (CSV parser + role filtering tests)
+- [x] End-to-end browser test (DrillAir X1350 campaign created and verified)
