@@ -797,3 +797,18 @@
 - [x] Add personal email filter to import logic to prevent future imports
 - [x] Re-scored all 4,067 contacts: Hot 279, Warm 458, Enrich 2604, Low 726
 - [x] Ensure only corporate domain emails remain in the campaign list
+- [x] Run Apollo enrichment on 279 Hot tier campaign contacts to verify emails (12 enriched with verified emails + LinkedIn, 268 not found in Apollo)
+
+## Hunter.io Enrichment Integration
+- [x] Research Hunter.io API endpoints (domain search, email finder, email verifier)
+- [x] Build Hunter.io enrichment service (server/hunterService.ts)
+- [x] Update enrichment waterfall pipeline: Apollo → Hunter.io Domain Search → Email Verification
+- [x] Add HUNTER_API_KEY secret via webdev_request_secrets
+- [x] Add UI trigger for Hunter.io enrichment on campaigns page
+- [x] Test the full waterfall enrichment pipeline
+- [x] Add enrichment source badges to contacts table (Apollo purple, Hunter orange with confidence %, Import grey)
+- [x] Add Enrichment Pipeline Status card to campaign overview (Enriched, Import, Needs Enrichment, Not Found, Failed)
+- [x] Add enrichment status filter dropdown to contacts tab (Enriched, Has Email Import, Needs Enrichment, Not Found)
+- [x] Update enrichment buttons to show waterfall label (Enrich 25/100 Apollo → Hunter)
+- [x] Backfill enrichmentSource for 20 existing Apollo-enriched contacts
+- [x] Vitest tests for enrichment badge logic, filter logic, scoring, and waterfall flow (1510 tests passing)

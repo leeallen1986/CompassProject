@@ -48,6 +48,8 @@ type CampaignContact = {
   enrichedEmail: string | null;
   enrichedTitle: string | null;
   enrichedLinkedin: string | null;
+  enrichmentSource: string | null;
+  hunterConfidence: number | null;
   outreachStatus: string;
   draftSubject: string | null;
   draftBody: string | null;
@@ -236,6 +238,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const [activeTab, setActiveTab] = useState("overview");
   const [tierFilter, setTierFilter] = useState<string>("");
   const [outreachFilter, setOutreachFilter] = useState<string>("");
+  const [enrichmentFilter, setEnrichmentFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const [selectedContact, setSelectedContact] = useState<CampaignContact | null>(null);
@@ -250,6 +253,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     campaignId,
     tier: tierFilter || undefined,
     outreachStatus: outreachFilter || undefined,
+    enrichmentStatus: enrichmentFilter || undefined,
     search: searchQuery || undefined,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
@@ -326,10 +330,15 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   });
 
   const enrichMut = trpc.campaign.enrichContacts.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       contactsQuery.refetch();
       statsQuery.refetch();
-      toast.success(`Enriched: ${result.enriched}, Not found: ${result.notFound}, Credits used: ${result.creditsUsed}`);
+      const parts = [`Enriched: ${result.enriched}`];
+      if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
+      if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
+      parts.push(`Not found: ${result.notFound}`);
+      if (result.creditsUsed) parts.push(`Apollo credits: ${result.creditsUsed}`);
+      toast.success(parts.join(" | "));
     },
     onError: (err) => toast.error(`Failed to enrich: ${err.message}`),
   });
@@ -424,6 +433,40 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
             </Card>
           )}
 
+          {/* Enrichment Stats */}
+          {stats && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Enrichment Pipeline Status</CardTitle>
+                <CardDescription>Apollo → Hunter.io waterfall enrichment progress</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                  <div className="text-center p-3 rounded-lg bg-green-50">
+                    <div className="text-2xl font-bold text-green-600">{stats.byEnrichment?.enriched ?? 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Enriched</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-blue-50">
+                    <div className="text-2xl font-bold text-blue-600">{stats.byEnrichment?.not_needed ?? 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Has Email (Import)</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-amber-50">
+                    <div className="text-2xl font-bold text-amber-600">{stats.byEnrichment?.pending ?? 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Needs Enrichment</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-slate-50">
+                    <div className="text-2xl font-bold text-slate-500">{stats.byEnrichment?.not_found ?? 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Not Found</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-red-50">
+                    <div className="text-2xl font-bold text-red-500">{stats.byEnrichment?.failed ?? 0}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Failed</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Admin Actions */}
           <Card>
             <CardHeader>
@@ -445,7 +488,15 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                 disabled={enrichMut.isPending}
               >
                 {enrichMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                Enrich Top 25 (Apollo)
+                Enrich 25 (Apollo → Hunter)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => enrichMut.mutate({ campaignId, maxContacts: 100 })}
+                disabled={enrichMut.isPending}
+              >
+                {enrichMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Enrich 100 (Apollo → Hunter)
               </Button>
               <Button
                 variant="outline"
@@ -495,6 +546,17 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
               <option value="sent">Sent</option>
+            </select>
+            <select
+              value={enrichmentFilter}
+              onChange={e => { setEnrichmentFilter(e.target.value); setPage(0); }}
+              className="px-3 py-2 rounded-md border border-border bg-card text-sm"
+            >
+              <option value="">All Enrichment</option>
+              <option value="enriched">Enriched</option>
+              <option value="not_needed">Has Email (Import)</option>
+              <option value="pending">Needs Enrichment</option>
+              <option value="not_found">Not Found</option>
             </select>
           </div>
 
@@ -557,13 +619,32 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                       {c.reviewedCompanyName || c.company}
                     </td>
                     <td className="px-3 py-2.5 text-xs">
-                      {c.enrichedEmail || c.email || (
-                        <span className="text-muted-foreground italic">
-                          {c.enrichmentStatus === "pending" ? "Needs enrichment" :
-                           c.enrichmentStatus === "not_found" ? "Not found" :
-                           "No email"}
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate max-w-[180px]" title={c.enrichedEmail || c.email || ""}>
+                          {c.enrichedEmail || c.email || (
+                            <span className="text-muted-foreground italic">
+                              {c.enrichmentStatus === "pending" ? "Needs enrichment" :
+                               c.enrichmentStatus === "not_found" ? "Not found" :
+                               "No email"}
+                            </span>
+                          )}
                         </span>
-                      )}
+                        {c.enrichmentSource === "apollo" && (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700" title="Verified via Apollo">
+                            Apollo
+                          </span>
+                        )}
+                        {c.enrichmentSource === "hunter" && (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-700" title={`Hunter.io (${c.hunterConfidence ?? '?'}% confidence)`}>
+                            Hunter {c.hunterConfidence ? `${c.hunterConfidence}%` : ''}
+                          </span>
+                        )}
+                        {c.enrichmentStatus === "not_needed" && !c.enrichmentSource && (c.email || c.enrichedEmail) && (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500" title="Original email from import">
+                            Import
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${TIER_CONFIG[c.tier]?.color || "bg-slate-100"}`}>
@@ -893,8 +974,17 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
                           {TIER_CONFIG[c.tier]?.label?.split("—")[1]?.trim() || c.tier}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground mb-2">
+                      <div className="text-xs text-muted-foreground mb-1">
                         {c.enrichedTitle || c.title} at {c.reviewedCompanyName || c.company}
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <span>{c.enrichedEmail || c.email}</span>
+                        {c.enrichmentSource === "apollo" && (
+                          <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-purple-100 text-purple-700">Apollo</span>
+                        )}
+                        {c.enrichmentSource === "hunter" && (
+                          <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-orange-100 text-orange-700">Hunter {c.hunterConfidence ? `${c.hunterConfidence}%` : ''}</span>
+                        )}
                       </div>
                       {c.draftSubject && (
                         <div className="text-xs">
@@ -1003,8 +1093,15 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
                       <div className="font-semibold text-navy text-sm">
                         {[c.firstName, c.lastName].filter(Boolean).join(" ")}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {c.enrichedEmail || c.email} — {c.reviewedCompanyName || c.company}
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span>{c.enrichedEmail || c.email}</span>
+                        {c.enrichmentSource === "apollo" && (
+                          <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-purple-100 text-purple-700">Apollo</span>
+                        )}
+                        {c.enrichmentSource === "hunter" && (
+                          <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-orange-100 text-orange-700">Hunter {c.hunterConfidence ? `${c.hunterConfidence}%` : ''}</span>
+                        )}
+                        <span>— {c.reviewedCompanyName || c.company}</span>
                       </div>
                       {c.draftSubject && (
                         <div className="text-xs mt-1"><span className="font-semibold">Subject:</span> {c.draftSubject}</div>

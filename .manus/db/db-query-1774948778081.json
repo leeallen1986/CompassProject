@@ -1,0 +1,142 @@
+{
+  "query": "SELECT firstName, lastName, company, title, email, enrichedEmail, enrichedTitle, enrichedLinkedin, score FROM campaignContacts WHERE tier = 'tier1_hot' AND enrichmentStatus = 'enriched' ORDER BY score DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT firstName, lastName, company, title, email, enrichedEmail, enrichedTitle, enrichedLinkedin, score FROM campaignContacts WHERE tier = 'tier1_hot' AND enrichmentStatus = 'enriched' ORDER BY score DESC;",
+  "rows": [
+    {
+      "firstName": "Ryan",
+      "lastName": "Dowling",
+      "company": "Advanced Polymer Technology",
+      "title": "Managing Director",
+      "email": "sales@apt-polyurethane.com.au",
+      "enrichedEmail": "ryan@apt-polyurethane.com.au",
+      "enrichedTitle": "Managing Director",
+      "enrichedLinkedin": "http://www.linkedin.com/in/ryan-dowling-19a577262",
+      "score": "55"
+    },
+    {
+      "firstName": "Karl",
+      "lastName": "Massey",
+      "company": "Adwest Group",
+      "title": "Technical Director",
+      "email": "karl.massey@adwestgroup.com.au",
+      "enrichedEmail": "karl@adwestgroup.com.au",
+      "enrichedTitle": "Technical Director",
+      "enrichedLinkedin": "http://www.linkedin.com/in/karl-massey-63784018",
+      "score": "55"
+    },
+    {
+      "firstName": "Mathew",
+      "lastName": "Farrant",
+      "company": "Ausblast",
+      "title": "General Manager",
+      "email": "NULL",
+      "enrichedEmail": "mfarrant@ausblast.com",
+      "enrichedTitle": "General Manager",
+      "enrichedLinkedin": "http://www.linkedin.com/in/mathew-farrant-a7142115",
+      "score": "55"
+    },
+    {
+      "firstName": "Michael",
+      "lastName": "Shelby",
+      "company": "Babylon Pump & Power",
+      "title": "Managing Director",
+      "email": "mshelby@babylonpumpandpower.com",
+      "enrichedEmail": "mshelby@babylonpumpandpower.com",
+      "enrichedTitle": "Managing Director",
+      "enrichedLinkedin": "http://www.linkedin.com/in/michael-shelby-21505616",
+      "score": "55"
+    },
+    {
+      "firstName": "Makz",
+      "lastName": "Alexander",
+      "company": "Challenge Pumps",
+      "title": "Project Manager",
+      "email": "malexander@challengepumps.com.au",
+      "enrichedEmail": "malexander@challengepumps.com.au",
+      "enrichedTitle": "Project Manager",
+      "enrichedLinkedin": "http://www.linkedin.com/in/makz-alexander-a53182218",
+      "score": "55"
+    },
+    {
+      "firstName": "John",
+      "lastName": "Rasmussen",
+      "company": "Eilbeck Cranes",
+      "title": "Operations Manager",
+      "email": "j.rasmussen@eilbeckcranes.com",
+      "enrichedEmail": "j.rasmussen@eilbeckcranes.com",
+      "enrichedTitle": "Operations Manager",
+      "enrichedLinkedin": "http://www.linkedin.com/in/john-rasmussen-679a1a133",
+      "score": "55"
+    },
+    {
+      "firstName": "Grant",
+      "lastName": "Craig",
+      "company": "Freedom Pools",
+      "title": "General Manager",
+      "email": "grant.craig@freedompools.com",
+      "enrichedEmail": "grant.craig@freedompools.com",
+      "enrichedTitle": "General Manager",
+      "enrichedLinkedin": "http://www.linkedin.com/in/grant-craig-26b8269",
+      "score": "55"
+    },
+    {
+      "firstName": "Jack",
+      "lastName": "Atkinson",
+      "company": "Kraken Australia",
+      "title": "Managing Director",
+      "email": "jack@krakenau.com",
+      "enrichedEmail": "jack@krakenau.com",
+      "enrichedTitle": "Managing Director",
+      "enrichedLinkedin": "http://www.linkedin.com/in/jack-atkinson-9b203971",
+      "score": "55"
+    },
+    {
+      "firstName": "Nathan",
+      "lastName": "Tan",
+      "company": "Miraplex Group",
+      "title": "General Manager",
+      "email": "nathan@miraplex.com.au",
+      "enrichedEmail": "nathan@miraplex.com.au",
+      "enrichedTitle": "General Manager",
+      "enrichedLinkedin": "http://www.linkedin.com/in/nathantan1991",
+      "score": "55"
+    },
+    {
+      "firstName": "Richard",
+      "lastName": "Barrett",
+      "company": "SMS Group Services",
+      "title": "Operations Manager",
+      "email": "richard.barrett@smsgroup.com.au",
+      "enrichedEmail": "richard.barrett@smsgroup.com.au",
+      "enrichedTitle": "Operations Manager",
+      "enrichedLinkedin": "http://www.linkedin.com/in/richard-barrett-25173299",
+      "score": "55"
+    },
+    {
+      "firstName": "Giles",
+      "lastName": "Harrison",
+      "company": "TECHT",
+      "title": "Managing Director",
+      "email": "giles.harrison@techt.com.au",
+      "enrichedEmail": "giles.harrison@techt.com.au",
+      "enrichedTitle": "Managing Director",
+      "enrichedLinkedin": "http://www.linkedin.com/in/giles-harrison-5a491849",
+      "score": "55"
+    },
+    {
+      "firstName": "Wayne",
+      "lastName": "Gray",
+      "company": "TECHT",
+      "title": "Corrosion Consultant",
+      "email": "wayne.gray@techt.com.au",
+      "enrichedEmail": "wayne.gray@techt.com.au",
+      "enrichedTitle": "Senior Corrosion Consultant",
+      "enrichedLinkedin": "http://www.linkedin.com/in/wayne-gray-b3640618",
+      "score": "55"
+    }
+  ],
+  "messages": [],
+  "stdout": "firstName\tlastName\tcompany\ttitle\temail\tenrichedEmail\tenrichedTitle\tenrichedLinkedin\tscore\nRyan\tDowling\tAdvanced Polymer Technology\tManaging Director\tsales@apt-polyurethane.com.au\tryan@apt-polyurethane.com.au\tManaging Director\thttp://www.linkedin.com/in/ryan-dowling-19a577262\t55\nKarl\tMassey\tAdwest Group\tTechnical Director\tkarl.massey@adwestgroup.com.au\tkarl@adwestgroup.com.au\tTechnical Director\thttp://www.linkedin.com/in/karl-massey-63784018\t55\nMathew\tFarrant\tAusblast\tGeneral Manager\tNULL\tmfarrant@ausblast.com\tGeneral Manager\thttp://www.linkedin.com/in/mathew-farrant-a7142115\t55\nMichael\tShelby\tBabylon Pump & Power\tManaging Director\tmshelby@babylonpumpandpower.com\tmshelby@babylonpumpandpower.com\tManaging Director\thttp://www.linkedin.com/in/michael-shelby-21505616\t55\nMakz\tAlexander\tChallenge Pumps\tProject Manager\tmalexander@challengepumps.com.au\tmalexander@challengepumps.com.au\tProject Manager\thttp://www.linkedin.com/in/makz-alexander-a53182218\t55\nJohn\tRasmussen\tEilbeck Cranes\tOperations Manager\tj.rasmussen@eilbeckcranes.com\tj.rasmussen@eilbeckcranes.com\tOperations Manager\thttp://www.linkedin.com/in/john-rasmussen-679a1a133\t55\nGrant\tCraig\tFreedom Pools\tGeneral Manager\tgrant.craig@freedompools.com\tgrant.craig@freedompools.com\tGeneral Manager\thttp://www.linkedin.com/in/grant-craig-26b8269\t55\nJack\tAtkinson\tKraken Australia\tManaging Director\tjack@krakenau.com\tjack@krakenau.com\tManaging Director\thttp://www.linkedin.com/in/jack-atkinson-9b203971\t55\nNathan\tTan\tMiraplex Group\tGeneral Manager\tnathan@miraplex.com.au\tnathan@miraplex.com.au\tGeneral Manager\thttp://www.linkedin.com/in/nathantan1991\t55\nRichard\tBarrett\tSMS Group Services\tOperations Manager\trichard.barrett@smsgroup.com.au\trichard.barrett@smsgroup.com.au\tOperations Manager\thttp://www.linkedin.com/in/richard-barrett-25173299\t55\nGiles\tHarrison\tTECHT\tManaging Director\tgiles.harrison@techt.com.au\tgiles.harrison@techt.com.au\tManaging Director\thttp://www.linkedin.com/in/giles-harrison-5a491849\t55\nWayne\tGray\tTECHT\tCorrosion Consultant\twayne.gray@techt.com.au\twayne.gray@techt.com.au\tSenior Corrosion Consultant\thttp://www.linkedin.com/in/wayne-gray-b3640618\t55\n",
+  "stderr": "",
+  "execution_time_ms": 352
+}

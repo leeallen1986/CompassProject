@@ -1,0 +1,29 @@
+{
+  "query": "SELECT \n  enrichmentStatus,\n  COUNT(*) as cnt\nFROM campaignContacts \nWHERE tier = 'tier1_hot'\nGROUP BY enrichmentStatus\nORDER BY cnt DESC;\n\nSELECT \n  CASE \n    WHEN enrichedEmail IS NOT NULL AND enrichedEmail != '' THEN 'apollo_verified'\n    ELSE 'not_verified'\n  END as verification,\n  COUNT(*) as cnt\nFROM campaignContacts \nWHERE tier = 'tier1_hot'\nGROUP BY verification;\n\nSELECT COUNT(*) as hot_with_email FROM campaignContacts WHERE tier = 'tier1_hot' AND email IS NOT NULL AND email != '';\nSELECT COUNT(*) as hot_with_enriched_email FROM campaignContacts WHERE tier = 'tier1_hot' AND enrichedEmail IS NOT NULL AND enrichedEmail != '';\nSELECT COUNT(*) as hot_total FROM campaignContacts WHERE tier = 'tier1_hot';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  enrichmentStatus,\n  COUNT(*) as cnt\nFROM campaignContacts \nWHERE tier = 'tier1_hot'\nGROUP BY enrichmentStatus\nORDER BY cnt DESC;\n\nSELECT \n  CASE \n    WHEN enrichedEmail IS NOT NULL AND enrichedEmail != '' THEN 'apollo_verified'\n    ELSE 'not_verified'\n  END as verification,\n  COUNT(*) as cnt\nFROM campaignContacts \nWHERE tier = 'tier1_hot'\nGROUP BY verification;\n\nSELECT COUNT(*) as hot_with_email FROM campaignContacts WHERE tier = 'tier1_hot' AND email IS NOT NULL AND email != '';\nSELECT COUNT(*) as hot_with_enriched_email FROM campaignContacts WHERE tier = 'tier1_hot' AND enrichedEmail IS NOT NULL AND enrichedEmail != '';\nSELECT COUNT(*) as hot_total FROM campaignContacts WHERE tier = 'tier1_hot';",
+  "rows": [
+    {
+      "enrichmentStatus": "not_needed",
+      "cnt": "279"
+    },
+    {
+      "enrichmentStatus": "verification",
+      "cnt": "cnt"
+    },
+    {
+      "enrichmentStatus": "not_verified",
+      "cnt": "279"
+    }
+  ],
+  "messages": [
+    "hot_with_email",
+    "279",
+    "hot_with_enriched_email",
+    "0",
+    "hot_total",
+    "279"
+  ],
+  "stdout": "enrichmentStatus\tcnt\nnot_needed\t279\nverification\tcnt\nnot_verified\t279\nhot_with_email\n279\nhot_with_enriched_email\n0\nhot_total\n279\n",
+  "stderr": "",
+  "execution_time_ms": 569
+}

@@ -281,6 +281,13 @@
       "when": 1774862778720,
       "tag": "0039_strange_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1774951478919,
+      "tag": "0040_flaky_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

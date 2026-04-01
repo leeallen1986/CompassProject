@@ -1,0 +1,18 @@
+{
+  "query": "SELECT enrichmentStatus, COUNT(*) as cnt FROM campaignContacts WHERE tier = 'tier1_hot' GROUP BY enrichmentStatus;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT enrichmentStatus, COUNT(*) as cnt FROM campaignContacts WHERE tier = 'tier1_hot' GROUP BY enrichmentStatus;",
+  "rows": [
+    {
+      "enrichmentStatus": "not_found",
+      "cnt": "268"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "cnt": "12"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentStatus\tcnt\nnot_found\t268\nenriched\t12\n",
+  "stderr": "",
+  "execution_time_ms": 350
+}

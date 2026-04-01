@@ -19,6 +19,7 @@ import {
 } from "../drizzle/schema";
 import { generateOutreachEmail, type OutreachInput, type OutreachResult } from "./outreachEmail";
 import { apolloPeopleSearch, enrichSingleContact, logCreditUsage, type ApolloEnrichmentResult } from "./apolloEnrichment";
+import { batchHunterEnrich } from "./hunterService";
 import { sendEmail } from "./emailSender";
 
 // ── Scoring Constants ──
@@ -797,7 +798,7 @@ export async function matchContactsToProjects(campaignId: number): Promise<{ mat
 export async function enrichCampaignContacts(
   campaignId: number,
   options?: { maxContacts?: number; userId?: number; userName?: string }
-): Promise<{ enriched: number; notFound: number; failed: number; creditsUsed: number }> {
+): Promise<{ enriched: number; notFound: number; failed: number; creditsUsed: number; hunterFound: number; apolloFound: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -820,18 +821,24 @@ export async function enrichCampaignContacts(
   let notFound = 0;
   let failed = 0;
   let creditsUsed = 0;
+  let hunterFound = 0;
+  let apolloFound = 0;
+
+  // ── Step 1: Apollo enrichment (existing, runs first as it's already paid) ──
+  console.log(`[Campaign] Starting waterfall enrichment for ${toEnrich.length} contacts`);
+  console.log(`[Campaign] Step 1: Apollo enrichment...`);
+
+  const apolloMissed: typeof toEnrich = [];
 
   for (const contact of toEnrich) {
     try {
       const companyName = contact.reviewedCompanyName || contact.company;
-      // Try to extract domain from existing email
       let domain: string | undefined;
       if (contact.email) {
         const match = contact.email.match(/@(.+)/);
         if (match) domain = match[1];
       }
 
-      // Search Apollo for this person
       const searchResults = await apolloPeopleSearch({
         organizationDomains: domain ? [domain] : undefined,
         personTitles: contact.title ? [contact.title] : undefined,
@@ -841,15 +848,10 @@ export async function enrichCampaignContacts(
       });
 
       if (!searchResults.people?.length) {
-        await db.update(campaignContacts).set({
-          enrichmentStatus: "not_found",
-          enrichedAt: new Date(),
-        }).where(eq(campaignContacts.id, contact.id));
-        notFound++;
+        apolloMissed.push(contact);
         continue;
       }
 
-      // Find best match by name similarity
       const contactFullName = `${contact.firstName || ""} ${contact.lastName || ""}`.trim().toLowerCase();
       let bestMatch = searchResults.people[0];
       for (const person of searchResults.people) {
@@ -860,7 +862,6 @@ export async function enrichCampaignContacts(
         }
       }
 
-      // Enrich the best match (1 credit)
       const apolloResult: ApolloEnrichmentResult = {
         contactId: contact.id,
         apolloId: bestMatch.id,
@@ -869,16 +870,9 @@ export async function enrichCampaignContacts(
         lastNameObfuscated: bestMatch.last_name_obfuscated,
         title: bestMatch.title,
         company: bestMatch.organization?.name || companyName,
-        email: null,
-        emailStatus: null,
-        linkedinUrl: null,
-        photoUrl: null,
-        city: null,
-        state: null,
-        country: null,
-        seniority: null,
-        hasEmail: bestMatch.has_email,
-        status: "found",
+        email: null, emailStatus: null, linkedinUrl: null, photoUrl: null,
+        city: null, state: null, country: null, seniority: null,
+        hasEmail: bestMatch.has_email, status: "found",
       };
 
       if (bestMatch.has_email) {
@@ -890,6 +884,7 @@ export async function enrichCampaignContacts(
         if (enrichedResult.status === "enriched" && enrichedResult.email) {
           await db.update(campaignContacts).set({
             enrichmentStatus: "enriched",
+            enrichmentSource: "apollo",
             apolloPersonId: enrichedResult.apolloId,
             enrichedEmail: enrichedResult.email,
             enrichedTitle: enrichedResult.title,
@@ -897,7 +892,6 @@ export async function enrichCampaignContacts(
             enrichedAt: new Date(),
           }).where(eq(campaignContacts.id, contact.id));
 
-          // Re-score with email now available
           const scoring = computeScore({
             title: enrichedResult.title || contact.title,
             email: enrichedResult.email,
@@ -905,12 +899,82 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score,
-            tier: scoring.tier,
+            score: scoring.score, tier: scoring.tier,
           }).where(eq(campaignContacts.id, contact.id));
 
           enriched++;
+          apolloFound++;
           creditsUsed++;
+          continue;
+        }
+      }
+
+      // Apollo found a person but no email — still try Hunter
+      apolloMissed.push(contact);
+      await new Promise(r => setTimeout(r, 500));
+    } catch (err) {
+      console.error(`[Campaign] Apollo enrichment failed for contact ${contact.id}:`, err);
+      apolloMissed.push(contact);
+    }
+  }
+
+  console.log(`[Campaign] Apollo found ${apolloFound}. ${apolloMissed.length} contacts remaining for Hunter.io`);
+
+  // ── Step 2: Hunter.io enrichment (for contacts Apollo missed) ──
+  const hasHunterKey = !!process.env.HUNTER_API_KEY;
+
+  if (hasHunterKey && apolloMissed.length > 0) {
+    console.log(`[Campaign] Step 2: Hunter.io enrichment for ${apolloMissed.length} contacts...`);
+
+    try {
+      const hunterContacts = apolloMissed.map(c => ({
+        id: c.id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        email: c.email,
+        company: c.reviewedCompanyName || c.company,
+      }));
+
+      const hunterResults = await batchHunterEnrich(hunterContacts, {
+        useFallbackFinder: true,
+        rateLimitMs: 250,
+      });
+
+      console.log(`[Campaign] Hunter.io: ${hunterResults.results.length} found (${hunterResults.domainSearches} domain searches, ${hunterResults.emailFinderCalls} finder calls)`);
+
+      // Build lookup of Hunter results by contact ID
+      const hunterById = new Map<number, (typeof hunterResults.results)[0]>();
+      for (const r of hunterResults.results) {
+        hunterById.set(r.contactId, r);
+      }
+
+      // Update contacts with Hunter results
+      for (const contact of apolloMissed) {
+        const hunterResult = hunterById.get(contact.id);
+
+        if (hunterResult && hunterResult.email) {
+          await db.update(campaignContacts).set({
+            enrichmentStatus: "enriched",
+            enrichmentSource: "hunter",
+            enrichedEmail: hunterResult.email,
+            enrichedLinkedin: hunterResult.linkedin || undefined,
+            hunterConfidence: hunterResult.confidence,
+            hunterVerificationStatus: hunterResult.verificationStatus,
+            enrichedAt: new Date(),
+          }).where(eq(campaignContacts.id, contact.id));
+
+          const scoring = computeScore({
+            title: contact.title,
+            email: hunterResult.email,
+            mobile: contact.mobile,
+            matchedProjectCount: contact.matchedProjectCount,
+          });
+          await db.update(campaignContacts).set({
+            score: scoring.score, tier: scoring.tier,
+          }).where(eq(campaignContacts.id, contact.id));
+
+          enriched++;
+          hunterFound++;
         } else {
           await db.update(campaignContacts).set({
             enrichmentStatus: "not_found",
@@ -918,26 +982,35 @@ export async function enrichCampaignContacts(
           }).where(eq(campaignContacts.id, contact.id));
           notFound++;
         }
-      } else {
-        await db.update(campaignContacts).set({
-          enrichmentStatus: "not_found",
-          enrichedAt: new Date(),
-        }).where(eq(campaignContacts.id, contact.id));
-        notFound++;
       }
-
-      // Rate limit
-      await new Promise(r => setTimeout(r, 500));
     } catch (err) {
-      console.error(`[Campaign] Enrichment failed for contact ${contact.id}:`, err);
+      console.error(`[Campaign] Hunter.io batch enrichment failed:`, err);
+      // Mark remaining as failed
+      for (const contact of apolloMissed) {
+        const existing = await db.select({ status: campaignContacts.enrichmentStatus })
+          .from(campaignContacts).where(eq(campaignContacts.id, contact.id));
+        if (existing[0]?.status === "pending") {
+          await db.update(campaignContacts).set({
+            enrichmentStatus: "failed",
+            enrichedAt: new Date(),
+          }).where(eq(campaignContacts.id, contact.id));
+          failed++;
+        }
+      }
+    }
+  } else if (!hasHunterKey && apolloMissed.length > 0) {
+    console.log(`[Campaign] HUNTER_API_KEY not set — skipping Hunter.io. ${apolloMissed.length} contacts marked not_found.`);
+    for (const contact of apolloMissed) {
       await db.update(campaignContacts).set({
-        enrichmentStatus: "failed",
+        enrichmentStatus: "not_found",
         enrichedAt: new Date(),
       }).where(eq(campaignContacts.id, contact.id));
-      failed++;
+      notFound++;
     }
   }
 
+  console.log(`[Campaign] Waterfall complete: ${enriched} enriched (Apollo: ${apolloFound}, Hunter: ${hunterFound}), ${notFound} not found, ${failed} failed`);
+
   await updateCampaignStats(campaignId);
-  return { enriched, notFound, failed, creditsUsed };
+  return { enriched, notFound, failed, creditsUsed, hunterFound, apolloFound };
 }

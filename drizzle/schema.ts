@@ -917,10 +917,13 @@ export const campaignContacts = mysqlTable("campaignContacts", {
   titleRelevance: mysqlEnum("titleRelevance", ["blasting_specialist", "decision_maker", "operations", "other", "unknown"]).notNull().default("unknown"),
   // Enrichment
   enrichmentStatus: mysqlEnum("enrichmentStatus", ["not_needed", "pending", "enriched", "not_found", "failed"]).notNull().default("pending"),
+  enrichmentSource: mysqlEnum("enrichmentSource_cc", ["apollo", "hunter", "manual"]),
   apolloPersonId: varchar("apolloPersonId", { length: 128 }),
   enrichedEmail: varchar("enrichedEmail", { length: 320 }),
   enrichedTitle: varchar("enrichedTitle", { length: 256 }),
   enrichedLinkedin: varchar("enrichedLinkedin", { length: 512 }),
+  hunterConfidence: int("hunterConfidence"),  // Hunter.io confidence score 0-100
+  hunterVerificationStatus: varchar("hunterVerificationStatus", { length: 32 }),  // valid, accept_all, unknown, invalid
   enrichedAt: timestamp("enrichedAt"),
   // Project intelligence match
   matchedProjectIds: json("matchedProjectIds").$type<number[]>(),
