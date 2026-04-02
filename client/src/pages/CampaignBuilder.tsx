@@ -283,7 +283,8 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
         mapping: columnMapping,
         targetRoles: selectedRoles,
         customRolePatterns: customRolePattern ? [customRolePattern] : undefined,
-        maxPerDomain: 10,
+        maxPerDomain: 25,
+        maxTotal: 2000,
       });
       setCompanySearchResult(result);
       toast.success(
@@ -747,18 +748,25 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                               Select the roles you're targeting below and we'll search for contacts at these companies using Hunter.io.
                             </p>
                             <RoleSelector />
-                            <div className="flex justify-end mt-4">
-                              <Button
-                                onClick={handleSearchCompanyContacts}
-                                disabled={isSearching || (selectedRoles.length === 0 && !customRolePattern)}
-                                className="bg-gold hover:bg-gold/90 text-navy font-semibold"
-                              >
-                                {isSearching ? (
-                                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching companies...</>
-                                ) : (
-                                  <><Search className="w-4 h-4 mr-2" /> Find Contacts at These Companies</>
-                                )}
-                              </Button>
+                            <div className="flex items-center justify-between mt-4">
+                              {filePreview && filePreview.totalRows > 50 && (
+                                <p className="text-xs text-amber-600">
+                                  {filePreview.totalRows} companies — est. {Math.ceil(filePreview.totalRows * 0.35 / 60)} min
+                                </p>
+                              )}
+                              <div className="ml-auto">
+                                <Button
+                                  onClick={handleSearchCompanyContacts}
+                                  disabled={isSearching || (selectedRoles.length === 0 && !customRolePattern)}
+                                  className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                                >
+                                  {isSearching ? (
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching {filePreview?.totalRows ?? ''} companies...</>
+                                  ) : (
+                                    <><Search className="w-4 h-4 mr-2" /> Find Contacts at These Companies</>
+                                  )}
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>

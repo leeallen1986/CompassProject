@@ -104,6 +104,8 @@ export interface ContactSearchInput {
   includeNoTitle?: boolean;
   /** Maximum contacts per domain (default: 50) */
   maxPerDomain?: number;
+  /** Maximum total contacts across all domains (default: 2000) */
+  maxTotal?: number;
 }
 
 export interface ContactSearchResult {
@@ -122,7 +124,7 @@ export interface ContactSearchResult {
 export async function searchContactsByDomain(
   input: ContactSearchInput
 ): Promise<ContactSearchResult> {
-  const { domains, targetRoles, customRolePatterns, includeNoTitle, maxPerDomain = 50 } = input;
+  const { domains, targetRoles, customRolePatterns, includeNoTitle, maxPerDomain = 50, maxTotal = 2000 } = input;
 
   // Build combined role patterns
   const rolePatterns: RegExp[] = [];
@@ -149,6 +151,9 @@ export async function searchContactsByDomain(
 
   for (const domain of domains) {
     try {
+      // Stop if we've already hit the total cap
+      if (allContacts.length >= maxTotal) break;
+
       const result = await domainSearch(domain, { type: "personal", limit: 100 });
       totalFound += result.emails.length;
 
@@ -232,8 +237,10 @@ export interface CompanyNameSearchInput {
   targetRoles: string[];
   /** Custom role patterns (regex strings) */
   customRolePatterns?: string[];
-  /** Maximum contacts per company (default: 10) */
+  /** Maximum contacts per company (default: 25) */
   maxPerCompany?: number;
+  /** Maximum total contacts across all companies (default: 2000) */
+  maxTotal?: number;
 }
 
 export interface CompanyNameSearchResult {
@@ -254,7 +261,7 @@ export async function searchContactsByCompanyName(
   input: CompanyNameSearchInput
 ): Promise<CompanyNameSearchResult> {
   const { apolloPeopleSearch } = await import("./apolloEnrichment");
-  const { companyNames, targetRoles, customRolePatterns, maxPerCompany = 10 } = input;
+  const { companyNames, targetRoles, customRolePatterns, maxPerCompany = 25, maxTotal = 2000 } = input;
 
   // Build combined role patterns for filtering
   const rolePatterns: RegExp[] = [];
@@ -318,11 +325,14 @@ export async function searchContactsByCompanyName(
 
   for (const companyName of companyNames) {
     try {
+      // Stop if we've already hit the total cap
+      if (allContacts.length >= maxTotal) break;
+
       const result = await apolloPeopleSearch({
         organizationName: companyName,
         personTitles: apolloTitles.length > 0 ? apolloTitles : undefined,
         organizationLocations: ["Australia"],
-        perPage: 25,
+        perPage: 50,
       });
 
       totalFound += result.people.length;
@@ -358,6 +368,7 @@ export async function searchContactsByCompanyName(
 
         companyFiltered++;
         if (companyContacts.length >= maxPerCompany) break;
+        if (allContacts.length + companyContacts.length >= maxTotal) break;
       }
 
       if (companyContacts.length > 0) companiesWithResults++;

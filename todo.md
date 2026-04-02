@@ -893,3 +893,12 @@
 - [x] CDR campaigns use rental-appropriate language ("your rental fleet", "fleet investment")
 - [x] XAVS1800 campaigns retain existing behaviour with no-rental-language rules
 - [x] All 1553 tests passing (2 pre-existing API timeout failures)
+
+## Campaign — Increase Apollo/Hunter Search Limits for Large Company Lists
+- [x] Review current per-company contact limit and total batch cap in searchCompanyContacts
+- [x] Increase Apollo perPage from 25 to 50, maxPerCompany from 10 to 25 per company
+- [x] Increase Hunter maxPerDomain from 10 to 25, add maxTotal cap of 2000
+- [x] Update router input schema to allow maxPerDomain up to 100 and maxTotal up to 5000
+- [x] Update frontend to pass maxPerDomain: 25, maxTotal: 2000 in search request
+- [x] Add estimated time display for large lists (>50 companies shows est. X min)
+- [x] Show company count in loading button text ("Searching 378 companies...")

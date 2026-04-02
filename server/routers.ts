@@ -2806,7 +2806,8 @@ export const appRouter = router({
         }),
         targetRoles: z.array(z.string()),
         customRolePatterns: z.array(z.string()).optional(),
-        maxPerDomain: z.number().min(1).max(50).optional(),
+        maxPerDomain: z.number().min(1).max(100).optional(),
+        maxTotal: z.number().min(1).max(5000).optional(),
         sheetName: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -2839,7 +2840,8 @@ export const appRouter = router({
             domains: withDomain.map(c => c.domain!),
             targetRoles: input.targetRoles,
             customRolePatterns: input.customRolePatterns,
-            maxPerDomain: input.maxPerDomain ?? 10,
+            maxPerDomain: input.maxPerDomain ?? 25,
+            maxTotal: input.maxTotal ?? 2000,
           });
         }
 
@@ -2850,7 +2852,8 @@ export const appRouter = router({
             companyNames: withoutDomain.map(c => c.company),
             targetRoles: input.targetRoles,
             customRolePatterns: input.customRolePatterns,
-            maxPerCompany: input.maxPerDomain ?? 10,
+            maxPerCompany: input.maxPerDomain ?? 25,
+            maxTotal: input.maxTotal ?? 2000,
           });
         }
 
