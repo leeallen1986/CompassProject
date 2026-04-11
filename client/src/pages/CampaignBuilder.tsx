@@ -9,7 +9,7 @@
  * 3. Review & Launch — see imported contacts, tier breakdown, trigger enrichment
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -134,12 +134,30 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [companySearchResult, setCompanySearchResult] = useState<CompanySearchResult | null>(null);
 
+  // Background company search job state
+  const [searchJobId, setSearchJobId] = useState<string | null>(null);
+  const [searchJobTotalCompanies, setSearchJobTotalCompanies] = useState(0);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Search state
   const [searchDomains, setSearchDomains] = useState<string[]>([""]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [customRolePattern, setCustomRolePattern] = useState("");
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Progress polling state
+  const [searchProgress, setSearchProgress] = useState<{
+    companiesSearched: number;
+    totalCompanies: number;
+    totalFound: number;
+    totalFiltered: number;
+    companiesWithResults: number;
+    currentCompany: string | null;
+    elapsedSeconds: number;
+    status: string;
+    error: string | null;
+  } | null>(null);
 
   // Step 3: Import state
   const [importResult, setImportResult] = useState<any>(null);
@@ -149,6 +167,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   // Queries
   const collateralQuery = trpc.collateral.list.useQuery({});
   const rolesQuery = trpc.campaign.availableRoles.useQuery();
+  const trpcUtils = trpc.useUtils();
 
   // Mutations
   const createCampaign = trpc.campaign.create.useMutation();
@@ -269,6 +288,13 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
 
   // ── Step 2: Company Contact Discovery ──
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
   const handleSearchCompanyContacts = async () => {
     if (!uploadedFileUrl) return;
     if (selectedRoles.length === 0 && !customRolePattern) {
@@ -277,7 +303,9 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     }
 
     setIsSearching(true);
+    setSearchProgress(null);
     try {
+      // Start background job — returns immediately with jobId
       const result = await searchCompanyContacts.mutateAsync({
         fileUrl: uploadedFileUrl,
         mapping: columnMapping,
@@ -286,16 +314,80 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
         maxPerDomain: 25,
         maxTotal: 2000,
       });
-      setCompanySearchResult(result);
-      toast.success(
-        `Found ${result.totalFiltered} contacts across ${result.domainsWithResults} companies`
-      );
+
+      if (!result.jobId) {
+        toast.error("No companies found in file");
+        setIsSearching(false);
+        return;
+      }
+
+      setSearchJobId(result.jobId);
+      setSearchJobTotalCompanies(result.totalCompanies);
+      toast.info(`Searching ${result.totalCompanies} companies in the background...`);
+
+      // Start polling for progress
+      startPolling(result.jobId);
     } catch (err) {
       toast.error("Contact search failed: " + (err as Error).message);
-    } finally {
       setIsSearching(false);
     }
   };
+
+  const startPolling = useCallback((jobId: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+
+    const poll = async () => {
+      try {
+        const progress = await trpcUtils.campaign.companySearchProgress.fetch({ jobId });
+
+        setSearchProgress({
+          companiesSearched: progress.companiesSearched,
+          totalCompanies: progress.totalCompanies,
+          totalFound: progress.totalFound,
+          totalFiltered: progress.totalFiltered,
+          companiesWithResults: progress.companiesWithResults,
+          currentCompany: progress.currentCompany,
+          elapsedSeconds: progress.elapsedSeconds,
+          status: progress.status,
+          error: progress.error,
+        });
+
+        if (progress.status === "completed") {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          pollingRef.current = null;
+          setIsSearching(false);
+          setSearchJobId(null);
+
+          // Build the CompanySearchResult from the completed job
+          setCompanySearchResult({
+            companies: [],
+            contacts: progress.contacts,
+            domainsSearched: progress.totalCompanies,
+            domainsWithResults: progress.companiesWithResults,
+            totalFound: progress.totalFound,
+            totalFiltered: progress.totalFiltered,
+            domainBreakdown: progress.domainBreakdown,
+            companiesWithoutDomain: [],
+          });
+          toast.success(
+            `Found ${progress.totalFiltered} contacts at ${progress.companiesWithResults} companies (${progress.elapsedSeconds}s)`
+          );
+        } else if (progress.status === "failed" || progress.status === "not_found") {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          pollingRef.current = null;
+          setIsSearching(false);
+          setSearchJobId(null);
+          toast.error("Search failed: " + (progress.error || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    };
+
+    // Poll immediately, then every 2 seconds
+    poll();
+    pollingRef.current = setInterval(poll, 2000);
+  }, []);
 
   const handleImportCompanySearchResults = async () => {
     if (!createdCampaignId || !companySearchResult) return;
@@ -739,19 +831,73 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                         <div className="flex items-start gap-3">
                           <Building2 className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-                          <div>
+                          <div className="w-full">
                             <h4 className="text-sm font-bold text-amber-800 mb-1">
                               Company List Detected
                             </h4>
                             <p className="text-xs text-amber-700 mb-3">
                               This file contains company names and domains but no individual contacts.
-                              Select the roles you're targeting below and we'll search for contacts at these companies using Hunter.io.
+                              Select the roles you're targeting below and we'll search for contacts at these companies.
                             </p>
-                            <RoleSelector />
+
+                            {/* Role selector — hidden while searching */}
+                            {!isSearching && <RoleSelector />}
+
+                            {/* Progress indicator — shown while searching */}
+                            {isSearching && searchProgress && (
+                              <div className="space-y-3 my-3">
+                                {/* Progress bar */}
+                                <div className="w-full bg-amber-100 rounded-full h-3 overflow-hidden">
+                                  <div
+                                    className="bg-gold h-3 rounded-full transition-all duration-500 ease-out"
+                                    style={{ width: `${searchProgress.totalCompanies > 0 ? Math.round((searchProgress.companiesSearched / searchProgress.totalCompanies) * 100) : 0}%` }}
+                                  />
+                                </div>
+
+                                {/* Stats row */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                    <div className="text-lg font-bold text-navy">{searchProgress.companiesSearched}/{searchProgress.totalCompanies}</div>
+                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies Searched</div>
+                                  </div>
+                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                    <div className="text-lg font-bold text-teal">{searchProgress.totalFiltered}</div>
+                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Contacts Found</div>
+                                  </div>
+                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                    <div className="text-lg font-bold text-gold-dark">{searchProgress.companiesWithResults}</div>
+                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies with Hits</div>
+                                  </div>
+                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                    <div className="text-lg font-bold text-muted-foreground">{searchProgress.elapsedSeconds}s</div>
+                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Elapsed</div>
+                                  </div>
+                                </div>
+
+                                {/* Current company */}
+                                {searchProgress.currentCompany && (
+                                  <div className="flex items-center gap-2">
+                                    <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                                    <span className="text-xs text-amber-700 truncate">
+                                      Searching: <strong>{searchProgress.currentCompany}</strong>
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Estimated time remaining */}
+                                {searchProgress.companiesSearched > 5 && (
+                                  <p className="text-[10px] text-amber-600">
+                                    Est. {Math.ceil(((searchProgress.elapsedSeconds / searchProgress.companiesSearched) * (searchProgress.totalCompanies - searchProgress.companiesSearched)) / 60)} min remaining
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Search button */}
                             <div className="flex items-center justify-between mt-4">
-                              {filePreview && filePreview.totalRows > 50 && (
+                              {!isSearching && filePreview && filePreview.totalRows > 50 && (
                                 <p className="text-xs text-amber-600">
-                                  {filePreview.totalRows} companies — est. {Math.ceil(filePreview.totalRows * 0.35 / 60)} min
+                                  {filePreview.totalRows} companies — est. {Math.ceil(filePreview.totalRows * 0.5 / 60)} min
                                 </p>
                               )}
                               <div className="ml-auto">
@@ -761,7 +907,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                                   className="bg-gold hover:bg-gold/90 text-navy font-semibold"
                                 >
                                   {isSearching ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching {filePreview?.totalRows ?? ''} companies...</>
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Searching {searchProgress?.companiesSearched ?? 0}/{searchProgress?.totalCompanies ?? filePreview?.totalRows ?? '...'} companies...</>
                                   ) : (
                                     <><Search className="w-4 h-4 mr-2" /> Find Contacts at These Companies</>
                                   )}

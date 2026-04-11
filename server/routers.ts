@@ -130,6 +130,7 @@ import {
 import { parseBlastContactList } from "./campaignImport";
 import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList, type ColumnMapping } from "./campaignCsvImport";
 import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
+import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
 import { storagePut } from "./storage";
 
 export const appRouter = router({
@@ -2788,7 +2789,7 @@ export const appRouter = router({
         return analyseImportFile(buffer, input.mapping as ColumnMapping, { sheetName: input.sheetName });
       }),
 
-    /** Parse a company-only file and search for contacts at those companies */
+    /** Start a background company contact search job (returns jobId for polling) */
     searchCompanyContacts: campaignProcedure
       .input(z.object({
         fileUrl: z.string(),
@@ -2817,71 +2818,59 @@ export const appRouter = router({
         const parsed = parseCompanyList(buffer, input.mapping as ColumnMapping, { sheetName: input.sheetName });
 
         if (parsed.companies.length === 0) {
-          return {
-            companies: [],
-            contacts: [],
-            domainsSearched: 0,
-            domainsWithResults: 0,
-            totalFound: 0,
-            totalFiltered: 0,
-            domainBreakdown: [],
-            companiesWithoutDomain: [],
-          };
+          return { jobId: null, totalCompanies: 0 };
         }
 
         // Separate companies with and without domains
-        const withDomain = parsed.companies.filter(c => c.domain);
-        const withoutDomain = parsed.companies.filter(c => !c.domain);
+        const withDomain = parsed.companies.filter(c => c.domain).map(c => ({ company: c.company, domain: c.domain! }));
+        const withoutDomain = parsed.companies.filter(c => !c.domain).map(c => ({ company: c.company }));
 
-        // Search contacts at companies with domains (via Hunter)
-        let domainSearchResult = null;
-        if (withDomain.length > 0) {
-          domainSearchResult = await searchContactsByDomain({
-            domains: withDomain.map(c => c.domain!),
-            targetRoles: input.targetRoles,
-            customRolePatterns: input.customRolePatterns,
-            maxPerDomain: input.maxPerDomain ?? 25,
-            maxTotal: input.maxTotal ?? 2000,
-          });
+        // Start background job
+        const jobId = startCompanySearch({
+          withDomain,
+          withoutDomain,
+          targetRoles: input.targetRoles,
+          customRolePatterns: input.customRolePatterns,
+          maxPerCompany: input.maxPerDomain ?? 25,
+          maxTotal: input.maxTotal ?? 2000,
+        });
+
+        return { jobId, totalCompanies: parsed.companies.length };
+      }),
+
+    /** Poll progress of a background company search job */
+    companySearchProgress: campaignProcedure
+      .input(z.object({ jobId: z.string() }))
+      .query(async ({ input }) => {
+        const progress = getCompanySearchProgress(input.jobId);
+        if (!progress) {
+          return {
+            status: "not_found" as const,
+            totalCompanies: 0,
+            companiesSearched: 0,
+            totalFound: 0,
+            totalFiltered: 0,
+            companiesWithResults: 0,
+            currentCompany: null,
+            error: "Job not found — it may have expired",
+            elapsedSeconds: 0,
+            domainBreakdown: [] as { domain: string; organization: string; found: number; filtered: number }[],
+            contacts: [] as any[],
+          };
         }
-
-        // Search contacts at companies without domains (via Apollo company name search)
-        let nameSearchResult = null;
-        if (withoutDomain.length > 0) {
-          nameSearchResult = await searchContactsByCompanyName({
-            companyNames: withoutDomain.map(c => c.company),
-            targetRoles: input.targetRoles,
-            customRolePatterns: input.customRolePatterns,
-            maxPerCompany: input.maxPerDomain ?? 25,
-            maxTotal: input.maxTotal ?? 2000,
-          });
-        }
-
-        // Merge results from both searches
-        const allContacts = [
-          ...(domainSearchResult?.contacts || []),
-          ...(nameSearchResult?.contacts || []),
-        ];
-
-        const allBreakdown = [
-          ...(domainSearchResult?.domainBreakdown || []),
-          ...(nameSearchResult?.companyBreakdown || []).map(c => ({
-            domain: c.company, // use company name as domain placeholder
-            organization: c.company,
-            found: c.found,
-            filtered: c.filtered,
-          })),
-        ];
-
         return {
-          companies: parsed.companies,
-          contacts: allContacts,
-          domainsSearched: (domainSearchResult?.domainsSearched || 0) + (nameSearchResult?.companiesSearched || 0),
-          domainsWithResults: (domainSearchResult?.domainsWithResults || 0) + (nameSearchResult?.companiesWithResults || 0),
-          totalFound: (domainSearchResult?.totalFound || 0) + (nameSearchResult?.totalFound || 0),
-          totalFiltered: (domainSearchResult?.totalFiltered || 0) + (nameSearchResult?.totalFiltered || 0),
-          domainBreakdown: allBreakdown,
-          companiesWithoutDomain: [], // No longer "without domain" — we searched them by name
+          status: progress.status,
+          totalCompanies: progress.totalCompanies,
+          companiesSearched: progress.companiesSearched,
+          totalFound: progress.totalFound,
+          totalFiltered: progress.totalFiltered,
+          companiesWithResults: progress.companiesWithResults,
+          currentCompany: progress.currentCompany,
+          error: progress.error,
+          elapsedSeconds: progress.elapsedSeconds,
+          // Only return full data when completed (saves bandwidth during polling)
+          domainBreakdown: progress.status === "completed" ? progress.domainBreakdown : [],
+          contacts: progress.status === "completed" ? progress.contacts : [],
         };
       }),
 

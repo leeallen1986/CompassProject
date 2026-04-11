@@ -1,0 +1,38 @@
+X1350 Campaign Audit Findings
+==============================
+
+FILE: Company_Names_Deduped.csv
+- Single column: "Company Name"
+- 378 rows, all company names (drilling companies)
+- NO domains, NO websites, NO contact info
+
+PARSING RESULTS:
+- Preview: correctly detects { company: 0 } mapping (column 0 = company)
+- Analysis: correctly identifies type="companies" (378 company-only rows)
+- Parse: correctly extracts 378 companies
+- ALL 378 companies have domain=null (no domain column in file)
+
+FLOW TRACE (searchCompanyContacts endpoint):
+1. parseCompanyList → 378 companies, all with domain=null
+2. withDomain = companies.filter(c => c.domain) → 0 companies (empty)
+3. withoutDomain = companies.filter(c => !c.domain) → 378 companies
+4. Since withDomain is empty → domainSearchResult = null (Hunter skipped)
+5. Since withoutDomain has 378 → calls searchContactsByCompanyName()
+6. searchContactsByCompanyName calls apolloPeopleSearch() for each company
+
+LIKELY ROOT CAUSE:
+The code path is CORRECT for this file. All 378 companies go through Apollo 
+People Search (name-based, no domain needed). 
+
+Possible failure points:
+A) Apollo API key invalid/expired → all 378 searches fail silently (errors caught)
+B) Apollo rate limiting → requests fail after some threshold
+C) The user never clicked "Find Contacts at These Companies" button
+D) The search ran but returned 0 matching contacts (role filter too narrow)
+E) The search ran, found contacts, but user didn't click "Import X Contacts"
+F) Frontend timeout — 378 companies × 300ms rate limit = ~113 seconds minimum
+   Plus API response time, could be 3-5 minutes total. Browser/tRPC may timeout.
+
+MOST LIKELY: (F) — The mutation times out. 378 companies × ~500ms each = ~190 seconds.
+tRPC default timeout or browser connection timeout would kill this request.
+Also possible: (C) — user created campaign but didn't complete the search step.

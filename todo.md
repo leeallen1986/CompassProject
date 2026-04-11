@@ -902,3 +902,14 @@
 - [x] Update frontend to pass maxPerDomain: 25, maxTotal: 2000 in search request
 - [x] Add estimated time display for large lists (>50 companies shows est. X min)
 - [x] Show company count in loading button text ("Searching 378 companies...")
+
+## Audit — X1350 Campaign: Company Search Returns 0 Contacts
+- [x] Trace full flow: CSV upload → company detection → Apollo/Hunter search → contact import
+- [x] Check server logs for errors during X1350 company search
+- [x] Check database for X1350 campaign contacts (any imported at all?) — confirmed 0 contacts
+- [x] Identify root cause: 378 companies with no domains → all go through Apollo People Search sequentially → HTTP request times out (~190s for 378 companies at 300ms rate limit + API response time)
+- [x] Fix: Convert searchCompanyContacts to background job with progress polling
+- [x] Build polling UI showing search progress ("Searched 45/378... Found 127 contacts")
+- [x] Write vitest tests for background job (9 tests, all passing)
+- [ ] Test fix with the actual 378-company CSV file
+- [ ] Verify contacts import correctly after search completes
