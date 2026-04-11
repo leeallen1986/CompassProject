@@ -1,9 +1,10 @@
 /**
  * companySearchJob.ts — Background job manager for large company contact searches
  *
- * Problem: Searching 378+ companies via Apollo People Search takes 3-5 minutes,
- * which exceeds HTTP request timeouts. This module runs the search in the background
- * and provides progress polling.
+ * Pipeline:
+ * Phase 0: LLM Domain Inference — resolve domains for companies without them
+ * Phase 1: Hunter.io Domain Search — search companies with domains (original + inferred)
+ * Phase 2: Apollo Name Search — fallback for companies where LLM couldn't infer a domain
  *
  * Flow:
  * 1. Client calls startCompanySearch → returns jobId immediately
@@ -14,6 +15,7 @@
 import { searchContactsByDomain, searchContactsByCompanyName, PREDEFINED_ROLES } from "./hunterContactSearch";
 import { domainSearch } from "./hunterService";
 import { apolloPeopleSearch } from "./apolloEnrichment";
+import { inferCompanyDomains, type DomainInferenceResult } from "./domainInference";
 import type { RawContactRow } from "./campaignService";
 import { nanoid } from "nanoid";
 
@@ -22,7 +24,7 @@ import { nanoid } from "nanoid";
 export interface CompanySearchJobInput {
   /** Companies with domains (for Hunter search) */
   withDomain: { company: string; domain: string }[];
-  /** Companies without domains (for Apollo name search) */
+  /** Companies without domains (for LLM inference → Hunter, then Apollo fallback) */
   withoutDomain: { company: string }[];
   /** Target role keys from PREDEFINED_ROLES */
   targetRoles: string[];
@@ -37,9 +39,11 @@ export interface CompanySearchJobInput {
 export interface CompanySearchProgress {
   jobId: string;
   status: "running" | "completed" | "failed";
+  /** Current phase of the pipeline */
+  phase: "inferring_domains" | "searching_hunter" | "searching_apollo" | "done";
   /** Total companies to search */
   totalCompanies: number;
-  /** Companies searched so far */
+  /** Companies searched so far (Hunter + Apollo phases) */
   companiesSearched: number;
   /** Contacts found so far (pre-filter) */
   totalFound: number;
@@ -59,6 +63,14 @@ export interface CompanySearchProgress {
   startedAt: number;
   /** Elapsed seconds */
   elapsedSeconds: number;
+  /** Domain inference progress */
+  domainInference: {
+    total: number;
+    completed: number;
+    resolved: number;
+    highConfidence: number;
+    mediumConfidence: number;
+  };
 }
 
 // ── In-memory job store ──
@@ -78,7 +90,7 @@ function cleanupOldJobs() {
   });
 }
 
-// ── Role filtering helpers (duplicated from hunterContactSearch for isolation) ──
+// ── Role filtering helpers ──
 
 const EXCLUDE_PATTERNS = [
   /\bhr\b/i, /human\s*resource/i, /recruit/i, /talent/i,
@@ -164,6 +176,7 @@ export function startCompanySearch(input: CompanySearchJobInput): string {
   const progress: CompanySearchProgress = {
     jobId,
     status: "running",
+    phase: input.withoutDomain.length > 0 ? "inferring_domains" : "searching_hunter",
     totalCompanies,
     companiesSearched: 0,
     totalFound: 0,
@@ -175,6 +188,13 @@ export function startCompanySearch(input: CompanySearchJobInput): string {
     contacts: [],
     startedAt: Date.now(),
     elapsedSeconds: 0,
+    domainInference: {
+      total: input.withoutDomain.length,
+      completed: 0,
+      resolved: 0,
+      highConfidence: 0,
+      mediumConfidence: 0,
+    },
   };
 
   jobs.set(jobId, progress);
@@ -206,8 +226,50 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
   const apolloTitles = buildApolloTitles(input.targetRoles);
   let rowCounter = 1;
 
+  // Collect all companies with domains (original + inferred)
+  const companiesWithDomain: { company: string; domain: string }[] = [...input.withDomain];
+  const companiesForApollo: { company: string }[] = [];
+
+  // ── Phase 0: LLM Domain Inference ──
+  if (input.withoutDomain.length > 0) {
+    job.phase = "inferring_domains";
+    console.log(`[CompanySearchJob] ${jobId} Phase 0: Inferring domains for ${input.withoutDomain.length} companies`);
+
+    try {
+      const companyNames = input.withoutDomain.map(c => c.company);
+      const inferenceResults = await inferCompanyDomains(companyNames, (completed, total, currentBatch) => {
+        job.domainInference.completed = completed;
+        if (currentBatch.length > 0) {
+          job.currentCompany = `Inferring domains: ${currentBatch[0]}...`;
+        }
+      });
+
+      // Sort results: high/medium confidence → Hunter, low/null → Apollo
+      for (const result of inferenceResults) {
+        if (result.domain && (result.confidence === "high" || result.confidence === "medium")) {
+          companiesWithDomain.push({ company: result.company, domain: result.domain });
+          job.domainInference.resolved++;
+          if (result.confidence === "high") job.domainInference.highConfidence++;
+          if (result.confidence === "medium") job.domainInference.mediumConfidence++;
+        } else {
+          companiesForApollo.push({ company: result.company });
+        }
+      }
+
+      job.domainInference.completed = input.withoutDomain.length;
+      console.log(`[CompanySearchJob] ${jobId} Domain inference: ${job.domainInference.resolved}/${input.withoutDomain.length} resolved (${job.domainInference.highConfidence} high, ${job.domainInference.mediumConfidence} medium)`);
+    } catch (err) {
+      console.error(`[CompanySearchJob] ${jobId} Domain inference failed, falling back to Apollo:`, err);
+      // If inference fails entirely, all go to Apollo
+      companiesForApollo.push(...input.withoutDomain);
+    }
+  }
+
   // ── Phase 1: Hunter domain search ──
-  for (const company of input.withDomain) {
+  job.phase = "searching_hunter";
+  console.log(`[CompanySearchJob] ${jobId} Phase 1: Hunter search for ${companiesWithDomain.length} companies`);
+
+  for (const company of companiesWithDomain) {
     if (job.contacts.length >= input.maxTotal) break;
 
     job.currentCompany = company.company || company.domain;
@@ -229,7 +291,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
           firstName: email.first_name,
           lastName: email.last_name,
           title: email.position,
-          company: result.organization || company.domain,
+          company: result.organization || company.company || company.domain,
           reviewedCompanyName: result.organization || null,
           phone: email.phone_number,
           mobile: null,
@@ -248,7 +310,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
       job.contacts.push(...domainContacts);
       job.domainBreakdown.push({
         domain: company.domain,
-        organization: result.organization || company.domain,
+        organization: result.organization || company.company || company.domain,
         found: result.emails.length,
         filtered: domainFiltered,
       });
@@ -266,73 +328,79 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
     await new Promise(r => setTimeout(r, 200));
   }
 
-  // ── Phase 2: Apollo company name search ──
-  for (const company of input.withoutDomain) {
-    if (job.contacts.length >= input.maxTotal) break;
+  // ── Phase 2: Apollo company name search (fallback) ──
+  if (companiesForApollo.length > 0) {
+    job.phase = "searching_apollo";
+    console.log(`[CompanySearchJob] ${jobId} Phase 2: Apollo fallback for ${companiesForApollo.length} companies`);
 
-    job.currentCompany = company.company;
+    for (const company of companiesForApollo) {
+      if (job.contacts.length >= input.maxTotal) break;
 
-    try {
-      const result = await apolloPeopleSearch({
-        organizationName: company.company,
-        personTitles: apolloTitles.length > 0 ? apolloTitles : undefined,
-        organizationLocations: ["Australia"],
-        perPage: 50,
-      });
+      job.currentCompany = company.company;
 
-      job.totalFound += result.people.length;
-      let companyFiltered = 0;
-      const companyContacts: RawContactRow[] = [];
-
-      for (const person of result.people) {
-        if (isExcludedRole(person.title)) continue;
-        if (rolePatterns.length > 0 && !matchesRole(person.title, rolePatterns)) continue;
-
-        companyContacts.push({
-          firstName: person.first_name || null,
-          lastName: person.last_name_obfuscated || null,
-          title: person.title || null,
-          company: person.organization?.name || company.company,
-          reviewedCompanyName: person.organization?.name || null,
-          phone: null,
-          mobile: null,
-          email: null,
-          nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
-          reviewNotes: `Apollo ID: ${person.id}`,
-          sourceRow: rowCounter++,
+      try {
+        const result = await apolloPeopleSearch({
+          organizationName: company.company,
+          personTitles: apolloTitles.length > 0 ? apolloTitles : undefined,
+          organizationLocations: ["Australia"],
+          perPage: 50,
         });
 
-        companyFiltered++;
-        if (companyContacts.length >= input.maxPerCompany) break;
-        if (job.contacts.length + companyContacts.length >= input.maxTotal) break;
+        job.totalFound += result.people.length;
+        let companyFiltered = 0;
+        const companyContacts: RawContactRow[] = [];
+
+        for (const person of result.people) {
+          if (isExcludedRole(person.title)) continue;
+          if (rolePatterns.length > 0 && !matchesRole(person.title, rolePatterns)) continue;
+
+          companyContacts.push({
+            firstName: person.first_name || null,
+            lastName: person.last_name_obfuscated || null,
+            title: person.title || null,
+            company: person.organization?.name || company.company,
+            reviewedCompanyName: person.organization?.name || null,
+            phone: null,
+            mobile: null,
+            email: null,
+            nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
+            reviewNotes: `Apollo ID: ${person.id}`,
+            sourceRow: rowCounter++,
+          });
+
+          companyFiltered++;
+          if (companyContacts.length >= input.maxPerCompany) break;
+          if (job.contacts.length + companyContacts.length >= input.maxTotal) break;
+        }
+
+        if (companyContacts.length > 0) job.companiesWithResults++;
+        job.totalFiltered += companyFiltered;
+        job.contacts.push(...companyContacts);
+        job.domainBreakdown.push({
+          domain: company.company,
+          organization: company.company,
+          found: result.people.length,
+          filtered: companyFiltered,
+        });
+      } catch (err) {
+        console.error(`[CompanySearchJob] Apollo failed for "${company.company}":`, err);
+        job.domainBreakdown.push({
+          domain: company.company,
+          organization: company.company,
+          found: 0,
+          filtered: 0,
+        });
       }
 
-      if (companyContacts.length > 0) job.companiesWithResults++;
-      job.totalFiltered += companyFiltered;
-      job.contacts.push(...companyContacts);
-      job.domainBreakdown.push({
-        domain: company.company,
-        organization: company.company,
-        found: result.people.length,
-        filtered: companyFiltered,
-      });
-    } catch (err) {
-      console.error(`[CompanySearchJob] Apollo failed for "${company.company}":`, err);
-      job.domainBreakdown.push({
-        domain: company.company,
-        organization: company.company,
-        found: 0,
-        filtered: 0,
-      });
+      job.companiesSearched++;
+      await new Promise(r => setTimeout(r, 300));
     }
-
-    job.companiesSearched++;
-    await new Promise(r => setTimeout(r, 300));
   }
 
   // ── Done ──
+  job.phase = "done";
   job.status = "completed";
   job.currentCompany = null;
   job.elapsedSeconds = Math.round((Date.now() - job.startedAt) / 1000);
-  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s`);
+  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred by LLM)`);
 }

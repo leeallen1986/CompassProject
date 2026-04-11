@@ -913,3 +913,12 @@
 - [x] Write vitest tests for background job (9 tests, all passing)
 - [ ] Test fix with the actual 378-company CSV file
 - [ ] Verify contacts import correctly after search completes
+
+## LLM Domain Inference for Company Search
+- [x] Build LLM domain inference service (batch 20 companies per LLM call, structured JSON output, high/medium/low confidence)
+- [x] Integrate domain inference into companySearchJob as Phase 0 (infer domains → Hunter.io → Apollo fallback)
+- [x] Route high/medium confidence domains to Hunter, low/null to Apollo fallback
+- [x] Update progress UI with 3-phase pipeline indicator (AI Domain Lookup → Hunter.io Search → Apollo Fallback)
+- [x] Show domain inference progress card (companies processed, domains resolved, confidence breakdown)
+- [x] Write tests for domain inference integration (13 tests, all passing)
+- [x] Run full test suite — all 1568 tests passing

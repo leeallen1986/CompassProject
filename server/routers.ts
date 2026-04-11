@@ -2846,6 +2846,7 @@ export const appRouter = router({
         if (!progress) {
           return {
             status: "not_found" as const,
+            phase: "done" as const,
             totalCompanies: 0,
             companiesSearched: 0,
             totalFound: 0,
@@ -2856,10 +2857,12 @@ export const appRouter = router({
             elapsedSeconds: 0,
             domainBreakdown: [] as { domain: string; organization: string; found: number; filtered: number }[],
             contacts: [] as any[],
+            domainInference: { total: 0, completed: 0, resolved: 0, highConfidence: 0, mediumConfidence: 0 },
           };
         }
         return {
           status: progress.status,
+          phase: progress.phase,
           totalCompanies: progress.totalCompanies,
           companiesSearched: progress.companiesSearched,
           totalFound: progress.totalFound,
@@ -2868,6 +2871,7 @@ export const appRouter = router({
           currentCompany: progress.currentCompany,
           error: progress.error,
           elapsedSeconds: progress.elapsedSeconds,
+          domainInference: progress.domainInference,
           // Only return full data when completed (saves bandwidth during polling)
           domainBreakdown: progress.status === "completed" ? progress.domainBreakdown : [],
           contacts: progress.status === "completed" ? progress.contacts : [],

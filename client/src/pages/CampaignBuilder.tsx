@@ -26,7 +26,7 @@ import {
   ChevronLeft, ChevronRight, Check, Upload, Search, Globe,
   Users, Loader2, FileSpreadsheet, Zap, Megaphone,
   Flame, TrendingUp, Database, Clock, AlertCircle, X,
-  Plus, Trash2, CheckCircle2, ArrowRight, Building2,
+  Plus, Trash2, CheckCircle2, ArrowRight, Building2, Sparkles,
 } from "lucide-react";
 
 // ── Types ──
@@ -156,7 +156,15 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     currentCompany: string | null;
     elapsedSeconds: number;
     status: string;
+    phase: string;
     error: string | null;
+    domainInference: {
+      total: number;
+      completed: number;
+      resolved: number;
+      highConfidence: number;
+      mediumConfidence: number;
+    };
   } | null>(null);
 
   // Step 3: Import state
@@ -349,7 +357,9 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
           currentCompany: progress.currentCompany,
           elapsedSeconds: progress.elapsedSeconds,
           status: progress.status,
+          phase: progress.phase,
           error: progress.error,
+          domainInference: progress.domainInference,
         });
 
         if (progress.status === "completed") {
@@ -846,49 +856,127 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                             {/* Progress indicator — shown while searching */}
                             {isSearching && searchProgress && (
                               <div className="space-y-3 my-3">
-                                {/* Progress bar */}
-                                <div className="w-full bg-amber-100 rounded-full h-3 overflow-hidden">
-                                  <div
-                                    className="bg-gold h-3 rounded-full transition-all duration-500 ease-out"
-                                    style={{ width: `${searchProgress.totalCompanies > 0 ? Math.round((searchProgress.companiesSearched / searchProgress.totalCompanies) * 100) : 0}%` }}
-                                  />
+                                {/* Phase indicator */}
+                                <div className="flex items-center gap-3 text-xs">
+                                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold ${
+                                    searchProgress.phase === "inferring_domains"
+                                      ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300"
+                                      : searchProgress.domainInference.total > 0
+                                        ? "bg-blue-50 text-blue-400"
+                                        : "bg-slate-50 text-slate-400"
+                                  }`}>
+                                    {searchProgress.phase === "inferring_domains" && <Loader2 className="w-3 h-3 animate-spin" />}
+                                    {searchProgress.phase !== "inferring_domains" && searchProgress.domainInference.total > 0 && <Check className="w-3 h-3" />}
+                                    <span>1. AI Domain Lookup</span>
+                                  </div>
+                                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold ${
+                                    searchProgress.phase === "searching_hunter"
+                                      ? "bg-green-100 text-green-700 ring-1 ring-green-300"
+                                      : searchProgress.phase === "searching_apollo" || searchProgress.phase === "done"
+                                        ? "bg-green-50 text-green-400"
+                                        : "bg-slate-50 text-slate-400"
+                                  }`}>
+                                    {searchProgress.phase === "searching_hunter" && <Loader2 className="w-3 h-3 animate-spin" />}
+                                    {(searchProgress.phase === "searching_apollo" || searchProgress.phase === "done") && <Check className="w-3 h-3" />}
+                                    <span>2. Hunter.io Search</span>
+                                  </div>
+                                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold ${
+                                    searchProgress.phase === "searching_apollo"
+                                      ? "bg-purple-100 text-purple-700 ring-1 ring-purple-300"
+                                      : searchProgress.phase === "done"
+                                        ? "bg-purple-50 text-purple-400"
+                                        : "bg-slate-50 text-slate-400"
+                                  }`}>
+                                    {searchProgress.phase === "searching_apollo" && <Loader2 className="w-3 h-3 animate-spin" />}
+                                    {searchProgress.phase === "done" && <Check className="w-3 h-3" />}
+                                    <span>3. Apollo Fallback</span>
+                                  </div>
                                 </div>
 
-                                {/* Stats row */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
-                                    <div className="text-lg font-bold text-navy">{searchProgress.companiesSearched}/{searchProgress.totalCompanies}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies Searched</div>
-                                  </div>
-                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
-                                    <div className="text-lg font-bold text-teal">{searchProgress.totalFiltered}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Contacts Found</div>
-                                  </div>
-                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
-                                    <div className="text-lg font-bold text-gold-dark">{searchProgress.companiesWithResults}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies with Hits</div>
-                                  </div>
-                                  <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
-                                    <div className="text-lg font-bold text-muted-foreground">{searchProgress.elapsedSeconds}s</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Elapsed</div>
-                                  </div>
-                                </div>
-
-                                {/* Current company */}
-                                {searchProgress.currentCompany && (
-                                  <div className="flex items-center gap-2">
-                                    <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
-                                    <span className="text-xs text-amber-700 truncate">
-                                      Searching: <strong>{searchProgress.currentCompany}</strong>
-                                    </span>
+                                {/* Domain Inference Phase */}
+                                {searchProgress.phase === "inferring_domains" && searchProgress.domainInference.total > 0 && (
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Sparkles className="w-4 h-4 text-blue-600" />
+                                      <span className="text-sm font-semibold text-blue-800">AI is inferring company domains...</span>
+                                    </div>
+                                    <div className="w-full bg-blue-100 rounded-full h-2 overflow-hidden">
+                                      <div
+                                        className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
+                                        style={{ width: `${searchProgress.domainInference.total > 0 ? Math.round((searchProgress.domainInference.completed / searchProgress.domainInference.total) * 100) : 0}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-blue-700">
+                                      <span>{searchProgress.domainInference.completed}/{searchProgress.domainInference.total} companies processed</span>
+                                      <span>{searchProgress.domainInference.resolved} domains resolved</span>
+                                    </div>
                                   </div>
                                 )}
 
-                                {/* Estimated time remaining */}
-                                {searchProgress.companiesSearched > 5 && (
-                                  <p className="text-[10px] text-amber-600">
-                                    Est. {Math.ceil(((searchProgress.elapsedSeconds / searchProgress.companiesSearched) * (searchProgress.totalCompanies - searchProgress.companiesSearched)) / 60)} min remaining
-                                  </p>
+                                {/* Domain Inference Summary (after completion) */}
+                                {searchProgress.phase !== "inferring_domains" && searchProgress.domainInference.total > 0 && searchProgress.domainInference.resolved > 0 && (
+                                  <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                      <span className="text-xs text-blue-700">
+                                        AI resolved <strong>{searchProgress.domainInference.resolved}</strong> of {searchProgress.domainInference.total} company domains
+                                        ({searchProgress.domainInference.highConfidence} high, {searchProgress.domainInference.mediumConfidence} medium confidence)
+                                      </span>
+                                    </div>
+                                    <Check className="w-3.5 h-3.5 text-blue-500" />
+                                  </div>
+                                )}
+
+                                {/* Contact Search Progress (Hunter + Apollo phases) */}
+                                {(searchProgress.phase === "searching_hunter" || searchProgress.phase === "searching_apollo") && (
+                                  <>
+                                    {/* Progress bar */}
+                                    <div className="w-full bg-amber-100 rounded-full h-3 overflow-hidden">
+                                      <div
+                                        className="bg-gold h-3 rounded-full transition-all duration-500 ease-out"
+                                        style={{ width: `${searchProgress.totalCompanies > 0 ? Math.round((searchProgress.companiesSearched / searchProgress.totalCompanies) * 100) : 0}%` }}
+                                      />
+                                    </div>
+
+                                    {/* Stats row */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                      <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                        <div className="text-lg font-bold text-navy">{searchProgress.companiesSearched}/{searchProgress.totalCompanies}</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies Searched</div>
+                                      </div>
+                                      <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                        <div className="text-lg font-bold text-teal">{searchProgress.totalFiltered}</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Contacts Found</div>
+                                      </div>
+                                      <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                        <div className="text-lg font-bold text-gold-dark">{searchProgress.companiesWithResults}</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies with Hits</div>
+                                      </div>
+                                      <div className="bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                        <div className="text-lg font-bold text-muted-foreground">{searchProgress.elapsedSeconds}s</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Elapsed</div>
+                                      </div>
+                                    </div>
+
+                                    {/* Current company */}
+                                    {searchProgress.currentCompany && (
+                                      <div className="flex items-center gap-2">
+                                        <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                                        <span className="text-xs text-amber-700 truncate">
+                                          {searchProgress.phase === "searching_hunter" ? "Hunter.io" : "Apollo"}: <strong>{searchProgress.currentCompany}</strong>
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Estimated time remaining */}
+                                    {searchProgress.companiesSearched > 5 && (
+                                      <p className="text-[10px] text-amber-600">
+                                        Est. {Math.ceil(((searchProgress.elapsedSeconds / searchProgress.companiesSearched) * (searchProgress.totalCompanies - searchProgress.companiesSearched)) / 60)} min remaining
+                                      </p>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             )}

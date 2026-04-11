@@ -1,8 +1,34 @@
 /**
  * companySearchJob.test.ts — Tests for background company search job manager
+ * with LLM domain inference integration
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
+
+// Mock the LLM domain inference
+vi.mock("./domainInference", () => ({
+  inferCompanyDomains: vi.fn().mockImplementation(async (companies: string[], onProgress?: Function) => {
+    // Simulate progress callback
+    if (onProgress) onProgress(0, companies.length, companies.slice(0, 5));
+    await new Promise(r => setTimeout(r, 100));
+    if (onProgress) onProgress(companies.length, companies.length, []);
+
+    return companies.map((company: string) => {
+      // Simulate: well-known companies get high confidence domains
+      if (company.toLowerCase().includes("ausdrill")) {
+        return { company, domain: "ausdrill.com.au", confidence: "high" };
+      }
+      if (company.toLowerCase().includes("boart")) {
+        return { company, domain: "boartlongyear.com", confidence: "high" };
+      }
+      if (company.toLowerCase().includes("drilling")) {
+        return { company, domain: "drillingcorp.com.au", confidence: "medium" };
+      }
+      // Unknown companies get null
+      return { company, domain: null, confidence: "low" };
+    });
+  }),
+}));
 
 // Mock the external API calls
 vi.mock("./hunterService", () => ({
@@ -160,27 +186,79 @@ describe("companySearchJob", () => {
     expect(progress!.totalCompanies).toBe(5);
   });
 
-  it("should complete search and have contacts after processing", async () => {
+  it("should start with inferring_domains phase when companies lack domains", () => {
     const jobId = startCompanySearch({
       withDomain: [],
-      withoutDomain: [{ company: "Drilling Corp" }],
-      targetRoles: ["fleet_equipment"],
+      withoutDomain: [{ company: "Ausdrill" }, { company: "Unknown Co" }],
+      targetRoles: ["operations"],
+      maxPerCompany: 10,
+      maxTotal: 100,
+    });
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.phase).toBe("inferring_domains");
+    expect(progress!.domainInference.total).toBe(2);
+  });
+
+  it("should skip domain inference when all companies have domains", () => {
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 10,
+      maxTotal: 100,
+    });
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.phase).toBe("searching_hunter");
+    expect(progress!.domainInference.total).toBe(0);
+  });
+
+  it("should complete search with domain inference and have contacts", async () => {
+    const jobId = startCompanySearch({
+      withDomain: [],
+      withoutDomain: [{ company: "Ausdrill" }, { company: "Unknown Co" }],
+      targetRoles: ["operations"],
       maxPerCompany: 25,
       maxTotal: 100,
     });
 
-    // Wait for the async job to complete
-    await vi.advanceTimersByTimeAsync(5000);
+    // Wait for the async job to complete (inference + search)
+    await vi.advanceTimersByTimeAsync(15000);
 
     const progress = getCompanySearchProgress(jobId);
     expect(progress).not.toBeNull();
     expect(progress!.status).toBe("completed");
-    expect(progress!.companiesSearched).toBe(1);
-    // Fleet Manager should match, Marketing Director should be excluded
-    expect(progress!.totalFiltered).toBe(1);
-    expect(progress!.contacts.length).toBe(1);
-    expect(progress!.contacts[0].firstName).toBe("Mike");
-    expect(progress!.contacts[0].title).toBe("Fleet Manager");
+    expect(progress!.phase).toBe("done");
+    // Ausdrill should get a domain inferred (high confidence) → Hunter search
+    // Unknown Co should get null domain → Apollo fallback
+    expect(progress!.domainInference.completed).toBe(2);
+    expect(progress!.domainInference.resolved).toBeGreaterThanOrEqual(1); // At least Ausdrill
+    expect(progress!.companiesSearched).toBe(2);
+  });
+
+  it("should route LLM-inferred domains to Hunter and unknowns to Apollo", async () => {
+    const jobId = startCompanySearch({
+      withDomain: [],
+      withoutDomain: [
+        { company: "Ausdrill" },       // → high confidence → Hunter
+        { company: "Boart Longyear" },  // → high confidence → Hunter
+        { company: "Unknown XYZ Co" },  // → low confidence → Apollo
+      ],
+      targetRoles: ["operations", "fleet_equipment"],
+      maxPerCompany: 25,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(20000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    // 2 should be resolved by LLM (Ausdrill + Boart)
+    expect(progress!.domainInference.resolved).toBe(2);
+    expect(progress!.domainInference.highConfidence).toBe(2);
+    // All 3 companies should be searched
+    expect(progress!.companiesSearched).toBe(3);
   });
 
   it("should filter out excluded roles (HR, Marketing, etc.)", async () => {
@@ -206,13 +284,13 @@ describe("companySearchJob", () => {
   it("should track domain breakdown for each company", async () => {
     const jobId = startCompanySearch({
       withDomain: [{ company: "Example Corp", domain: "example.com" }],
-      withoutDomain: [{ company: "Drilling Corp" }],
+      withoutDomain: [{ company: "Unknown Co" }],
       targetRoles: ["operations", "fleet_equipment"],
       maxPerCompany: 25,
       maxTotal: 100,
     });
 
-    await vi.advanceTimersByTimeAsync(10000);
+    await vi.advanceTimersByTimeAsync(15000);
 
     const progress = getCompanySearchProgress(jobId);
     expect(progress!.status).toBe("completed");
@@ -222,13 +300,13 @@ describe("companySearchJob", () => {
   it("should respect maxTotal limit", async () => {
     const jobId = startCompanySearch({
       withDomain: [{ company: "Example Corp", domain: "example.com" }],
-      withoutDomain: [{ company: "Drilling Corp" }],
+      withoutDomain: [{ company: "Unknown Co" }],
       targetRoles: ["operations", "fleet_equipment"],
       maxPerCompany: 25,
       maxTotal: 1, // Only allow 1 contact total
     });
 
-    await vi.advanceTimersByTimeAsync(10000);
+    await vi.advanceTimersByTimeAsync(15000);
 
     const progress = getCompanySearchProgress(jobId);
     expect(progress!.status).toBe("completed");
@@ -238,15 +316,41 @@ describe("companySearchJob", () => {
   it("should track elapsed time", async () => {
     const jobId = startCompanySearch({
       withDomain: [],
-      withoutDomain: [{ company: "Drilling Corp" }],
+      withoutDomain: [{ company: "Ausdrill" }],
       targetRoles: ["fleet_equipment"],
       maxPerCompany: 10,
       maxTotal: 100,
     });
 
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(10000);
 
     const progress = getCompanySearchProgress(jobId);
     expect(progress!.elapsedSeconds).toBeGreaterThanOrEqual(0);
+  });
+
+  it("should track domain inference stats correctly", async () => {
+    const jobId = startCompanySearch({
+      withDomain: [],
+      withoutDomain: [
+        { company: "Ausdrill" },            // high confidence
+        { company: "Boart Longyear" },       // high confidence
+        { company: "Drilling Services" },    // medium confidence
+        { company: "Random Unknown" },       // low confidence (null)
+      ],
+      targetRoles: ["operations"],
+      maxPerCompany: 10,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(20000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    expect(progress!.domainInference.total).toBe(4);
+    expect(progress!.domainInference.completed).toBe(4);
+    // Ausdrill (high) + Boart (high) + Drilling Services (medium) = 3 resolved
+    expect(progress!.domainInference.resolved).toBe(3);
+    expect(progress!.domainInference.highConfidence).toBe(2);
+    expect(progress!.domainInference.mediumConfidence).toBe(1);
   });
 });
