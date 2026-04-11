@@ -47,7 +47,7 @@ import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apoll
 import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
 import { markStaleProjects, getDb } from "./db";
 import { pipelineRuns, type PipelineStep } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // New source architecture imports
 import { scanTargetCompanies } from "./asxMonitor";
@@ -189,14 +189,63 @@ function skipStep(step: PipelineStep, reason?: string): PipelineStep {
   return step;
 }
 
+// ── Pipeline timeout ──
+const PIPELINE_TIMEOUT_MS = 45 * 60 * 1000; // 45 minutes max
+const STEP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per step max
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Timeout after ${Math.round(ms/1000)}s: ${label}`)), ms);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+// ── Cleanup stale runs on startup ──
+export async function cleanupStaleRuns(): Promise<number> {
+  try {
+    const db = await getDb();
+    if (!db) return 0;
+    // Mark any runs stuck in "running" for more than 1 hour as failed
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const staleRuns = await db.select({ id: pipelineRuns.id })
+      .from(pipelineRuns)
+      .where(and(
+        eq(pipelineRuns.status, "running"),
+        sql`${pipelineRuns.startedAt} < ${oneHourAgo}`
+      ));
+    if (staleRuns.length > 0) {
+      for (const run of staleRuns) {
+        await db.update(pipelineRuns).set({
+          status: "failed",
+          completedAt: new Date(),
+          errors: ["Pipeline run timed out or server restarted — marked as failed during cleanup"],
+        }).where(eq(pipelineRuns.id, run.id));
+      }
+      console.log(`[DailyPipeline] Cleaned up ${staleRuns.length} stale pipeline runs: ${staleRuns.map(r => r.id).join(", ")}`);
+    }
+    return staleRuns.length;
+  } catch (err) {
+    console.error("[DailyPipeline] Failed to cleanup stale runs:", err);
+    return 0;
+  }
+}
+
 // ── Main pipeline ──
 
 export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipelineResult> {
+  // Wrap the entire pipeline in a global timeout
+  return withTimeout(_runDailyPipelineInner(triggeredBy), PIPELINE_TIMEOUT_MS, "Daily pipeline global timeout");
+}
+
+async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipelineResult> {
   const startTime = Date.now();
   const steps: PipelineStep[] = [];
   const errors: string[] = [];
   const dayOfWeek = new Date().getUTCDay(); // 0=Sun, 1=Mon, ...
-  console.log("[DailyPipeline] Starting daily pipeline run (v2 — source architecture)...");
+  console.log("[DailyPipeline] Starting daily pipeline run (v3 — with timeouts)...");
 
   // Create pipeline run log entry
   let runId: number | null = null;
@@ -225,7 +274,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   let harvestResult;
   try {
     const stepStart = Date.now();
-    harvestResult = await harvestAllFeeds();
+    harvestResult = await withTimeout(harvestAllFeeds(), STEP_TIMEOUT_MS, "RSS Harvest");
     completeStep(harvestStep, {
       sources: harvestResult.totalSources,
       newArticles: harvestResult.totalNew,
@@ -251,7 +300,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   console.log("[DailyPipeline] Step 2: Running AI extraction...");
   let extractionResult;
   try {
-    extractionResult = await runExtractionPipeline();
+    extractionResult = await withTimeout(runExtractionPipeline(), STEP_TIMEOUT_MS, "AI Extraction");
     completeStep(extractionStep, {
       processed: extractionResult.processed,
       extracted: extractionResult.extracted,
@@ -277,7 +326,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   let asxResult = { ran: false, companiesChecked: 0, announcementsScanned: 0, projectSignals: 0, newProjects: 0, duplicates: 0, errors: 0, duration: 0 };
   try {
     const stepStart = Date.now();
-    const asxData = await scanTargetCompanies(7);
+    const asxData = await withTimeout(scanTargetCompanies(7), STEP_TIMEOUT_MS, "ASX Monitoring");
     asxResult = {
       ran: true,
       companiesChecked: asxData.totalCompaniesChecked,
@@ -314,7 +363,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.log("[DailyPipeline] Step 4: Scraping AusTender contracts (weekly Thursday run)...");
     try {
       const stepStart = Date.now();
-      const scrapeResult = await runAusTenderScraper();
+      const scrapeResult = await withTimeout(runAusTenderScraper(), STEP_TIMEOUT_MS, "AusTender");
       austenderResult = {
         ran: true,
         totalFetched: scrapeResult.totalFetched,
@@ -355,7 +404,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.log("[DailyPipeline] Step 5: Scraping DMIRS MINEDEX (weekly Wednesday run)...");
     try {
       const stepStart = Date.now();
-      const scrapeResult = await runDmirsScraper();
+      const scrapeResult = await withTimeout(runDmirsScraper(), STEP_TIMEOUT_MS, "DMIRS");
       dmirsResult = {
         ran: true,
         totalNewProjects: scrapeResult.totalNewProjects,
@@ -396,7 +445,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.log("[DailyPipeline] Step 6: Scraping government major projects (weekly Tuesday run)...");
     try {
       const stepStart = Date.now();
-      const scrapeResult = await runGovScraper();
+      const scrapeResult = await withTimeout(runGovScraper(), STEP_TIMEOUT_MS, "Gov Major Projects");
       govResult = {
         ran: true,
         totalNewProjects: scrapeResult.totalNewProjects,
@@ -433,7 +482,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.log("[DailyPipeline] Step 7: Scraping AEMO generation projects (weekly Friday run)...");
     try {
       const stepStart = Date.now();
-      const scrapeResult = await runAemoScraper();
+      const scrapeResult = await withTimeout(runAemoScraper(), STEP_TIMEOUT_MS, "AEMO");
       aemoResult = {
         ran: true,
         totalNewProjects: scrapeResult.totalNewProjects,
@@ -480,7 +529,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
       console.log("[DailyPipeline] Skipping Projectory enrichment: credentials not configured");
     } else {
       const stepStart = Date.now();
-      const enrichResult = await enrichUnenrichedProjects(15); // 15 projects per daily run
+      const enrichResult = await withTimeout(enrichUnenrichedProjects(15), STEP_TIMEOUT_MS, "Projectory Enrichment"); // 15 projects per daily run
       projectoryEnrichResult = {
         ran: true,
         enriched: enrichResult.totalEnriched,
@@ -516,7 +565,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   if (isMonday) {
     console.log("[DailyPipeline] Step 8b: Running legacy Projectory scraper (Monday)...");
     try {
-      const scrapeResult = await runProjectoryScraper();
+      const scrapeResult = await withTimeout(runProjectoryScraper(), STEP_TIMEOUT_MS, "Projectory Legacy");
       projectoryResult = {
         ran: true,
         totalNewProjects: scrapeResult.totalNewProjects,
@@ -554,7 +603,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     console.log("[DailyPipeline] Step 9: Running ICN validation on existing projects...");
     try {
       const stepStart = Date.now();
-      const validationResult = await icnValidateAllProjects();
+      const validationResult = await withTimeout(icnValidateAllProjects(), STEP_TIMEOUT_MS, "ICN Validation");
       icnValidationResult = {
         ran: true,
         validated: validationResult.totalChecked,
@@ -580,7 +629,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
     // Also run legacy ICN scraper
     console.log("[DailyPipeline] Step 9b: Running legacy ICN scraper...");
     try {
-      const scrapeResult = await runIcnScraper();
+      const scrapeResult = await withTimeout(runIcnScraper(), STEP_TIMEOUT_MS, "ICN Legacy");
       icnResult = {
         ran: true,
         totalNewProjects: scrapeResult.totalNewProjects,
@@ -613,7 +662,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   console.log("[DailyPipeline] Step 10: Enriching contacts...");
   let enrichmentResult;
   try {
-    enrichmentResult = await runEnrichmentPipeline();
+    enrichmentResult = await withTimeout(runEnrichmentPipeline(), STEP_TIMEOUT_MS, "Contact Enrichment");
     completeStep(enrichmentStep, {
       processed: enrichmentResult.processed,
       enriched: enrichmentResult.enriched,
@@ -637,7 +686,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   const webDiscoveryStep = startStep("Web Stakeholder Discovery");
   console.log("[DailyPipeline] Step 11: Running open-web stakeholder discovery...");
   try {
-    const webResult = await runBulkWebDiscovery(20);
+    const webResult = await withTimeout(runBulkWebDiscovery(20), STEP_TIMEOUT_MS, "Web Stakeholder Discovery");
     completeStep(webDiscoveryStep, {
       projectsProcessed: webResult.processed,
       contactsFound: webResult.contactsFound,
@@ -833,7 +882,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   const roleRelevanceStep = startStep("Role Relevance Classification");
   console.log("[DailyPipeline] Step 17: Classifying contact role relevance...");
   try {
-    const roleResult = await classifyAllContactRelevance();
+      const roleResult = await withTimeout(classifyAllContactRelevance(), STEP_TIMEOUT_MS, "Role Relevance");
     completeStep(roleRelevanceStep, {
       total: roleResult.total,
       high: roleResult.highCount,
@@ -853,7 +902,7 @@ export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipel
   if (dayOfWeek === 3 || dayOfWeek === 6) {
     console.log("[DailyPipeline] Step 18: Running second-pass contact search for projects with few relevant contacts...");
     try {
-      const spResult = await runBulkSecondPass(30);
+      const spResult = await withTimeout(runBulkSecondPass(30), STEP_TIMEOUT_MS, "Second-Pass Contact Search");
       completeStep(secondPassStep, {
         projectsProcessed: spResult.projectsProcessed,
         totalContactsAdded: spResult.totalContactsAdded,
@@ -1056,6 +1105,11 @@ export function startDailyScheduler(): void {
   if (schedulerStarted) return;
   schedulerStarted = true;
 
+  // Cleanup stale runs from previous server instances
+  cleanupStaleRuns().then(count => {
+    if (count > 0) console.log(`[DailyPipeline] Startup cleanup: marked ${count} stale runs as failed`);
+  }).catch(() => {});
+
   function scheduleNext(): void {
     const now = new Date();
     const next = new Date(now);
@@ -1073,6 +1127,7 @@ export function startDailyScheduler(): void {
       } catch (err: unknown) {
         console.error("[DailyPipeline] Scheduled run failed:", err instanceof Error ? err.message : String(err));
       }
+      // Always schedule next run, even if current one failed/timed out
       scheduleNext();
     }, delay);
   }

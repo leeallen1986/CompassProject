@@ -922,3 +922,13 @@
 - [x] Show domain inference progress card (companies processed, domains resolved, confidence breakdown)
 - [x] Write tests for domain inference integration (13 tests, all passing)
 - [x] Run full test suite — all 1568 tests passing
+
+## Bug — "This Week" date stuck at 2026-03-29
+- [x] Trace where weekLabel comes from — thisWeekService.ts used getLatestReport().weekEnding
+- [x] Check database — latest report: 2026-03-29, 8 of 10 pipeline runs stuck in "running" with null steps
+- [x] Root cause: pipeline hangs (no timeout) → no new reports → stale weekLabel
+- [x] Fix weekLabel to always compute current week's Monday date (no longer depends on reports)
+- [x] Add global pipeline timeout (45 min) and per-step timeout (15 min) with withTimeout wrapper
+- [x] Add stale run cleanup on server startup (marks runs stuck >1hr as failed)
+- [x] Write 17 tests for timeout utility, weekLabel computation, cleanup logic
+- [x] All 1,585 tests passing

@@ -3,7 +3,7 @@
  * Aggregates top priorities, new stakeholders, stage changes, and suggested actions
  * for the weekly landing page. Designed to surface the most actionable intelligence.
  */
-import { getDb, getAllProjects, getAllContacts, getLatestReport, getProfileByUserId } from "./db";
+import { getDb, getAllProjects, getAllContacts, getProfileByUserId } from "./db";
 import { projects, contacts, projectBusinessLineScores, pipelineRuns } from "../drizzle/schema";
 import { eq, desc, gte, and, sql, inArray } from "drizzle-orm";
 import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring";
@@ -144,9 +144,14 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   // Get all contacts
   const allContacts = await getAllContacts();
 
-  // Get latest report for week label
-  const report = await getLatestReport();
-  const weekLabel = report?.weekEnding ?? new Date().toISOString().slice(0, 10);
+  // Get current week's Monday date for the week label
+  // This ensures the dashboard always shows the current week, even if the pipeline hasn't run recently
+  const now = new Date();
+  const dayOfWeekNow = now.getUTCDay(); // 0=Sun, 1=Mon, ...
+  const mondayOffset = dayOfWeekNow === 0 ? -6 : 1 - dayOfWeekNow;
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() + mondayOffset);
+  const weekLabel = `${monday.getFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, "0")}-${String(monday.getUTCDate()).padStart(2, "0")}`;
 
   // ── Load user preferences for personalisation ──
   let userContext: UserContext = {
