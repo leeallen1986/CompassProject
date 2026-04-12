@@ -340,6 +340,24 @@ export type DigestScheduleLog = typeof digestScheduleLog.$inferSelect;
 export type InsertDigestScheduleLog = typeof digestScheduleLog.$inferInsert;
 
 /**
+ * Per-user email send log — prevents duplicate emails to the same person.
+ * Each row records that a specific user received a specific digest type on a specific date.
+ * The unique constraint on (userId, digestType, sentDate) ensures at most one email per user per type per day.
+ */
+export const userEmailSendLog = mysqlTable("userEmailSendLog", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  digestType: mysqlEnum("digestType", ["monday", "thursday"]).notNull(),
+  sentDate: varchar("sentDate", { length: 10 }).notNull(), // YYYY-MM-DD in UTC
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+  status: mysqlEnum("status", ["sent", "failed"]).notNull().default("sent"),
+  error: text("error"),
+});
+
+export type UserEmailSendLog = typeof userEmailSendLog.$inferSelect;
+export type InsertUserEmailSendLog = typeof userEmailSendLog.$inferInsert;
+
+/**
  * Business lines — each Atlas Copco division with its own keyword dictionary.
  */
 export const businessLines = mysqlTable("businessLines", {

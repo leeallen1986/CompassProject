@@ -19,6 +19,72 @@ import {
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
+import { userEmailSendLog } from "../drizzle/schema";
+import { eq, and } from "drizzle-orm";
+
+/**
+ * Get today's date as YYYY-MM-DD in UTC.
+ */
+function getTodayUTC(): string {
+  const now = new Date();
+  return now.toISOString().slice(0, 10);
+}
+
+/**
+ * Check if a specific user already received a specific digest type today.
+ * Returns true if the user already has a "sent" record for today.
+ */
+async function wasEmailSentToUser(
+  userId: number,
+  digestType: "monday" | "thursday",
+): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    const today = getTodayUTC();
+    const result = await db
+      .select()
+      .from(userEmailSendLog)
+      .where(
+        and(
+          eq(userEmailSendLog.userId, userId),
+          eq(userEmailSendLog.digestType, digestType),
+          eq(userEmailSendLog.sentDate, today),
+          eq(userEmailSendLog.status, "sent"),
+        ),
+      )
+      .limit(1);
+    return result.length > 0;
+  } catch (err) {
+    console.error(`[EmailDigest] Error checking per-user send status for user ${userId}:`, err);
+    // On error, assume sent to prevent duplicates
+    return true;
+  }
+}
+
+/**
+ * Log that a specific user received (or failed to receive) a digest.
+ */
+async function logUserEmailSend(
+  userId: number,
+  digestType: "monday" | "thursday",
+  status: "sent" | "failed",
+  error?: string,
+): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.insert(userEmailSendLog).values({
+      userId,
+      digestType,
+      sentDate: getTodayUTC(),
+      status,
+      error: error || null,
+    });
+  } catch (err) {
+    console.error(`[EmailDigest] Error logging per-user send for user ${userId}:`, err);
+  }
+}
 
 interface DigestProject {
   id: number;
@@ -492,6 +558,16 @@ export async function sendWeeklyDigests(force = false): Promise<{
     }
 
     try {
+      // ── Per-user deduplication: skip if already sent today ──
+      if (!force) {
+        const alreadySentToday = await wasEmailSentToUser(user.id, "monday");
+        if (alreadySentToday) {
+          results.alreadySent++;
+          console.log(`[EmailDigest] ⏭ Monday digest already sent to ${user.name} today, skipping`);
+          continue;
+        }
+      }
+
       // Get personalized "This Week" data for this specific user
       let thisWeekSection = "";
       try {
@@ -570,14 +646,17 @@ export async function sendWeeklyDigests(force = false): Promise<{
 
       if (sent) {
         results.sent++;
+        await logUserEmailSend(user.id, "monday", "sent");
         console.log(`[EmailDigest] ✓ Monday digest sent for ${user.name} (${territories.join(", ")})`);
       } else {
         results.failed++;
+        await logUserEmailSend(user.id, "monday", "failed", "sendEmail returned false");
         console.warn(`[EmailDigest] ✗ Failed to send Monday digest for ${user.name}`);
       }
     } catch (error) {
       console.error(`[EmailDigest] Failed for user ${user.id}:`, error);
       results.failed++;
+      if (user?.id) await logUserEmailSend(user.id, "monday", "failed", String(error));
     }
   }
 
@@ -588,12 +667,13 @@ export async function sendWeeklyDigests(force = false): Promise<{
  * Send compulsory personalized Thursday mid-week reminders to ALL users with profiles.
  * Lighter than Monday — focuses on urgent actions, hot projects, and pipeline nudges.
  */
-export async function sendThursdayReminders(): Promise<{
+export async function sendThursdayReminders(force = false): Promise<{
   sent: number;
   failed: number;
   skipped: number;
+  alreadySent: number;
 }> {
-  const results = { sent: 0, failed: 0, skipped: 0 };
+  const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 
   // Kill switch: skip all email sending when disabled
   if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
@@ -622,6 +702,16 @@ export async function sendThursdayReminders(): Promise<{
     }
 
     try {
+      // ── Per-user deduplication: skip if already sent today ──
+      if (!force) {
+        const alreadySentToday = await wasEmailSentToUser(user.id, "thursday");
+        if (alreadySentToday) {
+          results.alreadySent++;
+          console.log(`[EmailDigest] ⏭ Thursday reminder already sent to ${user.name} today, skipping`);
+          continue;
+        }
+      }
+
       // Get personalized "This Week" data for this specific user
       let thisWeekSection = "";
       try {
@@ -686,14 +776,17 @@ export async function sendThursdayReminders(): Promise<{
 
       if (sent) {
         results.sent++;
+        await logUserEmailSend(user.id, "thursday", "sent");
         console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
       } else {
         results.failed++;
+        await logUserEmailSend(user.id, "thursday", "failed", "sendEmail returned false");
         console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);
       }
     } catch (error) {
       console.error(`[EmailDigest] Thursday reminder failed for user ${user.id}:`, error);
       results.failed++;
+      if (user?.id) await logUserEmailSend(user.id, "thursday", "failed", String(error));
     }
   }
 

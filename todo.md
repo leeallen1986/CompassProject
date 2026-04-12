@@ -945,3 +945,16 @@
 - [x] Write 23 tests for actionKey, dismissal, engagement, staleness, freshness
 - [x] All 1,608 tests passing
 - [ ] Write tests for the refresh logic
+
+## Bug — Duplicate email digests sent to same users
+- [x] Trace email digest sending flow — found TWO systems sending: dailyPipeline (Steps 19/20) AND persistentScheduler
+- [x] Root cause: no per-user dedup, both systems send independently, server restarts trigger catch-up sends
+- [x] Added userEmailSendLog DB table for per-user send tracking (userId + digestType + sentDate)
+- [x] Added wasEmailSentToUser() and logUserEmailSend() dedup helpers to emailDigest.ts
+- [x] Added per-user dedup check in sendWeeklyDigests (Monday) — skips if already sent today
+- [x] Added per-user dedup check in sendThursdayReminders (Thursday) — skips if already sent today
+- [x] Removed direct digest sending from dailyPipeline (Steps 19/20) — persistentScheduler is now single source of truth
+- [x] Added force parameter to both functions for manual override
+- [x] Added alreadySent counter to return types for monitoring
+- [x] Enabled EMAIL_DIGESTS_ENABLED secret via webdev_request_secrets
+- [x] Write 11 dedup tests + all 1,619 tests passing

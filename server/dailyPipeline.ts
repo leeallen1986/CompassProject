@@ -41,7 +41,8 @@ import { runAemoScraper } from "./aemoScraper";
 import { runGovScraper } from "./govScraper";
 import { runAusTenderScraper } from "./austenderScraper";
 import { runIcnScraper } from "./icnScraper";
-import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
+// Email digests are now handled exclusively by persistentScheduler (not pipeline)
+// import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
 import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
 import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
@@ -921,54 +922,12 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(secondPassStep);
 
   // ════════════════════════════════════════════════════════════
-  // DIGEST & NOTIFICATIONS (after ALL enrichment is complete)
+  // DIGEST & NOTIFICATIONS
+  // Email digests are now handled exclusively by the persistentScheduler
+  // to prevent duplicate sends. The per-user deduplication in emailDigest.ts
+  // provides a safety net, but the pipeline no longer triggers sends directly.
   // ════════════════════════════════════════════════════════════
-
-  // ── Step 19: Weekly Digest (Mondays) ──
-  const digestStep = startStep("Weekly Digest");
-  if (isMonday) {
-    console.log("[DailyPipeline] Step 19: Sending weekly intelligence digest (Monday run)...");
-    try {
-      const digestResult = await sendWeeklyDigests();
-      completeStep(digestStep, {
-        sent: digestResult.sent,
-        failed: digestResult.failed,
-        skipped: digestResult.skipped,
-      });
-      console.log(`[DailyPipeline] Weekly digest sent: ${digestResult.sent} sent, ${digestResult.failed} failed, ${digestResult.skipped} skipped`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Weekly digest failed:", errMsg);
-      failStep(digestStep, errMsg);
-    }
-  } else {
-    skipStep(digestStep, "Runs on Mondays only");
-    console.log("[DailyPipeline] Step 19: Skipping weekly digest (runs on Mondays only)");
-  }
-  steps.push(digestStep);
-
-  // ── Step 20: Thursday Mid-Week Reminder (Thursdays) ──
-  const reminderStep = startStep("Thursday Reminder");
-  if (isThursday) {
-    console.log("[DailyPipeline] Step 20: Sending mid-week reminder emails (Thursday run)...");
-    try {
-      const reminderResult = await sendThursdayReminders();
-      completeStep(reminderStep, {
-        sent: reminderResult.sent,
-        failed: reminderResult.failed,
-        skipped: reminderResult.skipped,
-      });
-      console.log(`[DailyPipeline] Thursday reminders sent: ${reminderResult.sent} sent, ${reminderResult.failed} failed, ${reminderResult.skipped} skipped`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Thursday reminder failed:", errMsg);
-      failStep(reminderStep, errMsg);
-    }
-  } else {
-    skipStep(reminderStep, "Runs on Thursdays only");
-    console.log("[DailyPipeline] Step 20: Skipping Thursday reminder (runs on Thursdays only)");
-  }
-  steps.push(reminderStep);
+  console.log("[DailyPipeline] Digest emails are handled by persistentScheduler (not pipeline). Skipping.");
 
   // ════════════════════════════════════════════════════════════
   // HOUSEKEEPING

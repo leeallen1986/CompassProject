@@ -1,0 +1,32 @@
+Email Duplicate Audit — Key Findings
+=====================================
+
+ROOT CAUSES OF DUPLICATE EMAILS:
+
+1. TWO INDEPENDENT SENDERS:
+   - dailyPipeline.ts (Steps 19 & 20) sends Monday/Thursday digests as part of the pipeline
+   - persistentScheduler.ts independently schedules the same digests
+   - Both call sendWeeklyDigests() and sendThursdayReminders() from emailDigest.ts
+   - Result: same user can get 2+ emails on the same day
+
+2. NO PER-USER DEDUPLICATION:
+   - digestScheduleLog tracks batch-level sends only (was the batch sent today?)
+   - No tracking of which individual users received which email
+   - If sendWeeklyDigests() is called twice, every user gets 2 emails
+
+3. RACE CONDITION ON SERVER RESTART:
+   - persistentScheduler startup check: "is today Monday? was digest sent today? if not, send now"
+   - If server restarts on Monday after pipeline already sent digest, scheduler fires again
+   - The digestScheduleLog check helps but has a gap: pipeline doesn't log to digestScheduleLog
+
+EVIDENCE:
+   - March 30 (Monday): 3 entries in digestScheduleLog, all "sent", all on same day
+   - Entry 1: 05:16 UTC (pipeline run at 23:00 UTC Sunday = Monday AWST)
+   - Entry 2: 05:35 UTC (likely server restart triggered scheduler catch-up)
+   - Entry 3: 10:06 UTC (likely another restart)
+
+FIX PLAN:
+1. Remove digest sending from dailyPipeline.ts — single source of truth is persistentScheduler
+2. Add per-user email tracking: new table or column to track userId + digestType + date
+3. In sendWeeklyDigests/sendThursdayReminders: check per-user before sending each email
+4. Ensure Monday and Thursday are strictly separated (day-of-week check before sending)
