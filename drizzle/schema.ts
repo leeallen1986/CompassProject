@@ -950,3 +950,22 @@ export const campaignContacts = mysqlTable("campaignContacts", {
 
 export type CampaignContact = typeof campaignContacts.$inferSelect;
 export type InsertCampaignContact = typeof campaignContacts.$inferInsert;
+
+
+/**
+ * Dismissed/completed suggested actions — tracks which actions a user has
+ * dismissed or completed so they don't keep reappearing week after week.
+ */
+export const dismissedActions = mysqlTable("dismissedActions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  // Unique key for the action: hash of type + projectId + contactId
+  actionKey: varchar("actionKey", { length: 128 }).notNull(),
+  // What type of dismissal
+  reason: mysqlEnum("reason", ["dismissed", "completed", "not_relevant"]).notNull().default("dismissed"),
+  // The week this was dismissed (YYYY-MM-DD Monday date)
+  weekLabel: varchar("weekLabel", { length: 16 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DismissedAction = typeof dismissedActions.$inferSelect;
+export type InsertDismissedAction = typeof dismissedActions.$inferInsert;

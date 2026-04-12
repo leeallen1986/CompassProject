@@ -3,6 +3,7 @@
  * Surfaces the most actionable intelligence: top priorities, new stakeholders,
  * stage changes, and suggested actions. The existing dashboard is the drill-down layer.
  */
+import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
@@ -14,7 +15,7 @@ import {
   LogOut, Settings, Database, Loader2, LogIn,
   AlertTriangle, CheckCircle2, UserPlus, Search,
   Linkedin, Mail, ExternalLink, Zap, Eye, Layers,
-  HardHat, Wrench, Clock, Globe, Megaphone,
+  HardHat, Wrench, Clock, Globe, Megaphone, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,39 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getLoginUrl } from "@/const";
 import NBACard from "@/components/NBACard";
 import WeeklyCoachingPanel from "@/components/WeeklyCoachingPanel";
+
+// ── Dismiss Button for Suggested Actions ──
+function DismissButton({ actionKey }: { actionKey: string }) {
+  const [dismissed, setDismissed] = useState(false);
+  const utils = trpc.useUtils();
+  const dismissMutation = trpc.thisWeek.dismissAction.useMutation({
+    onSuccess: () => {
+      setDismissed(true);
+      // Refetch the summary to remove the dismissed action
+      utils.thisWeek.summary.invalidate();
+    },
+  });
+
+  if (dismissed) return null;
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        dismissMutation.mutate({ actionKey, reason: "dismissed" });
+      }}
+      disabled={dismissMutation.isPending}
+      className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-hot hover:bg-hot/10 transition-colors opacity-0 group-hover:opacity-100"
+      title="Dismiss this suggestion"
+    >
+      {dismissMutation.isPending ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : (
+        <X className="w-3.5 h-3.5" />
+      )}
+    </button>
+  );
+}
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -134,7 +168,7 @@ export default function ThisWeek() {
   }
   if (isLoading || !summary) return <ThisWeekSkeleton />;
 
-  const { topProjects, newStakeholders, stageChanges, suggestedActions, stats, weekLabel, userContext } = summary;
+  const { topProjects, newStakeholders, stageChanges, suggestedActions, stats, weekLabel, userContext, lastSuccessfulPipelineRun, dataFreshnessWarning } = summary;
 
   return (
     <div className="min-h-screen bg-background">
@@ -244,6 +278,17 @@ export default function ThisWeek() {
         {/* ── Weekly Coaching Panel ── */}
         <WeeklyCoachingPanel />
 
+        {/* ── Data Freshness Warning ── */}
+        {dataFreshnessWarning && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">{dataFreshnessWarning}</p>
+              <p className="text-xs text-amber-600 mt-0.5">Some suggestions below may be based on older data. Run the pipeline from Admin to refresh.</p>
+            </div>
+          </div>
+        )}
+
         {/* ── Suggested Actions ── */}
         {suggestedActions.length > 0 && (
           <Card className="border-gold/30 bg-gradient-to-r from-gold/5 via-transparent to-transparent">
@@ -257,29 +302,36 @@ export default function ThisWeek() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {suggestedActions.map((action, i) => (
+              {suggestedActions.map((action: any, i: number) => (
                 <div
-                  key={i}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-card border border-border hover:border-gold/30 hover:shadow-sm transition-all cursor-pointer group"
-                  onClick={() => action.projectId && navigate(`/dashboard?project=${action.projectId}`)}
+                  key={action.actionKey || i}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-card border border-border hover:border-gold/30 hover:shadow-sm transition-all group"
                 >
-                  <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    action.priority === "urgent" ? "bg-hot/15 text-hot" :
-                    action.priority === "high" ? "bg-gold/15 text-gold-dark" :
-                    "bg-slate-100 text-slate-500"
-                  }`}>
-                    {actionTypeIcon(action.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${actionPriorityBadge(action.priority)}`}>
-                        {action.priority}
-                      </span>
-                      <span className="text-sm font-semibold text-navy truncate">{action.title}</span>
+                  <div
+                    className="flex items-start gap-3 flex-1 cursor-pointer"
+                    onClick={() => action.projectId && navigate(`/dashboard?project=${action.projectId}`)}
+                  >
+                    <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                      action.priority === "urgent" ? "bg-hot/15 text-hot" :
+                      action.priority === "high" ? "bg-gold/15 text-gold-dark" :
+                      "bg-slate-100 text-slate-500"
+                    }`}>
+                      {actionTypeIcon(action.type)}
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{action.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${actionPriorityBadge(action.priority)}`}>
+                          {action.priority}
+                        </span>
+                        <span className="text-sm font-semibold text-navy truncate">{action.title}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{action.description}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1 group-hover:text-gold transition-colors" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1 group-hover:text-gold transition-colors" />
+                  {action.actionKey && (
+                    <DismissButton actionKey={action.actionKey} />
+                  )}
                 </div>
               ))}
             </CardContent>

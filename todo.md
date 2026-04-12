@@ -932,3 +932,16 @@
 - [x] Add stale run cleanup on server startup (marks runs stuck >1hr as failed)
 - [x] Write 17 tests for timeout utility, weekLabel computation, cleanup logic
 - [x] All 1,585 tests passing
+
+## Bug — Suggested Actions are stale and not refreshing weekly
+- [x] Trace how suggested actions are generated and stored — live-computed in thisWeekService.ts, not cached
+- [x] Identify root cause: pipeline failing → same project data → same actions; also no dismissal tracking
+- [x] Add actionKey to each suggested action for unique identification
+- [x] Add dismissedActions DB table and dismissAction tRPC endpoint
+- [x] Add DismissButton component (hover-reveal X button on each action card)
+- [x] Add engagement-aware filtering — exclude projects user has already engaged with
+- [x] Add staleness downgrading — demote priority for projects older than 14 days
+- [x] Add data freshness warning banner when pipeline hasn't run in >7 days
+- [x] Write 23 tests for actionKey, dismissal, engagement, staleness, freshness
+- [x] All 1,608 tests passing
+- [ ] Write tests for the refresh logic

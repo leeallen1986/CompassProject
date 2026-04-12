@@ -1,0 +1,6 @@
+Screenshot at 2026-04-12:
+- Week label shows "Week of 2026-04-06" (correct, current week)
+- Suggested Actions now shows "10 actions this week" (was 7 before)
+- First action: "Reach out to Lesli Colina on Barrow Island Decommissioning Work" — now shows HIGH instead of URGENT (correctly downgraded since project is >14 days old)
+- No TS errors, server running cleanly
+- Need to: add dismiss button to frontend, add dismissAction tRPC endpoint, add data freshness warning banner

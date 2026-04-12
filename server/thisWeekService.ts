@@ -4,7 +4,7 @@
  * for the weekly landing page. Designed to surface the most actionable intelligence.
  */
 import { getDb, getAllProjects, getAllContacts, getProfileByUserId } from "./db";
-import { projects, contacts, projectBusinessLineScores, pipelineRuns } from "../drizzle/schema";
+import { projects, contacts, projectBusinessLineScores, pipelineRuns, dismissedActions, pipelineClaims, outreachEmails } from "../drizzle/schema";
 import { eq, desc, gte, and, sql, inArray } from "drizzle-orm";
 import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring";
 import { type ActionTier, getTierLabel, shouldIncludeInBrief } from "./tierClassification";
@@ -77,6 +77,8 @@ export interface SuggestedAction {
   projectName?: string;
   contactId?: number;
   contactName?: string;
+  /** Unique key for dismissal tracking: type:projectId:contactId */
+  actionKey: string;
 }
 
 export interface UserContext {
@@ -99,6 +101,9 @@ export interface ThisWeekSummary {
   stageChanges: StageChange[];
   // AI-generated suggested actions
   suggestedActions: SuggestedAction[];
+  // Pipeline health
+  lastSuccessfulPipelineRun: string | null; // ISO date of last successful pipeline run
+  dataFreshnessWarning: string | null; // Warning message if data is stale
   // Summary stats
   stats: {
     totalProjects: number;
@@ -119,11 +124,61 @@ export interface ThisWeekSummary {
 // ── Helpers ──
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
 function isRecent(date: Date | string | null, windowMs = SEVEN_DAYS_MS): boolean {
   if (!date) return false;
   const d = typeof date === "string" ? new Date(date) : date;
   return Date.now() - d.getTime() < windowMs;
+}
+
+/** Generate a stable key for an action so we can track dismissals */
+function makeActionKey(type: string, projectId?: number, contactId?: number): string {
+  return `${type}:${projectId ?? 0}:${contactId ?? 0}`;
+}
+
+/** Get the last successful pipeline run date */
+async function getLastSuccessfulPipelineRun(): Promise<Date | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const rows = await db.select({ completedAt: pipelineRuns.completedAt })
+      .from(pipelineRuns)
+      .where(eq(pipelineRuns.status, "completed"))
+      .orderBy(desc(pipelineRuns.completedAt))
+      .limit(1);
+    return rows[0]?.completedAt ?? null;
+  } catch { return null; }
+}
+
+/** Get dismissed action keys for a user */
+async function getDismissedActionKeys(userId: number): Promise<Set<string>> {
+  const db = await getDb();
+  if (!db) return new Set();
+  try {
+    const rows = await db.select({ actionKey: dismissedActions.actionKey })
+      .from(dismissedActions)
+      .where(eq(dismissedActions.userId, userId));
+    return new Set(rows.map(r => r.actionKey));
+  } catch { return new Set(); }
+}
+
+/** Get project IDs the user has already engaged with (pipeline claims or outreach) */
+async function getEngagedProjectIds(userId: number): Promise<Set<number>> {
+  const db = await getDb();
+  if (!db) return new Set();
+  try {
+    const claims = await db.select({ projectId: pipelineClaims.projectId })
+      .from(pipelineClaims)
+      .where(eq(pipelineClaims.userId, userId));
+    const outreach = await db.select({ projectId: outreachEmails.projectId })
+      .from(outreachEmails)
+      .where(eq(outreachEmails.userId, userId));
+    const ids = new Set<number>();
+    claims.forEach(r => { if (r.projectId) ids.add(r.projectId); });
+    outreach.forEach(r => { if (r.projectId) ids.add(r.projectId); });
+    return ids;
+  } catch { return new Set(); }
 }
 
 const TIER_RANK: Record<string, number> = {
@@ -475,11 +530,36 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     });
   }
 
-  // ── 4. Suggested Actions ──
-  const suggestedActions: SuggestedAction[] = [];
+  // ── 4. Suggested Actions (with dismissal + staleness filtering) ──
+  // Load dismissed actions and engaged projects for this user
+  const dismissedKeys = userId ? await getDismissedActionKeys(userId) : new Set<string>();
+  const engagedProjectIds = userId ? await getEngagedProjectIds(userId) : new Set<number>();
 
-  // Action: New Tier 1 projects that need outreach
-  for (const p of topProjects.filter(tp => tp.isNew && tp.actionTier === "tier1_actionable").slice(0, 3)) {
+  // Get pipeline health
+  const lastPipelineRun = await getLastSuccessfulPipelineRun();
+  const lastPipelineRunStr = lastPipelineRun ? lastPipelineRun.toISOString() : null;
+  let dataFreshnessWarning: string | null = null;
+  if (!lastPipelineRun) {
+    dataFreshnessWarning = "No successful pipeline runs found. Project data may be incomplete.";
+  } else if (Date.now() - lastPipelineRun.getTime() > FOURTEEN_DAYS_MS) {
+    const daysAgo = Math.floor((Date.now() - lastPipelineRun.getTime()) / (24 * 60 * 60 * 1000));
+    dataFreshnessWarning = `Project data is ${daysAgo} days old. The pipeline last ran successfully on ${lastPipelineRun.toLocaleDateString("en-AU")}.`;
+  } else if (Date.now() - lastPipelineRun.getTime() > SEVEN_DAYS_MS) {
+    const daysAgo = Math.floor((Date.now() - lastPipelineRun.getTime()) / (24 * 60 * 60 * 1000));
+    dataFreshnessWarning = `Data may be slightly outdated (${daysAgo} days since last pipeline run).`;
+  }
+
+  const rawActions: SuggestedAction[] = [];
+
+  // ── Generate candidate actions ──
+
+  // Category 1: Tier 1 projects needing outreach (both new AND existing unengaged)
+  const tier1Unengaged = topProjects.filter(tp =>
+    tp.actionTier === "tier1_actionable" &&
+    !engagedProjectIds.has(tp.id)
+  ).slice(0, 5);
+
+  for (const p of tier1Unengaged) {
     const projectContacts = allContacts.filter(c =>
       c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
       p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
@@ -487,59 +567,84 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     const highRelContacts = projectContacts.filter(c => (c as any).roleRelevance === "high");
 
     if (highRelContacts.length > 0) {
-      suggestedActions.push({
+      const key = makeActionKey("contact_outreach", p.id, highRelContacts[0].id);
+      rawActions.push({
         type: "contact_outreach",
-        priority: "urgent",
+        priority: p.isNew ? "urgent" : "high",
         title: `Reach out to ${highRelContacts[0].name} on ${p.name}`,
-        description: `${highRelContacts[0].title} at ${highRelContacts[0].company} — new Tier 1 project in ${p.location}. ${p.stage ? `Stage: ${p.stage}.` : ""} Value: ${p.value}.`,
+        description: `${highRelContacts[0].title} at ${highRelContacts[0].company} — ${p.isNew ? "new " : ""}Tier 1 project in ${p.location}. ${p.stage ? `Stage: ${p.stage}.` : ""} Value: ${p.value}.`,
         projectId: p.id,
         projectName: p.name,
         contactId: highRelContacts[0].id,
         contactName: highRelContacts[0].name,
+        actionKey: key,
       });
     } else {
-      suggestedActions.push({
+      const key = makeActionKey("tier1_new", p.id);
+      rawActions.push({
         type: "tier1_new",
-        priority: "urgent",
-        title: `New Tier 1 opportunity: ${p.name}`,
+        priority: p.isNew ? "urgent" : "high",
+        title: `${p.isNew ? "New " : ""}Tier 1 opportunity: ${p.name}`,
         description: `${p.location} — ${p.value}. ${p.stage ? `Stage: ${p.stage}.` : ""} No high-relevance contacts found yet — consider running stakeholder discovery.`,
         projectId: p.id,
         projectName: p.name,
+        actionKey: key,
       });
     }
   }
 
-  // Action: High-value projects missing contractors
+  // Category 2: Projects missing contractors (not already engaged)
   const missingContractorProjects = topProjects.filter(p =>
-    !p.contractors || p.contractors.length === 0
-  ).slice(0, 2);
+    (!p.contractors || p.contractors.length === 0) &&
+    !engagedProjectIds.has(p.id)
+  ).slice(0, 3);
   for (const p of missingContractorProjects) {
-    suggestedActions.push({
+    const key = makeActionKey("contractor_gap", p.id);
+    rawActions.push({
       type: "contractor_gap",
       priority: "high",
       title: `Find contractors for ${p.name}`,
       description: `${p.tierLabel} project in ${p.location} (${p.value}) has no contractor data. Run contractor enrichment to identify EPC/construction partners.`,
       projectId: p.id,
       projectName: p.name,
+      actionKey: key,
     });
   }
 
-  // Action: Hot projects with high value
+  // Category 3: Hot projects with high value (not already engaged or in actions)
   const highValueHot = topProjects.filter(p =>
     p.priority === "hot" &&
     p.value &&
     !p.value.toLowerCase().includes("undisclosed") &&
-    !suggestedActions.some(a => a.projectId === p.id)
-  ).slice(0, 2);
+    !engagedProjectIds.has(p.id) &&
+    !rawActions.some(a => a.projectId === p.id)
+  ).slice(0, 3);
   for (const p of highValueHot) {
-    suggestedActions.push({
+    const key = makeActionKey("high_value", p.id);
+    rawActions.push({
       type: "high_value",
       priority: "high",
       title: `High-value hot opportunity: ${p.name}`,
       description: `${p.location} — ${p.value}. ${p.detectedActivities.length > 0 ? `Site activities: ${p.detectedActivities.slice(0, 3).join(", ")}.` : ""} Consider adding to your pipeline.`,
       projectId: p.id,
       projectName: p.name,
+      actionKey: key,
     });
+  }
+
+  // ── Filter out dismissed actions ──
+  const suggestedActions = rawActions.filter(a => !dismissedKeys.has(a.actionKey));
+
+  // ── Deprioritize stale actions (projects created >14 days ago that aren't recently updated) ──
+  for (const action of suggestedActions) {
+    if (action.projectId) {
+      const project = topProjects.find(p => p.id === action.projectId);
+      if (project && project.createdAt && !isRecent(project.createdAt, FOURTEEN_DAYS_MS) && !isRecent((project as any).updatedAt)) {
+        // Downgrade priority for stale projects
+        if (action.priority === "urgent") action.priority = "high";
+        else if (action.priority === "high") action.priority = "medium";
+      }
+    }
   }
 
   // Sort actions by priority
@@ -547,6 +652,9 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   suggestedActions.sort((a, b) =>
     (priorityOrder[b.priority] ?? 0) - (priorityOrder[a.priority] ?? 0)
   );
+
+  // Limit to top 10 actions
+  const finalActions = suggestedActions.slice(0, 10);
 
   // ── 5. Stats ── (use rankedProjects = filtered by territory + BL)
   const scopedProjects = rankedProjects; // already filtered by territory & BL above
@@ -579,7 +687,9 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     topProjects,
     newStakeholders,
     stageChanges,
-    suggestedActions,
+    suggestedActions: finalActions,
+    lastSuccessfulPipelineRun: lastPipelineRunStr,
+    dataFreshnessWarning,
     stats,
   };
 }

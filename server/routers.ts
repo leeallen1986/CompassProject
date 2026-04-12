@@ -2254,6 +2254,31 @@ export const appRouter = router({
     summary: protectedProcedure.query(async ({ ctx }) => {
       return getThisWeekSummary(ctx.user.id);
     }),
+    /** Dismiss a suggested action so it doesn't reappear */
+    dismissAction: protectedProcedure
+      .input(z.object({
+        actionKey: z.string().min(1),
+        reason: z.enum(["dismissed", "completed", "not_relevant"]).default("dismissed"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { dismissedActions } = await import("../drizzle/schema");
+        const db = await (await import("./db")).getDb();
+        if (!db) throw new Error("Database not available");
+        // Compute current week label
+        const now = new Date();
+        const dayOfWeek = now.getUTCDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now);
+        monday.setUTCDate(now.getUTCDate() + mondayOffset);
+        const weekLabel = `${monday.getFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, "0")}-${String(monday.getUTCDate()).padStart(2, "0")}`;
+        await db.insert(dismissedActions).values({
+          userId: ctx.user.id,
+          actionKey: input.actionKey,
+          reason: input.reason,
+          weekLabel,
+        });
+        return { success: true };
+      }),
   }),
   // ── User Activity Tracking ──
   activity: router({

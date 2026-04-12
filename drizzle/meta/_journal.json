@@ -288,6 +288,13 @@
       "when": 1774951478919,
       "tag": "0040_flaky_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1775951723752,
+      "tag": "0041_perfect_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

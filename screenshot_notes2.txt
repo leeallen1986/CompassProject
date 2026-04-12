@@ -1,0 +1,6 @@
+Screenshot 2 at 2026-04-12:
+- Data freshness warning is now visible: "Project data is 16 days old. The pipeline last ran successfully on 26/03/2026."
+- Below it: "Some suggestions below may be based on older data. Run the pipeline from Admin to refresh."
+- Suggested Actions shows "10 actions this week"
+- No TS errors, server running cleanly
+- Need to: write tests, then save checkpoint
