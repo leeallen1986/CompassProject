@@ -226,6 +226,8 @@ export async function updateCampaign(id: number, data: {
   senderEmail?: string;
   senderTitle?: string;
   targetSegment?: string;
+  targetRoles?: string[];
+  customRoleKeywords?: string[];
   status?: "draft" | "active" | "paused" | "completed";
 }): Promise<void> {
   const db = await getDb();

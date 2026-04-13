@@ -423,18 +423,25 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           }`}>
           All Roles ({totalUniqueContacts})
         </button>
-        {["procurement", "project_manager", "engineering", "operations", "maintenance", "fleet_manager", "commercial", "general_manager"].map(role => {
-          const count = deduplicatedData.filter(c => (c.roleBucket?.toLowerCase() || "") === role).length;
-          if (count === 0) return null;
-          return (
-            <button key={role} onClick={() => setRoleFilter(role)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                roleFilter === role ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-              }`}>
-              {roleBucketLabels[role] || role} ({count})
-            </button>
-          );
-        })}
+        {/* Dynamically show all buying groups that exist in the data */}
+        {(() => {
+          const roleCounts = new Map<string, number>();
+          deduplicatedData.forEach(c => {
+            const role = c.roleBucket?.toLowerCase() || "";
+            if (role) roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
+          });
+          // Sort by count descending
+          return Array.from(roleCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(([role, count]) => (
+              <button key={role} onClick={() => setRoleFilter(role)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  roleFilter === role ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                }`}>
+                {roleBucketLabels[role] || role.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} ({count})
+              </button>
+            ));
+        })()}
       </div>
 
       {/* Role relevance filter tabs */}

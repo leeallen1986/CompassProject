@@ -897,6 +897,8 @@ export const campaigns = mysqlTable("campaigns", {
   senderTitle: varchar("senderTitle", { length: 256 }),
   // Campaign targeting
   targetSegment: varchar("targetSegment", { length: 128 }),  // e.g., "blasting", "painting", "corrosion"
+  targetRoles: json("targetRoles").$type<string[]>(),  // e.g., ["rc_driller", "operations"]
+  customRoleKeywords: json("customRoleKeywords").$type<string[]>(),  // user-typed keywords saved for search
   // Status
   status: mysqlEnum("status", ["draft", "active", "paused", "completed"]).notNull().default("draft"),
   // Stats (denormalized for quick display)

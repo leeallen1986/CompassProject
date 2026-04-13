@@ -3042,6 +3042,21 @@ export const appRouter = router({
         };
       }),
 
+    /** Save the search roles/keywords used in a campaign */
+    saveSearchRoles: campaignProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        targetRoles: z.array(z.string()),
+        customRoleKeywords: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await updateCampaign(input.campaignId, {
+          targetRoles: input.targetRoles,
+          customRoleKeywords: input.customRoleKeywords?.filter(k => k.trim()) || [],
+        });
+        return { success: true };
+      }),
+
     /** Get available predefined role categories for contact search */
     availableRoles: campaignProcedure
       .query(async () => {

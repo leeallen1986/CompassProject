@@ -313,6 +313,15 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     setIsSearching(true);
     setSearchProgress(null);
     try {
+      // Save search roles to campaign for future reference
+      if (createdCampaignId) {
+        saveSearchRoles.mutate({
+          campaignId: createdCampaignId,
+          targetRoles: selectedRoles,
+          customRoleKeywords: customRolePattern ? customRolePattern.split("|").map(k => k.trim()).filter(Boolean) : [],
+        });
+      }
+
       // Start background job — returns immediately with jobId
       const result = await searchCompanyContacts.mutateAsync({
         fileUrl: uploadedFileUrl,
@@ -444,6 +453,15 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
 
     setIsSearching(true);
     try {
+      // Save search roles to campaign for future reference
+      if (createdCampaignId) {
+        saveSearchRoles.mutate({
+          campaignId: createdCampaignId,
+          targetRoles: selectedRoles,
+          customRoleKeywords: customRolePattern ? customRolePattern.split("|").map(k => k.trim()).filter(Boolean) : [],
+        });
+      }
+
       const result = await searchContacts.mutateAsync({
         domains: validDomains,
         targetRoles: selectedRoles,
@@ -495,9 +513,11 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     }
   };
 
-  // ── Shared: Role Selector ──
+  // ── Shared: Role Selector (rendered inline to avoid re-mount / focus loss) ──
 
-  const RoleSelector = () => (
+  const saveSearchRoles = trpc.campaign.saveSearchRoles.useMutation();
+
+  const roleSelectorJsx = (
     <div className="space-y-3">
       <Label className="text-sm font-semibold">Target Roles</Label>
       <p className="text-xs text-muted-foreground">
@@ -526,6 +546,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
           onChange={e => setCustomRolePattern(e.target.value)}
           className="border-border text-sm"
         />
+        <p className="text-[10px] text-muted-foreground">Separate multiple keywords with | (pipe). These will be saved to the campaign for future searches.</p>
       </div>
     </div>
   );
@@ -851,7 +872,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                             </p>
 
                             {/* Role selector — hidden while searching */}
-                            {!isSearching && <RoleSelector />}
+                            {!isSearching && roleSelectorJsx}
 
                             {/* Progress indicator — shown while searching */}
                             {isSearching && searchProgress && (
@@ -1248,7 +1269,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                 </div>
 
                 {/* Target Roles */}
-                <RoleSelector />
+                {roleSelectorJsx}
 
                 {/* Search Button */}
                 {!searchResult && (

@@ -1035,3 +1035,9 @@
 ## Task — Replace X1350 flyer with v4
 - [x] Upload atlas_copco_x1350_flyer_v4.pdf to S3 replacing the existing version (14,590 KB uploaded)
 - [x] Update the database record to point to the new file (fileSizeBytes updated, same CDN URL)
+
+## Fix — Stakeholder/Buying Groups & Custom Role Keyword
+- [x] Fix stakeholder lines to show all buying groups (dynamic from data, sorted by count desc, no hardcoded list)
+- [x] Fix custom role keyword input bug (extracted RoleSelector from arrow function to inline JSX — prevents re-mount/focus loss)
+- [x] Make custom keywords saved/persisted for search (new targetRoles + customRoleKeywords columns in campaigns table, saved on search)
+- [x] All 1,659 tests passing, no TypeScript errors
