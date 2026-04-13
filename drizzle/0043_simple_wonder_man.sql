@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `campaignAccess` boolean DEFAULT false NOT NULL;

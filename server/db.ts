@@ -101,6 +101,29 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// ── All Users helpers (for admin campaign access management) ──
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    authMethod: users.authMethod,
+    campaignAccess: users.campaignAccess,
+    lastSignedIn: users.lastSignedIn,
+  }).from(users).orderBy(users.name);
+}
+
+export async function updateUserCampaignAccess(userId: number, campaignAccess: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ campaignAccess }).where(eq(users.id, userId));
+  return { success: true };
+}
+
 // ── Report helpers ──
 
 export async function createReport(data: InsertReport): Promise<number> {

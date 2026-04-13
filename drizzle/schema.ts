@@ -12,6 +12,7 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("passwordHash", { length: 256 }),
   authMethod: mysqlEnum("authMethod", ["oauth", "email"]).default("oauth").notNull(),
   role: mysqlEnum("role", ["user", "admin", "distributor"]).default("user").notNull(),
+  campaignAccess: boolean("campaignAccess").default(false).notNull(),
   invitedBy: int("invitedBy"),
   inviteToken: varchar("inviteToken", { length: 128 }),
   inviteExpiresAt: timestamp("inviteExpiresAt"),

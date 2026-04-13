@@ -92,15 +92,13 @@ const RELEVANCE_CONFIG: Record<string, { label: string; color: string }> = {
 
 // ── Main Component ──
 
-const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com', 'leo.williams@atlascopco.com'];
-
 export default function Campaigns() {
   const { user, loading } = useAuth();
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [showBuilder, setShowBuilder] = useState(false);
 
-  // Access control: only admin + Ryan can access campaigns
-  const hasAccess = user?.role === 'admin' || (user?.email && CAMPAIGN_ALLOWED_EMAILS.includes(user.email.toLowerCase()));
+  // Access control: admin role OR campaignAccess flag in DB
+  const hasAccess = user?.role === 'admin' || !!(user as any)?.campaignAccess;
 
   const campaignsQuery = trpc.campaign.list.useQuery(undefined, {
     enabled: !!hasAccess,

@@ -1276,6 +1276,105 @@ function UserManagementTab() {
           <strong className="text-navy">How it works:</strong> Invite a user by entering their name, email, and role. They receive a registration link to set their password. Internal team members can continue using Manus OAuth login. Both auth methods work side by side.
         </p>
       </div>
+
+      {/* Campaign Access Management */}
+      <CampaignAccessSection />
+    </div>
+  );
+}
+
+// ── Campaign Access Management ──
+
+function CampaignAccessSection() {
+  const utils = trpc.useUtils();
+  const { data: allUsers, isLoading } = trpc.userManagement.listAllUsers.useQuery();
+  const toggleMutation = trpc.userManagement.toggleCampaignAccess.useMutation({
+    onSuccess: () => {
+      utils.userManagement.listAllUsers.invalidate();
+      toast.success("Campaign access updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <div className="bg-card rounded-lg border border-border p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-bold text-navy flex items-center gap-2">
+          <Target className="w-5 h-5 text-gold" /> Campaign Access
+        </h2>
+        <span className="text-xs text-muted-foreground">Toggle who can see the Campaigns tab</span>
+      </div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Admins always have campaign access. Use the toggles below to grant or revoke access for non-admin users.
+      </p>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
+      ) : !allUsers || allUsers.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
+          <p className="text-sm">No users found.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-navy text-white">
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Name</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Email</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Role</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Auth</th>
+                <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">Campaign Access</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allUsers.map((u, i) => {
+                const isAdmin = u.role === "admin";
+                const hasAccess = isAdmin || u.campaignAccess;
+                return (
+                  <tr key={u.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                    <td className="px-4 py-3 font-medium text-navy">{u.name || "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.email || "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        u.role === "admin" ? "bg-hot/15 text-hot" :
+                        u.role === "distributor" ? "bg-teal/15 text-teal" :
+                        "bg-gold/15 text-gold-dark"
+                      }`}>{u.role}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        u.authMethod === "oauth" ? "bg-navy/10 text-navy" : "bg-teal/15 text-teal"
+                      }`}>{u.authMethod}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {isAdmin ? (
+                        <span className="text-xs text-muted-foreground italic">Always (admin)</span>
+                      ) : (
+                        <button
+                          onClick={() => toggleMutation.mutate({ userId: u.id, campaignAccess: !u.campaignAccess })}
+                          disabled={toggleMutation.isPending}
+                          className="inline-flex items-center gap-1.5 transition-colors"
+                          title={hasAccess ? "Revoke campaign access" : "Grant campaign access"}
+                        >
+                          {u.campaignAccess ? (
+                            <ToggleRight className="w-6 h-6 text-teal" />
+                          ) : (
+                            <ToggleLeft className="w-6 h-6 text-slate-400" />
+                          )}
+                          <span className={`text-xs font-semibold ${u.campaignAccess ? "text-teal" : "text-slate-400"}`}>
+                            {u.campaignAccess ? "Enabled" : "Disabled"}
+                          </span>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

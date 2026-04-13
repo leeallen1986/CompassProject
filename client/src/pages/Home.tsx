@@ -1002,7 +1002,7 @@ export default function Home() {
                 <Link href="/collateral" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
                   <Layers className="w-3 h-3" /> Collateral
                 </Link>
-                {(user?.role === "admin" || ['ryan.pemberton@atlascopco.com', 'leo.williams@atlascopco.com'].includes(user?.email?.toLowerCase() ?? '')) && (
+                {(user?.role === "admin" || (user as any)?.campaignAccess) && (
                   <>
                     <span className="text-slate-600">|</span>
                     <Link href="/campaigns" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">

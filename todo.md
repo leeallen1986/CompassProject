@@ -963,4 +963,9 @@
 - [x] Trace how navigation tabs are controlled — hardcoded CAMPAIGN_ALLOWED_EMAILS list in Campaigns.tsx + inline checks in Home.tsx and ThisWeek.tsx
 - [x] Add leo.williams@atlascopco.com to CAMPAIGN_ALLOWED_EMAILS in Campaigns.tsx
 - [x] Update nav link condition in Home.tsx and ThisWeek.tsx to include Leo
-- [ ] Verify Campaigns tab appears in Leo's nav after deployment
+- [x] Verify Campaigns tab appears in Leo's nav after deployment
+- [x] Add Tim O'Neil Shaw to Campaigns access (admin role = always has access)
+- [x] Move campaign access allowlist from hardcoded emails to database (users.campaignAccess column)
+- [x] Build Admin UI to manage campaign access per user (toggle on/off in User Management tab)
+- [x] Refactor frontend Campaigns.tsx, Home.tsx, ThisWeek.tsx to check DB permission instead of hardcoded list
+- [x] Write tests for DB-backed campaign access (17 tests, all 1636 passing)

@@ -19,6 +19,7 @@ import {
   updateProjectLifecycle, bulkUpdateProjectLifecycle, markStaleProjects, touchProjectActivity,
   getActiveProjects,
   verifyContactByUser, rejectContactByUser, getVerificationStats,
+  getAllUsers, updateUserCampaignAccess,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -227,6 +228,17 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await deleteEmailUser(input.userId);
         return { success: true };
+      }),
+
+    // ── Campaign Access Management (all users, not just email-auth) ──
+    listAllUsers: adminProcedure.query(async () => {
+      return getAllUsers();
+    }),
+
+    toggleCampaignAccess: adminProcedure
+      .input(z.object({ userId: z.number(), campaignAccess: z.boolean() }))
+      .mutation(async ({ input }) => {
+        return updateUserCampaignAccess(input.userId, input.campaignAccess);
       }),
   }),
 
