@@ -7,7 +7,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * 1. EMAIL_DIGESTS_ENABLED env var is set to "true"
  * 2. Per-user deduplication logic (wasEmailSentToUser / logUserEmailSend)
  * 3. Pipeline no longer directly sends digests
- * 4. sendWeeklyDigests and sendThursdayReminders have force parameter and alreadySent tracking
+ * 4. sendWeeklyDigests has force parameter and alreadySent tracking
+ * 5. Thursday reminder is disabled — only Monday digest is scheduled
  */
 
 describe("EMAIL_DIGESTS_ENABLED", () => {
@@ -34,17 +35,16 @@ describe("Email Digest Deduplication", () => {
     expect(sendWeeklyDigests.length).toBeLessThanOrEqual(1);
   });
 
-  it("sendThursdayReminders should accept a force parameter", async () => {
+  it("sendThursdayReminders still exists in emailDigest but is not scheduled", async () => {
+    // The function still exists in emailDigest.ts for potential future use
     const { sendThursdayReminders } = await import("./emailDigest");
     expect(typeof sendThursdayReminders).toBe("function");
-    expect(sendThursdayReminders.length).toBeLessThanOrEqual(1);
   });
 
   it("sendWeeklyDigests return type should include alreadySent field", async () => {
     // We can't easily call the function without a DB, but we can verify the module exports
     const mod = await import("./emailDigest");
     expect(mod.sendWeeklyDigests).toBeDefined();
-    expect(mod.sendThursdayReminders).toBeDefined();
   });
 
   it("dailyPipeline should NOT import sendWeeklyDigests or sendThursdayReminders", async () => {
@@ -87,17 +87,16 @@ describe("Email Digest Deduplication", () => {
     expect(mondaySection).toContain("logUserEmailSend(user.id, \"monday\", \"sent\")");
   });
 
-  it("emailDigest Thursday function should check per-user dedup before sending", async () => {
+  it("emailDigest Thursday function still has dedup logic (but is not scheduled)", async () => {
     const fs = await import("fs");
     const source = fs.readFileSync("./server/emailDigest.ts", "utf-8");
 
-    // Find the sendThursdayReminders function
+    // The function still exists in the source
     const thursdaySection = source.slice(
       source.indexOf("export async function sendThursdayReminders")
     );
     expect(thursdaySection).toContain("wasEmailSentToUser(user.id, \"thursday\")");
     expect(thursdaySection).toContain("alreadySent++");
-    expect(thursdaySection).toContain("logUserEmailSend(user.id, \"thursday\", \"sent\")");
   });
 
   it("schema should include userEmailSendLog table", async () => {
@@ -108,16 +107,26 @@ describe("Email Digest Deduplication", () => {
     expect(source).toContain("userId");
   });
 
-  it("persistentScheduler should be the single source of truth for digest scheduling", async () => {
+  it("persistentScheduler should only schedule Monday digest (no Thursday)", async () => {
     const fs = await import("fs");
     const source = fs.readFileSync("./server/persistentScheduler.ts", "utf-8");
 
-    // Verify it imports and uses the digest functions
-    expect(source).toContain("import { sendWeeklyDigests, sendThursdayReminders }");
+    // Verify it imports only sendWeeklyDigests (not sendThursdayReminders)
+    expect(source).toContain("import { sendWeeklyDigests }");
+    expect(source).not.toContain("import { sendWeeklyDigests, sendThursdayReminders }");
+
+    // Verify Monday digest is still active
     expect(source).toContain("sendMondayDigestSafe");
-    expect(source).toContain("sendThursdayReminderSafe");
+
+    // Verify Thursday reminder is removed
+    expect(source).not.toContain("sendThursdayReminderSafe");
+    expect(source).not.toContain("scheduleNextThursday");
 
     // Verify it has batch-level dedup
     expect(source).toContain("wasDigestSentToday");
+
+    // Verify the comment about Thursday being disabled
+    expect(source).toContain("Thursday reminder");
+    expect(source).toContain("DISABLED");
   });
 });

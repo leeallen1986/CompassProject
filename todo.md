@@ -969,3 +969,8 @@
 - [x] Build Admin UI to manage campaign access per user (toggle on/off in User Management tab)
 - [x] Refactor frontend Campaigns.tsx, Home.tsx, ThisWeek.tsx to check DB permission instead of hardcoded list
 - [x] Write tests for DB-backed campaign access (17 tests, all 1636 passing)
+
+## Feature — Email Digest: Monday only
+- [x] Verify EMAIL_DIGESTS_ENABLED is set to true
+- [x] Disable Thursday reminder (keep only Monday weekly digest)
+- [x] Update tests to reflect Thursday reminder removal (all 1,635 tests passing)

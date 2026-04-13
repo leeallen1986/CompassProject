@@ -72,25 +72,21 @@ describe("compulsory email digest system", () => {
     }, DIGEST_TIMEOUT);
   });
 
-  describe("Thursday mid-week reminder", () => {
-    it("digest.sendThursdayReminder requires admin role", async () => {
-      const ctx = createUserContext("user");
-      const caller = appRouter.createCaller(ctx);
-      await expect(caller.digest.sendThursdayReminder()).rejects.toThrow();
+  describe("Thursday reminder (removed from scheduler)", () => {
+    it("Thursday reminder endpoint no longer exists on digest router", async () => {
+      // Verify the router source no longer has sendThursdayReminder procedure
+      const fs = await import("fs");
+      const source = fs.readFileSync("./server/routers.ts", "utf-8");
+      // The Thursday endpoint should be commented out / removed
+      expect(source).not.toContain("sendThursdayReminder: adminProcedure");
+      // Monday digest should still be present
+      expect(source).toContain("sendNow: adminProcedure");
     });
 
-    it("digest.sendThursdayReminder works for admin and returns correct shape", async () => {
-      const ctx = createUserContext("admin");
-      const caller = appRouter.createCaller(ctx);
-      const result = await caller.digest.sendThursdayReminder();
-      expect(result).toHaveProperty("sent");
-      expect(result).toHaveProperty("failed");
-      expect(result).toHaveProperty("skipped");
-      expect(typeof result.sent).toBe("number");
-      expect(typeof result.failed).toBe("number");
-      expect(typeof result.skipped).toBe("number");
-      expect(result.sent + result.failed + result.skipped).toBeGreaterThanOrEqual(0);
-    }, DIGEST_TIMEOUT);
+    it("sendThursdayReminders function still exists in emailDigest module for potential future use", async () => {
+      const { sendThursdayReminders } = await import("./emailDigest");
+      expect(typeof sendThursdayReminders).toBe("function");
+    });
   });
 
   describe("unauthenticated access", () => {
@@ -98,12 +94,6 @@ describe("compulsory email digest system", () => {
       const ctx = createUnauthContext();
       const caller = appRouter.createCaller(ctx);
       await expect(caller.digest.sendNow()).rejects.toThrow();
-    });
-
-    it("digest.sendThursdayReminder rejects unauthenticated users", async () => {
-      const ctx = createUnauthContext();
-      const caller = appRouter.createCaller(ctx);
-      await expect(caller.digest.sendThursdayReminder()).rejects.toThrow();
     });
   });
 });

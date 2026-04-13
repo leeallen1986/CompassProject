@@ -55,7 +55,7 @@ import {
   createTemplate, listTemplates, getTemplateById, updateTemplate,
   deleteTemplate, incrementTemplateUsage, personaliseTemplate, getTemplateStats,
 } from "./outreachTemplates";
-import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
+import { sendWeeklyDigests } from "./emailDigest";
 import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
 import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { searchProjects } from "./aiProjectMatcher";
@@ -562,11 +562,7 @@ export const appRouter = router({
       const results = await sendWeeklyDigests(true);
       return results;
     }),
-    /** Send Thursday reminder now — compulsory to all users with profiles */
-    sendThursdayReminder: adminProcedure.mutation(async () => {
-      const results = await sendThursdayReminders();
-      return results;
-    }),
+    // Thursday reminder removed — Monday digest only
   }),
 
   // ── AI Project Search / Matching ──

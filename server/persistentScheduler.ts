@@ -7,11 +7,11 @@
  * 3. Runs missed digests immediately on startup if needed
  * 4. Uses a persistent timer that survives process restarts
  *
- * Sends Monday digest at 23:00 UTC and Thursday reminder at 23:00 UTC.
+ * Sends Monday digest at 23:00 UTC (Monday only — Thursday reminder disabled).
  */
 
 import { getDb } from "./db";
-import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
+import { sendWeeklyDigests } from "./emailDigest";
 import { digestScheduleLog } from "../drizzle/schema";
 import { eq, gte, and } from "drizzle-orm";
 
@@ -99,31 +99,7 @@ async function sendMondayDigestSafe(): Promise<void> {
 }
 
 /**
- * Send Thursday reminder and log the result
- */
-async function sendThursdayReminderSafe(): Promise<void> {
-  // Double-check guard: re-verify not already sent before sending
-  const alreadySent = await wasDigestSentToday("thursday");
-  if (alreadySent) {
-    console.log("[PersistentScheduler] ✓ Thursday reminder already sent today — skipping");
-    return;
-  }
-  try {
-    console.log("[PersistentScheduler] 📧 Sending Thursday reminder...");
-    const result = await sendThursdayReminders();
-    await logDigestAttempt("thursday", "sent");
-    console.log(
-      `[PersistentScheduler] ✓ Thursday reminder sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
-    );
-  } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    await logDigestAttempt("thursday", "failed", errMsg);
-    console.error("[PersistentScheduler] ✗ Thursday reminder failed:", errMsg);
-  }
-}
-
-/**
- * Check if today is Monday (1) or Thursday (4) in UTC
+ * Check if today is Monday (1) in UTC
  */
 function getTodayDayOfWeek(): number {
   return new Date().getUTCDay();
@@ -162,7 +138,8 @@ function getDelayUntilNextWeekday(targetDay: number, targetHour: number = 23): n
 }
 
 /**
- * Main scheduler that runs on startup and periodically checks for missed digests
+ * Main scheduler that runs on startup and periodically checks for missed digests.
+ * Only schedules Monday weekly digest — Thursday reminder is disabled.
  */
 export async function startPersistentScheduler(): Promise<void> {
   // Kill switch: if EMAIL_DIGESTS_ENABLED is not "true", do not schedule or send anything
@@ -171,13 +148,13 @@ export async function startPersistentScheduler(): Promise<void> {
     return;
   }
 
-  console.log("[PersistentScheduler] Starting persistent email digest scheduler...");
+  console.log("[PersistentScheduler] Starting persistent email digest scheduler (Monday only)...");
 
   // ── Startup: Check for missed digests ──
   const today = getTodayDayOfWeek();
   const currentTime = getCurrentUTCTime();
 
-  console.log(`[PersistentScheduler] Current time: ${currentTime} UTC | Day: ${today} (0=Sun, 1=Mon, 4=Thu)`);
+  console.log(`[PersistentScheduler] Current time: ${currentTime} UTC | Day: ${today} (0=Sun, 1=Mon)`);
 
   // Check if today is Monday and digest hasn't been sent yet
   if (today === 1) {
@@ -190,16 +167,7 @@ export async function startPersistentScheduler(): Promise<void> {
     }
   }
 
-  // Check if today is Thursday and reminder hasn't been sent yet
-  if (today === 4) {
-    const thursdayAlreadySent = await wasDigestSentToday("thursday");
-    if (!thursdayAlreadySent) {
-      console.log("[PersistentScheduler] ⚠ Thursday reminder not sent yet — sending now...");
-      await sendThursdayReminderSafe();
-    } else {
-      console.log("[PersistentScheduler] ✓ Thursday reminder already sent today");
-    }
-  }
+  // Thursday reminder — DISABLED per user request (Monday only)
 
   // ── Recurring: Schedule next Monday digest ──
   function scheduleNextMonday(): void {
@@ -213,21 +181,8 @@ export async function startPersistentScheduler(): Promise<void> {
     }, delay);
   }
 
-  // ── Recurring: Schedule next Thursday reminder ──
-  function scheduleNextThursday(): void {
-    const delay = getDelayUntilNextWeekday(4, 23);
-    const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
-    console.log(`[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h`);
-
-    setTimeout(async () => {
-      await sendThursdayReminderSafe(); // guard inside will prevent duplicates
-      scheduleNextThursday();
-    }, delay);
-  }
-
-  // Start both recurring schedules
+  // Start Monday recurring schedule only
   scheduleNextMonday();
-  scheduleNextThursday();
 
-  console.log("[PersistentScheduler] ✓ Persistent scheduler initialized");
+  console.log("[PersistentScheduler] ✓ Persistent scheduler initialized (Monday digest only)");
 }
