@@ -987,3 +987,8 @@
 - [x] Fix outreach email generation — added CP Truck Air collateral profile (Chicago Pneumatic branding, truck builder messaging, 7 role hooks)
 - [x] Clean up existing duplicates in Leo's CP Truck Air campaign (124 → 91 unique contacts, 33 dupes removed)
 - [x] Test and deploy fixes (all 1,635 tests passing)
+
+## Bug Fix — Pipeline enrichment timeout
+- [x] Investigate why contact enrichment step timed out after 900s (500 contacts × 1s delay = 500s+ plus API time > 900s limit)
+- [x] Fix the enrichment timeout issue (delay 1000ms→500ms, enrichment timeout 15min→25min, global timeout 45min→55min)
+- [x] Test and verify fix (all 1,635 tests passing)

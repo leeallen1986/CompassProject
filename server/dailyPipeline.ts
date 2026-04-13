@@ -191,8 +191,9 @@ function skipStep(step: PipelineStep, reason?: string): PipelineStep {
 }
 
 // ── Pipeline timeout ──
-const PIPELINE_TIMEOUT_MS = 45 * 60 * 1000; // 45 minutes max
+const PIPELINE_TIMEOUT_MS = 55 * 60 * 1000; // 55 minutes max (enrichment step alone can take 25 min)
 const STEP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per step max
+const ENRICHMENT_TIMEOUT_MS = 25 * 60 * 1000; // 25 minutes for contact enrichment (500 contacts × ~2s each)
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -663,7 +664,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   console.log("[DailyPipeline] Step 10: Enriching contacts...");
   let enrichmentResult;
   try {
-    enrichmentResult = await withTimeout(runEnrichmentPipeline(), STEP_TIMEOUT_MS, "Contact Enrichment");
+    enrichmentResult = await withTimeout(runEnrichmentPipeline(), ENRICHMENT_TIMEOUT_MS, "Contact Enrichment");
     completeStep(enrichmentStep, {
       processed: enrichmentResult.processed,
       enriched: enrichmentResult.enriched,
