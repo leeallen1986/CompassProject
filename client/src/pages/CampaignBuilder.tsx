@@ -79,10 +79,16 @@ interface CompanySearchResult extends SearchResult {
 
 // ── Constants ──
 
-const STEPS = [
+const STEPS_DEFAULT = [
   { id: 1, label: "Campaign Details", icon: Megaphone },
   { id: 2, label: "Add Contacts", icon: Users },
   { id: 3, label: "Review & Launch", icon: Zap },
+];
+
+const STEPS_COMPANY_FLOW = [
+  { id: 1, label: "Campaign Details", icon: Megaphone },
+  { id: 2, label: "Discover Contacts", icon: Search },
+  { id: 3, label: "Import & Enrich", icon: Zap },
 ];
 
 const MAPPING_FIELDS: { key: keyof ColumnMapping; label: string; required?: boolean }[] = [
@@ -171,6 +177,10 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   const [importResult, setImportResult] = useState<any>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichmentResult, setEnrichmentResult] = useState<any>(null);
+  const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
+  const [autoEnrichTriggered, setAutoEnrichTriggered] = useState(false);
+  const [enrichBatchSize, setEnrichBatchSize] = useState(100);
 
   // Queries
   const collateralQuery = trpc.collateral.list.useQuery({});
@@ -419,6 +429,11 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
       setImportResult(result);
       toast.success(`Imported ${result.imported} contacts`);
       setStep(3);
+      // Auto-trigger enrichment confirmation dialog after company discovery import
+      if (result.imported > 0) {
+        setAutoEnrichTriggered(true);
+        setShowEnrichConfirm(true);
+      }
     } catch (err) {
       toast.error("Import failed: " + (err as Error).message);
     } finally {
@@ -488,6 +503,11 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
       setImportResult(result);
       toast.success(`Imported ${result.imported} contacts`);
       setStep(3);
+      // Auto-trigger enrichment confirmation dialog after search import
+      if (result.imported > 0) {
+        setAutoEnrichTriggered(true);
+        setShowEnrichConfirm(true);
+      }
     } catch (err) {
       toast.error("Import failed: " + (err as Error).message);
     } finally {
@@ -497,15 +517,22 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
 
   // ── Step 3: Enrichment ──
 
-  const handleEnrich = async () => {
+  const handleEnrich = async (batchSize: number = 100) => {
     if (!createdCampaignId) return;
     setIsEnriching(true);
+    setShowEnrichConfirm(false);
     try {
       const result = await enrichContacts.mutateAsync({
         campaignId: createdCampaignId,
-        maxContacts: 100,
+        maxContacts: batchSize,
       });
-      toast.success(`Enriched ${result.enriched} contacts (Apollo: ${result.apolloFound || 0}, Hunter: ${result.hunterFound || 0})`);
+      setEnrichmentResult(result);
+      const parts = [];
+      if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
+      if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
+      if (result.emailsVerified) parts.push(`Verified: ${result.emailsVerified}`);
+      if (result.linkedInAdded) parts.push(`LinkedIn: ${result.linkedInAdded}`);
+      toast.success(`Enriched ${result.enriched} contacts${parts.length ? ` (${parts.join(", ")})` : ""}`);
     } catch (err) {
       toast.error("Enrichment failed: " + (err as Error).message);
     } finally {
@@ -569,7 +596,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
 
       {/* Step Indicator */}
       <div className="flex items-center gap-2 mb-8">
-        {STEPS.map((s, idx) => {
+        {(fileType === "companies" ? STEPS_COMPANY_FLOW : STEPS_DEFAULT).map((s: typeof STEPS_DEFAULT[number], idx: number) => {
           const Icon = s.icon;
           const isActive = step === s.id;
           const isCompleted = step > s.id;
@@ -1420,6 +1447,34 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
             </CardContent>
           </Card>
 
+          {/* Pipeline Progress Indicator (for company discovery flow) */}
+          {(fileType === "companies" || contactMethod === "search") && (
+            <div className="flex items-center gap-0 mb-2">
+              {[
+                { label: "Discovered", icon: Search, done: true, count: companySearchResult?.totalFiltered || searchResult?.totalFiltered || 0 },
+                { label: "Imported", icon: Users, done: !!importResult, count: importResult?.imported || 0 },
+                { label: "Enriched", icon: Zap, done: !!enrichmentResult, count: enrichmentResult?.enriched || 0 },
+              ].map((phase, idx) => (
+                <div key={phase.label} className="flex items-center">
+                  {idx > 0 && (
+                    <div className={`h-px w-6 sm:w-10 ${phase.done ? "bg-gold" : "bg-border"}`} />
+                  )}
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    phase.done
+                      ? "bg-gold/15 text-gold-dark"
+                      : isEnriching && phase.label === "Enriched"
+                        ? "bg-navy text-white animate-pulse"
+                        : "bg-card text-muted-foreground border border-border"
+                  }`}>
+                    {phase.done ? <Check className="w-3 h-3" /> : <phase.icon className="w-3 h-3" />}
+                    {phase.label}
+                    {phase.count > 0 && <span className="text-[10px] opacity-70">({phase.count})</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Enrichment */}
           <Card className="border-border">
             <CardHeader>
@@ -1428,27 +1483,109 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                 Waterfall Enrichment
               </CardTitle>
               <CardDescription>
-                Run Apollo → Hunter.io waterfall to find verified email addresses for your contacts.
-                This will enrich up to 100 contacts per batch.
+                {enrichmentResult
+                  ? "Enrichment complete. You can run again to process remaining contacts."
+                  : isEnriching
+                    ? "Running Apollo → Hunter.io waterfall to verify emails, find LinkedIn URLs, and update titles..."
+                    : "Run Apollo → Hunter.io waterfall to find verified email addresses, LinkedIn URLs, and updated titles."
+                }
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={handleEnrich}
-                  disabled={isEnriching}
-                  className="bg-gold hover:bg-gold/90 text-navy font-semibold"
-                >
-                  {isEnriching ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enriching...</>
-                  ) : (
-                    <><Zap className="w-4 h-4 mr-2" /> Run Enrichment (Apollo → Hunter)</>
+            <CardContent className="space-y-4">
+              {/* Enrichment in progress */}
+              {isEnriching && (
+                <div className="bg-gold/5 border border-gold/20 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 text-gold animate-spin" />
+                    <div>
+                      <p className="text-sm font-semibold text-navy">Enriching contacts...</p>
+                      <p className="text-xs text-muted-foreground">This may take 1-3 minutes depending on batch size. Please wait.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Enrichment results */}
+              {enrichmentResult && !isEnriching && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <p className="text-sm font-semibold text-green-800">Enrichment Complete</p>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                      <div className="text-lg font-bold text-navy">{enrichmentResult.enriched}</div>
+                      <div className="text-[10px] text-muted-foreground">Contacts Enriched</div>
+                    </div>
+                    {enrichmentResult.apolloFound > 0 && (
+                      <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                        <div className="text-lg font-bold text-blue-600">{enrichmentResult.apolloFound}</div>
+                        <div className="text-[10px] text-muted-foreground">Via Apollo</div>
+                      </div>
+                    )}
+                    {enrichmentResult.hunterFound > 0 && (
+                      <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                        <div className="text-lg font-bold text-teal">{enrichmentResult.hunterFound}</div>
+                        <div className="text-[10px] text-muted-foreground">Via Hunter</div>
+                      </div>
+                    )}
+                    {enrichmentResult.linkedInAdded > 0 && (
+                      <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                        <div className="text-lg font-bold text-indigo-600">{enrichmentResult.linkedInAdded}</div>
+                        <div className="text-[10px] text-muted-foreground">LinkedIn Added</div>
+                      </div>
+                    )}
+                    {enrichmentResult.emailsVerified > 0 && (
+                      <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                        <div className="text-lg font-bold text-green-600">{enrichmentResult.emailsVerified}</div>
+                        <div className="text-[10px] text-muted-foreground">Emails Verified</div>
+                      </div>
+                    )}
+                    {enrichmentResult.emailsCorrected > 0 && (
+                      <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                        <div className="text-lg font-bold text-amber-600">{enrichmentResult.emailsCorrected}</div>
+                        <div className="text-[10px] text-muted-foreground">Emails Corrected</div>
+                      </div>
+                    )}
+                    {enrichmentResult.titlesUpdated > 0 && (
+                      <div className="bg-white rounded-lg border border-green-100 p-2.5">
+                        <div className="text-lg font-bold text-purple-600">{enrichmentResult.titlesUpdated}</div>
+                        <div className="text-[10px] text-muted-foreground">Titles Updated</div>
+                      </div>
+                    )}
+                    {enrichmentResult.notFound > 0 && (
+                      <div className="bg-white rounded-lg border border-amber-100 p-2.5">
+                        <div className="text-lg font-bold text-amber-500">{enrichmentResult.notFound}</div>
+                        <div className="text-[10px] text-muted-foreground">Not Found</div>
+                      </div>
+                    )}
+                  </div>
+                  {enrichmentResult.creditsUsed > 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Credits used: ~{enrichmentResult.creditsUsed} Apollo credits
+                    </p>
                   )}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  You can run enrichment multiple times to process more contacts.
-                </p>
-              </div>
+                </div>
+              )}
+
+              {/* Run / Re-run button */}
+              {!isEnriching && (
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={() => setShowEnrichConfirm(true)}
+                    className="bg-gold hover:bg-gold/90 text-navy font-semibold"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    {enrichmentResult ? "Run Again (More Contacts)" : "Run Enrichment (Apollo → Hunter)"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    {enrichmentResult
+                      ? "Run again to process any remaining pending contacts."
+                      : "You can run enrichment multiple times to process more contacts."
+                    }
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1464,6 +1601,78 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
               <CheckCircle2 className="w-4 h-4 mr-2" /> Go to Campaign Dashboard
             </Button>
           </div>
+
+          {/* Enrichment Confirmation Dialog */}
+          {showEnrichConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gold/15 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-gold" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-navy">
+                      {autoEnrichTriggered && !enrichmentResult ? "Enrich Contacts Now?" : "Run Enrichment"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Apollo → Hunter.io waterfall
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-lg p-4 mb-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Contacts to enrich</span>
+                    <span className="text-sm font-semibold text-navy">{importResult?.imported || 0} pending</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Estimated Apollo credits</span>
+                    <span className="text-sm font-semibold text-navy">~{Math.min(enrichBatchSize, importResult?.imported || 0)} credits</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Batch size</label>
+                    <div className="flex gap-2">
+                      {[25, 50, 100].map(size => (
+                        <button
+                          key={size}
+                          onClick={() => setEnrichBatchSize(size)}
+                          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                            enrichBatchSize === size
+                              ? "bg-navy text-white"
+                              : "bg-white border border-border text-muted-foreground hover:border-navy/30"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {autoEnrichTriggered && !enrichmentResult && (
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Your contacts have been imported and are ready for enrichment. This will verify emails, add LinkedIn URLs, and update job titles.
+                  </p>
+                )}
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => { setShowEnrichConfirm(false); setAutoEnrichTriggered(false); }}
+                  >
+                    {autoEnrichTriggered && !enrichmentResult ? "Skip for Now" : "Cancel"}
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gold hover:bg-gold/90 text-navy font-semibold"
+                    onClick={() => handleEnrich(enrichBatchSize)}
+                  >
+                    <Zap className="w-4 h-4 mr-2" /> Enrich {Math.min(enrichBatchSize, importResult?.imported || 0)} Contacts
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

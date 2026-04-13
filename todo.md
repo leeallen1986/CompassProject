@@ -1075,3 +1075,13 @@
 - [x] Added 'import' to enrichmentSource enum in schema + pushed migration
 - [x] Write 15 tests for Always Enrich flow (import logic, data quality tracking, fallback behavior, enum)
 - [x] All 1,701 tests passing, no TypeScript errors
+
+## Enhancement — Auto-Enrich After Import + Pipeline Progress Indicator
+- [x] Add 3-step progress indicator to CampaignBuilder (Discover → Import → Enrich) for company-list uploads
+- [x] Auto-trigger enrichment after company-discovered contacts are imported (with credit confirmation dialog)
+- [x] Show enrichment progress/results inline in the CampaignBuilder (not just on the campaign detail page)
+- [x] Dynamic step labels — "Discover Contacts" + "Import & Enrich" when file is companies, default labels otherwise
+- [x] Enrichment card shows progress state, results state, and re-run option
+- [x] Batch size selector (25/50/100) in enrichment confirmation dialog
+- [x] Auto-trigger also works for domain search import path
+- [x] All 1,701 tests passing, no TypeScript errors
