@@ -1009,3 +1009,10 @@
 - [x] Make email template visually compelling with product imagery (brand logos in header, hero product images)
 - [x] Add Atlas Copco XAVS1800 product image and Power Technique logo for AC-branded emails
 - [x] 9 new tests, all 1,661 tests passing
+
+## Improvement — CP Truck Air Email Template v2
+- [x] Replace CP hero image with T110 compressor product shot from CP flyer page (uploaded to CDN)
+- [x] Replace CP logo with full Chicago Pneumatic wordmark logo from CP flyer page
+- [x] Remove attachment notice box from email template (PDF still attached in MIME, just no visual notice)
+- [x] Change outer email background from grey (#F4F4F4) to white
+- [x] 2 new tests (no attachment notice, white background), all 1,663 tests passing

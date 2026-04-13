@@ -32,9 +32,9 @@ const BRAND = {
     headerText: "#FFFFFF",
     ctaBg: "#C41230",
     ctaText: "#FFFFFF",
-    logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/cp-logo-icon-60_f588c4d9.png",
-    heroUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/cp-hero-truck_5ddc984c.jpg",
-    heroAlt: "Chicago Pneumatic CP Truck Air — Vehicle-Mounted Compressor",
+    logoUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/cp-logo-full_abc82cf4.png",
+    heroUrl: "https://d2xsxph8kpxj0f.cloudfront.net/310519663178278143/3SMu786VMCWdCnmNSx6pxw/cp-t110-compressor_501583a7.jpeg",
+    heroAlt: "Chicago Pneumatic T110 Truck Air Compressor",
   },
 };
 
@@ -108,10 +108,10 @@ function buildHtmlEmail(opts: EmlOptions): string {
 </noscript>
 <![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#F4F4F4;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<body style="margin:0;padding:0;background-color:#FFFFFF;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 
 <!-- Outer wrapper table for email client compatibility -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F4F4F4;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#FFFFFF;">
 <tr><td align="center" style="padding:24px 16px;">
 
 <!-- Main content card -->
@@ -162,30 +162,6 @@ function buildHtmlEmail(opts: EmlOptions): string {
             <p style="margin:0;font-family:'Segoe UI',Calibri,Arial,sans-serif;font-size:13px;line-height:1.5;color:${colors.text};font-style:italic;">
               ${escapeHtml(opts.ctaText)}
             </p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-  ` : ""}
-
-  <!-- Attachment notice -->
-  ${opts.attachment ? `
-  <tr>
-    <td style="padding:0 28px 20px 28px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr>
-          <td style="background-color:${colors.lightBg};border-radius:6px;padding:12px 16px;border:1px solid ${colors.border};">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td style="padding-right:10px;vertical-align:middle;">
-                  <span style="font-size:18px;">&#128206;</span>
-                </td>
-                <td style="font-family:'Segoe UI',Calibri,Arial,sans-serif;font-size:12px;color:${colors.text};">
-                  <strong>${escapeHtml(opts.attachment.filename)}</strong> is attached for your reference.
-                </td>
-              </tr>
-            </table>
           </td>
         </tr>
       </table>

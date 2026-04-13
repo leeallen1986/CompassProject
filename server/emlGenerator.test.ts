@@ -136,7 +136,7 @@ describe("EML Generator — buildEmlFile", () => {
 
   it("includes CP logo for Chicago Pneumatic brand", () => {
     const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
-    expect(eml).toContain("cp-logo-icon-60");
+    expect(eml).toContain("cp-logo-full");
   });
 
   it("includes product hero image by default", () => {
@@ -144,9 +144,9 @@ describe("EML Generator — buildEmlFile", () => {
     expect(eml).toContain("ac-xavs1800");
   });
 
-  it("includes CP truck hero image for Chicago Pneumatic brand", () => {
+  it("includes CP T110 compressor hero image for Chicago Pneumatic brand", () => {
     const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
-    expect(eml).toContain("cp-hero-truck");
+    expect(eml).toContain("cp-t110-compressor");
   });
 
   it("excludes hero image when includeHeroImage is false", () => {
@@ -163,6 +163,27 @@ describe("EML Generator — buildEmlFile", () => {
   it("shows 'Power Technique' for Atlas Copco brand header", () => {
     const eml = buildEmlFile({ ...baseInput, brand: "atlasCopco" });
     expect(eml).toContain("Power Technique");
+  });
+
+  it("does NOT include attachment notice box in HTML", () => {
+    const inputWithAttachment = {
+      ...baseInput,
+      attachment: {
+        filename: "CP-Truck-Air.pdf",
+        mimeType: "application/pdf",
+        contentBase64: "SGVsbG8gV29ybGQ=",
+      },
+    };
+    const eml = buildEmlFile(inputWithAttachment);
+    // Attachment should be in MIME structure but NOT shown as a notice in HTML
+    expect(eml).toContain("Content-Disposition: attachment");
+    expect(eml).not.toContain("is attached for your reference");
+  });
+
+  it("uses white background instead of grey", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).toContain("background-color:#FFFFFF");
+    expect(eml).not.toContain("background-color:#F4F4F4");
   });
 });
 
