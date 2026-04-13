@@ -513,7 +513,7 @@ RULES:
 8. Do NOT include a signature block (no name, title, company, or email at the end). The recipient's email client will add their own signature automatically. End the email after the call-to-action or a brief closing line like "Looking forward to hearing from you" — nothing more.
 9. Do NOT include any "Reminder: Please attach..." notes or attachment instructions. Attachments are handled automatically by the system.
 10. The subject line should reference the recipient's company or market and be compelling
-11. The opening line should hook them by referencing something specific about their company, market, or role — NOT a self-introduction
+11. ALWAYS start the email with "Hi [FirstName]," (e.g., "Hi Chris,") — Australians expect a friendly "Hi" greeting. Never start with just the name, "Dear", or skip the greeting entirely. The first paragraph after the greeting should hook them by referencing something specific about their company, market, or role — NOT a self-introduction
 ${profile.productRules}
 ${profile.commercialRules}
 14. AUSTRALIAN ENGLISH: Use Australian spelling (e.g., "optimise" not "optimize", "colour" not "color", "programme" not "program" for project programmes).

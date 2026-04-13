@@ -112,7 +112,7 @@ describe("CreateTemplateInput interface", () => {
       name: "Mining Procurement — TCO Pitch",
       description: "Best for procurement managers at mining companies",
       subject: "Reducing equipment costs on {{projectName}}",
-      body: "Dear {{contactName}},\n\nI noticed your team is working on...",
+      body: "Hi {{contactName}},\n\nI noticed your team is working on...",
       tone: "consultative" as const,
       roleBucket: "procurement",
       sector: "mining",

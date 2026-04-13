@@ -1023,3 +1023,6 @@
 - [x] Keep PDF attachment functionality intact (multipart/mixed MIME)
 - [x] Keep X-Unsent: 1 header for Outlook compose mode (signature auto-insert)
 - [x] Update tests to match new plain-text format — all 1,659 tests passing
+
+## Fix — Australian-friendly greeting
+- [x] Update LLM prompt to always start emails with "Hi [Name]," not just the name
