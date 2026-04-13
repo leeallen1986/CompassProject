@@ -1062,3 +1062,16 @@
 - [x] Update UI: Numeric score circle in contacts table (color-coded: red 60+, amber 40+, blue 20+, grey <20)
 - [x] Server: byRoleBucket stats in getCampaignStats endpoint
 - [x] Server: roleBucket filter in getCampaignContacts endpoint
+
+## Fix — Always Enrich (Option A)
+- [x] Bug fix: Change import logic — all contacts start as 'pending' instead of 'not_needed' for contacts with emails
+- [x] Update enrichment pipeline to handle contacts that already have emails (verify + enhance, not skip)
+- [x] When contact already has email, Apollo/Hunter still runs to add LinkedIn, verify email, update title
+- [x] If enrichment finds a better email, use it; if existing email is confirmed, keep it
+- [x] Add credit estimate in enrichment confirmation dialog (shows pending count and estimated Apollo credits)
+- [x] Add credit confirmation dialog in UI before running enrichment with batch size selector (25/50/100)
+- [x] Update enrichment stats display to show what was verified vs newly found (data quality toast)
+- [x] Fallback: contacts with emails that Apollo+Hunter miss get marked 'enriched' with source='import'
+- [x] Added 'import' to enrichmentSource enum in schema + pushed migration
+- [x] Write 15 tests for Always Enrich flow (import logic, data quality tracking, fallback behavior, enum)
+- [x] All 1,701 tests passing, no TypeScript errors

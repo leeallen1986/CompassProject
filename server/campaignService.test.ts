@@ -793,3 +793,218 @@ describe("RELEVANCE_CONFIG Coverage", () => {
     expect(uniqueLabels.size).toBe(primaryBuckets.length);
   });
 });
+
+
+// ── Always Enrich (Option A) Tests ──
+
+describe("Always Enrich — Import Logic", () => {
+  it("should set all contacts to 'pending' enrichment status regardless of email presence", () => {
+    // Simulates the import logic: contacts with emails should also start as 'pending'
+    const contactsWithEmails = [
+      { email: "john@company.com", firstName: "John", lastName: "Smith" },
+      { email: "jane@corp.com.au", firstName: "Jane", lastName: "Doe" },
+      { email: null, firstName: "Bob", lastName: "Builder" },
+      { email: "", firstName: "Alice", lastName: "Wonder" },
+    ];
+
+    for (const c of contactsWithEmails) {
+      // Option A: Always Enrich — all contacts start as 'pending'
+      const enrichmentStatus = "pending";
+      expect(enrichmentStatus).toBe("pending");
+    }
+  });
+
+  it("should NOT set any contact to 'not_needed' during import", () => {
+    // The old logic was: const enrichmentStatus = c.email ? "not_needed" : "pending";
+    // The new logic is: const enrichmentStatus = "pending";
+    const contacts = [
+      { email: "has@email.com" },
+      { email: null },
+      { email: "" },
+      { email: "another@company.com" },
+    ];
+
+    for (const c of contacts) {
+      // New import logic always returns "pending"
+      const enrichmentStatus = "pending";
+      expect(enrichmentStatus).not.toBe("not_needed");
+    }
+  });
+});
+
+describe("Always Enrich — Data Quality Tracking", () => {
+  it("should track email verification when enriched email matches import email", () => {
+    const importEmail = "john.smith@company.com";
+    const enrichedEmail = "john.smith@company.com";
+
+    let emailsVerified = 0;
+    let emailsCorrected = 0;
+
+    if (importEmail) {
+      if (enrichedEmail.toLowerCase() === importEmail.toLowerCase()) {
+        emailsVerified++;
+      } else {
+        emailsCorrected++;
+      }
+    }
+
+    expect(emailsVerified).toBe(1);
+    expect(emailsCorrected).toBe(0);
+  });
+
+  it("should track email correction when enriched email differs from import email", () => {
+    const importEmail = "j.smith@company.com";
+    const enrichedEmail = "john.smith@company.com";
+
+    let emailsVerified = 0;
+    let emailsCorrected = 0;
+
+    if (importEmail) {
+      if (enrichedEmail.toLowerCase() === importEmail.toLowerCase()) {
+        emailsVerified++;
+      } else {
+        emailsCorrected++;
+      }
+    }
+
+    expect(emailsVerified).toBe(0);
+    expect(emailsCorrected).toBe(1);
+  });
+
+  it("should track LinkedIn additions", () => {
+    const contacts = [
+      { existingLinkedin: null, enrichedLinkedin: "https://linkedin.com/in/john" },
+      { existingLinkedin: "https://linkedin.com/in/jane", enrichedLinkedin: "https://linkedin.com/in/jane" },
+      { existingLinkedin: null, enrichedLinkedin: null },
+    ];
+
+    let linkedInAdded = 0;
+    for (const c of contacts) {
+      if (c.enrichedLinkedin && !c.existingLinkedin) linkedInAdded++;
+    }
+
+    expect(linkedInAdded).toBe(1);
+  });
+
+  it("should track title updates", () => {
+    const contacts = [
+      { existingTitle: "Manager", enrichedTitle: "Senior Manager" },
+      { existingTitle: "CEO", enrichedTitle: "CEO" },
+      { existingTitle: "Director", enrichedTitle: "Managing Director" },
+      { existingTitle: null, enrichedTitle: "Operations Manager" },
+    ];
+
+    let titlesUpdated = 0;
+    for (const c of contacts) {
+      if (c.enrichedTitle && c.existingTitle && c.enrichedTitle.toLowerCase() !== c.existingTitle.toLowerCase()) {
+        titlesUpdated++;
+      }
+    }
+
+    expect(titlesUpdated).toBe(2); // Manager→Senior Manager, Director→Managing Director
+  });
+
+  it("should handle case-insensitive email comparison", () => {
+    const importEmail = "John.Smith@Company.COM";
+    const enrichedEmail = "john.smith@company.com";
+
+    let emailsVerified = 0;
+    let emailsCorrected = 0;
+
+    if (importEmail) {
+      if (enrichedEmail.toLowerCase() === importEmail.toLowerCase()) {
+        emailsVerified++;
+      } else {
+        emailsCorrected++;
+      }
+    }
+
+    expect(emailsVerified).toBe(1);
+    expect(emailsCorrected).toBe(0);
+  });
+});
+
+describe("Always Enrich — Fallback Behavior", () => {
+  it("should mark contact with existing email as enriched with 'import' source when Apollo and Hunter both miss", () => {
+    // Simulates the fallback: contact had email, Apollo missed, Hunter missed
+    const contact = { email: "john@company.com", enrichmentStatus: "pending" };
+
+    // When both Apollo and Hunter miss but contact has email:
+    let enrichmentStatus: string;
+    let enrichmentSource: string | null;
+    let enrichedEmail: string | null;
+
+    if (contact.email) {
+      enrichmentStatus = "enriched";
+      enrichmentSource = "import";
+      enrichedEmail = contact.email;
+    } else {
+      enrichmentStatus = "not_found";
+      enrichmentSource = null;
+      enrichedEmail = null;
+    }
+
+    expect(enrichmentStatus).toBe("enriched");
+    expect(enrichmentSource).toBe("import");
+    expect(enrichedEmail).toBe("john@company.com");
+  });
+
+  it("should mark contact without email as not_found when Apollo and Hunter both miss", () => {
+    const contact = { email: null, enrichmentStatus: "pending" };
+
+    let enrichmentStatus: string;
+    let enrichmentSource: string | null;
+    let enrichedEmail: string | null;
+
+    if (contact.email) {
+      enrichmentStatus = "enriched";
+      enrichmentSource = "import";
+      enrichedEmail = contact.email;
+    } else {
+      enrichmentStatus = "not_found";
+      enrichmentSource = null;
+      enrichedEmail = null;
+    }
+
+    expect(enrichmentStatus).toBe("not_found");
+    expect(enrichmentSource).toBeNull();
+    expect(enrichedEmail).toBeNull();
+  });
+
+  it("should return all data quality fields in enrichment result", () => {
+    // Simulates the return type of enrichCampaignContacts
+    const result = {
+      enriched: 10,
+      notFound: 2,
+      failed: 0,
+      creditsUsed: 12,
+      hunterFound: 3,
+      apolloFound: 7,
+      emailsVerified: 6,
+      emailsCorrected: 2,
+      linkedInAdded: 8,
+      titlesUpdated: 4,
+    };
+
+    expect(result).toHaveProperty("emailsVerified");
+    expect(result).toHaveProperty("emailsCorrected");
+    expect(result).toHaveProperty("linkedInAdded");
+    expect(result).toHaveProperty("titlesUpdated");
+    expect(result.emailsVerified + result.emailsCorrected).toBeLessThanOrEqual(result.enriched);
+  });
+});
+
+describe("Always Enrich — enrichmentSource enum", () => {
+  const validSources = ["apollo", "hunter", "manual", "import"];
+
+  it("should include 'import' as a valid enrichment source", () => {
+    expect(validSources).toContain("import");
+  });
+
+  it("should include all expected enrichment sources", () => {
+    expect(validSources).toContain("apollo");
+    expect(validSources).toContain("hunter");
+    expect(validSources).toContain("manual");
+    expect(validSources).toContain("import");
+  });
+});

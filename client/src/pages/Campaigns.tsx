@@ -449,6 +449,8 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [editingSubject, setEditingSubject] = useState("");
   const [editingBody, setEditingBody] = useState("");
+  const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
+  const [enrichBatchSize, setEnrichBatchSize] = useState(25);
   const PAGE_SIZE = 50;
 
   const campaignQuery = trpc.campaign.get.useQuery({ id: campaignId });
@@ -576,14 +578,25 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     onSuccess: (result: any) => {
       contactsQuery.refetch();
       statsQuery.refetch();
+      setShowEnrichConfirm(false);
       const parts = [`Enriched: ${result.enriched}`];
       if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
       if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
       parts.push(`Not found: ${result.notFound}`);
-      if (result.creditsUsed) parts.push(`Apollo credits: ${result.creditsUsed}`);
+      if (result.creditsUsed) parts.push(`Credits: ${result.creditsUsed}`);
+      // Data quality improvements
+      const quality: string[] = [];
+      if (result.emailsVerified) quality.push(`${result.emailsVerified} emails verified`);
+      if (result.emailsCorrected) quality.push(`${result.emailsCorrected} emails corrected`);
+      if (result.linkedInAdded) quality.push(`${result.linkedInAdded} LinkedIn added`);
+      if (result.titlesUpdated) quality.push(`${result.titlesUpdated} titles updated`);
+      if (quality.length > 0) parts.push(quality.join(", "));
       toast.success(parts.join(" | "));
     },
-    onError: (err) => toast.error(`Failed to enrich: ${err.message}`),
+    onError: (err) => {
+      setShowEnrichConfirm(false);
+      toast.error(`Failed to enrich: ${err.message}`);
+    },
   });
 
   const campaign = campaignQuery.data;
@@ -683,21 +696,17 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Enrichment Pipeline Status</CardTitle>
-                <CardDescription>Apollo → Hunter.io waterfall enrichment progress</CardDescription>
+                <CardDescription>Always Enrich — Apollo → Hunter.io waterfall verifies emails, adds LinkedIn, updates titles</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="text-center p-3 rounded-lg bg-green-50">
                     <div className="text-2xl font-bold text-green-600">{stats.byEnrichment?.enriched ?? 0}</div>
                     <div className="text-xs text-muted-foreground mt-1">Enriched</div>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-blue-50">
-                    <div className="text-2xl font-bold text-blue-600">{stats.byEnrichment?.not_needed ?? 0}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Has Email (Import)</div>
-                  </div>
                   <div className="text-center p-3 rounded-lg bg-amber-50">
                     <div className="text-2xl font-bold text-amber-600">{stats.byEnrichment?.pending ?? 0}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Needs Enrichment</div>
+                    <div className="text-xs text-muted-foreground mt-1">Pending Enrichment</div>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-slate-50">
                     <div className="text-2xl font-bold text-slate-500">{stats.byEnrichment?.not_found ?? 0}</div>
@@ -729,19 +738,11 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               </Button>
               <Button
                 variant="outline"
-                onClick={() => enrichMut.mutate({ campaignId, maxContacts: 25 })}
+                onClick={() => setShowEnrichConfirm(true)}
                 disabled={enrichMut.isPending}
               >
                 {enrichMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                Enrich 25 (Apollo → Hunter)
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => enrichMut.mutate({ campaignId, maxContacts: 100 })}
-                disabled={enrichMut.isPending}
-              >
-                {enrichMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                Enrich 100 (Apollo → Hunter)
+                {enrichMut.isPending ? "Enriching..." : `Enrich Contacts (${stats?.byEnrichment?.pending ?? 0} pending)`}
               </Button>
               <Button
                 variant="outline"
@@ -810,9 +811,9 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
             >
               <option value="">All Enrichment</option>
               <option value="enriched">Enriched</option>
-              <option value="not_needed">Has Email (Import)</option>
-              <option value="pending">Needs Enrichment</option>
+              <option value="pending">Pending Enrichment</option>
               <option value="not_found">Not Found</option>
+              <option value="failed">Failed</option>
             </select>
             <select
               value={roleBucketFilter}
@@ -915,8 +916,8 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                             Hunter {c.hunterConfidence ? `${c.hunterConfidence}%` : ''}
                           </span>
                         )}
-                        {c.enrichmentStatus === "not_needed" && !c.enrichmentSource && (c.email || c.enrichedEmail) && (
-                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500" title="Original email from import">
+                        {c.enrichmentSource === "import" && (c.email || c.enrichedEmail) && (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500" title="Email kept from import (not verified by Apollo/Hunter)">
                             Import
                           </span>
                         )}
@@ -1141,6 +1142,76 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               disabled={approveEmailMut.isPending || updateDraftMut.isPending || generateEmailMut.isPending}
             >
               <ThumbsUp className="w-4 h-4 mr-2" /> Approve & Queue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enrichment Confirmation Dialog */}
+      <Dialog open={showEnrichConfirm} onOpenChange={setShowEnrichConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              Enrich Contacts
+            </DialogTitle>
+            <DialogDescription>
+              The enrichment pipeline will verify emails, add LinkedIn URLs, and update job titles via Apollo → Hunter.io waterfall.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="text-sm font-semibold text-amber-800 mb-1">Credit Estimate</div>
+              <div className="text-xs text-amber-700">
+                <strong>{stats?.byEnrichment?.pending ?? 0}</strong> contacts pending enrichment.
+                Estimated Apollo credits: <strong>~{Math.min(enrichBatchSize, stats?.byEnrichment?.pending ?? 0)}</strong> (1 credit per contact searched).
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground">Batch size</label>
+              <div className="flex items-center gap-2 mt-1">
+                {[25, 50, 100].map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setEnrichBatchSize(size)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      enrichBatchSize === size
+                        ? "bg-navy text-white shadow-sm"
+                        : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                    }`}
+                  >
+                    {size} contacts
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Will process up to {Math.min(enrichBatchSize, stats?.byEnrichment?.pending ?? 0)} of {stats?.byEnrichment?.pending ?? 0} pending contacts, prioritised by score.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="text-xs text-blue-700">
+                <strong>What happens:</strong> Contacts imported with emails will have those emails verified (or corrected if a better one is found). All contacts get LinkedIn URLs and updated titles where available.
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowEnrichConfirm(false)} disabled={enrichMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={() => enrichMut.mutate({ campaignId, maxContacts: enrichBatchSize })}
+              disabled={enrichMut.isPending || (stats?.byEnrichment?.pending ?? 0) === 0}
+            >
+              {enrichMut.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enriching...</>
+              ) : (
+                <><Sparkles className="w-4 h-4 mr-2" /> Enrich {Math.min(enrichBatchSize, stats?.byEnrichment?.pending ?? 0)} Contacts</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

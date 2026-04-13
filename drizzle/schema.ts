@@ -938,7 +938,7 @@ export const campaignContacts = mysqlTable("campaignContacts", {
   titleRelevance: mysqlEnum("titleRelevance", ["blasting_specialist", "decision_maker", "operations", "other", "unknown"]).notNull().default("unknown"),
   // Enrichment
   enrichmentStatus: mysqlEnum("enrichmentStatus", ["not_needed", "pending", "enriched", "not_found", "failed"]).notNull().default("pending"),
-  enrichmentSource: mysqlEnum("enrichmentSource_cc", ["apollo", "hunter", "manual"]),
+  enrichmentSource: mysqlEnum("enrichmentSource_cc", ["apollo", "hunter", "manual", "import"]),
   apolloPersonId: varchar("apolloPersonId", { length: 128 }),
   enrichedEmail: varchar("enrichedEmail", { length: 320 }),
   enrichedTitle: varchar("enrichedTitle", { length: 256 }),

@@ -1,0 +1,1 @@
+ALTER TABLE `campaignContacts` MODIFY COLUMN `enrichmentSource_cc` enum('apollo','hunter','manual','import');
