@@ -1166,6 +1166,30 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                     {/* Standard Contact Import (when file has actual contacts) */}
                     {fileType === "contacts" && (
                       <>
+                        {/* Hint: Switch to company mode if no columns mapped */}
+                        {!columnMapping.company && !columnMapping.firstName && !columnMapping.lastName && !columnMapping.fullName && !columnMapping.email && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                              <div>
+                                <h4 className="text-sm font-bold text-amber-800 mb-1">No columns auto-detected</h4>
+                                <p className="text-xs text-amber-700 mb-3">
+                                  We couldn't automatically match the columns in your file. You can either map them manually below,
+                                  or if this is a list of companies (not individual contacts), switch to company discovery mode.
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-amber-400 text-amber-800 hover:bg-amber-100"
+                                  onClick={() => setFileType("companies")}
+                                >
+                                  <Building2 className="w-4 h-4 mr-1.5" /> Switch to Company Discovery
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Column Mapping */}
                         <div className="bg-slate-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-navy mb-3">Column Mapping</h4>

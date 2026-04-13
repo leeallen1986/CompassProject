@@ -232,11 +232,21 @@ function clean(val: any): string | null {
  * Returns the index of the actual header row (0 or 1).
  */
 function detectHeaderRow(allRows: any[][]): number {
-  if (allRows.length < 3) return 0;
+  if (allRows.length < 2) return 0;
   const row0Cells = allRows[0].filter(c => String(c ?? "").trim() !== "").length;
+  if (allRows.length < 3) return 0;
   const row1Cells = allRows[1].filter(c => String(c ?? "").trim() !== "").length;
   // If row 0 has 1-2 non-empty cells and row 1 has significantly more, row 0 is a title
   if (row0Cells <= 2 && row1Cells >= 3 && row1Cells > row0Cells * 2) {
+    return 1;
+  }
+  // Also check: if row 0 matches zero known patterns but row 1 matches at least 2, row 0 is a title
+  const allPatterns = [...Object.values(COLUMN_PATTERNS).flat(), ...Object.values(COMPANY_LIST_PATTERNS).flat()];
+  const row0Headers = allRows[0].map(c => String(c ?? "").trim());
+  const row1Headers = allRows[1].map(c => String(c ?? "").trim());
+  const row0Matches = row0Headers.filter(h => h && allPatterns.some(p => p.test(h))).length;
+  const row1Matches = row1Headers.filter(h => h && allPatterns.some(p => p.test(h))).length;
+  if (row0Matches === 0 && row1Matches >= 2) {
     return 1;
   }
   return 0;
@@ -260,7 +270,42 @@ export function analyseImportFile(
   if (allRows.length <= 1) return { type: "contacts", rowsWithNames: 0, rowsCompanyOnly: 0, totalRows: 0 };
 
   const headerRowIdx = detectHeaderRow(allRows);
+  const headers = allRows[headerRowIdx].map(h => String(h).trim());
   const rows = allRows;
+
+  // If the provided mapping is empty (no columns detected), do our own detection
+  // using both COLUMN_PATTERNS and COMPANY_LIST_PATTERNS
+  let effectiveMapping = mapping;
+  const mappingHasFields = Object.values(mapping).some(v => v !== undefined);
+  if (!mappingHasFields) {
+    const autoMapping: ColumnMapping = {};
+    const usedColumns = new Set<number>();
+    // First try COLUMN_PATTERNS
+    for (const [field, patterns] of Object.entries(COLUMN_PATTERNS)) {
+      for (let i = 0; i < headers.length; i++) {
+        if (usedColumns.has(i)) continue;
+        if (patterns.some(p => p.test(headers[i]))) {
+          (autoMapping as any)[field] = i;
+          usedColumns.add(i);
+          break;
+        }
+      }
+    }
+    // Also try COMPANY_LIST_PATTERNS to detect company/domain columns
+    for (const [field, patterns] of Object.entries(COMPANY_LIST_PATTERNS)) {
+      const mappedField = field === "domain" ? "website" : field === "company" ? "company" : null;
+      if (!mappedField || autoMapping[mappedField as keyof ColumnMapping] !== undefined) continue;
+      for (let i = 0; i < headers.length; i++) {
+        if (usedColumns.has(i)) continue;
+        if (patterns.some(p => p.test(headers[i]))) {
+          (autoMapping as any)[mappedField] = i;
+          usedColumns.add(i);
+          break;
+        }
+      }
+    }
+    effectiveMapping = autoMapping;
+  }
 
   let rowsWithNames = 0;
   let rowsCompanyOnly = 0;
@@ -270,12 +315,12 @@ export function analyseImportFile(
     if (!row || row.every(c => !String(c).trim())) continue;
 
     let hasName = false;
-    if (mapping.firstName !== undefined && clean(row[mapping.firstName])) hasName = true;
-    if (mapping.lastName !== undefined && clean(row[mapping.lastName])) hasName = true;
-    if (mapping.fullName !== undefined && clean(row[mapping.fullName])) hasName = true;
+    if (effectiveMapping.firstName !== undefined && clean(row[effectiveMapping.firstName])) hasName = true;
+    if (effectiveMapping.lastName !== undefined && clean(row[effectiveMapping.lastName])) hasName = true;
+    if (effectiveMapping.fullName !== undefined && clean(row[effectiveMapping.fullName])) hasName = true;
 
-    const hasCompany = mapping.company !== undefined && !!clean(row[mapping.company]);
-    const hasEmail = mapping.email !== undefined && !!clean(row[mapping.email]);
+    const hasCompany = effectiveMapping.company !== undefined && !!clean(row[effectiveMapping.company]);
+    const hasEmail = effectiveMapping.email !== undefined && !!clean(row[effectiveMapping.email]);
 
     if (hasName || hasEmail) {
       rowsWithNames++;

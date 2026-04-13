@@ -1095,3 +1095,9 @@
 - [x] Applied title-row detection to all 4 parsing functions (preview, parse, analyse, parseCompanyList)
 - [x] 11 new tests for title-row detection, duplicate guard, fullName strictness
 - [x] All 1,712 tests passing
+
+## Bug — Import button still not working (follow-up)
+- [x] Enhanced detectHeaderRow: also checks row 0 vs row 1 against known column patterns (COLUMN_PATTERNS + COMPANY_LIST_PATTERNS)
+- [x] Enhanced analyseImportFile: does own column detection when mapping is empty (tries both COLUMN_PATTERNS and COMPANY_LIST_PATTERNS)
+- [x] UI: Added 'Switch to Company Discovery' amber hint banner when no columns auto-detected
+- [x] All 1,712 tests passing, no TypeScript errors
