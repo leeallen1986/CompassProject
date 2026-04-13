@@ -2828,7 +2828,7 @@ export const appRouter = router({
           bodyText: cleanBody.trim(),
           brand,
           attachment,
-          ctaText: attachment ? `${attachment.filename} is attached for your reference.` : undefined,
+          // Note: attachment notice is already rendered in the HTML template by the emlGenerator
         });
 
         // Save to outreach tracking

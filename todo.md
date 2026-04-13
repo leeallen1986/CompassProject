@@ -1001,3 +1001,11 @@
 - [x] Remove prefilled signature from generated emails (Outlook adds user's own)
 - [x] Update LLM prompt: no signatures, no attachment reminders
 - [x] Test: 17 new tests for emlGenerator, all 1,652 tests passing
+
+## Improvement — .eml Email Template Enhancements
+- [x] Fix duplicate attachment reference in HTML template (removed ctaText duplication from routers.ts)
+- [x] Add CP logo and product hero images from cp-mobile.manus.space (converted webp→JPEG/PNG, uploaded to CDN)
+- [x] Address Outlook signature issue (added X-Unsent: 1 header — Outlook opens .eml in compose mode with auto-signature)
+- [x] Make email template visually compelling with product imagery (brand logos in header, hero product images)
+- [x] Add Atlas Copco XAVS1800 product image and Power Technique logo for AC-branded emails
+- [x] 9 new tests, all 1,661 tests passing

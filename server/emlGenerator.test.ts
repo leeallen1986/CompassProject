@@ -109,6 +109,61 @@ describe("EML Generator — buildEmlFile", () => {
     const eml = buildEmlFile({ ...baseInput, ctaText: "Schedule a 15-minute call" });
     expect(eml).toContain("Schedule a 15-minute call");
   });
+
+  it("includes X-Unsent: 1 header for Outlook compose mode", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).toContain("X-Unsent: 1");
+  });
+
+  it("includes X-Unsent: 1 header when attachment is present", () => {
+    const inputWithAttachment = {
+      ...baseInput,
+      attachment: {
+        filename: "test.pdf",
+        mimeType: "application/pdf",
+        contentBase64: "SGVsbG8gV29ybGQ=",
+      },
+    };
+    const eml = buildEmlFile(inputWithAttachment);
+    expect(eml).toContain("X-Unsent: 1");
+  });
+
+  it("includes brand logo image in the header", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).toContain("ac-logo-pt");
+    expect(eml).toContain('<img src=');
+  });
+
+  it("includes CP logo for Chicago Pneumatic brand", () => {
+    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
+    expect(eml).toContain("cp-logo-icon-60");
+  });
+
+  it("includes product hero image by default", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).toContain("ac-xavs1800");
+  });
+
+  it("includes CP truck hero image for Chicago Pneumatic brand", () => {
+    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
+    expect(eml).toContain("cp-hero-truck");
+  });
+
+  it("excludes hero image when includeHeroImage is false", () => {
+    const eml = buildEmlFile({ ...baseInput, includeHeroImage: false });
+    expect(eml).not.toContain("ac-xavs1800");
+    expect(eml).not.toContain("Product hero image");
+  });
+
+  it("shows 'Part of Atlas Copco Group' for CP brand header", () => {
+    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
+    expect(eml).toContain("Part of Atlas Copco Group");
+  });
+
+  it("shows 'Power Technique' for Atlas Copco brand header", () => {
+    const eml = buildEmlFile({ ...baseInput, brand: "atlasCopco" });
+    expect(eml).toContain("Power Technique");
+  });
 });
 
 describe("EML Generator — detectBrand", () => {
