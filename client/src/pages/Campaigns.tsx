@@ -92,7 +92,7 @@ const RELEVANCE_CONFIG: Record<string, { label: string; color: string }> = {
 
 // ── Main Component ──
 
-const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com'];
+const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com', 'leo.williams@atlascopco.com'];
 
 export default function Campaigns() {
   const { user, loading } = useAuth();

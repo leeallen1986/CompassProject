@@ -958,3 +958,9 @@
 - [x] Added alreadySent counter to return types for monitoring
 - [x] Enabled EMAIL_DIGESTS_ENABLED secret via webdev_request_secrets
 - [x] Write 11 dedup tests + all 1,619 tests passing
+
+## Feature — Give Leo Williams access to Campaigns tab
+- [x] Trace how navigation tabs are controlled — hardcoded CAMPAIGN_ALLOWED_EMAILS list in Campaigns.tsx + inline checks in Home.tsx and ThisWeek.tsx
+- [x] Add leo.williams@atlascopco.com to CAMPAIGN_ALLOWED_EMAILS in Campaigns.tsx
+- [x] Update nav link condition in Home.tsx and ThisWeek.tsx to include Leo
+- [ ] Verify Campaigns tab appears in Leo's nav after deployment
