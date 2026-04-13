@@ -1,5 +1,5 @@
 /**
- * emlGenerator.test.ts — Tests for the .eml file generator
+ * emlGenerator.test.ts — Tests for the plain-text-style .eml file generator
  */
 import { describe, it, expect } from "vitest";
 import { buildEmlFile, detectBrand } from "./emlGenerator";
@@ -14,7 +14,7 @@ const baseInput = {
   brand: "atlasCopco" as const,
 };
 
-describe("EML Generator — buildEmlFile", () => {
+describe("EML Generator — buildEmlFile (plain-text style)", () => {
   it("generates a valid .eml string with required MIME headers", () => {
     const eml = buildEmlFile(baseInput);
     expect(eml).toContain("MIME-Version: 1.0");
@@ -37,13 +37,48 @@ describe("EML Generator — buildEmlFile", () => {
     expect(eml).toContain("CP Truck Air range");
   });
 
-  it("includes HTML content with brand styling", () => {
+  it("includes minimal HTML that looks like a normal written email", () => {
     const eml = buildEmlFile(baseInput);
     expect(eml).toContain("<html");
     expect(eml).toContain("</html>");
+    // Should use Calibri (Outlook default font)
+    expect(eml).toContain("Calibri");
+    // Should use 11pt (Outlook default size)
+    expect(eml).toContain("11pt");
   });
 
-  it("converts body text line breaks to HTML paragraphs", () => {
+  it("does NOT contain branded elements (no logo, no hero, no colored header)", () => {
+    const eml = buildEmlFile(baseInput);
+    // No image tags at all
+    expect(eml).not.toContain("<img");
+    // No brand color backgrounds
+    expect(eml).not.toContain("#0A2240"); // Atlas Copco navy
+    expect(eml).not.toContain("#C41230"); // CP red
+    expect(eml).not.toContain("#D4A843"); // Gold accent
+    // No marketing-style elements
+    expect(eml).not.toContain("border-radius");
+    expect(eml).not.toContain("letter-spacing");
+    expect(eml).not.toContain("text-transform");
+  });
+
+  it("does NOT contain table-based layout (no marketing template)", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).not.toContain("<table");
+    expect(eml).not.toContain("</table>");
+  });
+
+  it("uses white background only", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).toContain("background-color:#FFFFFF");
+    expect(eml).not.toContain("background-color:#F4F4F4");
+  });
+
+  it("uses black text color for body content", () => {
+    const eml = buildEmlFile(baseInput);
+    expect(eml).toContain("color:#000000");
+  });
+
+  it("converts body text paragraphs into HTML <p> tags", () => {
     const eml = buildEmlFile(baseInput);
     expect(eml).toMatch(/<p[^>]*>/);
   });
@@ -87,29 +122,6 @@ describe("EML Generator — buildEmlFile", () => {
     expect(eml).toContain("<html");
   });
 
-  it("uses table-based layout for Outlook compatibility", () => {
-    const eml = buildEmlFile(baseInput);
-    expect(eml).toContain("<table");
-    expect(eml).toContain("</table>");
-  });
-
-  it("includes Atlas Copco branding when brand is atlasCopco", () => {
-    const eml = buildEmlFile({ ...baseInput, brand: "atlasCopco" });
-    // Should contain the Atlas Copco navy color
-    expect(eml).toContain("#0A2240");
-  });
-
-  it("includes Chicago Pneumatic branding when brand is chicagoPneumatic", () => {
-    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
-    // Should contain the CP red color
-    expect(eml).toContain("#C41230");
-  });
-
-  it("includes CTA text when provided", () => {
-    const eml = buildEmlFile({ ...baseInput, ctaText: "Schedule a 15-minute call" });
-    expect(eml).toContain("Schedule a 15-minute call");
-  });
-
   it("includes X-Unsent: 1 header for Outlook compose mode", () => {
     const eml = buildEmlFile(baseInput);
     expect(eml).toContain("X-Unsent: 1");
@@ -128,41 +140,12 @@ describe("EML Generator — buildEmlFile", () => {
     expect(eml).toContain("X-Unsent: 1");
   });
 
-  it("includes brand logo image in the header", () => {
-    const eml = buildEmlFile(baseInput);
-    expect(eml).toContain("ac-logo-pt");
-    expect(eml).toContain('<img src=');
-  });
-
-  it("includes CP logo for Chicago Pneumatic brand", () => {
-    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
-    expect(eml).toContain("cp-logo-full");
-  });
-
-  it("includes product hero image by default", () => {
-    const eml = buildEmlFile(baseInput);
-    expect(eml).toContain("ac-xavs1800");
-  });
-
-  it("includes CP T110 compressor hero image for Chicago Pneumatic brand", () => {
-    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
-    expect(eml).toContain("cp-t110-compressor");
-  });
-
-  it("excludes hero image when includeHeroImage is false", () => {
-    const eml = buildEmlFile({ ...baseInput, includeHeroImage: false });
-    expect(eml).not.toContain("ac-xavs1800");
-    expect(eml).not.toContain("Product hero image");
-  });
-
-  it("shows 'Part of Atlas Copco Group' for CP brand header", () => {
-    const eml = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
-    expect(eml).toContain("Part of Atlas Copco Group");
-  });
-
-  it("shows 'Power Technique' for Atlas Copco brand header", () => {
-    const eml = buildEmlFile({ ...baseInput, brand: "atlasCopco" });
-    expect(eml).toContain("Power Technique");
+  it("includes CTA text as a plain paragraph when provided", () => {
+    const eml = buildEmlFile({ ...baseInput, ctaText: "Schedule a 15-minute call" });
+    expect(eml).toContain("Schedule a 15-minute call");
+    // CTA should NOT be in a styled card
+    expect(eml).not.toContain("border-left:4px");
+    expect(eml).not.toContain("font-style:italic");
   });
 
   it("does NOT include attachment notice box in HTML", () => {
@@ -175,15 +158,38 @@ describe("EML Generator — buildEmlFile", () => {
       },
     };
     const eml = buildEmlFile(inputWithAttachment);
-    // Attachment should be in MIME structure but NOT shown as a notice in HTML
     expect(eml).toContain("Content-Disposition: attachment");
     expect(eml).not.toContain("is attached for your reference");
   });
 
-  it("uses white background instead of grey", () => {
-    const eml = buildEmlFile(baseInput);
-    expect(eml).toContain("background-color:#FFFFFF");
-    expect(eml).not.toContain("background-color:#F4F4F4");
+  it("produces identical styling regardless of brand parameter", () => {
+    const emlAC = buildEmlFile({ ...baseInput, brand: "atlasCopco" });
+    const emlCP = buildEmlFile({ ...baseInput, brand: "chicagoPneumatic" });
+    // Both should use the same Calibri font, same black text, no brand colors
+    expect(emlAC).toContain("Calibri");
+    expect(emlCP).toContain("Calibri");
+    expect(emlAC).not.toContain("#0A2240");
+    expect(emlCP).not.toContain("#C41230");
+  });
+
+  it("escapes HTML entities in body text", () => {
+    const input = {
+      ...baseInput,
+      bodyText: "We deliver 75-250 CFM & more <power> for \"your\" builds.",
+    };
+    const eml = buildEmlFile(input);
+    expect(eml).toContain("&amp;");
+    expect(eml).toContain("&lt;power&gt;");
+    expect(eml).toContain("&quot;your&quot;");
+  });
+
+  it("handles non-ASCII characters in sender name via RFC 2047 encoding", () => {
+    const input = {
+      ...baseInput,
+      fromName: "Léo Müller",
+    };
+    const eml = buildEmlFile(input);
+    expect(eml).toContain("=?UTF-8?B?");
   });
 });
 

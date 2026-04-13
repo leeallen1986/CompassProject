@@ -1016,3 +1016,10 @@
 - [x] Remove attachment notice box from email template (PDF still attached in MIME, just no visual notice)
 - [x] Change outer email background from grey (#F4F4F4) to white
 - [x] 2 new tests (no attachment notice, white background), all 1,663 tests passing
+
+## Redesign — Plain Text Email Style (no marketing template)
+- [x] Strip all branded HTML template (header, hero image, CTA card, footer) from .eml generator
+- [x] Generate plain-text-style email that looks like a normal written Outlook email (Calibri 11pt, black text, white bg)
+- [x] Keep PDF attachment functionality intact (multipart/mixed MIME)
+- [x] Keep X-Unsent: 1 header for Outlook compose mode (signature auto-insert)
+- [x] Update tests to match new plain-text format — all 1,659 tests passing
