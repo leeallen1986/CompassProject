@@ -192,6 +192,102 @@ KEY DIFFERENTIATORS vs. COMPETITORS:
     commercialRules: `12. COMMERCIAL LANGUAGE: This campaign targets RENTAL COMPANIES. You ARE allowed to use the word "rental" when referring to the recipient's business (e.g., "your rental fleet", "rental customers", "rental contracts"). However, position Atlas Copco as a CAPEX equipment supplier — the recipient BUYS CDR dryers from Atlas Copco to ADD to their rental fleet. Use "fleet investment", "equipment purchase", or "fleet addition" when referring to the Atlas Copco transaction. Never position Atlas Copco as a rental company.`,
   },
 
+  // ── CP TRUCK AIR (CHICAGO PNEUMATIC) ──────────────────────────────────
+  {
+    pattern: /cp\s*truck|chicago\s*pneumatic|truck\s*air|vehicle.mount/i,
+    knowledge: `
+THIS CAMPAIGN FOCUSES ON CP TRUCK AIR — CHICAGO PNEUMATIC VEHICLE-MOUNTED COMPRESSORS:
+
+CP Truck Air — Compact Air for Utility Vehicles
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Air output range: 75 to 250 CFM
+• Working pressure: 7 bar (102 PSI)
+• Engine: Kubota diesel — proven reliability, parts availability across Australia
+• Mounting: Direct vehicle mount — no trailer required, stackable up to 3 units
+• Service: Spin-on oil filter change in just 30 minutes
+• Corrosion protection: Heavy-duty corrosion-resistant sheet metal
+• Filtration: Heavy-duty air and fuel filters
+• Control system: Ruggedized and simple control panel
+• External fuel filling for convenience
+• Single-side service access for tight vehicle builds
+
+WHY IT MATTERS FOR TRUCK BUILDERS:
+Truck and module builders need compressors that integrate seamlessly into their vehicle builds
+without compromising cargo space, serviceability, or reliability. The CP Truck Air range is
+designed specifically for this — compact enough to stack up to 3 units, with single-side service
+access for tight installations, and a Kubota diesel engine that their end customers already trust.
+
+IDEAL APPLICATIONS:
+- Service truck builds (mining, construction, utilities)
+- Mobile workshop vehicles
+- Module builds for mining and resources
+- Utility vehicle fit-outs
+- Fleet vehicle standardisation
+- Custom truck body builds requiring on-board compressed air
+
+KEY DIFFERENTIATORS vs. COMPETITORS:
+1. Stackable design — up to 3 units on a single vehicle for higher CFM without a trailer
+2. Compact footprint maximises remaining cargo space on the vehicle
+3. 30-minute oil filter service — minimal downtime for end users
+4. Kubota diesel engine — trusted, proven, with national parts availability
+5. Corrosion-resistant construction for harsh Australian conditions
+6. 125 years of Chicago Pneumatic engineering heritage
+7. Single-side service access — critical for tight vehicle installations
+
+IMPORTANT BRAND NOTE:
+This product is branded CHICAGO PNEUMATIC, which is part of the Atlas Copco Group.
+Always refer to the product as "Chicago Pneumatic" or "CP Truck Air" — NOT as "Atlas Copco".
+The sender represents Chicago Pneumatic (part of Atlas Copco Group).
+`,
+    roleHooks: {
+      executive: {
+        kpis: ["Revenue per vehicle build", "Customer retention rate", "Build margin optimisation", "Market differentiation", "Warranty claim reduction"],
+        painPoints: ["Compressor integration issues delaying vehicle deliveries", "Warranty claims from unreliable compressor components", "Losing builds to competitors with better-integrated air solutions", "End customers demanding more compact, reliable on-board air"],
+        messagingAngle: "Position CP Truck Air as a competitive advantage — the compressor that helps win more builds by offering superior integration, reliability, and space efficiency.",
+        productHook: "When your customers compare truck builds, the compressor integration can be a deal-maker. CP Truck Air's stackable, vehicle-mount design means you can offer more CFM without sacrificing cargo space — and the Kubota diesel engine means fewer warranty headaches down the line.",
+      },
+      procurement: {
+        kpis: ["Component cost per build", "Supplier reliability & lead times", "Warranty claim rates", "Standardisation across builds", "Volume pricing"],
+        painPoints: ["Inconsistent compressor quality across suppliers", "Long lead times disrupting build schedules", "Managing multiple compressor brands across different builds", "Price pressure from competitors using cheaper components"],
+        messagingAngle: "Focus on supply reliability, volume pricing, and standardisation benefits. One compressor platform across all builds simplifies procurement and reduces risk.",
+        productHook: "Standardising on CP Truck Air across your builds simplifies your supply chain — one supplier, consistent quality, and volume pricing that improves your margin per build. Plus, the 30-minute service interval means your customers aren't coming back with complaints.",
+      },
+      engineering: {
+        kpis: ["Integration time per build", "Space utilisation on vehicle", "Serviceability for end users", "Noise and vibration specs", "Reliability in field conditions"],
+        painPoints: ["Compressors that don't fit tight vehicle layouts", "Complex mounting systems adding build time", "End users struggling to service compressors in tight spaces", "Corrosion failures in harsh environments"],
+        messagingAngle: "Lead with technical integration benefits — compact footprint, single-side service access, stackable design, and ruggedized construction.",
+        productHook: "The CP Truck Air mounts directly onto the vehicle with a compact footprint and single-side service access — so your builds stay tight and your end users can do a filter change in 30 minutes without pulling half the tray apart. Stack up to 3 units when the job needs more CFM.",
+      },
+      operations: {
+        kpis: ["Build throughput (vehicles per month)", "Rework rate", "Component availability", "Installation time per unit", "Customer satisfaction scores"],
+        painPoints: ["Compressor installation bottlenecks slowing build throughput", "Rework from poor-fitting compressor components", "Parts delays holding up vehicle deliveries", "Training new staff on multiple compressor brands"],
+        messagingAngle: "Emphasise installation simplicity and build efficiency — CP Truck Air integrates seamlessly into the build process, reducing installation time and rework.",
+        productHook: "CP Truck Air's simple mounting system integrates seamlessly into your build process — no custom fabrication, no complex plumbing. That means faster builds, less rework, and more vehicles out the door each month.",
+      },
+      fleet: {
+        kpis: ["Fleet standardisation", "Maintenance cost per unit", "Uptime across fleet", "Parts commonality", "Total cost of ownership"],
+        painPoints: ["Mixed compressor brands across the fleet complicating maintenance", "Downtime from compressor failures on service trucks", "Difficulty sourcing parts for older or obscure compressor brands", "End users not servicing compressors properly due to complexity"],
+        messagingAngle: "Talk fleet standardisation — one compressor platform across all vehicles means simpler maintenance, common parts, and lower total cost of ownership.",
+        productHook: "Standardising your fleet on CP Truck Air means one set of filters, one service procedure, and Kubota parts available at any dealer across Australia. The 30-minute spin-on oil filter change means your operators actually do the maintenance instead of putting it off.",
+      },
+      construction: {
+        kpis: ["Vehicle uptime on site", "Air tool productivity", "Service turnaround time", "Equipment reliability in harsh conditions"],
+        painPoints: ["Compressor failures shutting down service trucks on remote sites", "Insufficient CFM for the tools being run", "Corrosion damage from dust, water, and harsh conditions", "Difficulty getting compressor service in remote locations"],
+        messagingAngle: "Focus on reliability and serviceability in harsh conditions — CP Truck Air is built for Australian conditions with corrosion-resistant construction and simple maintenance.",
+        productHook: "On a remote site, the last thing your operators need is a compressor that's hard to service or prone to corrosion. CP Truck Air's corrosion-resistant construction and 30-minute filter service keeps your service trucks running — and if you need more air, stack up to 3 units on one vehicle.",
+      },
+      other: {
+        kpis: ["Equipment reliability", "Cost efficiency", "Ease of integration", "Serviceability"],
+        painPoints: ["Finding a compressor that fits the vehicle build", "Reliability concerns in harsh conditions", "Service complexity for end users"],
+        messagingAngle: "Take a broad value approach — CP Truck Air as a reliable, compact, easy-to-integrate compressor solution for vehicle builds.",
+        productHook: "CP Truck Air delivers 75–250 CFM from a compact, vehicle-mounted package with corrosion-resistant construction and a Kubota diesel engine — designed specifically for Australian truck builders who need reliability without compromising space.",
+      },
+    },
+    productRules: `11. CP TRUCK AIR PRODUCT EMBED: You MUST include 2-3 specific CP Truck Air specs naturally in the email body that are relevant to the recipient's role. For example: "The CP Truck Air delivers up to 250 CFM from a compact vehicle-mount package — stackable up to 3 units when your builds need more air" or "With a 30-minute spin-on oil filter change, your end customers spend less time on maintenance and more time on the job." The specs should feel like you're solving their specific problem, not reading a brochure. Mention that you can share the full CP Truck Air product range overview if they'd like more detail.`,
+    systemProductDesc: "CP Truck Air vehicle-mounted compressors (75–250 CFM) by Chicago Pneumatic for truck builders and module builders",
+    commercialRules: `12. BRAND & COMMERCIAL LANGUAGE: This campaign is for CHICAGO PNEUMATIC (part of Atlas Copco Group). Always use "Chicago Pneumatic" or "CP" branding — NOT "Atlas Copco". The target audience is TRUCK BUILDERS and MODULE BUILDERS who integrate compressors into their vehicle builds. Position CP Truck Air as a component they BUY to integrate into their builds and RESELL as part of the finished vehicle. Use language like "integrate into your builds", "offer your customers", "competitive edge for your builds". Never position this as rental equipment.`,
+  },
+
   // ── XAVS1800 COMPRESSOR (DEFAULT) ──────────────────────────────────────
   {
     pattern: /xavs|1800|compressor|blast|portable\s*air/i,

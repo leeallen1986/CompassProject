@@ -306,6 +306,19 @@ export async function importCampaignContacts(
   // Batch insert for performance
   const batch: InsertCampaignContact[] = [];
 
+  // ── Deduplication: fetch existing emails in this campaign ──
+  const existingRows = await db
+    .select({ email: campaignContacts.email })
+    .from(campaignContacts)
+    .where(eq(campaignContacts.campaignId, campaignId));
+  const existingEmails = new Set(
+    existingRows
+      .map(r => r.email?.toLowerCase().trim())
+      .filter((e): e is string => !!e)
+  );
+  // Also track emails within the current import batch to prevent intra-batch dupes
+  const seenEmails = new Set<string>();
+
   for (const c of contacts) {
     // Skip non-company and do-not-use entries
     const status = (c.nameCheckStatus || "").toLowerCase();
@@ -327,6 +340,26 @@ export async function importCampaignContacts(
       excluded++;
       tierBreakdown.excluded++;
       continue;
+    }
+
+    // Skip duplicate emails (already in campaign or already in this import batch)
+    const normEmail = c.email?.toLowerCase().trim();
+    if (normEmail) {
+      if (existingEmails.has(normEmail) || seenEmails.has(normEmail)) {
+        excluded++;
+        tierBreakdown.excluded++;
+        continue;
+      }
+      seenEmails.add(normEmail);
+    } else {
+      // For contacts without email, dedup by name+company
+      const nameKey = `${(c.firstName || '').toLowerCase().trim()}|${(c.lastName || '').toLowerCase().trim()}|${(c.company || '').toLowerCase().trim()}`;
+      if (seenEmails.has(nameKey)) {
+        excluded++;
+        tierBreakdown.excluded++;
+        continue;
+      }
+      seenEmails.add(nameKey);
     }
 
     const scoring = computeScore({

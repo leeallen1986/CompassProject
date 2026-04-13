@@ -980,3 +980,10 @@
 - [x] Verify Leo and Tim's campaignAccess flag in the database (both have campaignAccess=1)
 - [x] Update all backend campaign endpoints to use DB-backed permission (ctx.user.campaignAccess)
 - [x] Test and deploy fix (all 1,635 tests passing)
+
+## Audit — Leo's CP Truck Air Campaign
+- [x] Investigate campaign contact import and dedup logic (14 duplicate groups, 33 extra rows)
+- [x] Add deduplication to prevent duplicate contacts in campaigns (email-based + name+company fallback)
+- [x] Fix outreach email generation — added CP Truck Air collateral profile (Chicago Pneumatic branding, truck builder messaging, 7 role hooks)
+- [x] Clean up existing duplicates in Leo's CP Truck Air campaign (124 → 91 unique contacts, 33 dupes removed)
+- [x] Test and deploy fixes (all 1,635 tests passing)
