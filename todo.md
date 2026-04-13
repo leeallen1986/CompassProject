@@ -1031,3 +1031,7 @@
 - [x] Add Tim-specific CTA sign-off: "reply and I'll organise your local sales rep to visit or share more"
 - [x] Only applies when Tim is the sender — other senders keep normal CTA
 - [x] All 1,659 tests passing
+
+## Task — Replace X1350 flyer with v4
+- [x] Upload atlas_copco_x1350_flyer_v4.pdf to S3 replacing the existing version (14,590 KB uploaded)
+- [x] Update the database record to point to the new file (fileSizeBytes updated, same CDN URL)
