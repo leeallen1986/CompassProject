@@ -516,7 +516,8 @@ RULES:
 11. ALWAYS start the email with "Hi [FirstName]," (e.g., "Hi Chris,") — Australians expect a friendly "Hi" greeting. Never start with just the name, "Dear", or skip the greeting entirely. The first paragraph after the greeting should hook them by referencing something specific about their company, market, or role — NOT a self-introduction
 ${profile.productRules}
 ${profile.commercialRules}
-14. AUSTRALIAN ENGLISH: Use Australian spelling (e.g., "optimise" not "optimize", "colour" not "color", "programme" not "program" for project programmes).
+${input.senderName && input.senderName.toLowerCase().includes("tim") && input.senderName.toLowerCase().includes("shaw") ? `14. SENDER-SPECIFIC SIGN-OFF (MANDATORY for Tim O'Neil Shaw): Because Tim is the Communications Manager (not a direct sales rep), the email MUST close with a line like: "If you're interested, just reply to this email and I'll organise your local Atlas Copco sales representative to visit or share more details." This positions Tim as the connector, not the salesperson. Vary the exact wording naturally but always convey: reply → I'll arrange local sales to follow up.` : `14. Include a natural closing line before the sign-off (e.g., "Looking forward to hearing from you" or "Happy to chat further").`}
+15. AUSTRALIAN ENGLISH: Use Australian spelling (e.g., "optimise" not "optimize", "colour" not "color", "programme" not "program" for project programmes).
 
 Return your response as JSON with this exact structure:
 {

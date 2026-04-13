@@ -1026,3 +1026,8 @@
 
 ## Fix — Australian-friendly greeting
 - [x] Update LLM prompt to always start emails with "Hi [Name]," not just the name
+
+## Feature — Tim O'Neil Shaw sender-specific sign-off
+- [x] Add Tim-specific CTA sign-off: "reply and I'll organise your local sales rep to visit or share more"
+- [x] Only applies when Tim is the sender — other senders keep normal CTA
+- [x] All 1,659 tests passing
