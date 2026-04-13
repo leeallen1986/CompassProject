@@ -76,7 +76,7 @@ import {
 } from "./businessLineScoring";
 import { getDb } from "./db";
 import { projects, contacts, pipelineRuns as pipelineRunsTable, campaignContacts as campaignContactsTable, campaigns as campaignsTable, collateralItems as collateralItemsTable } from "../drizzle/schema";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { enrichProject, enrichUnenrichedProjects, getContractorFrequency, getEnrichmentStats as getProjectoryEnrichmentStats, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
 import { validateProject as icnValidateProject, validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { scanTargetCompanies, getAsxWatchlist, addToWatchlist, removeFromWatchlist, getRecentAsxFindings } from "./asxMonitor";
@@ -2844,6 +2844,132 @@ export const appRouter = router({
           filename: `outreach-${recipientName.replace(/\s+/g, "-").toLowerCase()}.eml`,
           recipientName,
           recipientEmail,
+        };
+      }),
+
+    /** Download ALL approved .eml files as a ZIP archive */
+    downloadAllEmls: campaignProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        // Get campaign details
+        const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, input.campaignId));
+        if (!campaign) throw new Error("Campaign not found");
+
+        // Get all approved contacts with drafts
+        const approvedContacts = await db.select().from(campaignContactsTable)
+          .where(and(
+            eq(campaignContactsTable.campaignId, input.campaignId),
+            eq(campaignContactsTable.outreachStatus, "approved"),
+          ));
+
+        if (approvedContacts.length === 0) {
+          throw new Error("No approved emails to download. Approve some emails first.");
+        }
+
+        const senderName = campaign.senderName || ctx.user?.name || "Team";
+        const senderEmail = campaign.senderEmail || ctx.user?.email || "";
+        const brand = detectBrand(campaign.collateralName || undefined);
+
+        // Fetch collateral PDF once (shared across all emails)
+        let attachment: { filename: string; contentBase64: string; mimeType: string } | undefined;
+        try {
+          if (campaign.collateralId) {
+            const [collateral] = await db.select().from(collateralItemsTable)
+              .where(eq(collateralItemsTable.id, campaign.collateralId));
+            if (collateral?.fileUrl) {
+              const file = await fetchFileAsBase64(collateral.fileUrl);
+              attachment = {
+                filename: collateral.fileName || file.filename,
+                contentBase64: file.base64,
+                mimeType: collateral.fileMimeType || file.mimeType,
+              };
+            }
+          }
+        } catch (err) {
+          console.warn("[EML-ZIP] Failed to fetch collateral for attachment:", err);
+        }
+
+        // Build each .eml file
+        const emlFiles: { filename: string; content: string }[] = [];
+        for (const contact of approvedContacts) {
+          if (!contact.draftSubject || !contact.draftBody) continue;
+
+          const recipientEmail = contact.enrichedEmail || contact.email || "";
+          const recipientName = [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Contact";
+
+          // Strip signature/reminder from body
+          let cleanBody = contact.draftBody;
+          const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
+          cleanBody = cleanBody.replace(sigRegex, "");
+          cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
+          cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+
+          const emlContent = buildEmlFile({
+            fromName: senderName,
+            fromEmail: senderEmail,
+            toName: recipientName,
+            toEmail: recipientEmail,
+            subject: contact.draftSubject,
+            bodyText: cleanBody.trim(),
+            brand,
+            attachment,
+          });
+
+          // Sanitise filename: company-name.eml
+          const safeName = (contact.reviewedCompanyName || contact.company || "contact")
+            .replace(/[^a-zA-Z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .toLowerCase();
+          const safeRecipient = recipientName
+            .replace(/[^a-zA-Z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .toLowerCase();
+          emlFiles.push({
+            filename: `${safeName}--${safeRecipient}.eml`,
+            content: emlContent,
+          });
+        }
+
+        if (emlFiles.length === 0) {
+          throw new Error("No contacts with complete drafts found among approved emails.");
+        }
+
+        // Build ZIP using archiver
+        const archiver = (await import("archiver")).default;
+        const { PassThrough } = await import("stream");
+
+        const chunks: Buffer[] = [];
+        const passthrough = new PassThrough();
+        passthrough.on("data", (chunk: Buffer) => chunks.push(chunk));
+
+        const archive = archiver("zip", { zlib: { level: 5 } });
+        archive.pipe(passthrough);
+
+        for (const eml of emlFiles) {
+          archive.append(Buffer.from(eml.content, "utf-8"), { name: eml.filename });
+        }
+
+        await archive.finalize();
+
+        // Wait for passthrough to finish collecting
+        await new Promise<void>((resolve) => passthrough.on("end", resolve));
+
+        const zipBuffer = Buffer.concat(chunks);
+        const zipBase64 = zipBuffer.toString("base64");
+
+        const campaignSlug = (campaign.name || "campaign")
+          .replace(/[^a-zA-Z0-9\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .toLowerCase();
+
+        return {
+          zipBase64,
+          filename: `${campaignSlug}-emails-${emlFiles.length}.zip`,
+          count: emlFiles.length,
+          contacts: emlFiles.map(e => e.filename.replace(".eml", "")),
         };
       }),
 

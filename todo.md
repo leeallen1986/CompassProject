@@ -1041,3 +1041,12 @@
 - [x] Fix custom role keyword input bug (extracted RoleSelector from arrow function to inline JSX — prevents re-mount/focus loss)
 - [x] Make custom keywords saved/persisted for search (new targetRoles + customRoleKeywords columns in campaigns table, saved on search)
 - [x] All 1,659 tests passing, no TypeScript errors
+
+## Feature — Mass Download .eml ZIP
+- [x] Build server-side endpoint (campaign.downloadAllEmls) to bundle all approved .eml files into a ZIP
+- [x] Add "Download All Emails" button on Campaign Actions tab (shows count of approved emails)
+- [x] Add "Download All" button in Approval Queue's Approved section header
+- [x] Each .eml in ZIP includes collateral PDF attachment (fetched once, shared across all)
+- [x] Loading spinner with "Preparing ZIP..." state during generation
+- [x] Filenames: company-name--contact-name.eml for easy identification
+- [x] 8 new vitest tests for mass download logic, all 1,667 tests passing

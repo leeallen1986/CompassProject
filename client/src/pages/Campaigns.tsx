@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Megaphone, Users, Mail, CheckCircle2, Send, Search, Download,
+  Megaphone, Users, Mail, CheckCircle2, Send, Search, Download, Archive,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
   Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2,
@@ -515,6 +515,24 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     downloadEmlMut.mutate({ contactId: c.id });
   };
 
+  /** Download ALL approved .eml files as a ZIP */
+  const downloadAllEmlsMut = trpc.campaign.downloadAllEmls.useMutation({
+    onSuccess: (data) => {
+      const bytes = Uint8Array.from(atob(data.zipBase64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${data.count} emails as ZIP — drag into Outlook Drafts and send`);
+    },
+    onError: (err: { message: string }) => toast.error(`Failed to download emails: ${err.message}`),
+  });
+
   /** Fallback: Open in email client via mailto: */
   const openInOutlook = (c: CampaignContact) => {
     const to = c.enrichedEmail || c.email || "";
@@ -710,6 +728,17 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               >
                 <RefreshCw className="w-4 h-4 mr-2" /> Refresh Stats
               </Button>
+              {(stats?.byOutreach?.approved ?? 0) > 0 && (
+                <Button
+                  className="bg-navy hover:bg-navy/90 text-white"
+                  onClick={() => downloadAllEmlsMut.mutate({ campaignId })}
+                  disabled={downloadAllEmlsMut.isPending}
+                >
+                  {downloadAllEmlsMut.isPending
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparing ZIP...</>
+                    : <><Archive className="w-4 h-4 mr-2" /> Download All Emails ({stats?.byOutreach?.approved ?? 0})</>}
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1135,6 +1164,24 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
     onError: (err: { message: string }) => toast.error(`Failed to mark as sent: ${err.message}`),
   });
 
+  /** Download ALL approved .eml files as a ZIP */
+  const downloadAllEmlsMut = trpc.campaign.downloadAllEmls.useMutation({
+    onSuccess: (data) => {
+      const bytes = Uint8Array.from(atob(data.zipBase64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${data.count} emails as ZIP — drag into Outlook Drafts and send`);
+    },
+    onError: (err: { message: string }) => toast.error(`Failed to download emails: ${err.message}`),
+  });
+
   /** Download .eml file for a campaign contact in the approval queue */
   const downloadEmlMut2 = trpc.campaign.downloadEml.useMutation({
     onSuccess: (data) => {
@@ -1287,11 +1334,27 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
       {/* Approved — Ready to Send */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
-            Approved — Ready to Send ({approved.length})
-          </CardTitle>
-          <CardDescription>Emails approved by Ryan, ready to dispatch</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                Approved — Ready to Send ({approved.length})
+              </CardTitle>
+              <CardDescription>Emails approved and ready to dispatch</CardDescription>
+            </div>
+            {approved.length > 0 && (
+              <Button
+                size="sm"
+                className="bg-navy hover:bg-navy/90 text-white"
+                onClick={() => downloadAllEmlsMut.mutate({ campaignId })}
+                disabled={downloadAllEmlsMut.isPending}
+              >
+                {downloadAllEmlsMut.isPending
+                  ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Preparing...</>
+                  : <><Archive className="w-3 h-3 mr-1" /> Download All ({approved.length})</>}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {approved.length === 0 ? (
