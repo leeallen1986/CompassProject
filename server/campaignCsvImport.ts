@@ -54,14 +54,14 @@ const COMPANY_LIST_PATTERNS: Record<string, RegExp[]> = {
 const COLUMN_PATTERNS: Record<keyof ColumnMapping, RegExp[]> = {
   firstName: [/^first\s*name$/i, /^first$/i, /^given\s*name$/i, /^fname$/i, /^contact\s*first/i],
   lastName: [/^last\s*name$/i, /^last$/i, /^surname$/i, /^family\s*name$/i, /^lname$/i, /^contact\s*last/i],
-  fullName: [/^(full\s*)?name$/i, /^contact\s*name$/i, /^person$/i, /^contact$/i],
+  fullName: [/^full\s*name$/i, /^contact\s*name$/i, /^person\s*name$/i, /^person$/i, /^name$/i],
   title: [/^title$/i, /^job\s*title$/i, /^position$/i, /^role$/i, /^designation$/i],
   company: [/^company$/i, /^organization$/i, /^organisation$/i, /^employer$/i, /^account\s*name$/i, /^company\s*name$/i],
   email: [/^e?\s*-?\s*mail$/i, /^email\s*address$/i, /^e-mail$/i, /^contact\s*email$/i],
   phone: [/^phone$/i, /^telephone$/i, /^tel$/i, /^phone\s*number$/i, /^work\s*phone$/i, /^office\s*phone$/i],
   mobile: [/^mobile$/i, /^cell$/i, /^mobile\s*phone$/i, /^cell\s*phone$/i],
   linkedin: [/^linkedin$/i, /^linkedin\s*url$/i, /^linkedin\s*profile$/i, /^li\s*url$/i],
-  website: [/^website$/i, /^web$/i, /^url$/i, /^company\s*website$/i, /^domain$/i],
+  website: [/^website$/i, /^web$/i, /^url$/i, /^company\s*website$/i, /^company\s*domain$/i, /^domain$/i],
 };
 
 export interface ColumnMapping {
@@ -106,19 +106,24 @@ export function previewImportFile(
 
   if (!sheet) throw new Error(`Sheet "${sheetName}" not found`);
 
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
-  if (rows.length === 0) throw new Error("File is empty");
+  const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+  if (allRows.length === 0) throw new Error("File is empty");
 
-  // First row is headers
-  const headers = rows[0].map(h => String(h).trim());
-  const sampleRows = rows.slice(1, 6).map(r => r.map(c => String(c ?? "").trim()));
+  const headerRowIdx = detectHeaderRow(allRows);
 
-  // Auto-detect column mapping
+  const headers = allRows[headerRowIdx].map(h => String(h).trim());
+  const dataRows = allRows.slice(headerRowIdx + 1);
+  const sampleRows = dataRows.slice(0, 5).map(r => r.map(c => String(c ?? "").trim()));
+
+  // Auto-detect column mapping with duplicate guard — each column can only be assigned once
   const detectedMapping: ColumnMapping = {};
+  const usedColumns = new Set<number>();
   for (const [field, patterns] of Object.entries(COLUMN_PATTERNS)) {
     for (let i = 0; i < headers.length; i++) {
+      if (usedColumns.has(i)) continue; // skip already-assigned columns
       if (patterns.some(p => p.test(headers[i]))) {
         (detectedMapping as any)[field] = i;
+        usedColumns.add(i);
         break;
       }
     }
@@ -127,7 +132,7 @@ export function previewImportFile(
   return {
     headers,
     sampleRows,
-    totalRows: rows.length - 1,
+    totalRows: dataRows.length,
     detectedMapping,
     sheetNames: sheetNames.length > 1 ? sheetNames : undefined,
   };
@@ -147,15 +152,18 @@ export function parseImportFile(
 
   if (!sheet) throw new Error(`Sheet "${sheetName}" not found`);
 
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
-  if (rows.length <= 1) return { contacts: [], totalParsed: 0, skipped: 0, errors: [] };
+  const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+  if (allRows.length <= 1) return { contacts: [], totalParsed: 0, skipped: 0, errors: [] };
+
+  const headerRowIdx = detectHeaderRow(allRows);
+  const rows = allRows; // keep original indexing for sourceRow
 
   const contacts: RawContactRow[] = [];
   const errors: string[] = [];
   let skipped = 0;
 
-  // Skip header row
-  for (let i = 1; i < rows.length; i++) {
+  // Skip header row(s)
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.every(c => !String(c).trim())) {
       skipped++;
@@ -220,6 +228,21 @@ function clean(val: any): string | null {
 }
 
 /**
+ * Detect whether row 0 is a title/label row rather than a real header row.
+ * Returns the index of the actual header row (0 or 1).
+ */
+function detectHeaderRow(allRows: any[][]): number {
+  if (allRows.length < 3) return 0;
+  const row0Cells = allRows[0].filter(c => String(c ?? "").trim() !== "").length;
+  const row1Cells = allRows[1].filter(c => String(c ?? "").trim() !== "").length;
+  // If row 0 has 1-2 non-empty cells and row 1 has significantly more, row 0 is a title
+  if (row0Cells <= 2 && row1Cells >= 3 && row1Cells > row0Cells * 2) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
  * Analyse a file to determine if it contains individual contacts or company-only rows.
  * Returns a FileAnalysis with type="companies" when most rows lack individual names.
  */
@@ -233,13 +256,16 @@ export function analyseImportFile(
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) throw new Error(`Sheet "${sheetName}" not found`);
 
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
-  if (rows.length <= 1) return { type: "contacts", rowsWithNames: 0, rowsCompanyOnly: 0, totalRows: 0 };
+  const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+  if (allRows.length <= 1) return { type: "contacts", rowsWithNames: 0, rowsCompanyOnly: 0, totalRows: 0 };
+
+  const headerRowIdx = detectHeaderRow(allRows);
+  const rows = allRows;
 
   let rowsWithNames = 0;
   let rowsCompanyOnly = 0;
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.every(c => !String(c).trim())) continue;
 
@@ -258,7 +284,7 @@ export function analyseImportFile(
     }
   }
 
-  const totalRows = rows.length - 1;
+  const totalRows = rows.length - (headerRowIdx + 1);
   // If more than 60% of non-empty rows are company-only, treat as company list
   const nonEmpty = rowsWithNames + rowsCompanyOnly;
   const type = nonEmpty > 0 && rowsCompanyOnly / nonEmpty > 0.6 ? "companies" : "contacts";
@@ -280,11 +306,14 @@ export function parseCompanyList(
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) throw new Error(`Sheet "${sheetName}" not found`);
 
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
-  if (rows.length <= 1) return { companies: [], totalParsed: 0, skipped: 0, errors: [] };
+  const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
+  if (allRows.length <= 1) return { companies: [], totalParsed: 0, skipped: 0, errors: [] };
+
+  const headerRowIdx = detectHeaderRow(allRows);
+  const rows = allRows;
 
   // Also detect company-list-specific columns from headers
-  const headers = rows[0].map(h => String(h).trim());
+  const headers = rows[headerRowIdx].map(h => String(h).trim());
   const companyListMapping: Record<string, number | undefined> = {};
   for (const [field, patterns] of Object.entries(COMPANY_LIST_PATTERNS)) {
     for (let i = 0; i < headers.length; i++) {
@@ -305,7 +334,7 @@ export function parseCompanyList(
   const errors: string[] = [];
   let skipped = 0;
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.every(c => !String(c).trim())) {
       skipped++;

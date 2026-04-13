@@ -1085,3 +1085,13 @@
 - [x] Batch size selector (25/50/100) in enrichment confirmation dialog
 - [x] Auto-trigger also works for domain search import path
 - [x] All 1,701 tests passing, no TypeScript errors
+
+## Bug — Import button not clickable in CampaignBuilder
+- [x] Root cause: Title row in spreadsheet treated as header row → all columns mapped to column 0 → file classified as 'contacts' instead of 'companies'
+- [x] Fix 1: Title-row detection — detectHeaderRow() skips single/dual-cell title rows and uses the real header row
+- [x] Fix 2: Duplicate column guard — each column can only be assigned to one field during auto-detection
+- [x] Fix 3: Stricter fullName pattern — no longer matches 'Company Name' or 'Account Name'
+- [x] Fix 4: Added 'Company Domain' to website pattern for better domain column detection
+- [x] Applied title-row detection to all 4 parsing functions (preview, parse, analyse, parseCompanyList)
+- [x] 11 new tests for title-row detection, duplicate guard, fullName strictness
+- [x] All 1,712 tests passing
