@@ -91,9 +91,9 @@ describe("EMAIL_DIGESTS_ENABLED kill switch", () => {
     expect(getLatestReport).not.toHaveBeenCalled();
   });
 
-  it("validates EMAIL_DIGESTS_ENABLED env var is currently set to DISABLE emails", () => {
-    // Email digests are currently DISABLED to prevent quota overruns and duplicate sends
+  it("validates EMAIL_DIGESTS_ENABLED env var is currently set to ENABLE emails", () => {
+    // Email digests are ENABLED — Monday weekly digest is active
     const value = process.env.EMAIL_DIGESTS_ENABLED;
-    expect(value).toBe("false");
+    expect(value).toBe("true");
   });
 });

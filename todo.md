@@ -974,3 +974,9 @@
 - [x] Verify EMAIL_DIGESTS_ENABLED is set to true
 - [x] Disable Thursday reminder (keep only Monday weekly digest)
 - [x] Update tests to reflect Thursday reminder removal (all 1,635 tests passing)
+
+## Bug Fix — Campaign access restricted on backend for Leo and Tim
+- [x] Find and fix server-side campaign access checks (hardcoded email list in trpc.ts was blocking)
+- [x] Verify Leo and Tim's campaignAccess flag in the database (both have campaignAccess=1)
+- [x] Update all backend campaign endpoints to use DB-backed permission (ctx.user.campaignAccess)
+- [x] Test and deploy fix (all 1,635 tests passing)

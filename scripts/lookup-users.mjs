@@ -6,7 +6,7 @@ console.log("Connecting...");
 
 try {
   const conn = await mysql.createConnection({ uri: url, ssl: { rejectUnauthorized: false } });
-  const [rows] = await conn.execute("SELECT id, name, email, role FROM users ORDER BY id");
+  const [rows] = await conn.execute("SELECT id, name, email, role, campaignAccess FROM users ORDER BY id");
   console.log("All users:", JSON.stringify(rows, null, 2));
   await conn.end();
 } catch(e) {

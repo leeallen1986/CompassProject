@@ -44,9 +44,7 @@ export const adminProcedure = t.procedure.use(
   }),
 );
 
-/** Campaign procedure: restricted to admin users + Ryan Pemberton (ryan.pemberton@atlascopco.com) */
-const CAMPAIGN_ALLOWED_EMAILS = ['ryan.pemberton@atlascopco.com'];
-
+/** Campaign procedure: restricted to admin users OR users with campaignAccess=true in the database */
 export const campaignProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
@@ -56,9 +54,9 @@ export const campaignProcedure = t.procedure.use(
     }
 
     const isAdmin = ctx.user.role === 'admin';
-    const isAllowedEmail = ctx.user.email && CAMPAIGN_ALLOWED_EMAILS.includes(ctx.user.email.toLowerCase());
+    const hasCampaignAccess = ctx.user.campaignAccess === true;
 
-    if (!isAdmin && !isAllowedEmail) {
+    if (!isAdmin && !hasCampaignAccess) {
       throw new TRPCError({ code: "FORBIDDEN", message: 'Campaign access restricted' });
     }
 
