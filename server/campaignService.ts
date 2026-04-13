@@ -30,32 +30,6 @@ const BLASTING_TITLE_PATTERNS = [
   /corrosion/i, /abrasive/i, /sandblast/i, /uhp/i, /nace/i,
 ];
 
-/** Title patterns for decision makers — high relevance */
-const DECISION_MAKER_PATTERNS = [
-  /managing\s*director/i, /general\s*manager/i, /\bceo\b/i, /\bcoo\b/i,
-  /\bdirector\b/i, /\bowner\b/i, /proprietor/i,
-  /operations\s*manager/i, /project\s*manager/i, /project\s*director/i,
-  /procurement/i, /purchasing/i, /supply\s*chain/i,
-  /business\s*development/i, /commercial\s*manager/i,
-  /fleet\s*manager/i, /equipment\s*manager/i,
-  /maintenance\s*manager/i, /workshop\s*manager/i,
-];
-
-/** Title patterns for operations roles — medium relevance */
-const OPERATIONS_PATTERNS = [
-  /supervisor/i, /superintendent/i, /coordinator/i, /foreman/i,
-  /estimator/i, /engineer/i, /inspector/i, /planner/i,
-  /site\s*manager/i, /area\s*manager/i, /branch\s*manager/i,
-  /production\s*manager/i, /factory\s*manager/i,
-];
-
-/** Titles to exclude — low value for outreach */
-const EXCLUDE_TITLE_PATTERNS = [
-  /^accounts?\s*(payable|receivable)?$/i, /^admin(istrat)?/i,
-  /^store[s]?$/i, /^reception/i, /^office\s*manager/i,
-  /customer\s*care/i, /^sales$/i, /^sales\s*rep/i,
-];
-
 /** Company name patterns that indicate abrasive blasting / surface prep focus */
 const BLASTING_COMPANY_PATTERNS = [
   /blast/i, /abrasive/i, /surface\s*(prep|treat|protect)/i, /corrosion/i,
@@ -67,36 +41,120 @@ const BLASTING_COMPANY_PATTERNS = [
   /\bwa\s*corrosion/i, /\bmatrix\s*corrosion/i,
 ];
 
-// ── Title Classification ──
+/** Titles to exclude — low value for outreach */
+const EXCLUDE_TITLE_PATTERNS = [
+  /^accounts?\s*(payable|receivable)?$/i, /^admin(istrat)?/i,
+  /^store[s]?$/i, /^reception/i, /^office\s*manager/i,
+  /customer\s*care/i, /^sales$/i, /^sales\s*rep/i,
+];
+
+// ── Seniority-Weighted Title Classification ──
+// Hierarchy: C-Suite (45) > Director (40) > Blasting Specialist (40) > Senior Manager (35) > Manager (25) > Coordinator/Supervisor (15) > Other (10)
+
+/** C-Suite patterns — highest seniority */
+const C_SUITE_PATTERNS = [
+  /\bceo\b/i, /\bcoo\b/i, /\bcfo\b/i, /\bcto\b/i, /\bcio\b/i,
+  /\bchief\b/i, /managing\s*director/i, /\bowner\b/i, /proprietor/i,
+  /\bpresident\b/i, /\bfound(?:er|ing)/i,
+];
+
+/** Director-level patterns */
+const DIRECTOR_PATTERNS = [
+  /\bdirector\b/i, /\bvp\b/i, /vice\s*president/i,
+  /general\s*manager/i, /head\s+of\b/i, /\bpartner\b/i,
+];
+
+/** Senior Manager patterns */
+const SENIOR_MANAGER_PATTERNS = [
+  /senior\s*(project\s*)?manager/i, /national\s*manager/i, /regional\s*manager/i,
+  /state\s*manager/i, /group\s*manager/i, /divisional\s*manager/i,
+  /business\s*development\s*manager/i, /commercial\s*manager/i,
+  /project\s*director/i,
+];
+
+/** Manager-level patterns */
+const MANAGER_PATTERNS = [
+  /operations\s*manager/i, /project\s*manager/i,
+  /procurement\s*manager/i, /purchasing\s*manager/i, /supply\s*chain\s*manager/i,
+  /fleet\s*manager/i, /equipment\s*manager/i,
+  /maintenance\s*manager/i, /workshop\s*manager/i,
+  /site\s*manager/i, /area\s*manager/i, /branch\s*manager/i,
+  /production\s*manager/i, /factory\s*manager/i,
+  /\bmanager\b/i,
+];
+
+/** Coordinator / Supervisor / Technical patterns */
+const COORDINATOR_PATTERNS = [
+  /supervisor/i, /superintendent/i, /coordinator/i, /foreman/i,
+  /estimator/i, /inspector/i, /planner/i, /officer\b/i,
+  /\bengineer\b/i, /\banalyst\b/i, /\bspecialist\b/i,
+  /\btechnician\b/i, /\badvisor\b/i, /\bconsultant\b/i,
+];
+
+type TitleRelevance = "blasting_specialist" | "decision_maker" | "operations" | "other" | "unknown";
+type RoleBucket = "c_suite" | "director" | "senior_manager" | "manager" | "procurement" | "engineering" | "project_management" | "operations" | "fleet_equipment" | "maintenance" | "site_workshop" | "blasting_specialist" | "other" | "unknown";
 
 function classifyTitle(title: string | null | undefined): {
-  relevance: "blasting_specialist" | "decision_maker" | "operations" | "other" | "unknown";
+  relevance: TitleRelevance;
+  roleBucket: RoleBucket;
   score: number;
 } {
-  if (!title || !title.trim()) return { relevance: "unknown", score: 0 };
+  if (!title || !title.trim()) return { relevance: "unknown", roleBucket: "unknown", score: 0 };
   const t = title.trim();
 
   // Check exclusions first
   for (const p of EXCLUDE_TITLE_PATTERNS) {
-    if (p.test(t)) return { relevance: "other", score: 5 };
+    if (p.test(t)) return { relevance: "other", roleBucket: "other", score: 5 };
   }
 
-  // Blasting specialists get highest score
+  // Blasting specialists — highest relevance for blasting campaigns
   for (const p of BLASTING_TITLE_PATTERNS) {
-    if (p.test(t)) return { relevance: "blasting_specialist", score: 40 };
+    if (p.test(t)) return { relevance: "blasting_specialist", roleBucket: "blasting_specialist", score: 40 };
   }
 
-  // Decision makers
-  for (const p of DECISION_MAKER_PATTERNS) {
-    if (p.test(t)) return { relevance: "decision_maker", score: 35 };
+  // C-Suite — highest seniority
+  for (const p of C_SUITE_PATTERNS) {
+    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "c_suite", score: 45 };
   }
 
-  // Operations
-  for (const p of OPERATIONS_PATTERNS) {
-    if (p.test(t)) return { relevance: "operations", score: 20 };
+  // Director level
+  for (const p of DIRECTOR_PATTERNS) {
+    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "director", score: 40 };
   }
 
-  return { relevance: "other", score: 10 };
+  // Senior Manager level
+  for (const p of SENIOR_MANAGER_PATTERNS) {
+    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "senior_manager", score: 35 };
+  }
+
+  // Manager level — determine specific bucket
+  for (const p of MANAGER_PATTERNS) {
+    if (p.test(t)) {
+      const tl = t.toLowerCase();
+      let bucket: RoleBucket = "manager" as RoleBucket;
+      if (/procurement|purchasing|supply/i.test(tl)) bucket = "procurement";
+      else if (/fleet|equipment/i.test(tl)) bucket = "fleet_equipment";
+      else if (/maintenance|workshop/i.test(tl)) bucket = "maintenance";
+      else if (/project/i.test(tl)) bucket = "project_management";
+      else if (/operations|ops/i.test(tl)) bucket = "operations";
+      else if (/site|area|branch|production|factory/i.test(tl)) bucket = "site_workshop";
+      return { relevance: "decision_maker", roleBucket: bucket, score: 25 };
+    }
+  }
+
+  // Coordinator / Supervisor / Technical
+  for (const p of COORDINATOR_PATTERNS) {
+    if (p.test(t)) {
+      const tl = t.toLowerCase();
+      let bucket: RoleBucket = "operations";
+      if (/engineer/i.test(tl)) bucket = "engineering";
+      else if (/procurement|purchasing|supply/i.test(tl)) bucket = "procurement";
+      else if (/project/i.test(tl)) bucket = "project_management";
+      return { relevance: "operations", roleBucket: bucket, score: 15 };
+    }
+  }
+
+  return { relevance: "other", roleBucket: "other", score: 10 };
 }
 
 /** Check if a company name indicates abrasive blasting / surface prep focus */
@@ -112,16 +170,15 @@ function computeScore(contact: {
   mobile?: string | null;
   company?: string | null;
   matchedProjectCount?: number;
-}): { score: number; tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded"; titleRelevance: "blasting_specialist" | "decision_maker" | "operations" | "other" | "unknown" } {
+}): { score: number; tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded"; titleRelevance: TitleRelevance; roleBucket: RoleBucket } {
   const titleResult = classifyTitle(contact.title);
-  let score = titleResult.score; // 0-40 from title
+  let score = titleResult.score; // 0-45 from title (seniority-weighted)
 
   // Data completeness bonus (up to 20 points)
   if (contact.email) score += 15;
   if (contact.mobile) score += 5;
 
   // Abrasive blasting company bonus (up to 20 points)
-  // Companies focused on blasting/coating/surface prep are highest priority
   if (isBlastingCompany(contact.company)) {
     score += 20;
   }
@@ -138,7 +195,7 @@ function computeScore(contact: {
   // Cap at 100
   score = Math.min(score, 100);
 
-  // Determine tier — blasting specialists and decision makers at blasting companies get Hot
+  // Determine tier
   let tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded";
   if (score >= 55 && contact.email) {
     tier = "tier1_hot";
@@ -150,8 +207,26 @@ function computeScore(contact: {
     tier = "tier4_low";
   }
 
-  return { score, tier, titleRelevance: titleResult.relevance };
+  return { score, tier, titleRelevance: titleResult.relevance, roleBucket: titleResult.roleBucket };
 }
+
+/** Human-readable labels for role buckets */
+export const ROLE_BUCKET_LABELS: Record<string, string> = {
+  c_suite: "C-Suite / MD",
+  director: "Director / GM",
+  senior_manager: "Senior Manager",
+  manager: "Manager",
+  procurement: "Procurement & Purchasing",
+  engineering: "Engineering",
+  project_management: "Project Management",
+  operations: "Operations",
+  fleet_equipment: "Fleet & Equipment",
+  maintenance: "Maintenance",
+  site_workshop: "Site & Workshop",
+  blasting_specialist: "Blasting & Coating",
+  other: "Other",
+  unknown: "Unknown",
+};
 
 // ── Personal Email Filter ──
 
@@ -394,6 +469,7 @@ export async function importCampaignContacts(
       score: scoring.score,
       tier: scoring.tier,
       titleRelevance: scoring.titleRelevance,
+      roleBucket: scoring.roleBucket,
       enrichmentStatus,
       outreachStatus: "not_started",
       sourceRow: c.sourceRow,
@@ -426,6 +502,7 @@ export async function getCampaignContacts(
     tier?: string;
     outreachStatus?: string;
     enrichmentStatus?: string;
+    roleBucket?: string;
     search?: string;
     limit?: number;
     offset?: number;
@@ -446,6 +523,9 @@ export async function getCampaignContacts(
   }
   if (options?.enrichmentStatus) {
     conditions.push(eq(campaignContacts.enrichmentStatus, options.enrichmentStatus as any));
+  }
+  if (options?.roleBucket) {
+    conditions.push(eq(campaignContacts.roleBucket, options.roleBucket));
   }
   if (options?.search) {
     const q = `%${options.search}%`;
@@ -504,9 +584,10 @@ export async function getCampaignStats(campaignId: number): Promise<{
   byOutreach: Record<string, number>;
   byEnrichment: Record<string, number>;
   byTitleRelevance: Record<string, number>;
+  byRoleBucket: Record<string, number>;
 }> {
   const db = await getDb();
-  if (!db) return { total: 0, byTier: {}, byOutreach: {}, byEnrichment: {}, byTitleRelevance: {} };
+  if (!db) return { total: 0, byTier: {}, byOutreach: {}, byEnrichment: {}, byTitleRelevance: {}, byRoleBucket: {} };
 
   const allContacts = await db
     .select({
@@ -514,6 +595,7 @@ export async function getCampaignStats(campaignId: number): Promise<{
       outreachStatus: campaignContacts.outreachStatus,
       enrichmentStatus: campaignContacts.enrichmentStatus,
       titleRelevance: campaignContacts.titleRelevance,
+      roleBucket: campaignContacts.roleBucket,
     })
     .from(campaignContacts)
     .where(eq(campaignContacts.campaignId, campaignId));
@@ -522,15 +604,18 @@ export async function getCampaignStats(campaignId: number): Promise<{
   const byOutreach: Record<string, number> = {};
   const byEnrichment: Record<string, number> = {};
   const byTitleRelevance: Record<string, number> = {};
+  const byRoleBucket: Record<string, number> = {};
 
   for (const c of allContacts) {
     byTier[c.tier] = (byTier[c.tier] || 0) + 1;
     byOutreach[c.outreachStatus] = (byOutreach[c.outreachStatus] || 0) + 1;
     byEnrichment[c.enrichmentStatus] = (byEnrichment[c.enrichmentStatus] || 0) + 1;
     byTitleRelevance[c.titleRelevance] = (byTitleRelevance[c.titleRelevance] || 0) + 1;
+    const rb = c.roleBucket || c.titleRelevance || "unknown";
+    byRoleBucket[rb] = (byRoleBucket[rb] || 0) + 1;
   }
 
-  return { total: allContacts.length, byTier, byOutreach, byEnrichment, byTitleRelevance };
+  return { total: allContacts.length, byTier, byOutreach, byEnrichment, byTitleRelevance, byRoleBucket };
 }
 
 // ── Email Generation ──
@@ -630,16 +715,8 @@ export async function generateCampaignEmail(
 
 /** Infer role bucket from title for outreach personalisation */
 function inferRoleBucket(title: string): string {
-  const t = title.toLowerCase();
-  if (/blast|paint|coat|surface|corrosion|abrasive/i.test(t)) return "construction";
-  if (/procurement|purchasing|supply/i.test(t)) return "procurement";
-  if (/engineer/i.test(t)) return "engineering";
-  if (/operations|ops/i.test(t)) return "operations";
-  if (/project\s*manager|project\s*director/i.test(t)) return "project_management";
-  if (/maintenance|workshop/i.test(t)) return "maintenance";
-  if (/fleet|equipment/i.test(t)) return "fleet";
-  if (/managing\s*director|general\s*manager|ceo|director|owner/i.test(t)) return "executive";
-  return "other";
+  const result = classifyTitle(title);
+  return result.roleBucket;
 }
 
 // ── Approval & Sending ──
@@ -845,6 +922,7 @@ export async function matchContactsToProjects(campaignId: number): Promise<{ mat
         await db.update(campaignContacts).set({
           score: scoring.score,
           tier: scoring.tier,
+          roleBucket: scoring.roleBucket,
         }).where(eq(campaignContacts.id, contact.id));
       }
     }
@@ -944,7 +1022,7 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score, tier: scoring.tier,
+            score: scoring.score, tier: scoring.tier, roleBucket: scoring.roleBucket,
           }).where(eq(campaignContacts.id, contact.id));
 
           enriched++;
@@ -1043,7 +1121,7 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score, tier: scoring.tier,
+            score: scoring.score, tier: scoring.tier, roleBucket: scoring.roleBucket,
           }).where(eq(campaignContacts.id, contact.id));
 
           enriched++;
@@ -1114,7 +1192,7 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score, tier: scoring.tier,
+            score: scoring.score, tier: scoring.tier, roleBucket: scoring.roleBucket,
           }).where(eq(campaignContacts.id, contact.id));
 
           enriched++;

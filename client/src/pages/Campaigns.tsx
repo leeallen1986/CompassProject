@@ -83,9 +83,29 @@ const OUTREACH_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const RELEVANCE_CONFIG: Record<string, { label: string; color: string }> = {
-  blasting_specialist: { label: "Blasting Specialist", color: "text-red-600" },
+  // Seniority buckets (from classifyTitle in campaignService.ts)
+  c_suite: { label: "C-Suite / MD", color: "text-purple-700" },
+  director: { label: "Director / GM", color: "text-indigo-600" },
+  senior_manager: { label: "Senior Manager", color: "text-amber-700" },
+  manager: { label: "Manager", color: "text-amber-600" },
+  // Function buckets
+  blasting_specialist: { label: "Blasting & Coating", color: "text-red-600" },
+  construction: { label: "Construction", color: "text-red-500" },
+  procurement: { label: "Procurement", color: "text-emerald-600" },
+  engineering: { label: "Engineering", color: "text-cyan-600" },
+  project_management: { label: "Project Management", color: "text-blue-600" },
+  project_manager: { label: "Project Management", color: "text-blue-600" },
+  operations: { label: "Operations", color: "text-blue-500" },
+  fleet_equipment: { label: "Fleet & Equipment", color: "text-orange-600" },
+  fleet_manager: { label: "Fleet & Equipment", color: "text-orange-600" },
+  fleet: { label: "Fleet & Equipment", color: "text-orange-600" },
+  maintenance: { label: "Maintenance", color: "text-yellow-700" },
+  site_workshop: { label: "Site & Workshop", color: "text-stone-600" },
+  site_manager: { label: "Site Management", color: "text-stone-600" },
+  // Legacy/fallback buckets
   decision_maker: { label: "Decision Maker", color: "text-amber-600" },
-  operations: { label: "Operations", color: "text-blue-600" },
+  executive: { label: "Executive", color: "text-purple-700" },
+  general_manager: { label: "General Manager", color: "text-indigo-600" },
   other: { label: "Other", color: "text-slate-500" },
   unknown: { label: "Unknown", color: "text-slate-400" },
 };
@@ -422,6 +442,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const [tierFilter, setTierFilter] = useState<string>("");
   const [outreachFilter, setOutreachFilter] = useState<string>("");
   const [enrichmentFilter, setEnrichmentFilter] = useState<string>("");
+  const [roleBucketFilter, setRoleBucketFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const [selectedContact, setSelectedContact] = useState<CampaignContact | null>(null);
@@ -437,6 +458,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     tier: tierFilter || undefined,
     outreachStatus: outreachFilter || undefined,
     enrichmentStatus: enrichmentFilter || undefined,
+    roleBucket: roleBucketFilter || undefined,
     search: searchQuery || undefined,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
@@ -631,17 +653,19 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
             <KPICard value={stats?.byOutreach?.pending_approval ?? 0} label="Pending Approval" icon={<Clock className="w-4 h-4" />} accent="amber" />
           </div>
 
-          {/* Title Relevance Breakdown */}
+          {/* Role Bucket Breakdown */}
           {stats && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Contact Relevance Breakdown</CardTitle>
-                <CardDescription>How contacts are classified by their job title</CardDescription>
+                <CardTitle className="text-base">Contact Role Breakdown</CardTitle>
+                <CardDescription>How contacts are classified by seniority and function</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                  {Object.entries(stats.byTitleRelevance).map(([key, count]) => {
-                    const config = RELEVANCE_CONFIG[key] || { label: key, color: "text-slate-500" };
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {Object.entries(stats.byRoleBucket || stats.byTitleRelevance)
+                    .sort(([, a], [, b]) => (b as number) - (a as number))
+                    .map(([key, count]) => {
+                    const config = RELEVANCE_CONFIG[key] || { label: key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), color: "text-slate-500" };
                     return (
                       <div key={key} className="text-center p-3 rounded-lg bg-slate-50">
                         <div className={`text-2xl font-bold ${config.color}`}>{count}</div>
@@ -790,6 +814,26 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <option value="pending">Needs Enrichment</option>
               <option value="not_found">Not Found</option>
             </select>
+            <select
+              value={roleBucketFilter}
+              onChange={e => { setRoleBucketFilter(e.target.value); setPage(0); }}
+              className="px-3 py-2 rounded-md border border-border bg-card text-sm"
+            >
+              <option value="">All Roles</option>
+              <option value="c_suite">C-Suite / MD</option>
+              <option value="director">Director / GM</option>
+              <option value="senior_manager">Senior Manager</option>
+              <option value="manager">Manager</option>
+              <option value="blasting_specialist">Blasting & Coating</option>
+              <option value="procurement">Procurement</option>
+              <option value="engineering">Engineering</option>
+              <option value="project_management">Project Management</option>
+              <option value="operations">Operations</option>
+              <option value="fleet_equipment">Fleet & Equipment</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="site_workshop">Site & Workshop</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
           {/* Contact Table */}
@@ -841,9 +885,9 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="text-muted-foreground text-xs">{c.enrichedTitle || c.title || "—"}</div>
-                      {c.titleRelevance !== "unknown" && (
-                        <span className={`text-[10px] font-semibold ${RELEVANCE_CONFIG[c.titleRelevance]?.color || ""}`}>
-                          {RELEVANCE_CONFIG[c.titleRelevance]?.label || c.titleRelevance}
+                      {(c.roleBucket || c.titleRelevance) && (c.roleBucket || c.titleRelevance) !== "unknown" && (
+                        <span className={`text-[10px] font-semibold ${RELEVANCE_CONFIG[c.roleBucket || c.titleRelevance]?.color || "text-slate-500"}`}>
+                          {RELEVANCE_CONFIG[c.roleBucket || c.titleRelevance]?.label || (c.roleBucket || c.titleRelevance || "").replace(/_/g, " ").replace(/\b\w/g, (ch: string) => ch.toUpperCase())}
                         </span>
                       )}
                     </td>

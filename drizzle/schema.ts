@@ -962,6 +962,7 @@ export const campaignContacts = mysqlTable("campaignContacts", {
   sentEmailId: varchar("sentEmailId", { length: 128 }),  // Resend email ID
   // Source tracking
   sourceRow: int("sourceRow"),  // Original row number in the spreadsheet
+  roleBucket: varchar("roleBucket", { length: 128 }),  // Granular role category (c_suite, director, senior_manager, manager, procurement, engineering, operations, site_workshop, other)
   nameCheckStatus: varchar("nameCheckStatus", { length: 128 }),
   reviewNotes: text("reviewNotes"),
   // Metadata

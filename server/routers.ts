@@ -2679,6 +2679,7 @@ export const appRouter = router({
         tier: z.string().optional(),
         outreachStatus: z.string().optional(),
         enrichmentStatus: z.string().optional(),
+        roleBucket: z.string().optional(),
         search: z.string().optional(),
         limit: z.number().min(1).max(200).optional(),
         offset: z.number().min(0).optional(),

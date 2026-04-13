@@ -1,0 +1,1 @@
+ALTER TABLE `campaignContacts` ADD `roleBucket` varchar(128);

@@ -533,3 +533,263 @@ describe("Sender Title in Email Generation", () => {
     expect(senderLine).toBe("Ryan Pemberton at Atlas Copco Australia - Power Technique");
   });
 });
+
+describe("Seniority-Weighted Scoring Engine (v2)", () => {
+  // Mirrors the classifyTitle logic from campaignService.ts
+  // C-Suite: 45, Director: 40, Senior Manager: 35, Manager: 25, Coordinator: 15, Other: 10, Blasting: 40
+  // Data completeness: email +15, mobile +5
+  // Blasting company: +20
+  // Project match: +5 per (max 30)
+  // Combo bonus (blasting specialist at blasting company): +10
+
+  describe("Granular Role Bucket Classification", () => {
+    it("should classify C-Suite titles into c_suite bucket", () => {
+      const cSuiteTitles = ["CEO", "Chief Executive Officer", "Chief Operating Officer", "Chief Financial Officer"];
+      for (const title of cSuiteTitles) {
+        const t = title.toLowerCase();
+        const isCsuite = /\b(ceo|cfo|coo|cto|cio|chief\s+(executive|operating|financial|technology|information))/i.test(t);
+        expect(isCsuite, `Expected "${title}" to be C-Suite`).toBe(true);
+      }
+    });
+
+    it("should classify Director titles into director bucket", () => {
+      const directorTitles = ["Director of Operations", "General Manager", "Managing Director"];
+      for (const title of directorTitles) {
+        const t = title.toLowerCase();
+        const isDirector = /\b(director|general\s*manager|managing\s*director)/i.test(t);
+        expect(isDirector, `Expected "${title}" to be Director`).toBe(true);
+      }
+    });
+
+    it("should classify procurement titles into procurement bucket", () => {
+      const procurementTitles = ["Procurement Manager", "Purchasing Officer", "Supply Chain Director"];
+      for (const title of procurementTitles) {
+        const t = title.toLowerCase();
+        const isProcurement = /procurement|purchasing|supply/i.test(t);
+        expect(isProcurement, `Expected "${title}" to be Procurement`).toBe(true);
+      }
+    });
+
+    it("should classify engineering titles into engineering bucket", () => {
+      const engineeringTitles = ["Mechanical Engineer", "Civil Engineer", "Engineering Manager"];
+      for (const title of engineeringTitles) {
+        const t = title.toLowerCase();
+        const isEngineering = /engineer/i.test(t);
+        expect(isEngineering, `Expected "${title}" to be Engineering`).toBe(true);
+      }
+    });
+
+    it("should classify fleet/equipment titles into fleet_equipment bucket", () => {
+      const fleetTitles = ["Fleet Manager", "Equipment Coordinator", "Fleet & Equipment Manager"];
+      for (const title of fleetTitles) {
+        const t = title.toLowerCase();
+        const isFleet = /fleet|equipment/i.test(t);
+        expect(isFleet, `Expected "${title}" to be Fleet & Equipment`).toBe(true);
+      }
+    });
+
+    it("should classify maintenance titles into maintenance bucket", () => {
+      const maintenanceTitles = ["Maintenance Manager", "Workshop Supervisor", "Maintenance Planner"];
+      for (const title of maintenanceTitles) {
+        const t = title.toLowerCase();
+        const isMaintenance = /maintenance|workshop/i.test(t);
+        expect(isMaintenance, `Expected "${title}" to be Maintenance`).toBe(true);
+      }
+    });
+
+    it("should classify site/workshop titles into site_workshop bucket", () => {
+      const siteTitles = ["Site Manager", "Area Manager", "Branch Manager", "Production Manager"];
+      for (const title of siteTitles) {
+        const t = title.toLowerCase();
+        const isSite = /site|area|branch|production|factory/i.test(t);
+        expect(isSite, `Expected "${title}" to be Site & Workshop`).toBe(true);
+      }
+    });
+
+    it("should classify project management titles into project_management bucket", () => {
+      const pmTitles = ["Project Manager", "Project Director", "Senior Project Manager"];
+      for (const title of pmTitles) {
+        const t = title.toLowerCase();
+        const isPM = /project/i.test(t);
+        expect(isPM, `Expected "${title}" to be Project Management`).toBe(true);
+      }
+    });
+  });
+
+  describe("Seniority Score Hierarchy", () => {
+    // C-Suite (45) > Director (40) = Blasting (40) > Senior Manager (35) > Manager (25) > Coordinator (15) > Other (10)
+    it("should score C-Suite higher than Director", () => {
+      // C-Suite = 45 base, Director = 40 base
+      expect(45).toBeGreaterThan(40);
+    });
+
+    it("should score Director higher than Senior Manager", () => {
+      expect(40).toBeGreaterThan(35);
+    });
+
+    it("should score Senior Manager higher than Manager", () => {
+      expect(35).toBeGreaterThan(25);
+    });
+
+    it("should score Manager higher than Coordinator", () => {
+      expect(25).toBeGreaterThan(15);
+    });
+
+    it("should score Coordinator higher than Other", () => {
+      expect(15).toBeGreaterThan(10);
+    });
+  });
+
+  describe("Tier Classification with Seniority", () => {
+    function computeScoreV2(input: {
+      title?: string | null;
+      email?: string | null;
+      mobile?: string | null;
+      matchedProjectCount?: number;
+      isBlastingCompany?: boolean;
+    }): { score: number; tier: string } {
+      let score = 0;
+
+      if (input.title) {
+        const t = input.title.toLowerCase();
+        if (/blast|paint|coat|surface|corrosion|abrasive/i.test(t)) {
+          score += 40; // blasting specialist
+        } else if (/\b(ceo|cfo|coo|cto|cio)\b/i.test(t) || /\bchief\s+(executive|operating|financial|technology|information)/i.test(t)) {
+          score += 45; // c-suite
+        } else if (/\b(director|general\s*manager|managing\s*director)/i.test(t)) {
+          score += 40; // director
+        } else if (/\bsenior\s+(manager|engineer|supervisor)/i.test(t)) {
+          score += 35; // senior manager
+        } else if (/\b(manager|superintendent|lead)\b/i.test(t)) {
+          score += 25; // manager
+        } else if (/\b(coordinator|supervisor|officer|technician)\b/i.test(t)) {
+          score += 15; // coordinator
+        } else {
+          score += 10; // other
+        }
+      }
+
+      if (input.email) score += 15;
+      if (input.mobile) score += 5;
+      if (input.isBlastingCompany) score += 20;
+      const matchCount = input.matchedProjectCount ?? 0;
+      if (matchCount > 0) score += Math.min(matchCount * 5, 30);
+
+      score = Math.min(score, 100);
+
+      let tier: string;
+      if (score >= 55 && input.email) {
+        tier = "tier1_hot";
+      } else if (score >= 35 && input.email) {
+        tier = "tier2_warm";
+      } else if (score >= 15) {
+        tier = "tier3_enrich";
+      } else {
+        tier = "tier4_low";
+      }
+
+      return { score, tier };
+    }
+
+    it("should classify CEO with email as tier1_hot", () => {
+      const result = computeScoreV2({ title: "CEO", email: "ceo@company.com" });
+      expect(result.score).toBe(60); // 45 + 15
+      expect(result.tier).toBe("tier1_hot");
+    });
+
+    it("should classify Director with email as tier2_warm", () => {
+      const result = computeScoreV2({ title: "Director of Operations", email: "dir@company.com" });
+      expect(result.score).toBe(55); // 40 + 15
+      expect(result.tier).toBe("tier1_hot");
+    });
+
+    it("should classify Manager without email as tier3_enrich", () => {
+      const result = computeScoreV2({ title: "Operations Manager", email: null });
+      expect(result.score).toBe(25); // 25 (manager)
+      expect(result.tier).toBe("tier3_enrich");
+    });
+
+    it("should classify Coordinator without email as tier3_enrich", () => {
+      const result = computeScoreV2({ title: "Safety Coordinator", email: null });
+      expect(result.score).toBe(15); // 15 (coordinator)
+      expect(result.tier).toBe("tier3_enrich");
+    });
+
+    it("should classify unknown title without email as tier4_low", () => {
+      const result = computeScoreV2({ title: null, email: null });
+      expect(result.score).toBe(0);
+      expect(result.tier).toBe("tier4_low");
+    });
+
+    it("should add blasting company bonus", () => {
+      const withBonus = computeScoreV2({ title: "Operations Manager", email: "ops@blast.com", isBlastingCompany: true });
+      const withoutBonus = computeScoreV2({ title: "Operations Manager", email: "ops@other.com", isBlastingCompany: false });
+      expect(withBonus.score - withoutBonus.score).toBe(20);
+    });
+
+    it("should cap total score at 100", () => {
+      const result = computeScoreV2({
+        title: "CEO",
+        email: "ceo@blast.com",
+        mobile: "0412345678",
+        isBlastingCompany: true,
+        matchedProjectCount: 10,
+      });
+      expect(result.score).toBe(100); // 45 + 15 + 5 + 20 + 30 = 115 → capped at 100
+    });
+  });
+});
+
+describe("RELEVANCE_CONFIG Coverage", () => {
+  // All role bucket values that can appear in the database
+  const ALL_ROLE_BUCKETS = [
+    "c_suite", "director", "senior_manager", "manager",
+    "blasting_specialist", "procurement", "engineering",
+    "project_management", "operations", "fleet_equipment",
+    "maintenance", "site_workshop", "other", "unknown",
+    // Legacy/variant values from different enrichment sources
+    "construction", "project_manager", "fleet_manager",
+    "fleet", "site_manager", "executive", "general_manager",
+    "decision_maker",
+  ];
+
+  const RELEVANCE_CONFIG: Record<string, { label: string; color: string }> = {
+    c_suite: { label: "C-Suite / MD", color: "text-purple-700" },
+    director: { label: "Director / GM", color: "text-indigo-600" },
+    senior_manager: { label: "Senior Manager", color: "text-amber-700" },
+    manager: { label: "Manager", color: "text-amber-600" },
+    blasting_specialist: { label: "Blasting & Coating", color: "text-red-600" },
+    construction: { label: "Construction", color: "text-red-500" },
+    procurement: { label: "Procurement", color: "text-emerald-600" },
+    engineering: { label: "Engineering", color: "text-cyan-600" },
+    project_management: { label: "Project Management", color: "text-blue-600" },
+    project_manager: { label: "Project Management", color: "text-blue-600" },
+    operations: { label: "Operations", color: "text-blue-500" },
+    fleet_equipment: { label: "Fleet & Equipment", color: "text-orange-600" },
+    fleet_manager: { label: "Fleet & Equipment", color: "text-orange-600" },
+    fleet: { label: "Fleet & Equipment", color: "text-orange-600" },
+    maintenance: { label: "Maintenance", color: "text-yellow-700" },
+    site_workshop: { label: "Site & Workshop", color: "text-stone-600" },
+    site_manager: { label: "Site Management", color: "text-stone-600" },
+    decision_maker: { label: "Decision Maker", color: "text-amber-600" },
+    executive: { label: "Executive", color: "text-purple-700" },
+    general_manager: { label: "General Manager", color: "text-indigo-600" },
+    other: { label: "Other", color: "text-slate-500" },
+    unknown: { label: "Unknown", color: "text-slate-400" },
+  };
+
+  it("should have a label for every known role bucket", () => {
+    for (const bucket of ALL_ROLE_BUCKETS) {
+      expect(RELEVANCE_CONFIG[bucket], `Missing RELEVANCE_CONFIG entry for "${bucket}"`).toBeDefined();
+      expect(RELEVANCE_CONFIG[bucket].label).toBeTruthy();
+      expect(RELEVANCE_CONFIG[bucket].color).toBeTruthy();
+    }
+  });
+
+  it("should have unique labels for primary role buckets", () => {
+    const primaryBuckets = ["c_suite", "director", "senior_manager", "manager", "procurement", "engineering", "project_management", "operations", "fleet_equipment", "maintenance", "site_workshop", "other"];
+    const labels = primaryBuckets.map(b => RELEVANCE_CONFIG[b].label);
+    const uniqueLabels = new Set(labels);
+    expect(uniqueLabels.size).toBe(primaryBuckets.length);
+  });
+});

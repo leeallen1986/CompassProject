@@ -1050,3 +1050,15 @@
 - [x] Loading spinner with "Preparing ZIP..." state during generation
 - [x] Filenames: company-name--contact-name.eml for easy identification
 - [x] 8 new vitest tests for mass download logic, all 1,667 tests passing
+
+## Fix — Scoring, Role Bucketing & Data Quality
+- [x] Fix scoring engine to weight seniority (CEO/MD > Director > Manager > Coordinator)
+- [x] Fix role bucketing — replace broad "Decision Maker" with granular categories (C-Suite, Director, Operations, Procurement, Engineering, Project Management, Site/Workshop)
+- [x] Re-score and re-bucket all existing campaign contacts in database
+- [x] Write tests for new scoring and bucketing logic
+- [x] Update UI: Contact Role Breakdown card on Overview tab (sorted by count, 12 granular buckets)
+- [x] Update UI: Role bucket labels shown under job title in contacts table
+- [x] Update UI: Role bucket filter dropdown in contacts table filters
+- [x] Update UI: Numeric score circle in contacts table (color-coded: red 60+, amber 40+, blue 20+, grey <20)
+- [x] Server: byRoleBucket stats in getCampaignStats endpoint
+- [x] Server: roleBucket filter in getCampaignContacts endpoint
