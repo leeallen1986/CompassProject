@@ -992,3 +992,12 @@
 - [x] Investigate why contact enrichment step timed out after 900s (500 contacts × 1s delay = 500s+ plus API time > 900s limit)
 - [x] Fix the enrichment timeout issue (delay 1000ms→500ms, enrichment timeout 15min→25min, global timeout 45min→55min)
 - [x] Test and verify fix (all 1,635 tests passing)
+
+## Feature — .eml Outreach Email System
+- [x] Investigate current outreach email flow (mailto, signature, collateral storage)
+- [x] Build Outlook-compatible HTML email template (table-based layout, Atlas Copco navy/gold + CP red branding)
+- [x] Build server-side .eml file generator with HTML body and collateral PDF attachment
+- [x] Update frontend: replace "Open in Outlook" with "Download Email" button (Campaigns + OutreachEmailModal)
+- [x] Remove prefilled signature from generated emails (Outlook adds user's own)
+- [x] Update LLM prompt: no signatures, no attachment reminders
+- [x] Test: 17 new tests for emlGenerator, all 1,652 tests passing

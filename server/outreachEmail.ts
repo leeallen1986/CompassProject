@@ -510,12 +510,13 @@ RULES:
 5. Keep the email concise — 3-4 short paragraphs maximum
 6. Do NOT use generic phrases like "I hope this email finds you well" or "I wanted to reach out"
 7. Do NOT include [placeholder] brackets — use real product names and specific details
-8. Sign off with the sender's full name, title, and company on separate lines. Use the SENDER information above for the signature. The signature MUST include: sender name, sender title, company name, and sender email address on separate lines.
-9. The subject line should reference the recipient's company or market and be compelling
-10. The opening line should hook them by referencing something specific about their company, market, or role — NOT a self-introduction
+8. Do NOT include a signature block (no name, title, company, or email at the end). The recipient's email client will add their own signature automatically. End the email after the call-to-action or a brief closing line like "Looking forward to hearing from you" — nothing more.
+9. Do NOT include any "Reminder: Please attach..." notes or attachment instructions. Attachments are handled automatically by the system.
+10. The subject line should reference the recipient's company or market and be compelling
+11. The opening line should hook them by referencing something specific about their company, market, or role — NOT a self-introduction
 ${profile.productRules}
 ${profile.commercialRules}
-13. AUSTRALIAN ENGLISH: Use Australian spelling (e.g., "optimise" not "optimize", "colour" not "color", "programme" not "program" for project programmes).
+14. AUSTRALIAN ENGLISH: Use Australian spelling (e.g., "optimise" not "optimize", "colour" not "color", "programme" not "program" for project programmes).
 
 Return your response as JSON with this exact structure:
 {

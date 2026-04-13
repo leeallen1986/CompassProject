@@ -75,7 +75,7 @@ import {
   type DimensionScore, type ProjectScores,
 } from "./businessLineScoring";
 import { getDb } from "./db";
-import { projects, contacts, pipelineRuns as pipelineRunsTable } from "../drizzle/schema";
+import { projects, contacts, pipelineRuns as pipelineRunsTable, campaignContacts as campaignContactsTable, campaigns as campaignsTable, collateralItems as collateralItemsTable } from "../drizzle/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { enrichProject, enrichUnenrichedProjects, getContractorFrequency, getEnrichmentStats as getProjectoryEnrichmentStats, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
 import { validateProject as icnValidateProject, validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
@@ -133,6 +133,7 @@ import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList
 import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
 import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
 import { storagePut } from "./storage";
+import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1882,6 +1883,61 @@ export const appRouter = router({
       return getContactedContactList();
     }),
 
+    /** Generate a downloadable .eml file for a project-based outreach email */
+    downloadEml: protectedProcedure
+      .input(z.object({
+        contactName: z.string(),
+        contactEmail: z.string(),
+        subject: z.string(),
+        body: z.string(),
+        contactId: z.number().optional(),
+        projectId: z.number().optional(),
+        projectName: z.string().optional(),
+        tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
+        collateralName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const senderName = ctx.user?.name || "Team";
+        const senderEmail = ctx.user?.email || "";
+        const brand = detectBrand(input.collateralName);
+
+        // Strip any existing signature from the body
+        let cleanBody = input.body;
+        const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
+        cleanBody = cleanBody.replace(sigRegex, "");
+        cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
+        cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+
+        const emlContent = buildEmlFile({
+          fromName: senderName,
+          fromEmail: senderEmail,
+          toName: input.contactName,
+          toEmail: input.contactEmail,
+          subject: input.subject,
+          bodyText: cleanBody.trim(),
+          brand,
+        });
+
+        // Track outreach
+        await saveOutreachEmail({
+          userId: ctx.user.id,
+          contactId: input.contactId,
+          contactName: input.contactName,
+          contactEmail: input.contactEmail,
+          projectId: input.projectId,
+          projectName: input.projectName,
+          subject: input.subject,
+          body: input.body,
+          tone: input.tone,
+          status: "opened_in_email",
+        });
+
+        return {
+          emlBase64: Buffer.from(emlContent).toString("base64"),
+          filename: `outreach-${input.contactName.replace(/\s+/g, "-").toLowerCase()}.eml`,
+        };
+      }),
+
     /** Get outreach leaderboard — email count per user */
     leaderboard: protectedProcedure
       .input(z.object({
@@ -2714,6 +2770,81 @@ export const appRouter = router({
       .input(z.object({ contactId: z.number() }))
       .mutation(async ({ input }) => {
         return markEmailAsSent(input.contactId);
+      }),
+
+    /** Generate a downloadable .eml file for a campaign contact */
+    downloadEml: campaignProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const [contact] = await db.select().from(campaignContactsTable).where(eq(campaignContactsTable.id, input.contactId));
+        if (!contact) throw new Error("Contact not found");
+        if (!contact.draftSubject || !contact.draftBody) throw new Error("No draft email found — generate one first");
+
+        const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, contact.campaignId));
+        if (!campaign) throw new Error("Campaign not found");
+
+        const recipientEmail = contact.enrichedEmail || contact.email || "";
+        const recipientName = [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Contact";
+        const senderName = campaign.senderName || ctx.user?.name || "Team";
+        const senderEmail = campaign.senderEmail || ctx.user?.email || "";
+        const brand = detectBrand(campaign.collateralName || undefined);
+
+        // Fetch collateral PDF if available
+        let attachment: { filename: string; contentBase64: string; mimeType: string } | undefined;
+        try {
+          if (campaign.collateralId) {
+            const [collateral] = await db.select().from(collateralItemsTable)
+              .where(eq(collateralItemsTable.id, campaign.collateralId));
+            if (collateral?.fileUrl) {
+              const file = await fetchFileAsBase64(collateral.fileUrl);
+              attachment = {
+                filename: collateral.fileName || file.filename,
+                contentBase64: file.base64,
+                mimeType: collateral.fileMimeType || file.mimeType,
+              };
+            }
+          }
+        } catch (err) {
+          console.warn("[EML] Failed to fetch collateral for attachment:", err);
+        }
+
+        // Strip any existing signature from the body (everything after "Best regards" or "Kind regards")
+        let cleanBody = contact.draftBody;
+        const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
+        cleanBody = cleanBody.replace(sigRegex, "");
+        // Also strip attachment reminders
+        cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
+        cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+
+        const emlContent = buildEmlFile({
+          fromName: senderName,
+          fromEmail: senderEmail,
+          toName: recipientName,
+          toEmail: recipientEmail,
+          subject: contact.draftSubject,
+          bodyText: cleanBody.trim(),
+          brand,
+          attachment,
+          ctaText: attachment ? `${attachment.filename} is attached for your reference.` : undefined,
+        });
+
+        // Save to outreach tracking
+        await db.update(campaignContactsTable).set({
+          outreachStatus: "approved",
+          approvedAt: new Date(),
+          approvedBy: ctx.user!.id,
+        }).where(eq(campaignContactsTable.id, input.contactId));
+
+        // Return the .eml content as base64 for frontend download
+        return {
+          emlBase64: Buffer.from(emlContent).toString("base64"),
+          filename: `outreach-${recipientName.replace(/\s+/g, "-").toLowerCase()}.eml`,
+          recipientName,
+          recipientEmail,
+        };
       }),
 
     // ── Campaign Builder endpoints ──

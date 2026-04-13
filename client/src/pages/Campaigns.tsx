@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Megaphone, Users, Mail, CheckCircle2, Send, Search,
+  Megaphone, Users, Mail, CheckCircle2, Send, Search, Download,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
   Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2,
@@ -492,14 +492,34 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     onError: (err: { message: string }) => toast.error(`Failed to mark as sent: ${err.message}`),
   });
 
-  /** Open the approved email in the user's default mail client (Outlook) */
+  /** Download .eml file for a campaign contact */
+  const downloadEmlMut = trpc.campaign.downloadEml.useMutation({
+    onSuccess: (data) => {
+      const bytes = Uint8Array.from(atob(data.emlBase64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "message/rfc822" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Email downloaded for ${data.recipientName} — open in Outlook and hit Send`);
+      contactsQuery.refetch();
+    },
+    onError: (err: { message: string }) => toast.error(`Failed to download email: ${err.message}`),
+  });
+
+  const downloadEml = (c: CampaignContact) => {
+    downloadEmlMut.mutate({ contactId: c.id });
+  };
+
+  /** Fallback: Open in email client via mailto: */
   const openInOutlook = (c: CampaignContact) => {
     const to = c.enrichedEmail || c.email || "";
-    const subject = encodeURIComponent(c.draftSubject || "Atlas Copco \u2014 High-Volume Air Solutions");
-    const body = encodeURIComponent(
-      (c.draftBody || "") +
-      "\n\n---\nReminder: Please attach the XAVS1800 product flyer before sending."
-    );
+    const subject = encodeURIComponent(c.draftSubject || "Atlas Copco — High-Volume Air Solutions");
+    const body = encodeURIComponent(c.draftBody || "");
     window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_self");
   };
 
@@ -874,10 +894,11 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                               variant="ghost"
                               size="sm"
                               className="h-7 px-2 text-xs text-blue-600"
-                              onClick={() => openInOutlook(c)}
-                              title="Open in Outlook"
+                              onClick={() => downloadEml(c)}
+                              disabled={downloadEmlMut.isPending}
+                              title="Download Email (.eml)"
                             >
-                              <Mail className="w-3 h-3" />
+                              <Download className="w-3 h-3" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1114,16 +1135,24 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
     onError: (err: { message: string }) => toast.error(`Failed to mark as sent: ${err.message}`),
   });
 
-  /** Open the approved email in the user's default mail client (Outlook) */
-  const openInOutlook = (c: { enrichedEmail?: string | null; email?: string | null; draftSubject?: string | null; draftBody?: string | null }) => {
-    const to = c.enrichedEmail || c.email || "";
-    const subject = encodeURIComponent(c.draftSubject || "Atlas Copco \u2014 High-Volume Air Solutions");
-    const body = encodeURIComponent(
-      (c.draftBody || "") +
-      "\n\n---\nReminder: Please attach the XAVS1800 product flyer before sending."
-    );
-    window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_self");
-  };
+  /** Download .eml file for a campaign contact in the approval queue */
+  const downloadEmlMut2 = trpc.campaign.downloadEml.useMutation({
+    onSuccess: (data) => {
+      const bytes = Uint8Array.from(atob(data.emlBase64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "message/rfc822" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Email downloaded for ${data.recipientName} — open in Outlook and hit Send`);
+      approvedQuery.refetch();
+    },
+    onError: (err: { message: string }) => toast.error(`Failed to download email: ${err.message}`),
+  });
 
   const pending = pendingQuery.data?.contacts ?? [];
   const approved = approvedQuery.data?.contacts ?? [];
@@ -1295,9 +1324,10 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
                         size="sm"
                         variant="outline"
                         className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        onClick={() => openInOutlook(c)}
+                        onClick={() => downloadEmlMut2.mutate({ contactId: c.id })}
+                        disabled={downloadEmlMut2.isPending}
                       >
-                        <Mail className="w-3 h-3 mr-1" /> Open in Outlook
+                        <Download className="w-3 h-3 mr-1" /> {downloadEmlMut2.isPending ? "Preparing..." : "Download Email"}
                       </Button>
                       <Button
                         size="sm"

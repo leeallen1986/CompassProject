@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from "react";
 import {
-  X, RefreshCw, Sparkles, Mail, Copy, Check, Pencil,
+  X, RefreshCw, Sparkles, Mail, Copy, Check, Pencil, Download,
   BookTemplate, ChevronDown, ChevronUp, Save, HardHat,
   Building2, ShoppingCart, Wrench, Handshake, Zap, Target
 } from "lucide-react";
@@ -167,6 +167,39 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
       toast.error("Failed to personalise template: " + err.message);
     },
   });
+
+  const downloadEmlMutation = trpc.outreach.downloadEml.useMutation({
+    onSuccess: (data) => {
+      // Decode base64 and trigger download
+      const bytes = Uint8Array.from(atob(data.emlBase64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "message/rfc822" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Email downloaded — open it in Outlook and hit Send");
+    },
+    onError: (err) => {
+      toast.error("Failed to download email: " + err.message);
+    },
+  });
+
+  const handleDownloadEml = () => {
+    downloadEmlMutation.mutate({
+      contactName: contact.name,
+      contactEmail: contact.email,
+      subject,
+      body,
+      contactId: contact.id,
+      projectId: project.id,
+      projectName: project.name,
+      tone,
+    });
+  };
 
   const handleOpenInEmail = () => {
     saveMutation.mutate({
@@ -542,9 +575,13 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
                 {copied ? <Check className="w-4 h-4 text-teal" /> : <Copy className="w-4 h-4" />}
                 {copied ? "Copied" : "Copy"}
               </button>
-              <button onClick={handleOpenInEmail} disabled={isGenerating || !body}
+              <button onClick={handleDownloadEml} disabled={isGenerating || !body || downloadEmlMutation.isPending}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold text-navy text-sm font-bold hover:bg-gold-light transition-colors shadow-sm disabled:opacity-50">
-                <Mail className="w-4 h-4" /> Open in Email
+                <Download className="w-4 h-4" /> {downloadEmlMutation.isPending ? "Preparing..." : "Download Email"}
+              </button>
+              <button onClick={handleOpenInEmail} disabled={isGenerating || !body}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-navy border border-border hover:bg-navy/5 transition-colors disabled:opacity-50">
+                <Mail className="w-4 h-4" /> mailto:
               </button>
             </div>
           </div>
