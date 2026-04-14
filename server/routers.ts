@@ -132,6 +132,7 @@ import { parseBlastContactList } from "./campaignImport";
 import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList, type ColumnMapping } from "./campaignCsvImport";
 import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
 import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
+import { startEnrichmentJob, getEnrichmentJobProgress } from "./enrichmentJob";
 import { storagePut } from "./storage";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
 
@@ -2704,18 +2705,40 @@ export const appRouter = router({
         return matchContactsToProjects(input.campaignId);
       }),
 
-    /** Enrich campaign contacts via Apollo (batch, priority-ordered) */
+    /** Start enrichment as a background job (returns jobId for polling) */
     enrichContacts: adminProcedure
       .input(z.object({
         campaignId: z.number(),
         maxContacts: z.number().min(1).max(500).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        return enrichCampaignContacts(input.campaignId, {
+        const jobId = startEnrichmentJob(input.campaignId, {
           maxContacts: input.maxContacts ?? 50,
           userId: ctx.user!.id,
           userName: ctx.user!.name ?? undefined,
         });
+        return { jobId };
+      }),
+
+    /** Poll enrichment job progress */
+    enrichmentProgress: campaignProcedure
+      .input(z.object({ jobId: z.string() }))
+      .query(async ({ input }) => {
+        const progress = getEnrichmentJobProgress(input.jobId);
+        if (!progress) {
+          return {
+            status: "not_found" as const,
+            result: null,
+            error: "Job not found — it may have expired",
+            elapsedSeconds: 0,
+          };
+        }
+        return {
+          status: progress.status,
+          result: progress.result,
+          error: progress.error,
+          elapsedSeconds: progress.elapsedSeconds,
+        };
       }),
 
     /** Generate a personalised outreach email for a contact */

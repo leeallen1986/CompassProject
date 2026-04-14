@@ -523,24 +523,64 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     setIsEnriching(true);
     setShowEnrichConfirm(false);
     try {
-      const result = await enrichContacts.mutateAsync({
+      // Start enrichment as a background job
+      const { jobId } = await enrichContacts.mutateAsync({
         campaignId: createdCampaignId,
         maxContacts: batchSize,
       });
-      setEnrichmentResult(result);
-      // Calculate remaining pending contacts
-      const totalPending = remainingPending ?? (importResult?.imported || 0);
-      const processedThisRun = (result.enriched || 0) + (result.notFound || 0) + (result.failed || 0);
-      setRemainingPending(Math.max(0, totalPending - processedThisRun));
-      const parts = [];
-      if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
-      if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
-      if (result.emailsVerified) parts.push(`Verified: ${result.emailsVerified}`);
-      if (result.linkedInAdded) parts.push(`LinkedIn: ${result.linkedInAdded}`);
-      toast.success(`Enriched ${result.enriched} contacts${parts.length ? ` (${parts.join(", ")})` : ""}`);
+      // Poll for completion
+      const pollInterval = 3000; // 3 seconds
+      const maxPollTime = 10 * 60 * 1000; // 10 minutes
+      const startTime = Date.now();
+      const poll = async (): Promise<void> => {
+        if (Date.now() - startTime > maxPollTime) {
+          toast.error("Enrichment is taking too long. Check the campaign dashboard for results.");
+          setIsEnriching(false);
+          return;
+        }
+        try {
+          const progress = await trpcUtils.campaign.enrichmentProgress.fetch({ jobId });
+          if (progress.status === "running") {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            return poll();
+          }
+          if (progress.status === "failed") {
+            toast.error("Enrichment failed: " + (progress.error || "Unknown error"));
+            setIsEnriching(false);
+            return;
+          }
+          if (progress.status === "not_found") {
+            toast.error("Enrichment job not found. Please try again.");
+            setIsEnriching(false);
+            return;
+          }
+          // Completed
+          const result = progress.result;
+          if (result) {
+            setEnrichmentResult(result);
+            const totalPending = remainingPending ?? (importResult?.imported || 0);
+            const processedThisRun = (result.enriched || 0) + (result.notFound || 0) + (result.failed || 0);
+            setRemainingPending(Math.max(0, totalPending - processedThisRun));
+            const parts = [];
+            if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
+            if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
+            if (result.emailsVerified) parts.push(`Verified: ${result.emailsVerified}`);
+            if (result.linkedInAdded) parts.push(`LinkedIn: ${result.linkedInAdded}`);
+            toast.success(`Enriched ${result.enriched} contacts in ${progress.elapsedSeconds}s${parts.length ? ` (${parts.join(", ")})` : ""}`);
+          } else {
+            toast.success("Enrichment completed");
+          }
+          setIsEnriching(false);
+        } catch (pollErr) {
+          // Network error during polling — retry
+          console.warn("[Enrichment] Poll error, retrying...", pollErr);
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          return poll();
+        }
+      };
+      await poll();
     } catch (err) {
-      toast.error("Enrichment failed: " + (err as Error).message);
-    } finally {
+      toast.error("Failed to start enrichment: " + (err as Error).message);
       setIsEnriching(false);
     }
   };
@@ -1527,8 +1567,8 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 text-gold animate-spin" />
                     <div>
-                      <p className="text-sm font-semibold text-navy">Enriching contacts...</p>
-                      <p className="text-xs text-muted-foreground">This may take 1-3 minutes depending on batch size. Please wait.</p>
+                      <p className="text-sm font-semibold text-navy">Enriching contacts in the background...</p>
+                      <p className="text-xs text-muted-foreground">Processing via Apollo → Hunter.io waterfall. This typically takes 1-3 minutes. You can stay on this page or navigate away — the job will continue running.</p>
                     </div>
                   </div>
                 </div>

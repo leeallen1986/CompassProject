@@ -571,30 +571,75 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
     onError: (err) => toast.error(`Failed to match: ${err.message}`),
   });
 
-  const enrichMut = trpc.campaign.enrichContacts.useMutation({
-    onSuccess: (result: any) => {
-      contactsQuery.refetch();
-      statsQuery.refetch();
-      setShowEnrichConfirm(false);
-      const parts = [`Enriched: ${result.enriched}`];
-      if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
-      if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
-      parts.push(`Not found: ${result.notFound}`);
-      if (result.creditsUsed) parts.push(`Credits: ${result.creditsUsed}`);
-      // Data quality improvements
-      const quality: string[] = [];
-      if (result.emailsVerified) quality.push(`${result.emailsVerified} emails verified`);
-      if (result.emailsCorrected) quality.push(`${result.emailsCorrected} emails corrected`);
-      if (result.linkedInAdded) quality.push(`${result.linkedInAdded} LinkedIn added`);
-      if (result.titlesUpdated) quality.push(`${result.titlesUpdated} titles updated`);
-      if (quality.length > 0) parts.push(quality.join(", "));
-      toast.success(parts.join(" | "));
-    },
-    onError: (err) => {
-      setShowEnrichConfirm(false);
-      toast.error(`Failed to enrich: ${err.message}`);
-    },
-  });
+  const enrichMut = trpc.campaign.enrichContacts.useMutation();
+  const trpcUtils = trpc.useUtils();
+  const [isEnrichingBg, setIsEnrichingBg] = useState(false);
+  const handleEnrichCampaign = async (batchSize: number) => {
+    setIsEnrichingBg(true);
+    setShowEnrichConfirm(false);
+    try {
+      const { jobId } = await enrichMut.mutateAsync({ campaignId, maxContacts: batchSize });
+      // Poll for completion
+      const pollInterval = 3000;
+      const maxPollTime = 10 * 60 * 1000;
+      const startTime = Date.now();
+      const poll = async (): Promise<void> => {
+        if (Date.now() - startTime > maxPollTime) {
+          toast.error("Enrichment is taking too long. Refresh the page to check results.");
+          setIsEnrichingBg(false);
+          return;
+        }
+        try {
+          const progress = await trpcUtils.campaign.enrichmentProgress.fetch({ jobId });
+          if (progress.status === "running") {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            return poll();
+          }
+          if (progress.status === "failed") {
+            toast.error("Enrichment failed: " + (progress.error || "Unknown error"));
+            setIsEnrichingBg(false);
+            return;
+          }
+          if (progress.status === "not_found") {
+            toast.error("Enrichment job not found. Please try again.");
+            setIsEnrichingBg(false);
+            return;
+          }
+          // Completed
+          const result = progress.result;
+          if (result) {
+            contactsQuery.refetch();
+            statsQuery.refetch();
+            const parts = [`Enriched: ${result.enriched}`];
+            if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
+            if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
+            parts.push(`Not found: ${result.notFound}`);
+            if (result.creditsUsed) parts.push(`Credits: ${result.creditsUsed}`);
+            const quality: string[] = [];
+            if (result.emailsVerified) quality.push(`${result.emailsVerified} emails verified`);
+            if (result.emailsCorrected) quality.push(`${result.emailsCorrected} emails corrected`);
+            if (result.linkedInAdded) quality.push(`${result.linkedInAdded} LinkedIn added`);
+            if (result.titlesUpdated) quality.push(`${result.titlesUpdated} titles updated`);
+            if (quality.length > 0) parts.push(quality.join(", "));
+            toast.success(parts.join(" | "));
+          } else {
+            toast.success("Enrichment completed");
+            contactsQuery.refetch();
+            statsQuery.refetch();
+          }
+          setIsEnrichingBg(false);
+        } catch (pollErr) {
+          console.warn("[Enrichment] Poll error, retrying...", pollErr);
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          return poll();
+        }
+      };
+      await poll();
+    } catch (err) {
+      toast.error("Failed to start enrichment: " + (err as Error).message);
+      setIsEnrichingBg(false);
+    }
+  };
 
   const campaign = campaignQuery.data;
   const stats = statsQuery.data;
@@ -736,10 +781,10 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <Button
                 variant="outline"
                 onClick={() => setShowEnrichConfirm(true)}
-                disabled={enrichMut.isPending}
+                disabled={isEnrichingBg}
               >
-                {enrichMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                {enrichMut.isPending ? "Enriching..." : `Enrich Contacts (${stats?.byEnrichment?.pending ?? 0} pending)`}
+                {isEnrichingBg ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                {isEnrichingBg ? "Enriching..." : `Enrich Contacts (${stats?.byEnrichment?.pending ?? 0} pending)`}
               </Button>
               <Button
                 variant="outline"
@@ -807,6 +852,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               className="px-3 py-2 rounded-md border border-border bg-card text-sm"
             >
               <option value="">All Enrichment</option>
+              <option value="has_email">Has Email</option>
               <option value="enriched">Enriched</option>
               <option value="pending">Pending Enrichment</option>
               <option value="not_found">Not Found</option>
@@ -864,7 +910,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                     </td>
                   </tr>
                 ) : contacts.map((c, i) => (
-                  <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+                  <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors${!c.enrichedEmail && !c.email && c.enrichmentStatus !== "pending" ? " opacity-50" : ""}`}>
                     <td className="px-3 py-2.5">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                         c.score >= 60 ? "bg-red-100 text-red-700" :
@@ -1196,15 +1242,15 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowEnrichConfirm(false)} disabled={enrichMut.isPending}>
+            <Button variant="outline" onClick={() => setShowEnrichConfirm(false)} disabled={isEnrichingBg}>
               Cancel
             </Button>
             <Button
               className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => enrichMut.mutate({ campaignId, maxContacts: enrichBatchSize })}
-              disabled={enrichMut.isPending || (stats?.byEnrichment?.pending ?? 0) === 0}
+              onClick={() => handleEnrichCampaign(enrichBatchSize)}
+              disabled={isEnrichingBg || (stats?.byEnrichment?.pending ?? 0) === 0}
             >
-              {enrichMut.isPending ? (
+              {isEnrichingBg ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enriching...</>
               ) : (
                 <><Sparkles className="w-4 h-4 mr-2" /> Enrich {Math.min(enrichBatchSize, stats?.byEnrichment?.pending ?? 0)} Contacts</>

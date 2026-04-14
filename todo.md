@@ -1175,3 +1175,16 @@
 - [x] Fix: Better per-contact error logging in Apollo enrichment (logs apolloId, name, company)
 - [x] Fix: Better Hunter batch error logging (logs contact count and full stack trace)
 - [x] All 103 campaign+company tests passing
+## Bug — Enrichment gateway timeout returns HTML instead of JSON
+- [x] Error: "Unexpected token '<', <!DOCTYPE... is not valid JSON" — deployed platform gateway times out before enrichment completes
+- [x] Convert enrichment to background job pattern (start + poll) — created enrichmentJob.ts
+- [x] Return immediate response to frontend, poll for completion status
+- [x] Updated CampaignBuilder.tsx handleEnrich to use polling
+- [x] Updated Campaigns.tsx enrichMut to use polling with isEnrichingBg state
+- [x] 7 new tests for enrichmentJob module, all passing
+
+## Bug — Incomplete contacts shown in campaign dashboard
+- [x] Contacts with "Not found" email now visually de-emphasized (opacity-50 on row)
+- [x] Added "Has Email" filter option to enrichment filter dropdown
+- [x] Backend getCampaignContacts supports has_email filter (checks enrichedEmail OR email)
+- [ ] Contacts with obfuscated last names (e.g., "S.") — these get resolved when Apollo enrichment succeeds; contacts that fail enrichment keep obfuscated names (acceptable trade-off)

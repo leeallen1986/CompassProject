@@ -526,7 +526,17 @@ export async function getCampaignContacts(
     conditions.push(eq(campaignContacts.outreachStatus, options.outreachStatus as any));
   }
   if (options?.enrichmentStatus) {
-    conditions.push(eq(campaignContacts.enrichmentStatus, options.enrichmentStatus as any));
+    if (options.enrichmentStatus === "has_email") {
+      // Special filter: contacts that have an email (either enriched or imported)
+      conditions.push(
+        or(
+          sql`${campaignContacts.enrichedEmail} IS NOT NULL AND ${campaignContacts.enrichedEmail} != ''`,
+          sql`${campaignContacts.email} IS NOT NULL AND ${campaignContacts.email} != ''`
+        )!
+      );
+    } else {
+      conditions.push(eq(campaignContacts.enrichmentStatus, options.enrichmentStatus as any));
+    }
   }
   if (options?.roleBucket) {
     conditions.push(eq(campaignContacts.roleBucket, options.roleBucket));
