@@ -65,7 +65,7 @@ export interface OutreachResult {
 // campaign's collateralName field.
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface CollateralProfile {
+export interface CollateralProfile {
   /** Pattern to match against campaign.collateralName (case-insensitive) */
   pattern: RegExp;
   /** Product knowledge block injected into the LLM prompt */
@@ -288,9 +288,109 @@ The sender represents Chicago Pneumatic (part of Atlas Copco Group).
     commercialRules: `12. BRAND & COMMERCIAL LANGUAGE: This campaign is for CHICAGO PNEUMATIC (part of Atlas Copco Group). Always use "Chicago Pneumatic" or "CP" branding — NOT "Atlas Copco". The target audience is TRUCK BUILDERS and MODULE BUILDERS who integrate compressors into their vehicle builds. Position CP Truck Air as a component they BUY to integrate into their builds and RESELL as part of the finished vehicle. Use language like "integrate into your builds", "offer your customers", "competitive edge for your builds". Never position this as rental equipment.`,
   },
 
+  // ── DRILLAIR RANGE (X1350, Y1260, X-Air+ etc.) ─────────────────────────
+  {
+    pattern: /drillair|drill\s*air|x1350|y1260|x-?air\+?\s*\d|xr[vx]s\s*1[0-5]|25\s*bar.*compressor|35\s*bar.*compressor|truck.deck.*compressor|short.package/i,
+    knowledge: `
+THIS CAMPAIGN FOCUSES ON THE DRILLAIR RANGE — HIGH-PRESSURE COMPRESSORS FOR DRILLING:
+
+DrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• ~1,350 cfm at 25 bar (363 psi) working pressure
+• Short-package frame designed to mount on the truck deck alongside the drill rig
+• Dynamic Flow Boost: additional 10% air flow during flushing and drill stem refill
+• Extended Pressure Range (XPR): adjust working pressure downwards to prevent soil cavitation
+• AirXpert 2.0 performance management system — real-time flow/pressure optimisation
+• Smart Xc2003 controller with user-friendly interface and remote monitoring
+• Available with Caterpillar or Scania engines (Stage V / Tier 4 Final compliant)
+• Compact design: one truck carries both compressor and drilling rig — saves on transport
+• ECO mode for fuel savings during lower-demand drilling phases
+• PACE (Pressure Adjusted through Cognitive Electronics) for automatic pressure optimisation
+
+WHY IT MATTERS FOR DRILLING CONTRACTORS:
+Drilling is a high-pressure business — every foot drilled costs money, so the faster the holes
+can be drilled, the more profitable the operation. The DrillAir X1350 delivers the air volume
+and pressure that RC, waterwell, and blast hole drilling rigs demand, in a compact package
+that fits on the same truck as the rig. Dynamic Flow Boost gives 10% extra air during flushing
+and refill, cutting cycle times. XPR lets operators dial pressure down for overburden drilling
+without cavitation risk.
+
+IDEAL APPLICATIONS:
+- RC (Reverse Circulation) drilling — grade control, resource definition, exploration
+- Waterwell and bore drilling — agricultural, municipal, mining camp water supply
+- Blast hole drilling — open pit mining, quarrying
+- Geothermal drilling — ground source heat pump installations
+- Foundation drilling — piling, anchoring, ground engineering
+- Exploration drilling — mineral exploration, coal seam gas
+- DTH (Down-The-Hole) hammer drilling
+
+KEY DIFFERENTIATORS vs. COMPETITORS:
+1. Short-package frame fits on the truck deck — no separate trailer needed
+2. Dynamic Flow Boost delivers 10% extra air when you need it most (flushing/refill)
+3. XPR technology prevents soil cavitation during overburden drilling
+4. AirXpert 2.0 optimises performance in real-time based on drilling conditions
+5. Fuel-efficient ECO mode reduces operating costs during lower-demand phases
+6. Smart controller with remote monitoring — track fleet performance from anywhere
+7. Atlas Copco global service network and genuine parts availability
+`,
+    roleHooks: {
+      procurement: {
+        kpis: ["Total cost of ownership (TCO)", "Cost per metre drilled", "Fleet standardisation", "Parts availability & lead times", "Fuel cost per operating hour"],
+        painPoints: ["Running mismatched compressor fleet across multiple drill rigs", "High fuel costs from oversized or inefficient compressors", "Long lead times on parts for non-standard brands", "Transport costs for separate compressor trailers"],
+        messagingAngle: "Focus on TCO and fleet standardisation: the DrillAir X1350 reduces transport costs (no trailer), cuts fuel with ECO mode, and standardises parts across the fleet.",
+        productHook: "Running a separate compressor trailer to every drill site adds transport cost and logistics complexity. The DrillAir X1350 mounts directly on the truck deck alongside the rig — one truck, one mobilisation. With ECO mode cutting fuel during lower-demand phases and Dynamic Flow Boost delivering 10% extra air when you need it, your cost per metre drilled drops.",
+      },
+      engineering: {
+        kpis: ["Air volume at working pressure", "Drilling productivity (metres/hour)", "Equipment reliability", "Noise & emission compliance", "Pressure control precision"],
+        painPoints: ["Insufficient air volume causing slow flushing and poor sample recovery", "Soil cavitation during overburden drilling from fixed-pressure compressors", "Compressor performance degradation in extreme heat", "Spec mismatches between compressor output and rig requirements"],
+        messagingAngle: "Lead with technical credibility — 1,350 cfm at 25 bar, Dynamic Flow Boost for 10% extra during flushing, XPR for adjustable pressure to prevent cavitation, and AirXpert 2.0 for real-time optimisation.",
+        productHook: "When your RC rig needs maximum flushing velocity, the DrillAir X1350 delivers 1,350 cfm at 25 bar — and Dynamic Flow Boost adds 10% extra air during flushing and drill stem refill. XPR lets you dial pressure down for overburden drilling without cavitation risk, and AirXpert 2.0 optimises flow and pressure in real-time based on actual drilling conditions.",
+      },
+      operations: {
+        kpis: ["Metres drilled per shift", "Equipment availability %", "Mobilisation time", "Fuel consumption per shift", "Rig utilisation rate"],
+        painPoints: ["Compressor breakdowns halting the drill rig", "Slow flushing extending drill cycle times", "Mobilisation delays from separate compressor transport", "Fuel costs eating into project margins on remote sites"],
+        messagingAngle: "Emphasise productivity and uptime: truck-deck mounting eliminates trailer logistics, Dynamic Flow Boost cuts flushing time, ECO mode saves fuel, and remote monitoring via the smart controller keeps the fleet visible.",
+        productHook: "Every minute your drill rig waits for air is a metre you're not drilling. The DrillAir X1350 mounts on the truck deck — no trailer, no separate mobilisation — and Dynamic Flow Boost delivers 10% extra air during flushing so your cycle times drop. ECO mode saves fuel during lower-demand phases, and the smart controller lets you monitor the fleet remotely.",
+      },
+      fleet: {
+        kpis: ["Fleet utilisation rate", "Cost per operating hour", "Fleet age & replacement cycle", "Standardisation across rigs", "Resale value"],
+        painPoints: ["Mixed compressor brands complicating maintenance and parts", "Ageing compressor fleet with increasing breakdown frequency", "Oversized compressors wasting fuel on smaller rigs", "Tracking maintenance schedules across a dispersed fleet"],
+        messagingAngle: "Talk fleet modernisation and standardisation — one compressor platform across all rigs, remote monitoring for fleet visibility, and Atlas Copco's service network for parts anywhere in Australia.",
+        productHook: "Standardising your drill fleet on DrillAir X1350 means one set of parts, one service provider, and remote monitoring across every rig. The short-package design fits on the truck deck regardless of rig type, and ECO mode adapts fuel consumption to actual demand — so you're not burning diesel you don't need.",
+      },
+      executive: {
+        kpis: ["EBITDA / margin improvement", "Capital allocation efficiency", "Fleet ROI", "Contract win rate", "Market competitiveness"],
+        painPoints: ["Drilling costs eroding project margins", "Losing tenders to competitors with more efficient equipment", "Capital tied up in ageing, inefficient compressor fleet", "ESG pressure to reduce emissions from diesel equipment"],
+        messagingAngle: "Elevate to strategic fleet investment — the DrillAir X1350 improves margins through fuel efficiency, transport savings, and drilling productivity, while Stage V compliance supports ESG targets.",
+        productHook: "Consolidating your compressor fleet to the DrillAir X1350 platform reduces your cost per metre drilled through three levers: no trailer transport costs, ECO mode fuel savings, and Dynamic Flow Boost cutting flushing time. Stage V engine compliance supports your ESG commitments, and the short-package design means one truck per rig — not two.",
+      },
+      construction: {
+        kpis: ["Daily metres drilled", "Site setup time", "Equipment mobilisation speed", "Safety & environmental compliance", "Drill programme completion rate"],
+        painPoints: ["Tight drill programmes where delays cascade into project overruns", "Mobilisation complexity with separate compressor trailers", "Noise and emission restrictions near communities", "Compressor reliability on remote or difficult-access sites"],
+        messagingAngle: "Focus on drilling productivity and mobilisation speed: truck-deck mounting, Dynamic Flow Boost for faster flushing, and Stage V compliance for noise/emission-sensitive sites.",
+        productHook: "On a tight drill programme, mobilisation speed matters. The DrillAir X1350 mounts on the truck deck — one vehicle, one mobilisation, straight to the drill pad. Dynamic Flow Boost gives 10% extra air during flushing so you complete more metres per shift, and Stage V compliance means you can drill near communities without emission issues.",
+      },
+      maintenance: {
+        kpis: ["Mean time between failures (MTBF)", "Maintenance cost per operating hour", "Parts availability", "Planned vs. unplanned maintenance ratio"],
+        painPoints: ["Sourcing parts for non-standard compressor brands on remote sites", "Complex maintenance procedures requiring specialist technicians", "Dust and heat degrading compressor performance in mining environments", "Lack of remote diagnostics for early fault detection"],
+        messagingAngle: "Highlight serviceability and reliability — smart controller with remote diagnostics, Atlas Copco's national parts network, and robust construction for harsh Australian conditions.",
+        productHook: "The DrillAir X1350's smart Xc2003 controller provides remote monitoring and diagnostics — so you can spot issues before they become breakdowns. Atlas Copco's national parts network means genuine parts availability even on remote sites, and the robust construction handles Pilbara heat and Goldfields dust without missing a beat.",
+      },
+      other: {
+        kpis: ["Operational efficiency", "Cost management", "Equipment reliability", "Compliance"],
+        painPoints: ["Equipment reliability concerns on drilling projects", "Cost pressures on drilling operations", "Compressor-rig compatibility issues"],
+        messagingAngle: "Take a broad value approach — the DrillAir X1350 as a reliable, efficient, truck-deck-mounted drilling compressor backed by Atlas Copco's service network.",
+        productHook: "The DrillAir X1350 delivers ~1,350 cfm at 25 bar from a short-package frame that mounts directly on the truck deck. Dynamic Flow Boost, XPR pressure adjustment, and ECO mode optimise every drilling operation — backed by Atlas Copco's 24/7 service network across Australia.",
+      },
+    },
+    productRules: `11. DRILLAIR PRODUCT EMBED: You MUST include 2-3 specific DrillAir specs naturally in the email body that are relevant to the recipient's role. For example: "The DrillAir X1350 delivers ~1,350 cfm at 25 bar — and Dynamic Flow Boost adds 10% extra air during flushing to cut your cycle times" or "The short-package frame mounts directly on the truck deck alongside the rig — one truck, one mobilisation, straight to the drill pad." The specs should feel like you're solving their specific drilling problem, not reading a brochure. Mention that you can share the full DrillAir product range overview if they'd like more detail.`,
+    systemProductDesc: "DrillAir X1350 short-package 25 bar truck-deck compressor for RC drilling, waterwell, blast hole, and exploration drilling operations",
+    commercialRules: `12. ABSOLUTELY NO RENTAL/HIRE LANGUAGE: Never use the words "rental", "hire", "rent", "lease", "OPEX", "hire-purchase", or "rent-to-own". All messaging must be CAPEX/purchase focused. Use "service agreement", "fleet investment", or "equipment partnership" instead. Position Atlas Copco as a long-term equipment partner for drilling contractors.`,
+  },
+
   // ── XAVS1800 COMPRESSOR (DEFAULT) ──────────────────────────────────────
   {
-    pattern: /xavs|1800|compressor|blast|portable\s*air/i,
+    pattern: /xavs|1800|abrasive\s*blast|surface\s*prep/i,
     knowledge: `
 THIS CAMPAIGN FOCUSES ON THE XAVS1800 PLATFORM:
 
@@ -405,7 +505,7 @@ OTHER ATLAS COPCO PT BUSINESS LINES (mention only if relevant):
 `;
 
 /** Find the best collateral profile for a given collateral name */
-function getCollateralProfile(collateralName?: string): CollateralProfile {
+export function getCollateralProfile(collateralName?: string): CollateralProfile {
   if (collateralName) {
     for (const profile of COLLATERAL_PROFILES) {
       if (profile.pattern.test(collateralName)) {

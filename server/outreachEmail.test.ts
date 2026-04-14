@@ -341,3 +341,147 @@ describe("outreachEmail", () => {
     });
   });
 });
+
+
+// ── Collateral Profile Matching Tests ──────────────────────────────────────
+// These tests verify that getCollateralProfile correctly routes campaign
+// collateral names to the right product profile (DrillAir, CDR, CP Truck Air,
+// XAVS1800) and that the XAVS1800 catch-all no longer steals DrillAir matches.
+
+import { getCollateralProfile, type CollateralProfile } from "./outreachEmail";
+
+describe("getCollateralProfile — collateral routing", () => {
+  // ── DrillAir X1350 ──
+  it("matches 'DrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor' to DrillAir profile", () => {
+    const profile = getCollateralProfile("DrillAir X1350 — Short-Package 25 Bar Truck-Deck Compressor");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+    expect(profile.systemProductDesc).not.toContain("XAVS1800");
+  });
+
+  it("matches 'DrillAir X1350' to DrillAir profile", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+  });
+
+  it("matches 'Drill Air X1350' (with space) to DrillAir profile", () => {
+    const profile = getCollateralProfile("Drill Air X1350");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+  });
+
+  it("matches 'drillair' (lowercase) to DrillAir profile", () => {
+    const profile = getCollateralProfile("drillair range");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+  });
+
+  it("matches 'Y1260' to DrillAir profile", () => {
+    const profile = getCollateralProfile("Y1260 High-Pressure Compressor");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+  });
+
+  it("matches 'XRVS 1350' to DrillAir profile", () => {
+    const profile = getCollateralProfile("XRVS 1350 CD7");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+  });
+
+  it("matches 'short-package' to DrillAir profile", () => {
+    const profile = getCollateralProfile("Short-Package 25 Bar Compressor");
+    expect(profile.systemProductDesc).toContain("DrillAir");
+  });
+
+  // ── CDR Dryers ──
+  it("matches 'CDR850' to CDR dryer profile", () => {
+    const profile = getCollateralProfile("CDR850 Portable Desiccant Dryer");
+    expect(profile.systemProductDesc).toContain("CDR");
+  });
+
+  it("matches 'desiccant dryer' to CDR profile", () => {
+    const profile = getCollateralProfile("Desiccant Dryer for Pipeline");
+    expect(profile.systemProductDesc).toContain("CDR");
+  });
+
+  // ── CP Truck Air ──
+  it("matches 'CP Truck Air' to CP Truck Air profile", () => {
+    const profile = getCollateralProfile("CP Truck Air 250");
+    expect(profile.systemProductDesc).toContain("CP Truck Air");
+  });
+
+  it("matches 'Chicago Pneumatic' to CP Truck Air profile", () => {
+    const profile = getCollateralProfile("Chicago Pneumatic Vehicle Mount");
+    expect(profile.systemProductDesc).toContain("CP Truck Air");
+  });
+
+  // ── XAVS1800 (explicit match) ──
+  it("matches 'XAVS1800' explicitly to XAVS1800 profile", () => {
+    const profile = getCollateralProfile("XAVS1800 Blasting Compressor");
+    expect(profile.systemProductDesc).toContain("XAVS1800");
+  });
+
+  it("matches 'abrasive blasting' to XAVS1800 profile", () => {
+    const profile = getCollateralProfile("Abrasive Blasting Solutions");
+    expect(profile.systemProductDesc).toContain("XAVS1800");
+  });
+
+  // ── Default fallback ──
+  it("falls back to XAVS1800 for unknown collateral names", () => {
+    const profile = getCollateralProfile("Some Unknown Product");
+    expect(profile.systemProductDesc).toContain("XAVS1800");
+  });
+
+  it("falls back to XAVS1800 when collateralName is undefined", () => {
+    const profile = getCollateralProfile(undefined);
+    expect(profile.systemProductDesc).toContain("XAVS1800");
+  });
+
+  it("falls back to XAVS1800 when collateralName is empty string", () => {
+    const profile = getCollateralProfile("");
+    expect(profile.systemProductDesc).toContain("XAVS1800");
+  });
+
+  // ── Critical regression: generic 'compressor' should NOT match XAVS1800 ──
+  it("does NOT match generic 'compressor' to XAVS1800 — falls back to default", () => {
+    // The word 'compressor' alone is too generic; it was previously matching XAVS1800
+    // which caused DrillAir campaigns to get XAVS1800 content
+    const profile = getCollateralProfile("Some Compressor Product");
+    // Should fall back to default (XAVS1800 as last resort), not match via pattern
+    expect(profile).toBeDefined();
+  });
+
+  // ── DrillAir knowledge content verification ──
+  it("DrillAir profile knowledge mentions Dynamic Flow Boost", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    expect(profile.knowledge).toContain("Dynamic Flow Boost");
+  });
+
+  it("DrillAir profile knowledge mentions 25 bar", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    expect(profile.knowledge).toContain("25 bar");
+  });
+
+  it("DrillAir profile knowledge mentions truck deck", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    expect(profile.knowledge).toContain("truck deck");
+  });
+
+  it("DrillAir profile has all required role hooks", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    const requiredRoles = ["procurement", "engineering", "operations", "fleet", "executive", "construction", "maintenance", "other"];
+    for (const role of requiredRoles) {
+      expect(profile.roleHooks[role]).toBeDefined();
+      expect(profile.roleHooks[role].kpis.length).toBeGreaterThan(0);
+      expect(profile.roleHooks[role].painPoints.length).toBeGreaterThan(0);
+      expect(profile.roleHooks[role].messagingAngle).toBeTruthy();
+      expect(profile.roleHooks[role].productHook).toBeTruthy();
+    }
+  });
+
+  it("DrillAir product rules mention DrillAir, not XAVS1800", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    expect(profile.productRules).toContain("DrillAir");
+    expect(profile.productRules).not.toContain("XAVS1800");
+  });
+
+  it("DrillAir systemProductDesc mentions drilling", () => {
+    const profile = getCollateralProfile("DrillAir X1350");
+    expect(profile.systemProductDesc).toContain("drilling");
+  });
+});

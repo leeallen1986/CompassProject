@@ -1109,3 +1109,11 @@
   - Strategy 3: URL column scan — finds domain-like values (.com, .au, etc.) and infers company column
 - [x] Added server-side debug logging to searchCompanyContacts endpoint
 - [x] All 1,712 tests passing, no TypeScript errors
+
+## Bug — LLM email generator always references XAVS1800 instead of selected collateral product
+- [x] Email body mentions XAVS1800 even when campaign collateral is DrillAir X1350
+- [x] Fix LLM prompt to use the campaign's actual collateral product details (name, specs, key features)
+- [x] Add tests to verify correct product is referenced in generated emails
+- [x] Added full DrillAir X1350 collateral profile with knowledge base, 8 role hooks, product rules
+- [x] Narrowed XAVS1800 pattern from /xavs|1800|compressor|blast|portable\s*air/ to /xavs|1800|abrasive\s*blast|surface\s*prep/
+- [x] 23 new tests for collateral profile routing — all 1,735 tests passing
