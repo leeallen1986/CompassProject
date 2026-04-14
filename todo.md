@@ -1165,3 +1165,13 @@
 - [x] Add Phase 1d: Apollo name-only search — when domain-based search returns 0, try searching by company name alone (some companies are indexed under different domains)
 - [x] Add detailed logging for zero-result companies to help diagnose future gaps
 - [x] Update tests for new fallback phases — 6 new tests, all 1,763 tests passing
+## Bug — Enrichment returns 0 enriched for 181 imported contacts (all still pending)
+- [x] Diagnose: enrichment completes instantly with 0 enriched, 181 contacts remain pending
+- [x] Root cause 1: Malformed Apollo IDs — import regex captured trailing text like "(Hunter fallback)" causing Apollo API to reject the ID
+- [x] Root cause 2: Possible empty toEnrich query (timing/DB issue) — added diagnostic logging
+- [x] Fix: Apollo ID regex in importCampaignContacts now only captures the ID portion
+- [x] Fix: Apollo ID sanitization in enrichment loop cleans and persists corrected IDs for existing contacts
+- [x] Fix: Diagnostic logging when toEnrich is empty (logs total contacts and status breakdown)
+- [x] Fix: Better per-contact error logging in Apollo enrichment (logs apolloId, name, company)
+- [x] Fix: Better Hunter batch error logging (logs contact count and full stack trace)
+- [x] All 103 campaign+company tests passing

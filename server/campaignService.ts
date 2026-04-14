@@ -455,7 +455,8 @@ export async function importCampaignContacts(
     // Extract Apollo ID from reviewNotes if present (e.g. "Apollo ID: abc123")
     let apolloPersonId: string | undefined;
     if (c.reviewNotes) {
-      const apolloIdMatch = c.reviewNotes.match(/Apollo ID:\s*(.+)/i);
+      // Match Apollo ID up to first space/paren — avoids capturing "(Hunter fallback)" etc.
+      const apolloIdMatch = c.reviewNotes.match(/Apollo ID:\s*([^\s()]+)/i);
       if (apolloIdMatch) apolloPersonId = apolloIdMatch[1].trim();
     }
 
@@ -969,6 +970,24 @@ export async function enrichCampaignContacts(
     .orderBy(desc(campaignContacts.score))
     .limit(max);
 
+  // Diagnostic: log if no contacts found for enrichment
+  if (toEnrich.length === 0) {
+    // Check total contacts in campaign for debugging
+    const totalInCampaign = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(campaignContacts)
+      .where(eq(campaignContacts.campaignId, campaignId));
+    const statusBreakdown = await db
+      .select({
+        status: campaignContacts.enrichmentStatus,
+        count: sql<number>`count(*)`,
+      })
+      .from(campaignContacts)
+      .where(eq(campaignContacts.campaignId, campaignId))
+      .groupBy(campaignContacts.enrichmentStatus);
+    console.warn(`[Campaign] No pending contacts found for campaign ${campaignId}. Total contacts: ${totalInCampaign[0]?.count ?? 0}. Status breakdown:`, JSON.stringify(statusBreakdown));
+  }
+
   let enriched = 0;
   let notFound = 0;
   let failed = 0;
@@ -994,9 +1013,23 @@ export async function enrichCampaignContacts(
     try {
       const companyName = contact.reviewedCompanyName || contact.company;
 
+      // ── Sanitise apolloPersonId: strip trailing parenthetical text from import ──
+      // e.g. "abc123 (Hunter fallback)" → "abc123"
+      let sanitisedApolloId = contact.apolloPersonId;
+      if (sanitisedApolloId && /\s/.test(sanitisedApolloId)) {
+        sanitisedApolloId = sanitisedApolloId.split(/[\s(]/)[0].trim() || null;
+        if (sanitisedApolloId !== contact.apolloPersonId) {
+          console.log(`[Campaign] Sanitised Apollo ID for contact ${contact.id}: "${contact.apolloPersonId}" → "${sanitisedApolloId}"`);
+          // Persist the fix so future runs don't hit this again
+          await db.update(campaignContacts).set({ apolloPersonId: sanitisedApolloId }).where(eq(campaignContacts.id, contact.id));
+        }
+      }
+
       // ── Path A: Direct enrichment via stored Apollo ID ──
-      if (contact.apolloPersonId) {
-        console.log(`[Campaign] Direct Apollo enrich for contact ${contact.id} (Apollo ID: ${contact.apolloPersonId})`);
+      if (sanitisedApolloId) {
+        console.log(`[Campaign] Direct Apollo enrich for contact ${contact.id} (Apollo ID: ${sanitisedApolloId})`);
+        // Use sanitised ID for the rest of this iteration
+        contact.apolloPersonId = sanitisedApolloId;
 
         const apolloResult: ApolloEnrichmentResult = {
           contactId: contact.id,
@@ -1182,12 +1215,12 @@ export async function enrichCampaignContacts(
       apolloMissed.push(contact);
       await new Promise(r => setTimeout(r, 500));
     } catch (err) {
-      console.error(`[Campaign] Apollo enrichment failed for contact ${contact.id}:`, err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[Campaign] Apollo enrichment failed for contact ${contact.id} (apolloId=${contact.apolloPersonId}, name=${contact.firstName} ${contact.lastName}, company=${contact.company}):`, errMsg);
       apolloMissed.push(contact);
     }
   }
-
-  console.log(`[Campaign] Apollo found ${apolloFound}. ${apolloMissed.length} contacts remaining for Hunter.io`);
+  console.log(`[Campaign] Apollo step complete: ${apolloFound} found, ${apolloMissed.length} missed (of ${toEnrich.length} total). Moving to Hunter.io...`);
 
   // ── Step 2: Hunter.io enrichment (for contacts Apollo missed) ──
   const hasHunterKey = !!process.env.HUNTER_API_KEY;
@@ -1274,7 +1307,8 @@ export async function enrichCampaignContacts(
         }
       }
     } catch (err) {
-      console.error(`[Campaign] Hunter.io batch enrichment failed:`, err);
+      const errMsg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+      console.error(`[Campaign] Hunter.io batch enrichment failed for ${apolloMissed.length} contacts:`, errMsg);
       // Mark remaining as failed
       for (const contact of apolloMissed) {
         const existing = await db.select({ status: campaignContacts.enrichmentStatus })
