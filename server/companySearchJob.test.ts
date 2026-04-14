@@ -112,6 +112,14 @@ vi.mock("./hunterContactSearch", () => ({
       name: "Fleet & Equipment",
       patterns: [/fleet/i, /equipment/i, /plant\s*manager/i, /maintenance/i],
     },
+    owner_principal: {
+      name: "Owner / Principal",
+      patterns: [/\bowner\b/i, /\bprincipal\b/i, /\bfounder\b/i, /co-?founder/i, /\bpartner\b/i, /\bproprietor\b/i],
+    },
+    business_development: {
+      name: "Business Development",
+      patterns: [/business\s*develop/i, /\bcontracts?\s*(manager|director|admin)/i, /commercial\s*(manager|director)/i, /\bbd\s*manager/i, /tender/i],
+    },
     procurement: {
       name: "Procurement",
       patterns: [/procurement/i, /purchasing/i, /supply\s*chain/i, /buyer/i],
@@ -352,5 +360,121 @@ describe("companySearchJob", () => {
     expect(progress!.domainInference.resolved).toBe(3);
     expect(progress!.domainInference.highConfidence).toBe(2);
     expect(progress!.domainInference.mediumConfidence).toBe(1);
+  });
+
+  // ── Apollo Fallback Tests ──
+
+  it("should initialize apolloFallback tracking in progress", () => {
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.apolloFallback).toBeDefined();
+    expect(progress!.apolloFallback.attempted).toBe(0);
+    expect(progress!.apolloFallback.withResults).toBe(0);
+  });
+
+  it("should match owner_principal titles when that role is selected", async () => {
+    // Override the Hunter mock to return an Owner title
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "smalldriller.com.au",
+      organization: "Small Driller Pty Ltd",
+      pattern: null,
+      emails: [
+        {
+          value: "bob@smalldriller.com.au",
+          type: "personal",
+          confidence: 80,
+          first_name: "Bob",
+          last_name: "Jones",
+          position: "Owner",
+          seniority: "owner",
+          department: null,
+          linkedin: "https://linkedin.com/in/bobjones",
+          twitter: null,
+          phone_number: null,
+          verification: { date: null, status: "valid" },
+        },
+      ],
+      totalResults: 1,
+    });
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Small Driller Pty Ltd", domain: "smalldriller.com.au" }],
+      withoutDomain: [],
+      targetRoles: ["owner_principal"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    expect(progress!.contacts.length).toBe(1);
+    expect(progress!.contacts[0].title).toBe("Owner");
+    expect(progress!.contacts[0].firstName).toBe("Bob");
+  });
+
+  it("should match business_development titles when that role is selected", async () => {
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "drillingco.com.au",
+      organization: "Drilling Co",
+      pattern: null,
+      emails: [
+        {
+          value: "sarah@drillingco.com.au",
+          type: "personal",
+          confidence: 75,
+          first_name: "Sarah",
+          last_name: "Williams",
+          position: "Business Development Manager",
+          seniority: "senior",
+          department: "business_development",
+          linkedin: null,
+          twitter: null,
+          phone_number: null,
+          verification: { date: null, status: "valid" },
+        },
+        {
+          value: "mark@drillingco.com.au",
+          type: "personal",
+          confidence: 70,
+          first_name: "Mark",
+          last_name: "Brown",
+          position: "Contracts Manager",
+          seniority: "senior",
+          department: "contracts",
+          linkedin: null,
+          twitter: null,
+          phone_number: null,
+          verification: { date: null, status: "valid" },
+        },
+      ],
+      totalResults: 2,
+    });
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Drilling Co", domain: "drillingco.com.au" }],
+      withoutDomain: [],
+      targetRoles: ["business_development"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    expect(progress!.contacts.length).toBe(2);
+    expect(progress!.contacts.map(c => c.title)).toContain("Business Development Manager");
+    expect(progress!.contacts.map(c => c.title)).toContain("Contracts Manager");
   });
 });

@@ -68,6 +68,16 @@ export const PREDEFINED_ROLES: Record<string, TargetRoleConfig> = {
     name: "Site Management",
     patterns: [/site\s*manager/i, /site\s*super/i, /foreman/i, /supervisor/i, /area\s*manager/i],
   },
+  // Owner/Principal — critical for small drilling companies where the owner IS the decision-maker
+  owner_principal: {
+    name: "Owner / Principal",
+    patterns: [/\bowner\b/i, /\bprincipal\b/i, /\bfounder\b/i, /co-?founder/i, /\bpartner\b/i, /\bproprietor\b/i],
+  },
+  // Business Development — contracts, commercial, BD managers
+  business_development: {
+    name: "Business Development",
+    patterns: [/business\s*develop/i, /\bcontracts?\s*(manager|director|admin)/i, /commercial\s*(manager|director)/i, /\bbd\s*manager/i, /tender/i],
+  },
 };
 
 /** Irrelevant corporate roles to always exclude */
@@ -311,7 +321,13 @@ export async function searchContactsByCompanyName(
         apolloTitles.push("Exploration Manager", "Geologist", "Geotechnical Engineer");
         break;
       case "water_well":
-        apolloTitles.push("Water Well Driller", "Bore Driller", "Hydrogeologist");
+        apolloTitles.push("Water Well Driller", "Bore Driller", "Hydrogeologist", "Water Driller");
+        break;
+      case "owner_principal":
+        apolloTitles.push("Owner", "Principal", "Founder", "Co-Founder", "Partner", "Proprietor");
+        break;
+      case "business_development":
+        apolloTitles.push("Business Development Manager", "Contracts Manager", "Commercial Manager", "Tender Manager");
         break;
     }
   }

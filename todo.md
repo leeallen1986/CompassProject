@@ -1117,3 +1117,16 @@
 - [x] Added full DrillAir X1350 collateral profile with knowledge base, 8 role hooks, product rules
 - [x] Narrowed XAVS1800 pattern from /xavs|1800|compressor|blast|portable\s*air/ to /xavs|1800|abrasive\s*blast|surface\s*prep/
 - [x] 23 new tests for collateral profile routing — all 1,735 tests passing
+
+## Bug — Company list search missing many contacts that exist on LinkedIn
+- [x] Investigate: 28 companies uploaded but only 60 contacts found (~2.1 per company)
+- [x] Audit domain parsing: all 28 companies have domains in Excel — verified all extracted correctly (Strategy 2 finds header at row 3)
+- [x] Audit Hunter.io coverage: small Australian drilling companies often return 0 from Hunter
+- [x] Audit Apollo fallback: confirmed Apollo was NOT running for Hunter zero-result domains — only for companies with no domain at all
+- [x] Audit role filtering: Owner, Principal, Founder, Contracts Manager, BD Manager were all missing from role categories
+- [x] Added Apollo People Search as fallback for Hunter zero-result domains (Phase 1b in pipeline)
+- [x] Added owner_principal role category (Owner, Principal, Founder, Co-Founder, Partner, Proprietor)
+- [x] Added business_development role category (BD Manager, Contracts Manager, Commercial Manager, Tender Manager)
+- [x] Updated Apollo title mapping for new roles in both companySearchJob.ts and hunterContactSearch.ts
+- [x] Added apolloFallback tracking to CompanySearchProgress (attempted, withResults)
+- [x] 23 new tests — all 1,758 tests passing

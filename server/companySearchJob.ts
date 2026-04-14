@@ -4,6 +4,8 @@
  * Pipeline:
  * Phase 0: LLM Domain Inference — resolve domains for companies without them
  * Phase 1: Hunter.io Domain Search — search companies with domains (original + inferred)
+ * Phase 1b: Apollo Domain Fallback — for companies where Hunter returned 0 role-matched contacts,
+ *           re-search via Apollo People Search using the company domain + name (free, LinkedIn-sourced)
  * Phase 2: Apollo Name Search — fallback for companies where LLM couldn't infer a domain
  *
  * Flow:
@@ -70,6 +72,13 @@ export interface CompanySearchProgress {
     resolved: number;
     highConfidence: number;
     mediumConfidence: number;
+  };
+  /** Apollo fallback stats */
+  apolloFallback: {
+    /** Companies that went to Apollo fallback after Hunter returned 0 */
+    attempted: number;
+    /** Companies where Apollo found at least 1 contact */
+    withResults: number;
   };
 }
 
@@ -149,7 +158,7 @@ function buildApolloTitles(targetRoles: string[]): string[] {
         titles.push("Site Manager", "Site Supervisor", "Foreman", "Area Manager");
         break;
       case "rc_driller":
-        titles.push("Drill Manager", "Rig Manager", "Drilling Superintendent");
+        titles.push("Drill Manager", "Rig Manager", "Drilling Superintendent", "Driller", "Senior Driller");
         break;
       case "blasting":
         titles.push("Blasting Manager", "Coating Manager", "Surface Preparation Manager");
@@ -158,7 +167,13 @@ function buildApolloTitles(targetRoles: string[]): string[] {
         titles.push("Exploration Manager", "Geologist", "Geotechnical Engineer");
         break;
       case "water_well":
-        titles.push("Water Well Manager", "Bore Driller", "Hydrogeologist");
+        titles.push("Water Well Manager", "Bore Driller", "Hydrogeologist", "Water Driller");
+        break;
+      case "owner_principal":
+        titles.push("Owner", "Principal", "Founder", "Co-Founder", "Partner", "Proprietor");
+        break;
+      case "business_development":
+        titles.push("Business Development Manager", "Contracts Manager", "Commercial Manager", "Sales Manager", "Account Manager");
         break;
     }
   }
@@ -194,6 +209,10 @@ export function startCompanySearch(input: CompanySearchJobInput): string {
       resolved: 0,
       highConfidence: 0,
       mediumConfidence: 0,
+    },
+    apolloFallback: {
+      attempted: 0,
+      withResults: 0,
     },
   };
 
@@ -266,6 +285,9 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
   }
 
   // ── Phase 1: Hunter domain search ──
+  // Track companies where Hunter returned 0 role-matched contacts for Apollo fallback
+  const hunterZeroResultCompanies: { company: string; domain: string }[] = [];
+
   job.phase = "searching_hunter";
   console.log(`[CompanySearchJob] ${jobId} Phase 1: Hunter search for ${companiesWithDomain.length} companies`);
 
@@ -305,7 +327,12 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
         if (domainContacts.length >= input.maxPerCompany) break;
       }
 
-      if (domainContacts.length > 0) job.companiesWithResults++;
+      if (domainContacts.length > 0) {
+        job.companiesWithResults++;
+      } else {
+        // Hunter returned 0 role-matched contacts → queue for Apollo fallback
+        hunterZeroResultCompanies.push(company);
+      }
       job.totalFiltered += domainFiltered;
       job.contacts.push(...domainContacts);
       job.domainBreakdown.push({
@@ -316,6 +343,8 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
       });
     } catch (err) {
       console.error(`[CompanySearchJob] Hunter failed for ${company.domain}:`, err);
+      // Hunter API error → also queue for Apollo fallback
+      hunterZeroResultCompanies.push(company);
       job.domainBreakdown.push({
         domain: company.domain,
         organization: company.company || company.domain,
@@ -328,10 +357,90 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
     await new Promise(r => setTimeout(r, 200));
   }
 
-  // ── Phase 2: Apollo company name search (fallback) ──
+  // ── Phase 1b: Apollo fallback for Hunter zero-result domains ──
+  // This is the KEY fix: when Hunter returns 0 contacts for a domain,
+  // we now fall back to Apollo People Search which uses LinkedIn-sourced data.
+  if (hunterZeroResultCompanies.length > 0) {
+    job.phase = "searching_apollo";
+    job.apolloFallback.attempted = hunterZeroResultCompanies.length;
+    console.log(`[CompanySearchJob] ${jobId} Phase 1b: Apollo fallback for ${hunterZeroResultCompanies.length} Hunter zero-result companies`);
+
+    for (const company of hunterZeroResultCompanies) {
+      if (job.contacts.length >= input.maxTotal) break;
+
+      job.currentCompany = `Apollo fallback: ${company.company}`;
+
+      try {
+        // Search Apollo using BOTH domain and company name for best results
+        const result = await apolloPeopleSearch({
+          organizationDomains: [company.domain],
+          organizationName: company.company,
+          personTitles: apolloTitles.length > 0 ? apolloTitles : undefined,
+          organizationLocations: ["Australia"],
+          perPage: 50,
+        });
+
+        job.totalFound += result.people.length;
+        let companyFiltered = 0;
+        const companyContacts: RawContactRow[] = [];
+
+        for (const person of result.people) {
+          if (isExcludedRole(person.title)) continue;
+          if (rolePatterns.length > 0 && !matchesRole(person.title, rolePatterns)) continue;
+
+          companyContacts.push({
+            firstName: person.first_name || null,
+            lastName: person.last_name_obfuscated || null,
+            title: person.title || null,
+            company: person.organization?.name || company.company,
+            reviewedCompanyName: person.organization?.name || null,
+            phone: null,
+            mobile: null,
+            email: null,
+            nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
+            reviewNotes: `Apollo ID: ${person.id} (Hunter fallback)`,
+            sourceRow: rowCounter++,
+          });
+
+          companyFiltered++;
+          if (companyContacts.length >= input.maxPerCompany) break;
+          if (job.contacts.length + companyContacts.length >= input.maxTotal) break;
+        }
+
+        if (companyContacts.length > 0) {
+          job.companiesWithResults++;
+          job.apolloFallback.withResults++;
+        }
+        job.totalFiltered += companyFiltered;
+        job.contacts.push(...companyContacts);
+
+        // Update the domain breakdown entry for this company
+        const existingIdx = job.domainBreakdown.findIndex(d => d.domain === company.domain);
+        if (existingIdx >= 0) {
+          job.domainBreakdown[existingIdx].found += result.people.length;
+          job.domainBreakdown[existingIdx].filtered += companyFiltered;
+        } else {
+          job.domainBreakdown.push({
+            domain: company.domain,
+            organization: company.company,
+            found: result.people.length,
+            filtered: companyFiltered,
+          });
+        }
+      } catch (err) {
+        console.error(`[CompanySearchJob] Apollo fallback failed for "${company.company}" (${company.domain}):`, err);
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    console.log(`[CompanySearchJob] ${jobId} Apollo fallback: ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} companies yielded contacts`);
+  }
+
+  // ── Phase 2: Apollo company name search (for companies with no domain at all) ──
   if (companiesForApollo.length > 0) {
     job.phase = "searching_apollo";
-    console.log(`[CompanySearchJob] ${jobId} Phase 2: Apollo fallback for ${companiesForApollo.length} companies`);
+    console.log(`[CompanySearchJob] ${jobId} Phase 2: Apollo name search for ${companiesForApollo.length} companies (no domain)`);
 
     for (const company of companiesForApollo) {
       if (job.contacts.length >= input.maxTotal) break;
@@ -402,5 +511,5 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
   job.status = "completed";
   job.currentCompany = null;
   job.elapsedSeconds = Math.round((Date.now() - job.startedAt) / 1000);
-  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred by LLM)`);
+  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred, ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} Apollo fallbacks successful)`);
 }
