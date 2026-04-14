@@ -80,6 +80,16 @@ export interface CompanySearchProgress {
     /** Companies where Apollo found at least 1 contact */
     withResults: number;
   };
+  /** Phase 1c: Unfiltered Apollo fallback (no role/location filters) */
+  unfilteredFallback: {
+    attempted: number;
+    withResults: number;
+  };
+  /** Phase 1d: Name-only Apollo search (no domain, just company name) */
+  nameOnlyFallback: {
+    attempted: number;
+    withResults: number;
+  };
 }
 
 // ── In-memory job store ──
@@ -211,6 +221,14 @@ export function startCompanySearch(input: CompanySearchJobInput): string {
       mediumConfidence: 0,
     },
     apolloFallback: {
+      attempted: 0,
+      withResults: 0,
+    },
+    unfilteredFallback: {
+      attempted: 0,
+      withResults: 0,
+    },
+    nameOnlyFallback: {
       attempted: 0,
       withResults: 0,
     },
@@ -437,6 +455,179 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
     console.log(`[CompanySearchJob] ${jobId} Apollo fallback: ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} companies yielded contacts`);
   }
 
+  // ── Phase 1c: Unfiltered Apollo fallback ──
+  // For companies where Phase 1b (Apollo with role+location filters) ALSO returned 0,
+  // retry with NO role filter and NO location filter. Small Australian companies
+  // may have people indexed under unexpected titles or locations.
+  const phase1bZeroCompanies = hunterZeroResultCompanies.filter(c => {
+    const breakdown = job.domainBreakdown.find(d => d.domain === c.domain);
+    return !breakdown || breakdown.filtered === 0;
+  });
+
+  if (phase1bZeroCompanies.length > 0) {
+    job.phase = "searching_apollo";
+    job.unfilteredFallback.attempted = phase1bZeroCompanies.length;
+    console.log(`[CompanySearchJob] ${jobId} Phase 1c: Unfiltered Apollo fallback for ${phase1bZeroCompanies.length} companies (no role/location filters)`);
+
+    for (const company of phase1bZeroCompanies) {
+      if (job.contacts.length >= input.maxTotal) break;
+
+      job.currentCompany = `Unfiltered search: ${company.company}`;
+
+      try {
+        // Search with ONLY domain — no role titles, no location filter
+        const result = await apolloPeopleSearch({
+          organizationDomains: [company.domain],
+          perPage: 25,
+        });
+
+        job.totalFound += result.people.length;
+        let companyFiltered = 0;
+        const companyContacts: RawContactRow[] = [];
+
+        for (const person of result.people) {
+          // Still exclude clearly irrelevant roles (HR, finance, etc.)
+          if (isExcludedRole(person.title)) continue;
+
+          companyContacts.push({
+            firstName: person.first_name || null,
+            lastName: person.last_name_obfuscated || null,
+            title: person.title || null,
+            company: person.organization?.name || company.company,
+            reviewedCompanyName: person.organization?.name || null,
+            phone: null,
+            mobile: null,
+            email: null,
+            nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
+            reviewNotes: `Apollo ID: ${person.id} (unfiltered fallback)`,
+            sourceRow: rowCounter++,
+          });
+
+          companyFiltered++;
+          if (companyContacts.length >= input.maxPerCompany) break;
+          if (job.contacts.length + companyContacts.length >= input.maxTotal) break;
+        }
+
+        if (companyContacts.length > 0) {
+          job.companiesWithResults++;
+          job.unfilteredFallback.withResults++;
+        }
+        job.totalFiltered += companyFiltered;
+        job.contacts.push(...companyContacts);
+
+        // Update domain breakdown
+        const existingIdx = job.domainBreakdown.findIndex(d => d.domain === company.domain);
+        if (existingIdx >= 0) {
+          job.domainBreakdown[existingIdx].found += result.people.length;
+          job.domainBreakdown[existingIdx].filtered += companyFiltered;
+        } else {
+          job.domainBreakdown.push({
+            domain: company.domain,
+            organization: company.company,
+            found: result.people.length,
+            filtered: companyFiltered,
+          });
+        }
+
+        if (result.people.length === 0) {
+          console.log(`[CompanySearchJob] ${jobId} Phase 1c: ${company.company} (${company.domain}) — Apollo has 0 people indexed even without filters`);
+        }
+      } catch (err) {
+        console.error(`[CompanySearchJob] Unfiltered Apollo fallback failed for "${company.company}" (${company.domain}):`, err);
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    console.log(`[CompanySearchJob] ${jobId} Unfiltered fallback: ${job.unfilteredFallback.withResults}/${job.unfilteredFallback.attempted} companies yielded contacts`);
+  }
+
+  // ── Phase 1d: Name-only Apollo search ──
+  // For companies STILL at zero after Phase 1c, try searching by company name alone
+  // (without domain). Some companies are indexed in Apollo under a different domain
+  // than what's in the spreadsheet (e.g., parent company domain, old domain, etc.)
+  const phase1cZeroCompanies = phase1bZeroCompanies.filter(c => {
+    const breakdown = job.domainBreakdown.find(d => d.domain === c.domain);
+    return !breakdown || breakdown.filtered === 0;
+  });
+
+  if (phase1cZeroCompanies.length > 0) {
+    job.phase = "searching_apollo";
+    job.nameOnlyFallback.attempted = phase1cZeroCompanies.length;
+    console.log(`[CompanySearchJob] ${jobId} Phase 1d: Name-only Apollo search for ${phase1cZeroCompanies.length} companies`);
+
+    for (const company of phase1cZeroCompanies) {
+      if (job.contacts.length >= input.maxTotal) break;
+
+      job.currentCompany = `Name search: ${company.company}`;
+
+      try {
+        // Search by company name only — no domain, no location, no role filter
+        const result = await apolloPeopleSearch({
+          organizationName: company.company,
+          perPage: 25,
+        });
+
+        job.totalFound += result.people.length;
+        let companyFiltered = 0;
+        const companyContacts: RawContactRow[] = [];
+
+        for (const person of result.people) {
+          if (isExcludedRole(person.title)) continue;
+
+          companyContacts.push({
+            firstName: person.first_name || null,
+            lastName: person.last_name_obfuscated || null,
+            title: person.title || null,
+            company: person.organization?.name || company.company,
+            reviewedCompanyName: person.organization?.name || null,
+            phone: null,
+            mobile: null,
+            email: null,
+            nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
+            reviewNotes: `Apollo ID: ${person.id} (name-only fallback)`,
+            sourceRow: rowCounter++,
+          });
+
+          companyFiltered++;
+          if (companyContacts.length >= input.maxPerCompany) break;
+          if (job.contacts.length + companyContacts.length >= input.maxTotal) break;
+        }
+
+        if (companyContacts.length > 0) {
+          job.companiesWithResults++;
+          job.nameOnlyFallback.withResults++;
+        }
+        job.totalFiltered += companyFiltered;
+        job.contacts.push(...companyContacts);
+
+        // Update domain breakdown
+        const existingIdx = job.domainBreakdown.findIndex(d => d.domain === company.domain);
+        if (existingIdx >= 0) {
+          job.domainBreakdown[existingIdx].found += result.people.length;
+          job.domainBreakdown[existingIdx].filtered += companyFiltered;
+        } else {
+          job.domainBreakdown.push({
+            domain: company.domain,
+            organization: company.company,
+            found: result.people.length,
+            filtered: companyFiltered,
+          });
+        }
+
+        if (result.people.length === 0) {
+          console.log(`[CompanySearchJob] ${jobId} Phase 1d: ${company.company} — not indexed in Apollo at all (tried domain + name)`);
+        }
+      } catch (err) {
+        console.error(`[CompanySearchJob] Name-only Apollo search failed for "${company.company}":`, err);
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    console.log(`[CompanySearchJob] ${jobId} Name-only fallback: ${job.nameOnlyFallback.withResults}/${job.nameOnlyFallback.attempted} companies yielded contacts`);
+  }
+
   // ── Phase 2: Apollo company name search (for companies with no domain at all) ──
   if (companiesForApollo.length > 0) {
     job.phase = "searching_apollo";
@@ -511,5 +702,5 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
   job.status = "completed";
   job.currentCompany = null;
   job.elapsedSeconds = Math.round((Date.now() - job.startedAt) / 1000);
-  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred, ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} Apollo fallbacks successful)`);
+  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred, Apollo fallbacks: ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} filtered, ${job.unfilteredFallback.withResults}/${job.unfilteredFallback.attempted} unfiltered, ${job.nameOnlyFallback.withResults}/${job.nameOnlyFallback.attempted} name-only)`);
 }

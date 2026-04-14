@@ -1158,3 +1158,10 @@
 - [x] Fix: Upload ZIP to S3 via storagePut(), return URL instead of base64
 - [x] Updated both Campaigns.tsx download handlers (campaign dashboard + approval queue)
 - [x] All 1,758 tests passing, no TypeScript errors
+## Bug — 7 companies with domains return zero contacts from both Hunter and Apollo
+- [x] Root cause: Small Australian rental/hire companies (.au domains) are under-represented in US-centric Hunter.io and Apollo databases
+- [x] Companies affected: Access Party Hire, Onsite Rental Group, Air Powered Services, Air Rentals, Mobile Compressed Air, Under Pressure Air Compressors, CAHS
+- [x] Add Phase 1c: Unfiltered Apollo fallback — when Phase 1b (Apollo with role+location filters) also returns 0, retry with NO role filter and NO location filter to catch any indexed person
+- [x] Add Phase 1d: Apollo name-only search — when domain-based search returns 0, try searching by company name alone (some companies are indexed under different domains)
+- [x] Add detailed logging for zero-result companies to help diagnose future gaps
+- [x] Update tests for new fallback phases — 6 new tests, all 1,763 tests passing

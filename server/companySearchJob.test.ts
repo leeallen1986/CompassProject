@@ -477,4 +477,260 @@ describe("companySearchJob", () => {
     expect(progress!.contacts.map(c => c.title)).toContain("Business Development Manager");
     expect(progress!.contacts.map(c => c.title)).toContain("Contracts Manager");
   });
+
+  // ── Phase 1c & 1d Fallback Tests ──
+
+  it("should initialize unfilteredFallback and nameOnlyFallback tracking in progress", () => {
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.unfilteredFallback).toBeDefined();
+    expect(progress!.unfilteredFallback.attempted).toBe(0);
+    expect(progress!.unfilteredFallback.withResults).toBe(0);
+    expect(progress!.nameOnlyFallback).toBeDefined();
+    expect(progress!.nameOnlyFallback.attempted).toBe(0);
+    expect(progress!.nameOnlyFallback.withResults).toBe(0);
+  });
+
+  it("should attempt Phase 1c unfiltered search when Hunter and Apollo filtered both return 0", async () => {
+    // Mock Hunter to return 0 emails for this domain
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "tinydriller.com.au",
+      organization: "Tiny Driller",
+      pattern: null,
+      emails: [],
+      totalResults: 0,
+    });
+
+    // Mock Apollo to return 0 on first call (filtered), then return a person on second call (unfiltered)
+    const { apolloPeopleSearch: mockApolloSearch } = await import("./apolloEnrichment");
+    (mockApolloSearch as any)
+      .mockResolvedValueOnce({ people: [], total_entries: 0 })  // Phase 1b: filtered → 0
+      .mockResolvedValueOnce({                                   // Phase 1c: unfiltered → 1 person
+        people: [
+          {
+            id: "apollo-unfiltered-1",
+            first_name: "Dave",
+            last_name_obfuscated: "Sm***h",
+            title: "Director",
+            has_email: true,
+            organization: { name: "Tiny Driller Pty Ltd" },
+          },
+        ],
+        total_entries: 1,
+      });
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Tiny Driller", domain: "tinydriller.com.au" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(15000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    expect(progress!.unfilteredFallback.attempted).toBe(1);
+    expect(progress!.unfilteredFallback.withResults).toBe(1);
+    expect(progress!.contacts.length).toBe(1);
+    expect(progress!.contacts[0].firstName).toBe("Dave");
+    expect(progress!.contacts[0].reviewNotes).toContain("unfiltered fallback");
+  });
+
+  it("should attempt Phase 1d name-only search when all prior phases return 0", async () => {
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "cahs.au",
+      organization: "",
+      pattern: null,
+      emails: [],
+      totalResults: 0,
+    });
+
+    const { apolloPeopleSearch: mockApolloSearch } = await import("./apolloEnrichment");
+    (mockApolloSearch as any)
+      .mockResolvedValueOnce({ people: [], total_entries: 0 })  // Phase 1b: filtered → 0
+      .mockResolvedValueOnce({ people: [], total_entries: 0 })  // Phase 1c: unfiltered → 0
+      .mockResolvedValueOnce({                                   // Phase 1d: name-only → 1 person
+        people: [
+          {
+            id: "apollo-nameonly-1",
+            first_name: "Tom",
+            last_name_obfuscated: "Br***n",
+            title: "General Manager",
+            has_email: true,
+            organization: { name: "CAHS Australia" },
+          },
+        ],
+        total_entries: 1,
+      });
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "CAHS", domain: "cahs.au" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(20000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    expect(progress!.nameOnlyFallback.attempted).toBe(1);
+    expect(progress!.nameOnlyFallback.withResults).toBe(1);
+    expect(progress!.contacts.length).toBe(1);
+    expect(progress!.contacts[0].firstName).toBe("Tom");
+    expect(progress!.contacts[0].reviewNotes).toContain("name-only fallback");
+  });
+
+  it("should skip Phase 1c/1d when Phase 1b already found contacts", async () => {
+    // Hunter returns 0 but Apollo filtered returns contacts → no need for 1c/1d
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "onsitegroup.com.au",
+      organization: "Onsite Rental Group",
+      pattern: null,
+      emails: [],
+      totalResults: 0,
+    });
+
+    const { apolloPeopleSearch: mockApolloSearch } = await import("./apolloEnrichment");
+    (mockApolloSearch as any).mockResolvedValueOnce({
+      people: [
+        {
+          id: "apollo-filtered-1",
+          first_name: "Lisa",
+          last_name_obfuscated: "Ta***r",
+          title: "Operations Manager",
+          has_email: true,
+          organization: { name: "Onsite Rental Group" },
+        },
+      ],
+      total_entries: 1,
+    });
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Onsite Rental Group", domain: "onsitegroup.com.au" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(15000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    // Phase 1b found a contact, so 1c and 1d should not have been attempted
+    expect(progress!.unfilteredFallback.attempted).toBe(0);
+    expect(progress!.nameOnlyFallback.attempted).toBe(0);
+    expect(progress!.contacts.length).toBe(1);
+  });
+
+  it("should still exclude HR/Marketing roles even in unfiltered Phase 1c", async () => {
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "airrentals.net.au",
+      organization: "Air Rentals",
+      pattern: null,
+      emails: [],
+      totalResults: 0,
+    });
+
+    const { apolloPeopleSearch: mockApolloSearch } = await import("./apolloEnrichment");
+    (mockApolloSearch as any)
+      .mockResolvedValueOnce({ people: [], total_entries: 0 })  // Phase 1b
+      .mockResolvedValueOnce({                                   // Phase 1c: unfiltered
+        people: [
+          {
+            id: "apollo-hr-1",
+            first_name: "Karen",
+            last_name_obfuscated: "Jo***s",
+            title: "HR Manager",
+            has_email: true,
+            organization: { name: "Air Rentals" },
+          },
+          {
+            id: "apollo-gm-1",
+            first_name: "Steve",
+            last_name_obfuscated: "Wi***s",
+            title: "General Manager",
+            has_email: true,
+            organization: { name: "Air Rentals" },
+          },
+        ],
+        total_entries: 2,
+      });
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Air Rentals", domain: "airrentals.net.au" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(15000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    // HR Manager should be excluded, General Manager should be kept
+    expect(progress!.contacts.length).toBe(1);
+    expect(progress!.contacts[0].title).toBe("General Manager");
+  });
+
+  it("should log zero-result companies that are not indexed anywhere", async () => {
+    const consoleSpy = vi.spyOn(console, "log");
+
+    const { domainSearch: mockDomainSearch } = await import("./hunterService");
+    (mockDomainSearch as any).mockResolvedValueOnce({
+      domain: "upac.au",
+      organization: "",
+      pattern: null,
+      emails: [],
+      totalResults: 0,
+    });
+
+    const { apolloPeopleSearch: mockApolloSearch } = await import("./apolloEnrichment");
+    (mockApolloSearch as any)
+      .mockResolvedValueOnce({ people: [], total_entries: 0 })  // Phase 1b
+      .mockResolvedValueOnce({ people: [], total_entries: 0 })  // Phase 1c
+      .mockResolvedValueOnce({ people: [], total_entries: 0 }); // Phase 1d
+
+    const jobId = startCompanySearch({
+      withDomain: [{ company: "Under Pressure Air Compressors", domain: "upac.au" }],
+      withoutDomain: [],
+      targetRoles: ["operations"],
+      maxPerCompany: 5,
+      maxTotal: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(20000);
+
+    const progress = getCompanySearchProgress(jobId);
+    expect(progress!.status).toBe("completed");
+    expect(progress!.contacts.length).toBe(0);
+    // Should have attempted all fallback phases
+    expect(progress!.unfilteredFallback.attempted).toBe(1);
+    expect(progress!.nameOnlyFallback.attempted).toBe(1);
+    // Should have logged diagnostic messages
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Phase 1c")
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Phase 1d")
+    );
+
+    consoleSpy.mockRestore();
+  });
 });
