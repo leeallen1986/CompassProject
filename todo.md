@@ -1130,3 +1130,14 @@
 - [x] Updated Apollo title mapping for new roles in both companySearchJob.ts and hunterContactSearch.ts
 - [x] Added apolloFallback tracking to CompanySearchProgress (attempted, withResults)
 - [x] 23 new tests — all 1,758 tests passing
+
+## Feature — Batch re-run contact discovery for existing campaigns
+- [x] Query all 4 campaigns to get their IDs, stored domains, search roles, and existing contact emails
+- [x] Write a script to re-run discovery for each campaign using the improved pipeline (Apollo fallback + new roles)
+- [x] Deduplicate against existing contacts (skip already-known emails)
+- [x] Insert newly discovered contacts into each campaign
+- [x] Report results: 137 new contacts found across 4 campaigns
+  - CDR Rental Campaign: +33 new (56 → 89)
+  - X1350 Drill Campaign: +96 new (282 → 378) — Apollo fallback found 31
+  - CP Truck Air: +8 new (91 → 99)
+  - x1350 Drilling Promotion: 0 new (already well-covered at 60)
