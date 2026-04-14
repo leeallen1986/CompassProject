@@ -367,3 +367,264 @@ export function isLinkedInResultAustralianRelevant(person: {
     linkedinLocation: person.location,
   });
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// Company & Email Domain Geo-Filtering (for company search pipeline)
+// ══════════════════════════════════════════════════════════════════════
+
+// ── AU/NZ Email Domain TLDs ──
+const AU_NZ_EMAIL_TLDS = [
+  ".com.au",
+  ".net.au",
+  ".org.au",
+  ".edu.au",
+  ".gov.au",
+  ".asn.au",
+  ".id.au",
+  ".co.nz",
+  ".net.nz",
+  ".org.nz",
+  ".govt.nz",
+  ".ac.nz",
+];
+
+// ── Known non-AU/NZ Email Domain TLDs ──
+const NON_AUNZ_EMAIL_TLDS = [
+  ".us",
+  ".co.uk",
+  ".org.uk",
+  ".ca",
+  ".de",
+  ".fr",
+  ".it",
+  ".es",
+  ".nl",
+  ".se",
+  ".no",
+  ".dk",
+  ".fi",
+  ".jp",
+  ".cn",
+  ".in",
+  ".br",
+  ".za",
+  ".sg",
+  ".hk",
+  ".my",
+  ".ph",
+  ".id",
+  ".th",
+  ".vn",
+  ".kr",
+  ".tw",
+  ".ae",
+  ".sa",
+  ".ru",
+  ".pl",
+  ".cz",
+  ".at",
+  ".ch",
+  ".be",
+  ".ie",
+  ".pt",
+];
+
+// ── AU/NZ Company Name Indicators ──
+const AUNZ_COMPANY_PATTERNS: RegExp[] = [
+  /\bpty\b/i,
+  /\bpty\s*ltd\b/i,
+  /\baustralia\b/i,
+  /\baustralian\b/i,
+  /\bnew\s*zealand\b/i,
+];
+
+// ── Non-AU/NZ Company Name Indicators ──
+// These patterns target US-style legal suffixes. We require them to appear
+// as the FINAL word (with optional period) to avoid false positives on
+// company names that happen to contain these words mid-name.
+const NON_AUNZ_COMPANY_PATTERNS: RegExp[] = [
+  /\bllc\.?\s*$/i,          // "... LLC" or "... LLC."
+  /,?\s+inc\.?\s*$/i,       // "..., Inc." or "... Inc"
+  /\bcorporation\s*$/i,     // "... Corporation"
+  /,?\s+corp\.?\s*$/i,      // "..., Corp." or "... Corp"
+  /(?<!pty\s)\bltd\.?\s*$/i, // "... Ltd" but NOT "Pty Ltd" (which is Australian)
+  /\bgmbh\b/i,              // German company suffix
+  /\bs\.?a\.?\s*$/i,        // "... SA" or "... S.A." (European/Latin American)
+];
+
+// ── AU/NZ Country Names (for Apollo enrichment data) ──
+const AUNZ_COUNTRY_NAMES = [
+  "australia",
+  "new zealand",
+  "au",
+  "nz",
+  "aus",
+  "nzl",
+];
+
+export type CompanyGeoCheckResult = {
+  isAuNz: boolean;
+  confidence: "high" | "medium" | "low";
+  reason: string;
+};
+
+/**
+ * Check if an email domain is definitively AU/NZ or non-AU/NZ.
+ * Returns null if ambiguous (.com, .net, .org).
+ */
+export function checkEmailDomainGeo(email: string | null | undefined): CompanyGeoCheckResult | null {
+  if (!email) return null;
+
+  const lower = email.toLowerCase().trim();
+  const atIndex = lower.lastIndexOf("@");
+  if (atIndex < 0) return null;
+
+  const domain = lower.substring(atIndex + 1);
+
+  for (const tld of AU_NZ_EMAIL_TLDS) {
+    if (domain.endsWith(tld)) {
+      return { isAuNz: true, confidence: "high", reason: `Email domain ends with ${tld}` };
+    }
+  }
+
+  for (const tld of NON_AUNZ_EMAIL_TLDS) {
+    if (domain.endsWith(tld)) {
+      return { isAuNz: false, confidence: "high", reason: `Email domain ends with ${tld} (non-AU/NZ)` };
+    }
+  }
+
+  return null; // .com, .net, .org — ambiguous
+}
+
+/**
+ * Check if a company domain TLD is definitively AU/NZ or non-AU/NZ.
+ * Returns null if ambiguous (.com, .net, .org).
+ */
+export function checkCompanyDomainGeo(domain: string | null | undefined): CompanyGeoCheckResult | null {
+  if (!domain) return null;
+
+  const lower = domain.toLowerCase().trim();
+
+  for (const tld of AU_NZ_EMAIL_TLDS) {
+    if (lower.endsWith(tld)) {
+      return { isAuNz: true, confidence: "high", reason: `Company domain ends with ${tld}` };
+    }
+  }
+
+  for (const tld of NON_AUNZ_EMAIL_TLDS) {
+    if (lower.endsWith(tld)) {
+      return { isAuNz: false, confidence: "high", reason: `Company domain ends with ${tld} (non-AU/NZ)` };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Check if a company name suggests AU/NZ or non-AU/NZ origin.
+ */
+export function checkCompanyNameGeo(companyName: string | null | undefined): CompanyGeoCheckResult | null {
+  if (!companyName) return null;
+
+  for (const pattern of AUNZ_COMPANY_PATTERNS) {
+    if (pattern.test(companyName)) {
+      return { isAuNz: true, confidence: "medium", reason: `Company name matches AU/NZ pattern: ${pattern}` };
+    }
+  }
+
+  for (const pattern of NON_AUNZ_COMPANY_PATTERNS) {
+    if (pattern.test(companyName)) {
+      return { isAuNz: false, confidence: "medium", reason: `Company name matches non-AU/NZ pattern: ${pattern}` };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Check if a country string (from Apollo enrichment) is AU/NZ.
+ */
+export function checkCountryGeo(country: string | null | undefined): CompanyGeoCheckResult | null {
+  if (!country) return null;
+
+  const lower = country.toLowerCase().trim();
+
+  if (AUNZ_COUNTRY_NAMES.includes(lower)) {
+    return { isAuNz: true, confidence: "high", reason: `Country is ${country}` };
+  }
+
+  return { isAuNz: false, confidence: "high", reason: `Country is ${country} (not AU/NZ)` };
+}
+
+/**
+ * Combined geo-check for a contact/company using all available signals.
+ * Priority: country > email domain > company domain > company name
+ *
+ * Returns isAuNz=true if the contact appears to be AU/NZ.
+ * For ambiguous cases (.com domains, no company indicators), defaults to true
+ * (benefit of the doubt — the company was in our target list).
+ */
+export function isAuNzCompanyContact(params: {
+  email?: string | null;
+  company?: string | null;
+  country?: string | null;
+  domain?: string | null;
+}): CompanyGeoCheckResult {
+  // 1. Country field (highest confidence — from Apollo enrichment)
+  const countryCheck = checkCountryGeo(params.country);
+  if (countryCheck && countryCheck.confidence === "high") {
+    return countryCheck;
+  }
+
+  // 2. Email domain TLD
+  const emailCheck = checkEmailDomainGeo(params.email);
+  if (emailCheck && emailCheck.confidence === "high") {
+    return emailCheck;
+  }
+
+  // 3. Company domain TLD
+  const domainCheck = checkCompanyDomainGeo(params.domain);
+  if (domainCheck && domainCheck.confidence === "high") {
+    return domainCheck;
+  }
+
+  // 4. Company name heuristics
+  const companyCheck = checkCompanyNameGeo(params.company);
+  if (companyCheck) {
+    return companyCheck;
+  }
+
+  // Can't determine — assume AU/NZ (benefit of the doubt)
+  return { isAuNz: true, confidence: "low", reason: "No geo signals found — assumed AU/NZ" };
+}
+
+/**
+ * Filter contacts from company search results, removing non-AU/NZ entries.
+ * Used during import to exclude contacts like Easy Air Rentals (US .com company).
+ */
+export function filterAuNzCompanyContacts<T extends {
+  email?: string | null;
+  company?: string | null;
+}>(
+  contacts: T[],
+  companyDomain?: string
+): { kept: T[]; removed: { contact: T; reason: string }[] } {
+  const kept: T[] = [];
+  const removed: { contact: T; reason: string }[] = [];
+
+  for (const contact of contacts) {
+    const result = isAuNzCompanyContact({
+      email: contact.email,
+      company: contact.company,
+      domain: companyDomain,
+    });
+
+    if (result.isAuNz) {
+      kept.push(contact);
+    } else {
+      removed.push({ contact, reason: result.reason });
+    }
+  }
+
+  return { kept, removed };
+}

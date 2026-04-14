@@ -21,6 +21,7 @@ import { generateOutreachEmail, type OutreachInput, type OutreachResult } from "
 import { apolloPeopleSearch, enrichSingleContact, logCreditUsage, type ApolloEnrichmentResult } from "./apolloEnrichment";
 import { batchHunterEnrich } from "./hunterService";
 import { sendEmail } from "./emailSender";
+import { checkCountryGeo } from "./geoFilter";
 
 // ── Scoring Constants ──
 
@@ -361,6 +362,8 @@ export interface RawContactRow {
   nameCheckStatus: string | null;
   reviewNotes: string | null;
   sourceRow: number;
+  /** The domain used during company search (for geo-filtering contacts without email) */
+  searchDomain?: string;
 }
 
 export async function importCampaignContacts(
@@ -1060,6 +1063,23 @@ export async function enrichCampaignContacts(
         });
 
         if (enrichedResult.status === "enriched" && enrichedResult.email) {
+          // Post-enrichment geo-check: if Apollo returns a non-AU/NZ country, mark as excluded
+          const countryCheck = checkCountryGeo(enrichedResult.country);
+          if (countryCheck && !countryCheck.isAuNz) {
+            console.log(`[Enrichment] Excluding non-AU/NZ contact: ${enrichedResult.name} at ${enrichedResult.company} — country: ${enrichedResult.country}`);
+            await db.update(campaignContacts).set({
+              enrichmentStatus: "not_found",
+              enrichmentSource: "apollo",
+              apolloPersonId: enrichedResult.apolloId,
+              reviewNotes: `Excluded: non-AU/NZ (${enrichedResult.country})`,
+              enrichedAt: new Date(),
+            }).where(eq(campaignContacts.id, contact.id));
+            notFound++;
+            creditsUsed++;
+            await new Promise(r => setTimeout(r, 300));
+            continue;
+          }
+
           await db.update(campaignContacts).set({
             enrichmentStatus: "enriched",
             enrichmentSource: "apollo",

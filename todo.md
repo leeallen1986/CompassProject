@@ -1188,3 +1188,13 @@
 - [x] Added "Has Email" filter option to enrichment filter dropdown
 - [x] Backend getCampaignContacts supports has_email filter (checks enrichedEmail OR email)
 - [ ] Contacts with obfuscated last names (e.g., "S.") — these get resolved when Apollo enrichment succeeds; contacts that fail enrichment keep obfuscated names (acceptable trade-off)
+
+## Feature — AU/NZ geo-filter for company search and campaign contacts
+- [x] Add country filter during Apollo People Search in companySearchJob (filter out non-AU/NZ contacts)
+- [x] Add location filter back to Phase 1c (unfiltered roles, but keep AU/NZ location) and Phase 1d (name-only with AU/NZ location)
+- [x] Add geo-filter at end of company search job — removes contacts with definitively non-AU/NZ email domain TLD (.co.uk, .de, .fr, etc.)
+- [x] Add post-enrichment country check in campaignService — when Apollo returns country, exclude non-AU/NZ contacts
+- [x] Created geoFilter.ts with checkCompanyDomainGeo, checkCountryGeo, checkCompanyNameGeo helpers
+- [x] 69 tests for geoFilter.ts, all passing
+- [x] All 1,771 tests passing
+- [x] Design decision: Company name patterns (LLC, Corp, Inc) NOT used at search time — too aggressive, many AU companies use US-style names. Domain TLD is the reliable signal at search time; Apollo country field is used post-enrichment.

@@ -33,12 +33,12 @@ vi.mock("./domainInference", () => ({
 // Mock the external API calls
 vi.mock("./hunterService", () => ({
   domainSearch: vi.fn().mockResolvedValue({
-    domain: "example.com",
-    organization: "Example Corp",
-    pattern: "{first}.{last}@example.com",
+    domain: "example.com.au",
+    organization: "Example Hire Pty Ltd",
+    pattern: "{first}.{last}@example.com.au",
     emails: [
       {
-        value: "john.doe@example.com",
+        value: "john.doe@example.com.au",
         type: "personal",
         confidence: 90,
         first_name: "John",
@@ -52,7 +52,7 @@ vi.mock("./hunterService", () => ({
         verification: { date: null, status: "valid" },
       },
       {
-        value: "jane.smith@example.com",
+        value: "jane.smith@example.com.au",
         type: "personal",
         confidence: 85,
         first_name: "Jane",
@@ -177,7 +177,7 @@ describe("companySearchJob", () => {
   it("should correctly count total companies (domain + name)", () => {
     const jobId = startCompanySearch({
       withDomain: [
-        { company: "Example Corp", domain: "example.com" },
+        { company: "Example Hire Pty Ltd", domain: "example.com.au" },
         { company: "Test Inc", domain: "test.com" },
       ],
       withoutDomain: [
@@ -210,7 +210,7 @@ describe("companySearchJob", () => {
 
   it("should skip domain inference when all companies have domains", () => {
     const jobId = startCompanySearch({
-      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withDomain: [{ company: "Example Hire Pty Ltd", domain: "example.com.au" }],
       withoutDomain: [],
       targetRoles: ["operations"],
       maxPerCompany: 10,
@@ -271,7 +271,7 @@ describe("companySearchJob", () => {
 
   it("should filter out excluded roles (HR, Marketing, etc.)", async () => {
     const jobId = startCompanySearch({
-      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withDomain: [{ company: "Example Hire Pty Ltd", domain: "example.com.au" }],
       withoutDomain: [],
       targetRoles: ["operations"],
       maxPerCompany: 25,
@@ -291,7 +291,7 @@ describe("companySearchJob", () => {
 
   it("should track domain breakdown for each company", async () => {
     const jobId = startCompanySearch({
-      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withDomain: [{ company: "Example Hire Pty Ltd", domain: "example.com.au" }],
       withoutDomain: [{ company: "Unknown Co" }],
       targetRoles: ["operations", "fleet_equipment"],
       maxPerCompany: 25,
@@ -307,7 +307,7 @@ describe("companySearchJob", () => {
 
   it("should respect maxTotal limit", async () => {
     const jobId = startCompanySearch({
-      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withDomain: [{ company: "Example Hire Pty Ltd", domain: "example.com.au" }],
       withoutDomain: [{ company: "Unknown Co" }],
       targetRoles: ["operations", "fleet_equipment"],
       maxPerCompany: 25,
@@ -366,7 +366,7 @@ describe("companySearchJob", () => {
 
   it("should initialize apolloFallback tracking in progress", () => {
     const jobId = startCompanySearch({
-      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withDomain: [{ company: "Example Hire Pty Ltd", domain: "example.com.au" }],
       withoutDomain: [],
       targetRoles: ["operations"],
       maxPerCompany: 5,
@@ -482,7 +482,7 @@ describe("companySearchJob", () => {
 
   it("should initialize unfilteredFallback and nameOnlyFallback tracking in progress", () => {
     const jobId = startCompanySearch({
-      withDomain: [{ company: "Example Corp", domain: "example.com" }],
+      withDomain: [{ company: "Example Hire Pty Ltd", domain: "example.com.au" }],
       withoutDomain: [],
       targetRoles: ["operations"],
       maxPerCompany: 5,

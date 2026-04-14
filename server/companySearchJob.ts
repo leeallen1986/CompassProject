@@ -18,6 +18,7 @@ import { searchContactsByDomain, searchContactsByCompanyName, PREDEFINED_ROLES }
 import { domainSearch } from "./hunterService";
 import { apolloPeopleSearch } from "./apolloEnrichment";
 import { inferCompanyDomains, type DomainInferenceResult } from "./domainInference";
+import { checkCompanyDomainGeo, checkCompanyNameGeo } from "./geoFilter";
 import type { RawContactRow } from "./campaignService";
 import { nanoid } from "nanoid";
 
@@ -89,6 +90,12 @@ export interface CompanySearchProgress {
   nameOnlyFallback: {
     attempted: number;
     withResults: number;
+  };
+  /** Geo-filtering stats: contacts removed because they're not AU/NZ */
+  geoFiltered: {
+    companiesExcluded: number;
+    contactsExcluded: number;
+    excludedDetails: { company: string; domain?: string; reason: string }[];
   };
 }
 
@@ -232,6 +239,11 @@ export function startCompanySearch(input: CompanySearchJobInput): string {
       attempted: 0,
       withResults: 0,
     },
+    geoFiltered: {
+      companiesExcluded: 0,
+      contactsExcluded: 0,
+      excludedDetails: [],
+    },
   };
 
   jobs.set(jobId, progress);
@@ -339,6 +351,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
           nameCheckStatus: `hunter_${email.confidence}%`,
           reviewNotes: email.linkedin ? `LinkedIn: ${email.linkedin}` : null,
           sourceRow: rowCounter++,
+          searchDomain: company.domain,
         });
 
         domainFiltered++;
@@ -418,6 +431,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
             nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
             reviewNotes: `Apollo ID: ${person.id} (Hunter fallback)`,
             sourceRow: rowCounter++,
+            searchDomain: company.domain,
           });
 
           companyFiltered++;
@@ -457,8 +471,8 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
 
   // ── Phase 1c: Unfiltered Apollo fallback ──
   // For companies where Phase 1b (Apollo with role+location filters) ALSO returned 0,
-  // retry with NO role filter and NO location filter. Small Australian companies
-  // may have people indexed under unexpected titles or locations.
+  // retry with NO role filter but KEEP Australia location filter. This catches people
+  // with unexpected titles while still ensuring they're AU/NZ-based.
   const phase1bZeroCompanies = hunterZeroResultCompanies.filter(c => {
     const breakdown = job.domainBreakdown.find(d => d.domain === c.domain);
     return !breakdown || breakdown.filtered === 0;
@@ -475,9 +489,10 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
       job.currentCompany = `Unfiltered search: ${company.company}`;
 
       try {
-        // Search with ONLY domain — no role titles, no location filter
+        // Search with domain + Australia location — no role titles
         const result = await apolloPeopleSearch({
           organizationDomains: [company.domain],
+          organizationLocations: ["australia", "new zealand"],
           perPage: 25,
         });
 
@@ -501,6 +516,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
             nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
             reviewNotes: `Apollo ID: ${person.id} (unfiltered fallback)`,
             sourceRow: rowCounter++,
+            searchDomain: company.domain,
           });
 
           companyFiltered++;
@@ -562,9 +578,10 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
       job.currentCompany = `Name search: ${company.company}`;
 
       try {
-        // Search by company name only — no domain, no location, no role filter
+        // Search by company name only — no domain, but keep AU/NZ location filter
         const result = await apolloPeopleSearch({
           organizationName: company.company,
+          organizationLocations: ["australia", "new zealand"],
           perPage: 25,
         });
 
@@ -587,6 +604,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
             nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
             reviewNotes: `Apollo ID: ${person.id} (name-only fallback)`,
             sourceRow: rowCounter++,
+            searchDomain: company.domain,
           });
 
           companyFiltered++;
@@ -666,6 +684,7 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
             nameCheckStatus: person.has_email ? "apollo_has_email" : "apollo_no_email",
             reviewNotes: `Apollo ID: ${person.id}`,
             sourceRow: rowCounter++,
+            searchDomain: company.company, // Phase 2: no domain, use company name
           });
 
           companyFiltered++;
@@ -697,10 +716,60 @@ async function runSearchJob(jobId: string, input: CompanySearchJobInput): Promis
     }
   }
 
+  // ── Geo-filter: Remove non-AU/NZ contacts ──
+  // Only use DOMAIN TLD as a reliable signal at search time.
+  // Company name patterns (LLC, Corp, Inc) are too aggressive — many Australian
+  // companies use US-style names (e.g., "Drilling Corp" could be AU-based).
+  // The post-enrichment country check (in campaignService) handles the rest.
+  const preGeoCount = job.contacts.length;
+  const geoKept: RawContactRow[] = [];
+  const geoExcludedCompanies = new Set<string>();
+
+  for (const contact of job.contacts) {
+    // Extract domain from email if available
+    let contactDomain: string | undefined;
+    if (contact.email) {
+      const atIdx = contact.email.lastIndexOf("@");
+      if (atIdx >= 0) contactDomain = contact.email.substring(atIdx + 1);
+    }
+
+    // Use searchDomain as fallback for contacts without email
+    const domainToCheck = contactDomain || contact.searchDomain;
+
+    // Check email/search domain TLD — only exclude if TLD is definitively non-AU/NZ
+    // (.co.uk, .de, .fr, etc. are excluded; .com, .net, .org are ambiguous and kept)
+    const domainGeo = domainToCheck ? checkCompanyDomainGeo(domainToCheck) : null;
+    if (domainGeo && !domainGeo.isAuNz) {
+      job.geoFiltered.contactsExcluded++;
+      const companyKey = contact.company || "Unknown";
+      if (!geoExcludedCompanies.has(companyKey)) {
+        geoExcludedCompanies.add(companyKey);
+        job.geoFiltered.companiesExcluded++;
+        job.geoFiltered.excludedDetails.push({
+          company: companyKey,
+          domain: domainToCheck,
+          reason: domainGeo.reason,
+        });
+      }
+      continue;
+    }
+
+    geoKept.push(contact);
+  }
+
+  job.contacts = geoKept;
+
+  if (job.geoFiltered.contactsExcluded > 0) {
+    console.log(`[CompanySearchJob] ${jobId} Geo-filter: removed ${job.geoFiltered.contactsExcluded} non-AU/NZ contacts from ${job.geoFiltered.companiesExcluded} companies`);
+    for (const detail of job.geoFiltered.excludedDetails) {
+      console.log(`  - ${detail.company} (${detail.domain || "no domain"}): ${detail.reason}`);
+    }
+  }
+
   // ── Done ──
   job.phase = "done";
   job.status = "completed";
   job.currentCompany = null;
   job.elapsedSeconds = Math.round((Date.now() - job.startedAt) / 1000);
-  console.log(`[CompanySearchJob] ${jobId} completed: ${job.totalFiltered} contacts from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred, Apollo fallbacks: ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} filtered, ${job.unfilteredFallback.withResults}/${job.unfilteredFallback.attempted} unfiltered, ${job.nameOnlyFallback.withResults}/${job.nameOnlyFallback.attempted} name-only)`);
+  console.log(`[CompanySearchJob] ${jobId} completed: ${job.contacts.length} contacts (${preGeoCount} pre-geo) from ${job.companiesWithResults}/${job.totalCompanies} companies in ${job.elapsedSeconds}s (${job.domainInference.resolved} domains inferred, Apollo fallbacks: ${job.apolloFallback.withResults}/${job.apolloFallback.attempted} filtered, ${job.unfilteredFallback.withResults}/${job.unfilteredFallback.attempted} unfiltered, ${job.nameOnlyFallback.withResults}/${job.nameOnlyFallback.attempted} name-only, geo-excluded: ${job.geoFiltered.contactsExcluded})`);
 }
