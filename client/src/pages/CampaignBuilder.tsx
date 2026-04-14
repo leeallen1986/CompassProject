@@ -181,6 +181,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
   const [autoEnrichTriggered, setAutoEnrichTriggered] = useState(false);
   const [enrichBatchSize, setEnrichBatchSize] = useState(100);
+  const [remainingPending, setRemainingPending] = useState<number | null>(null);
 
   // Queries
   const collateralQuery = trpc.collateral.list.useQuery({});
@@ -527,6 +528,10 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
         maxContacts: batchSize,
       });
       setEnrichmentResult(result);
+      // Calculate remaining pending contacts
+      const totalPending = remainingPending ?? (importResult?.imported || 0);
+      const processedThisRun = (result.enriched || 0) + (result.notFound || 0) + (result.failed || 0);
+      setRemainingPending(Math.max(0, totalPending - processedThisRun));
       const parts = [];
       if (result.apolloFound) parts.push(`Apollo: ${result.apolloFound}`);
       if (result.hunterFound) parts.push(`Hunter: ${result.hunterFound}`);
@@ -1600,11 +1605,15 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                     className="bg-gold hover:bg-gold/90 text-navy font-semibold"
                   >
                     <Zap className="w-4 h-4 mr-2" />
-                    {enrichmentResult ? "Run Again (More Contacts)" : "Run Enrichment (Apollo → Hunter)"}
+                    {enrichmentResult
+                      ? `Run Again${remainingPending ? ` (${remainingPending} Remaining)` : " (More Contacts)"}`
+                      : "Run Enrichment (Apollo → Hunter)"}
                   </Button>
                   <p className="text-xs text-muted-foreground">
                     {enrichmentResult
-                      ? "Run again to process any remaining pending contacts."
+                      ? remainingPending && remainingPending > 0
+                        ? `${remainingPending} contacts still pending enrichment. Click to process them.`
+                        : "All contacts have been processed."
                       : "You can run enrichment multiple times to process more contacts."
                     }
                   </p>
@@ -1647,16 +1656,16 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                 <div className="bg-slate-50 rounded-lg p-4 mb-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Contacts to enrich</span>
-                    <span className="text-sm font-semibold text-navy">{importResult?.imported || 0} pending</span>
+                    <span className="text-sm font-semibold text-navy">{remainingPending ?? (importResult?.imported || 0)} pending</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Estimated Apollo credits</span>
-                    <span className="text-sm font-semibold text-navy">~{Math.min(enrichBatchSize, importResult?.imported || 0)} credits</span>
+                    <span className="text-sm font-semibold text-navy">~{Math.min(enrichBatchSize, remainingPending ?? (importResult?.imported || 0))} credits</span>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Batch size</label>
                     <div className="flex gap-2">
-                      {[25, 50, 100].map(size => (
+                      {[50, 100, 200, 500].map(size => (
                         <button
                           key={size}
                           onClick={() => setEnrichBatchSize(size)}
@@ -1691,7 +1700,7 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
                     className="flex-1 bg-gold hover:bg-gold/90 text-navy font-semibold"
                     onClick={() => handleEnrich(enrichBatchSize)}
                   >
-                    <Zap className="w-4 h-4 mr-2" /> Enrich {Math.min(enrichBatchSize, importResult?.imported || 0)} Contacts
+                    <Zap className="w-4 h-4 mr-2" /> Enrich {Math.min(enrichBatchSize, remainingPending ?? (importResult?.imported || 0))} Contacts
                   </Button>
                 </div>
               </div>

@@ -2708,7 +2708,7 @@ export const appRouter = router({
     enrichContacts: adminProcedure
       .input(z.object({
         campaignId: z.number(),
-        maxContacts: z.number().min(1).max(100).optional(),
+        maxContacts: z.number().min(1).max(500).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         return enrichCampaignContacts(input.campaignId, {

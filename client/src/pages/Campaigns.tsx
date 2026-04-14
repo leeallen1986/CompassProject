@@ -450,7 +450,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const [editingSubject, setEditingSubject] = useState("");
   const [editingBody, setEditingBody] = useState("");
   const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
-  const [enrichBatchSize, setEnrichBatchSize] = useState(25);
+  const [enrichBatchSize, setEnrichBatchSize] = useState(100);
   const PAGE_SIZE = 50;
 
   const campaignQuery = trpc.campaign.get.useQuery({ id: campaignId });
@@ -1172,7 +1172,7 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
             <div>
               <label className="text-sm font-medium text-foreground">Batch size</label>
               <div className="flex items-center gap-2 mt-1">
-                {[25, 50, 100].map(size => (
+                {[50, 100, 200, 500].map(size => (
                   <button
                     key={size}
                     onClick={() => setEnrichBatchSize(size)}

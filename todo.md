@@ -1141,3 +1141,13 @@
   - X1350 Drill Campaign: +96 new (282 → 378) — Apollo fallback found 31
   - CP Truck Air: +8 new (91 → 99)
   - x1350 Drilling Promotion: 0 new (already well-covered at 60)
+
+## Bug — Enrichment batch limit of 100 prevents enriching all contacts
+- [x] Enrichment only processes first 100 contacts, remaining 46 cannot be enriched
+- [x] "Run Again" button should process remaining pending contacts but seems to not work fully
+- [x] Fix batch limit or implement proper pagination so all contacts get enriched
+- [x] Raised backend cap from .max(100) to .max(500)
+- [x] Updated batch size options: 50, 100, 200, 500 (was 25, 50, 100)
+- [x] Added remaining pending counter — "Run Again" button now shows exact count (e.g. "Run Again (46 Remaining)")
+- [x] Updated both CampaignBuilder.tsx and Campaigns.tsx with the new limits
+- [x] All 1,758 tests passing, no TypeScript errors
