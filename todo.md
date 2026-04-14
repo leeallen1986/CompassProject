@@ -1101,3 +1101,11 @@
 - [x] Enhanced analyseImportFile: does own column detection when mapping is empty (tries both COLUMN_PATTERNS and COMPANY_LIST_PATTERNS)
 - [x] UI: Added 'Switch to Company Discovery' amber hint banner when no columns auto-detected
 - [x] All 1,712 tests passing, no TypeScript errors
+
+## Bug — "No companies found in file" toast despite Company List Detected
+- [x] Rewrote parseCompanyList with 3-strategy fallback:
+  - Strategy 1: detectHeaderRow + COMPANY_LIST_PATTERNS + COLUMN_PATTERNS (primary)
+  - Strategy 2: Brute-force rows 0-4 as header candidates, pick the one yielding most companies
+  - Strategy 3: URL column scan — finds domain-like values (.com, .au, etc.) and infers company column
+- [x] Added server-side debug logging to searchCompanyContacts endpoint
+- [x] All 1,712 tests passing, no TypeScript errors

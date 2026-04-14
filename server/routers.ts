@@ -3106,7 +3106,10 @@ export const appRouter = router({
         const response = await fetch(input.fileUrl);
         if (!response.ok) throw new Error("Failed to fetch uploaded file");
         const buffer = Buffer.from(await response.arrayBuffer());
+        console.log(`[searchCompanyContacts] File fetched: ${buffer.length} bytes, mapping:`, JSON.stringify(input.mapping));
         const parsed = parseCompanyList(buffer, input.mapping as ColumnMapping, { sheetName: input.sheetName });
+        console.log(`[searchCompanyContacts] Parsed: ${parsed.companies.length} companies, ${parsed.skipped} skipped, errors: ${parsed.errors.length}`);
+        if (parsed.errors.length > 0) console.log(`[searchCompanyContacts] Parse errors:`, parsed.errors.slice(0, 5));
 
         if (parsed.companies.length === 0) {
           return { jobId: null, totalCompanies: 0 };

@@ -354,65 +354,139 @@ export function parseCompanyList(
   const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
   if (allRows.length <= 1) return { companies: [], totalParsed: 0, skipped: 0, errors: [] };
 
-  const headerRowIdx = detectHeaderRow(allRows);
-  const rows = allRows;
-
-  // Also detect company-list-specific columns from headers
-  const headers = rows[headerRowIdx].map(h => String(h).trim());
-  const companyListMapping: Record<string, number | undefined> = {};
-  for (const [field, patterns] of Object.entries(COMPANY_LIST_PATTERNS)) {
-    for (let i = 0; i < headers.length; i++) {
-      if (patterns.some(p => p.test(headers[i]))) {
-        companyListMapping[field] = i;
-        break;
+  // Helper: try to parse companies starting from a given header row
+  const tryParseFromRow = (headerIdx: number): ParsedCompanies => {
+    const headers = allRows[headerIdx].map(h => String(h).trim());
+    const clm: Record<string, number | undefined> = {};
+    const usedCols = new Set<number>();
+    // Match COMPANY_LIST_PATTERNS
+    for (const [field, patterns] of Object.entries(COMPANY_LIST_PATTERNS)) {
+      for (let i = 0; i < headers.length; i++) {
+        if (usedCols.has(i)) continue;
+        if (patterns.some(p => p.test(headers[i]))) {
+          clm[field] = i;
+          usedCols.add(i);
+          break;
+        }
       }
     }
-  }
-
-  // Use the generic mapping's company/website columns as fallback
-  const companyCol = mapping.company ?? companyListMapping.company;
-  const domainCol = mapping.website ?? companyListMapping.domain;
-  const locationCol = companyListMapping.location;
-  const notesCol = companyListMapping.notes;
-
-  const companies: CompanyRow[] = [];
-  const errors: string[] = [];
-  let skipped = 0;
-
-  for (let i = headerRowIdx + 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.every(c => !String(c).trim())) {
-      skipped++;
-      continue;
+    // Also try COLUMN_PATTERNS for company/website
+    for (const [field, patterns] of Object.entries(COLUMN_PATTERNS)) {
+      if (field !== "company" && field !== "website") continue;
+      const clmField = field === "website" ? "domain" : field;
+      if (clm[clmField] !== undefined) continue;
+      for (let i = 0; i < headers.length; i++) {
+        if (usedCols.has(i)) continue;
+        if (patterns.some(p => p.test(headers[i]))) {
+          clm[clmField] = i;
+          usedCols.add(i);
+          break;
+        }
+      }
     }
 
-    try {
-      const company = clean(row[companyCol ?? -1]);
-      const rawDomain = clean(row[domainCol ?? -1]);
+    const companyCol = mapping.company ?? clm.company;
+    const domainCol = mapping.website ?? clm.domain;
+    const locationCol = clm.location;
+    const notesCol = clm.notes;
 
-      if (!company && !rawDomain) {
+    const companies: CompanyRow[] = [];
+    const errors: string[] = [];
+    let skipped = 0;
+
+    for (let i = headerIdx + 1; i < allRows.length; i++) {
+      const row = allRows[i];
+      if (!row || row.every(c => !String(c).trim())) { skipped++; continue; }
+      try {
+        const company = clean(row[companyCol ?? -1]);
+        const rawDomain = clean(row[domainCol ?? -1]);
+        if (!company && !rawDomain) { skipped++; continue; }
+        let domain = rawDomain;
+        if (domain) {
+          domain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").replace(/^www\./i, "").trim();
+        }
+        companies.push({
+          company: company || domain || "",
+          domain,
+          location: clean(row[locationCol ?? -1]),
+          notes: clean(row[notesCol ?? -1]),
+          sourceRow: i + 1,
+        });
+      } catch (err) {
+        errors.push(`Row ${i + 1}: ${(err as Error).message}`);
         skipped++;
-        continue;
       }
+    }
+    return { companies, totalParsed: companies.length, skipped, errors };
+  };
 
-      // Clean domain — strip protocol, trailing slashes, www prefix
-      let domain = rawDomain;
-      if (domain) {
-        domain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").replace(/^www\./i, "").trim();
-      }
+  // Strategy 1: Use detectHeaderRow
+  const primaryIdx = detectHeaderRow(allRows);
+  const primaryResult = tryParseFromRow(primaryIdx);
+  console.log(`[parseCompanyList] primary headerRow=${primaryIdx}, found=${primaryResult.companies.length}`);
 
-      companies.push({
-        company: company || domain || "",
-        domain,
-        location: clean(row[locationCol ?? -1]),
-        notes: clean(row[notesCol ?? -1]),
-        sourceRow: i + 1,
-      });
-    } catch (err) {
-      errors.push(`Row ${i + 1}: ${(err as Error).message}`);
-      skipped++;
+  if (primaryResult.companies.length > 0) return primaryResult;
+
+  // Strategy 2: If primary failed, try rows 0-4 as potential header rows
+  // Pick the one that yields the most companies
+  let bestResult = primaryResult;
+  const maxTry = Math.min(allRows.length - 1, 5);
+  for (let candidate = 0; candidate < maxTry; candidate++) {
+    if (candidate === primaryIdx) continue;
+    const result = tryParseFromRow(candidate);
+    console.log(`[parseCompanyList] fallback headerRow=${candidate}, found=${result.companies.length}`);
+    if (result.companies.length > bestResult.companies.length) {
+      bestResult = result;
     }
   }
 
-  return { companies, totalParsed: companies.length, skipped, errors };
+  if (bestResult.companies.length > 0) return bestResult;
+
+  // Strategy 3: Last resort — scan every column for URL-like values (domains)
+  // and treat the column with the most URLs as the domain column
+  console.log(`[parseCompanyList] all strategies failed, trying URL scan`);
+  const dataStartIdx = primaryIdx + 1;
+  if (dataStartIdx < allRows.length) {
+    const numCols = Math.max(...allRows.slice(dataStartIdx, dataStartIdx + 10).map(r => r.length));
+    let bestDomainCol = -1;
+    let bestDomainCount = 0;
+    const urlPattern = /\.(com|net|org|au|co|io|gov|edu|uk|nz)/i;
+    for (let col = 0; col < numCols; col++) {
+      let count = 0;
+      for (let row = dataStartIdx; row < Math.min(allRows.length, dataStartIdx + 20); row++) {
+        const val = String(allRows[row]?.[col] ?? "").trim();
+        if (val && urlPattern.test(val)) count++;
+      }
+      if (count > bestDomainCount) { bestDomainCount = count; bestDomainCol = col; }
+    }
+
+    if (bestDomainCol >= 0 && bestDomainCount >= 2) {
+      // Find a company name column — the text column immediately before the domain column, or any column with diverse text values
+      let companyCol = bestDomainCol > 0 ? bestDomainCol - 1 : -1;
+      const companies: CompanyRow[] = [];
+      const errors: string[] = [];
+      let skipped = 0;
+      for (let i = dataStartIdx; i < allRows.length; i++) {
+        const row = allRows[i];
+        if (!row || row.every(c => !String(c).trim())) { skipped++; continue; }
+        try {
+          const company = companyCol >= 0 ? clean(row[companyCol]) : null;
+          const rawDomain = clean(row[bestDomainCol]);
+          if (!company && !rawDomain) { skipped++; continue; }
+          let domain = rawDomain;
+          if (domain) {
+            domain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").replace(/^www\./i, "").trim();
+          }
+          companies.push({ company: company || domain || "", domain, location: null, notes: null, sourceRow: i + 1 });
+        } catch (err) {
+          errors.push(`Row ${i + 1}: ${(err as Error).message}`);
+          skipped++;
+        }
+      }
+      console.log(`[parseCompanyList] URL scan: domainCol=${bestDomainCol}, companyCol=${companyCol}, found=${companies.length}`);
+      if (companies.length > 0) return { companies, totalParsed: companies.length, skipped, errors };
+    }
+  }
+
+  return { companies: [], totalParsed: 0, skipped: 0, errors: ["Could not detect company or domain columns in the file"] };
 }
