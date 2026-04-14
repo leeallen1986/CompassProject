@@ -2959,16 +2959,23 @@ export const appRouter = router({
         await new Promise<void>((resolve) => passthrough.on("end", resolve));
 
         const zipBuffer = Buffer.concat(chunks);
-        const zipBase64 = zipBuffer.toString("base64");
 
         const campaignSlug = (campaign.name || "campaign")
           .replace(/[^a-zA-Z0-9\s-]/g, "")
           .replace(/\s+/g, "-")
           .toLowerCase();
 
+        const filename = `${campaignSlug}-emails-${emlFiles.length}.zip`;
+
+        // Upload ZIP to S3 instead of returning base64 through tRPC JSON
+        // This avoids payload size limits that cause "Unexpected token" errors
+        const randomSuffix = Math.random().toString(36).substring(2, 10);
+        const s3Key = `campaign-exports/${campaignSlug}-${randomSuffix}.zip`;
+        const { url: zipUrl } = await storagePut(s3Key, zipBuffer, "application/zip");
+
         return {
-          zipBase64,
-          filename: `${campaignSlug}-emails-${emlFiles.length}.zip`,
+          zipUrl,
+          filename,
           count: emlFiles.length,
           contacts: emlFiles.map(e => e.filename.replace(".eml", "")),
         };

@@ -542,16 +542,13 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   /** Download ALL approved .eml files as a ZIP */
   const downloadAllEmlsMut = trpc.campaign.downloadAllEmls.useMutation({
     onSuccess: (data) => {
-      const bytes = Uint8Array.from(atob(data.zipBase64), c => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
+      // Download from S3 URL instead of decoding base64 in-browser
       const a = document.createElement("a");
-      a.href = url;
+      a.href = data.zipUrl;
       a.download = data.filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
       toast.success(`Downloaded ${data.count} emails as ZIP — drag into Outlook Drafts and send`);
     },
     onError: (err: { message: string }) => toast.error(`Failed to download emails: ${err.message}`),
@@ -1282,16 +1279,13 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
   /** Download ALL approved .eml files as a ZIP */
   const downloadAllEmlsMut = trpc.campaign.downloadAllEmls.useMutation({
     onSuccess: (data) => {
-      const bytes = Uint8Array.from(atob(data.zipBase64), c => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
+      // Download from S3 URL instead of decoding base64 in-browser
       const a = document.createElement("a");
-      a.href = url;
+      a.href = data.zipUrl;
       a.download = data.filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
       toast.success(`Downloaded ${data.count} emails as ZIP — drag into Outlook Drafts and send`);
     },
     onError: (err: { message: string }) => toast.error(`Failed to download emails: ${err.message}`),

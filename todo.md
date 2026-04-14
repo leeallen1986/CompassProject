@@ -1151,3 +1151,10 @@
 - [x] Added remaining pending counter — "Run Again" button now shows exact count (e.g. "Run Again (46 Remaining)")
 - [x] Updated both CampaignBuilder.tsx and Campaigns.tsx with the new limits
 - [x] All 1,758 tests passing, no TypeScript errors
+
+## Bug — "Download All" button fails with "Unexpected token 'c'"
+- [x] Batch EML download from Approval Queue returns non-JSON response causing parse error
+- [x] Root cause: ZIP with embedded PDF attachments exceeded tRPC JSON payload limits
+- [x] Fix: Upload ZIP to S3 via storagePut(), return URL instead of base64
+- [x] Updated both Campaigns.tsx download handlers (campaign dashboard + approval queue)
+- [x] All 1,758 tests passing, no TypeScript errors
