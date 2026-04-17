@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import {
   FileText, Eye, Save, Loader2, Trash2, RefreshCw,
   Type, AtSign, User, Building2, Briefcase, MapPin, Mail, Package,
-  Code, FileUp, Copy, AlertTriangle,
+  Code, FileUp, Copy, AlertTriangle, UserCheck, UserX,
 } from "lucide-react";
 
 // ── Types ──
@@ -103,6 +103,7 @@ export default function TemplateEditorModal({
   const [htmlTemplate, setHtmlTemplate] = useState("");
   const [activeTab, setActiveTab] = useState("edit");
   const [hasChanges, setHasChanges] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"with-project" | "no-project">("with-project");
 
   // Refs for cursor position insertion
   const subjectRef = useRef<HTMLInputElement>(null);
@@ -243,13 +244,26 @@ export default function TemplateEditorModal({
     return ctx;
   }, [mergeFields, defaultTemplateQuery.data]);
 
+  // Build a no-project sample context using the smart fallbacks
+  const noProjectContext = useMemo(() => {
+    const base = { ...sampleContext };
+    const company = base.company || "Acme Corp";
+    base.projectName = `${company}'s operations`;
+    base.projectLocation = "your region";
+    base.sector = "your industry";
+    return base;
+  }, [sampleContext]);
+
+  // Active context based on preview mode toggle
+  const activePreviewContext = previewMode === "no-project" ? noProjectContext : sampleContext;
+
   const renderPreview = useCallback((template: string) => {
     let result = template;
-    for (const [key, value] of Object.entries(sampleContext)) {
+    for (const [key, value] of Object.entries(activePreviewContext)) {
       result = result.split(`{{${key}}}`).join(value);
     }
     return result;
-  }, [sampleContext]);
+  }, [activePreviewContext]);
 
   const previewSubject = renderPreview(subjectTemplate);
   const previewGreeting = renderPreview(greetingStyle);
@@ -664,15 +678,47 @@ Example: Replace personalised text with merge fields:
 
               {/* ── Preview Tab ── */}
               <TabsContent value="preview" className="flex-1 overflow-y-auto">
+                {/* Preview Mode Toggle */}
+                <div className="flex items-center gap-3 mb-3 p-3 bg-slate-50 rounded-lg border border-border">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase">Preview as:</span>
+                  <div className="flex rounded-lg border border-border overflow-hidden">
+                    <button
+                      onClick={() => setPreviewMode("with-project")}
+                      className={`px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                        previewMode === "with-project"
+                          ? "bg-teal text-white"
+                          : "bg-white text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <UserCheck className="w-3.5 h-3.5" /> With Project Match
+                    </button>
+                    <button
+                      onClick={() => setPreviewMode("no-project")}
+                      className={`px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                        previewMode === "no-project"
+                          ? "bg-amber-500 text-white"
+                          : "bg-white text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <UserX className="w-3.5 h-3.5" /> No Project Match
+                    </button>
+                  </div>
+                  {previewMode === "no-project" && (
+                    <span className="text-[10px] text-amber-600 font-medium">
+                      Showing how emails look for contacts without a matched project — project fields use smart fallbacks
+                    </span>
+                  )}
+                </div>
+
                 {/* Email header (both modes) */}
                 <div className="bg-white rounded-t-lg border border-border p-4 space-y-1">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-gray-500 w-16">From:</span>
-                    <span className="text-gray-900">{sampleContext.senderName} &lt;{sampleContext.senderEmail}&gt;</span>
+                    <span className="text-gray-900">{activePreviewContext.senderName} &lt;{activePreviewContext.senderEmail}&gt;</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-gray-500 w-16">To:</span>
-                    <span className="text-gray-900">{sampleContext.fullName} &lt;{sampleContext.email}&gt;</span>
+                    <span className="text-gray-900">{activePreviewContext.fullName} &lt;{activePreviewContext.email}&gt;</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-gray-500 w-16">Subject:</span>
@@ -692,9 +738,13 @@ Example: Replace personalised text with merge fields:
                         sandbox="allow-same-origin"
                       />
                     </div>
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-xs text-amber-700">
-                        <strong>Preview note:</strong> This shows your HTML template with sample data substituted for merge fields. Each contact's email will use their actual details.
+                    <div className={`mt-3 p-3 rounded-lg border ${previewMode === "no-project" ? "bg-amber-50 border-amber-300" : "bg-teal/5 border-teal/20"}`}>
+                      <p className={`text-xs ${previewMode === "no-project" ? "text-amber-700" : "text-teal"}`}>
+                        {previewMode === "no-project" ? (
+                          <><strong>No-project preview:</strong> This shows how the email looks when a contact has no matched project. Project fields use smart fallbacks (e.g. "BHP Group's operations" instead of a specific project name).  Use the toggle above to switch back to the with-project view.</>
+                        ) : (
+                          <><strong>With-project preview:</strong> This shows sample data with a matched project. Toggle to "No Project Match" above to see how emails look for contacts without a project match.</>
+                        )}
                       </p>
                     </div>
                   </>
@@ -716,9 +766,13 @@ Example: Replace personalised text with merge fields:
                         <p className="whitespace-pre-wrap">{previewSignature}</p>
                       </div>
                     </div>
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <p className="text-xs text-amber-700">
-                        <strong>Preview note:</strong> This shows sample data. Each contact's email will be personalised with their actual name, company, project, and other details.
+                    <div className={`mt-3 p-3 rounded-lg border ${previewMode === "no-project" ? "bg-amber-50 border-amber-300" : "bg-teal/5 border-teal/20"}`}>
+                      <p className={`text-xs ${previewMode === "no-project" ? "text-amber-700" : "text-teal"}`}>
+                        {previewMode === "no-project" ? (
+                          <><strong>No-project preview:</strong> This shows how the email looks when a contact has no matched project. Project fields use smart fallbacks. Toggle above to switch views.</>
+                        ) : (
+                          <><strong>With-project preview:</strong> This shows sample data with a matched project. Toggle to "No Project Match" above to see the fallback version.</>
+                        )}
                       </p>
                     </div>
                   </>

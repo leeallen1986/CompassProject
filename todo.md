@@ -1230,3 +1230,8 @@
 - [x] Update template editor UI to warn users about project-dependent merge fields
 - [x] Update bulk generate to gracefully handle contacts with no matched projects
 - [x] Verify existing tests still pass and add edge case tests (28 tests, all passing)
+
+## Feature — Preview "No Project" variant in template editor
+- [x] Add toggle in Preview tab to switch between "With Project" and "No Project" sample data
+- [x] Build no-project sample context that uses the smart fallbacks
+- [x] Show visual indicator of which mode is active in preview
