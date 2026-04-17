@@ -57,6 +57,26 @@ async function startServer() {
     }
   });
 
+  // Image upload endpoint for email template editor
+  app.post("/api/upload-template-image", express.raw({ type: "*/*", limit: "10mb" }), async (req, res) => {
+    try {
+      const filename = (req.headers["x-filename"] as string) || "image.png";
+      const buffer = req.body as Buffer;
+      if (!buffer || buffer.length === 0) {
+        return res.status(400).json({ error: "No file data received" });
+      }
+      const suffix = Math.random().toString(36).slice(2, 10);
+      const ext = filename.split(".").pop() || "png";
+      const key = `template-images/${Date.now()}-${suffix}.${ext}`;
+      const contentType = (req.headers["content-type"] as string) || "image/png";
+      const { url } = await storagePut(key, buffer, contentType);
+      res.json({ url, key, size: buffer.length });
+    } catch (err) {
+      console.error("[Upload] Template image upload failed:", err);
+      res.status(500).json({ error: "Image upload failed" });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

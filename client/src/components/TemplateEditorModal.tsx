@@ -1,32 +1,37 @@
 /**
- * TemplateEditorModal.tsx — Campaign email template editor
+ * TemplateEditorModal.tsx — WYSIWYG Campaign Email Template Editor
  *
  * Features:
- * - Plain text mode: subject, greeting, body, sign-off, signature with merge fields
- * - HTML mode: paste/upload branded HTML templates with merge field injection
- * - Live preview for both modes (HTML rendered in sandboxed iframe)
- * - Merge field insertion buttons for both modes
- * - Save / Load default / Delete template
+ * - Rich text editor (TipTap) with formatting toolbar
+ * - Colourful merge field pill buttons
+ * - Inline image support (drag-drop, paste, upload)
+ * - Show Preview toggle
+ * - HTML file upload for branded templates (advanced)
+ * - Word count
+ * - Full-screen modal
  */
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  FileText, Eye, Save, Loader2, Trash2, RefreshCw,
-  Type, AtSign, User, Building2, Briefcase, MapPin, Mail, Package,
-  Code, FileUp, Copy, AlertTriangle, UserCheck, UserX,
+  FileText, Eye, EyeOff, Save, Loader2, Trash2, RefreshCw,
+  Bold, Italic, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight,
+  List, ListOrdered, Link as LinkIcon, Image as ImageIcon, Undo, Redo,
+  Upload, Code, AlertTriangle,
 } from "lucide-react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import TiptapImage from "@tiptap/extension-image";
+import TiptapLink from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import TiptapUnderline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
 
 // ── Types ──
 
@@ -45,44 +50,41 @@ interface TemplateEditorModalProps {
   onTemplateSaved?: () => void;
 }
 
-// ── Merge Field Icon Map ──
+// ── Merge field pill colours ──
 
-const MERGE_FIELD_ICONS: Record<string, React.ReactNode> = {
-  "{{firstName}}": <User className="w-3 h-3" />,
-  "{{lastName}}": <User className="w-3 h-3" />,
-  "{{fullName}}": <User className="w-3 h-3" />,
-  "{{company}}": <Building2 className="w-3 h-3" />,
-  "{{title}}": <Briefcase className="w-3 h-3" />,
-  "{{email}}": <AtSign className="w-3 h-3" />,
-  "{{projectName}}": <FileText className="w-3 h-3" />,
-  "{{projectLocation}}": <MapPin className="w-3 h-3" />,
-  "{{sector}}": <Package className="w-3 h-3" />,
-  "{{collateralName}}": <Package className="w-3 h-3" />,
-  "{{senderName}}": <Mail className="w-3 h-3" />,
-  "{{senderTitle}}": <Briefcase className="w-3 h-3" />,
-  "{{senderEmail}}": <AtSign className="w-3 h-3" />,
+const MERGE_PILL_COLORS: Record<string, string> = {
+  "{{firstName}}": "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200",
+  "{{lastName}}": "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200",
+  "{{fullName}}": "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200",
+  "{{company}}": "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200",
+  "{{title}}": "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200",
+  "{{email}}": "bg-cyan-100 text-cyan-800 border-cyan-300 hover:bg-cyan-200",
+  "{{projectName}}": "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200",
+  "{{projectLocation}}": "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200",
+  "{{sector}}": "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200",
+  "{{collateralName}}": "bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200",
+  "{{senderName}}": "bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-200",
+  "{{senderTitle}}": "bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-200",
+  "{{senderEmail}}": "bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-200",
 };
 
-// ── Greeting & Sign-off Options ──
+const DEFAULT_PILL = "bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200";
 
-const GREETING_OPTIONS = [
-  "Hi {{firstName}},",
-  "Dear {{firstName}},",
-  "Hello {{firstName}},",
-  "G'day {{firstName}},",
-  "Hi {{fullName}},",
-  "Dear {{fullName}},",
-];
+// ── Image upload helper ──
 
-const SIGNOFF_OPTIONS = [
-  "Kind regards,",
-  "Best regards,",
-  "Warm regards,",
-  "Regards,",
-  "Cheers,",
-  "Thanks,",
-  "Many thanks,",
-];
+async function uploadImage(file: File): Promise<string> {
+  const resp = await fetch("/api/upload-template-image", {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type,
+      "X-Filename": file.name,
+    },
+    body: file,
+  });
+  if (!resp.ok) throw new Error("Image upload failed");
+  const data = await resp.json();
+  return data.url;
+}
 
 // ── Component ──
 
@@ -94,24 +96,15 @@ export default function TemplateEditorModal({
   onTemplateSaved,
 }: TemplateEditorModalProps) {
   // ── State ──
-  const [templateMode, setTemplateMode] = useState<"plaintext" | "html">("plaintext");
   const [subjectTemplate, setSubjectTemplate] = useState("");
-  const [bodyTemplate, setBodyTemplate] = useState("");
-  const [greetingStyle, setGreetingStyle] = useState("Hi {{firstName}},");
-  const [signOffStyle, setSignOffStyle] = useState("Kind regards,");
-  const [senderSignature, setSenderSignature] = useState("");
-  const [htmlTemplate, setHtmlTemplate] = useState("");
-  const [activeTab, setActiveTab] = useState("edit");
+  const [showPreview, setShowPreview] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [templateMode, setTemplateMode] = useState<"plaintext" | "html">("html"); // default to WYSIWYG (html)
+  const [rawHtmlMode, setRawHtmlMode] = useState(false); // for advanced HTML upload
+  const [rawHtml, setRawHtml] = useState("");
   const [previewMode, setPreviewMode] = useState<"with-project" | "no-project">("with-project");
-
-  // Refs for cursor position insertion
   const subjectRef = useRef<HTMLInputElement>(null);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const signatureRef = useRef<HTMLTextAreaElement>(null);
-  const htmlEditorRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeField, setActiveField] = useState<"subject" | "body" | "signature" | "html">("body");
 
   // ── Queries ──
   const templateQuery = trpc.campaign.getTemplate.useQuery(
@@ -125,73 +118,159 @@ export default function TemplateEditorModal({
 
   const mergeFields: readonly MergeField[] = templateQuery.data?.mergeFields || [];
 
+  // ── TipTap Editor ──
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: false, // email doesn't need headings
+      }),
+      TiptapUnderline,
+      TextAlign.configure({
+        types: ["paragraph"],
+      }),
+      TiptapImage.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          style: "max-width: 100%; height: auto;",
+        },
+      }),
+      TiptapLink.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      }),
+      Placeholder.configure({
+        placeholder: "Start writing your email here...\n\nTip: Use the merge field buttons above to personalise for each recipient.",
+      }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm max-w-none focus:outline-none min-h-[300px] px-5 py-4",
+        style: "font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6;",
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (!moved && event.dataTransfer?.files?.length) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith("image/")) {
+            event.preventDefault();
+            handleImageDrop(file);
+            return true;
+          }
+        }
+        return false;
+      },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (items) {
+          for (const item of Array.from(items)) {
+            if (item.type.startsWith("image/")) {
+              event.preventDefault();
+              const file = item.getAsFile();
+              if (file) handleImageDrop(file);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+    },
+    onUpdate: () => {
+      setHasChanges(true);
+    },
+  });
+
+  // ── Image drop/paste handler ──
+  const handleImageDrop = useCallback(async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image too large. Max 10MB per image.");
+      return;
+    }
+    const toastId = toast.loading("Uploading image...");
+    try {
+      const url = await uploadImage(file);
+      editor?.chain().focus().setImage({ src: url }).run();
+      toast.success("Image added", { id: toastId });
+    } catch {
+      toast.error("Failed to upload image", { id: toastId });
+    }
+  }, [editor]);
+
   // ── Mutations ──
   const saveMut = trpc.campaign.saveTemplate.useMutation({
     onSuccess: () => {
-      toast.success("Template saved successfully");
+      toast.success("Template saved");
       setHasChanges(false);
       templateQuery.refetch();
       onTemplateSaved?.();
     },
-    onError: (err: any) => toast.error(`Failed to save template: ${err.message}`),
+    onError: (err: any) => toast.error(`Failed to save: ${err.message}`),
   });
 
   const deleteMut = trpc.campaign.deleteTemplate.useMutation({
     onSuccess: () => {
       toast.success("Template deleted");
       setSubjectTemplate("");
-      setBodyTemplate("");
-      setGreetingStyle("Hi {{firstName}},");
-      setSignOffStyle("Kind regards,");
-      setSenderSignature("");
-      setHtmlTemplate("");
-      setTemplateMode("plaintext");
+      editor?.commands.clearContent();
+      setRawHtml("");
+      setRawHtmlMode(false);
       setHasChanges(false);
       templateQuery.refetch();
       onTemplateSaved?.();
     },
-    onError: (err: any) => toast.error(`Failed to delete template: ${err.message}`),
+    onError: (err: any) => toast.error(`Failed to delete: ${err.message}`),
   });
 
   // ── Load template data ──
   useEffect(() => {
+    if (!editor) return;
     if (templateQuery.data?.template) {
       const t = templateQuery.data.template;
       setSubjectTemplate(t.subjectTemplate);
-      setBodyTemplate(t.bodyTemplate);
-      setGreetingStyle(t.greetingStyle);
-      setSignOffStyle(t.signOffStyle);
-      setSenderSignature(t.senderSignature || "");
-      setTemplateMode((t.templateMode as "plaintext" | "html") || "plaintext");
-      setHtmlTemplate(t.htmlTemplate || "");
+      const mode = (t.templateMode as "plaintext" | "html") || "html";
+      setTemplateMode(mode);
+      if (mode === "html" && t.htmlTemplate) {
+        editor.commands.setContent(t.htmlTemplate);
+        setRawHtml(t.htmlTemplate);
+      } else if (t.bodyTemplate) {
+        // Convert plain text to HTML paragraphs for the editor
+        const htmlContent = t.bodyTemplate
+          .split("\n\n")
+          .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+          .join("");
+        const fullHtml = `<p>${t.greetingStyle}</p>${htmlContent}<p>${t.signOffStyle}</p><p>${t.senderSignature || ""}</p>`;
+        editor.commands.setContent(fullHtml);
+      }
       setHasChanges(false);
     } else if (defaultTemplateQuery.data && !templateQuery.data?.template) {
       const d = defaultTemplateQuery.data;
       setSubjectTemplate(d.subjectTemplate);
-      setBodyTemplate(d.bodyTemplate);
-      setGreetingStyle(d.greetingStyle);
-      setSignOffStyle(d.signOffStyle);
-      setSenderSignature(d.senderSignature);
-      setTemplateMode("plaintext");
-      setHtmlTemplate("");
+      // Build default WYSIWYG content
+      const htmlContent = d.bodyTemplate
+        .split("\n\n")
+        .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      const fullHtml = `<p>${d.greetingStyle}</p>${htmlContent}<p>${d.signOffStyle}</p><p>${d.senderSignature || ""}</p>`;
+      editor.commands.setContent(fullHtml);
+      setTemplateMode("html");
       setHasChanges(false);
     }
-  }, [templateQuery.data, defaultTemplateQuery.data]);
+  }, [templateQuery.data, defaultTemplateQuery.data, editor]);
 
-  // ── Insert merge field at cursor ──
+  // ── Insert merge field into editor ──
   const insertMergeField = useCallback((token: string) => {
-    if (activeField === "html" && htmlEditorRef.current) {
-      const el = htmlEditorRef.current;
-      const start = el.selectionStart || 0;
-      const end = el.selectionEnd || 0;
-      const newVal = htmlTemplate.slice(0, start) + token + htmlTemplate.slice(end);
-      setHtmlTemplate(newVal);
+    if (editor) {
+      editor.chain().focus().insertContent(token).run();
       setHasChanges(true);
-      setTimeout(() => {
-        el.focus();
-        el.setSelectionRange(start + token.length, start + token.length);
-      }, 0);
-    } else if (activeField === "subject" && subjectRef.current) {
+    }
+  }, [editor]);
+
+  // ── Insert merge field into subject ──
+  const insertMergeFieldToSubject = useCallback((token: string) => {
+    if (subjectRef.current) {
       const el = subjectRef.current;
       const start = el.selectionStart || 0;
       const end = el.selectionEnd || 0;
@@ -202,38 +281,58 @@ export default function TemplateEditorModal({
         el.focus();
         el.setSelectionRange(start + token.length, start + token.length);
       }, 0);
-    } else if (activeField === "signature" && signatureRef.current) {
-      const el = signatureRef.current;
-      const start = el.selectionStart || 0;
-      const end = el.selectionEnd || 0;
-      const newVal = senderSignature.slice(0, start) + token + senderSignature.slice(end);
-      setSenderSignature(newVal);
-      setHasChanges(true);
-      setTimeout(() => {
-        el.focus();
-        el.setSelectionRange(start + token.length, start + token.length);
-      }, 0);
     } else {
-      // Default to body
-      const el = bodyRef.current;
-      if (el) {
-        const start = el.selectionStart || 0;
-        const end = el.selectionEnd || 0;
-        const newVal = bodyTemplate.slice(0, start) + token + bodyTemplate.slice(end);
-        setBodyTemplate(newVal);
-        setHasChanges(true);
-        setTimeout(() => {
-          el.focus();
-          el.setSelectionRange(start + token.length, start + token.length);
-        }, 0);
-      } else {
-        setBodyTemplate(prev => prev + token);
-        setHasChanges(true);
-      }
+      setSubjectTemplate(prev => prev + token);
+      setHasChanges(true);
     }
-  }, [activeField, subjectTemplate, bodyTemplate, senderSignature, htmlTemplate]);
+  }, [subjectTemplate]);
 
-  // ── Preview rendering (client-side with sample data) ──
+  // ── Image upload via button ──
+  const handleImageUpload = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) await handleImageDrop(file);
+    };
+    input.click();
+  }, [handleImageDrop]);
+
+  // ── Link insertion ──
+  const handleInsertLink = useCallback(() => {
+    if (!editor) return;
+    const url = window.prompt("Enter URL:");
+    if (url) {
+      editor.chain().focus().setLink({ href: url }).run();
+    }
+  }, [editor]);
+
+  // ── HTML file upload ──
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".html") && !file.name.endsWith(".htm") && file.type !== "text/html") {
+      toast.error("Please upload an HTML file (.html or .htm)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content && editor) {
+        editor.commands.setContent(content);
+        setRawHtml(content);
+        setTemplateMode("html");
+        setHasChanges(true);
+        toast.success(`HTML template loaded (${(content.length / 1024).toFixed(1)} KB)`);
+      }
+    };
+    reader.onerror = () => toast.error("Failed to read file");
+    reader.readAsText(file);
+    e.target.value = "";
+  }, [editor]);
+
+  // ── Preview rendering ──
   const sampleContext = useMemo(() => {
     const fields = defaultTemplateQuery.data?.mergeFields || mergeFields;
     const ctx: Record<string, string> = {};
@@ -244,7 +343,6 @@ export default function TemplateEditorModal({
     return ctx;
   }, [mergeFields, defaultTemplateQuery.data]);
 
-  // Build a no-project sample context using the smart fallbacks
   const noProjectContext = useMemo(() => {
     const base = { ...sampleContext };
     const company = base.company || "Acme Corp";
@@ -254,7 +352,6 @@ export default function TemplateEditorModal({
     return base;
   }, [sampleContext]);
 
-  // Active context based on preview mode toggle
   const activePreviewContext = previewMode === "no-project" ? noProjectContext : sampleContext;
 
   const renderPreview = useCallback((template: string) => {
@@ -265,75 +362,42 @@ export default function TemplateEditorModal({
     return result;
   }, [activePreviewContext]);
 
-  const previewSubject = renderPreview(subjectTemplate);
-  const previewGreeting = renderPreview(greetingStyle);
-  const previewBody = renderPreview(bodyTemplate);
-  const previewSignOff = renderPreview(signOffStyle);
-  const previewSignature = renderPreview(senderSignature || "{{senderName}}\n{{senderTitle}}\nAtlas Copco Australia - Power Technique\n{{senderEmail}}");
-  const previewHtml = renderPreview(htmlTemplate);
+  // ── Word count ──
+  const wordCount = useMemo(() => {
+    if (!editor) return 0;
+    const text = editor.getText();
+    return text.trim() ? text.trim().split(/\s+/).length : 0;
+  }, [editor?.getText()]);
 
-  // ── Count merge fields in HTML ──
-  const htmlMergeFieldCount = useMemo(() => {
-    if (!htmlTemplate) return 0;
-    const matches = htmlTemplate.match(/\{\{[a-zA-Z]+\}\}/g);
-    return matches ? new Set(matches).size : 0;
-  }, [htmlTemplate]);
-
-  // ── File Upload Handler ──
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith(".html") && !file.name.endsWith(".htm") && file.type !== "text/html") {
-      toast.error("Please upload an HTML file (.html or .htm)");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        setHtmlTemplate(content);
-        setTemplateMode("html");
-        setHasChanges(true);
-        toast.success(`HTML template loaded (${(content.length / 1024).toFixed(1)} KB). Add merge fields like {{firstName}} to personalise.`);
-      }
-    };
-    reader.onerror = () => toast.error("Failed to read file");
-    reader.readAsText(file);
-
-    // Reset input so same file can be re-uploaded
-    e.target.value = "";
-  }, []);
-
-  // ── Handlers ──
+  // ── Save handler ──
   const handleSave = () => {
-    if (templateMode === "html" && !htmlTemplate) {
-      toast.error("Please paste or upload an HTML template before saving in HTML mode.");
+    const htmlContent = editor?.getHTML() || "";
+    if (!htmlContent || htmlContent === "<p></p>") {
+      toast.error("Please write some email content before saving.");
       return;
     }
     saveMut.mutate({
       campaignId,
       subjectTemplate,
-      bodyTemplate: templateMode === "html" ? (bodyTemplate || "Email body (HTML mode)") : bodyTemplate,
-      greetingStyle,
-      signOffStyle,
-      senderSignature: senderSignature || undefined,
-      templateMode,
-      htmlTemplate: templateMode === "html" ? htmlTemplate : null,
+      bodyTemplate: editor?.getText() || "Email body",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Kind regards,",
+      senderSignature: undefined,
+      templateMode: "html",
+      htmlTemplate: htmlContent,
     });
   };
 
   const handleLoadDefault = () => {
-    if (defaultTemplateQuery.data) {
+    if (defaultTemplateQuery.data && editor) {
       const d = defaultTemplateQuery.data;
       setSubjectTemplate(d.subjectTemplate);
-      setBodyTemplate(d.bodyTemplate);
-      setGreetingStyle(d.greetingStyle);
-      setSignOffStyle(d.signOffStyle);
-      setSenderSignature(d.senderSignature);
-      setTemplateMode("plaintext");
-      setHtmlTemplate("");
+      const htmlContent = d.bodyTemplate
+        .split("\n\n")
+        .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      const fullHtml = `<p>${d.greetingStyle}</p>${htmlContent}<p>${d.signOffStyle}</p><p>${d.senderSignature || ""}</p>`;
+      editor.commands.setContent(fullHtml);
       setHasChanges(true);
       toast.info("Default template loaded — click Save to apply");
     }
@@ -345,373 +409,257 @@ export default function TemplateEditorModal({
     }
   };
 
-  const handleCopyToken = (token: string) => {
-    navigator.clipboard.writeText(token);
-    toast.success(`Copied ${token} to clipboard`);
-  };
-
   const isLoading = templateQuery.isLoading || defaultTemplateQuery.isLoading;
+
+  // ── Toolbar Button Component ──
+  const ToolbarBtn = ({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: React.ReactNode; title: string }) => (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`p-1.5 rounded transition-colors ${
+        active
+          ? "bg-navy text-white"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+      }`}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-0 !translate-x-0 !translate-y-0 !top-0 !left-0 overflow-hidden flex flex-col p-6">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-gold" />
-            Email Template — {campaignName}
-          </DialogTitle>
-          <DialogDescription className="flex items-center gap-2 flex-wrap">
-            Create a reusable email template with merge fields.
-            {templateQuery.data?.template && (
-              <Badge variant="outline" className="border-green-500 text-green-600">
-                Template Active
-              </Badge>
-            )}
-            {templateMode === "html" && (
-              <Badge variant="outline" className="border-blue-500 text-blue-600">
-                HTML Mode
-              </Badge>
-            )}
-          </DialogDescription>
-        </DialogHeader>
-
-        {isLoading ? (
-          <div className="py-12 text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-gold" />
-            <p className="text-muted-foreground">Loading template...</p>
-          </div>
-        ) : (
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-            {/* ── Mode Toggle ── */}
-            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">Template Mode:</span>
-              <div className="flex rounded-lg border border-border overflow-hidden">
-                <button
-                  onClick={() => { setTemplateMode("plaintext"); setHasChanges(true); setActiveField("body"); }}
-                  className={`px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                    templateMode === "plaintext"
-                      ? "bg-navy text-white"
-                      : "bg-card text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Type className="w-3.5 h-3.5" /> Plain Text
-                </button>
-                <button
-                  onClick={() => { setTemplateMode("html"); setHasChanges(true); setActiveField("html"); }}
-                  className={`px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                    templateMode === "html"
-                      ? "bg-navy text-white"
-                      : "bg-card text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Code className="w-3.5 h-3.5" /> HTML Template
-                </button>
+      <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-0 !translate-x-0 !translate-y-0 !top-0 !left-0 overflow-hidden flex flex-col p-0">
+        {/* ── Header ── */}
+        <div className="px-6 pt-5 pb-4 border-b border-border bg-white">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-navy/10 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-navy" />
               </div>
-              {templateMode === "html" && htmlMergeFieldCount > 0 && (
-                <span className="text-[10px] text-green-600 font-medium">
-                  {htmlMergeFieldCount} merge field{htmlMergeFieldCount !== 1 ? "s" : ""} detected
-                </span>
+              <div>
+                <DialogTitle className="text-lg font-bold">Email Template Editor</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Master template for this campaign — images and layout stay fixed, text is personalised per recipient.
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {templateQuery.data?.template && (
+                <Badge variant="outline" className="border-green-500 text-green-600 bg-green-50">
+                  Template saved
+                </Badge>
               )}
             </div>
+          </div>
+        </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
-              <TabsList className="mb-3">
-                <TabsTrigger value="edit" className="flex items-center gap-1.5">
-                  <Type className="w-3.5 h-3.5" /> Editor
-                </TabsTrigger>
-                <TabsTrigger value="preview" className="flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5" /> Preview
-                </TabsTrigger>
-                {templateMode === "html" && (
-                  <TabsTrigger value="mergefields" className="flex items-center gap-1.5">
-                    <AtSign className="w-3.5 h-3.5" /> Merge Fields
-                  </TabsTrigger>
-                )}
-              </TabsList>
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-gold" />
+              <p className="text-muted-foreground">Loading template...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {/* ── Subject Line ── */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Subject Line</label>
+              <Input
+                ref={subjectRef}
+                value={subjectTemplate}
+                onChange={e => { setSubjectTemplate(e.target.value); setHasChanges(true); }}
+                placeholder="e.g. Enhance {{company}}'s Operations with..."
+                className="text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use placeholders like {"{{firstName}}"}, {"{{company}}"} — they'll be replaced per recipient.
+              </p>
+            </div>
 
-              {/* ── Editor Tab ── */}
-              <TabsContent value="edit" className="flex-1 overflow-y-auto space-y-4 pr-1">
-                {/* Merge Field Buttons */}
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">
-                    Insert Merge Field
-                    <span className="text-[10px] font-normal ml-2 normal-case">
-                      (click to insert at cursor in {
-                        activeField === "subject" ? "subject" :
-                        activeField === "signature" ? "signature" :
-                        activeField === "html" ? "HTML editor" : "body"
-                      })
-                    </span>
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {mergeFields.map((field) => {
-                      const isProjectField = ["{{projectName}}", "{{projectLocation}}", "{{sector}}"].includes(field.token);
-                      return (
-                        <button
-                          key={field.token}
-                          onClick={() => insertMergeField(field.token)}
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
-                            isProjectField
-                              ? "bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300"
-                              : "bg-navy/10 text-navy hover:bg-navy/20 border-navy/20"
-                          }`}
-                          title={`${field.description} — e.g. "${field.example}"`}
-                        >
-                          {MERGE_FIELD_ICONS[field.token] || <Type className="w-3 h-3" />}
-                          {field.label}
-                          {isProjectField && <span className="text-[9px] text-amber-500">*</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 shrink-0" />
-                    <span><strong>*Project fields</strong> (Project Name, Location, Sector) use smart fallbacks when a contact has no matched project — e.g. "BHP Group's operations" instead of a project name.</span>
-                  </p>
-                </div>
-
-                {/* Subject Line (both modes) */}
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">
-                    Subject Line
-                  </label>
-                  <Input
-                    ref={subjectRef}
-                    value={subjectTemplate}
-                    onChange={e => { setSubjectTemplate(e.target.value); setHasChanges(true); }}
-                    onFocus={() => setActiveField("subject")}
-                    placeholder="e.g. {{company}} — High-Pressure Air Solutions for {{projectName}}"
-                    className="font-medium"
-                  />
-                </div>
-
-                {templateMode === "plaintext" ? (
-                  <>
-                    {/* Greeting Style */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">
-                          Greeting Style
-                        </label>
-                        <Select value={greetingStyle} onValueChange={(v) => { setGreetingStyle(v); setHasChanges(true); }}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {GREETING_OPTIONS.map(g => (
-                              <SelectItem key={g} value={g}>{g}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">
-                          Sign-Off Style
-                        </label>
-                        <Select value={signOffStyle} onValueChange={(v) => { setSignOffStyle(v); setHasChanges(true); }}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SIGNOFF_OPTIONS.map(s => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Body Template */}
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">
-                        Email Body
-                      </label>
-                      <Textarea
-                        ref={bodyRef}
-                        value={bodyTemplate}
-                        onChange={e => { setBodyTemplate(e.target.value); setHasChanges(true); }}
-                        onFocus={() => setActiveField("body")}
-                        rows={10}
-                        placeholder="Write your email body here. Use merge fields like {{firstName}}, {{company}}, {{projectName}} for personalisation..."
-                        className="font-mono text-sm"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Tip: The greeting and sign-off are added automatically. Just write the main body content here.
-                      </p>
-                    </div>
-
-                    {/* Sender Signature */}
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">
-                        Sender Signature
-                      </label>
-                      <Textarea
-                        ref={signatureRef}
-                        value={senderSignature}
-                        onChange={e => { setSenderSignature(e.target.value); setHasChanges(true); }}
-                        onFocus={() => setActiveField("signature")}
-                        rows={4}
-                        placeholder={"{{senderName}}\n{{senderTitle}}\nAtlas Copco Australia - Power Technique\n{{senderEmail}}"}
-                        className="font-mono text-sm"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Leave blank to use the default signature (sender name, title, company, email).
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* ── HTML Template Editor ── */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-semibold text-muted-foreground uppercase">
-                          HTML Email Template
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".html,.htm,text/html"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="h-7 text-xs"
-                          >
-                            <FileUp className="w-3 h-3 mr-1" /> Upload HTML
-                          </Button>
-                          {htmlTemplate && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {(htmlTemplate.length / 1024).toFixed(1)} KB
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Info banner */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                        <div className="flex gap-2">
-                          <AlertTriangle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                          <div className="text-xs text-blue-700 space-y-1">
-                            <p className="font-semibold">How to use HTML templates:</p>
-                            <ol className="list-decimal list-inside space-y-0.5">
-                              <li>Upload or paste your branded HTML email template below</li>
-                              <li>Replace static text with merge fields (e.g. change "Hi Lee" to "Hi {'{{firstName}}'}")</li>
-                              <li>Use the merge field buttons above or the Merge Fields tab for reference</li>
-                              <li>Switch to Preview to see how it renders with sample data</li>
-                            </ol>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Textarea
-                        ref={htmlEditorRef}
-                        value={htmlTemplate}
-                        onChange={e => { setHtmlTemplate(e.target.value); setHasChanges(true); }}
-                        onFocus={() => setActiveField("html")}
-                        rows={16}
-                        placeholder="Paste your HTML email template here, or click 'Upload HTML' to load from a file...
-
-Example: Replace personalised text with merge fields:
-  'Hi Lee' → 'Hi {{firstName}}'
-  'Boart Longyear' → '{{company}}'
-  'DrillAir X1350' → '{{collateralName}}'"
-                        className="font-mono text-xs leading-relaxed"
-                        style={{ tabSize: 2 }}
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        The HTML is sent as-is in the email. All images should use absolute URLs (https://...). Merge fields like {"{{firstName}}"} will be replaced per-contact.
-                      </p>
-                    </div>
-
-                    {/* Plain text fallback (collapsed) */}
-                    <details className="border border-border rounded-lg">
-                      <summary className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase cursor-pointer hover:bg-muted/50">
-                        Plain Text Fallback (for email clients that don't render HTML)
-                      </summary>
-                      <div className="p-3 space-y-3 border-t border-border">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Greeting</label>
-                            <Select value={greetingStyle} onValueChange={(v) => { setGreetingStyle(v); setHasChanges(true); }}>
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {GREETING_OPTIONS.map(g => (
-                                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Sign-Off</label>
-                            <Select value={signOffStyle} onValueChange={(v) => { setSignOffStyle(v); setHasChanges(true); }}>
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {SIGNOFF_OPTIONS.map(s => (
-                                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <Textarea
-                          ref={bodyRef}
-                          value={bodyTemplate}
-                          onChange={e => { setBodyTemplate(e.target.value); setHasChanges(true); }}
-                          onFocus={() => setActiveField("body")}
-                          rows={4}
-                          placeholder="Plain text version of your email (used as fallback)..."
-                          className="font-mono text-xs"
-                        />
-                      </div>
-                    </details>
-                  </>
-                )}
-              </TabsContent>
-
-              {/* ── Preview Tab ── */}
-              <TabsContent value="preview" className="flex-1 overflow-y-auto">
-                {/* Preview Mode Toggle */}
-                <div className="flex items-center gap-3 mb-3 p-3 bg-slate-50 rounded-lg border border-border">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase">Preview as:</span>
-                  <div className="flex rounded-lg border border-border overflow-hidden">
+            {/* ── Merge Field Pills ── */}
+            <div className="mb-4">
+              <label className="text-xs font-medium text-gray-500 mb-2 block">Insert Placeholder</label>
+              <div className="flex flex-wrap gap-1.5">
+                {(mergeFields.length > 0 ? [...mergeFields] : [
+                  { token: "{{firstName}}", label: "First Name", description: "", example: "" },
+                  { token: "{{lastName}}", label: "Last Name", description: "", example: "" },
+                  { token: "{{fullName}}", label: "Full Name", description: "", example: "" },
+                  { token: "{{company}}", label: "Company", description: "", example: "" },
+                  { token: "{{title}}", label: "Job Title", description: "", example: "" },
+                  { token: "{{projectName}}", label: "Project Name", description: "", example: "" },
+                ]).map((field) => {
+                  const colorClass = MERGE_PILL_COLORS[field.token] || DEFAULT_PILL;
+                  return (
                     <button
-                      onClick={() => setPreviewMode("with-project")}
-                      className={`px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                        previewMode === "with-project"
-                          ? "bg-teal text-white"
-                          : "bg-white text-muted-foreground hover:bg-muted"
-                      }`}
+                      key={field.token}
+                      onClick={() => insertMergeField(field.token)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${colorClass}`}
+                      title={field.description || `Insert ${field.label}`}
                     >
-                      <UserCheck className="w-3.5 h-3.5" /> With Project Match
+                      {field.label}
                     </button>
-                    <button
-                      onClick={() => setPreviewMode("no-project")}
-                      className={`px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                        previewMode === "no-project"
-                          ? "bg-amber-500 text-white"
-                          : "bg-white text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <UserX className="w-3.5 h-3.5" /> No Project Match
-                    </button>
-                  </div>
-                  {previewMode === "no-project" && (
-                    <span className="text-[10px] text-amber-600 font-medium">
-                      Showing how emails look for contacts without a matched project — project fields use smart fallbacks
-                    </span>
-                  )}
-                </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                {/* Email header (both modes) */}
-                <div className="bg-white rounded-t-lg border border-border p-4 space-y-1">
+            {/* ── Formatting Toolbar ── */}
+            <div className="flex items-center gap-0.5 px-2 py-1.5 bg-gray-50 border border-border rounded-t-lg flex-wrap">
+              <ToolbarBtn
+                active={editor?.isActive("bold")}
+                onClick={() => editor?.chain().focus().toggleBold().run()}
+                title="Bold"
+              >
+                <Bold className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={editor?.isActive("italic")}
+                onClick={() => editor?.chain().focus().toggleItalic().run()}
+                title="Italic"
+              >
+                <Italic className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={editor?.isActive("underline")}
+                onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                title="Underline"
+              >
+                <UnderlineIcon className="w-4 h-4" />
+              </ToolbarBtn>
+
+              <div className="w-px h-5 bg-gray-300 mx-1" />
+
+              <ToolbarBtn
+                active={editor?.isActive({ textAlign: "left" })}
+                onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+                title="Align Left"
+              >
+                <AlignLeft className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={editor?.isActive({ textAlign: "center" })}
+                onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+                title="Align Center"
+              >
+                <AlignCenter className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={editor?.isActive({ textAlign: "right" })}
+                onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+                title="Align Right"
+              >
+                <AlignRight className="w-4 h-4" />
+              </ToolbarBtn>
+
+              <div className="w-px h-5 bg-gray-300 mx-1" />
+
+              <ToolbarBtn
+                active={editor?.isActive("bulletList")}
+                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                title="Bullet List"
+              >
+                <List className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={editor?.isActive("orderedList")}
+                onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                title="Numbered List"
+              >
+                <ListOrdered className="w-4 h-4" />
+              </ToolbarBtn>
+
+              <div className="w-px h-5 bg-gray-300 mx-1" />
+
+              <ToolbarBtn
+                active={editor?.isActive("link")}
+                onClick={handleInsertLink}
+                title="Insert Link"
+              >
+                <LinkIcon className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={false}
+                onClick={handleImageUpload}
+                title="Insert Image"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </ToolbarBtn>
+
+              <div className="w-px h-5 bg-gray-300 mx-1" />
+
+              <ToolbarBtn
+                active={false}
+                onClick={() => editor?.chain().focus().undo().run()}
+                title="Undo"
+              >
+                <Undo className="w-4 h-4" />
+              </ToolbarBtn>
+              <ToolbarBtn
+                active={false}
+                onClick={() => editor?.chain().focus().redo().run()}
+                title="Redo"
+              >
+                <Redo className="w-4 h-4" />
+              </ToolbarBtn>
+
+              {/* Right side: Show Preview toggle + Upload HTML */}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  title="Upload a branded HTML template file"
+                >
+                  <Upload className="w-3.5 h-3.5" /> Upload HTML
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".html,.htm"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    showPreview
+                      ? "bg-navy text-white"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {showPreview ? "Hide Preview" : "Show Preview"}
+                </button>
+              </div>
+            </div>
+
+            {/* ── Editor / Preview Area ── */}
+            {showPreview ? (
+              <div className="border border-t-0 border-border rounded-b-lg bg-white">
+                {/* Preview mode toggle */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-border">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase">Preview as:</span>
+                  <button
+                    onClick={() => setPreviewMode("with-project")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                      previewMode === "with-project" ? "bg-teal text-white" : "bg-white text-muted-foreground border border-border"
+                    }`}
+                  >
+                    With Project
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode("no-project")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                      previewMode === "no-project" ? "bg-amber-500 text-white" : "bg-white text-muted-foreground border border-border"
+                    }`}
+                  >
+                    No Project
+                  </button>
+                </div>
+                {/* Email header */}
+                <div className="px-5 py-3 border-b border-border space-y-1">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-gray-500 w-16">From:</span>
                     <span className="text-gray-900">{activePreviewContext.senderName} &lt;{activePreviewContext.senderEmail}&gt;</span>
@@ -722,148 +670,77 @@ Example: Replace personalised text with merge fields:
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-gray-500 w-16">Subject:</span>
-                    <span className="text-gray-900 font-medium">{previewSubject || "(no subject)"}</span>
+                    <span className="text-gray-900 font-medium">{renderPreview(subjectTemplate) || "(no subject)"}</span>
                   </div>
                 </div>
+                {/* Rendered preview */}
+                <div className="p-5">
+                  <div
+                    className="prose prose-sm max-w-none"
+                    style={{ fontFamily: "Calibri, 'Segoe UI', Arial, sans-serif", fontSize: "14px", lineHeight: "1.6" }}
+                    dangerouslySetInnerHTML={{ __html: renderPreview(editor?.getHTML() || "") }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="border border-t-0 border-border rounded-b-lg bg-white">
+                <EditorContent editor={editor} />
+                <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-between">
+                  <span>
+                    Drag and drop images into the editor, paste from clipboard, or click the image icon. Max 10MB per image.
+                  </span>
+                  <span>{wordCount} words</span>
+                </div>
+              </div>
+            )}
 
-                {templateMode === "html" && htmlTemplate ? (
-                  <>
-                    {/* HTML Preview in sandboxed iframe */}
-                    <div className="border border-t-0 border-border rounded-b-lg overflow-hidden bg-white">
-                      <iframe
-                        srcDoc={previewHtml}
-                        title="HTML Email Preview"
-                        className="w-full border-0"
-                        style={{ minHeight: "500px", height: "60vh" }}
-                        sandbox="allow-same-origin"
-                      />
-                    </div>
-                    <div className={`mt-3 p-3 rounded-lg border ${previewMode === "no-project" ? "bg-amber-50 border-amber-300" : "bg-teal/5 border-teal/20"}`}>
-                      <p className={`text-xs ${previewMode === "no-project" ? "text-amber-700" : "text-teal"}`}>
-                        {previewMode === "no-project" ? (
-                          <><strong>No-project preview:</strong> This shows how the email looks when a contact has no matched project. Project fields use smart fallbacks (e.g. "BHP Group's operations" instead of a specific project name).  Use the toggle above to switch back to the with-project view.</>
-                        ) : (
-                          <><strong>With-project preview:</strong> This shows sample data with a matched project. Toggle to "No Project Match" above to see how emails look for contacts without a project match.</>
-                        )}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Plain text preview */}
-                    <div className="bg-white rounded-b-lg border border-t-0 border-border p-6">
-                      <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-[Calibri,_'Segoe_UI',_Arial,_sans-serif]">
-                        <p>{previewGreeting}</p>
-                        <br />
-                        {previewBody.split("\n\n").map((para, i) => (
-                          <div key={i}>
-                            <p>{para}</p>
-                            {i < previewBody.split("\n\n").length - 1 && <br />}
-                          </div>
-                        ))}
-                        <br />
-                        <p>{previewSignOff}</p>
-                        <p className="whitespace-pre-wrap">{previewSignature}</p>
-                      </div>
-                    </div>
-                    <div className={`mt-3 p-3 rounded-lg border ${previewMode === "no-project" ? "bg-amber-50 border-amber-300" : "bg-teal/5 border-teal/20"}`}>
-                      <p className={`text-xs ${previewMode === "no-project" ? "text-amber-700" : "text-teal"}`}>
-                        {previewMode === "no-project" ? (
-                          <><strong>No-project preview:</strong> This shows how the email looks when a contact has no matched project. Project fields use smart fallbacks. Toggle above to switch views.</>
-                        ) : (
-                          <><strong>With-project preview:</strong> This shows sample data with a matched project. Toggle to "No Project Match" above to see the fallback version.</>
-                        )}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </TabsContent>
-
-              {/* ── Merge Fields Reference Tab (HTML mode) ── */}
-              {templateMode === "html" && (
-                <TabsContent value="mergefields" className="flex-1 overflow-y-auto">
-                  <div className="bg-card rounded-lg border border-border p-4">
-                    <h3 className="text-sm font-bold text-navy mb-3">Available Merge Fields</h3>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      Copy these tokens and paste them into your HTML template to personalise each email. They will be replaced with real contact data when emails are generated.
-                    </p>
-                    <div className="space-y-2">
-                      {mergeFields.map((field) => (
-                        <div key={field.token} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 group">
-                          <div className="flex items-center gap-1.5 min-w-[140px]">
-                            {MERGE_FIELD_ICONS[field.token] || <Type className="w-3.5 h-3.5 text-muted-foreground" />}
-                            <code className="text-xs font-bold text-navy bg-navy/10 px-1.5 py-0.5 rounded">
-                              {field.token}
-                            </code>
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-xs text-foreground">{field.description}</span>
-                            <span className="text-[10px] text-muted-foreground ml-2">e.g. "{field.example}"</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleCopyToken(field.token)}
-                          >
-                            <Copy className="w-3 h-3 mr-1" /> Copy
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700">
-                        <strong>Tip:</strong> In your HTML, find static text like "Hi Lee" and replace it with {"Hi {{firstName}}"}. 
-                        Find "Boart Longyear" and replace with {"{{company}}"}. The system handles the rest.
-                      </p>
-                    </div>
-                  </div>
-                </TabsContent>
-              )}
-            </Tabs>
+            {/* ── Project fields note ── */}
+            <div className="mt-3 flex items-start gap-2 text-[11px] text-amber-600">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                <strong>Project fields</strong> (Project Name, Location, Sector) use smart fallbacks when a contact has no matched project.
+                {showPreview && " Toggle 'No Project' above to see how it looks."}
+              </span>
+            </div>
           </div>
         )}
 
-        <DialogFooter className="flex-wrap gap-2 border-t pt-4 mt-2">
-          <div className="flex items-center gap-2 mr-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLoadDefault}
-              disabled={isLoading}
-            >
+        {/* ── Footer ── */}
+        <div className="px-6 py-3 border-t border-border bg-white flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleLoadDefault}>
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Load Default
             </Button>
             {templateQuery.data?.template && (
               <Button
                 variant="outline"
                 size="sm"
-                className="border-red-300 text-red-600 hover:bg-red-50"
                 onClick={handleDelete}
                 disabled={deleteMut.isPending}
+                className="text-red-600 border-red-300 hover:bg-red-50"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Template
               </Button>
             )}
           </div>
-
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saveMut.isPending || !subjectTemplate || (templateMode === "plaintext" && !bodyTemplate) || (templateMode === "html" && !htmlTemplate)}
-            className="bg-gold text-navy hover:bg-gold/90"
-          >
-            {saveMut.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            Save Template
-          </Button>
-        </DialogFooter>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saveMut.isPending || !hasChanges}
+              className="bg-teal hover:bg-teal/90 text-white"
+            >
+              {saveMut.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+              ) : (
+                <Save className="w-4 h-4 mr-1.5" />
+              )}
+              Save Template
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

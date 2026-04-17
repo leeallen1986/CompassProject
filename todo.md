@@ -1235,3 +1235,17 @@
 - [x] Add toggle in Preview tab to switch between "With Project" and "No Project" sample data
 - [x] Build no-project sample context that uses the smart fallbacks
 - [x] Show visual indicator of which mode is active in preview
+
+## Feature — WYSIWYG Rich Text Template Editor
+- [x] Install TipTap editor packages (core, starter-kit, image, link, placeholder, underline, text-align)
+- [x] Rebuild TemplateEditorModal with single-view WYSIWYG layout (no tabs for edit/preview)
+- [x] Add formatting toolbar (bold, italic, underline, alignment, lists, links, images, undo/redo)
+- [x] Add colourful merge field pill buttons that insert inline tokens
+- [x] Add inline image support with drag-drop, paste, and upload button (S3-backed)
+- [x] Add "Show Preview" toggle to render the email as the recipient would see it
+- [x] Keep HTML upload as advanced option for branded HTML templates
+- [x] Update backend to handle rich HTML output from WYSIWYG editor
+- [x] Ensure word count display at bottom of editor
+- [x] Update email generation to use WYSIWYG HTML output
+- [x] Add image upload endpoint (/api/upload-template-image) for S3 storage
+- [x] Fix isHtml detection logic in generateFromTemplate

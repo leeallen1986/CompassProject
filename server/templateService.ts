@@ -357,7 +357,7 @@ export async function generateFromTemplate(
 
   // Save draft to contact — store htmlBody in draftBody for HTML mode
   // The draftTone field indicates the mode: "template" = plaintext, "html-template" = HTML
-  const isHtml = !!(template as any).templateMode === true || (template as any).templateMode === "html";
+  const isHtml = (template as any).templateMode === "html" || !!htmlBody;
   await db.update(campaignContacts).set({
     draftSubject: subject,
     draftBody: htmlBody || body,
