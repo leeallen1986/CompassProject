@@ -2840,13 +2840,24 @@ export const appRouter = router({
           console.warn("[EML] Failed to fetch collateral for attachment:", err);
         }
 
-        // Strip any existing signature from the body (everything after "Best regards" or "Kind regards")
+        // Detect if this is an HTML template email
+        const isHtmlTemplate = contact.draftTone === "html-template";
+
+        // For HTML templates, the draftBody IS the rendered HTML — pass it directly
+        // For plain text, strip signatures and clean up as before
         let cleanBody = contact.draftBody;
-        const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
-        cleanBody = cleanBody.replace(sigRegex, "");
-        // Also strip attachment reminders
-        cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
-        cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+        let htmlBody: string | undefined;
+
+        if (isHtmlTemplate) {
+          htmlBody = contact.draftBody;
+          // Create a plain text fallback by stripping HTML tags
+          cleanBody = contact.draftBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        } else {
+          const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
+          cleanBody = cleanBody.replace(sigRegex, "");
+          cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
+          cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+        }
 
         const emlContent = buildEmlFile({
           fromName: senderName,
@@ -2857,7 +2868,7 @@ export const appRouter = router({
           bodyText: cleanBody.trim(),
           brand,
           attachment,
-          // Note: attachment notice is already rendered in the HTML template by the emlGenerator
+          htmlBody,
         });
 
         // Save to outreach tracking
@@ -2929,12 +2940,20 @@ export const appRouter = router({
           const recipientEmail = contact.enrichedEmail || contact.email || "";
           const recipientName = [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Contact";
 
-          // Strip signature/reminder from body
+          // Detect HTML template mode
+          const isHtmlTemplate = contact.draftTone === "html-template";
           let cleanBody = contact.draftBody;
-          const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
-          cleanBody = cleanBody.replace(sigRegex, "");
-          cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
-          cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+          let htmlBody: string | undefined;
+
+          if (isHtmlTemplate) {
+            htmlBody = contact.draftBody;
+            cleanBody = contact.draftBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+          } else {
+            const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
+            cleanBody = cleanBody.replace(sigRegex, "");
+            cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
+            cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+          }
 
           const emlContent = buildEmlFile({
             fromName: senderName,
@@ -2945,6 +2964,7 @@ export const appRouter = router({
             bodyText: cleanBody.trim(),
             brand,
             attachment,
+            htmlBody,
           });
 
           // Sanitise filename: company-name.eml
@@ -3248,6 +3268,8 @@ export const appRouter = router({
         signOffStyle: z.string().min(1),
         senderSignature: z.string().optional(),
         name: z.string().optional(),
+        templateMode: z.enum(["plaintext", "html"]).optional(),
+        htmlTemplate: z.string().nullable().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const result = await upsertCampaignTemplate(input.campaignId, {
@@ -3257,6 +3279,8 @@ export const appRouter = router({
           signOffStyle: input.signOffStyle,
           senderSignature: input.senderSignature,
           name: input.name,
+          templateMode: input.templateMode,
+          htmlTemplate: input.htmlTemplate,
         }, ctx.user!.id);
         return { success: true, template: result };
       }),

@@ -272,3 +272,142 @@ describe("MERGE_FIELDS", () => {
     expect(new Set(tokens).size).toBe(tokens.length);
   });
 });
+
+// ── HTML Template Mode ──
+
+describe("renderFullEmail — HTML mode", () => {
+  const ctx: MergeFieldContext = {
+    firstName: "Lee",
+    lastName: "Thompson",
+    fullName: "Lee Thompson",
+    company: "Boart Longyear",
+    title: "Fleet Manager",
+    email: "lee.thompson@boartlongyear.com",
+    projectName: "Kalgoorlie Gold Mine",
+    projectLocation: "Western Australia",
+    sector: "Mining",
+    collateralName: "DrillAir X1350",
+    senderName: "Michael Chen",
+    senderTitle: "BDM",
+    senderEmail: "michael.chen@atlascopco.com",
+  };
+
+  it("returns htmlBody when templateMode is html and htmlTemplate is provided", () => {
+    const template = {
+      subjectTemplate: "{{company}} — {{collateralName}}",
+      bodyTemplate: "Fallback plain text body.",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Kind regards,",
+      senderSignature: null,
+      templateMode: "html" as const,
+      htmlTemplate: "<html><body><h1>Hi {{firstName}}</h1><p>Welcome to {{company}}</p></body></html>",
+    };
+
+    const result = renderFullEmail(template, ctx);
+
+    expect(result.subject).toBe("Boart Longyear — DrillAir X1350");
+    expect(result.htmlBody).toBeDefined();
+    expect(result.htmlBody).toContain("Hi Lee");
+    expect(result.htmlBody).toContain("Welcome to Boart Longyear");
+    expect(result.htmlBody).not.toContain("{{firstName}}");
+    expect(result.htmlBody).not.toContain("{{company}}");
+  });
+
+  it("renders merge fields inside HTML attributes and content", () => {
+    const template = {
+      subjectTemplate: "Test",
+      bodyTemplate: "Fallback",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Regards,",
+      senderSignature: null,
+      templateMode: "html" as const,
+      htmlTemplate: '<a href="mailto:{{email}}">Email {{fullName}}</a><p>Re: {{projectName}} in {{projectLocation}}</p>',
+    };
+
+    const result = renderFullEmail(template, ctx);
+
+    expect(result.htmlBody).toContain('href="mailto:lee.thompson@boartlongyear.com"');
+    expect(result.htmlBody).toContain("Email Lee Thompson");
+    expect(result.htmlBody).toContain("Kalgoorlie Gold Mine");
+    expect(result.htmlBody).toContain("Western Australia");
+  });
+
+  it("still returns plain text body alongside htmlBody for fallback", () => {
+    const template = {
+      subjectTemplate: "Test",
+      bodyTemplate: "This is the plain text version for {{firstName}}.",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Regards,",
+      senderSignature: "{{senderName}}",
+      templateMode: "html" as const,
+      htmlTemplate: "<p>HTML version for {{firstName}}</p>",
+    };
+
+    const result = renderFullEmail(template, ctx);
+
+    // Both should exist
+    expect(result.htmlBody).toContain("HTML version for Lee");
+    expect(result.body).toContain("Hi Lee,");
+    expect(result.body).toContain("This is the plain text version for Lee.");
+  });
+
+  it("falls back to plain text when templateMode is plaintext", () => {
+    const template = {
+      subjectTemplate: "Test",
+      bodyTemplate: "Plain text for {{firstName}}.",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Regards,",
+      senderSignature: null,
+      templateMode: "plaintext" as const,
+      htmlTemplate: null,
+    };
+
+    const result = renderFullEmail(template, ctx);
+
+    expect(result.htmlBody).toBeUndefined();
+    expect(result.body).toContain("Hi Lee,");
+    expect(result.body).toContain("Plain text for Lee.");
+  });
+
+  it("falls back to plain text when htmlTemplate is null even in html mode", () => {
+    const template = {
+      subjectTemplate: "Test",
+      bodyTemplate: "Fallback body.",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Regards,",
+      senderSignature: null,
+      templateMode: "html" as const,
+      htmlTemplate: null,
+    };
+
+    const result = renderFullEmail(template, ctx);
+
+    expect(result.htmlBody).toBeUndefined();
+    expect(result.body).toContain("Hi Lee,");
+    expect(result.body).toContain("Fallback body.");
+  });
+
+  it("handles complex HTML with all 13 merge fields", () => {
+    const allTokens = MERGE_FIELDS.map(f => `<span>${f.token}</span>`).join("");
+    const template = {
+      subjectTemplate: "Test",
+      bodyTemplate: "Fallback",
+      greetingStyle: "Hi {{firstName}},",
+      signOffStyle: "Regards,",
+      senderSignature: null,
+      templateMode: "html" as const,
+      htmlTemplate: `<div>${allTokens}</div>`,
+    };
+
+    const result = renderFullEmail(template, ctx);
+
+    expect(result.htmlBody).toBeDefined();
+    // No merge field tokens should remain
+    expect(result.htmlBody).not.toMatch(/\{\{[a-zA-Z]+\}\}/);
+    // All values should be present
+    expect(result.htmlBody).toContain("Lee");
+    expect(result.htmlBody).toContain("Thompson");
+    expect(result.htmlBody).toContain("Boart Longyear");
+    expect(result.htmlBody).toContain("michael.chen@atlascopco.com");
+  });
+});

@@ -25,7 +25,7 @@ import {
   Megaphone, Users, Mail, CheckCircle2, Send, Search, Download, Archive,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
-  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2, FileText,
+  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2, FileText, Code,
 } from "lucide-react";
 import { Link } from "wouter";
 import CampaignBuilder from "./CampaignBuilder";
@@ -57,6 +57,7 @@ type CampaignContact = {
   draftSubject: string | null;
   draftBody: string | null;
   draftKeyPoints: string[] | null;
+  draftTone: string | null;
   matchedProjectCount: number;
   nameCheckStatus: string | null;
 };
@@ -1170,15 +1171,42 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                   className="font-medium"
                 />
               </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Body</label>
-                <Textarea
-                  value={editingBody}
-                  onChange={e => setEditingBody(e.target.value)}
-                  rows={12}
-                  className="font-mono text-sm"
-                />
-              </div>
+              {selectedContact?.draftTone === "html-template" ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase">HTML Email Preview</label>
+                    <Badge variant="outline" className="border-blue-400 text-blue-600 text-[10px]">HTML Template</Badge>
+                  </div>
+                  <div className="border border-border rounded-lg overflow-hidden bg-white">
+                    <iframe
+                      srcDoc={editingBody}
+                      title="HTML Email Preview"
+                      className="w-full border-0"
+                      style={{ minHeight: "350px" }}
+                      sandbox="allow-same-origin"
+                    />
+                  </div>
+                  <details className="mt-2">
+                    <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">Edit raw HTML source</summary>
+                    <Textarea
+                      value={editingBody}
+                      onChange={e => setEditingBody(e.target.value)}
+                      rows={10}
+                      className="font-mono text-xs mt-1"
+                    />
+                  </details>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Body</label>
+                  <Textarea
+                    value={editingBody}
+                    onChange={e => setEditingBody(e.target.value)}
+                    rows={12}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              )}
               {selectedContact?.draftKeyPoints && selectedContact.draftKeyPoints.length > 0 && (
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Key Points</label>
@@ -1536,9 +1564,25 @@ function ApprovalQueue({ campaignId }: { campaignId: number }) {
                         </div>
                       )}
                       {c.draftBody && (
-                        <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {c.draftBody.substring(0, 200)}...
-                        </div>
+                        c.draftTone === "html-template" ? (
+                          <div className="mt-2 border border-border rounded overflow-hidden">
+                            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 border-b border-border">
+                              <Code className="w-3 h-3 text-blue-600" />
+                              <span className="text-[10px] font-semibold text-blue-600">HTML Template Email</span>
+                            </div>
+                            <iframe
+                              srcDoc={c.draftBody}
+                              title={`Preview for ${c.firstName}`}
+                              className="w-full border-0"
+                              style={{ height: "200px" }}
+                              sandbox="allow-same-origin"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {c.draftBody.substring(0, 200)}...
+                          </div>
+                        )
                       )}
                     </div>
                     <div className="flex gap-2 shrink-0">

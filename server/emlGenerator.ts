@@ -34,6 +34,8 @@ interface EmlOptions {
   ctaText?: string;
   /** Kept for API compatibility — ignored in plain-text style */
   includeHeroImage?: boolean;
+  /** Optional pre-built HTML body (from HTML template mode) — used instead of bodyText conversion */
+  htmlBody?: string;
 }
 
 /**
@@ -144,7 +146,9 @@ function encodeHeaderValue(value: string): string {
  * which triggers automatic insertion of the user's Outlook signature.
  */
 export function buildEmlFile(opts: EmlOptions): string {
-  const html = buildPlainStyleHtml(opts);
+  // If a pre-built HTML body is provided (HTML template mode), use it directly;
+  // otherwise generate the simple Outlook-style HTML from plain text
+  const html = opts.htmlBody || buildPlainStyleHtml(opts);
   const plainText = opts.bodyText + (opts.ctaText ? "\n\n" + opts.ctaText : "");
   const date = new Date().toUTCString();
   const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@atlascopco.com>`;

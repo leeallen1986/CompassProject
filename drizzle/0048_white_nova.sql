@@ -1,0 +1,2 @@
+ALTER TABLE `campaignEmailTemplates` ADD `templateMode` enum('plaintext','html') DEFAULT 'plaintext' NOT NULL;--> statement-breakpoint
+ALTER TABLE `campaignEmailTemplates` ADD `htmlTemplate` mediumtext;

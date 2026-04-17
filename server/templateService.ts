@@ -116,6 +116,7 @@ export function renderTemplate(template: string, context: MergeFieldContext): st
 /**
  * Render a full email (subject + body) from a template and merge context.
  * Handles greeting and sign-off assembly.
+ * Supports both plaintext and HTML template modes.
  */
 export function renderFullEmail(
   template: {
@@ -124,12 +125,28 @@ export function renderFullEmail(
     greetingStyle: string;
     signOffStyle: string;
     senderSignature?: string | null;
+    templateMode?: string | null;
+    htmlTemplate?: string | null;
   },
   context: MergeFieldContext,
-): { subject: string; body: string } {
+): { subject: string; body: string; htmlBody?: string } {
   const subject = renderTemplate(template.subjectTemplate, context);
 
-  // Build body: greeting + body + sign-off + signature
+  // HTML mode: render merge fields directly inside the HTML template
+  if (template.templateMode === "html" && template.htmlTemplate) {
+    const htmlBody = renderTemplate(template.htmlTemplate, context);
+    // Also produce a plain text fallback from the body template
+    const greeting = renderTemplate(template.greetingStyle, context);
+    const bodyContent = renderTemplate(template.bodyTemplate, context);
+    const signOff = renderTemplate(template.signOffStyle, context);
+    const signatureBlock = template.senderSignature
+      ? renderTemplate(template.senderSignature, context)
+      : `${context.senderName}\n${context.senderTitle}\nAtlas Copco Australia - Power Technique\n${context.senderEmail}`;
+    const body = `${greeting}\n\n${bodyContent}\n\n${signOff}\n${signatureBlock}`;
+    return { subject, body, htmlBody };
+  }
+
+  // Plain text mode: greeting + body + sign-off + signature
   const greeting = renderTemplate(template.greetingStyle, context);
   const bodyContent = renderTemplate(template.bodyTemplate, context);
   const signOff = renderTemplate(template.signOffStyle, context);
@@ -227,6 +244,8 @@ export async function upsertCampaignTemplate(
     signOffStyle: string;
     senderSignature?: string;
     name?: string;
+    templateMode?: "plaintext" | "html";
+    htmlTemplate?: string | null;
   },
   userId: number,
 ) {
@@ -245,6 +264,8 @@ export async function upsertCampaignTemplate(
       signOffStyle: data.signOffStyle,
       senderSignature: data.senderSignature ?? existing.senderSignature,
       name: data.name ?? existing.name,
+      templateMode: data.templateMode ?? existing.templateMode,
+      htmlTemplate: data.htmlTemplate !== undefined ? data.htmlTemplate : existing.htmlTemplate,
     }).where(eq(campaignEmailTemplates.id, existing.id));
 
     return { ...existing, ...data };
@@ -259,6 +280,8 @@ export async function upsertCampaignTemplate(
       greetingStyle: data.greetingStyle,
       signOffStyle: data.signOffStyle,
       senderSignature: data.senderSignature || null,
+      templateMode: data.templateMode || "plaintext",
+      htmlTemplate: data.htmlTemplate || null,
       mergeFields: mergeFieldTokens,
       isActive: true,
       createdBy: userId,
@@ -295,7 +318,7 @@ export async function generateFromTemplate(
     signOffStyle: string;
     senderSignature?: string | null;
   },
-): Promise<{ subject: string; body: string }> {
+): Promise<{ subject: string; body: string; htmlBody?: string }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -323,19 +346,21 @@ export async function generateFromTemplate(
   }
 
   const context = buildMergeContext(contact, campaign, matchedProject);
-  const { subject, body } = renderFullEmail(template, context);
+  const { subject, body, htmlBody } = renderFullEmail(template, context);
 
-  // Save draft to contact
+  // Save draft to contact — store htmlBody in draftBody for HTML mode
+  // The draftTone field indicates the mode: "template" = plaintext, "html-template" = HTML
+  const isHtml = !!(template as any).templateMode === true || (template as any).templateMode === "html";
   await db.update(campaignContacts).set({
     draftSubject: subject,
-    draftBody: body,
+    draftBody: htmlBody || body,
     draftKeyPoints: [],
-    draftTone: "template",
+    draftTone: htmlBody ? "html-template" : "template",
     draftGeneratedAt: new Date(),
     outreachStatus: "pending_approval",
   }).where(eq(campaignContacts.id, contactId));
 
-  return { subject, body };
+  return { subject, body: htmlBody || body, htmlBody };
 }
 
 /**
@@ -398,13 +423,13 @@ export async function bulkGenerateFromTemplate(
       }
 
       const context = buildMergeContext(contact, campaign, matchedProject);
-      const { subject, body } = renderFullEmail(template, context);
+      const { subject, body, htmlBody } = renderFullEmail(template, context);
 
       await db.update(campaignContacts).set({
         draftSubject: subject,
-        draftBody: body,
+        draftBody: htmlBody || body,
         draftKeyPoints: [],
-        draftTone: "template",
+        draftTone: htmlBody ? "html-template" : "template",
         draftGeneratedAt: new Date(),
         outreachStatus: "pending_approval",
       }).where(eq(campaignContacts.id, contact.id));

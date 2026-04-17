@@ -1,4 +1,4 @@
-import { int, json, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { int, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -1009,6 +1009,9 @@ export const campaignEmailTemplates = mysqlTable("campaignEmailTemplates", {
   greetingStyle: varchar("greetingStyle", { length: 64 }).notNull().default("Hi {{firstName}},"),
   signOffStyle: varchar("signOffStyle", { length: 64 }).notNull().default("Kind regards,"),
   senderSignature: text("senderSignature"),
+  // HTML template support
+  templateMode: mysqlEnum("templateMode", ["plaintext", "html"]).notNull().default("plaintext"),
+  htmlTemplate: mediumtext("htmlTemplate"),
   // Available merge fields metadata (stored for UI reference)
   mergeFields: json("mergeFields").$type<string[]>(),
   // Status

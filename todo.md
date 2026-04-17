@@ -1211,3 +1211,13 @@
 - [x] Frontend: EML download (single + bulk)
 - [x] Integration: Wire template into campaign workflow (CampaignBuilder step + Campaigns dashboard)
 - [x] Tests for template rendering and EML generation
+
+## Feature — HTML Email Template Support
+- [x] Add htmlTemplate and templateMode columns to campaign_email_templates schema
+- [x] Update templateService to support HTML mode with merge field rendering inside HTML
+- [x] Update TemplateEditorModal with Plain Text / HTML toggle, HTML code editor, and live HTML preview
+- [x] Update EML generator to produce multipart/alternative emails with HTML body
+- [x] Update bulk generate to support HTML template mode
+- [x] Tests for HTML template rendering and EML generation (24 tests, all passing)
+- [x] Update approval queue to render HTML emails in iframe preview
+- [x] Update email review dialog with HTML preview + raw source editing
