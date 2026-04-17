@@ -8,7 +8,7 @@
  * - Enrichment and project matching controls
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,10 @@ import {
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
   Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2, FileText, Code,
+  Square, CheckSquare, X,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Link } from "wouter";
 import CampaignBuilder from "./CampaignBuilder";
 import TemplateEditorModal from "@/components/TemplateEditorModal";
@@ -456,6 +459,8 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkOverwrite, setBulkOverwrite] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkMethod, setBulkMethod] = useState<"template" | "ai">("template");
   const PAGE_SIZE = 50;
 
   const campaignQuery = trpc.campaign.get.useQuery({ id: campaignId });
@@ -674,6 +679,57 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const contacts = contactsQuery.data?.contacts ?? [];
   const totalContacts = contactsQuery.data?.total ?? 0;
   const totalPages = Math.ceil(totalContacts / PAGE_SIZE);
+
+  // ── Selection helpers ──
+  const selectableContacts = useMemo(() =>
+    contacts.filter(c => (c.email || c.enrichedEmail) && (c.outreachStatus === "not_started" || c.outreachStatus === "rejected")),
+    [contacts]
+  );
+  const allPageSelected = selectableContacts.length > 0 && selectableContacts.every(c => selectedIds.has(c.id));
+  const somePageSelected = selectableContacts.some(c => selectedIds.has(c.id));
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        selectableContacts.forEach(c => next.delete(c.id));
+      } else {
+        selectableContacts.forEach(c => next.add(c.id));
+      }
+      return next;
+    });
+  }, [allPageSelected, selectableContacts]);
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  // Bulk AI generate for selected contacts (sequential)
+  const [bulkAiProgress, setBulkAiProgress] = useState({ running: false, done: 0, total: 0 });
+  const handleBulkAiGenerate = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    setBulkAiProgress({ running: true, done: 0, total: ids.length });
+    let success = 0;
+    for (const id of ids) {
+      try {
+        await generateEmailMut.mutateAsync({ contactId: id, tone: "first_touch" });
+        success++;
+      } catch { /* skip failures */ }
+      setBulkAiProgress(p => ({ ...p, done: p.done + 1 }));
+    }
+    setBulkAiProgress({ running: false, done: 0, total: 0 });
+    contactsQuery.refetch();
+    statsQuery.refetch();
+    clearSelection();
+    toast.success(`AI generated ${success} of ${ids.length} emails`);
+  }, [selectedIds, generateEmailMut, contactsQuery, statsQuery, clearSelection]);
 
   const openEmailDialog = (contact: CampaignContact) => {
     setSelectedContact(contact);
@@ -933,6 +989,14 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-navy text-white">
+                  <th className="px-3 py-2.5 w-10">
+                    <Checkbox
+                      checked={allPageSelected}
+                      onCheckedChange={toggleSelectAll}
+                      className="border-white/50 data-[state=checked]:bg-gold data-[state=checked]:border-gold"
+                      aria-label="Select all contacts on this page"
+                    />
+                  </th>
                   <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider">Score</th>
                   <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider">Name</th>
                   <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider">Title</th>
@@ -946,19 +1010,32 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <tbody>
                 {contactsQuery.isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                       <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
                       Loading contacts...
                     </td>
                   </tr>
                 ) : contacts.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                       No contacts found matching filters
                     </td>
                   </tr>
-                ) : contacts.map((c, i) => (
-                  <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors${!c.enrichedEmail && !c.email && c.enrichmentStatus !== "pending" ? " opacity-50" : ""}`}>
+                ) : contacts.map((c, i) => {
+                  const isSelectable = (c.email || c.enrichedEmail) && (c.outreachStatus === "not_started" || c.outreachStatus === "rejected");
+                  return (
+                  <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors${!c.enrichedEmail && !c.email && c.enrichmentStatus !== "pending" ? " opacity-50" : ""}${selectedIds.has(c.id) ? " !bg-gold/10" : ""}`}>
+                    <td className="px-3 py-2.5">
+                      {isSelectable ? (
+                        <Checkbox
+                          checked={selectedIds.has(c.id)}
+                          onCheckedChange={() => toggleSelect(c.id)}
+                          aria-label={`Select ${c.firstName || ''} ${c.lastName || ''}`}
+                        />
+                      ) : (
+                        <div className="w-4 h-4" />
+                      )}
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                         c.score >= 60 ? "bg-red-100 text-red-700" :
@@ -1020,9 +1097,48 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                       </span>
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${OUTREACH_CONFIG[c.outreachStatus]?.color || "bg-slate-100"}`}>
-                        {OUTREACH_CONFIG[c.outreachStatus]?.label || c.outreachStatus}
-                      </span>
+                      {c.draftSubject && ["pending_approval", "approved", "sent", "email_drafted"].includes(c.outreachStatus) ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="cursor-pointer">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${OUTREACH_CONFIG[c.outreachStatus]?.color || "bg-slate-100"} hover:ring-2 hover:ring-gold/40 transition-all`}>
+                                {OUTREACH_CONFIG[c.outreachStatus]?.label || c.outreachStatus}
+                              </span>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent side="left" align="start" className="w-80 p-0">
+                            <div className="p-3 border-b border-border bg-slate-50 rounded-t-md">
+                              <p className="text-xs font-semibold text-navy truncate">{c.draftSubject}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">To: {c.enrichedEmail || c.email || 'N/A'}</p>
+                            </div>
+                            <div className="p-3 max-h-40 overflow-y-auto">
+                              {c.draftBody && c.draftBody.startsWith('<') ? (
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  {c.draftBody.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 250)}
+                                  {c.draftBody.length > 250 ? '...' : ''}
+                                </p>
+                              ) : (
+                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                                  {(c.draftBody || '').slice(0, 250)}
+                                  {(c.draftBody || '').length > 250 ? '...' : ''}
+                                </p>
+                              )}
+                            </div>
+                            <div className="px-3 py-2 border-t border-border bg-slate-50 rounded-b-md">
+                              <button
+                                onClick={() => openEmailDialog(c)}
+                                className="text-[10px] font-semibold text-gold hover:text-gold-dark transition-colors"
+                              >
+                                View full email →
+                              </button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${OUTREACH_CONFIG[c.outreachStatus]?.color || "bg-slate-100"}`}>
+                          {OUTREACH_CONFIG[c.outreachStatus]?.label || c.outreachStatus}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
@@ -1143,10 +1259,55 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+
+          {/* Floating Bulk Action Bar */}
+          {selectedIds.size > 0 && (
+            <div className="sticky bottom-4 z-30 mx-auto max-w-3xl">
+              <div className="bg-navy text-white rounded-xl shadow-2xl px-5 py-3 flex items-center justify-between gap-4 border border-gold/30">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4 text-gold" />
+                    <span className="font-semibold text-sm">{selectedIds.size} selected</span>
+                  </div>
+                  <button onClick={clearSelection} className="text-slate-400 hover:text-white transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasTemplate && (
+                    <Button
+                      size="sm"
+                      className="h-8 px-4 text-xs font-semibold bg-gold text-navy hover:bg-gold-light gap-1.5"
+                      onClick={() => {
+                        // Use bulkGenerateFromTemplate with selected IDs
+                        bulkGenerateMut.mutate({ campaignId, overwriteExisting: false });
+                        clearSelection();
+                      }}
+                      disabled={bulkGenerateMut.isPending}
+                    >
+                      {bulkGenerateMut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                      Generate from Template
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    className="h-8 px-4 text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 gap-1.5"
+                    onClick={handleBulkAiGenerate}
+                    disabled={bulkAiProgress.running}
+                  >
+                    {bulkAiProgress.running
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {bulkAiProgress.done}/{bulkAiProgress.total}</>
+                      : <><Sparkles className="w-3.5 h-3.5" /> Generate with AI</>}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (

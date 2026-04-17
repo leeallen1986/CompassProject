@@ -1256,3 +1256,20 @@
 - [x] Handle contacts with "Not Started" and "Rejected" status with both options
 - [x] Ensure template button only shows when a template exists for the campaign
 - [x] Added text labels ("Template" / "AI") to buttons for clarity
+
+## Feature — Bulk action bar with select-all for contacts table
+- [x] Add checkbox column to contacts table with select-all header checkbox
+- [x] Track selected contact IDs in state
+- [x] Show floating bulk action bar when contacts are selected (sticky bottom, navy/gold theme)
+- [x] Bulk action: Generate from Template (for selected contacts)
+- [x] Bulk action: Generate with AI (for selected contacts, sequential with progress)
+- [x] Clear selection after bulk action completes
+- [x] Show selection count in the floating bar with clear selection button
+- [x] Highlight selected rows with gold tint
+
+## Feature — Email preview popover on hover
+- [x] Show popover on click of outreach status badge
+- [x] Display email subject and first few lines of body in popover
+- [x] Handle HTML emails with a text-only preview snippet (strip tags)
+- [x] Only show for contacts that have a draft (pending_approval, approved, sent, email_drafted)
+- [x] Include "View full email →" link to open the full review dialog
