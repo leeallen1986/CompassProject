@@ -1221,3 +1221,6 @@
 - [x] Tests for HTML template rendering and EML generation (24 tests, all passing)
 - [x] Update approval queue to render HTML emails in iframe preview
 - [x] Update email review dialog with HTML preview + raw source editing
+
+## UI Fix — Template Editor Modal
+- [x] Make template editor modal full-screen instead of default dialog size

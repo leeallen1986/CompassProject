@@ -340,7 +340,7 @@ export default function TemplateEditorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-0 !translate-x-0 !translate-y-0 !top-0 !left-0 overflow-hidden flex flex-col p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-gold" />
@@ -367,7 +367,7 @@ export default function TemplateEditorModal({
             <p className="text-muted-foreground">Loading template...</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {/* ── Mode Toggle ── */}
             <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Template Mode:</span>
@@ -400,7 +400,7 @@ export default function TemplateEditorModal({
               )}
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
               <TabsList className="mb-3">
                 <TabsTrigger value="edit" className="flex items-center gap-1.5">
                   <Type className="w-3.5 h-3.5" /> Editor
