@@ -25,10 +25,11 @@ import {
   Megaphone, Users, Mail, CheckCircle2, Send, Search, Download, Archive,
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
-  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2,
+  Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2, FileText,
 } from "lucide-react";
 import { Link } from "wouter";
 import CampaignBuilder from "./CampaignBuilder";
+import TemplateEditorModal from "@/components/TemplateEditorModal";
 
 // ── Types ──
 
@@ -451,6 +452,9 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
   const [editingBody, setEditingBody] = useState("");
   const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
   const [enrichBatchSize, setEnrichBatchSize] = useState(100);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkOverwrite, setBulkOverwrite] = useState(false);
   const PAGE_SIZE = 50;
 
   const campaignQuery = trpc.campaign.get.useQuery({ id: campaignId });
@@ -569,6 +573,29 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
       toast.success(`Matched ${result.matched} of ${result.total} contacts to projects`);
     },
     onError: (err) => toast.error(`Failed to match: ${err.message}`),
+  });
+
+  const templateQuery = trpc.campaign.getTemplate.useQuery({ campaignId });
+  const hasTemplate = !!templateQuery.data?.template;
+
+  const bulkGenerateMut = trpc.campaign.bulkGenerateFromTemplate.useMutation({
+    onSuccess: (result) => {
+      contactsQuery.refetch();
+      statsQuery.refetch();
+      setShowBulkConfirm(false);
+      toast.success(`Generated ${result.generated} emails from template (${result.skipped} skipped)`);
+    },
+    onError: (err) => toast.error(`Bulk generate failed: ${err.message}`),
+  });
+
+  const generateFromTemplateMut = trpc.campaign.generateFromTemplate.useMutation({
+    onSuccess: (result) => {
+      setEditingSubject(result.subject);
+      setEditingBody(result.body);
+      contactsQuery.refetch();
+      toast.success("Email generated from template");
+    },
+    onError: (err) => toast.error(`Failed to generate from template: ${err.message}`),
   });
 
   const enrichMut = trpc.campaign.enrichContacts.useMutation();
@@ -770,6 +797,26 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               <CardDescription>Run enrichment, project matching, and bulk operations</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
+              <Button
+                className={hasTemplate ? "bg-gold text-navy hover:bg-gold/90" : ""}
+                variant={hasTemplate ? "default" : "outline"}
+                onClick={() => setShowTemplateEditor(true)}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {hasTemplate ? "Edit Email Template" : "Create Email Template"}
+              </Button>
+              {hasTemplate && (
+                <Button
+                  variant="outline"
+                  className="border-green-300 text-green-700 hover:bg-green-50"
+                  onClick={() => setShowBulkConfirm(true)}
+                  disabled={bulkGenerateMut.isPending}
+                >
+                  {bulkGenerateMut.isPending
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                    : <><Mail className="w-4 h-4 mr-2" /> Generate All Emails from Template</>}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => matchProjectsMut.mutate({ campaignId })}
@@ -979,21 +1026,42 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
                         {(c.email || c.enrichedEmail) && c.outreachStatus === "not_started" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => {
-                              setSelectedContact(c);
-                              generateEmailMut.mutate({ contactId: c.id, tone: "first_touch" });
-                              setShowEmailDialog(true);
-                            }}
-                            disabled={generateEmailMut.isPending}
-                          >
-                            {generateEmailMut.isPending && selectedContact?.id === c.id
-                              ? <Loader2 className="w-3 h-3 animate-spin" />
-                              : <Mail className="w-3 h-3" />}
-                          </Button>
+                          <>
+                            {hasTemplate && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-gold"
+                                title="Generate from template"
+                                onClick={() => {
+                                  setSelectedContact(c);
+                                  generateFromTemplateMut.mutate({ contactId: c.id });
+                                  setShowEmailDialog(true);
+                                }}
+                                disabled={generateFromTemplateMut.isPending}
+                              >
+                                {generateFromTemplateMut.isPending && selectedContact?.id === c.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : <FileText className="w-3 h-3" />}
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              title="Generate with AI"
+                              onClick={() => {
+                                setSelectedContact(c);
+                                generateEmailMut.mutate({ contactId: c.id, tone: "first_touch" });
+                                setShowEmailDialog(true);
+                              }}
+                              disabled={generateEmailMut.isPending}
+                            >
+                              {generateEmailMut.isPending && selectedContact?.id === c.id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Sparkles className="w-3 h-3" />}
+                            </Button>
+                          </>
                         )}
                         {(c.outreachStatus === "pending_approval" || c.outreachStatus === "email_drafted") && (
                           <Button
@@ -1255,6 +1323,68 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
               ) : (
                 <><Sparkles className="w-4 h-4 mr-2" /> Enrich {Math.min(enrichBatchSize, stats?.byEnrichment?.pending ?? 0)} Contacts</>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Editor Modal */}
+      <TemplateEditorModal
+        open={showTemplateEditor}
+        onOpenChange={setShowTemplateEditor}
+        campaignId={campaignId}
+        campaignName={campaign.name}
+        onTemplateSaved={() => templateQuery.refetch()}
+      />
+
+      {/* Bulk Generate from Template Confirmation */}
+      <Dialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-green-600" />
+              Generate Emails from Template
+            </DialogTitle>
+            <DialogDescription>
+              This will generate personalised email drafts for all eligible contacts using your saved template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="bulkOverwrite"
+                checked={bulkOverwrite}
+                onChange={e => setBulkOverwrite(e.target.checked)}
+                className="rounded border-border"
+              />
+              <label htmlFor="bulkOverwrite" className="text-sm text-foreground">
+                Overwrite existing drafts (contacts with existing emails will be regenerated)
+              </label>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs text-amber-700">
+                <strong>Note:</strong> Contacts without email addresses and excluded contacts will be skipped.
+                Generated emails will be set to "Pending Approval" status.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBulkConfirm(false)} disabled={bulkGenerateMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => bulkGenerateMut.mutate({
+                campaignId,
+                overwriteExisting: bulkOverwrite,
+                onlyWithEmail: true,
+              })}
+              disabled={bulkGenerateMut.isPending}
+            >
+              {bulkGenerateMut.isPending
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                : <><Mail className="w-4 h-4 mr-2" /> Generate All Emails</>}
             </Button>
           </DialogFooter>
         </DialogContent>

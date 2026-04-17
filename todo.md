@@ -1198,3 +1198,16 @@
 - [x] 69 tests for geoFilter.ts, all passing
 - [x] All 1,771 tests passing
 - [x] Design decision: Company name patterns (LLC, Corp, Inc) NOT used at search time — too aggressive, many AU companies use US-style names. Domain TLD is the reliable signal at search time; Apollo country field is used post-enrichment.
+
+## Feature — Outreach Email Template System
+- [x] Design DB schema: campaign_email_templates table with subject, body, merge fields
+- [x] Backend: Template CRUD procedures (create, update, get, delete)
+- [x] Backend: Merge field rendering engine (replace {{firstName}}, {{company}}, etc.)
+- [x] Backend: Per-contact draft generation from template
+- [x] Backend: EML file generation from finalized per-contact emails
+- [x] Frontend: Template editor modal with merge field insertion buttons
+- [x] Frontend: Template preview with sample data
+- [x] Frontend: Per-contact email preview/edit in campaign dashboard
+- [x] Frontend: EML download (single + bulk)
+- [x] Integration: Wire template into campaign workflow (CampaignBuilder step + Campaigns dashboard)
+- [x] Tests for template rendering and EML generation

@@ -133,6 +133,11 @@ import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList
 import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
 import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
 import { startEnrichmentJob, getEnrichmentJobProgress } from "./enrichmentJob";
+import {
+  getCampaignTemplate, upsertCampaignTemplate, deleteCampaignTemplate,
+  generateFromTemplate, bulkGenerateFromTemplate, previewTemplateForContact,
+  getDefaultTemplate, getSampleContext, renderFullEmail, MERGE_FIELDS,
+} from "./templateService";
 import { storagePut } from "./storage";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
 
@@ -3221,6 +3226,101 @@ export const appRouter = router({
     availableRoles: campaignProcedure
       .query(async () => {
         return getAvailableRoles();
+      }),
+
+    // ── Email Template Procedures ──
+
+    /** Get the active template for a campaign (or null) */
+    getTemplate: campaignProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        const template = await getCampaignTemplate(input.campaignId);
+        return { template, mergeFields: MERGE_FIELDS };
+      }),
+
+    /** Save (create or update) a campaign email template */
+    saveTemplate: campaignProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        subjectTemplate: z.string().min(1),
+        bodyTemplate: z.string().min(1),
+        greetingStyle: z.string().min(1),
+        signOffStyle: z.string().min(1),
+        senderSignature: z.string().optional(),
+        name: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await upsertCampaignTemplate(input.campaignId, {
+          subjectTemplate: input.subjectTemplate,
+          bodyTemplate: input.bodyTemplate,
+          greetingStyle: input.greetingStyle,
+          signOffStyle: input.signOffStyle,
+          senderSignature: input.senderSignature,
+          name: input.name,
+        }, ctx.user!.id);
+        return { success: true, template: result };
+      }),
+
+    /** Delete (deactivate) a campaign template */
+    deleteTemplate: campaignProcedure
+      .input(z.object({ templateId: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteCampaignTemplate(input.templateId);
+        return { success: true };
+      }),
+
+    /** Get the default template (pre-filled for new campaigns) */
+    getDefaultTemplate: campaignProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, input.campaignId));
+        const defaultTpl = getDefaultTemplate(campaign?.collateralName || undefined);
+        const sampleCtx = getSampleContext(campaign || undefined);
+        const preview = renderFullEmail(defaultTpl, sampleCtx);
+        return { ...defaultTpl, preview, mergeFields: MERGE_FIELDS };
+      }),
+
+    /** Preview a template rendered for a specific contact (without saving) */
+    previewTemplate: campaignProcedure
+      .input(z.object({
+        contactId: z.number(),
+        subjectTemplate: z.string(),
+        bodyTemplate: z.string(),
+        greetingStyle: z.string(),
+        signOffStyle: z.string(),
+        senderSignature: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return previewTemplateForContact(input.contactId, {
+          subjectTemplate: input.subjectTemplate,
+          bodyTemplate: input.bodyTemplate,
+          greetingStyle: input.greetingStyle,
+          signOffStyle: input.signOffStyle,
+          senderSignature: input.senderSignature,
+        });
+      }),
+
+    /** Generate email draft from template for a single contact */
+    generateFromTemplate: campaignProcedure
+      .input(z.object({ contactId: z.number() }))
+      .mutation(async ({ input }) => {
+        return generateFromTemplate(input.contactId);
+      }),
+
+    /** Bulk generate email drafts from template for all contacts in a campaign */
+    bulkGenerateFromTemplate: campaignProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        overwriteExisting: z.boolean().optional(),
+        onlyWithEmail: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return bulkGenerateFromTemplate(input.campaignId, {
+          overwriteExisting: input.overwriteExisting,
+          onlyWithEmail: input.onlyWithEmail,
+        });
       }),
   }),
 });

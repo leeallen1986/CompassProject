@@ -991,3 +991,33 @@ export const dismissedActions = mysqlTable("dismissedActions", {
 });
 export type DismissedAction = typeof dismissedActions.$inferSelect;
 export type InsertDismissedAction = typeof dismissedActions.$inferInsert;
+
+
+/**
+ * Campaign email templates — reusable outreach email templates per campaign.
+ * Supports merge fields like {{firstName}}, {{company}}, {{projectName}} etc.
+ * One active template per campaign (upsert pattern).
+ */
+export const campaignEmailTemplates = mysqlTable("campaignEmailTemplates", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+  name: varchar("name", { length: 256 }).notNull().default("Default Template"),
+  // Template content with merge field tokens
+  subjectTemplate: text("subjectTemplate").notNull(),
+  bodyTemplate: text("bodyTemplate").notNull(),
+  // Style options
+  greetingStyle: varchar("greetingStyle", { length: 64 }).notNull().default("Hi {{firstName}},"),
+  signOffStyle: varchar("signOffStyle", { length: 64 }).notNull().default("Kind regards,"),
+  senderSignature: text("senderSignature"),
+  // Available merge fields metadata (stored for UI reference)
+  mergeFields: json("mergeFields").$type<string[]>(),
+  // Status
+  isActive: boolean("isActive").notNull().default(true),
+  // Ownership
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CampaignEmailTemplate = typeof campaignEmailTemplates.$inferSelect;
+export type InsertCampaignEmailTemplate = typeof campaignEmailTemplates.$inferInsert;
