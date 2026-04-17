@@ -1249,3 +1249,10 @@
 - [x] Update email generation to use WYSIWYG HTML output
 - [x] Add image upload endpoint (/api/upload-template-image) for S3 storage
 - [x] Fix isHtml detection logic in generateFromTemplate
+
+## Feature — Template generate option in contacts table Actions column
+- [x] Add template-based generate button alongside AI generate in Actions column
+- [x] Show clear visual distinction between AI and template generation options (gold border for Template, purple border for AI)
+- [x] Handle contacts with "Not Started" and "Rejected" status with both options
+- [x] Ensure template button only shows when a template exists for the campaign
+- [x] Added text labels ("Template" / "AI") to buttons for clarity

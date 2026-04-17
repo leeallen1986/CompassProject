@@ -1027,13 +1027,13 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
                         {(c.email || c.enrichedEmail) && c.outreachStatus === "not_started" && (
-                          <>
+                          <div className="flex items-center gap-1">
                             {hasTemplate && (
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-7 px-2 text-xs text-gold"
-                                title="Generate from template"
+                                className="h-7 px-2.5 text-[11px] font-semibold border-gold/40 text-gold hover:bg-gold/10 gap-1"
+                                title="Generate email from saved template"
                                 onClick={() => {
                                   setSelectedContact(c);
                                   generateFromTemplateMut.mutate({ contactId: c.id });
@@ -1044,13 +1044,14 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                                 {generateFromTemplateMut.isPending && selectedContact?.id === c.id
                                   ? <Loader2 className="w-3 h-3 animate-spin" />
                                   : <FileText className="w-3 h-3" />}
+                                Template
                               </Button>
                             )}
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="h-7 px-2 text-xs"
-                              title="Generate with AI"
+                              className="h-7 px-2.5 text-[11px] font-semibold border-purple-300 text-purple-600 hover:bg-purple-50 gap-1"
+                              title="Generate personalised email with AI"
                               onClick={() => {
                                 setSelectedContact(c);
                                 generateEmailMut.mutate({ contactId: c.id, tone: "first_touch" });
@@ -1061,8 +1062,9 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                               {generateEmailMut.isPending && selectedContact?.id === c.id
                                 ? <Loader2 className="w-3 h-3 animate-spin" />
                                 : <Sparkles className="w-3 h-3" />}
+                              AI
                             </Button>
-                          </>
+                          </div>
                         )}
                         {(c.outreachStatus === "pending_approval" || c.outreachStatus === "email_drafted") && (
                           <Button
@@ -1098,20 +1100,45 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
                             </Button>
                           </div>
                         )}
-                        {c.outreachStatus === "rejected" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-blue-600"
-                            onClick={() => {
-                              generateEmailMut.mutate({ contactId: c.id, tone: "first_touch" });
-                              setSelectedContact(c);
-                            }}
-                            disabled={generateEmailMut.isPending}
-                            title="Re-generate email"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                          </Button>
+                        {c.outreachStatus === "rejected" && (c.email || c.enrichedEmail) && (
+                          <div className="flex items-center gap-1">
+                            {hasTemplate && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2.5 text-[11px] font-semibold border-gold/40 text-gold hover:bg-gold/10 gap-1"
+                                title="Re-generate from template"
+                                onClick={() => {
+                                  setSelectedContact(c);
+                                  generateFromTemplateMut.mutate({ contactId: c.id });
+                                  setShowEmailDialog(true);
+                                }}
+                                disabled={generateFromTemplateMut.isPending}
+                              >
+                                {generateFromTemplateMut.isPending && selectedContact?.id === c.id
+                                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                                  : <FileText className="w-3 h-3" />}
+                                Template
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2.5 text-[11px] font-semibold border-purple-300 text-purple-600 hover:bg-purple-50 gap-1"
+                              title="Re-generate with AI"
+                              onClick={() => {
+                                setSelectedContact(c);
+                                generateEmailMut.mutate({ contactId: c.id, tone: "first_touch" });
+                                setShowEmailDialog(true);
+                              }}
+                              disabled={generateEmailMut.isPending}
+                            >
+                              {generateEmailMut.isPending && selectedContact?.id === c.id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Sparkles className="w-3 h-3" />}
+                              AI
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </td>
