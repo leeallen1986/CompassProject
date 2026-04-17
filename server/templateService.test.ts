@@ -195,9 +195,9 @@ describe("buildMergeContext", () => {
     expect(ctx.company).toBe("Unknown Corp");
     expect(ctx.title).toBe("");
     expect(ctx.email).toBe("");
-    expect(ctx.projectName).toBe("Unknown Corp"); // falls back to company
-    expect(ctx.projectLocation).toBe("Australia");
-    expect(ctx.sector).toBe("resources");
+    expect(ctx.projectName).toBe("Unknown Corp's operations"); // falls back to company's operations
+    expect(ctx.projectLocation).toBe("your region");
+    expect(ctx.sector).toBe("your industry");
     expect(ctx.collateralName).toBe("our solutions");
     expect(ctx.senderTitle).toBe("Business Development Manager");
   });
@@ -409,5 +409,111 @@ describe("renderFullEmail — HTML mode", () => {
     expect(result.htmlBody).toContain("Thompson");
     expect(result.htmlBody).toContain("Boart Longyear");
     expect(result.htmlBody).toContain("michael.chen@atlascopco.com");
+  });
+});
+
+// ── No-Project Fallback Tests ──
+
+describe("buildMergeContext — no matched project fallbacks", () => {
+  const campaign = {
+    senderName: "Michael Chen",
+    senderEmail: "michael@atlascopco.com",
+    senderTitle: "BDM",
+    collateralName: "DrillAir X1350",
+  };
+
+  it("uses company-based fallback for projectName when no project matched", () => {
+    const contact = {
+      firstName: "Sarah",
+      lastName: "Jones",
+      title: "Procurement Manager",
+      company: "Thiess",
+      email: "sarah@thiess.com",
+      enrichedEmail: null,
+      enrichedTitle: null,
+      reviewedCompanyName: null,
+      matchedProjectIds: null,
+    };
+
+    const ctx = buildMergeContext(contact, campaign, null);
+
+    expect(ctx.projectName).toBe("Thiess's operations");
+    expect(ctx.projectLocation).toBe("your region");
+    expect(ctx.sector).toBe("your industry");
+    // Other fields should still be populated normally
+    expect(ctx.firstName).toBe("Sarah");
+    expect(ctx.company).toBe("Thiess");
+    expect(ctx.collateralName).toBe("DrillAir X1350");
+  });
+
+  it("uses reviewedCompanyName in fallback when available", () => {
+    const contact = {
+      firstName: "Mark",
+      lastName: "Lee",
+      title: "Operations Director",
+      company: "BHP Billiton",
+      email: "mark@bhp.com",
+      enrichedEmail: null,
+      enrichedTitle: null,
+      reviewedCompanyName: "BHP Group",
+      matchedProjectIds: [],
+    };
+
+    const ctx = buildMergeContext(contact, campaign, null);
+
+    // Should use the reviewed company name in the fallback
+    expect(ctx.projectName).toBe("BHP Group's operations");
+    expect(ctx.company).toBe("BHP Group");
+  });
+
+  it("uses actual project data when project IS matched", () => {
+    const contact = {
+      firstName: "Tom",
+      lastName: "Brown",
+      title: "Site Manager",
+      company: "Downer EDI",
+      email: "tom@downer.com",
+      enrichedEmail: null,
+      enrichedTitle: null,
+      reviewedCompanyName: null,
+      matchedProjectIds: [1],
+    };
+
+    const project = {
+      name: "Snowy 2.0",
+      location: "NSW",
+      sector: "infrastructure",
+    };
+
+    const ctx = buildMergeContext(contact, campaign, project);
+
+    expect(ctx.projectName).toBe("Snowy 2.0");
+    expect(ctx.projectLocation).toBe("NSW");
+    expect(ctx.sector).toBe("infrastructure");
+  });
+
+  it("renders template naturally with no-project fallbacks", () => {
+    const contact = {
+      firstName: "Jane",
+      lastName: "Smith",
+      title: "Fleet Manager",
+      company: "Barminco",
+      email: "jane@barminco.com",
+      enrichedEmail: null,
+      enrichedTitle: null,
+      reviewedCompanyName: null,
+      matchedProjectIds: null,
+    };
+
+    const ctx = buildMergeContext(contact, campaign, null);
+    const template = "I noticed {{company}} is active in {{sector}} and wanted to discuss how our {{collateralName}} could support {{projectName}}.";
+    const rendered = renderTemplate(template, ctx);
+
+    expect(rendered).toBe(
+      "I noticed Barminco is active in your industry and wanted to discuss how our DrillAir X1350 could support Barminco's operations."
+    );
+    // Should read naturally — no blank spots or broken tokens
+    expect(rendered).not.toContain("{{");
+    expect(rendered).not.toContain("}}");
   });
 });

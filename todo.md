@@ -1224,3 +1224,9 @@
 
 ## UI Fix — Template Editor Modal
 - [x] Make template editor modal full-screen instead of default dialog size
+
+## Fix — Handle contacts without matched projects in template system
+- [x] Update buildMergeContext fallbacks so project fields are meaningful when no project matched
+- [x] Update template editor UI to warn users about project-dependent merge fields
+- [x] Update bulk generate to gracefully handle contacts with no matched projects
+- [x] Verify existing tests still pass and add edge case tests (28 tests, all passing)

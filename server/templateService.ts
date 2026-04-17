@@ -20,9 +20,9 @@ export const MERGE_FIELDS = [
   { token: "{{company}}", label: "Company", description: "Contact's company name", example: "BHP Group" },
   { token: "{{title}}", label: "Job Title", description: "Contact's job title", example: "Operations Manager" },
   { token: "{{email}}", label: "Email", description: "Contact's email address", example: "james.wilson@bhp.com" },
-  { token: "{{projectName}}", label: "Project Name", description: "Matched project name", example: "Olympic Dam Expansion" },
-  { token: "{{projectLocation}}", label: "Project Location", description: "Matched project location", example: "South Australia" },
-  { token: "{{sector}}", label: "Sector", description: "Project sector", example: "Mining" },
+  { token: "{{projectName}}", label: "Project Name", description: "Matched project name (falls back to '[Company]\'s operations' if no project matched)", example: "Olympic Dam Expansion" },
+  { token: "{{projectLocation}}", label: "Project Location", description: "Matched project location (falls back to 'your region' if no project matched)", example: "South Australia" },
+  { token: "{{sector}}", label: "Sector", description: "Project sector (falls back to 'your industry' if no project matched)", example: "Mining" },
   { token: "{{collateralName}}", label: "Collateral Name", description: "Campaign collateral product", example: "XAVS1800 High-Pressure Compressor" },
   { token: "{{senderName}}", label: "Sender Name", description: "Email sender's name", example: "Michael Chen" },
   { token: "{{senderTitle}}", label: "Sender Title", description: "Email sender's job title", example: "National Business Development Manager" },
@@ -83,6 +83,13 @@ export function buildMergeContext(
   const contactEmail = contact.enrichedEmail || contact.email || "";
   const company = contact.reviewedCompanyName || contact.company;
 
+  // When no project is matched, use smarter fallbacks:
+  // - projectName: use "your upcoming projects" (generic but natural in email context)
+  // - projectLocation: use "your region" instead of hardcoded "Australia"
+  // - sector: use "your industry" instead of "resources"
+  // These read naturally in sentences like "regarding {{projectName}}" or "operations in {{projectLocation}}"
+  const hasProject = !!matchedProject;
+
   return {
     firstName,
     lastName,
@@ -90,9 +97,9 @@ export function buildMergeContext(
     company,
     title: contactTitle,
     email: contactEmail,
-    projectName: matchedProject?.name || company,
-    projectLocation: matchedProject?.location || "Australia",
-    sector: matchedProject?.sector || "resources",
+    projectName: hasProject ? matchedProject!.name : `${company}'s operations`,
+    projectLocation: hasProject ? matchedProject!.location : "your region",
+    sector: hasProject ? matchedProject!.sector : "your industry",
     collateralName: campaign.collateralName || "our solutions",
     senderName: campaign.senderName,
     senderTitle: campaign.senderTitle || "Business Development Manager",

@@ -430,18 +430,30 @@ export default function TemplateEditorModal({
                     </span>
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {mergeFields.map((field) => (
-                      <button
-                        key={field.token}
-                        onClick={() => insertMergeField(field.token)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-navy/10 text-navy hover:bg-navy/20 border border-navy/20 transition-colors"
-                        title={`${field.description} — e.g. "${field.example}"`}
-                      >
-                        {MERGE_FIELD_ICONS[field.token] || <Type className="w-3 h-3" />}
-                        {field.label}
-                      </button>
-                    ))}
+                    {mergeFields.map((field) => {
+                      const isProjectField = ["{{projectName}}", "{{projectLocation}}", "{{sector}}"].includes(field.token);
+                      return (
+                        <button
+                          key={field.token}
+                          onClick={() => insertMergeField(field.token)}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
+                            isProjectField
+                              ? "bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300"
+                              : "bg-navy/10 text-navy hover:bg-navy/20 border-navy/20"
+                          }`}
+                          title={`${field.description} — e.g. "${field.example}"`}
+                        >
+                          {MERGE_FIELD_ICONS[field.token] || <Type className="w-3 h-3" />}
+                          {field.label}
+                          {isProjectField && <span className="text-[9px] text-amber-500">*</span>}
+                        </button>
+                      );
+                    })}
                   </div>
+                  <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                    <span><strong>*Project fields</strong> (Project Name, Location, Sector) use smart fallbacks when a contact has no matched project — e.g. "BHP Group's operations" instead of a project name.</span>
+                  </p>
                 </div>
 
                 {/* Subject Line (both modes) */}
