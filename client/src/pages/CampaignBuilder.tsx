@@ -28,6 +28,7 @@ import {
   Flame, TrendingUp, Database, Clock, AlertCircle, X,
   Plus, Trash2, CheckCircle2, ArrowRight, Building2, Sparkles,
 } from "lucide-react";
+import StagingReview from "@/components/StagingReview";
 
 // ── Types ──
 
@@ -182,6 +183,10 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
   const [autoEnrichTriggered, setAutoEnrichTriggered] = useState(false);
   const [enrichBatchSize, setEnrichBatchSize] = useState(100);
   const [remainingPending, setRemainingPending] = useState<number | null>(null);
+  // ── Stage 1 staging pipeline state ──
+  const [stagingBatchId, setStagingBatchId] = useState<string | null>(null);
+  const [showStagingReview, setShowStagingReview] = useState(false);
+  const stageUpload = trpc.campaign.stageUpload.useMutation();
 
   // Queries
   const collateralQuery = trpc.collateral.list.useQuery({});
@@ -290,19 +295,33 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
     if (!createdCampaignId || !uploadedFileUrl) return;
     setIsImporting(true);
     try {
-      const result = await importWithMapping.mutateAsync({
+      // Stage 1: run ingestion pipeline — normalise, classify, deduplicate before import
+      const staged = await stageUpload.mutateAsync({
         campaignId: createdCampaignId,
         fileUrl: uploadedFileUrl,
-        mapping: columnMapping,
+        columnMapping: columnMapping,
       });
-      setImportResult(result);
-      toast.success(`Imported ${result.imported} contacts`);
-      setStep(3);
+      setStagingBatchId(staged.batchId);
+      setShowStagingReview(true);
     } catch (err) {
-      toast.error("Import failed: " + (err as Error).message);
+      toast.error("Staging failed: " + (err as Error).message);
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const handleStagingCommit = (result: { imported: number }) => {
+    setImportResult(result);
+    setShowStagingReview(false);
+    setStagingBatchId(null);
+    toast.success(`Imported ${result.imported} contacts after staging review`);
+    setStep(3);
+  };
+
+  const handleStagingDiscard = () => {
+    setShowStagingReview(false);
+    setStagingBatchId(null);
+    toast.info("Staging batch discarded — upload a new file to try again");
   };
 
   // ── Step 2: Company Contact Discovery ──
@@ -809,7 +828,16 @@ export default function CampaignBuilder({ onComplete, onCancel }: {
       )}
 
       {/* Step 2: Add Contacts */}
-      {step === 2 && (
+      {step === 2 && showStagingReview && stagingBatchId && createdCampaignId && (
+        <StagingReview
+          batchId={stagingBatchId}
+          campaignId={createdCampaignId}
+          onCommit={handleStagingCommit}
+          onDiscard={handleStagingDiscard}
+        />
+      )}
+
+      {step === 2 && !showStagingReview && (
         <div className="space-y-6">
           {/* Contact Method Selection */}
           {!contactMethod && (

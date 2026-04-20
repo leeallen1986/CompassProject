@@ -792,6 +792,7 @@ export async function getCampaignContacts(
     outreachStatus?: string;
     enrichmentStatus?: string;
     roleBucket?: string;
+    sendReadiness?: string;
     search?: string;
     limit?: number;
     offset?: number;
@@ -825,6 +826,19 @@ export async function getCampaignContacts(
   }
   if (options?.roleBucket) {
     conditions.push(eq(campaignContacts.roleBucket, options.roleBucket));
+  }
+  if (options?.sendReadiness) {
+    if (options.sendReadiness === "not_enriched") {
+      // not_enriched = sendReadiness is null or explicitly 'not_enriched'
+      conditions.push(
+        or(
+          sql`${campaignContacts.sendReadiness} IS NULL`,
+          eq(campaignContacts.sendReadiness, "not_enriched")
+        )!
+      );
+    } else {
+      conditions.push(eq(campaignContacts.sendReadiness, options.sendReadiness));
+    }
   }
   if (options?.search) {
     const q = `%${options.search}%`;
@@ -1295,6 +1309,23 @@ export async function enrichCampaignContacts(
   let linkedInAdded = 0;    // LinkedIn URL added where none existed
   let titlesUpdated = 0;    // job title updated with more accurate info
 
+  // ── Pre-fetch all existing enriched emails in this campaign for reused-email detection ──
+  // This allows evaluateEnrichmentQA to flag contacts whose enriched email is already used
+  // by another contact in the same campaign (prevents duplicate outreach to the same inbox).
+  const existingEnrichedRows = await db
+    .select({ email: campaignContacts.enrichedEmail })
+    .from(campaignContacts)
+    .where(
+      and(
+        eq(campaignContacts.campaignId, campaignId),
+        sql`${campaignContacts.enrichedEmail} IS NOT NULL`,
+      )
+    );
+  const allCampaignEnrichedEmails: string[] = existingEnrichedRows
+    .map(r => r.email?.toLowerCase())
+    .filter((e): e is string => !!e);
+  console.log(`[Campaign] Pre-fetched ${allCampaignEnrichedEmails.length} existing enriched emails for duplicate detection`);
+
   // ── Step 1: Apollo enrichment ──
   // Two paths:
   //   A) Contact has apolloPersonId stored → direct enrichment via People Enrichment API (1 credit)
@@ -1380,7 +1411,7 @@ export async function enrichCampaignContacts(
             mobile: contact.mobile,
             matchedProjectCount: contact.matchedProjectCount,
           });
-          // Stage 3: run post-enrichment QA
+          // Stage 3: run post-enrichment QA (pass all campaign emails for duplicate detection)
           const apolloQA = evaluateEnrichmentQA({
             firstName: enrichedResult.firstName || contact.firstName,
             lastName: enrichedResult.name?.split(" ").slice(1).join(" ") || contact.lastName,
@@ -1397,6 +1428,7 @@ export async function enrichCampaignContacts(
             finalScore: scoring.finalScore,
             finalTier: scoring.finalTier,
             enrichedCountry: enrichedResult.country || null,
+            allCampaignEnrichedEmails,
           });
           await db.update(campaignContacts).set({
             score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
@@ -1404,6 +1436,15 @@ export async function enrichCampaignContacts(
             enrichmentQA: apolloQA,
             sendReadiness: apolloQA.sendReadiness,
           }).where(eq(campaignContacts.id, contact.id));
+
+          // Track this email in the running set so subsequent contacts in this batch
+          // can also detect duplicates against it
+          if (enrichedResult.email) {
+            const normalized = enrichedResult.email.toLowerCase();
+            if (!allCampaignEnrichedEmails.includes(normalized)) {
+              allCampaignEnrichedEmails.push(normalized);
+            }
+          }
 
           // Track data quality improvements
           if (enrichedResult.linkedinUrl && !contact.enrichedLinkedin) linkedInAdded++;
@@ -1604,7 +1645,7 @@ export async function enrichCampaignContacts(
             mobile: contact.mobile,
             matchedProjectCount: contact.matchedProjectCount,
           });
-          // Stage 3: run post-enrichment QA
+          // Stage 3: run post-enrichment QA (pass all campaign emails for duplicate detection)
           const hunterQA = evaluateEnrichmentQA({
             firstName: contact.firstName,
             lastName: contact.lastName,
@@ -1620,6 +1661,7 @@ export async function enrichCampaignContacts(
             enrichedTitle: contact.enrichedTitle || null,
             finalScore: scoring.finalScore,
             finalTier: scoring.finalTier,
+            allCampaignEnrichedEmails,
           });
           await db.update(campaignContacts).set({
             score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
@@ -1627,6 +1669,14 @@ export async function enrichCampaignContacts(
             enrichmentQA: hunterQA,
             sendReadiness: hunterQA.sendReadiness,
           }).where(eq(campaignContacts.id, contact.id));
+
+          // Track this email in the running set for intra-batch duplicate detection
+          if (hunterResult.email) {
+            const normalized = hunterResult.email.toLowerCase();
+            if (!allCampaignEnrichedEmails.includes(normalized)) {
+              allCampaignEnrichedEmails.push(normalized);
+            }
+          }
 
           // Track data quality improvements
           if (hunterResult.linkedin && !contact.enrichedLinkedin) linkedInAdded++;

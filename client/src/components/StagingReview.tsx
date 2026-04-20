@@ -35,7 +35,7 @@ interface StageSummary {
 interface StagingReviewProps {
   campaignId: number;
   batchId: string;
-  stageSummary: StageSummary;
+  stageSummary?: StageSummary;
   onCommit: (result: { imported: number; excluded: number }) => void;
   onDiscard: () => void;
 }
@@ -72,7 +72,7 @@ function FlagBadge({ flag }: { flag: string }) {
 function StatusIcon({ status, classification }: { status: string; classification: string }) {
   if (status === "approved") return <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />;
   if (status === "rejected") return <XCircle className="w-4 h-4 text-red-400 shrink-0" />;
-  if (classification === "clean") return <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />;
+  if (classification === "clean" || classification === "verified_contact") return <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />;
   return <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />;
 }
 
@@ -185,7 +185,7 @@ function StagedRow({ row, onUpdate }: {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function StagingReview({
-  campaignId, batchId, stageSummary, onCommit, onDiscard,
+  campaignId, batchId, stageSummary: stageSummaryProp, onCommit, onDiscard,
 }: StagingReviewProps) {
   const [showClean, setShowClean] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
@@ -201,8 +201,22 @@ export default function StagingReview({
 
   const rows = batchQuery.data ?? [];
 
-  const reviewRows = useMemo(() => rows.filter(r => r.classification !== "clean"), [rows]);
-  const cleanRows = useMemo(() => rows.filter(r => r.classification === "clean"), [rows]);
+  const reviewRows = useMemo(() => rows.filter(r =>
+    r.classification !== "verified_contact" && r.classification !== "clean"
+  ), [rows]);
+  const cleanRows = useMemo(() => rows.filter(r =>
+    r.classification === "verified_contact" || r.classification === "clean"
+  ), [rows]);
+  const rejectedRowsData = useMemo(() => rows.filter(r => r.classification === "rejected"), [rows]);
+
+  // Derive summary from batch data if not provided as prop
+  const stageSummary: StageSummary = stageSummaryProp ?? {
+    fileType: rows[0]?.uploadFileType ?? "unknown",
+    totalRows: rows.length,
+    cleanRows: cleanRows.length,
+    reviewRows: reviewRows.length,
+    skippedRows: rejectedRowsData.length,
+  };
 
   const filteredRows = useMemo(() => {
     const base = showClean ? rows : reviewRows;

@@ -2687,6 +2687,7 @@ export const appRouter = router({
         outreachStatus: z.string().optional(),
         enrichmentStatus: z.string().optional(),
         roleBucket: z.string().optional(),
+        sendReadiness: z.string().optional(),
         search: z.string().optional(),
         limit: z.number().min(1).max(200).optional(),
         offset: z.number().min(0).optional(),
@@ -3346,6 +3347,124 @@ export const appRouter = router({
           overwriteExisting: input.overwriteExisting,
           onlyWithEmail: input.onlyWithEmail,
         });
+      }),
+
+    // ── Bulk Actions ──
+    /** Approve all send_ready contacts in a campaign that have pending_approval status */
+    bulkApproveEmails: adminProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const result = await db.update(campaignContactsTable).set({
+          outreachStatus: "approved",
+          approvedAt: new Date(),
+          approvedBy: ctx.user.id,
+        }).where(
+          and(
+            eq(campaignContactsTable.campaignId, input.campaignId),
+            eq(campaignContactsTable.outreachStatus, "pending_approval"),
+            eq(campaignContactsTable.sendReadiness, "send_ready"),
+          )
+        );
+        return { approved: result[0]?.affectedRows ?? 0 };
+      }),
+    /** Bulk reject a list of contacts by ID */
+    bulkRejectEmails: adminProcedure
+      .input(z.object({ contactIds: z.array(z.number()).min(1) }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const result = await db.update(campaignContactsTable).set({
+          outreachStatus: "rejected",
+          draftSubject: null,
+          draftBody: null,
+          draftKeyPoints: null,
+          draftTone: null,
+          draftGeneratedAt: null,
+          approvedAt: null,
+          approvedBy: null,
+        }).where(inArray(campaignContactsTable.id, input.contactIds));
+        return { rejected: result[0]?.affectedRows ?? input.contactIds.length };
+      }),
+    /** Export blocked/low-confidence contacts as CSV rows */
+    exportBlockedContacts: campaignProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { rows: [], count: 0 };
+        const contacts = await db.select().from(campaignContactsTable)
+          .where(
+            and(
+              eq(campaignContactsTable.campaignId, input.campaignId),
+              inArray(campaignContactsTable.sendReadiness as any, ["blocked", "low_confidence", "domain_mismatch"]),
+            )
+          )
+          .orderBy(desc(campaignContactsTable.score));
+        const rows = contacts.map(c => ({
+          id: c.id,
+          name: [c.firstName, c.lastName].filter(Boolean).join(" "),
+          title: c.enrichedTitle || c.title || "",
+          company: c.reviewedCompanyName || c.company || "",
+          email: c.enrichedEmail || c.email || "",
+          sendReadiness: c.sendReadiness || "",
+          enrichmentSource: c.enrichmentSource || "",
+          blockReason: (() => {
+            try {
+              const qa = c.enrichmentQA as any;
+              return qa?.blockingFlags?.join("; ") || qa?.reasoningSummary || "";
+            } catch { return ""; }
+          })(),
+          tier: c.tier || "",
+          score: c.score ?? 0,
+        }));
+        return { rows, count: rows.length };
+      }),
+
+    // ── Domain Override Management ──
+    /** List all domain overrides for a campaign */
+    listDomainOverrides: campaignProcedure
+      .input(z.object({ campaignId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const { campaignDomainOverrides } = await import("../drizzle/schema");
+        return db.select().from(campaignDomainOverrides)
+          .where(eq(campaignDomainOverrides.campaignId, input.campaignId))
+          .orderBy(desc(campaignDomainOverrides.createdAt));
+      }),
+    /** Create a domain override for a company in a campaign */
+    createDomainOverride: adminProcedure
+      .input(z.object({
+        campaignId: z.number(),
+        companyNameNormalised: z.string().min(1).max(256),
+        approvedDomain: z.string().min(1).max(256),
+        subsidiaryName: z.string().max(256).optional(),
+        reason: z.string().max(1000).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { campaignDomainOverrides } = await import("../drizzle/schema");
+        await db.insert(campaignDomainOverrides).values({
+          campaignId: input.campaignId,
+          companyNameNormalised: input.companyNameNormalised.toLowerCase().trim(),
+          approvedDomain: input.approvedDomain.toLowerCase().trim(),
+          subsidiaryName: input.subsidiaryName || null,
+          reason: input.reason || null,
+          approvedBy: ctx.user.id,
+        });
+        return { success: true };
+      }),
+    /** Delete a domain override */
+    deleteDomainOverride: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const { campaignDomainOverrides } = await import("../drizzle/schema");
+        await db.delete(campaignDomainOverrides).where(eq(campaignDomainOverrides.id, input.id));
+        return { success: true };
       }),
 
     // ── Stage 1: Pre-waterfall ingestion procedures ──

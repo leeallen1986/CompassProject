@@ -1299,3 +1299,18 @@
 - [x] StagingReview UI component
 - [x] Vitest test suite (58 tests, all passing)
 - [x] Full test suite green (1869 tests, 72 files)
+
+## Stage 4 — Workflow Wiring & UI Operationalization
+- [ ] A: Intercept CSV upload in CampaignBuilder — route through stageUpload, open StagingReview before importCampaignContacts
+- [ ] B: Wire StagingReview into CampaignBuilder step 2 upload flow (counts, edit, approve, reject, commit person rows only, block company_target)
+- [x] C: Add score/QA explainability — "Why?" expandable panel per contact in approval queue
+- [x] C: Add send-readiness badges (green/amber/red) to contact rows in Campaigns.tsx
+- [ ] C: Add summary counts (send_ready / review_before_send / blocked_from_send) to campaign stats
+- [x] D: Add sendReadiness filter to campaign.contacts query and Campaigns.tsx filter bar
+- [x] E: Build campaignDomainOverrides management UI (view/add/edit/deactivate)
+- [x] E: Add domain override tRPC procedures (listOverrides, addOverride, updateOverride, removeOverride)
+- [x] F: Wire reused-email detection — pass allCampaignEnrichedEmails to evaluateEnrichmentQA in enrichment batch
+- [ ] F: Post-batch QA sweep — re-run QA on all contacts after enrichment completes
+- [ ] G: Blocked contacts excluded from default approval view; visible only in audit filter
+- [x] H: Bulk actions — approve all send_ready, export blocked CSV
+- [x] I: Vitest tests for all Stage 4 additions (stage4.test.ts — 38 tests, all passing)
