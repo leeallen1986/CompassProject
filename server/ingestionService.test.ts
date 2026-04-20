@@ -4,17 +4,19 @@
  * Vitest unit tests for the Stage 1 pre-waterfall ingestion service.
  *
  * Coverage:
- *   1. detectColumnMapping — all supported alias variants
- *   2. detectUploadType — contact_split, company_only, crm_export
- *   3. parseFullName — split, full, honorifics, ambiguous
- *   4. normalizeSplitName — casing, honorifics, all-caps
- *   5. normalizeTitle — casing, punctuation, abbreviation expansion
- *   6. canonicalizeCompany — legal suffix stripping, placeholders
- *   7. validateEmail — valid, invalid, role address
- *   8. classifyRow — clean, review_needed, skip
- *   9. runIngestionPipeline — contact-led CSV, company-led CSV, CRM export
- *  10. Deduplication — within-batch and cross-batch
- *  11. stagedToRawContact — round-trip conversion
+ *   1.  detectColumnMapping — all supported alias variants
+ *   2.  detectUploadType — contact_split, company_only, crm_export
+ *   3.  parseFullName — split, full, honorifics, ambiguous, email-as-name, parenthetical suffix
+ *   4.  normalizeSplitName — casing, honorifics, all-caps
+ *   5.  normalizeTitle — casing, punctuation, abbreviation expansion, retired/former
+ *   6.  canonicalizeCompany — legal suffix stripping, placeholders, JV detection
+ *   7.  validateEmail — valid, invalid, role address, non-AU
+ *   8.  classifyRow — all 5 classification values
+ *   9.  runIngestionPipeline — contact_split, company_only, crm_export
+ *  10.  Deduplication — hard (within-batch) and soft (cross-campaign)
+ *  11.  Company-only branch isolation
+ *  12.  Notes and exclusions — do_not_contact, retired, test rows, N/A, blank rows
+ *  13.  stagedToRawContact round-trip
  */
 
 import { describe, it, expect } from "vitest";
@@ -30,6 +32,7 @@ import {
   runIngestionPipeline,
   stagedToRawContact,
   type StagedContact,
+  type RowClassification,
 } from "./ingestionService";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,7 +147,6 @@ describe("parseFullName", () => {
   });
 
   it("handles three-word names (first + middle + last)", () => {
-    // Service keeps middle name as part of lastName (standard behaviour)
     const { firstName, lastName } = parseFullName("Mary Jane Watson");
     expect(firstName).toBe("Mary");
     expect(lastName).toBe("Jane Watson");
@@ -157,11 +159,9 @@ describe("parseFullName", () => {
   });
 
   it("handles single-word name as firstName only", () => {
-    const { firstName, lastName, flags } = parseFullName("Madonna");
+    const { firstName, lastName } = parseFullName("Madonna");
     expect(firstName).toBe("Madonna");
     expect(lastName).toBeNull();
-    // Single-word name is ambiguous — no_name should NOT be set, but lastName is null
-    expect(firstName).not.toBeNull();
   });
 
   it("returns null for empty input", () => {
@@ -180,6 +180,49 @@ describe("parseFullName", () => {
     const { firstName, lastName } = parseFullName("JOHN SMITH");
     expect(firstName).toBe("John");
     expect(lastName).toBe("Smith");
+  });
+
+  it("flags all-caps name", () => {
+    const { flags } = parseFullName("SARAH CHEN");
+    expect(flags).toContain("all_caps_name");
+  });
+
+  it("strips (retired) parenthetical from lastName", () => {
+    const { firstName, lastName } = parseFullName("David Kumar (retired)");
+    expect(firstName).toBe("David");
+    expect(lastName).toBe("Kumar");
+  });
+
+  it("strips (former) parenthetical from lastName", () => {
+    const { firstName, lastName } = parseFullName("Jane Doe (former)");
+    expect(firstName).toBe("Jane");
+    expect(lastName).toBe("Doe");
+  });
+
+  it("detects email address in name field (email_as_name)", () => {
+    const { firstName, lastName, flags } = parseFullName("info@cimic.com.au");
+    expect(firstName).toBeNull();
+    expect(lastName).toBeNull();
+    expect(flags).toContain("email_as_name");
+  });
+
+  it("detects test@test.com as email_as_name", () => {
+    const { firstName, lastName, flags } = parseFullName("test@test.com");
+    expect(firstName).toBeNull();
+    expect(lastName).toBeNull();
+    expect(flags).toContain("email_as_name");
+  });
+
+  it("returns null for N/A placeholder", () => {
+    const { firstName, lastName, flags } = parseFullName("N/A");
+    expect(firstName).toBeNull();
+    expect(lastName).toBeNull();
+    expect(flags).toContain("placeholder_name");
+  });
+
+  it("flags name that looks like a company", () => {
+    const { flags } = parseFullName("BHP Pty Ltd");
+    expect(flags).toContain("name_looks_like_company");
   });
 });
 
@@ -226,9 +269,8 @@ describe("normalizeTitle", () => {
     expect(title).toBe("Project Manager");
   });
 
-  it("preserves all-caps acronyms like CEO", () => {
+  it("expands CEO abbreviation", () => {
     const { title } = normalizeTitle("CEO");
-    // CEO is a known alias → expands to Chief Executive Officer
     expect(title).toBe("Chief Executive Officer");
   });
 
@@ -261,6 +303,21 @@ describe("normalizeTitle", () => {
     const { flags } = normalizeTitle("A".repeat(130));
     expect(flags).toContain("title_too_long");
   });
+
+  it("flags retired/former title", () => {
+    const { flags } = normalizeTitle("Former Project Director");
+    expect(flags).toContain("retired_or_former");
+  });
+
+  it("flags ex- title", () => {
+    const { flags } = normalizeTitle("Ex-Site Manager");
+    expect(flags).toContain("retired_or_former");
+  });
+
+  it("does not preserve 4-letter non-acronym all-caps words", () => {
+    const { title } = normalizeTitle("SITE Supervisor");
+    expect(title).toBe("Site Supervisor");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -289,9 +346,9 @@ describe("canonicalizeCompany", () => {
   });
 
   it("flags placeholder company names", () => {
-    const { flags, company } = canonicalizeCompany("Company");
+    const { flags, canonical } = canonicalizeCompany("Company");
     expect(flags).toContain("placeholder_company");
-    expect(company).toBeNull();
+    expect(canonical).toBeNull();
   });
 
   it("flags n/a as placeholder", () => {
@@ -312,6 +369,22 @@ describe("canonicalizeCompany", () => {
   it("extracts domain from website URL in company field", () => {
     const { domain } = canonicalizeCompany("https://www.orontide.com.au");
     expect(domain).toBe("orontide.com.au");
+  });
+
+  it("flags JV company name (slash separator)", () => {
+    const { flags, jointVentureLabel } = canonicalizeCompany("CIMIC Group / UGL Joint Venture");
+    expect(flags).toContain("joint_venture");
+    expect(jointVentureLabel).toBeTruthy();
+  });
+
+  it("flags JV company name (Thiess / MACA)", () => {
+    const { flags } = canonicalizeCompany("Thiess / MACA Joint Venture");
+    expect(flags).toContain("joint_venture");
+  });
+
+  it("flags company name that is too long", () => {
+    const { flags } = canonicalizeCompany("A".repeat(210));
+    expect(flags).toContain("company_too_long");
   });
 });
 
@@ -360,79 +433,164 @@ describe("validateEmail", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8. classifyRow
+// 8. classifyRow — all 5 classification values
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("classifyRow", () => {
-  it("classifies a complete row with no flags as clean", () => {
-    const result = classifyRow({
+  it("classifies verified_contact: name + email + company, no flags", () => {
+    const { classification } = classifyRow({
       firstName: "John",
       lastName: "Smith",
       company: "Orontide",
       email: "john.smith@orontide.com.au",
+      recordType: "person",
       reviewFlags: [],
     });
-    expect(result).toBe("clean");
+    expect(classification).toBe("verified_contact");
   });
 
-  it("classifies a row with no_name as review_needed", () => {
-    const result = classifyRow({
+  it("classifies enrichable_contact: name + company, no email", () => {
+    const { classification } = classifyRow({
+      firstName: "John",
+      lastName: "Smith",
+      company: "Orontide",
+      email: null,
+      recordType: "person",
+      reviewFlags: [],
+    });
+    expect(classification).toBe("enrichable_contact");
+  });
+
+  it("classifies company_target: recordType=company_target", () => {
+    const { classification } = classifyRow({
       firstName: null,
       lastName: null,
-      company: "Orontide",
-      email: "john@orontide.com.au",
+      company: "BHP Group",
+      email: null,
+      recordType: "company_target",
       reviewFlags: ["no_name"],
     });
-    expect(result).toBe("review_needed");
+    expect(classification).toBe("company_target");
   });
 
-  it("classifies a row with no_company as review_needed", () => {
-    const result = classifyRow({
-      firstName: "John",
-      lastName: "Smith",
-      company: null,
-      email: "john@orontide.com.au",
-      reviewFlags: ["no_company"],
+  it("classifies review_needed: all_caps_name flag", () => {
+    const { classification } = classifyRow({
+      firstName: "Sarah",
+      lastName: "Chen",
+      company: "Rio Tinto",
+      email: "s.chen@riotinto.com",
+      recordType: "person",
+      reviewFlags: ["all_caps_name"],
     });
-    expect(result).toBe("review_needed");
+    expect(classification).toBe("review_needed");
   });
 
-  it("classifies a row with duplicate_in_batch as review_needed", () => {
-    const result = classifyRow({
+  it("classifies review_needed: duplicate_in_campaign flag", () => {
+    const { classification } = classifyRow({
       firstName: "John",
       lastName: "Smith",
-      company: "Orontide",
-      email: "john@orontide.com.au",
+      company: "BHP",
+      email: "j.smith@bhp.com",
+      recordType: "person",
+      reviewFlags: ["duplicate_in_campaign"],
+    });
+    expect(classification).toBe("review_needed");
+  });
+
+  it("classifies review_needed: joint_venture flag", () => {
+    const { classification } = classifyRow({
+      firstName: null,
+      lastName: null,
+      company: "CIMIC Group / UGL Joint Venture",
+      email: null,
+      recordType: "person",
+      reviewFlags: ["joint_venture"],
+    });
+    expect(classification).toBe("review_needed");
+  });
+
+  it("classifies rejected: do_not_contact flag", () => {
+    const { classification, rejectionReason } = classifyRow({
+      firstName: "David",
+      lastName: "Kumar",
+      company: "Thiess",
+      email: "d.kumar@thiess.com.au",
+      recordType: "person",
+      reviewFlags: ["do_not_contact"],
+    });
+    expect(classification).toBe("rejected");
+    expect(rejectionReason).toBeTruthy();
+  });
+
+  it("classifies rejected: test_row flag", () => {
+    const { classification } = classifyRow({
+      firstName: null,
+      lastName: null,
+      company: "Test Company",
+      email: null,
+      recordType: "person",
+      reviewFlags: ["test_row"],
+    });
+    expect(classification).toBe("rejected");
+  });
+
+  it("classifies rejected: duplicate_in_batch flag", () => {
+    const { classification } = classifyRow({
+      firstName: "John",
+      lastName: "Smith",
+      company: "BHP",
+      email: "j.smith@bhp.com",
+      recordType: "person",
       reviewFlags: ["duplicate_in_batch"],
     });
-    expect(result).toBe("review_needed");
+    expect(classification).toBe("rejected");
   });
 
-  it("classifies a row with both placeholder_name and placeholder_company as skip", () => {
-    const result = classifyRow({
+  it("classifies rejected: no_name + no_company + no email", () => {
+    const { classification } = classifyRow({
       firstName: null,
       lastName: null,
       company: null,
       email: null,
-      reviewFlags: ["placeholder_name", "placeholder_company"],
-    });
-    expect(result).toBe("skip");
-  });
-
-  it("classifies a completely empty row as skip", () => {
-    const result = classifyRow({
-      firstName: null,
-      lastName: null,
-      company: null,
-      email: null,
+      recordType: "person",
       reviewFlags: [],
     });
-    expect(result).toBe("skip");
+    expect(classification).toBe("rejected");
+  });
+
+  it("classifies rejected: placeholder_name + placeholder_company", () => {
+    const { classification } = classifyRow({
+      firstName: null,
+      lastName: null,
+      company: null,
+      email: null,
+      recordType: "person",
+      reviewFlags: ["placeholder_name", "placeholder_company"],
+    });
+    expect(classification).toBe("rejected");
+  });
+
+  it("all 5 classification values are valid RowClassification members", () => {
+    const validValues: RowClassification[] = [
+      "verified_contact", "enrichable_contact", "company_target",
+      "review_needed", "rejected",
+    ];
+    const testCases = [
+      { firstName: "John", lastName: "Smith", company: "BHP", email: "j@bhp.com", recordType: "person" as const, reviewFlags: [] },
+      { firstName: "John", lastName: "Smith", company: "BHP", email: null, recordType: "person" as const, reviewFlags: [] },
+      { firstName: null, lastName: null, company: "BHP", email: null, recordType: "company_target" as const, reviewFlags: ["no_name" as const] },
+      { firstName: "Sarah", lastName: "Chen", company: "Rio Tinto", email: "s@rt.com", recordType: "person" as const, reviewFlags: ["all_caps_name" as const] },
+      { firstName: null, lastName: null, company: null, email: null, recordType: "person" as const, reviewFlags: [] },
+    ];
+    for (const tc of testCases) {
+      const { classification } = classifyRow(tc);
+      expect(validValues).toContain(classification);
+    }
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. Full pipeline — contact-led (split name) CSV
+// 9. Full pipeline — contact_split CSV
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runIngestionPipeline — contact_split CSV", () => {
@@ -453,9 +611,9 @@ describe("runIngestionPipeline — contact_split CSV", () => {
 
   it("counts data rows correctly (excluding empty row)", () => {
     const result = runIngestionPipeline(buffer);
-    // 3 data rows; empty row is skipped
-    expect(result.totalRows).toBe(4); // 4 data rows in CSV (including empty)
-    expect(result.skippedRows).toBeGreaterThanOrEqual(1);
+    expect(result.totalRows).toBe(4);
+    // Empty rows are counted as rejected (not staged)
+    expect(result.rejectedRows).toBeGreaterThanOrEqual(1);
   });
 
   it("normalizes company canonical names by stripping Pty Ltd", () => {
@@ -470,10 +628,10 @@ describe("runIngestionPipeline — contact_split CSV", () => {
     expect(bob?.reviewFlags).toContain("suspicious_email");
   });
 
-  it("classifies John (clean data) as clean", () => {
+  it("classifies John (clean data) as verified_contact", () => {
     const result = runIngestionPipeline(buffer);
     const john = result.staged.find(s => s.firstName === "John");
-    expect(john?.classification).toBe("clean");
+    expect(john?.classification).toBe("verified_contact");
   });
 
   it("classifies Bob (no last name + suspicious email) as review_needed", () => {
@@ -488,10 +646,17 @@ describe("runIngestionPipeline — contact_split CSV", () => {
     expect(john?.companyRaw).toBe("Orontide Group Pty Ltd");
     expect(john?.companyCanonical).toBe("Orontide Group");
   });
+
+  it("all staged rows have a recordType of person", () => {
+    const result = runIngestionPipeline(buffer);
+    for (const row of result.staged) {
+      expect(row.recordType).toBe("person");
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 10. Full pipeline — company-led CSV
+// 10. Full pipeline — company_only CSV
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runIngestionPipeline — company_only CSV", () => {
@@ -509,23 +674,48 @@ describe("runIngestionPipeline — company_only CSV", () => {
     expect(result.fileType).toBe("company_only");
   });
 
+  it("all non-placeholder rows have recordType=company_target", () => {
+    const result = runIngestionPipeline(buffer);
+    const nonRejected = result.staged.filter(r => r.classification !== "rejected");
+    for (const row of nonRejected) {
+      expect(row.recordType).toBe("company_target");
+    }
+  });
+
+  it("all non-placeholder rows have classification=company_target", () => {
+    const result = runIngestionPipeline(buffer);
+    const nonRejected = result.staged.filter(r => r.classification !== "rejected");
+    for (const row of nonRejected) {
+      expect(row.classification).toBe("company_target");
+    }
+  });
+
+  it("company_target rows have null firstName and lastName", () => {
+    const result = runIngestionPipeline(buffer);
+    const orontide = result.staged.find(s => s.company?.includes("Orontide"));
+    expect(orontide?.firstName).toBeNull();
+    expect(orontide?.lastName).toBeNull();
+  });
+
   it("extracts domain from website column", () => {
     const result = runIngestionPipeline(buffer);
     const orontide = result.staged.find(s => s.company?.includes("Orontide"));
     expect(orontide?.domain).toBe("orontide.com.au");
   });
 
-  it("flags placeholder company name and skips it", () => {
+  it("flags placeholder company name", () => {
     const result = runIngestionPipeline(buffer);
-    // "Company" is in PLACEHOLDER_COMPANIES → gets placeholder_company flag → skipped
     const generic = result.staged.find(s => s.companyRaw === "Company");
-    // It should be skipped (not in staged) or flagged
     if (generic) {
       expect(generic.reviewFlags).toContain("placeholder_company");
     } else {
-      // Was skipped — also acceptable
       expect(result.skippedRows).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it("companyTargets count matches non-placeholder company rows", () => {
+    const result = runIngestionPipeline(buffer);
+    expect(result.companyTargets).toBe(2); // Orontide + BHP
   });
 });
 
@@ -567,10 +757,17 @@ describe("runIngestionPipeline — crm_export", () => {
     const jane = result.staged.find(s => s.email === "jane.doe@bhp.com");
     expect(jane?.title).toBe("Site Supervisor");
   });
+
+  it("flags all-caps name with all_caps_name review flag", () => {
+    const result = runIngestionPipeline(buffer);
+    const jane = result.staged.find(s => s.email === "jane.doe@bhp.com");
+    expect(jane?.reviewFlags).toContain("all_caps_name");
+    expect(jane?.classification).toBe("review_needed");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 12. Deduplication
+// 12. Deduplication — hard and soft
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runIngestionPipeline — deduplication", () => {
@@ -583,17 +780,40 @@ describe("runIngestionPipeline — deduplication", () => {
 
   const buffer = Buffer.from(csvContent, "utf-8");
 
-  it("detects in-file duplicate email with duplicate_in_batch flag", () => {
+  it("hard dedup: marks second occurrence of same email as duplicate_in_batch", () => {
     const result = runIngestionPipeline(buffer);
     const dupes = result.staged.filter(s => s.reviewFlags.includes("duplicate_in_batch"));
     expect(dupes.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("marks cross-batch duplicate when email already exists in campaign", () => {
+  it("hard dedup: second occurrence is rejected (not silently merged)", () => {
+    const result = runIngestionPipeline(buffer);
+    const dupes = result.staged.filter(s => s.reviewFlags.includes("duplicate_in_batch"));
+    for (const dupe of dupes) {
+      expect(dupe.classification).toBe("rejected");
+      expect(dupe.duplicateOf).toBeTruthy();
+    }
+  });
+
+  it("hard dedup: first occurrence is NOT rejected", () => {
+    const result = runIngestionPipeline(buffer);
+    const first = result.staged.find(s => s.email === "john.smith@orontide.com.au" && s.sourceRow === 2);
+    expect(first?.classification).not.toBe("rejected");
+  });
+
+  it("soft dedup: marks row as duplicate_in_campaign when email exists in campaign", () => {
     const existingEmails = new Set(["john.smith@orontide.com.au"]);
     const result = runIngestionPipeline(buffer, { existingEmails });
-    const john = result.staged.find(s => s.email === "john.smith@orontide.com.au");
+    const john = result.staged.find(s => s.email === "john.smith@orontide.com.au" && s.sourceRow === 2);
     expect(john?.reviewFlags).toContain("duplicate_in_campaign");
+    expect(john?.duplicateOf).toContain("campaign:");
+  });
+
+  it("soft dedup: duplicate_in_campaign goes to review_needed, NOT auto-rejected", () => {
+    const existingEmails = new Set(["john.smith@orontide.com.au"]);
+    const result = runIngestionPipeline(buffer, { existingEmails });
+    const john = result.staged.find(s => s.email === "john.smith@orontide.com.au" && s.sourceRow === 2);
+    expect(john?.classification).toBe("review_needed");
   });
 
   it("does not flag unique emails as duplicates", () => {
@@ -605,12 +825,79 @@ describe("runIngestionPipeline — deduplication", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 13. stagedToRawContact round-trip
+// 13. Notes and exclusions
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("notes and exclusions", () => {
+  it("preserves 'Do not contact before Q3' in notes field", () => {
+    const csv = `First Name,Last Name,Email,Company,Notes\nDavid,Kumar,d.kumar@thiess.com.au,Thiess,Do not contact before Q3 2024\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].notes).toContain("Do not contact before Q3");
+  });
+
+  it("flags do_not_contact from notes and rejects the row", () => {
+    const csv = `First Name,Last Name,Email,Company,Notes\nDavid,Kumar,d.kumar@thiess.com.au,Thiess,Do not contact before Q3 2024\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].reviewFlags).toContain("do_not_contact");
+    expect(result.staged[0].classification).toBe("rejected");
+  });
+
+  it("flags retired_or_former from title", () => {
+    const csv = `First Name,Last Name,Email,Company,Title\nDavid,Kumar,d.kumar@thiess.com.au,Thiess,Former Project Director\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].reviewFlags).toContain("retired_or_former");
+  });
+
+  it("flags retired_or_former from notes", () => {
+    const csv = `First Name,Last Name,Email,Company,Notes\nDavid,Kumar,d.kumar@thiess.com.au,Thiess,Retired Q3 2023\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].reviewFlags).toContain("retired_or_former");
+  });
+
+  it("skips blank rows entirely", () => {
+    const csv = `First Name,Last Name,Email,Company\nJohn,Smith,j.smith@bhp.com,BHP Group\n,,,\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged.find(r => r.sourceRow === 3)).toBeUndefined();
+    // Blank rows are counted as rejected
+    expect(result.rejectedRows).toBeGreaterThanOrEqual(1);
+  });
+
+  it("rejects N/A row", () => {
+    const csv = `First Name,Last Name,Email,Company\nN/A,N/A,,N/A\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].classification).toBe("rejected");
+    expect(result.staged[0].reviewFlags).toContain("placeholder_name");
+  });
+
+  it("rejects test row (email in name field)", () => {
+    const csv = `Full Name,Title,Company,Email\ntest@test.com,Test,Test Company,\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].classification).toBe("rejected");
+    expect(result.staged[0].reviewFlags).toContain("test_row");
+  });
+
+  it("flags role email (info@) as suspicious_email", () => {
+    const csv = `First Name,Last Name,Email,Company\nJohn,Smith,info@bhp.com,BHP Group\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].reviewFlags).toContain("suspicious_email");
+  });
+
+  it("flags malformed name (email in name field) with email_as_name", () => {
+    const csv = `Full Name,Title,Company,Email\ninfo@cimic.com.au,Business Development,CIMIC Group,\n`;
+    const result = runIngestionPipeline(Buffer.from(csv));
+    expect(result.staged[0].reviewFlags).toContain("email_as_name");
+    expect(result.staged[0].firstName).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 14. stagedToRawContact round-trip
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("stagedToRawContact", () => {
   it("converts a staged contact to a RawContactRow", () => {
     const staged: StagedContact = {
+      recordType: "person",
       firstName: "John",
       lastName: "Smith",
       fullNameRaw: "John Smith",
@@ -619,14 +906,17 @@ describe("stagedToRawContact", () => {
       company: "Orontide Group",
       companyRaw: "Orontide Group Pty Ltd",
       companyCanonical: "Orontide Group",
+      jointVentureLabel: null,
       domain: "orontide.com.au",
       email: "john.smith@orontide.com.au",
       phone: "0412345678",
       mobile: null,
       linkedin: "https://linkedin.com/in/johnsmith",
       notes: "Key contact",
-      classification: "clean",
+      classification: "verified_contact",
       reviewFlags: [],
+      rejectionReason: null,
+      duplicateOf: null,
       sourceRow: 2,
       uploadFileType: "contact_split",
     };
@@ -641,6 +931,7 @@ describe("stagedToRawContact", () => {
 
   it("handles null fields gracefully", () => {
     const staged: StagedContact = {
+      recordType: "person",
       firstName: null,
       lastName: null,
       fullNameRaw: "Unknown",
@@ -649,6 +940,7 @@ describe("stagedToRawContact", () => {
       company: "BHP",
       companyRaw: "BHP Limited",
       companyCanonical: "BHP",
+      jointVentureLabel: null,
       domain: null,
       email: null,
       phone: null,
@@ -657,6 +949,8 @@ describe("stagedToRawContact", () => {
       notes: null,
       classification: "review_needed",
       reviewFlags: ["no_name"],
+      rejectionReason: null,
+      duplicateOf: null,
       sourceRow: 5,
       uploadFileType: "crm_export",
     };

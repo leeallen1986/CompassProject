@@ -13,10 +13,12 @@
  *   4. Name parsing (full-name split, honorific stripping, casing)
  *   5. Title normalization (whitespace, casing, known-alias expansion)
  *   6. Company canonicalization (legal-suffix stripping, casing, domain extraction)
- *   7. Duplicate detection (within-batch and against existing campaign contacts)
- *   8. Row classification (clean / review_needed / skip)
- *   9. Review-needed queue assembly
- *  10. Clean staging output ready for Stage 2 (enrichment / scoring)
+ *   7. Joint-venture detection
+ *   8. Duplicate detection (within-batch and against existing campaign contacts)
+ *   9. Row classification (verified_contact / enrichable_contact / company_target /
+ *                          review_needed / rejected)
+ *  10. Review-needed queue assembly
+ *  11. Clean staging output ready for Stage 2 (enrichment / scoring)
  */
 
 import * as XLSX from "xlsx";
@@ -32,10 +34,27 @@ export type UploadFileType =
   | "company_only"    // no contact names — only company/domain rows
   | "unknown";
 
+/**
+ * Record type: whether this row represents a person or a company target.
+ * company_target rows NEVER go to person scoring or enrichment.
+ */
+export type RecordType = "person" | "company_target";
+
+/**
+ * Five-value classification replacing the old clean/review_needed/skip.
+ *
+ * verified_contact    — has name + email + company, no blocking flags
+ * enrichable_contact  — has name + company but no email (needs enrichment)
+ * company_target      — company-only row; goes to company enrichment branch only
+ * review_needed       — has flags requiring human review before proceeding
+ * rejected            — empty, duplicate, unrecoverable, or explicitly excluded
+ */
 export type RowClassification =
-  | "clean"           // ready for Stage 2
-  | "review_needed"   // has a flag that needs human review before proceeding
-  | "skip";           // empty, duplicate, or unrecoverable
+  | "verified_contact"
+  | "enrichable_contact"
+  | "company_target"
+  | "review_needed"
+  | "rejected";
 
 export type ReviewFlag =
   | "no_name"                  // no first or last name
@@ -50,10 +69,18 @@ export type ReviewFlag =
   | "name_looks_like_company"  // first name contains "Pty", "Ltd", "Inc" etc.
   | "honorific_only"           // name is just "Mr", "Dr" etc. with no actual name
   | "all_caps_name"            // entire name is uppercase (likely a data quality issue)
-  | "non_au_email";            // email domain is definitively non-AU/NZ
+  | "non_au_email"             // email domain is definitively non-AU/NZ
+  | "retired_or_former"        // title/notes contains retired/former/ex-/left company
+  | "do_not_contact"           // notes contain "do not contact" or similar
+  | "joint_venture"            // company name looks like a JV (e.g. "CIMIC/UGL")
+  | "test_row"                 // name, email, or company looks like a test record
+  | "email_as_name";           // the name field contains an email address (CRM export issue)
 
 /** A single row after full normalization, ready for staging */
 export interface StagedContact {
+  // Record type — drives routing to person vs company enrichment branch
+  recordType: RecordType;
+
   // Identity (normalized)
   firstName: string | null;
   lastName: string | null;
@@ -63,6 +90,7 @@ export interface StagedContact {
   company: string | null;
   companyRaw: string | null;          // original company before canonicalization
   companyCanonical: string | null;    // cleaned company name (no legal suffixes)
+  jointVentureLabel: string | null;   // e.g. "CIMIC / UGL Joint Venture"
   domain: string | null;             // extracted/cleaned domain
   email: string | null;
   phone: string | null;
@@ -73,6 +101,8 @@ export interface StagedContact {
   // Classification
   classification: RowClassification;
   reviewFlags: ReviewFlag[];
+  rejectionReason: string | null;     // human-readable reason when classification = rejected
+  duplicateOf: string | null;         // dedup key of the original record this duplicates
 
   // Provenance
   sourceRow: number;
@@ -83,9 +113,11 @@ export interface StagedContact {
 export interface IngestionResult {
   fileType: UploadFileType;
   totalRows: number;
-  cleanRows: number;
+  verifiedContacts: number;
+  enrichableContacts: number;
+  companyTargets: number;
   reviewRows: number;
-  skippedRows: number;
+  rejectedRows: number;
   staged: StagedContact[];
   errors: string[];
 }
@@ -272,6 +304,11 @@ const PLACEHOLDER_NAMES = new Set([
   "first", "last", "name", "contact", "person", "user", "example",
 ]);
 
+/** Patterns that indicate a test/dummy record */
+const TEST_NAME_PATTERN = /^(test|dummy|sample|fake|demo|example|placeholder)\b/i;
+const TEST_EMAIL_PATTERN = /^(test|dummy|sample|fake|demo|example)@/i;
+const TEST_COMPANY_PATTERN = /^(test\s*company|test\s*org|sample\s*company|dummy\s*company)/i;
+
 /**
  * Parse a full name string into first and last name components.
  * Strips honorifics, handles single-word names, and applies title-case.
@@ -281,17 +318,19 @@ export function parseFullName(raw: string | null): {
   lastName: string | null;
   flags: ReviewFlag[];
 } {
-  if (!raw || !raw.trim()) return { firstName: null, lastName: null, flags: [] };
-
+   if (!raw || !raw.trim()) return { firstName: null, lastName: null, flags: [] };
   const flags: ReviewFlag[] = [];
   let name = raw.trim();
-
+  // Check if the name field contains an email address (common CRM export issue)
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
+    flags.push("email_as_name");
+    return { firstName: null, lastName: null, flags };
+  }
   // Check for honorific-only
   if (HONORIFIC_ONLY.test(name)) {
     return { firstName: null, lastName: null, flags: ["honorific_only"] };
   }
-
-  // Handle comma-separated "Last, First" format (e.g. "Smith, John")
+  // Handle comma-separatedd "Last, First" format (e.g. "Smith, John")
   if (/^[^,]+,\s*[^,]+$/.test(name)) {
     const commaIdx = name.indexOf(",");
     const last = name.slice(0, commaIdx).trim();
@@ -315,6 +354,11 @@ export function parseFullName(raw: string | null): {
     flags.push("all_caps_name");
   }
 
+  // Check for test record
+  if (TEST_NAME_PATTERN.test(name)) {
+    flags.push("test_row");
+  }
+
   // Split on whitespace
   const parts = name.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return { firstName: null, lastName: null, flags };
@@ -331,6 +375,10 @@ export function parseFullName(raw: string | null): {
   } else {
     firstName = toTitleCase(parts[0]);
     lastName = parts.slice(1).map(toTitleCase).join(" ");
+    // Strip parenthetical suffixes from lastName: (retired), (former), (deceased), etc.
+    if (lastName) {
+      lastName = lastName.replace(/\s*\((?:retired|former|ex|deceased|emeritus|left|past|inactive)[^)]*\)/gi, "").trim() || null;
+    }
   }
 
   // Check placeholders
@@ -376,6 +424,11 @@ export function normalizeSplitName(
     flags.push("all_caps_name");
   }
 
+  // Check for test record
+  if ((firstName && TEST_NAME_PATTERN.test(firstName)) || (lastName && TEST_NAME_PATTERN.test(lastName))) {
+    flags.push("test_row");
+  }
+
   // Apply title case
   if (firstName) firstName = toTitleCase(firstName);
   if (lastName) lastName = toTitleCase(lastName);
@@ -416,12 +469,24 @@ const TITLE_ALIASES: [RegExp, string][] = [
 ];
 
 /**
+ * Patterns indicating a person is retired, former, or has left the company.
+ * These rows should be flagged for review, not automatically enriched.
+ */
+const RETIRED_FORMER_PATTERN = /\b(retired|former|ex[-\s]|previously\s+at|left\s+company|no\s+longer|past\s+|emeritus)\b/i;
+
+/**
+ * Patterns in notes indicating a do-not-contact instruction.
+ */
+const DO_NOT_CONTACT_PATTERN = /\b(do\s+not\s+contact|dnc|do\s+not\s+call|opt[-\s]?out|unsubscribed?|removed?|blacklist|suppressed?|bounced?)\b/i;
+
+/**
  * Normalize a job title:
  * - Trim whitespace
  * - Collapse internal whitespace
  * - Expand known abbreviations
  * - Apply title-case
  * - Flag if too long (likely a bio/notes field)
+ * - Flag if retired/former/ex-
  */
 export function normalizeTitle(raw: string | null): {
   title: string | null;
@@ -436,6 +501,11 @@ export function normalizeTitle(raw: string | null): {
   if (t.length > 120) {
     flags.push("title_too_long");
     t = t.slice(0, 120);
+  }
+
+  // Flag retired/former/ex- titles
+  if (RETIRED_FORMER_PATTERN.test(t)) {
+    flags.push("retired_or_former");
   }
 
   // Expand known abbreviations (full match only)
@@ -483,27 +553,41 @@ const PLACEHOLDER_COMPANIES = new Set([
 ]);
 
 /**
+ * Joint-venture detection patterns.
+ * Matches patterns like "CIMIC / UGL", "Thiess-UGL JV", "BHP Rio Tinto Joint Venture"
+ */
+const JV_PATTERN = /\b(jv|j\.v\.|joint\s+venture|joint\s*venture|consortium)\b|(\w+)\s*[\/\-&]\s*(\w+)\s+(jv|joint\s+venture)/i;
+const JV_SLASH_PATTERN = /^([A-Z][A-Za-z\s]+)\s*[\/]\s*([A-Z][A-Za-z\s]+)(?:\s+(jv|joint\s+venture|consortium))?$/;
+
+/**
  * Canonicalize a company name:
  * - Trim and collapse whitespace
  * - Strip legal suffixes (for dedup key)
  * - Apply title case
  * - Extract domain if present in the string
  * - Flag placeholders
+ * - Detect joint ventures
  */
 export function canonicalizeCompany(raw: string | null): {
   company: string | null;
   canonical: string | null;
   domain: string | null;
+  jointVentureLabel: string | null;
   flags: ReviewFlag[];
 } {
-  if (!raw || !raw.trim()) return { company: null, canonical: null, domain: null, flags: [] };
+  if (!raw || !raw.trim()) return { company: null, canonical: null, domain: null, jointVentureLabel: null, flags: [] };
   const flags: ReviewFlag[] = [];
 
   let company = raw.trim().replace(/\s+/g, " ");
 
   // Flag placeholder companies
   if (PLACEHOLDER_COMPANIES.has(company.toLowerCase())) {
-    return { company: null, canonical: null, domain: null, flags: ["placeholder_company"] };
+    return { company: null, canonical: null, domain: null, jointVentureLabel: null, flags: ["placeholder_company"] };
+  }
+
+  // Flag test company
+  if (TEST_COMPANY_PATTERN.test(company)) {
+    flags.push("test_row");
   }
 
   // Flag if too long
@@ -523,6 +607,18 @@ export function canonicalizeCompany(raw: string | null): {
     }
   }
 
+  // Detect joint venture
+  let jointVentureLabel: string | null = null;
+  if (JV_PATTERN.test(company) || JV_SLASH_PATTERN.test(company)) {
+    flags.push("joint_venture");
+    // Normalize the JV label
+    jointVentureLabel = company
+      .replace(/\s*[\/]\s*/g, " / ")
+      .replace(/\bjv\b/gi, "JV")
+      .replace(/\bjoint\s*venture\b/gi, "Joint Venture")
+      .trim();
+  }
+
   // Strip legal suffixes to create canonical key
   const canonical = company
     .replace(LEGAL_SUFFIX_PATTERN, "")
@@ -539,6 +635,7 @@ export function canonicalizeCompany(raw: string | null): {
     company: company || null,
     canonical: canonicalCased || null,
     domain,
+    jointVentureLabel,
     flags,
   };
 }
@@ -581,6 +678,11 @@ export function validateEmail(raw: string | null): {
   if (!raw || !raw.trim()) return { email: null, flags: [] };
   const flags: ReviewFlag[] = [];
   const email = raw.trim().toLowerCase();
+
+  // Check for test email
+  if (TEST_EMAIL_PATTERN.test(email)) {
+    return { email: null, flags: ["test_row", "suspicious_email"] };
+  }
 
   if (!EMAIL_REGEX.test(email)) {
     return { email: null, flags: ["suspicious_email"] };
@@ -627,32 +729,64 @@ export function buildDedupKey(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Classify a staged contact based on its flags.
- * - "skip": empty/unrecoverable rows
- * - "review_needed": has flags that a human should check before enrichment
- * - "clean": ready for Stage 2
+ * Classify a staged contact using the five-value classification.
+ *
+ * rejected           — empty, duplicate (hard), unrecoverable, test, or DNC
+ * company_target     — company-only row (no person name); goes to company branch only
+ * review_needed      — has soft flags requiring human review
+ * enrichable_contact — has name + company but no email
+ * verified_contact   — has name + email + company, no blocking flags
  */
 export function classifyRow(
-  contact: Pick<StagedContact, "firstName" | "lastName" | "company" | "email" | "reviewFlags">
-): RowClassification {
+  contact: Pick<StagedContact, "firstName" | "lastName" | "company" | "email" | "recordType" | "reviewFlags">
+): { classification: RowClassification; rejectionReason: string | null } {
   const flags = contact.reviewFlags;
 
-  // Hard skips
-  if (flags.includes("placeholder_name") && flags.includes("placeholder_company")) return "skip";
-  if (flags.includes("placeholder_company") && !contact.email) return "skip";
-  if (!contact.firstName && !contact.lastName && !contact.email && !contact.company) return "skip";
-  if (flags.includes("honorific_only") && !contact.company) return "skip";
+  // Hard rejections
+  if (flags.includes("test_row")) {
+    return { classification: "rejected", rejectionReason: "Test/dummy record detected" };
+  }
+  if (flags.includes("do_not_contact")) {
+    return { classification: "rejected", rejectionReason: "Do-not-contact instruction in notes" };
+  }
+  if (flags.includes("duplicate_in_batch")) {
+    return { classification: "rejected", rejectionReason: "Duplicate within this upload batch" };
+  }
+  if (flags.includes("placeholder_name") && flags.includes("placeholder_company")) {
+    return { classification: "rejected", rejectionReason: "Both name and company are placeholders" };
+  }
+  if (flags.includes("placeholder_company") && !contact.email) {
+    return { classification: "rejected", rejectionReason: "Placeholder company with no email" };
+  }
+  if (!contact.firstName && !contact.lastName && !contact.email && !contact.company) {
+    return { classification: "rejected", rejectionReason: "Completely empty row" };
+  }
+  if (flags.includes("honorific_only") && !contact.company) {
+    return { classification: "rejected", rejectionReason: "Honorific-only name with no company" };
+  }
 
-  // Review needed
+  // Company-only branch — no person name at all
+  if (contact.recordType === "company_target") {
+    return { classification: "company_target", rejectionReason: null };
+  }
+
+  // Soft review triggers (human must approve before enrichment)
   const reviewTriggers: ReviewFlag[] = [
     "no_name", "no_company", "suspicious_email", "placeholder_name",
-    "placeholder_company", "duplicate_in_batch", "duplicate_in_campaign",
+    "placeholder_company", "duplicate_in_campaign",
     "title_too_long", "company_too_long", "name_looks_like_company",
     "honorific_only", "all_caps_name", "non_au_email",
+    "retired_or_former", "joint_venture",
   ];
-  if (flags.some(f => reviewTriggers.includes(f))) return "review_needed";
+  if (flags.some(f => reviewTriggers.includes(f))) {
+    return { classification: "review_needed", rejectionReason: null };
+  }
 
-  return "clean";
+  // Person rows: verified vs enrichable
+  if (contact.email) {
+    return { classification: "verified_contact", rejectionReason: null };
+  }
+  return { classification: "enrichable_contact", rejectionReason: null };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -714,8 +848,9 @@ export function runIngestionPipeline(
     workbook = XLSX.read(buffer, { type: "buffer" });
   } catch (err) {
     return {
-      fileType: "unknown", totalRows: 0, cleanRows: 0,
-      reviewRows: 0, skippedRows: 0, staged: [],
+      fileType: "unknown", totalRows: 0, verifiedContacts: 0,
+      enrichableContacts: 0, companyTargets: 0,
+      reviewRows: 0, rejectedRows: 0, staged: [],
       errors: [`Failed to parse file: ${(err as Error).message}`],
     };
   }
@@ -724,8 +859,9 @@ export function runIngestionPipeline(
   const sheet = workbook.Sheets[sheetName];
   if (!sheet) {
     return {
-      fileType: "unknown", totalRows: 0, cleanRows: 0,
-      reviewRows: 0, skippedRows: 0, staged: [],
+      fileType: "unknown", totalRows: 0, verifiedContacts: 0,
+      enrichableContacts: 0, companyTargets: 0,
+      reviewRows: 0, rejectedRows: 0, staged: [],
       errors: [`Sheet "${sheetName}" not found`],
     };
   }
@@ -733,8 +869,9 @@ export function runIngestionPipeline(
   const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
   if (allRows.length === 0) {
     return {
-      fileType: "unknown", totalRows: 0, cleanRows: 0,
-      reviewRows: 0, skippedRows: 0, staged: [],
+      fileType: "unknown", totalRows: 0, verifiedContacts: 0,
+      enrichableContacts: 0, companyTargets: 0,
+      reviewRows: 0, rejectedRows: 0, staged: [],
       errors: ["File is empty"],
     };
   }
@@ -756,15 +893,15 @@ export function runIngestionPipeline(
   const existingNameCoKeys = options.existingNameCoKeys ?? new Set<string>();
 
   const staged: StagedContact[] = [];
-  let skippedRows = 0;
+  let rejectedRows = 0;
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
     const sourceRow = headerRowIdx + 2 + i; // 1-indexed, accounting for header
 
-    // Skip completely empty rows
+    // Skip completely empty rows silently
     if (!row || row.every(c => !c.trim())) {
-      skippedRows++;
+      rejectedRows++;
       continue;
     }
 
@@ -800,7 +937,7 @@ export function runIngestionPipeline(
 
       // ── Company ──
       const rawCompany = cleanCell(row[mapping.company ?? -1]);
-      const { company, canonical, domain: companyDomain, flags: companyFlags } = canonicalizeCompany(rawCompany);
+      const { company, canonical, domain: companyDomain, jointVentureLabel, flags: companyFlags } = canonicalizeCompany(rawCompany);
       allFlags.push(...companyFlags);
       if (!company) allFlags.push("no_company");
 
@@ -819,68 +956,102 @@ export function runIngestionPipeline(
       const linkedin = cleanCell(row[mapping.linkedin ?? -1]);
       const notes = cleanCell(row[mapping.notes ?? -1]);
 
+      // ── Notes-based flags ──
+      if (notes) {
+        if (DO_NOT_CONTACT_PATTERN.test(notes)) {
+          allFlags.push("do_not_contact");
+        }
+        if (RETIRED_FORMER_PATTERN.test(notes) && !allFlags.includes("retired_or_former")) {
+          allFlags.push("retired_or_former");
+        }
+      }
+
+      // ── Record type ──
+      const recordType: RecordType = (!firstName && !lastName && !fullNameRaw)
+        ? "company_target"
+        : "person";
+
       // ── Deduplication ──
+      let duplicateOf: string | null = null;
       const dedupKey = buildDedupKey(email, firstName, lastName, canonical);
       if (dedupKey) {
         if (seenKeys.has(dedupKey)) {
           allFlags.push("duplicate_in_batch");
+          duplicateOf = dedupKey;
         } else {
           seenKeys.add(dedupKey);
-          // Check against existing campaign contacts
+          // Check against existing campaign contacts (soft warning, not hard reject)
           if (email && existingEmails.has(email.toLowerCase())) {
             allFlags.push("duplicate_in_campaign");
+            duplicateOf = `campaign:${email.toLowerCase()}`;
           } else if (!email) {
             const nameCoKey = buildDedupKey(null, firstName, lastName, canonical);
             if (nameCoKey && existingNameCoKeys.has(nameCoKey)) {
               allFlags.push("duplicate_in_campaign");
+              duplicateOf = `campaign:${nameCoKey}`;
             }
           }
         }
       }
 
       // ── Classification ──
-      const classification = classifyRow({ firstName, lastName, company, email, reviewFlags: allFlags });
+      const { classification, rejectionReason } = classifyRow({
+        firstName, lastName, company, email, recordType, reviewFlags: allFlags,
+      });
 
-      if (classification === "skip") {
-        skippedRows++;
+      if (classification === "rejected") {
+        rejectedRows++;
+        // Still stage rejected rows so the UI can show them with their reason
+        staged.push({
+          recordType,
+          firstName, lastName, fullNameRaw,
+          title, titleRaw: rawTitle,
+          company, companyRaw: rawCompany, companyCanonical: canonical,
+          jointVentureLabel,
+          domain, email, phone, mobile, linkedin, notes,
+          classification,
+          reviewFlags: allFlags,
+          rejectionReason,
+          duplicateOf,
+          sourceRow,
+          uploadFileType: fileType,
+        });
         continue;
       }
 
       staged.push({
-        firstName,
-        lastName,
-        fullNameRaw,
-        title,
-        titleRaw: rawTitle,
-        company,
-        companyRaw: rawCompany,
-        companyCanonical: canonical,
-        domain,
-        email,
-        phone,
-        mobile,
-        linkedin,
-        notes,
+        recordType,
+        firstName, lastName, fullNameRaw,
+        title, titleRaw: rawTitle,
+        company, companyRaw: rawCompany, companyCanonical: canonical,
+        jointVentureLabel,
+        domain, email, phone, mobile, linkedin, notes,
         classification,
         reviewFlags: allFlags,
+        rejectionReason: null,
+        duplicateOf,
         sourceRow,
         uploadFileType: fileType,
       });
     } catch (err) {
       errors.push(`Row ${sourceRow}: ${(err as Error).message}`);
-      skippedRows++;
+      rejectedRows++;
     }
   }
 
-  const cleanRows = staged.filter(r => r.classification === "clean").length;
+  const verifiedContacts = staged.filter(r => r.classification === "verified_contact").length;
+  const enrichableContacts = staged.filter(r => r.classification === "enrichable_contact").length;
+  const companyTargets = staged.filter(r => r.classification === "company_target").length;
   const reviewRows = staged.filter(r => r.classification === "review_needed").length;
 
   return {
     fileType,
     totalRows: dataRows.length,
-    cleanRows,
+    verifiedContacts,
+    enrichableContacts,
+    companyTargets,
     reviewRows,
-    skippedRows,
+    rejectedRows,
     staged,
     errors,
   };
@@ -908,7 +1079,8 @@ function toTitleCase(word: string): string {
 /**
  * Convert a StagedContact to the RawContactRow format expected by
  * importCampaignContacts() in campaignService.ts.
- * Only "clean" contacts should be passed here.
+ * Only "verified_contact" or "enrichable_contact" contacts should be passed here.
+ * company_target rows must NOT be passed to this function.
  */
 export function stagedToRawContact(staged: StagedContact): {
   firstName: string | null;
@@ -920,24 +1092,28 @@ export function stagedToRawContact(staged: StagedContact): {
   mobile: string | null;
   email: string | null;
   nameCheckStatus: string | null;
+  linkedin: string | null;
   reviewNotes: string | null;
   sourceRow: number;
 } {
-  const flags = staged.reviewFlags;
-  const nameCheckStatus = flags.length > 0 ? flags.join(", ") : null;
-  const reviewNotes = staged.notes || null;
-
+  if (staged.recordType === "company_target") {
+    throw new Error(
+      `stagedToRawContact called on company_target row (company: ${staged.company}). ` +
+      `Company-only rows must go to the company enrichment branch, not person scoring.`
+    );
+  }
   return {
     firstName: staged.firstName,
     lastName: staged.lastName,
     title: staged.title,
-    company: staged.company || staged.companyCanonical || staged.domain || "(unknown)",
+    company: staged.companyCanonical || staged.company || "",
     reviewedCompanyName: staged.companyCanonical,
     phone: staged.phone,
     mobile: staged.mobile,
     email: staged.email,
-    nameCheckStatus,
-    reviewNotes,
+    nameCheckStatus: null,
+    linkedin: staged.linkedin,
+    reviewNotes: staged.notes,
     sourceRow: staged.sourceRow,
   };
 }

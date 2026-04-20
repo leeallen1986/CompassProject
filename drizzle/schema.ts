@@ -1053,6 +1053,7 @@ export const campaignStagedContacts = mysqlTable("campaignStagedContacts", {
   company: varchar("company", { length: 256 }),
   companyRaw: varchar("companyRaw", { length: 256 }),
   companyCanonical: varchar("companyCanonical", { length: 256 }),
+  jointVentureLabel: varchar("jointVentureLabel", { length: 512 }),
   domain: varchar("domain", { length: 256 }),
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 64 }),
@@ -1060,9 +1061,14 @@ export const campaignStagedContacts = mysqlTable("campaignStagedContacts", {
   linkedin: varchar("linkedin", { length: 512 }),
   notes: text("notes"),
 
+  // Record type — drives routing to person vs company enrichment branch
+  recordType: varchar("recordType", { length: 32 }).notNull().default("person"),
+
   // Classification
   classification: varchar("classification", { length: 32 }).notNull().default("review_needed"),
   reviewFlags: json("reviewFlags").$type<string[]>(),
+  rejectionReason: text("rejectionReason"),
+  duplicateOf: varchar("duplicateOf", { length: 512 }),
 
   // Human review
   reviewStatus: varchar("reviewStatus", { length: 32 }).notNull().default("pending"),

@@ -121,9 +121,11 @@ export const stagingRouter = {
           batchId: null,
           fileType: result.fileType,
           totalRows: result.totalRows,
-          cleanRows: 0,
+          verifiedContacts: 0,
+          enrichableContacts: 0,
+          companyTargets: 0,
           reviewRows: 0,
-          skippedRows: result.skippedRows,
+          rejectedRows: result.rejectedRows,
           errors: result.errors,
         };
       }
@@ -151,9 +153,13 @@ export const stagingRouter = {
         mobile: s.mobile ?? undefined,
         linkedin: s.linkedin ?? undefined,
         notes: s.notes ?? undefined,
+        recordType: s.recordType,
         classification: s.classification,
         reviewFlags: s.reviewFlags,
-        reviewStatus: s.classification === "clean" ? "approved" : "pending",
+        rejectionReason: s.rejectionReason ?? undefined,
+        duplicateOf: s.duplicateOf ?? undefined,
+        jointVentureLabel: s.jointVentureLabel ?? undefined,
+        reviewStatus: s.classification === "verified_contact" ? "approved" : "pending",
         sourceRow: s.sourceRow,
         uploadedBy: userId,
       }));
@@ -170,9 +176,11 @@ export const stagingRouter = {
         batchId,
         fileType: result.fileType,
         totalRows: result.totalRows,
-        cleanRows: result.cleanRows,
+        verifiedContacts: result.verifiedContacts,
+        enrichableContacts: result.enrichableContacts,
+        companyTargets: result.companyTargets,
         reviewRows: result.reviewRows,
-        skippedRows: result.skippedRows,
+        rejectedRows: result.rejectedRows,
         errors: result.errors,
       };
     }),
@@ -269,8 +277,15 @@ export const stagingRouter = {
         return { imported: 0, excluded: 0, tierBreakdown: {}, errors: [] };
       }
 
+      // Only convert person rows — company_target rows must NOT go to person scoring
+      const personRows = approvedRows.filter(row => row.recordType !== "company_target");
+
+      if (personRows.length === 0) {
+        return { imported: 0, excluded: 0, tierBreakdown: {}, errors: ["No person rows to commit — all approved rows are company_target"] };
+      }
+
       // Convert to RawContactRow format
-      const rawContacts = approvedRows.map((row) =>
+      const rawContacts = personRows.map((row) =>
         stagedToRawContact({
           firstName: row.firstName ?? null,
           lastName: row.lastName ?? null,
@@ -286,8 +301,12 @@ export const stagingRouter = {
           mobile: row.mobile ?? null,
           linkedin: row.linkedin ?? null,
           notes: row.notes ?? null,
-          classification: (row.classification as any) ?? "clean",
+          recordType: (row.recordType as any) ?? "person",
+          classification: (row.classification as any) ?? "verified_contact",
           reviewFlags: (row.reviewFlags as import('../ingestionService').ReviewFlag[]) ?? [],
+          rejectionReason: row.rejectionReason ?? null,
+          duplicateOf: row.duplicateOf ?? null,
+          jointVentureLabel: row.jointVentureLabel ?? null,
           sourceRow: row.sourceRow ?? 0,
           uploadFileType: (row.uploadFileType as any) ?? "unknown",
         })
