@@ -1,0 +1,1 @@
+ALTER TABLE `campaignContacts` ADD `recordType` varchar(32) DEFAULT 'person' NOT NULL;

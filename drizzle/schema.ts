@@ -962,8 +962,14 @@ export const campaignContacts = mysqlTable("campaignContacts", {
   sentEmailId: varchar("sentEmailId", { length: 128 }),  // Resend email ID
   // Source tracking
   sourceRow: int("sourceRow"),  // Original row number in the spreadsheet
+  // Stage 1 carry-forward: record type from ingestion (person | company_target)
+  // company_target rows MUST NOT enter person scoring or enrichment
+  recordType: varchar("recordType", { length: 32 }).notNull().default("person"),
   roleBucket: varchar("roleBucket", { length: 128 }),  // Granular role category (c_suite, director, senior_manager, manager, procurement, engineering, operations, site_workshop, other)
   scoreBreakdown: json("scoreBreakdown"),  // ScoreBreakdown object for explainability
+  // Stage 3: post-enrichment QA
+  enrichmentQA: json("enrichmentQA"),  // EnrichmentQAResult — full QA output
+  sendReadiness: varchar("sendReadiness", { length: 32 }),  // send_ready | review_before_send | blocked_from_send
   nameCheckStatus: varchar("nameCheckStatus", { length: 128 }),
   reviewNotes: text("reviewNotes"),
   // Metadata
@@ -1088,4 +1094,28 @@ export const campaignStagedContacts = mysqlTable("campaignStagedContacts", {
 
 export type CampaignStagedContact = typeof campaignStagedContacts.$inferSelect;
 export type InsertCampaignStagedContact = typeof campaignStagedContacts.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stage 3: Approved Domain Overrides
+// Allows operators to manually approve a domain for a specific company,
+// bypassing the heuristic domain-derivation logic in enrichmentQA.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+export const campaignDomainOverrides = mysqlTable("campaignDomainOverrides", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+  // The canonical company name (normalised lowercase) this override applies to
+  companyNameNormalised: varchar("companyNameNormalised", { length: 256 }).notNull(),
+  // The approved email domain for this company in this campaign
+  approvedDomain: varchar("approvedDomain", { length: 256 }).notNull(),
+  // Optional: restrict override to a specific subsidiary or trading name
+  subsidiaryName: varchar("subsidiaryName", { length: 256 }),
+  // Reason for the override (audit trail)
+  reason: text("reason"),
+  // Who approved it
+  approvedBy: int("approvedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type CampaignDomainOverride = typeof campaignDomainOverrides.$inferSelect;
+export type InsertCampaignDomainOverride = typeof campaignDomainOverrides.$inferInsert;
 

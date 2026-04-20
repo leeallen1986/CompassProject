@@ -22,6 +22,7 @@ import { apolloPeopleSearch, enrichSingleContact, logCreditUsage, type ApolloEnr
 import { batchHunterEnrich } from "./hunterService";
 import { sendEmail } from "./emailSender";
 import { checkCountryGeo } from "./geoFilter";
+import { evaluateEnrichmentQA } from "./enrichmentQA";
 
 // ── Scoring Engine v2 (Stage 2) ──
 // Authoritative scoring model — one source of truth.
@@ -1379,8 +1380,29 @@ export async function enrichCampaignContacts(
             mobile: contact.mobile,
             matchedProjectCount: contact.matchedProjectCount,
           });
+          // Stage 3: run post-enrichment QA
+          const apolloQA = evaluateEnrichmentQA({
+            firstName: enrichedResult.firstName || contact.firstName,
+            lastName: enrichedResult.name?.split(" ").slice(1).join(" ") || contact.lastName,
+            title: enrichedResult.title || contact.title,
+            company: enrichedResult.company || contact.company,
+            recordType: contact.recordType,
+            enrichedEmail: enrichedResult.email,
+            originalEmail: contact.email,
+            enrichmentSource: "apollo",
+            verificationStatus: null,
+            hunterConfidence: null,
+            enrichedLinkedin: enrichedResult.linkedinUrl || null,
+            enrichedTitle: enrichedResult.title || null,
+            finalScore: scoring.finalScore,
+            finalTier: scoring.finalTier,
+            enrichedCountry: enrichedResult.country || null,
+          });
           await db.update(campaignContacts).set({
             score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
+            scoreBreakdown: scoring,
+            enrichmentQA: apolloQA,
+            sendReadiness: apolloQA.sendReadiness,
           }).where(eq(campaignContacts.id, contact.id));
 
           // Track data quality improvements
@@ -1582,8 +1604,28 @@ export async function enrichCampaignContacts(
             mobile: contact.mobile,
             matchedProjectCount: contact.matchedProjectCount,
           });
+          // Stage 3: run post-enrichment QA
+          const hunterQA = evaluateEnrichmentQA({
+            firstName: contact.firstName,
+            lastName: contact.lastName,
+            title: contact.enrichedTitle || contact.title,
+            company: contact.company,
+            recordType: contact.recordType,
+            enrichedEmail: hunterResult.email,
+            originalEmail: contact.email,
+            enrichmentSource: "hunter",
+            verificationStatus: hunterResult.verificationStatus as any || null,
+            hunterConfidence: hunterResult.confidence ?? null,
+            enrichedLinkedin: hunterResult.linkedin || null,
+            enrichedTitle: contact.enrichedTitle || null,
+            finalScore: scoring.finalScore,
+            finalTier: scoring.finalTier,
+          });
           await db.update(campaignContacts).set({
             score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
+            scoreBreakdown: scoring,
+            enrichmentQA: hunterQA,
+            sendReadiness: hunterQA.sendReadiness,
           }).where(eq(campaignContacts.id, contact.id));
 
           // Track data quality improvements
