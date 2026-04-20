@@ -1,0 +1,1 @@
+ALTER TABLE `campaignContacts` ADD `scoreBreakdown` json;

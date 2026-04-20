@@ -23,192 +23,472 @@ import { batchHunterEnrich } from "./hunterService";
 import { sendEmail } from "./emailSender";
 import { checkCountryGeo } from "./geoFilter";
 
-// ── Scoring Constants ──
+// ── Scoring Engine v2 (Stage 2) ──
+// Authoritative scoring model — one source of truth.
+// See docs/stage2_scoring_spec.md for full specification.
 
-/** Title patterns that indicate blasting/coating specialists — highest relevance */
-const BLASTING_TITLE_PATTERNS = [
-  /blast/i, /paint(?:ing|er)?/i, /coat(?:ing|s)?/i, /surface\s*(treat|protect|prep)/i,
-  /corrosion/i, /abrasive/i, /sandblast/i, /uhp/i, /nace/i,
+// ── Types ──
+
+export type TitleRelevance = "blasting_specialist" | "decision_maker" | "operations" | "other" | "unknown";
+export type RoleBucket =
+  | "c_suite" | "director" | "senior_manager"
+  | "procurement" | "fleet_equipment" | "maintenance" | "project_management"
+  | "operations" | "engineering" | "site_workshop"
+  | "blasting_specialist" | "coordinator" | "other" | "unknown";
+export type CompanyTier = "primary" | "secondary" | "none";
+export type ContactTier = "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded";
+
+export interface ScoreBreakdown {
+  titleScore: number;           // 0-45
+  emailBonus: number;           // 0 or 15
+  mobileBonus: number;          // 0 or 5
+  companyBonus: number;         // 0, 10, or 20
+  companyTier: CompanyTier;
+  projectMatchBonus: number;    // 0-15
+  penalties: number;            // reserved — always 0 in v2
+  finalScore: number;           // 0-100
+  finalTier: ContactTier;
+  roleBucket: RoleBucket;
+  titleRelevance: TitleRelevance;
+  reasoningSummary: string;
+  companyBonusBlocked: boolean; // true if minimum title gate prevented company bonus
+  tier1Blocked: boolean;        // true if bucket gate prevented tier1_hot
+}
+
+// ── Campaign Profile (forward-compatibility) ──
+
+export interface CampaignProfile {
+  campaignType: "blasting" | "drilling" | "portable_air_general" | "custom";
+}
+
+const DEFAULT_CAMPAIGN_PROFILE: CampaignProfile = { campaignType: "blasting" };
+
+// ── Hard Exclusion Patterns (score = 0, tier = excluded) ──
+
+const HARD_EXCLUDE_PATTERNS: RegExp[] = [
+  /^accounts?\s*(payable|receivable|officer)?$/i,
+  /^admin(istrat(or|ive|ion))?$/i,
+  /^receptionist?$/i,
+  /^office\s*manager$/i,
+  /^customer\s*(care|service|support)/i,
+  /^sales\s*(rep(resentative)?|executive|associate)?$/i,
+  /^data\s*entry/i,
+  /^payroll/i,
+  /^bookkeeper/i,
+  /^cleaner$/i,
+  /^driver$/i,
+  /^labourer$/i,
+  /^casual\s*worker/i,
+  /^intern$/i,
+  /^store[s]?$/i,
 ];
 
-/** Company name patterns that indicate abrasive blasting / surface prep focus */
-const BLASTING_COMPANY_PATTERNS = [
-  /blast/i, /abrasive/i, /surface\s*(prep|treat|protect)/i, /corrosion/i,
-  /coat(?:ing|s)/i, /paint(?:ing)?\s*(service|contractor|solution)/i,
-  /sandblast/i, /uhp/i, /hydro\s*blast/i, /grit\s*blast/i,
-  /rope\s*access/i, /scaffold/i, /insulation/i, /fireproof/i,
-  /\bkaefer\b/i, /\baltrad\b/i, /\bmonadelphous\b/i, /\blinkforce\b/i,
-  /\bmaster\s*flow\b/i, /\brema\s*tip/i, /\bcleanco\b/i,
-  /\bwa\s*corrosion/i, /\bmatrix\s*corrosion/i,
+// ── Compound-Title Exclusion Keywords ──
+// If a compound title (containing / or ,) has any of these segments, score = 5
+
+const COMPOUND_EXCLUDE_KEYWORDS: RegExp[] = [
+  /^accounts?\s*(payable|receivable)?$/i,
+  /^payroll$/i,
+  /^finance$/i, /^financial$/i,
+  /^hr$/i, /^human\s*resources$/i, /^people\s*(\&|and)\s*culture$/i,
+  /^legal$/i, /^compliance$/i,
+  /^marketing$/i, /^communications?$/i, /^brand$/i, /^media$/i, /^pr$/i,
+  /^it$/i, /^information\s*technology$/i, /^digital$/i,
+  /^data$/i, /^cyber$/i, /^security$/i,
+  /^safety$/i, /^hse$/i, /^health$/i,
+  /^admin(istration)?$/i, /^reception$/i,
 ];
 
-/** Titles to exclude — low value for outreach */
-const EXCLUDE_TITLE_PATTERNS = [
-  /^accounts?\s*(payable|receivable)?$/i, /^admin(istrat)?/i,
-  /^store[s]?$/i, /^reception/i, /^office\s*manager/i,
-  /customer\s*care/i, /^sales$/i, /^sales\s*rep/i,
+// ── Blasting / Surface-Prep Specialist Patterns (score = 40) ──
+
+const BLASTING_TITLE_PATTERNS: RegExp[] = [
+  /blast(?:ing|er)?/i,
+  /paint(?:ing|er)?/i,
+  /coat(?:ing|s|er)?/i,
+  /surface\s*(treat|protect|prep|finish)/i,
+  /corrosion\s*(control|protection|engineer|specialist)?/i,
+  /abrasive/i,
+  /sandblast/i,
+  /\buhp\b/i,
+  /\bnace\b/i,
+  /\bsspc\b/i,
+  /hydro\s*blast/i,
+  /grit\s*blast/i,
+  /thermal\s*spray/i,
+  /zinc\s*spray/i,
+  /protective\s*coat/i,
 ];
 
-// ── Seniority-Weighted Title Classification ──
-// Hierarchy: C-Suite (45) > Director (40) > Blasting Specialist (40) > Senior Manager (35) > Manager (25) > Coordinator/Supervisor (15) > Other (10)
+// ── C-Suite Patterns (score = 45) ──
 
-/** C-Suite patterns — highest seniority */
-const C_SUITE_PATTERNS = [
+const C_SUITE_PATTERNS: RegExp[] = [
   /\bceo\b/i, /\bcoo\b/i, /\bcfo\b/i, /\bcto\b/i, /\bcio\b/i,
-  /\bchief\b/i, /managing\s*director/i, /\bowner\b/i, /proprietor/i,
-  /\bpresident\b/i, /\bfound(?:er|ing)/i,
+  /\bchief\b/i,
+  /managing\s*director/i,
+  /\bmd\b/i,
+  /\bowner\b/i,
+  /proprietor/i,
+  /\bpresident\b/i,
+  /\bfound(?:er|ing)/i,
+  /\bprincipal\b/i,
 ];
 
-/** Director-level patterns */
-const DIRECTOR_PATTERNS = [
-  /\bdirector\b/i, /\bvp\b/i, /vice\s*president/i,
-  /general\s*manager/i, /head\s+of\b/i, /\bpartner\b/i,
+// ── Director Irrelevant Specialisation Keywords ──
+// If title contains 'director' AND any of these, score = 5
+
+const DIRECTOR_IRRELEVANT_KEYWORDS: RegExp[] = [
+  /\bit\b/i, /information\s*technology/i, /\bdata\b/i, /\bdigital\b/i,
+  /\bcyber\b/i, /\bsecurity\b/i,
+  /\bsafety\b/i, /\bhse\b/i, /\bhealth\b/i,
+  /\bhr\b/i, /human\s*resources/i, /people\s*(\&|and)\s*culture/i,
+  /\blegal\b/i, /\bcompliance\b/i,
+  /\bfinance\b/i, /\bfinancial\b/i, /\baccounts?\b/i, /\baccounting\b/i,
+  /\bmarketing\b/i, /\bcommunications?\b/i, /\bbrand\b/i, /\bmedia\b/i,
 ];
 
-/** Senior Manager patterns */
-const SENIOR_MANAGER_PATTERNS = [
-  /senior\s*(project\s*)?manager/i, /national\s*manager/i, /regional\s*manager/i,
-  /state\s*manager/i, /group\s*manager/i, /divisional\s*manager/i,
-  /business\s*development\s*manager/i, /commercial\s*manager/i,
+// ── Director Patterns (score = 38 after exclusion check) ──
+
+const DIRECTOR_PATTERNS: RegExp[] = [
+  /\bdirector\b/i,
+  /\bvp\b/i,
+  /vice\s*president/i,
+  /general\s*manager/i,
+  /head\s+of\b/i,
+  /\bpartner\b/i,
+];
+
+// ── BD / Sales Downgrade Patterns (score = 20, bucket = other) ──
+
+const BD_SALES_PATTERNS: RegExp[] = [
+  /business\s*development\s*(manager|director|lead|executive)?/i,
+  /\bbd\s*(manager|director|lead)\b/i,
+  /\bsales\s*manager/i,
+  /national\s*sales/i,
+  /account\s*manager/i,
+  /key\s*account\s*manager/i,
+  /commercial\s*manager/i,
+  /channel\s*manager/i,
+];
+
+// ── Senior Manager Patterns (score = 30) ──
+
+const SENIOR_MANAGER_PATTERNS: RegExp[] = [
+  /senior\s*(project\s*)?manager/i,
+  /national\s*manager/i,
+  /regional\s*manager/i,
+  /state\s*manager/i,
+  /group\s*manager/i,
+  /divisional\s*manager/i,
   /project\s*director/i,
 ];
 
-/** Manager-level patterns */
-const MANAGER_PATTERNS = [
-  /operations\s*manager/i, /project\s*manager/i,
-  /procurement\s*manager/i, /purchasing\s*manager/i, /supply\s*chain\s*manager/i,
-  /fleet\s*manager/i, /equipment\s*manager/i,
-  /maintenance\s*manager/i, /workshop\s*manager/i,
-  /site\s*manager/i, /area\s*manager/i, /branch\s*manager/i,
-  /production\s*manager/i, /factory\s*manager/i,
+// ── Manager-Level Patterns (score = 25) ──
+
+const MANAGER_PATTERNS: RegExp[] = [
+  /operations\s*manager/i,
+  /project\s*manager/i,
+  /procurement\s*manager/i,
+  /purchasing\s*manager/i,
+  /supply\s*chain\s*manager/i,
+  /fleet\s*manager/i,
+  /equipment\s*manager/i,
+  /maintenance\s*manager/i,
+  /workshop\s*manager/i,
+  /site\s*manager/i,
+  /area\s*manager/i,
+  /branch\s*manager/i,
+  /production\s*manager/i,
+  /factory\s*manager/i,
   /\bmanager\b/i,
 ];
 
-/** Coordinator / Supervisor / Technical patterns */
-const COORDINATOR_PATTERNS = [
+// ── Coordinator / Supervisor / Technical Patterns (score = 15) ──
+
+const COORDINATOR_PATTERNS: RegExp[] = [
   /supervisor/i, /superintendent/i, /coordinator/i, /foreman/i,
-  /estimator/i, /inspector/i, /planner/i, /officer\b/i,
+  /estimator/i, /inspector/i, /planner/i, /\bofficer\b/i,
   /\bengineer\b/i, /\banalyst\b/i, /\bspecialist\b/i,
   /\btechnician\b/i, /\badvisor\b/i, /\bconsultant\b/i,
 ];
 
-type TitleRelevance = "blasting_specialist" | "decision_maker" | "operations" | "other" | "unknown";
-type RoleBucket = "c_suite" | "director" | "senior_manager" | "manager" | "procurement" | "engineering" | "project_management" | "operations" | "fleet_equipment" | "maintenance" | "site_workshop" | "blasting_specialist" | "other" | "unknown";
+// ── Buckets blocked from tier1_hot ──
+const TIER1_BLOCKED_BUCKETS = new Set<RoleBucket>([
+  "engineering", "site_workshop", "coordinator", "other", "unknown",
+]);
 
-function classifyTitle(title: string | null | undefined): {
+// ── Company Classification ──
+
+/** Tier A — Primary target companies (bonus = 20) */
+const PRIMARY_COMPANY_PATTERNS: RegExp[] = [
+  /abrasive\s*blast/i,
+  /sandblast/i,
+  /grit\s*blast/i,
+  /hydro\s*blast/i,
+  /\buhp\b/i,
+  /blast(?:ing)?\s*(service|contractor|solution|group|co)/i,
+  /surface\s*(prep|treat|protect|finish)/i,
+  /corrosion\s*(control|protection|service)/i,
+  /protective\s*coat/i,
+  /industrial\s*coat/i,
+  /\bnace\b/i,
+  /thermal\s*spray/i,
+  /zinc\s*spray/i,
+  /drill\s*(and|&)\s*blast/i,
+  /drill\s*blast/i,
+  /\bdrilling\s*contractor/i,
+  /\bblast\b.*\bcoat\b/i,
+  /\bcoat\b.*\bblast\b/i,
+];
+
+/** Named primary companies (case-insensitive exact substring match) */
+const PRIMARY_COMPANY_NAMES: RegExp[] = [
+  /\bwa\s*corrosion\b/i, /\bmatrix\s*corrosion\b/i,
+  /\borontide\b/i, /\balphablast\b/i, /\bcleanco\b/i,
+  /\brema\s*tip\s*top\b/i, /\bmaster\s*flow\b/i,
+  /\ballblast\b/i, /\bglobalblast\b/i, /\bcorrocoat\b/i,
+];
+
+/** Tier B — Adjacent / credible secondary companies (bonus = 10) */
+const SECONDARY_COMPANY_PATTERNS: RegExp[] = [
+  /paint(?:ing)?\s*(service|contractor|solution|group)/i,
+  /industrial\s*paint/i,
+  /\bmonadelphous\b/i,
+  /\blinkforce\b/i,
+  /\baltrad\b/i,
+  /\bkaefer\b/i,
+  /mining\s*contractor/i,
+  /civil\s*contractor/i,
+  /construction\s*contractor/i,
+  /\bEPC\b/,
+  /\bEPCM\b/,
+];
+
+/**
+ * Classify a company name and return the bonus points and tier.
+ * Tier A (primary) = 20 pts, Tier B (secondary) = 10 pts, none = 0.
+ */
+export function classifyCompany(company: string | null | undefined): { bonus: 0 | 10 | 20; companyTier: CompanyTier } {
+  if (!company) return { bonus: 0, companyTier: "none" };
+  const c = company.trim();
+  // Primary check
+  for (const p of PRIMARY_COMPANY_PATTERNS) {
+    if (p.test(c)) return { bonus: 20, companyTier: "primary" };
+  }
+  for (const p of PRIMARY_COMPANY_NAMES) {
+    if (p.test(c)) return { bonus: 20, companyTier: "primary" };
+  }
+  // Secondary check
+  for (const p of SECONDARY_COMPANY_PATTERNS) {
+    if (p.test(c)) return { bonus: 10, companyTier: "secondary" };
+  }
+  return { bonus: 0, companyTier: "none" };
+}
+
+/** Legacy boolean helper — kept for backward compatibility with any callers */
+export function isBlastingCompany(company: string | null | undefined): boolean {
+  return classifyCompany(company).companyTier !== "none";
+}
+
+/**
+ * Classify a job title and return relevance, role bucket, and title score.
+ * Evaluation order: hard exclusions → compound exclusions → blasting specialist
+ * → C-Suite → Director (with irrelevant-spec check) → BD/Sales downgrade
+ * → Senior Manager → Manager → Coordinator → Other.
+ */
+export function classifyTitle(title: string | null | undefined): {
   relevance: TitleRelevance;
   roleBucket: RoleBucket;
   score: number;
+  excluded: boolean;
 } {
-  if (!title || !title.trim()) return { relevance: "unknown", roleBucket: "unknown", score: 0 };
+  if (!title || !title.trim()) {
+    return { relevance: "unknown", roleBucket: "unknown", score: 0, excluded: false };
+  }
   const t = title.trim();
 
-  // Check exclusions first
-  for (const p of EXCLUDE_TITLE_PATTERNS) {
-    if (p.test(t)) return { relevance: "other", roleBucket: "other", score: 5 };
+  // 1. Hard exclusions
+  for (const p of HARD_EXCLUDE_PATTERNS) {
+    if (p.test(t)) return { relevance: "other", roleBucket: "other", score: 0, excluded: true };
   }
 
-  // Blasting specialists — highest relevance for blasting campaigns
+  // 2. Compound-title exclusion (title contains / or ,)
+  if (/[/,]/.test(t)) {
+    const segments = t.split(/[/,]/).map(s => s.trim());
+    for (const seg of segments) {
+      for (const kw of COMPOUND_EXCLUDE_KEYWORDS) {
+        if (kw.test(seg)) {
+          return { relevance: "other", roleBucket: "other", score: 5, excluded: false };
+        }
+      }
+    }
+  }
+
+  // 3. Blasting / surface-prep specialists
   for (const p of BLASTING_TITLE_PATTERNS) {
-    if (p.test(t)) return { relevance: "blasting_specialist", roleBucket: "blasting_specialist", score: 40 };
+    if (p.test(t)) return { relevance: "blasting_specialist", roleBucket: "blasting_specialist", score: 40, excluded: false };
   }
 
-  // C-Suite — highest seniority
+  // 4. C-Suite
   for (const p of C_SUITE_PATTERNS) {
-    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "c_suite", score: 45 };
+    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "c_suite", score: 45, excluded: false };
   }
 
-  // Director level
-  for (const p of DIRECTOR_PATTERNS) {
-    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "director", score: 40 };
+  // 5. BD / Sales downgrade — MUST run before director check to catch "Business Development Director"
+  for (const p of BD_SALES_PATTERNS) {
+    if (p.test(t)) return { relevance: "other", roleBucket: "other", score: 20, excluded: false };
   }
 
-  // Senior Manager level
+  // 6. Director — check irrelevant specialisation first
+  if (/\bdirector\b/i.test(t) || /\bvp\b/i.test(t) || /vice\s*president/i.test(t) ||
+      /general\s*manager/i.test(t) || /head\s+of\b/i.test(t) || /\bpartner\b/i.test(t)) {
+    // Check for irrelevant specialisation
+    for (const kw of DIRECTOR_IRRELEVANT_KEYWORDS) {
+      if (kw.test(t)) {
+        return { relevance: "other", roleBucket: "other", score: 5, excluded: false };
+      }
+    }
+    // Valid director
+    return { relevance: "decision_maker", roleBucket: "director", score: 38, excluded: false };
+  }
+
+  // 7. Senior Manager
   for (const p of SENIOR_MANAGER_PATTERNS) {
-    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "senior_manager", score: 35 };
+    if (p.test(t)) return { relevance: "decision_maker", roleBucket: "senior_manager", score: 30, excluded: false };
   }
 
-  // Manager level — determine specific bucket
+  // 8. Manager level — determine specific bucket
   for (const p of MANAGER_PATTERNS) {
     if (p.test(t)) {
       const tl = t.toLowerCase();
-      let bucket: RoleBucket = "manager" as RoleBucket;
+      let bucket: RoleBucket = "operations";
       if (/procurement|purchasing|supply/i.test(tl)) bucket = "procurement";
       else if (/fleet|equipment/i.test(tl)) bucket = "fleet_equipment";
       else if (/maintenance|workshop/i.test(tl)) bucket = "maintenance";
       else if (/project/i.test(tl)) bucket = "project_management";
       else if (/operations|ops/i.test(tl)) bucket = "operations";
       else if (/site|area|branch|production|factory/i.test(tl)) bucket = "site_workshop";
-      return { relevance: "decision_maker", roleBucket: bucket, score: 25 };
+      return { relevance: "decision_maker", roleBucket: bucket, score: 25, excluded: false };
     }
   }
 
-  // Coordinator / Supervisor / Technical
+  // 9. Coordinator / Supervisor / Technical
   for (const p of COORDINATOR_PATTERNS) {
     if (p.test(t)) {
       const tl = t.toLowerCase();
-      let bucket: RoleBucket = "operations";
+      let bucket: RoleBucket = "coordinator";
       if (/engineer/i.test(tl)) bucket = "engineering";
       else if (/procurement|purchasing|supply/i.test(tl)) bucket = "procurement";
       else if (/project/i.test(tl)) bucket = "project_management";
-      return { relevance: "operations", roleBucket: bucket, score: 15 };
+      return { relevance: "operations", roleBucket: bucket, score: 15, excluded: false };
     }
   }
 
-  return { relevance: "other", roleBucket: "other", score: 10 };
+  return { relevance: "other", roleBucket: "other", score: 10, excluded: false };
 }
 
-/** Check if a company name indicates abrasive blasting / surface prep focus */
-function isBlastingCompany(company: string | null | undefined): boolean {
-  if (!company) return false;
-  return BLASTING_COMPANY_PATTERNS.some(p => p.test(company));
-}
-
-/** Compute composite score (0-100) for a campaign contact */
-function computeScore(contact: {
-  title?: string | null;
-  email?: string | null;
-  mobile?: string | null;
-  company?: string | null;
-  matchedProjectCount?: number;
-}): { score: number; tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded"; titleRelevance: TitleRelevance; roleBucket: RoleBucket } {
+/**
+ * Compute composite score (0-100) for a campaign contact.
+ * Returns a full ScoreBreakdown for explainability.
+ * @param contact - contact fields to score
+ * @param profile - optional campaign profile (defaults to blasting)
+ */
+export function computeScore(
+  contact: {
+    title?: string | null;
+    email?: string | null;
+    mobile?: string | null;
+    company?: string | null;
+    matchedProjectCount?: number;
+  },
+  _profile: CampaignProfile = DEFAULT_CAMPAIGN_PROFILE
+): ScoreBreakdown {
   const titleResult = classifyTitle(contact.title);
-  let score = titleResult.score; // 0-45 from title (seniority-weighted)
+  const titleScore = titleResult.score;
 
-  // Data completeness bonus (up to 20 points)
-  if (contact.email) score += 15;
-  if (contact.mobile) score += 5;
-
-  // Abrasive blasting company bonus (up to 20 points)
-  if (isBlastingCompany(contact.company)) {
-    score += 20;
+  // Hard-excluded titles → forced to excluded tier
+  if (titleResult.excluded) {
+    return {
+      titleScore: 0,
+      emailBonus: 0,
+      mobileBonus: 0,
+      companyBonus: 0,
+      companyTier: "none",
+      projectMatchBonus: 0,
+      penalties: 0,
+      finalScore: 0,
+      finalTier: "excluded",
+      roleBucket: titleResult.roleBucket,
+      titleRelevance: titleResult.relevance,
+      reasoningSummary: `Hard-excluded title '${contact.title}' → excluded`,
+      companyBonusBlocked: true,
+      tier1Blocked: true,
+    };
   }
 
-  // Project match bonus (up to 30 points)
+  // Data completeness bonuses
+  const emailBonus = contact.email ? 15 : 0;
+  const mobileBonus = contact.mobile ? 5 : 0;
+
+  // Minimum title gate: company bonus only applies if titleScore >= 15
+  const companyBonusBlocked = titleScore < 15;
+  const companyResult = classifyCompany(contact.company);
+  const companyBonus = companyBonusBlocked ? 0 : companyResult.bonus;
+
+  // Project match bonus — capped at 15 (was 30 in v1)
   const matchCount = contact.matchedProjectCount ?? 0;
-  if (matchCount > 0) score += Math.min(matchCount * 5, 30);
+  const projectMatchBonus = Math.min(matchCount * 5, 15);
 
-  // Combo bonus: blasting specialist at a blasting company = maximum priority
-  if (titleResult.relevance === "blasting_specialist" && isBlastingCompany(contact.company)) {
-    score += 10;
-  }
-
-  // Cap at 100
-  score = Math.min(score, 100);
+  // Compute raw score
+  let finalScore = Math.min(
+    titleScore + emailBonus + mobileBonus + companyBonus + projectMatchBonus,
+    100
+  );
 
   // Determine tier
-  let tier: "tier1_hot" | "tier2_warm" | "tier3_enrich" | "tier4_low" | "excluded";
-  if (score >= 55 && contact.email) {
-    tier = "tier1_hot";
-  } else if (score >= 35 && contact.email) {
-    tier = "tier2_warm";
-  } else if (score >= 15) {
-    tier = "tier3_enrich";
+  // tier1_hot: score >= 60 AND email AND bucket not in TIER1_BLOCKED_BUCKETS
+  // tier2_warm: score >= 40 AND email
+  // tier3_enrich: score >= 15
+  // tier4_low: < 15
+  const tier1Blocked = TIER1_BLOCKED_BUCKETS.has(titleResult.roleBucket);
+  let finalTier: ContactTier;
+  if (finalScore >= 60 && contact.email && !tier1Blocked) {
+    finalTier = "tier1_hot";
+  } else if (finalScore >= 40 && contact.email) {
+    finalTier = "tier2_warm";
+  } else if (finalScore >= 15) {
+    finalTier = "tier3_enrich";
   } else {
-    tier = "tier4_low";
+    finalTier = "tier4_low";
   }
 
-  return { score, tier, titleRelevance: titleResult.relevance, roleBucket: titleResult.roleBucket };
+  // Build reasoning summary
+  const parts: string[] = [];
+  parts.push(`${titleResult.roleBucket} (title score ${titleScore})`);
+  if (emailBonus) parts.push(`email +${emailBonus}`);
+  if (mobileBonus) parts.push(`mobile +${mobileBonus}`);
+  if (companyBonusBlocked) parts.push(`company bonus blocked (title gate)`);
+  else if (companyBonus > 0) parts.push(`${companyResult.companyTier} company +${companyBonus}`);
+  if (projectMatchBonus > 0) parts.push(`${matchCount} project match${matchCount > 1 ? 'es' : ''} +${projectMatchBonus}`);
+  if (tier1Blocked && finalScore >= 60 && contact.email) parts.push(`tier1 blocked (${titleResult.roleBucket} bucket)`);
+  parts.push(`→ ${finalTier} (score ${finalScore})`);
+  const reasoningSummary = parts.join('; ');
+
+  return {
+    titleScore,
+    emailBonus,
+    mobileBonus,
+    companyBonus,
+    companyTier: companyBonusBlocked ? "none" : companyResult.companyTier,
+    projectMatchBonus,
+    penalties: 0,
+    finalScore,
+    finalTier,
+    roleBucket: titleResult.roleBucket,
+    titleRelevance: titleResult.relevance,
+    reasoningSummary,
+    companyBonusBlocked,
+    tier1Blocked,
+  };
 }
 
 /** Human-readable labels for role buckets */
@@ -473,10 +753,11 @@ export async function importCampaignContacts(
       email: c.email,
       phone: c.phone,
       mobile: c.mobile,
-      score: scoring.score,
-      tier: scoring.tier,
+      score: scoring.finalScore,
+      tier: scoring.finalTier,
       titleRelevance: scoring.titleRelevance,
       roleBucket: scoring.roleBucket,
+      scoreBreakdown: JSON.stringify(scoring),
       enrichmentStatus,
       outreachStatus: "not_started",
       sourceRow: c.sourceRow,
@@ -485,7 +766,7 @@ export async function importCampaignContacts(
       apolloPersonId,
     });
 
-    tierBreakdown[scoring.tier]++;
+    tierBreakdown[scoring.finalTier]++;
     imported++;
   }
 
@@ -937,8 +1218,8 @@ export async function matchContactsToProjects(campaignId: number): Promise<{ mat
           matchedProjectCount: contactProjectIds.length,
         });
         await db.update(campaignContacts).set({
-          score: scoring.score,
-          tier: scoring.tier,
+          score: scoring.finalScore,
+          tier: scoring.finalTier,
           roleBucket: scoring.roleBucket,
         }).where(eq(campaignContacts.id, contact.id));
       }
@@ -1099,7 +1380,7 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score, tier: scoring.tier, roleBucket: scoring.roleBucket,
+            score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
           }).where(eq(campaignContacts.id, contact.id));
 
           // Track data quality improvements
@@ -1220,7 +1501,7 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score, tier: scoring.tier, roleBucket: scoring.roleBucket,
+            score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
           }).where(eq(campaignContacts.id, contact.id));
 
           // Track data quality improvements
@@ -1302,7 +1583,7 @@ export async function enrichCampaignContacts(
             matchedProjectCount: contact.matchedProjectCount,
           });
           await db.update(campaignContacts).set({
-            score: scoring.score, tier: scoring.tier, roleBucket: scoring.roleBucket,
+            score: scoring.finalScore, tier: scoring.finalTier, roleBucket: scoring.roleBucket,
           }).where(eq(campaignContacts.id, contact.id));
 
           // Track data quality improvements
