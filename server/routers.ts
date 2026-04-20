@@ -130,6 +130,7 @@ import {
 } from "./campaignService";
 import { parseBlastContactList } from "./campaignImport";
 import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList, type ColumnMapping } from "./campaignCsvImport";
+import { stagingRouter } from "./routers/stagingRouter";
 import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
 import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
 import { startEnrichmentJob, getEnrichmentJobProgress } from "./enrichmentJob";
@@ -3346,6 +3347,9 @@ export const appRouter = router({
           onlyWithEmail: input.onlyWithEmail,
         });
       }),
+
+    // ── Stage 1: Pre-waterfall ingestion procedures ──
+    ...stagingRouter,
   }),
 });
 export type AppRouter = typeof appRouter;

@@ -344,6 +344,27 @@
       "when": 1776400282189,
       "tag": "0048_white_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "5",
+      "when": 1776683661068,
+      "tag": "0049_skinny_brother_voodoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1776683723635,
+      "tag": "0050_tiresome_outlaw_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "5",
+      "when": 1776683787338,
+      "tag": "0051_flashy_bucky",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE `campaignStagedContacts` MODIFY COLUMN `reviewFlags` json NOT NULL;

@@ -1024,3 +1024,61 @@ export const campaignEmailTemplates = mysqlTable("campaignEmailTemplates", {
 
 export type CampaignEmailTemplate = typeof campaignEmailTemplates.$inferSelect;
 export type InsertCampaignEmailTemplate = typeof campaignEmailTemplates.$inferInsert;
+
+/**
+ * campaignStagedContacts — Stage 1 pre-waterfall ingestion staging table.
+ *
+ * Every uploaded file lands here first. No row proceeds to scoring,
+ * enrichment, or outreach until it has been committed from staging.
+ *
+ * Lifecycle:
+ *   upload → staged (pending) → reviewed → committed (→ campaignContacts)
+ *                                        → discarded
+ */
+export const campaignStagedContacts = mysqlTable("campaignStagedContacts", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+
+  // Batch tracking
+  batchId: varchar("batchId", { length: 64 }).notNull(),
+  uploadFileType: varchar("uploadFileType", { length: 32 }).notNull().default("unknown"),
+  batchStatus: varchar("batchStatus", { length: 32 }).notNull().default("pending"),
+
+  // Identity (normalized)
+  firstName: varchar("firstName", { length: 128 }),
+  lastName: varchar("lastName", { length: 128 }),
+  fullNameRaw: varchar("fullNameRaw", { length: 256 }),
+  title: varchar("title", { length: 256 }),
+  titleRaw: varchar("titleRaw", { length: 256 }),
+  company: varchar("company", { length: 256 }),
+  companyRaw: varchar("companyRaw", { length: 256 }),
+  companyCanonical: varchar("companyCanonical", { length: 256 }),
+  domain: varchar("domain", { length: 256 }),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 64 }),
+  mobile: varchar("mobile", { length: 64 }),
+  linkedin: varchar("linkedin", { length: 512 }),
+  notes: text("notes"),
+
+  // Classification
+  classification: varchar("classification", { length: 32 }).notNull().default("review_needed"),
+  reviewFlags: json("reviewFlags").$type<string[]>(),
+
+  // Human review
+  reviewStatus: varchar("reviewStatus", { length: 32 }).notNull().default("pending"),
+  reviewedBy: int("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewComment: text("reviewComment"),
+
+  // Provenance
+  sourceRow: int("sourceRow"),
+  uploadedBy: int("uploadedBy").notNull(),
+
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CampaignStagedContact = typeof campaignStagedContacts.$inferSelect;
+export type InsertCampaignStagedContact = typeof campaignStagedContacts.$inferInsert;
+

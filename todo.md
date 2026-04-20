@@ -1273,3 +1273,29 @@
 - [x] Handle HTML emails with a text-only preview snippet (strip tags)
 - [x] Only show for contacts that have a draft (pending_approval, approved, sent, email_drafted)
 - [x] Include "View full email →" link to open the full review dialog
+
+## Stage 1 — Pre-Waterfall Ingestion & Normalization Layer
+- [ ] Create server/ingestionService.ts — header mapping, name parsing, title normalization, company canonicalization, row classification, deduplication, review queue
+- [ ] Add campaignStagedContacts table to drizzle/schema.ts
+- [ ] Run pnpm db:push to migrate staging table
+- [ ] Add tRPC procedures: campaign.stageUpload, campaign.getStagingBatch, campaign.commitStagingBatch, campaign.discardStagingBatch
+- [ ] Wire CampaignBuilder upload flow to use staging pipeline before importCampaignContacts
+- [ ] Write Vitest tests for ingestionService (all normalization functions)
+- [ ] Save checkpoint
+
+## Stage 1 Completion Status
+- [x] Upload type detection (contact_split, contact_full, crm_export, company_only, unknown)
+- [x] Header mapping system (HEADER_SYNONYMS with 11 fields, 80+ alias patterns)
+- [x] Row-level cleaning and normalization
+- [x] Company canonicalization (legal suffix stripping, placeholder detection, domain extraction)
+- [x] Name parsing (full-name split, honorific stripping, comma-separated Last/First, title-case)
+- [x] Title normalization (whitespace, casing, abbreviation expansion, trailing punctuation strip)
+- [x] Duplicate handling (within-batch and cross-batch dedup)
+- [x] Row classification (clean / review_needed / skip)
+- [x] Review-needed queue (reviewFlags array on each staged contact)
+- [x] Clean staging output (StagedContact interface + DB table + tRPC procedures)
+- [x] DB staging table (campaignStagedContacts, 29 columns, migrated)
+- [x] tRPC procedures (stageUpload, getStagingBatch, commitStagingBatch, discardStagingBatch)
+- [x] StagingReview UI component
+- [x] Vitest test suite (58 tests, all passing)
+- [x] Full test suite green (1869 tests, 72 files)
