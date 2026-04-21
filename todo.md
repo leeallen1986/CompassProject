@@ -1337,3 +1337,12 @@
 - [x] Fix weeklyPipeline.test.ts mock to return new markStaleProjects shape ({ staled, archived })
 - [x] Write stage5a.test.ts (44 tests covering all Stage 5A features, all passing)
 - [x] Full test suite green (2207 tests, 76 files)
+
+## Stage 5B — Pipeline Repair: Backfill, keepFlag UI, Quarantine UI
+- [x] Backfill sourceLastSeenAt for all existing projects (lastActivityAt ?? createdAt) — 1,110 projects updated
+- [x] Add keepFlag Pin/Protect toggle to project detail card in Home.tsx (ProjectCard.tsx)
+- [x] Add setKeepFlag tRPC mutation call to project detail card (trpc.projectLifecycle.setKeepFlag)
+- [x] Add quarantine toggle to Admin RSS Sources tab (quarantine/unquarantine button + reason display)
+- [x] Add quarantined count KPI to Admin RSS Sources summary bar
+- [x] Write stage5b.test.ts (32 tests covering backfill logic, keepFlag, quarantine, boundary conditions)
+- [x] Full test suite green (2231 tests, 77 files)

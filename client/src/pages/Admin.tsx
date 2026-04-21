@@ -14,6 +14,7 @@ import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
   CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash, Target, Search,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -200,6 +201,14 @@ function RssSourcesTab() {
     onSuccess: () => { utils.rssSources.list.invalidate(); toast.success("Deleted"); },
     onError: (e) => toast.error(e.message),
   });
+  const quarantineSrc = trpc.rssSources.quarantine.useMutation({
+    onSuccess: () => { utils.rssSources.list.invalidate(); toast.success("Source quarantined — will be skipped by harvester"); },
+    onError: (e) => toast.error(e.message),
+  });
+  const unquarantineSrc = trpc.rssSources.unquarantine.useMutation({
+    onSuccess: () => { utils.rssSources.list.invalidate(); toast.success("Source quarantine lifted"); },
+    onError: (e) => toast.error(e.message),
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState("");
@@ -226,6 +235,7 @@ function RssSourcesTab() {
   // Compute summary stats
   const activeSources = sources?.filter(s => s.isActive) || [];
   const inactiveSources = sources?.filter(s => !s.isActive) || [];
+  const quarantinedSources = sources?.filter((s: any) => s.quarantined) || [];
   const healthySources = activeSources.filter(s => getSourceHealth(s).icon === "ok");
   const degradedSources = activeSources.filter(s => getSourceHealth(s).icon === "warning");
   const failingSources = activeSources.filter(s => getSourceHealth(s).icon === "error");
@@ -267,6 +277,10 @@ function RssSourcesTab() {
         <div className="bg-card rounded-lg border border-border p-3">
           <div className="text-2xl font-bold text-slate-400">{inactiveSources.length}</div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Inactive</div>
+        </div>
+        <div className="bg-card rounded-lg border border-border p-3">
+          <div className="text-2xl font-bold text-hot">{quarantinedSources.length}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Quarantined</div>
         </div>
       </div>
 
@@ -363,6 +377,21 @@ function RssSourcesTab() {
                           className="p-1 rounded hover:bg-slate-100" title={src.isActive ? "Deactivate" : "Activate"}>
                           {src.isActive ? <ToggleRight className="w-3.5 h-3.5 text-teal" /> : <ToggleLeft className="w-3.5 h-3.5 text-slate-400" />}
                         </button>
+                        <button
+                          onClick={() => {
+                            const isQ = (src as any).quarantined;
+                            if (isQ) {
+                              unquarantineSrc.mutate({ id: src.id });
+                            } else {
+                              const reason = prompt("Quarantine reason (optional):") ?? "Admin quarantine";
+                              quarantineSrc.mutate({ id: src.id, reason });
+                            }
+                          }}
+                          className={`p-1 rounded hover:bg-orange-50 ${(src as any).quarantined ? "bg-orange-100" : ""}`}
+                          title={(src as any).quarantined ? "Lift quarantine" : "Quarantine source (skip in harvester)"}
+                        >
+                          <Ban className={`w-3.5 h-3.5 ${(src as any).quarantined ? "text-hot" : "text-slate-400"}`} />
+                        </button>
                         <button onClick={() => { if (confirm("Delete this source?")) deleteSrc.mutate({ id: src.id }); }}
                           className="p-1 rounded hover:bg-red-50">
                           <Trash2 className="w-3.5 h-3.5 text-red-400" />
@@ -399,6 +428,12 @@ function RssSourcesTab() {
                           <div className="mt-3 p-2 rounded bg-hot/5 border border-hot/20">
                             <div className="text-[10px] text-hot font-semibold uppercase tracking-wider mb-1">Last Error Message</div>
                             <div className="text-xs text-foreground/80 font-mono">{src.lastError}</div>
+                          </div>
+                        )}
+                        {(src as any).quarantined && (
+                          <div className="mt-3 p-2 rounded bg-orange-50 border border-orange-200">
+                            <div className="text-[10px] text-orange-700 font-semibold uppercase tracking-wider mb-1">Quarantined — Skipped by Harvester</div>
+                            <div className="text-xs text-orange-800">{(src as any).quarantineReason || "No reason provided"}</div>
                           </div>
                         )}
                         <div className="mt-3 text-[10px] text-muted-foreground">

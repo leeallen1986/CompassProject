@@ -496,8 +496,8 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** Stage 5A: Set or clear the keepFlag for a project (admin only) */
-    setKeepFlag: adminProcedure
+    /** Stage 5A: Set or clear the keepFlag for a project (any authenticated user can pin their own projects) */
+    setKeepFlag: protectedProcedure
       .input(z.object({ projectId: z.number(), keep: z.boolean() }))
       .mutation(async ({ input }) => {
         await setProjectKeepFlag(input.projectId, input.keep);

@@ -5,7 +5,7 @@
  * Enhanced: Shows multiple contacts with verification scores, LinkedIn links, and verify buttons
  */
 import { useState, useMemo } from "react";
-import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award, KeyRound, FileText, Download } from "lucide-react";
+import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award, KeyRound, FileText, Download, Pin, PinOff } from "lucide-react";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -38,6 +38,7 @@ export interface ProjectData {
   lifecycleStatus?: "active" | "stale" | "archived" | "awarded" | "completed" | null;
   lastActivityAt?: Date | null;
   createdAt: Date;
+  keepFlag?: boolean | null;
   // Personalization fields (optional, added by filtering engine)
   relevanceScore?: number;
   relevanceReasons?: string[];
@@ -962,6 +963,18 @@ export default function ProjectCard({
     reason: existingFeedback?.reason ?? undefined,
   });
 
+  // keepFlag (Pin/Protect) state — optimistic
+  const [pinned, setPinned] = useState<boolean>(!!project.keepFlag);
+  const utils = trpc.useUtils();
+  const setKeepFlagMut = trpc.projectLifecycle.setKeepFlag.useMutation({
+    onMutate: ({ keep }) => setPinned(keep),
+    onError: () => setPinned(!!project.keepFlag),
+    onSuccess: () => {
+      utils.report.full.invalidate();
+      toast.success(pinned ? "Project unpinned" : "Project pinned — won't be auto-archived");
+    },
+  });
+
   // Fetch BL scores when card is expanded
   const blScoresQuery = trpc.dataPipeline.projectScores.useQuery(
     { projectId: project.id },
@@ -1151,6 +1164,19 @@ export default function ProjectCard({
               <ThumbsDown className="w-4 h-4" />
             </button>
           </div>
+          {/* Pin / Protect button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setKeepFlagMut.mutate({ projectId: project.id, keep: !pinned }); }}
+            className={`p-1.5 rounded-md transition-all ${
+              pinned
+                ? "bg-gold/20 text-gold-dark"
+                : "text-muted-foreground hover:bg-gold/10 hover:text-gold-dark"
+            }`}
+            title={pinned ? "Unpin project (allow auto-archive)" : "Pin project (protect from auto-archive)"}
+            disabled={setKeepFlagMut.isPending}
+          >
+            {pinned ? <Pin className="w-4 h-4" /> : <PinOff className="w-4 h-4" />}
+          </button>
           <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </div>
       </div>
