@@ -1000,6 +1000,17 @@ export const campaignContacts = mysqlTable("campaignContacts", {
   sendReadiness: varchar("sendReadiness", { length: 32 }),  // send_ready | review_before_send | blocked_from_send
   nameCheckStatus: varchar("nameCheckStatus", { length: 128 }),
   reviewNotes: text("reviewNotes"),
+  // Stage 6A: Emarsys export eligibility fields
+  // doNotContact: set by admin or inferred from opted_out/bounced status
+  doNotContact: boolean("doNotContact").notNull().default(false),
+  doNotContactReason: varchar("doNotContactReason", { length: 256 }),
+  // emarsysApproved: explicitly approved for Emarsys marketing send
+  emarsysApproved: boolean("emarsysApproved").notNull().default(false),
+  emarsysApprovedAt: timestamp("emarsysApprovedAt"),
+  emarsysApprovedBy: int("emarsysApprovedBy"),
+  // lastExportedAt: timestamp of most recent Emarsys export inclusion
+  lastExportedAt: timestamp("lastExportedAt"),
+  lastExportLogId: int("lastExportLogId"),
   // Metadata
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1146,4 +1157,39 @@ export const campaignDomainOverrides = mysqlTable("campaignDomainOverrides", {
 });
 export type CampaignDomainOverride = typeof campaignDomainOverrides.$inferSelect;
 export type InsertCampaignDomainOverride = typeof campaignDomainOverrides.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stage 6A: Emarsys Export Log
+// Records every Atlas → Emarsys export event for audit trail.
+// ─────────────────────────────────────────────────────────────────────────────
+export const emarsysExportLogs = mysqlTable("emarsysExportLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+  campaignName: varchar("campaignName", { length: 256 }).notNull(),
+  // Export mode: curated_marketing_export | sales_direct_export
+  exportMode: mysqlEnum("exportMode", ["curated_marketing_export", "sales_direct_export"]).notNull(),
+  // Configurable defaults applied at export time
+  divisionLabel: varchar("divisionLabel", { length: 128 }).notNull().default("Atlas Copco"),
+  salesOrg: varchar("salesOrg", { length: 32 }).notNull().default("AU30"),
+  languageTag: varchar("languageTag", { length: 16 }).notNull().default("en"),
+  countryRegion: varchar("countryRegion", { length: 64 }).notNull().default("Australia"),
+  collateralName: varchar("collateralName", { length: 256 }),
+  // Counts
+  totalCampaignContacts: int("totalCampaignContacts").notNull().default(0),
+  exportedCount: int("exportedCount").notNull().default(0),
+  excludedCount: int("excludedCount").notNull().default(0),
+  // Exclusion breakdown (JSON map of reason → count)
+  exclusionBreakdown: json("exclusionBreakdown").$type<Record<string, number>>(),
+  // Template version used
+  templateVersion: varchar("templateVersion", { length: 32 }).notNull().default("6A-v1"),
+  // File reference (S3 key of the generated CSV)
+  exportFileKey: varchar("exportFileKey", { length: 512 }),
+  exportFileUrl: varchar("exportFileUrl", { length: 1024 }),
+  // Ownership
+  exportedBy: int("exportedBy").notNull(),
+  exportedByName: varchar("exportedByName", { length: 256 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type EmarsysExportLog = typeof emarsysExportLogs.$inferSelect;
+export type InsertEmarsysExportLog = typeof emarsysExportLogs.$inferInsert;
 

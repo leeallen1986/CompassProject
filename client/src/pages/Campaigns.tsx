@@ -26,8 +26,9 @@ import {
   Flame, TrendingUp, Sparkles, Database, ChevronLeft, ChevronRight,
   Eye, Edit3, ThumbsUp, Loader2, Filter, BarChart3,
   Target, Zap, Clock, AlertCircle, RefreshCw, ThumbsDown, XCircle, Plus, Trash2, FileText, Code,
-  Square, CheckSquare, X, Shield, Globe,
+  Square, CheckSquare, X, Shield, Globe, Upload, ExternalLink, Info, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Link } from "wouter";
@@ -1058,6 +1059,10 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({totalContacts})</TabsTrigger>
           <TabsTrigger value="approval">Approval Queue</TabsTrigger>
+          <TabsTrigger value="emarsys" className="flex items-center gap-1.5">
+            <Upload className="w-3.5 h-3.5" />
+            Export to Emarsys
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Overview Tab ── */}
@@ -1664,6 +1669,11 @@ function CampaignDetail({ campaignId, onBack }: { campaignId: number; onBack: ()
         {/* ── Approval Queue Tab ── */}
         <TabsContent value="approval" className="space-y-4">
           <ApprovalQueue campaignId={campaignId} />
+        </TabsContent>
+
+        {/* ── Emarsys Export Tab ── */}
+        <TabsContent value="emarsys" className="space-y-4">
+          <EmarsysExportPanel campaignId={campaignId} />
         </TabsContent>
       </Tabs>
 
@@ -2295,5 +2305,321 @@ function KPICard({ value, label, icon, accent }: {
         <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</div>
       </CardContent>
     </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stage 6A: Emarsys Export Panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EXCLUSION_LABELS: Record<string, string> = {
+  no_opportunity_project: "No linked opportunity project",
+  missing_email: "Missing email address",
+  do_not_contact: "Do-not-contact flag",
+  blocked_from_send: "Blocked from send",
+  opted_out_or_bounced: "Opted out / bounced",
+  retired_former_title: "Retired / former title",
+  suspicious_domain_mismatch: "Suspicious domain mismatch",
+  duplicate_email_unresolved: "Duplicate email unresolved",
+  not_approved_for_marketing: "Not approved for marketing",
+};
+
+const EXCLUSION_COLORS: Record<string, string> = {
+  no_opportunity_project: "bg-red-100 text-red-700 border-red-200",
+  missing_email: "bg-orange-100 text-orange-700 border-orange-200",
+  do_not_contact: "bg-red-100 text-red-700 border-red-200",
+  blocked_from_send: "bg-red-100 text-red-700 border-red-200",
+  opted_out_or_bounced: "bg-gray-100 text-gray-600 border-gray-200",
+  retired_former_title: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  suspicious_domain_mismatch: "bg-amber-100 text-amber-700 border-amber-200",
+  duplicate_email_unresolved: "bg-amber-100 text-amber-700 border-amber-200",
+  not_approved_for_marketing: "bg-blue-100 text-blue-700 border-blue-200",
+};
+
+function EmarsysExportPanel({ campaignId }: { campaignId: number }) {
+  const [exportMode, setExportMode] = useState<"curated_marketing_export" | "sales_direct_export">("curated_marketing_export");
+  const [divisionLabel, setDivisionLabel] = useState("Atlas Copco");
+  const [salesOrg, setSalesOrg] = useState("AU30");
+  const [languageTag, setLanguageTag] = useState("en");
+  const [countryRegion, setCountryRegion] = useState("Australia");
+  const [collateralName, setCollateralName] = useState("");
+  const [adminOverride, setAdminOverride] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+
+  const defaults = { divisionLabel, salesOrg, languageTag, countryRegion, collateralName: collateralName || undefined };
+
+  const preview = trpc.emarsys.preview.useQuery(
+    { campaignId, exportMode, defaults, adminOverrideOpportunityGate: adminOverride },
+    { refetchOnWindowFocus: false }
+  );
+
+  const generateMut = trpc.emarsys.generate.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Export complete — ${data.exportedCount} contacts exported to Emarsys`);
+      logs.refetch();
+    },
+    onError: (err) => toast.error(`Export failed: ${err.message}`),
+  });
+
+  const logs = trpc.emarsys.getLogs.useQuery(
+    { campaignId },
+    { enabled: showLogs }
+  );
+
+  const handleGenerate = () => {
+    generateMut.mutate({ campaignId, exportMode, defaults, adminOverrideOpportunityGate: adminOverride });
+  };
+
+  const p = preview.data;
+  const eligiblePct = p && p.totalCampaignContacts > 0
+    ? Math.round((p.eligibleCount / p.totalCampaignContacts) * 100)
+    : 0;
+
+  const exclusionEntries = p
+    ? Object.entries(p.exclusionBreakdown).filter(([, count]) => count > 0).sort((a, b) => b[1] - a[1])
+    : [];
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="text-lg font-bold text-navy flex items-center gap-2">
+            <Upload className="w-5 h-5 text-gold" />
+            Export to Emarsys
+          </h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Generate an Emarsys-ready contact CSV for this campaign. All 9 eligibility rules are applied automatically.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowLogs(v => !v)} className="flex items-center gap-1.5">
+          <FileText className="w-3.5 h-3.5" />
+          {showLogs ? "Hide" : "Show"} Export History
+        </Button>
+      </div>
+
+      {/* Hard rule notice */}
+      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+        <Info className="w-4 h-4 mt-0.5 shrink-0" />
+        <span>
+          <strong>Rule 1 (hard gate):</strong> Only contacts linked to a non-suppressed{" "}
+          <code className="bg-amber-100 px-1 rounded text-xs">projectType=opportunity</code> project are eligible.
+          Background accounts, macro items, and program wrappers are excluded by default.
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Left: Configuration */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Export Configuration</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Export mode */}
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                Export Mode
+              </label>
+              <Select value={exportMode} onValueChange={(v) => setExportMode(v as typeof exportMode)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="curated_marketing_export">
+                    Curated Marketing Export (requires approval or Tier 1/2)
+                  </SelectItem>
+                  <SelectItem value="sales_direct_export">
+                    Sales Direct Export (broader — all eligible contacts)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Configurable defaults */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Division Label</label>
+                <Input value={divisionLabel} onChange={e => setDivisionLabel(e.target.value)} placeholder="Atlas Copco" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Sales Org</label>
+                <Input value={salesOrg} onChange={e => setSalesOrg(e.target.value)} placeholder="AU30" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Language Tag</label>
+                <Input value={languageTag} onChange={e => setLanguageTag(e.target.value)} placeholder="en" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Country / Region</label>
+                <Input value={countryRegion} onChange={e => setCountryRegion(e.target.value)} placeholder="Australia" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Collateral Name (optional)</label>
+              <Input value={collateralName} onChange={e => setCollateralName(e.target.value)} placeholder="e.g. DrillAir X1350 Brochure" />
+            </div>
+
+            {/* Admin override */}
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox
+                id="admin-override"
+                checked={adminOverride}
+                onCheckedChange={(v) => setAdminOverride(!!v)}
+              />
+              <label htmlFor="admin-override" className="text-xs text-muted-foreground cursor-pointer">
+                Admin override: bypass Rule 1 (opportunity project gate)
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: Eligibility preview */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center justify-between">
+              Eligibility Preview
+              {preview.isFetching && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {preview.isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : p ? (
+              <>
+                {/* Summary bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total contacts</span>
+                    <span className="font-semibold">{p.totalCampaignContacts}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-green-600 font-medium">✓ Eligible for export</span>
+                    <span className="font-bold text-green-600">{p.eligibleCount} ({eligiblePct}%)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-red-500">✗ Excluded</span>
+                    <span className="font-semibold text-red-500">{p.excludedCount}</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-red-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all"
+                      style={{ width: `${eligiblePct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Exclusion breakdown */}
+                {exclusionEntries.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Exclusion Breakdown</p>
+                    <div className="space-y-1.5">
+                      {exclusionEntries.map(([reason, count]) => (
+                        <div key={reason} className={`flex items-center justify-between px-2.5 py-1.5 rounded border text-xs ${EXCLUSION_COLORS[reason] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                          <span>{EXCLUSION_LABELS[reason] || reason}</span>
+                          <span className="font-bold">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Preview unavailable</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Generate button */}
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={handleGenerate}
+          disabled={generateMut.isPending || !p || p.eligibleCount === 0}
+          className="bg-navy text-white hover:bg-navy/90 flex items-center gap-2"
+        >
+          {generateMut.isPending ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Generating Export...</>
+          ) : (
+            <><Upload className="w-4 h-4" /> Generate & Download CSV ({p?.eligibleCount ?? 0} contacts)</>
+          )}
+        </Button>
+        {generateMut.data && (
+          <a
+            href={generateMut.data.csvUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm text-teal hover:underline"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Download last export
+          </a>
+        )}
+      </div>
+
+      {/* Export history */}
+      {showLogs && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Export History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {logs.isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : !logs.data || logs.data.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No exports yet for this campaign.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase tracking-wider">Mode</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase tracking-wider">Exported</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase tracking-wider">Excluded</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase tracking-wider">By</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase tracking-wider">File</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {logs.data.map((log) => (
+                      <tr key={log.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                        <td className="py-2 px-3 text-muted-foreground">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3">
+                          <Badge variant="outline" className="text-[10px]">
+                            {log.exportMode === "curated_marketing_export" ? "Curated" : "Sales Direct"}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-3 font-semibold text-green-600">{log.exportedCount}</td>
+                        <td className="py-2 px-3 text-red-500">{log.excludedCount}</td>
+                        <td className="py-2 px-3 text-muted-foreground">{log.exportedByName || "—"}</td>
+                        <td className="py-2 px-3">
+                          {log.exportFileUrl ? (
+                            <a
+                              href={log.exportFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-teal hover:underline"
+                            >
+                              <Download className="w-3 h-3" /> CSV
+                            </a>
+                          ) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

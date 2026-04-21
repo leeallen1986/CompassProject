@@ -145,6 +145,14 @@ import {
 } from "./templateService";
 import { storagePut } from "./storage";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
+import {
+  previewEmarsysExport,
+  generateEmarsysExport,
+  getExportLogs,
+  toggleEmarsysApproval,
+  type ExportMode,
+  type ExportDefaults,
+} from "./emarsysExport";
 
 export const appRouter = router({
   system: systemRouter,
@@ -3597,6 +3605,81 @@ export const appRouter = router({
             suppressionReason: input.suppressionReason ?? null,
           })
           .where(eq(projects.id, input.projectId));
+        return { success: true };
+      }),
+  }),
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Stage 6A: Emarsys Export
+  // ─────────────────────────────────────────────────────────────────────────
+  emarsys: router({
+    /** Dry-run: returns eligibility counts and exclusion breakdown without writing anything */
+    preview: adminProcedure
+      .input(z.object({
+        campaignId: z.number().int().positive(),
+        exportMode: z.enum(["curated_marketing_export", "sales_direct_export"]),
+        adminOverrideOpportunityGate: z.boolean().optional().default(false),
+        contactIdFilter: z.array(z.number().int().positive()).optional(),
+        defaults: z.object({
+          divisionLabel: z.string().default("Atlas Copco"),
+          salesOrg: z.string().default("AU30"),
+          languageTag: z.string().default("en"),
+          countryRegion: z.string().default("Australia"),
+          collateralName: z.string().optional(),
+        }),
+      }))
+      .query(async ({ input }) => {
+        return previewEmarsysExport({
+          campaignId: input.campaignId,
+          exportMode: input.exportMode as ExportMode,
+          defaults: input.defaults as ExportDefaults,
+          adminOverrideOpportunityGate: input.adminOverrideOpportunityGate,
+          contactIdFilter: input.contactIdFilter,
+        });
+      }),
+
+    /** Full export: evaluates eligibility, builds CSV, uploads to S3, writes export log, stamps contacts */
+    generate: adminProcedure
+      .input(z.object({
+        campaignId: z.number().int().positive(),
+        exportMode: z.enum(["curated_marketing_export", "sales_direct_export"]),
+        adminOverrideOpportunityGate: z.boolean().optional().default(false),
+        contactIdFilter: z.array(z.number().int().positive()).optional(),
+        defaults: z.object({
+          divisionLabel: z.string().default("Atlas Copco"),
+          salesOrg: z.string().default("AU30"),
+          languageTag: z.string().default("en"),
+          countryRegion: z.string().default("Australia"),
+          collateralName: z.string().optional(),
+        }),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return generateEmarsysExport({
+          campaignId: input.campaignId,
+          exportMode: input.exportMode as ExportMode,
+          exportedByUserId: ctx.user.id,
+          exportedByName: ctx.user.name || ctx.user.email || "Admin",
+          defaults: input.defaults as ExportDefaults,
+          adminOverrideOpportunityGate: input.adminOverrideOpportunityGate,
+          contactIdFilter: input.contactIdFilter,
+        });
+      }),
+
+    /** Get the export history for a campaign */
+    getLogs: adminProcedure
+      .input(z.object({ campaignId: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        return getExportLogs(input.campaignId);
+      }),
+
+    /** Toggle the emarsysApproved flag on a single contact (admin only) */
+    toggleApproval: adminProcedure
+      .input(z.object({
+        contactId: z.number().int().positive(),
+        approved: z.boolean(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await toggleEmarsysApproval(input.contactId, input.approved, ctx.user.id);
         return { success: true };
       }),
   }),

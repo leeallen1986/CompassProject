@@ -1368,3 +1368,17 @@
 - [x] Home.tsx: projectTypeFilter state (default 'opportunity'), projectTypeFiltered step in filter chain, Type filter chip row with count badges and helper text
 - [x] Write stage5d.test.ts: 64 Vitest tests covering normalizeStageCode (29), computeStageConfidence (5), inferProjectType (10), evaluateSuppression (9), classifyProject (11)
 - [x] Full test suite green: 2344 / 2344 passing across 79 files · TypeScript: 0 errors
+
+## Stage 6A — Atlas-to-Emarsys Export Workflow
+
+- [x] Schema audit: campaignContacts fields mapped to Emarsys eligibility rules
+- [x] DB migration: doNotContact, emarsysApproved, lastExportedAt, lastExportLogId added to campaignContacts; emarsysExportLogs table created (migration 0060 applied)
+- [ ] Implement emarsysExport.ts: 8-rule eligibility engine (Rule 1: linked non-suppressed opportunity project; Rule 2: valid email; Rule 3: not doNotContact; Rule 4: not blocked_from_send; Rule 5: not opted_out/bounced; Rule 6: not retired/former; Rule 7: no suspicious domain mismatch unresolved; Rule 8: no duplicate email unresolved)
+- [ ] Implement emarsysExport.ts: field mapper (CD_identifier, Email, First Name, Last Name, CD_divisionDetails, CD_salesOrgDetails, IETF tag, Country, company, campaign, collateral, export timestamp, export owner)
+- [ ] Implement emarsysExport.ts: two export modes (curated_marketing_export, sales_direct_export)
+- [ ] Implement emarsysExport.ts: buildExclusionReport() returning counts by reason
+- [ ] Add tRPC emarsys router: previewExport, generateExport, getExportLog, toggleEmarsysApproval procedures
+- [ ] Build Export to Emarsys panel UI in Campaigns page (eligibility summary, exclusion breakdown, configurable defaults, download button)
+- [ ] Generate Emarsys-ready CSV with summary sheet; upload to S3; write export log record
+- [ ] Write stage6a.test.ts: Vitest tests covering all 8 eligibility rules, field mapping, exclusion report, export log
+- [ ] Full test suite green after Stage 6A
