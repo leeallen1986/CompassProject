@@ -789,3 +789,217 @@ export async function getVerificationStats() {
     topVerifiers,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stage 5C: Duplicate detection and merge helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Compute a simple token-overlap similarity between two strings.
+ * Returns 0.0–1.0. Tokens are lower-cased words ≥ 3 chars, stop-words removed.
+ */
+export function tokenSimilarity(a: string, b: string): number {
+  const STOP = new Set(["the", "and", "for", "with", "project", "stage", "phase", "new", "australia", "australian"]);
+  const tokenise = (s: string) =>
+    s.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(t => t.length >= 3 && !STOP.has(t));
+  const ta = new Set(tokenise(a));
+  const tb = new Set(tokenise(b));
+  if (ta.size === 0 || tb.size === 0) return 0;
+  const intersection = Array.from(ta).filter(t => tb.has(t)).length;
+  return intersection / Math.max(ta.size, tb.size);
+}
+
+/**
+ * Extract the state code from a location string (e.g. "Perth, WA" → "WA").
+ */
+export function extractStateCode(location: string): string | null {
+  const STATES = ["WA", "NSW", "VIC", "QLD", "SA", "TAS", "NT", "ACT"];
+  const upper = location.toUpperCase();
+  return STATES.find(s => upper.includes(s)) ?? null;
+}
+
+export type DuplicateCluster = {
+  clusterId: string;
+  projects: Array<{
+    id: number;
+    name: string;
+    location: string;
+    lifecycleStatus: string;
+    priority: string;
+    createdAt: Date;
+    duplicateClusterId: string | null;
+    duplicateDismissed: boolean | null;
+    mergedIntoId: number | null;
+  }>;
+  similarity: number;
+  dismissed: boolean;
+};
+
+/**
+ * Scan all active + stale projects and return clusters of near-duplicates.
+ * Uses token-overlap similarity on project names with optional state-code match.
+ * Threshold: similarity >= 0.55 AND (same state OR one/both are "National").
+ *
+ * This is a pure in-memory scan — no DB writes. Call assignDuplicateCluster
+ * separately to persist cluster IDs.
+ */
+export async function findDuplicateClusters(similarityThreshold = 0.55): Promise<DuplicateCluster[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      id: projects.id,
+      name: projects.name,
+      location: projects.location,
+      lifecycleStatus: projects.lifecycleStatus,
+      priority: projects.priority,
+      createdAt: projects.createdAt,
+      duplicateClusterId: projects.duplicateClusterId,
+      duplicateDismissed: projects.duplicateDismissed,
+      mergedIntoId: projects.mergedIntoId,
+    })
+    .from(projects)
+    .where(
+      and(
+        sql`${projects.lifecycleStatus} IN ('active', 'stale')`,
+        isNull(projects.mergedIntoId),
+      )
+    );
+
+  // Build clusters using union-find
+  const parent = new Map<number, number>();
+  const find = (x: number): number => {
+    if (!parent.has(x)) return x;
+    const root = find(parent.get(x)!);
+    parent.set(x, root);
+    return root;
+  };
+  const union = (x: number, y: number) => {
+    const rx = find(x), ry = find(y);
+    if (rx !== ry) parent.set(rx, ry);
+  };
+
+  const pairSimilarities = new Map<string, number>();
+
+  for (let i = 0; i < rows.length; i++) {
+    for (let j = i + 1; j < rows.length; j++) {
+      const a = rows[i], b = rows[j];
+      const sim = tokenSimilarity(a.name, b.name);
+      if (sim < similarityThreshold) continue;
+      const stateA = extractStateCode(a.location);
+      const stateB = extractStateCode(b.location);
+      const sameState = stateA && stateB && stateA === stateB;
+      const eitherNational = a.location.toLowerCase().includes("national") || b.location.toLowerCase().includes("national");
+      if (!sameState && !eitherNational) continue;
+      union(a.id, b.id);
+      pairSimilarities.set(`${Math.min(a.id, b.id)}-${Math.max(a.id, b.id)}`, sim);
+    }
+  }
+
+  // Group into clusters
+  const clusterMap = new Map<number, typeof rows>();
+  for (const row of rows) {
+    const root = find(row.id);
+    if (!clusterMap.has(root)) clusterMap.set(root, []);
+    clusterMap.get(root)!.push(row);
+  }
+
+  const clusters: DuplicateCluster[] = [];
+  for (const [root, members] of Array.from(clusterMap.entries())) {
+    if (members.length < 2) continue;
+    // Compute average similarity across all pairs in cluster
+    let simSum = 0, simCount = 0;
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        const key = `${Math.min(members[i].id, members[j].id)}-${Math.max(members[i].id, members[j].id)}`;
+        simSum += pairSimilarities.get(key) ?? 0;
+        simCount++;
+      }
+    }
+    const avgSim = simCount > 0 ? simSum / simCount : 0;
+    const dismissed = members.some((m: { duplicateDismissed: boolean | null }) => m.duplicateDismissed);
+    // Use existing clusterId if already assigned, else derive from root id
+    const existingId = members.find((m: { duplicateClusterId: string | null }) => m.duplicateClusterId)?.duplicateClusterId;
+    const clusterId = existingId ?? `cluster-${root}`;
+    clusters.push({ clusterId, projects: members, similarity: avgSim, dismissed });
+  }
+
+  return clusters.sort((a, b) => b.similarity - a.similarity);
+}
+
+/**
+ * Assign a duplicateClusterId to all projects in a cluster.
+ */
+export async function assignDuplicateCluster(projectIds: number[], clusterId: string): Promise<void> {
+  const db = await getDb();
+  if (!db || projectIds.length === 0) return;
+  await db.update(projects)
+    .set({ duplicateClusterId: clusterId })
+    .where(inArray(projects.id, projectIds));
+}
+
+/**
+ * Mark all projects in a cluster as dismissed (not real duplicates).
+ */
+export async function dismissDuplicateCluster(projectIds: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db || projectIds.length === 0) return;
+  await db.update(projects)
+    .set({ duplicateDismissed: true })
+    .where(inArray(projects.id, projectIds));
+}
+
+/**
+ * Merge a duplicate project into a canonical project.
+ * - Sets mergedIntoId on the duplicate
+ * - Sets lifecycleStatus to 'archived' on the duplicate
+ * - Reassigns pipelineClaims from duplicate to canonical
+ */
+export async function mergeProjectIntoCanonical(
+  duplicateId: number,
+  canonicalId: number,
+  mergedByUserId: number,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Mark duplicate as merged + archived
+  await db.update(projects)
+    .set({
+      mergedIntoId: canonicalId,
+      lifecycleStatus: "archived",
+      archivedBy: mergedByUserId,
+      archivedAt: new Date(),
+      staleReason: `Merged into project #${canonicalId}`,
+    })
+    .where(eq(projects.id, duplicateId));
+
+  // Reassign pipeline claims to canonical
+  await db.update(pipelineClaims)
+    .set({ projectId: canonicalId } as any)
+    .where(eq((pipelineClaims as any).projectId, duplicateId));
+}
+
+/**
+ * Run the full duplicate detection sweep and persist cluster IDs for any
+ * newly detected clusters. Returns the count of new cluster assignments.
+ */
+export async function runDuplicateDetectionSweep(): Promise<{ clustersFound: number; newAssignments: number }> {
+  const clusters = await findDuplicateClusters();
+  let newAssignments = 0;
+  for (const cluster of clusters) {
+    if (cluster.dismissed) continue;
+    const unassigned = cluster.projects.filter(p => !p.duplicateClusterId);
+    if (unassigned.length === 0) continue;
+    await assignDuplicateCluster(
+      cluster.projects.map(p => p.id),
+      cluster.clusterId,
+    );
+    newAssignments += unassigned.length;
+  }
+  return { clustersFound: clusters.length, newAssignments };
+}

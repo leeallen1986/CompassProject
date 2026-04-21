@@ -21,6 +21,7 @@ import {
   getActiveProjects,
   verifyContactByUser, rejectContactByUser, getVerificationStats,
   getAllUsers, updateUserCampaignAccess,
+  findDuplicateClusters, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -3496,6 +3497,44 @@ export const appRouter = router({
 
     // ── Stage 1: Pre-waterfall ingestion procedures ──
     ...stagingRouter,
+  }),
+
+  // ── Stage 5C: Duplicate detection & merge ──
+  duplicates: router({
+    /** List all detected duplicate clusters (admin only) */
+    listClusters: adminProcedure.query(async () => {
+      return findDuplicateClusters();
+    }),
+
+    /** Merge a duplicate project into a canonical project (admin only) */
+    mergeProject: adminProcedure
+      .input(z.object({
+        duplicateId: z.number().int().positive(),
+        canonicalId: z.number().int().positive(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (input.duplicateId === input.canonicalId) {
+          throw new Error("duplicateId and canonicalId must be different");
+        }
+        await mergeProjectIntoCanonical(input.duplicateId, input.canonicalId, ctx.user.id);
+        return { success: true };
+      }),
+
+    /** Dismiss a cluster — mark all its projects as not real duplicates (admin only) */
+    dismissCluster: adminProcedure
+      .input(z.object({
+        projectIds: z.array(z.number().int().positive()).min(2),
+      }))
+      .mutation(async ({ input }) => {
+        await dismissDuplicateCluster(input.projectIds);
+        return { success: true, dismissed: input.projectIds.length };
+      }),
+
+    /** Run the full duplicate detection sweep and persist new cluster IDs (admin only) */
+    runSweep: adminProcedure.mutation(async () => {
+      const result = await runDuplicateDetectionSweep();
+      return { success: true, ...result };
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

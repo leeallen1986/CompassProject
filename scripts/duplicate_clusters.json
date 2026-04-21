@@ -1,0 +1,2106 @@
+{
+  "total": 65,
+  "clusters": [
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 15,
+          "name": "Eva Copper Mine Project",
+          "location": "Cloncurry, QLD",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T03:02:02.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690077,
+          "name": "Eva Copper Mine Project",
+          "location": "QLD, QLD",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:44:39.000Z",
+          "createdAt": "2026-04-17T09:44:39.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 4,
+      "projects": [
+        {
+          "id": 30008,
+          "name": "Armidale Battery Energy Storage System (BESS)",
+          "location": "Armidale, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T15:13:50.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120024,
+          "name": "Hanworth Battery Energy Storage System (BESS)",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:35:01.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120025,
+          "name": "Kingswood Battery Energy Storage System (BESS)",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:35:02.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 330023,
+          "name": "New England Battery Energy Storage System (BESS)",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T06:17:23.000Z",
+          "createdAt": "2026-03-11T06:17:23.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 30010,
+          "name": "Collie Battery Energy Storage System (CBESS)",
+          "location": "Collie, WA",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T15:14:02.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120026,
+          "name": "Collie Battery Energy Storage System (BESS)",
+          "location": "Collie, WA",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:35:02.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 30022,
+          "name": "Sodium Battery Deployment for Australian Data Centres",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T15:14:42.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660032,
+          "name": "Australian Battery Storage Deployment Surge",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-13T04:57:16.000Z",
+          "createdAt": "2026-04-13T04:57:16.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 30025,
+          "name": "Suburban Rail Loop (SRL)",
+          "location": "Melbourne, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T15:15:17.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690062,
+          "name": "Suburban Rail Loop (SRL) East",
+          "location": "Clarinda, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:44:14.000Z",
+          "createdAt": "2026-04-17T09:44:14.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 60004,
+          "name": "Waratah Super Battery",
+          "location": "Munmorah, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T16:21:35.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 330022,
+          "name": "Waratah Super Battery Transformer Replacement",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T06:17:23.000Z",
+          "createdAt": "2026-03-11T06:17:23.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 60012,
+          "name": "Liddell BESS",
+          "location": "Muswellbrook, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T16:21:40.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480027,
+          "name": "Liddell BESS",
+          "location": "Hunter Valley, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-24T12:58:34.000Z",
+          "createdAt": "2026-03-24T12:58:34.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120005,
+          "name": "Level Crossing Removal Project",
+          "location": "VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T17:12:07.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480055,
+          "name": "Webster Street Level Crossing Removal Project - Dandenong Underpass",
+          "location": "Dandenong, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-24T13:00:11.000Z",
+          "createdAt": "2026-03-24T13:00:11.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120023,
+          "name": "NSW Long Duration Storage Tender Round 6 Projects",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:35:00.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120048,
+          "name": "NSW Long-Duration Storage Tender Projects",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:41:39.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 120028,
+          "name": "Ebor Battery Storage System",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:35:10.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480020,
+          "name": "Liddell Battery Energy Storage System",
+          "location": "Hunter Valley, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-24T12:57:54.000Z",
+          "createdAt": "2026-03-24T12:57:54.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 510003,
+          "name": "270 MW / 1,080 MWh Battery Energy Storage System",
+          "location": "Northern NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-26T08:15:28.000Z",
+          "createdAt": "2026-03-26T08:15:28.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120032,
+          "name": "Revera Energy Australian Pipeline",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:38:37.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120049,
+          "name": "HMC Capital's Australian Energy Storage and Wind Pipeline",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:41:46.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120069,
+          "name": "Tarraleah Hydropower Scheme Redevelopment Project",
+          "location": "Tarraleah, TAS",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:43:04.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690025,
+          "name": "Tarraleah Hydropower Scheme Redevelopment",
+          "location": "Tarraleah, TAS",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:42:24.000Z",
+          "createdAt": "2026-04-17T09:42:24.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120074,
+          "name": "Logan and Gold Coast Faster Rail project",
+          "location": "Kuraby, Trinder Park, Woodridge, QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:43:29.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 150005,
+          "name": "Logan and Gold Coast Faster Rail Project",
+          "location": "Logan and Gold Coast, QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-13T11:04:40.000Z",
+          "createdAt": "2026-02-13T11:04:40.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120117,
+          "name": "Mount Holland Lithium Project (Kwinana Refinery)",
+          "location": "WA, Kwinana",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:48:24.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120118,
+          "name": "Mount Holland Lithium Project (Mine Site)",
+          "location": "WA, Goldfields-Esperance",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:48:25.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120121,
+          "name": "Pilgangoora Lithium-Tantalum Project (P680 Expansion)",
+          "location": "WA, Pilbara",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:48:25.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120122,
+          "name": "Pilgangoora Lithium-Tantalum Project (P1000 Expansion)",
+          "location": "WA, Pilbara",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:48:25.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120144,
+          "name": "M1 Pacific Motorway Extension to Raymond Terrace",
+          "location": "NSW, Hunter Region",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:49:51.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660041,
+          "name": "M1 Pacific Motorway extension to Raymond Terrace",
+          "location": "Hunter Region, NSW",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-13T04:59:29.000Z",
+          "createdAt": "2026-04-13T04:59:29.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 120145,
+          "name": "Melbourne Airport Rail Link",
+          "location": "VIC, Melbourne",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:49:51.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 330006,
+          "name": "Melbourne Airport Rail Link - Jet Fuel Pipeline Relocation",
+          "location": "Albion, Melbourne, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T06:15:35.000Z",
+          "createdAt": "2026-03-11T06:15:35.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 330045,
+          "name": "Melbourne Airport Rail Link (MARL)",
+          "location": "Melbourne, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T06:20:07.000Z",
+          "createdAt": "2026-03-11T06:20:07.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120149,
+          "name": "Perth Metronet - Byford Rail Extension",
+          "location": "WA, Perth",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:49:52.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120150,
+          "name": "Perth Metronet - Yanchep Rail Extension",
+          "location": "WA, Perth",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:49:52.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120178,
+          "name": "Brisbane Green Bridges Program",
+          "location": "QLD, Brisbane",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:49:59.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120335,
+          "name": "Brisbane Green Infrastructure Program (Stormwater)",
+          "location": "Brisbane, QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:55:21.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120181,
+          "name": "Sydney Metro City & Southwest",
+          "location": "NSW, Sydney",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:49:59.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480017,
+          "name": "Sydney Metro Southwest - Bankstown Plaza",
+          "location": "Bankstown, Sydney, NSW",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-24T12:57:39.000Z",
+          "createdAt": "2026-03-24T12:57:39.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 4,
+      "projects": [
+        {
+          "id": 120185,
+          "name": "Central-West Orana Renewable Energy Zone (REZ)",
+          "location": "NSW, Central-West Orana",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:15.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120196,
+          "name": "Barkly Renewable Energy Zone (REZ)",
+          "location": "NT, Barkly Region",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:17.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 240023,
+          "name": "Hunter-Central Coast Renewable Energy Zone (REZ)",
+          "location": "Hunter-Central Coast region, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-06T11:09:08.000Z",
+          "createdAt": "2026-03-06T11:09:08.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660035,
+          "name": "Central-West Orana Renewable Energy Zone (REZ)",
+          "location": "Central-West Orana, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-13T04:57:55.000Z",
+          "createdAt": "2026-04-13T04:57:55.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120203,
+          "name": "Southern Downs Renewable Energy Zone (REZ)",
+          "location": "QLD, Southern Downs",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:19.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120219,
+          "name": "Capricornia Renewable Energy Zone (REZ)",
+          "location": "Central QLD",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:22.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120205,
+          "name": "Eraring Power Station BESS",
+          "location": "NSW, Lake Macquarie",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:19.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 210032,
+          "name": "Eraring Power Station Deep Energy Storage",
+          "location": "Eraring, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-20T10:58:52.000Z",
+          "createdAt": "2026-02-20T10:58:52.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120220,
+          "name": "Gippsland Renewable Energy Zone (REZ)",
+          "location": "VIC, Gippsland",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:22.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120225,
+          "name": "South West Renewable Energy Zone (REZ)",
+          "location": "South West VIC",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:51:23.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120291,
+          "name": "IGO Limited - Greenbushes Lithium Mine - Exploration",
+          "location": "South West WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:54:03.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120294,
+          "name": "IGO Limited - Lake Johnson Lithium Project - Exploration",
+          "location": "WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:54:04.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120304,
+          "name": "Ramelius Resources - Mt Magnet Gold Operations - Exploration",
+          "location": "Murchison, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:54:06.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120305,
+          "name": "Westgold Resources - Murchison Operations - Exploration",
+          "location": "Murchison, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:54:06.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120322,
+          "name": "Perth Seawater Desalination Plant Expansion",
+          "location": "Alkimos, WA",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:55:18.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480072,
+          "name": "Alkimos Seawater Desalination Plant",
+          "location": "Alkimos, WA",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-24T13:01:22.000Z",
+          "createdAt": "2026-03-24T13:01:22.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 120372,
+          "name": "Women's and Children's Hospital Redevelopment",
+          "location": "North Adelaide, SA",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:56:33.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 120392,
+          "name": "New Women's and Children's Hospital",
+          "location": "Adelaide, SA",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-12T11:11:16.000Z",
+          "createdAt": "2026-02-11T19:56:37.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 150030,
+          "name": "Octopus Australia's Battery Energy Storage System (BESS) Project",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-13T11:05:58.000Z",
+          "createdAt": "2026-02-13T11:05:58.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 270027,
+          "name": "Mortlake Battery Energy Storage System (BESS)",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-10T10:09:41.000Z",
+          "createdAt": "2026-03-10T10:09:41.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690087,
+          "name": "Australian Battery Energy Storage System (BESS) Rollout",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:45:19.000Z",
+          "createdAt": "2026-04-17T09:45:19.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 4,
+      "projects": [
+        {
+          "id": 150051,
+          "name": "NEM Battery Storage Expansion",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-13T11:07:29.000Z",
+          "createdAt": "2026-02-13T11:07:29.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690012,
+          "name": "NSW Battery Energy Storage Systems Expansion",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-04-17T09:41:59.000Z",
+          "createdAt": "2026-04-17T09:41:59.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690013,
+          "name": "NSW Battery Storage Expansion",
+          "location": "National, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-04-17T09:42:02.000Z",
+          "createdAt": "2026-04-17T09:42:02.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690031,
+          "name": "Data Centre Battery Storage Expansion",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:42:49.000Z",
+          "createdAt": "2026-04-17T09:42:49.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 180002,
+          "name": "Tarong Battery Energy Storage System",
+          "location": "Tarong, QLD",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-16T10:37:54.000Z",
+          "createdAt": "2026-02-16T10:37:54.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 570017,
+          "name": "1.6 GWh Battery Energy Storage System (BESS)",
+          "location": "QLD, QLD",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-27T13:54:50.000Z",
+          "createdAt": "2026-03-27T13:54:50.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 180012,
+          "name": "Oaky Creek Antimony Project",
+          "location": "National",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-16T10:38:33.000Z",
+          "createdAt": "2026-02-16T10:38:33.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 630009,
+          "name": "Oaky Creek Antimony Project",
+          "location": "Oaky Creek, QLD",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-30T05:00:24.000Z",
+          "createdAt": "2026-03-30T05:00:24.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 180020,
+          "name": "North Stanmore Heavy Rare Earth Project",
+          "location": "North Stanmore, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-02-16T10:38:59.000Z",
+          "createdAt": "2026-02-16T10:38:59.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 330002,
+          "name": "North Stanmore Project",
+          "location": "North Stanmore, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-11T06:13:18.000Z",
+          "createdAt": "2026-03-11T06:13:18.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 360012,
+          "name": "North Stanmore Rare Earth Project",
+          "location": "North Stanmore, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-11T07:30:20.000Z",
+          "createdAt": "2026-03-11T07:30:20.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 210003,
+          "name": "Australia's Cheaper Home Batteries Program Impact",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-20T10:56:50.000Z",
+          "createdAt": "2026-02-20T10:56:50.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 240007,
+          "name": "Federal Government's Cheaper Home Batteries Program",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-06T11:06:49.000Z",
+          "createdAt": "2026-03-06T11:06:49.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 210027,
+          "name": "Wumalgi Solar and Battery Energy Storage System (BESS) Park",
+          "location": "QLD",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-02-20T10:58:14.000Z",
+          "createdAt": "2026-02-20T10:58:14.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 570013,
+          "name": "Broadsound Battery Energy Storage System (BESS)",
+          "location": "Broadsound, QLD",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-27T13:54:20.000Z",
+          "createdAt": "2026-03-27T13:54:20.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 210034,
+          "name": "National Battery Energy Storage Growth",
+          "location": "WA, SA, QLD, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-20T10:58:52.000Z",
+          "createdAt": "2026-02-20T10:58:52.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 420002,
+          "name": "Renewable energy and battery storage development",
+          "location": "Regional, WA",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-12T00:31:01.000Z",
+          "createdAt": "2026-03-12T00:31:01.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 630003,
+          "name": "Transgrid NSW 2 GW Battery Energy Storage Shortlist",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-30T05:00:08.000Z",
+          "createdAt": "2026-03-30T05:00:08.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 210046,
+          "name": "Australian Pump Sector Tenders (North East Water, Mallee CMA)",
+          "location": "North East VIC and Mallee Region",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-02-20T10:59:29.000Z",
+          "createdAt": "2026-02-20T10:59:29.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660023,
+          "name": "Australian Pump Sector Tenders",
+          "location": "National",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-13T04:56:30.000Z",
+          "createdAt": "2026-04-13T04:56:30.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 270011,
+          "name": "Harpers Hill Reservoir and Pipeline Upgrade",
+          "location": "Harpers Hill, Hunter Region, NSW",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-10T10:07:29.000Z",
+          "createdAt": "2026-03-10T10:07:29.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450015,
+          "name": "Harpers Hill Reservoir Upgrade",
+          "location": "Harpers Hill, NSW",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:36:12.000Z",
+          "createdAt": "2026-03-16T10:36:12.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 270013,
+          "name": "Laverton Gas Power Station Overhaul",
+          "location": "Laverton, VIC",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-10T10:07:33.000Z",
+          "createdAt": "2026-03-10T10:07:33.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 330004,
+          "name": "Laverton Power Station Gas Turbine Exhaust Overhaul",
+          "location": "Laverton, VIC",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-11T06:13:32.000Z",
+          "createdAt": "2026-03-11T06:13:32.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 270014,
+          "name": "Queensland road upgrade",
+          "location": "QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-10T10:07:57.000Z",
+          "createdAt": "2026-03-10T10:07:57.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660017,
+          "name": "Regional Queensland Road Upgrade",
+          "location": "Regional QLD, QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-13T04:56:09.000Z",
+          "createdAt": "2026-04-13T04:56:09.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 270017,
+          "name": "Renewable energy and battery storage project",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-10T10:08:05.000Z",
+          "createdAt": "2026-03-10T10:08:05.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660011,
+          "name": "EORA Energy Long-Duration Battery Storage Pipeline",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-13T04:55:39.000Z",
+          "createdAt": "2026-04-13T04:55:39.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660029,
+          "name": "780MW Battery Storage Project",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-13T04:56:45.000Z",
+          "createdAt": "2026-04-13T04:56:45.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 270034,
+          "name": "Mulgabbie North Gold Project - Stage One Open Pit Mining and Heap Leach",
+          "location": "Mulgabbie North, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-10T10:10:51.000Z",
+          "createdAt": "2026-03-10T10:10:51.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 360005,
+          "name": "Mulgabbie North Gold Project Stage 1 Development",
+          "location": "Mulgabbie North, WA",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T07:29:44.000Z",
+          "createdAt": "2026-03-11T07:29:44.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 300005,
+          "name": "Darwin River Dam pump station restoration",
+          "location": "Darwin River Dam, NT",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T04:00:58.000Z",
+          "createdAt": "2026-03-11T04:00:58.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 390001,
+          "name": "Darwin River Dam Pump Restoration",
+          "location": "Darwin, NT",
+          "sector": "infrastructure",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T10:02:59.000Z",
+          "createdAt": "2026-03-11T10:02:59.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 5,
+      "projects": [
+        {
+          "id": 300008,
+          "name": "Blind Creek Solar Farm and Battery Project",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-11T04:01:08.000Z",
+          "createdAt": "2026-03-11T04:01:08.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480010,
+          "name": "Goulburn Community Solar Farm and Battery Project",
+          "location": "Goulburn, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-24T12:57:17.000Z",
+          "createdAt": "2026-03-24T12:57:17.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480068,
+          "name": "Blind Creek Solar and Battery Project",
+          "location": "Southern NSW, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-24T13:01:12.000Z",
+          "createdAt": "2026-03-24T13:01:12.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480071,
+          "name": "Blind Creek Solar Farm and Battery Project",
+          "location": "Unknown, QLD",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-24T13:01:22.000Z",
+          "createdAt": "2026-03-24T13:01:22.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 660007,
+          "name": "Riverina Solar and Battery Project",
+          "location": "Riverina, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-13T04:55:30.000Z",
+          "createdAt": "2026-04-13T04:55:30.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 300017,
+          "name": "Leonora South Gold Project Exploration",
+          "location": "National",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-11T04:01:31.000Z",
+          "createdAt": "2026-03-11T04:01:31.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 300018,
+          "name": "Leonora South Gold Project",
+          "location": "National",
+          "sector": "mining",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-11T04:01:32.000Z",
+          "createdAt": "2026-03-11T04:01:32.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 300021,
+          "name": "Octopus Energy's 640MW Solar-BESS Park",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-11T04:01:40.000Z",
+          "createdAt": "2026-03-11T04:01:40.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 300022,
+          "name": "Octopus Energy's Solar-BESS Park",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-11T04:01:40.000Z",
+          "createdAt": "2026-03-11T04:01:40.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 330012,
+          "name": "Bass Strait Decommissioning Project (Umbilicals and Flexibles)",
+          "location": "Bass Strait, VIC",
+          "sector": "oil_gas",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-11T06:16:00.000Z",
+          "createdAt": "2026-03-11T06:16:00.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690073,
+          "name": "Bass Strait Decommissioning Project",
+          "location": "Bass Strait, VIC",
+          "sector": "oil_gas",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:44:30.000Z",
+          "createdAt": "2026-04-17T09:44:30.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 330038,
+          "name": "Gippsland Offshore Wind Farm",
+          "location": "Gippsland, VIC",
+          "sector": "energy",
+          "lifecycleStatus": "stale",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-11T06:19:37.000Z",
+          "createdAt": "2026-03-11T06:19:37.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690063,
+          "name": "Gippsland Offshore Wind Farm",
+          "location": "Gippsland, VIC",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:44:14.000Z",
+          "createdAt": "2026-04-17T09:44:14.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450002,
+          "name": "Latrobe Valley Synchronous Condensors Project",
+          "location": "Latrobe Valley, VIC",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-16T10:35:24.000Z",
+          "createdAt": "2026-03-16T10:35:24.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450003,
+          "name": "Latrobe Valley Synchronous Condensers",
+          "location": "Latrobe Valley, VIC",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-16T10:35:27.000Z",
+          "createdAt": "2026-03-16T10:35:27.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450006,
+          "name": "MGA Thermal Manufacturing Capacity Scale-up",
+          "location": "NSW, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-16T10:35:46.000Z",
+          "createdAt": "2026-03-16T10:35:46.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450009,
+          "name": "MGA Thermal manufacturing capacity expansion",
+          "location": "NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-16T10:35:48.000Z",
+          "createdAt": "2026-03-16T10:35:48.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450021,
+          "name": "Cobar District Copper-Antimony Exploration",
+          "location": "Cobar District, NSW",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:36:43.000Z",
+          "createdAt": "2026-03-16T10:36:43.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450022,
+          "name": "Cobar Copper-Antimony Exploration",
+          "location": "Cobar, NSW",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:36:45.000Z",
+          "createdAt": "2026-03-16T10:36:45.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450025,
+          "name": "Mulgine Trench Tungsten Project",
+          "location": "Mt Mulgine, WA",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:37:08.000Z",
+          "createdAt": "2026-03-16T10:37:08.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450028,
+          "name": "Mulgine Trench Project",
+          "location": "Mt Mulgine, WA",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:37:10.000Z",
+          "createdAt": "2026-03-16T10:37:10.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450030,
+          "name": "Australian Battery Recycling Industry Regulation",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-16T10:37:23.000Z",
+          "createdAt": "2026-03-16T10:37:23.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450031,
+          "name": "Australian Battery Recycling Industry Regulation",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-16T10:37:23.000Z",
+          "createdAt": "2026-03-16T10:37:23.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450032,
+          "name": "Westsun Energy 1.3MW Commercial Solar Project",
+          "location": "Unknown, WA",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:37:23.000Z",
+          "createdAt": "2026-03-16T10:37:23.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 450033,
+          "name": "Westsun Energy 1.3MW Commercial Solar Project",
+          "location": "Unknown, WA",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier3_monitor",
+          "sourceLastSeenAt": "2026-03-16T10:37:24.000Z",
+          "createdAt": "2026-03-16T10:37:24.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 450035,
+          "name": "Top End Solar and Battery Project",
+          "location": "Top End, NT",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-16T10:37:33.000Z",
+          "createdAt": "2026-03-16T10:37:33.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 480006,
+          "name": "NT Solar and Battery Project",
+          "location": "NT",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-24T12:57:02.000Z",
+          "createdAt": "2026-03-24T12:57:02.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 480024,
+          "name": "Bendigo Recycled Water Factory Upgrade",
+          "location": "Bendigo, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-24T12:58:14.000Z",
+          "createdAt": "2026-03-24T12:58:14.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690019,
+          "name": "Bendigo Network Water Infrastructure Upgrade",
+          "location": "Bendigo, VIC",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:42:14.000Z",
+          "createdAt": "2026-04-17T09:42:14.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 570020,
+          "name": "Bruce Highway Targeted Safety Program (BHTSP)",
+          "location": "QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-27T13:55:07.000Z",
+          "createdAt": "2026-03-27T13:55:07.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 630011,
+          "name": "Bruce Highway Safety Upgrades Program",
+          "location": "QLD's east coast, QLD",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-30T05:00:35.000Z",
+          "createdAt": "2026-03-30T05:00:35.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 630001,
+          "name": "Five Battery Projects totalling 7.9 GWh",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-30T04:59:59.000Z",
+          "createdAt": "2026-03-30T04:59:59.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 630002,
+          "name": "Five battery projects totalling 7.9 GWh",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-03-30T04:59:59.000Z",
+          "createdAt": "2026-03-30T04:59:59.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 630017,
+          "name": "78503/36 — Department of Foreign Affairs and Trade - Australian Aid Program",
+          "location": "VIC, Australia",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "cold",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-03-30T05:14:20.000Z",
+          "createdAt": "2026-03-30T05:14:20.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690096,
+          "name": "81809 — Department of Foreign Affairs and Trade - Australian Aid Program",
+          "location": "VIC, Australia",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T10:01:13.000Z",
+          "createdAt": "2026-04-17T10:01:13.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 690004,
+          "name": "6 GW Green Hydrogen Production Facility",
+          "location": "WA, WA",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:41:23.000Z",
+          "createdAt": "2026-04-17T09:41:23.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690086,
+          "name": "Hazer low emissions hydrogen production facility",
+          "location": "Perth, WA",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:45:18.000Z",
+          "createdAt": "2026-04-17T09:45:18.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 4,
+      "projects": [
+        {
+          "id": 690009,
+          "name": "Amazon Australia Renewable Energy PPAs (430 MW)",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:41:41.000Z",
+          "createdAt": "2026-04-17T09:41:41.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690018,
+          "name": "Amazon Australia Renewable Energy Deals",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:42:13.000Z",
+          "createdAt": "2026-04-17T09:42:13.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690033,
+          "name": "Amazon Australia Renewable Energy PPAs with co-located BESS",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:42:56.000Z",
+          "createdAt": "2026-04-17T09:42:56.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690039,
+          "name": "Amazon Australia Renewable Energy PPAs (9 projects)",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:43:20.000Z",
+          "createdAt": "2026-04-17T09:43:20.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 690030,
+          "name": "Fortescue 4-5GWh BESS with 1.8GW Renewable Energy",
+          "location": "National",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:42:44.000Z",
+          "createdAt": "2026-04-17T09:42:44.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690037,
+          "name": "Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System",
+          "location": "National",
+          "sector": "mining",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:43:04.000Z",
+          "createdAt": "2026-04-17T09:43:04.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 690048,
+          "name": "Four New Wind Projects and Green Steel Plant (Fast-Tracked)",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:43:39.000Z",
+          "createdAt": "2026-04-17T09:43:39.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690071,
+          "name": "Four New Wind Projects & Green Steel Plant (State Fast-Track)",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:44:23.000Z",
+          "createdAt": "2026-04-17T09:44:23.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 2,
+      "projects": [
+        {
+          "id": 690050,
+          "name": "Renewable Power Supply for State's Trains and Electric Buses",
+          "location": "National",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:43:46.000Z",
+          "createdAt": "2026-04-17T09:43:46.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690075,
+          "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+          "location": "National, NSW",
+          "sector": "energy",
+          "lifecycleStatus": "active",
+          "priority": "hot",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:44:33.000Z",
+          "createdAt": "2026-04-17T09:44:33.000Z",
+          "keepFlag": 0
+        }
+      ]
+    },
+    {
+      "clusterSize": 3,
+      "projects": [
+        {
+          "id": 690060,
+          "name": "Black Spot Program Queensland (2026-27)",
+          "location": "National",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier2_warm",
+          "sourceLastSeenAt": "2026-04-17T09:44:09.000Z",
+          "createdAt": "2026-04-17T09:44:09.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690080,
+          "name": "Black Spot Program - Queensland Road Safety Projects",
+          "location": "National",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:44:50.000Z",
+          "createdAt": "2026-04-17T09:44:50.000Z",
+          "keepFlag": 0
+        },
+        {
+          "id": 690085,
+          "name": "Queensland Black Spot Program (2026-27)",
+          "location": "National",
+          "sector": "infrastructure",
+          "lifecycleStatus": "active",
+          "priority": "warm",
+          "actionTier": "tier1_actionable",
+          "sourceLastSeenAt": "2026-04-17T09:45:02.000Z",
+          "createdAt": "2026-04-17T09:45:02.000Z",
+          "keepFlag": 0
+        }
+      ]
+    }
+  ]
+}

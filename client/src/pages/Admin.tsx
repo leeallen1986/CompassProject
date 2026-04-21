@@ -2053,6 +2053,207 @@ function PlatformAnalyticsTab() {
   );
 }
 
+// ── Stage 5C: Duplicates Review Tab ──
+function DuplicatesTab() {
+  const utils = trpc.useUtils();
+  const { data: clusters, isLoading, refetch } = trpc.duplicates.listClusters.useQuery();
+  const [showDismissed, setShowDismissed] = useState(false);
+
+  const runSweep = trpc.duplicates.runSweep.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Sweep complete: ${res.clustersFound} clusters found, ${res.newAssignments} new assignments`);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const mergeProject = trpc.duplicates.mergeProject.useMutation({
+    onSuccess: () => {
+      toast.success("Project merged successfully");
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const dismissCluster = trpc.duplicates.dismissCluster.useMutation({
+    onSuccess: () => {
+      toast.success("Cluster dismissed");
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  const allClusters = clusters ?? [];
+  const activeClusters = allClusters.filter(c => !c.dismissed);
+  const dismissedClusters = allClusters.filter(c => c.dismissed);
+
+  const priorityBadge = (p: string) => {
+    if (p === "hot") return "bg-hot text-white";
+    if (p === "warm") return "bg-warm text-navy";
+    return "bg-cold text-white";
+  };
+
+  const lifecycleBadge = (s: string) => {
+    if (s === "active") return "bg-teal/15 text-teal";
+    if (s === "stale") return "bg-warm/15 text-amber-700";
+    return "bg-slate-100 text-slate-500";
+  };
+
+  const renderCluster = (cluster: typeof allClusters[0], idx: number) => {
+    // Pick the canonical project: highest priority, then most recent
+    const priorityOrder: Record<string, number> = { hot: 0, warm: 1, cold: 2 };
+    const sorted = [...cluster.projects].sort((a, b) => {
+      const pa = priorityOrder[a.priority] ?? 9;
+      const pb = priorityOrder[b.priority] ?? 9;
+      if (pa !== pb) return pa - pb;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    const canonical = sorted[0];
+    const duplicates = sorted.slice(1);
+    const simPct = Math.round(cluster.similarity * 100);
+
+    return (
+      <div key={cluster.clusterId} className={`bg-card rounded-lg border ${cluster.dismissed ? "border-slate-200 opacity-60" : "border-border"} p-4 space-y-3`}>
+        {/* Cluster header */}
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cluster {idx + 1}</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                simPct >= 80 ? "bg-hot/15 text-hot" : simPct >= 65 ? "bg-warm/15 text-amber-700" : "bg-slate-100 text-slate-500"
+              }`}>{simPct}% similarity</span>
+              <span className="text-xs text-muted-foreground">{cluster.projects.length} projects</span>
+              {cluster.dismissed && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">DISMISSED</span>}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 font-mono">{cluster.clusterId}</p>
+          </div>
+          {!cluster.dismissed && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-slate-300 text-slate-500 hover:border-slate-400"
+              onClick={() => dismissCluster.mutate({ projectIds: cluster.projects.map(p => p.id) })}
+              disabled={dismissCluster.isPending}
+            >
+              {dismissCluster.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3 mr-1" />}
+              Dismiss (not duplicates)
+            </Button>
+          )}
+        </div>
+
+        {/* Canonical project */}
+        <div className="bg-teal/5 border border-teal/20 rounded-md p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-teal shrink-0" />
+            <span className="text-xs font-bold text-teal uppercase tracking-wider">Canonical (keep)</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${priorityBadge(canonical.priority)}`}>{canonical.priority}</span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${lifecycleBadge(canonical.lifecycleStatus)}`}>{canonical.lifecycleStatus}</span>
+          </div>
+          <p className="text-sm font-semibold text-navy">{canonical.name}</p>
+          <p className="text-xs text-muted-foreground">{canonical.location} &middot; ID #{canonical.id}</p>
+        </div>
+
+        {/* Duplicate projects */}
+        <div className="space-y-2">
+          {duplicates.map(dup => (
+            <div key={dup.id} className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-md p-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${priorityBadge(dup.priority)}`}>{dup.priority}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${lifecycleBadge(dup.lifecycleStatus)}`}>{dup.lifecycleStatus}</span>
+                  {dup.mergedIntoId && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-500">MERGED</span>}
+                </div>
+                <p className="text-sm font-medium text-navy truncate">{dup.name}</p>
+                <p className="text-xs text-muted-foreground">{dup.location} &middot; ID #{dup.id}</p>
+              </div>
+              {!dup.mergedIntoId && !cluster.dismissed && (
+                <Button
+                  size="sm"
+                  className="text-xs bg-navy hover:bg-navy/80 text-white shrink-0"
+                  onClick={() => mergeProject.mutate({ duplicateId: dup.id, canonicalId: canonical.id })}
+                  disabled={mergeProject.isPending}
+                >
+                  {mergeProject.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  Merge into canonical
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header row */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-bold text-navy flex items-center gap-2">
+            <Copy className="w-5 h-5 text-gold" /> Duplicate Project Clusters
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {activeClusters.length} active cluster{activeClusters.length !== 1 ? "s" : ""} &middot; {dismissedClusters.length} dismissed
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={() => setShowDismissed(v => !v)}
+          >
+            <Eye className="w-3.5 h-3.5 mr-1" />
+            {showDismissed ? "Hide" : "Show"} dismissed
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs bg-navy hover:bg-navy/80 text-white"
+            onClick={() => runSweep.mutate()}
+            disabled={runSweep.isPending}
+          >
+            {runSweep.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+            Run Detection Sweep
+          </Button>
+        </div>
+      </div>
+
+      {/* Active clusters */}
+      {activeClusters.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-teal opacity-50" />
+          <p className="text-sm font-medium">No duplicate clusters detected</p>
+          <p className="text-xs mt-1">Run a detection sweep to scan for near-duplicate projects</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {activeClusters.map((c, i) => renderCluster(c, i))}
+        </div>
+      )}
+
+      {/* Dismissed clusters (collapsed) */}
+      {showDismissed && dismissedClusters.length > 0 && (
+        <div>
+          <h3 className="text-sm font-bold text-muted-foreground mb-3 flex items-center gap-2">
+            <XCircle className="w-4 h-4" /> Dismissed Clusters ({dismissedClusters.length})
+          </h3>
+          <div className="space-y-4">
+            {dismissedClusters.map((c, i) => renderCluster(c, activeClusters.length + i))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Admin Page ──
 
 export default function Admin() {
@@ -2130,6 +2331,9 @@ export default function Admin() {
             <TabsTrigger value="analytics" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Platform Analytics
             </TabsTrigger>
+            <TabsTrigger value="duplicates" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
+              <Copy className="w-3.5 h-3.5 mr-1.5" /> Duplicates
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -2158,6 +2362,10 @@ export default function Admin() {
 
           <TabsContent value="analytics">
             <PlatformAnalyticsTab />
+          </TabsContent>
+
+          <TabsContent value="duplicates">
+            <DuplicatesTab />
           </TabsContent>
         </Tabs>
       </main>

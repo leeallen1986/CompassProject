@@ -46,7 +46,7 @@ import { runIcnScraper } from "./icnScraper";
 import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
 import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
-import { markStaleProjects, getDb } from "./db";
+import { markStaleProjects, runDuplicateDetectionSweep, getDb } from "./db";
 import { pipelineRuns, type PipelineStep } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 
@@ -953,9 +953,23 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   }
   steps.push(stalenessStep);
 
-  // ── Step 22: Source Monitoring Snapshot ──
+  // ── Step 22: Duplicate Detection Sweep ──
+  const dupSweepStep = startStep("Duplicate Detection Sweep");
+  console.log("[DailyPipeline] Step 22: Running duplicate detection sweep (Stage 5C)...");
+  try {
+    const dupResult = await runDuplicateDetectionSweep();
+    completeStep(dupSweepStep, { clustersFound: dupResult.clustersFound, newAssignments: dupResult.newAssignments });
+    console.log(`[DailyPipeline] Duplicate sweep complete: ${dupResult.clustersFound} clusters found, ${dupResult.newAssignments} new cluster assignments`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Duplicate sweep failed:", errMsg);
+    failStep(dupSweepStep, errMsg);
+  }
+  steps.push(dupSweepStep);
+
+  // ── Step 23: Source Monitoring Snapshot ──
   const monitorStep = startStep("Source Monitoring Snapshot");
-  console.log("[DailyPipeline] Step 22: Recording source monitoring snapshot...");
+  console.log("[DailyPipeline] Step 23: Recording source monitoring snapshot...");
   try {
     completeStep(monitorStep, {
       totalSteps: steps.length,

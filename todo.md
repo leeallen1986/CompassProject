@@ -1346,3 +1346,13 @@
 - [x] Add quarantined count KPI to Admin RSS Sources summary bar
 - [x] Write stage5b.test.ts (32 tests covering backfill logic, keepFlag, quarantine, boundary conditions)
 - [x] Full test suite green (2231 tests, 77 files)
+
+## Stage 5C — Deduplication Repair
+
+- [x] DB migration: add duplicateClusterId, mergedIntoId, duplicateDismissed fields to projects table
+- [x] Implement tokenSimilarity, extractStateCode, findDuplicateClusters, assignDuplicateCluster, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep in db.ts
+- [x] Add duplicates tRPC router: listClusters, mergeProject, dismissCluster, runSweep procedures
+- [x] Build Duplicates review tab in Admin panel (cluster cards, canonical/duplicate distinction, merge/dismiss actions, run sweep button)
+- [x] Wire runDuplicateDetectionSweep into daily pipeline as Step 22
+- [x] Write stage5c.test.ts: 49 Vitest tests covering tokenSimilarity, extractStateCode, findDuplicateClusters, mergeProjectIntoCanonical, dismissDuplicateCluster, runDuplicateDetectionSweep
+- [x] Full test suite green: 2280 / 2280 passing across 78 files

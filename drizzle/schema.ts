@@ -155,6 +155,12 @@ export const projects = mysqlTable("projects", {
   staleReason: varchar("staleReason", { length: 256 }),
   /** Stage 5A: manual keep flag — prevents bulk archival even if old and uncorroborated */
   keepFlag: boolean("keepFlag").default(false),
+  /** Stage 5C: UUID grouping all near-duplicate variants of the same real-world project */
+  duplicateClusterId: varchar("duplicateClusterId", { length: 36 }),
+  /** Stage 5C: ID of the canonical project this one was merged into (null = not merged / is canonical) */
+  mergedIntoId: int("mergedIntoId"),
+  /** Stage 5C: reviewer dismissed this cluster pair as a false positive (not a real duplicate) */
+  duplicateDismissed: boolean("duplicateDismissed").default(false),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
