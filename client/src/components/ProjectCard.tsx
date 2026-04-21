@@ -42,6 +42,9 @@ export interface ProjectData {
   // Personalization fields (optional, added by filtering engine)
   relevanceScore?: number;
   relevanceReasons?: string[];
+  // PT Capital Sales Sprint fields
+  productLane?: "portable_air" | "pumps" | "pal" | "bess" | "multi_lane_pt" | null;
+  stageCode?: string | null;
 }
 
 const priorityConfig = {
@@ -1109,6 +1112,22 @@ export default function ProjectCard({
                 {project.lifecycleStatus}
               </span>
             )}
+            {/* PT Lane badge */}
+            {project.productLane && (() => {
+              const laneConfig: Record<string, { bg: string; text: string; label: string }> = {
+                portable_air: { bg: "bg-sky-100", text: "text-sky-700", label: "Portable Air" },
+                pumps: { bg: "bg-blue-100", text: "text-blue-700", label: "Pumps" },
+                pal: { bg: "bg-violet-100", text: "text-violet-700", label: "PAL" },
+                bess: { bg: "bg-emerald-100", text: "text-emerald-700", label: "BESS" },
+                multi_lane_pt: { bg: "bg-orange-100", text: "text-orange-700", label: "Multi-Lane" },
+              };
+              const lc = laneConfig[project.productLane] || { bg: "bg-slate-100", text: "text-slate-600", label: project.productLane };
+              return (
+                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${lc.bg} ${lc.text}`}>
+                  {lc.label}
+                </span>
+              );
+            })()}
             {/* Business line badges */}
             {businessLineNames && project.matchedBusinessLines && project.matchedBusinessLines.length > 0 && (
               <>

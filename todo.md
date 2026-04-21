@@ -1382,3 +1382,15 @@
 - [ ] Generate Emarsys-ready CSV with summary sheet; upload to S3; write export log record
 - [ ] Write stage6a.test.ts: Vitest tests covering all 8 eligibility rules, field mapping, exclusion report, export log
 - [ ] Full test suite green after Stage 6A
+
+## PT Capital Sales Sprint — Rebranding & Product Lane Classification
+- [x] Phase 1: Add productLane field to schema (migration 0061 applied); implement classifyProductLaneFromScores, classifyProductLane, classifyAllProductLanes in db.ts
+- [x] Phase 1: Run productLane backfill — portable_air: 119, pumps: 163, pal: 43, bess: 278, multi_lane_pt: 478, NULL: 29
+- [x] Phase 2: stageCode normalisation backfill — 253 unknown → 211 remaining, 42 reclassified
+- [x] Phase 3: emailDigest.ts — Monday brief renamed "PT Capital Sales — Weekly Intelligence Brief"; lane grouping by productLane; contact-discovery-needed state (hasNoContacts flag); Thursday reminder renamed "PT Capital Sales — Mid-Week Reminder"
+- [x] Phase 4: ProjectCard.tsx — productLane/stageCode added to ProjectData interface; PT Lane badge added after lifecycle status badge (sky/blue/violet/emerald/orange colour coding)
+- [x] Phase 4: Home.tsx — productLaneFilter state added (default 'all'); laneFiltered step added in filter chain after projectTypeFiltered; PT Lane filter chip row added after tier filter chips; tier/priority counts updated to use laneFiltered; "Portable Air in Action" heading renamed to "PT Capital Sales in Action"
+- [x] Phase 5: server/ptCapitalSales.test.ts — 82 Vitest tests covering DIMENSION_TO_LANE map, classifyProductLaneFromScores (all 5 lanes + null + boundaries), normalizeStageCode patterns (all stage codes), email digest lane grouping, contact-discovery-needed state
+- [x] Phase 6: Full test suite green — 2526 / 2526 passing across 82 files · TypeScript: 0 errors
+- [ ] Phase 6: Checkpoint save — IN PROGRESS
+- [ ] Phase 6: PT Capital Sales validation document

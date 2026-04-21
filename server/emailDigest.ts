@@ -99,6 +99,12 @@ interface DigestProject {
   stage: string | null;
   overview: string | null;
   actionTier: ActionTier | null;
+  /** PT Capital Sales Sprint: equipment lane for grouping in brief */
+  productLane?: string | null;
+  /** PT Capital Sales Sprint: normalised stage code */
+  stageCode?: string | null;
+  /** PT Capital Sales Sprint: true if no contacts linked to this project */
+  hasNoContacts?: boolean;
 }
 
 interface DigestContact {
@@ -335,9 +341,9 @@ function generateMondayDigest(
       : territories.join(", ")
     : "All Regions";
 
-  let content = `**Weekly Intelligence Digest — ${reportWeek}**\n\n`;
+  let content = `**PT Capital Sales — Weekly Intelligence Brief — ${reportWeek}**\n\n`;
   content += `Hi ${userName || "there"},\n\n`;
-  content += `Here's your personalised weekly intelligence brief for **${territoryLabel}**.\n\n`;
+  content += `Here's your personalised PT Capital Sales intelligence brief for **${territoryLabel}**.\n\n`;
 
   // ── This Week Highlights (top of email) ──
   content += thisWeekSection;
@@ -356,18 +362,47 @@ function generateMondayDigest(
   content += `**Summary:** ${tierFiltered.length} matching projects (${hotCount} hot, ${warmCount} warm, ${newCount} new this week)\n`;
   content += `**Action Tiers:** ${tier1Count} actionable, ${tier2Count} warm pipeline\n\n`;
 
-  // Top projects
+  // Lane labels for PT Capital Sales grouping
+  const LANE_LABELS: Record<string, string> = {
+    portable_air: "Portable Air",
+    pumps: "Pumps & Dewatering",
+    pal: "PAL / Generators",
+    bess: "BESS",
+    multi_lane_pt: "Multi-Lane PT",
+  };
+
+  // Group top projects by productLane
+  const laneGroups: Record<string, typeof top10> = {};
   for (const p of top10) {
-    const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
-    const newBadge = p.isNew ? " [NEW]" : "";
-    const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
-    content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
-    content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
-    content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}%\n`;
-    if (p.overview) {
-      content += `   ${p.overview.substring(0, 120)}...\n`;
+    const lane = p.productLane || "multi_lane_pt";
+    if (!laneGroups[lane]) laneGroups[lane] = [];
+    laneGroups[lane].push(p);
+  }
+
+  // Render by lane
+  const laneOrder = ["portable_air", "pumps", "pal", "bess", "multi_lane_pt"];
+  for (const lane of laneOrder) {
+    const group = laneGroups[lane];
+    if (!group || group.length === 0) continue;
+    content += `\n**${LANE_LABELS[lane] || lane} (${group.length}):**\n\n`;
+    for (const p of group) {
+      const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
+      const newBadge = p.isNew ? " [NEW]" : "";
+      const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
+      const stageBadge = p.stageCode && p.stageCode !== "unknown" ? ` | ${p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)}` : "";
+      content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
+      content += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
+      content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}%\n`;
+      if (p.overview) {
+        content += `   ${p.overview.substring(0, 120)}...\n`;
+      }
+      // Edit 3: explicit contact-discovery-needed state
+      if (p.hasNoContacts) {
+        content += `   ⚠️ **Stakeholder discovery needed** — no high-relevance contacts found yet\n`;
+        content += `   → Recommended next step: contractor discovery / owner-side stakeholder search\n`;
+      }
+      content += `\n`;
     }
-    content += `\n`;
   }
 
   // Contacts
@@ -411,9 +446,9 @@ function generateThursdayReminder(
       : territories.join(", ")
     : "All Regions";
 
-  let content = `**Mid-Week Intelligence Reminder — ${reportWeek}**\n\n`;
+  let content = `**PT Capital Sales — Mid-Week Reminder — ${reportWeek}**\n\n`;
   content += `Hi ${userName || "there"},\n\n`;
-  content += `Quick mid-week check-in for **${territoryLabel}** — here's what needs your attention.\n\n`;
+  content += `Quick mid-week PT Capital Sales check-in for **${territoryLabel}** — here's what needs your attention.\n\n`;
 
   // ── This Week Highlights (urgent actions + top projects) ──
   content += thisWeekSection;
@@ -490,6 +525,8 @@ async function scoreAndFilterProjects(
       stage: p.stage,
       overview: p.overview,
       actionTier: (p as any).actionTier as ActionTier | null,
+      productLane: (p as any).productLane ?? null,
+      stageCode: (p as any).stageCode ?? null,
       relevanceScore: scoreProjectForUser(
         {
           id: p.id,

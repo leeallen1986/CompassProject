@@ -428,6 +428,13 @@
       "when": 1776766125388,
       "tag": "0060_jazzy_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "5",
+      "when": 1776777142848,
+      "tag": "0061_silly_susan_delgado",
+      "breakpoints": true
     }
   ]
 }

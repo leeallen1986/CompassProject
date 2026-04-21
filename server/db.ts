@@ -12,6 +12,7 @@ import {
   pipelineClaims, InsertPipelineClaim, PipelineClaim,
   pipelineActivity, InsertPipelineActivity,
   emailDigestPrefs, InsertEmailDigestPref, EmailDigestPref,
+  projectBusinessLineScores,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1522,4 +1523,119 @@ export async function getSuppressionStats(): Promise<{
     byStageCode: byStageCode.map(r => ({ stageCode: r.stageCode ?? "unknown", cnt: Number(r.cnt) })),
     suppressedByReason: suppressedByReason.map(r => ({ suppressionReason: r.suppressionReason ?? "unknown", cnt: Number(r.cnt) })),
   };
+}
+
+// ── PT Capital Sales: Product Lane Classification ─────────────────────────────
+
+/**
+ * Maps scoring dimensions to PT equipment lanes.
+ * Service Potential, Rental Influence, Booster, Nitrogen are not PT lanes.
+ */
+export const DIMENSION_TO_LANE: Record<string, "portable_air" | "pumps" | "pal" | "bess"> = {
+  "Portable Air": "portable_air",
+  "Pump/Dewatering": "pumps",
+  "Generators": "pal",
+  "BESS": "bess",
+};
+
+/**
+ * Classifies a project into a PT equipment lane based on its business-line scores.
+ *
+ * Rules:
+ * 1. Only PT dimensions (Portable Air, Pump/Dewatering, Generators, BESS) are considered.
+ * 2. If no PT dimension scores ≥ 30, returns null (unclassifiable).
+ * 3. If the top lane leads by ≥ 15 points, it wins outright.
+ * 4. If two or more lanes are both ≥ 40 and within 15 points, returns multi_lane_pt.
+ * 5. Otherwise returns multi_lane_pt.
+ */
+export function classifyProductLaneFromScores(
+  scores: Record<string, number>
+): "portable_air" | "pumps" | "pal" | "bess" | "multi_lane_pt" | null {
+  const laneScores: Record<string, number> = {};
+  for (const [dim, score] of Object.entries(scores)) {
+    const lane = DIMENSION_TO_LANE[dim];
+    if (!lane) continue;
+    laneScores[lane] = Math.max(laneScores[lane] ?? 0, score);
+  }
+
+  const sorted = Object.entries(laneScores).sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) return null;
+
+  const [topLane, topScore] = sorted[0];
+  const secondScore = sorted[1]?.[1] ?? 0;
+
+  if (topScore < 30) return null;
+  if (topScore >= 40 && secondScore >= 40 && topScore - secondScore < 15) return "multi_lane_pt";
+  if (topScore - secondScore >= 15) return topLane as "portable_air" | "pumps" | "pal" | "bess";
+  return "multi_lane_pt";
+}
+
+/**
+ * Classifies a single project's productLane from its DB scores and writes it back.
+ */
+export async function classifyProductLane(projectId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const scoreRows = await db.select({
+    scoringDimension: projectBusinessLineScores.scoringDimension,
+    score: projectBusinessLineScores.score,
+  }).from(projectBusinessLineScores)
+    .where(eq(projectBusinessLineScores.projectId, projectId));
+
+  const scoreMap: Record<string, number> = {};
+  for (const row of scoreRows) {
+    scoreMap[row.scoringDimension] = Math.max(scoreMap[row.scoringDimension] ?? 0, row.score);
+  }
+
+  const lane = classifyProductLaneFromScores(scoreMap);
+  if (lane) {
+    await db.update(projects).set({ productLane: lane }).where(eq(projects.id, projectId));
+  }
+  return lane;
+}
+
+/**
+ * Bulk-classifies all projects that have BL scores and writes productLane back.
+ * Returns a summary of lane assignments.
+ */
+export async function classifyAllProductLanes(): Promise<Record<string, number>> {
+  const db = await getDb();
+  if (!db) return {};
+
+  const allScores = await db.select({
+    projectId: projectBusinessLineScores.projectId,
+    scoringDimension: projectBusinessLineScores.scoringDimension,
+    score: projectBusinessLineScores.score,
+  }).from(projectBusinessLineScores);
+
+  // Group scores by projectId
+  const byProject = new Map<number, Record<string, number>>();
+  for (const row of allScores) {
+    if (!byProject.has(row.projectId)) byProject.set(row.projectId, {});
+    const map = byProject.get(row.projectId)!;
+    map[row.scoringDimension] = Math.max(map[row.scoringDimension] ?? 0, row.score);
+  }
+
+  // Classify and group by lane
+  const laneBuckets: Record<string, number[]> = {
+    portable_air: [], pumps: [], pal: [], bess: [], multi_lane_pt: [],
+  };
+
+  for (const [projectId, scoreMap] of Array.from(byProject.entries())) {
+    const lane = classifyProductLaneFromScores(scoreMap);
+    if (lane) laneBuckets[lane].push(projectId);
+  }
+
+  // Bulk UPDATE per lane
+  const summary: Record<string, number> = {};
+  for (const [lane, ids] of Object.entries(laneBuckets)) {
+    if (ids.length === 0) continue;
+    await db.update(projects)
+      .set({ productLane: lane as "portable_air" | "pumps" | "pal" | "bess" | "multi_lane_pt" })
+      .where(inArray(projects.id, ids));
+    summary[lane] = ids.length;
+  }
+
+  return summary;
 }

@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `productLane` enum('portable_air','pumps','pal','bess','multi_lane_pt');

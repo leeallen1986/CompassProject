@@ -175,6 +175,8 @@ export const projects = mysqlTable("projects", {
   suppressionReason: varchar("suppressionReason", { length: 512 }),
   /** Stage 5D: true = excluded from default rep-facing brief (macro, background, completed, etc.) */
   suppressed: boolean("suppressed").default(false),
+  /** PT Capital Sales Sprint: primary PT equipment lane for this opportunity */
+  productLane: mysqlEnum("productLane", ["portable_air", "pumps", "pal", "bess", "multi_lane_pt"]),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

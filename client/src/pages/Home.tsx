@@ -722,6 +722,7 @@ export default function Home() {
   const [lifecycleFilter, setLifecycleFilter] = useState<"active" | "stale" | "all" | "archived">("active");
   // Stage 5D: projectType filter — default 'opportunity' hides macro items and background accounts
   const [projectTypeFilter, setProjectTypeFilter] = useState<"opportunity" | "all">("opportunity");
+  const [productLaneFilter, setProductLaneFilter] = useState("all");
   const [showAllTerritories, setShowAllTerritories] = useState(false); // default: filter ON
   const [showAllBusinessLines, setShowAllBusinessLines] = useState(false); // default: filter ON
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
@@ -964,7 +965,12 @@ export default function Home() {
         return pt === "opportunity";
       });
 
-  const filteredProjects = projectTypeFiltered.filter((p: ProjectData) => {
+  // PT Capital Sales: productLane filter
+  const laneFiltered = productLaneFilter === "all"
+    ? projectTypeFiltered
+    : projectTypeFiltered.filter((p: ProjectData) => (p as any).productLane === productLaneFilter);
+
+  const filteredProjects = laneFiltered.filter((p: ProjectData) => {
     if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
     if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
     if (tierFilter !== "all") {
@@ -980,14 +986,14 @@ export default function Home() {
   });
 
   // Tier counts for the filter UI
-  const tier1Count = businessLineFiltered.filter((p: any) => p.actionTier === "tier1_actionable").length;
-  const tier2Count = businessLineFiltered.filter((p: any) => p.actionTier === "tier2_warm").length;
-  const tier3Count = businessLineFiltered.filter((p: any) => p.actionTier === "tier3_monitor").length;
-  const tierUnclassifiedCount = businessLineFiltered.filter((p: any) => !p.actionTier).length;
+  const tier1Count = laneFiltered.filter((p: any) => p.actionTier === "tier1_actionable").length;
+  const tier2Count = laneFiltered.filter((p: any) => p.actionTier === "tier2_warm").length;
+  const tier3Count = laneFiltered.filter((p: any) => p.actionTier === "tier3_monitor").length;
+  const tierUnclassifiedCount = laneFiltered.filter((p: any) => !p.actionTier).length;
 
-  const hotProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "hot");
-  const warmProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "warm");
-  const coldProjects = businessLineFiltered.filter((p: ProjectData) => p.priority === "cold");
+  const hotProjects = laneFiltered.filter((p: ProjectData) => p.priority === "hot");
+  const warmProjects = laneFiltered.filter((p: ProjectData) => p.priority === "warm");
+  const coldProjects = laneFiltered.filter((p: ProjectData) => p.priority === "cold");
 
   return (
     <div className="min-h-screen bg-background">
@@ -1388,14 +1394,14 @@ export default function Home() {
               </div>
             )}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: businessLineFiltered.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
+              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: laneFiltered.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
               <SectorFilter active={sectorFilter} onChange={setSectorFilter} />
             </div>
             {/* Tier filter */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action Tier:</span>
               {[
-                { key: "all", label: "All Tiers", count: businessLineFiltered.length },
+                { key: "all", label: "All Tiers", count: laneFiltered.length },
                 { key: "tier1_actionable", label: "Action Now", count: tier1Count, color: "bg-emerald-500" },
                 { key: "tier2_warm", label: "Warm", count: tier2Count, color: "bg-amber-500" },
                 { key: "tier3_monitor", label: "Monitor", count: tier3Count, color: "bg-slate-400" },
@@ -1405,6 +1411,28 @@ export default function Home() {
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${tierFilter === f.key ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"}`}>
                   {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color} mr-1.5`} />}
                   {f.label} ({f.count})
+                </button>
+              ))}
+            </div>
+
+            {/* PT Lane filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PT Lane:</span>
+              {[
+                { key: "all", label: "All Lanes" },
+                { key: "portable_air", label: "Portable Air" },
+                { key: "pumps", label: "Pumps" },
+                { key: "pal", label: "PAL" },
+                { key: "bess", label: "BESS" },
+                { key: "multi_lane_pt", label: "Multi-Lane PT" },
+              ].map(f => (
+                <button key={f.key} onClick={() => setProductLaneFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    productLaneFilter === f.key
+                      ? "bg-navy text-white shadow-sm"
+                      : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                  }`}>
+                  {f.label}
                 </button>
               ))}
             </div>
@@ -1485,7 +1513,7 @@ export default function Home() {
               <img src={IMAGES.miningOps} alt="Mining operations" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-navy/80 to-transparent" />
               <div className="absolute bottom-4 left-5 text-white">
-                <h3 className="text-lg font-bold">Portable Air in Action</h3>
+                <h3 className="text-lg font-bold">PT Capital Sales in Action</h3>
                 <p className="text-xs text-slate-300">Compressed air is critical for drilling, blasting, and maintenance operations</p>
               </div>
             </div>
