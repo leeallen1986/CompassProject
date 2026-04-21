@@ -376,10 +376,13 @@ export type InsertDigestScheduleLog = typeof digestScheduleLog.$inferInsert;
 export const userEmailSendLog = mysqlTable("userEmailSendLog", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  digestType: mysqlEnum("digestType", ["monday", "thursday"]).notNull(),
+  digestType: mysqlEnum("digestType", ["monday", "thursday", "manager_rollup"]).notNull(),
   sentDate: varchar("sentDate", { length: 10 }).notNull(), // YYYY-MM-DD in UTC
+  weekKey: varchar("weekKey", { length: 8 }),              // ISO week e.g. 2026W17
   sentAt: timestamp("sentAt").defaultNow().notNull(),
-  status: mysqlEnum("status", ["sent", "failed"]).notNull().default("sent"),
+  status: mysqlEnum("status", ["sent", "failed", "dry_run"]).notNull().default("sent"),
+  itemCount: int("itemCount").default(0),                  // number of projects/actions in email
+  dryRun: boolean("dryRun").notNull().default(false),      // true = preview only, not sent
   error: text("error"),
 });
 

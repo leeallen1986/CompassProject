@@ -442,6 +442,13 @@
       "when": 1776778877817,
       "tag": "0062_clean_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "5",
+      "when": 1776806677841,
+      "tag": "0063_silent_radioactive_man",
+      "breakpoints": true
     }
   ]
 }

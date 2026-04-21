@@ -1435,3 +1435,39 @@
 - [x] Write server/partD.test.ts: 60+ Vitest tests covering schema, generateActionId, upsert/dedup, outcome updates, rollup counts, PT lane preservation, repeated weekly prompts, contact_discovery_needed
 - [x] Full test suite green after Part D — 2603 / 2603 passing · TypeScript: 0 errors
 - [x] Save checkpoint and produce Part D validation pack
+
+## Email Operationalization Sprint (Parts A–G)
+### Part A — Monday/Thursday Email
+- [x] Confirm Monday/Thursday queries use same filtered logic as PT Capital Sales shortlist
+- [x] Fix subject lines to use "PT Capital Sales" wording (not "Portable Air")
+- [x] Confirm product-lane grouping renders correctly in email HTML
+- [x] Confirm actionId reference codes render in email
+- [x] Confirm deep-links back to Atlas This Week page render correctly
+- [x] Confirm contact-discovery-needed advisory renders in email
+- [x] Confirm freshness line (data age + last pipeline run) renders in email
+- [x] Confirm stale/suppressed/background/macro items excluded by default
+### Part B — Recipient Logic
+- [x] Implement recipient selection: territory, PT lane preference, business-line scope, active status
+- [x] Implement fallback when PT lane preference not set on user profile
+- [x] Implement pilot allow-list (safe exclusion of non-pilot users)
+- [x] Add getEmailRecipients() helper to db.ts
+### Part C — Manager Rollup Email
+- [x] Build manager rollup email template (HTML)
+- [x] Wire getManagerRollup() into email generation
+- [x] Add Thursday manager send schedule entry
+- [x] Define manager recipient rules (admin role only)
+### Part D — Parity Checks
+- [x] Assert dashboard shortlist count == email shortlist count for same user+week
+- [x] Assert suppressed/background/stale projects never appear in email
+- [x] Assert lane grouping in email matches classifyProductLane logic
+- [x] Assert manager rollup counts match projectActions data for same week
+### Part E+F — Send-Log + Pilot Mode
+- [x] Extend userEmailSendLog with weekKey, itemCount, dryRun, manager_rollup digestType (migration applied)
+- [x] Add logEmailSendExtended and wasEmailSentToUserThisWeek helpers to db.ts
+- [x] Implement dry-run/preview mode (renders email but does not send; logs dryRun=true)
+- [x] Implement zero-item guard (suppress send or send compact "no new priority actions" version)
+- [x] Add pilot mode: EMAIL_PILOT_ALLOW_LIST env var + getEmailRecipients() filtering
+### Part G — Tests
+- [x] Write server/emailOps.test.ts: 73 Vitest tests covering all 11 validation requirements
+- [x] Full test suite green after Email Ops sprint — 2661 / 2661 passing · TypeScript: 0 errors
+- [x] Save checkpoint and produce Email Ops validation pack

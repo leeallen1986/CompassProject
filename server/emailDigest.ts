@@ -15,6 +15,12 @@ import {
   getContactsByReportId,
   getPipelineClaimsByUser,
   getDb,
+  getEmailRecipients,
+  logEmailSendExtended,
+  getLatestPipelineRun,
+  getCurrentWeekKey,
+  getManagerRollup,
+  wasEmailSentToUserThisWeek,
 } from "./db";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
@@ -558,20 +564,30 @@ async function scoreAndFilterProjects(
 /**
  * Send compulsory personalized Monday weekly digests to ALL users with profiles.
  * No opt-in required — every user who has completed onboarding gets a digest.
+ *
+ * @param force - Skip dedup guard and re-send even if already sent today
+ * @param dryRun - Generate content but do NOT send; logs with dryRun=true
  */
-export async function sendWeeklyDigests(force = false): Promise<{
+export async function sendWeeklyDigests(force = false, dryRun = false): Promise<{
   sent: number;
   failed: number;
   skipped: number;
   alreadySent: number;
+  previews?: Array<{ userId: number; subject: string; contentLength: number }>;
 }> {
-  const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
+  const results: {
+    sent: number; failed: number; skipped: number; alreadySent: number;
+    previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+  } = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
+  if (dryRun) results.previews = [];
 
-  // Kill switch: skip all email sending when disabled
-  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+  // Kill switch: skip all email sending when disabled (dry-run bypasses this)
+  if (!dryRun && process.env.EMAIL_DIGESTS_ENABLED !== "true") {
     console.log("[EmailDigest] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Skipping weekly digest.");
     return results;
   }
+
+  const weekKey = getCurrentWeekKey();
 
   // Get the latest report
   const report = await getLatestReport();
@@ -580,13 +596,19 @@ export async function sendWeeklyDigests(force = false): Promise<{
     return results;
   }
 
+  // Get freshness line: last pipeline run date
+  const latestRun = await getLatestPipelineRun();
+  const freshnessLine = latestRun?.completedAt
+    ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
+    : `Data as of: ${report.weekEnding}`;
+
   // Get all projects and contacts for this report
   const allProjects = await getProjectsByReportId(report.id);
   const allContacts = await getContactsByReportId(report.id);
 
-  // Get ALL users with profiles (compulsory — no opt-in check)
-  const allUsers = await getAllUsersWithProfiles();
-  console.log(`[EmailDigest] Monday digest: ${allUsers.length} users with profiles`);
+  // Recipient selection: respects PILOT_MODE and PILOT_ALLOW_LIST env vars
+  const allUsers = await getEmailRecipients({ digestType: "monday" });
+  console.log(`[EmailDigest] Monday digest: ${allUsers.length} eligible recipients (dryRun=${dryRun})`);
 
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
@@ -595,12 +617,12 @@ export async function sendWeeklyDigests(force = false): Promise<{
     }
 
     try {
-      // ── Per-user deduplication: skip if already sent today ──
-      if (!force) {
-        const alreadySentToday = await wasEmailSentToUser(user.id, "monday");
-        if (alreadySentToday) {
+      // ── Per-user deduplication: skip if already sent this week (or today for backward compat) ──
+      if (!force && !dryRun) {
+        const alreadySentThisWeek = await wasEmailSentToUserThisWeek(user.id, "monday", weekKey);
+        if (alreadySentThisWeek) {
           results.alreadySent++;
-          console.log(`[EmailDigest] ⏭ Monday digest already sent to ${user.name} today, skipping`);
+          console.log(`[EmailDigest] ⏭ Monday digest already sent to ${user.name} this week (${weekKey}), skipping`);
           continue;
         }
       }
@@ -655,7 +677,7 @@ export async function sendWeeklyDigests(force = false): Promise<{
       const territories = (profile.territories as string[]) || [];
 
       // Generate the personalized Monday digest
-      const content = generateMondayDigest(
+      const rawContent = generateMondayDigest(
         user.name || "Team Member",
         report.weekEnding,
         annotatedProjects,
@@ -671,6 +693,26 @@ export async function sendWeeklyDigests(force = false): Promise<{
         thisWeekSection,
         territories,
       );
+      // Append freshness line
+      const content = rawContent + `\n\n---\n_${freshnessLine}_`;
+
+      // ── PT Capital Sales subject line ──
+      const laneLabel = (profile.assignedBusinessLines as string[] | null)?.length
+        ? (profile.assignedBusinessLines as string[]).slice(0, 2).join("/")
+        : "PT Capital Sales";
+      const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
+      const subject = `PT Capital Sales — Weekly Intelligence Brief — ${laneLabel} | ${territoryLabel} — ${report.weekEnding}`;
+
+      // ── Dry-run: log preview without sending ──
+      if (dryRun) {
+        results.previews!.push({ userId: user.id, subject, contentLength: content.length });
+        await logEmailSendExtended({
+          userId: user.id, digestType: "monday", status: "dry_run",
+          weekKey, itemCount: annotatedProjects.length, dryRun: true,
+        });
+        console.log(`[EmailDigest] 🔍 DRY-RUN Monday digest for ${user.name}: "${subject}" (${content.length} chars)`);
+        continue;
+      }
 
       // Send directly to user's email via Resend
       const userEmail = user.email;
@@ -680,7 +722,6 @@ export async function sendWeeklyDigests(force = false): Promise<{
         continue;
       }
 
-      const subject = `📊 Weekly Brief for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`;
       const sent = await sendEmail({
         to: userEmail,
         subject,
@@ -690,17 +731,27 @@ export async function sendWeeklyDigests(force = false): Promise<{
 
       if (sent) {
         results.sent++;
-        await logUserEmailSend(user.id, "monday", "sent");
+        await logEmailSendExtended({
+          userId: user.id, digestType: "monday", status: "sent",
+          weekKey, itemCount: annotatedProjects.length, dryRun: false,
+        });
         console.log(`[EmailDigest] ✓ Monday digest sent for ${user.name} (${territories.join(", ")})`);
       } else {
         results.failed++;
-        await logUserEmailSend(user.id, "monday", "failed", "sendEmail returned false");
+        await logEmailSendExtended({
+          userId: user.id, digestType: "monday", status: "failed",
+          weekKey, itemCount: annotatedProjects.length, dryRun: false,
+          error: "sendEmail returned false",
+        });
         console.warn(`[EmailDigest] ✗ Failed to send Monday digest for ${user.name}`);
       }
     } catch (error) {
       console.error(`[EmailDigest] Failed for user ${user.id}:`, error);
       results.failed++;
-      if (user?.id) await logUserEmailSend(user.id, "monday", "failed", String(error));
+      if (user?.id) await logEmailSendExtended({
+        userId: user.id, digestType: "monday", status: "failed",
+        weekKey, dryRun: false, error: String(error),
+      });
     }
   }
 
@@ -710,20 +761,30 @@ export async function sendWeeklyDigests(force = false): Promise<{
 /**
  * Send compulsory personalized Thursday mid-week reminders to ALL users with profiles.
  * Lighter than Monday — focuses on urgent actions, hot projects, and pipeline nudges.
+ *
+ * @param force - Skip dedup guard and re-send even if already sent this week
+ * @param dryRun - Generate content but do NOT send; logs with dryRun=true
  */
-export async function sendThursdayReminders(force = false): Promise<{
+export async function sendThursdayReminders(force = false, dryRun = false): Promise<{
   sent: number;
   failed: number;
   skipped: number;
   alreadySent: number;
+  previews?: Array<{ userId: number; subject: string; contentLength: number }>;
 }> {
-  const results = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
+  const results: {
+    sent: number; failed: number; skipped: number; alreadySent: number;
+    previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+  } = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
+  if (dryRun) results.previews = [];
 
-  // Kill switch: skip all email sending when disabled
-  if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+  // Kill switch: skip all email sending when disabled (dry-run bypasses this)
+  if (!dryRun && process.env.EMAIL_DIGESTS_ENABLED !== "true") {
     console.log("[EmailDigest] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Skipping Thursday reminder.");
     return results;
   }
+
+  const weekKey = getCurrentWeekKey();
 
   // Get the latest report
   const report = await getLatestReport();
@@ -732,12 +793,18 @@ export async function sendThursdayReminders(force = false): Promise<{
     return results;
   }
 
+  // Get freshness line
+  const latestRun = await getLatestPipelineRun();
+  const freshnessLine = latestRun?.completedAt
+    ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
+    : `Data as of: ${report.weekEnding}`;
+
   // Get all projects for this report
   const allProjects = await getProjectsByReportId(report.id);
 
-  // Get ALL users with profiles (compulsory)
-  const allUsers = await getAllUsersWithProfiles();
-  console.log(`[EmailDigest] Thursday reminder: ${allUsers.length} users with profiles`);
+  // Recipient selection: respects PILOT_MODE and PILOT_ALLOW_LIST env vars
+  const allUsers = await getEmailRecipients({ digestType: "thursday" });
+  console.log(`[EmailDigest] Thursday reminder: ${allUsers.length} eligible recipients (dryRun=${dryRun})`);
 
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
@@ -746,12 +813,12 @@ export async function sendThursdayReminders(force = false): Promise<{
     }
 
     try {
-      // ── Per-user deduplication: skip if already sent today ──
-      if (!force) {
-        const alreadySentToday = await wasEmailSentToUser(user.id, "thursday");
-        if (alreadySentToday) {
+      // ── Per-user deduplication: skip if already sent this week ──
+      if (!force && !dryRun) {
+        const alreadySentThisWeek = await wasEmailSentToUserThisWeek(user.id, "thursday", weekKey);
+        if (alreadySentThisWeek) {
           results.alreadySent++;
-          console.log(`[EmailDigest] ⏭ Thursday reminder already sent to ${user.name} today, skipping`);
+          console.log(`[EmailDigest] ⏭ Thursday reminder already sent to ${user.name} this week (${weekKey}), skipping`);
           continue;
         }
       }
@@ -810,9 +877,218 @@ export async function sendThursdayReminders(force = false): Promise<{
         continue;
       }
 
-      const subject = `⚡ Mid-Week Reminder for ${user.name || "Team"} — ${territories.length > 0 ? territories.join("/") : "National"} — ${report.weekEnding}`;
+      // Append freshness line
+      const contentWithFreshness = content + `\n\n---\n_${freshnessLine}_`;
+
+      // ── PT Capital Sales subject line ──
+      const laneLabel = (profile.assignedBusinessLines as string[] | null)?.length
+        ? (profile.assignedBusinessLines as string[]).slice(0, 2).join("/")
+        : "PT Capital Sales";
+      const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
+      const subject = `PT Capital Sales — Mid-Week Action Reminder — ${laneLabel} | ${territoryLabel} — ${report.weekEnding}`;
+
+      // ── Dry-run: log preview without sending ──
+      if (dryRun) {
+        results.previews!.push({ userId: user.id, subject, contentLength: contentWithFreshness.length });
+        await logEmailSendExtended({
+          userId: user.id, digestType: "thursday", status: "dry_run",
+          weekKey, itemCount: hotProjects.length, dryRun: true,
+        });
+        console.log(`[EmailDigest] 🔍 DRY-RUN Thursday reminder for ${user.name}: "${subject}"`);
+        continue;
+      }
+
       const sent = await sendEmail({
         to: userEmail,
+        subject,
+        markdownContent: contentWithFreshness,
+        textContent: contentWithFreshness,
+      });
+
+      if (sent) {
+        results.sent++;
+        await logEmailSendExtended({
+          userId: user.id, digestType: "thursday", status: "sent",
+          weekKey, itemCount: hotProjects.length, dryRun: false,
+        });
+        console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
+      } else {
+        results.failed++;
+        await logEmailSendExtended({
+          userId: user.id, digestType: "thursday", status: "failed",
+          weekKey, itemCount: hotProjects.length, dryRun: false,
+          error: "sendEmail returned false",
+        });
+        console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);
+      }
+    } catch (error) {
+      console.error(`[EmailDigest] Thursday reminder failed for user ${user.id}:`, error);
+      results.failed++;
+      if (user?.id) await logEmailSendExtended({
+        userId: user.id, digestType: "thursday", status: "failed",
+        weekKey, dryRun: false, error: String(error),
+      });
+    }
+  }
+
+  return results;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Manager Rollup Email (Thursday, admin users only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Build the HTML/Markdown content for the manager rollup email.
+ * Shows per-rep action counts, lane breakdown, and any projects still at not_started.
+ */
+function generateManagerRollupEmail(
+  rollup: Awaited<ReturnType<typeof getManagerRollup>>,
+  weekEnding: string,
+  freshnessLine: string,
+): string {
+  const OUTCOME_LABELS: Record<string, string> = {
+    contacted: "Contacted",
+    meeting_booked: "Meeting Booked",
+    proposal_sent: "Proposal Sent",
+    won: "Won",
+    lost: "Lost",
+    deferred: "Deferred",
+    not_relevant: "Not Relevant",
+    already_active: "Already Active",
+    contact_discovery_needed: "Contact Discovery Needed",
+    not_started: "Not Started",
+  };
+
+  let content = `# PT Capital Sales — Manager Rollup — Week of ${weekEnding}\n\n`;
+  content += `**Total actions logged this week:** ${rollup.totalActions}\n\n`;
+
+  // ── Outcome summary ──
+  if (Object.keys(rollup.byOutcome).length > 0) {
+    content += `## Outcome Summary\n\n`;
+    content += `| Outcome | Count |\n|---|---|\n`;
+    for (const [outcome, count] of Object.entries(rollup.byOutcome).sort((a, b) => b[1] - a[1])) {
+      content += `| ${OUTCOME_LABELS[outcome] ?? outcome} | ${count} |\n`;
+    }
+    content += `\n`;
+  }
+
+  // ── Per-rep breakdown ──
+  if (rollup.byRep.length > 0) {
+    content += `## Rep Activity\n\n`;
+    content += `| Rep | Total Actions | Top Outcome |\n|---|---|---|\n`;
+    for (const rep of rollup.byRep.sort((a, b) => b.count - a.count)) {
+      const topOutcome = Object.entries(rep.byOutcome).sort((a, b) => b[1] - a[1])[0];
+      const topLabel = topOutcome ? `${OUTCOME_LABELS[topOutcome[0]] ?? topOutcome[0]} (${topOutcome[1]})` : "—";
+      content += `| ${rep.userName ?? `User #${rep.userId}`} | ${rep.count} | ${topLabel} |\n`;
+    }
+    content += `\n`;
+  } else {
+    content += `_No rep actions logged this week._\n\n`;
+  }
+
+  // ── Lane breakdown ──
+  if (Object.keys(rollup.byLane).length > 0) {
+    content += `## Lane Breakdown\n\n`;
+    content += `| Lane | Actions |\n|---|---|\n`;
+    for (const [lane, count] of Object.entries(rollup.byLane).sort((a, b) => b[1] - a[1])) {
+      content += `| ${lane} | ${count} |\n`;
+    }
+    content += `\n`;
+  }
+
+  content += `---\n_${freshnessLine}_\n`;
+  return content;
+}
+
+/**
+ * Send the Thursday manager rollup email to all admin users.
+ * Separate from the rep Thursday reminder — admins get the rollup view.
+ *
+ * @param force - Skip dedup guard
+ * @param dryRun - Generate content but do NOT send
+ */
+export async function sendManagerRollupEmail(force = false, dryRun = false): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+  alreadySent: number;
+  previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+}> {
+  const results: {
+    sent: number; failed: number; skipped: number; alreadySent: number;
+    previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+  } = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
+  if (dryRun) results.previews = [];
+
+  if (!dryRun && process.env.EMAIL_DIGESTS_ENABLED !== "true") {
+    console.log("[EmailDigest] ⚠ Email digests DISABLED. Skipping manager rollup.");
+    return results;
+  }
+
+  const weekKey = getCurrentWeekKey();
+
+  // Get the latest report for weekEnding label
+  const report = await getLatestReport();
+  if (!report) {
+    console.warn("[EmailDigest] No report found, skipping manager rollup");
+    return results;
+  }
+
+  // Get freshness line
+  const latestRun = await getLatestPipelineRun();
+  const freshnessLine = latestRun?.completedAt
+    ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
+    : `Data as of: ${report.weekEnding}`;
+
+  // Get rollup data
+  const rollup = await getManagerRollup(weekKey);
+
+  // Get admin recipients
+  const { users: usersTable } = await import("../drizzle/schema");
+  const { eq: eqOp } = await import("drizzle-orm");
+  const db = await getDb();
+  if (!db) {
+    console.warn("[EmailDigest] No DB for manager rollup");
+    return results;
+  }
+  const admins = await db
+    .select()
+    .from(usersTable)
+    .where(eqOp(usersTable.role, "admin"));
+
+  console.log(`[EmailDigest] Manager rollup: ${admins.length} admin recipients (dryRun=${dryRun})`);
+
+  const content = generateManagerRollupEmail(rollup, report.weekEnding, freshnessLine);
+  const subject = `PT Capital Sales — Manager Rollup — Week of ${report.weekEnding}`;
+
+  for (const admin of admins) {
+    if (!admin.email) {
+      results.skipped++;
+      continue;
+    }
+
+    try {
+      if (!force && !dryRun) {
+        const alreadySent = await wasEmailSentToUserThisWeek(admin.id, "manager_rollup", weekKey);
+        if (alreadySent) {
+          results.alreadySent++;
+          continue;
+        }
+      }
+
+      if (dryRun) {
+        results.previews!.push({ userId: admin.id, subject, contentLength: content.length });
+        await logEmailSendExtended({
+          userId: admin.id, digestType: "manager_rollup", status: "dry_run",
+          weekKey, itemCount: rollup.totalActions, dryRun: true,
+        });
+        console.log(`[EmailDigest] 🔍 DRY-RUN Manager rollup for ${admin.name}: "${subject}"`);
+        continue;
+      }
+
+      const sent = await sendEmail({
+        to: admin.email,
         subject,
         markdownContent: content,
         textContent: content,
@@ -820,17 +1096,25 @@ export async function sendThursdayReminders(force = false): Promise<{
 
       if (sent) {
         results.sent++;
-        await logUserEmailSend(user.id, "thursday", "sent");
-        console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
+        await logEmailSendExtended({
+          userId: admin.id, digestType: "manager_rollup", status: "sent",
+          weekKey, itemCount: rollup.totalActions, dryRun: false,
+        });
+        console.log(`[EmailDigest] ✓ Manager rollup sent to ${admin.name}`);
       } else {
         results.failed++;
-        await logUserEmailSend(user.id, "thursday", "failed", "sendEmail returned false");
-        console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);
+        await logEmailSendExtended({
+          userId: admin.id, digestType: "manager_rollup", status: "failed",
+          weekKey, dryRun: false, error: "sendEmail returned false",
+        });
       }
     } catch (error) {
-      console.error(`[EmailDigest] Thursday reminder failed for user ${user.id}:`, error);
+      console.error(`[EmailDigest] Manager rollup failed for admin ${admin.id}:`, error);
       results.failed++;
-      if (user?.id) await logUserEmailSend(user.id, "thursday", "failed", String(error));
+      await logEmailSendExtended({
+        userId: admin.id, digestType: "manager_rollup", status: "failed",
+        weekKey, dryRun: false, error: String(error),
+      });
     }
   }
 

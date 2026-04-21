@@ -7,11 +7,14 @@
  * 3. Runs missed digests immediately on startup if needed
  * 4. Uses a persistent timer that survives process restarts
  *
- * Sends Monday digest at 23:00 UTC (Monday only — Thursday reminder disabled).
+ * Schedule:
+ *  - Monday 23:00 UTC  — Full weekly digest (all reps)
+ *  - Thursday 23:00 UTC — Mid-week action reminder (all reps)
+ *  - Thursday 23:30 UTC — Manager rollup email (admin users only)
  */
 
 import { getDb } from "./db";
-import { sendWeeklyDigests } from "./emailDigest";
+import { sendWeeklyDigests, sendThursdayReminders, sendManagerRollupEmail } from "./emailDigest";
 import { digestScheduleLog } from "../drizzle/schema";
 import { eq, gte, and } from "drizzle-orm";
 
@@ -99,6 +102,45 @@ async function sendMondayDigestSafe(): Promise<void> {
 }
 
 /**
+ * Send Thursday reminder and log the result
+ */
+async function sendThursdayReminderSafe(): Promise<void> {
+  const alreadySent = await wasDigestSentToday("thursday");
+  if (alreadySent) {
+    console.log("[PersistentScheduler] ✓ Thursday reminder already sent today — skipping");
+    return;
+  }
+  try {
+    console.log("[PersistentScheduler] 📧 Sending Thursday reminder...");
+    await logDigestAttempt("thursday", "pending");
+    const result = await sendThursdayReminders();
+    await logDigestAttempt("thursday", "sent");
+    console.log(
+      `[PersistentScheduler] ✓ Thursday reminder sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
+    );
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    await logDigestAttempt("thursday", "failed", errMsg);
+    console.error("[PersistentScheduler] ✗ Thursday reminder failed:", errMsg);
+  }
+}
+
+/**
+ * Send manager rollup email (no digestScheduleLog entry — uses userEmailSendLog directly)
+ */
+async function sendManagerRollupSafe(): Promise<void> {
+  try {
+    console.log("[PersistentScheduler] 📊 Sending manager rollup email...");
+    const result = await sendManagerRollupEmail();
+    console.log(
+      `[PersistentScheduler] ✓ Manager rollup sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
+    );
+  } catch (err: unknown) {
+    console.error("[PersistentScheduler] ✗ Manager rollup failed:", String(err));
+  }
+}
+
+/**
  * Check if today is Monday (1) in UTC
  */
 function getTodayDayOfWeek(): number {
@@ -139,7 +181,10 @@ function getDelayUntilNextWeekday(targetDay: number, targetHour: number = 23): n
 
 /**
  * Main scheduler that runs on startup and periodically checks for missed digests.
- * Only schedules Monday weekly digest — Thursday reminder is disabled.
+ * Schedule:
+ *  - Monday 23:00 UTC  — Full weekly digest (all reps)
+ *  - Thursday 23:00 UTC — Mid-week action reminder (all reps)
+ *  - Thursday 23:30 UTC — Manager rollup email (admin users only)
  */
 export async function startPersistentScheduler(): Promise<void> {
   // Kill switch: if EMAIL_DIGESTS_ENABLED is not "true", do not schedule or send anything
@@ -148,13 +193,12 @@ export async function startPersistentScheduler(): Promise<void> {
     return;
   }
 
-  console.log("[PersistentScheduler] Starting persistent email digest scheduler (Monday only)...");
+  console.log("[PersistentScheduler] Starting persistent email digest scheduler (Monday + Thursday + Manager Rollup)...");
 
   // ── Startup: Check for missed digests ──
   const today = getTodayDayOfWeek();
   const currentTime = getCurrentUTCTime();
-
-  console.log(`[PersistentScheduler] Current time: ${currentTime} UTC | Day: ${today} (0=Sun, 1=Mon)`);
+  console.log(`[PersistentScheduler] Current time: ${currentTime} UTC | Day: ${today} (0=Sun, 1=Mon, 4=Thu)`);
 
   // Check if today is Monday and digest hasn't been sent yet
   if (today === 1) {
@@ -167,22 +211,45 @@ export async function startPersistentScheduler(): Promise<void> {
     }
   }
 
-  // Thursday reminder — DISABLED per user request (Monday only)
+  // Check if today is Thursday and reminder hasn't been sent yet
+  if (today === 4) {
+    const thursdayAlreadySent = await wasDigestSentToday("thursday");
+    if (!thursdayAlreadySent) {
+      console.log("[PersistentScheduler] ⚠ Thursday reminder not sent yet — sending now...");
+      await sendThursdayReminderSafe();
+      // Manager rollup runs 30 min after Thursday reminder
+      setTimeout(() => sendManagerRollupSafe(), 30 * 60 * 1000);
+    } else {
+      console.log("[PersistentScheduler] ✓ Thursday reminder already sent today");
+    }
+  }
 
   // ── Recurring: Schedule next Monday digest ──
   function scheduleNextMonday(): void {
     const delay = getDelayUntilNextWeekday(1, 23);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
     console.log(`[PersistentScheduler] Next Monday digest scheduled in ${hoursUntil}h`);
-
     setTimeout(async () => {
-      await sendMondayDigestSafe(); // guard inside will prevent duplicates
+      await sendMondayDigestSafe();
       scheduleNextMonday();
     }, delay);
   }
 
-  // Start Monday recurring schedule only
-  scheduleNextMonday();
+  // ── Recurring: Schedule next Thursday reminder + manager rollup ──
+  function scheduleNextThursday(): void {
+    const delay = getDelayUntilNextWeekday(4, 23);
+    const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
+    console.log(`[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h`);
+    setTimeout(async () => {
+      await sendThursdayReminderSafe();
+      // Manager rollup 30 min after rep reminder
+      setTimeout(() => sendManagerRollupSafe(), 30 * 60 * 1000);
+      scheduleNextThursday();
+    }, delay);
+  }
 
-  console.log("[PersistentScheduler] ✓ Persistent scheduler initialized (Monday digest only)");
+  scheduleNextMonday();
+  scheduleNextThursday();
+
+  console.log("[PersistentScheduler] ✓ Persistent scheduler initialized (Monday + Thursday + Manager Rollup)");
 }

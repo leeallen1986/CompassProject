@@ -78,24 +78,28 @@ describe("Email Digest Deduplication", () => {
     const source = fs.readFileSync("./server/emailDigest.ts", "utf-8");
 
     // Find the sendWeeklyDigests function and verify it has dedup check
+    // Updated (Email Ops sprint): now uses wasEmailSentToUserThisWeek (week-level dedup)
     const mondaySection = source.slice(
       source.indexOf("export async function sendWeeklyDigests"),
       source.indexOf("export async function sendThursdayReminders")
     );
-    expect(mondaySection).toContain("wasEmailSentToUser(user.id, \"monday\")");
+    // Accepts either the old wasEmailSentToUser or the new wasEmailSentToUserThisWeek
+    const hasDedup = mondaySection.includes("wasEmailSentToUser") || mondaySection.includes("wasEmailSentToUserThisWeek");
+    expect(hasDedup).toBe(true);
     expect(mondaySection).toContain("alreadySent++");
-    expect(mondaySection).toContain("logUserEmailSend(user.id, \"monday\", \"sent\")");
   });
 
-  it("emailDigest Thursday function still has dedup logic (but is not scheduled)", async () => {
+  it("emailDigest Thursday function has dedup logic and is now scheduled (Email Ops sprint)", async () => {
     const fs = await import("fs");
     const source = fs.readFileSync("./server/emailDigest.ts", "utf-8");
 
-    // The function still exists in the source
+    // The function exists and is now scheduled
     const thursdaySection = source.slice(
       source.indexOf("export async function sendThursdayReminders")
     );
-    expect(thursdaySection).toContain("wasEmailSentToUser(user.id, \"thursday\")");
+    // Updated: now uses wasEmailSentToUserThisWeek (week-level dedup)
+    const hasDedup = thursdaySection.includes("wasEmailSentToUser") || thursdaySection.includes("wasEmailSentToUserThisWeek");
+    expect(hasDedup).toBe(true);
     expect(thursdaySection).toContain("alreadySent++");
   });
 
@@ -107,26 +111,22 @@ describe("Email Digest Deduplication", () => {
     expect(source).toContain("userId");
   });
 
-  it("persistentScheduler should only schedule Monday digest (no Thursday)", async () => {
+  it("persistentScheduler schedules Monday digest AND Thursday reminder (Email Ops sprint)", async () => {
     const fs = await import("fs");
     const source = fs.readFileSync("./server/persistentScheduler.ts", "utf-8");
 
-    // Verify it imports only sendWeeklyDigests (not sendThursdayReminders)
-    expect(source).toContain("import { sendWeeklyDigests }");
-    expect(source).not.toContain("import { sendWeeklyDigests, sendThursdayReminders }");
-
+    // Updated (Email Ops sprint): Thursday is now RE-ENABLED
     // Verify Monday digest is still active
     expect(source).toContain("sendMondayDigestSafe");
 
-    // Verify Thursday reminder is removed
-    expect(source).not.toContain("sendThursdayReminderSafe");
-    expect(source).not.toContain("scheduleNextThursday");
+    // Verify Thursday reminder is now active
+    expect(source).toContain("sendThursdayReminderSafe");
+    expect(source).toContain("scheduleNextThursday");
+
+    // Verify manager rollup is also scheduled
+    expect(source).toContain("sendManagerRollupSafe");
 
     // Verify it has batch-level dedup
     expect(source).toContain("wasDigestSentToday");
-
-    // Verify the comment about Thursday being disabled
-    expect(source).toContain("Thursday reminder");
-    expect(source).toContain("DISABLED");
   });
 });

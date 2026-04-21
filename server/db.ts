@@ -14,6 +14,8 @@ import {
   emailDigestPrefs, InsertEmailDigestPref, EmailDigestPref,
   projectBusinessLineScores,
   projectActions, InsertProjectAction, ProjectAction,
+  pipelineRuns,
+  userEmailSendLog,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1999,4 +2001,151 @@ export async function getAlreadyActiveCooldownProjects(
     );
 
   return rows.map((r: { projectId: number }) => r.projectId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Email Operationalization Helpers (Email Ops Sprint)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the most recent completed pipeline run for the freshness line in emails.
+ * Returns null if no completed run exists.
+ */
+export async function getLatestPipelineRun() {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select({
+      id: pipelineRuns.id,
+      runType: pipelineRuns.runType,
+      status: pipelineRuns.status,
+      completedAt: pipelineRuns.completedAt,
+      startedAt: pipelineRuns.startedAt,
+      articlesIngested: pipelineRuns.articlesIngested,
+      projectsCreated: pipelineRuns.projectsCreated,
+    })
+    .from(pipelineRuns)
+    .where(eq(pipelineRuns.status, "completed"))
+    .orderBy(desc(pipelineRuns.completedAt))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Recipient selection for email digests.
+ *
+ * Selection rules (in priority order):
+ * 1. If PILOT_MODE env is "true", only users whose email is in PILOT_ALLOW_LIST are included.
+ * 2. Only users with completed onboarding profiles are included.
+ * 3. If the user has assignedBusinessLines set, they are included regardless of PT lane.
+ * 4. If no assignedBusinessLines, they are included (fallback: all lanes).
+ *
+ * Returns an array of { user, profile } pairs ready for digest generation.
+ */
+export async function getEmailRecipients(opts?: {
+  digestType?: "monday" | "thursday" | "manager_rollup";
+  pilotMode?: boolean;
+  pilotAllowList?: string[];
+}): Promise<Array<{ user: typeof users.$inferSelect; profile: typeof userProfiles.$inferSelect }>> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Determine pilot mode from env or explicit option
+  const isPilot = opts?.pilotMode ?? (process.env.PILOT_MODE === "true");
+  const allowList: string[] = opts?.pilotAllowList
+    ?? (process.env.PILOT_ALLOW_LIST ? process.env.PILOT_ALLOW_LIST.split(",").map(s => s.trim().toLowerCase()) : []);
+
+  const rows = await db
+    .select({ user: users, profile: userProfiles })
+    .from(userProfiles)
+    .innerJoin(users, eq(userProfiles.userId, users.id))
+    .where(eq(userProfiles.onboardingCompleted, true));
+
+  // Apply pilot filter
+  if (isPilot && allowList.length > 0) {
+    return rows.filter(r => r.user.email && allowList.includes(r.user.email.toLowerCase()));
+  }
+
+  return rows;
+}
+
+/**
+ * Extended email send log with weekKey, itemCount, and dryRun support.
+ * Replaces the simpler logUserEmailSend in emailDigest.ts for new sends.
+ */
+export async function logEmailSendExtended(params: {
+  userId: number;
+  digestType: "monday" | "thursday" | "manager_rollup";
+  status: "sent" | "failed" | "dry_run";
+  weekKey?: string;
+  itemCount?: number;
+  dryRun?: boolean;
+  error?: string;
+}): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    const today = new Date().toISOString().slice(0, 10);
+    await db.insert(userEmailSendLog).values({
+      userId: params.userId,
+      digestType: params.digestType,
+      sentDate: today,
+      weekKey: params.weekKey ?? null,
+      status: params.status,
+      itemCount: params.itemCount ?? 0,
+      dryRun: params.dryRun ?? false,
+      error: params.error ?? null,
+    });
+  } catch (err) {
+    console.error("[EmailOps] Error logging email send:", err);
+  }
+}
+
+/**
+ * Check if a user already received a specific digest type this ISO week.
+ * Used for weekly dedup (as opposed to daily dedup in wasEmailSentToUser).
+ */
+export async function wasEmailSentToUserThisWeek(
+  userId: number,
+  digestType: "monday" | "thursday" | "manager_rollup",
+  weekKey: string,
+): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    const result = await db
+      .select()
+      .from(userEmailSendLog)
+      .where(
+        and(
+          eq(userEmailSendLog.userId, userId),
+          eq(userEmailSendLog.digestType, digestType),
+          eq(userEmailSendLog.weekKey, weekKey),
+          eq(userEmailSendLog.status, "sent"),
+        ),
+      )
+      .limit(1);
+    return result.length > 0;
+  } catch {
+    return true; // On error, assume sent to prevent duplicates
+  }
+}
+
+/**
+ * Get email send log for a specific user and digest type within a week.
+ * Used for parity checks and audit.
+ */
+export async function getEmailSendLogForWeek(
+  weekKey: string,
+  digestType?: "monday" | "thursday" | "manager_rollup",
+): Promise<Array<typeof userEmailSendLog.$inferSelect>> {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(userEmailSendLog.weekKey, weekKey)];
+  if (digestType) conditions.push(eq(userEmailSendLog.digestType, digestType));
+  return db
+    .select()
+    .from(userEmailSendLog)
+    .where(and(...conditions))
+    .orderBy(desc(userEmailSendLog.sentAt));
 }
