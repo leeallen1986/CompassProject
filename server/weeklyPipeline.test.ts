@@ -63,7 +63,7 @@ vi.mock("./emailDigest", () => ({
 }));
 
 vi.mock("./db", () => ({
-  markStaleProjects: vi.fn().mockResolvedValue(3),
+  markStaleProjects: vi.fn().mockResolvedValue({ staled: 3, archived: 0 }),
   getDb: vi.fn().mockResolvedValue(null),
 }));
 

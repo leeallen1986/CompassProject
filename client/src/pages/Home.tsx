@@ -718,6 +718,8 @@ export default function Home() {
   const [tierFilter, setTierFilter] = useState("all");
   const [businessLineFilter, setBusinessLineFilter] = useState("all");
   const [actionTierFilter, setActionTierFilter] = useState<"all" | "tier1_actionable" | "tier2_warm" | "tier3_monitor">("all");
+  // Stage 5A: default to 'active' — stale projects hidden from default view
+  const [lifecycleFilter, setLifecycleFilter] = useState<"active" | "stale" | "all" | "archived">("active");
   const [showAllTerritories, setShowAllTerritories] = useState(false); // default: filter ON
   const [showAllBusinessLines, setShowAllBusinessLines] = useState(false); // default: filter ON
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
@@ -770,8 +772,9 @@ export default function Home() {
   });
 
   // Fetch the unified dashboard data (all projects across all sources)
+  // Stage 5A: pass lifecycleFilter so stale projects are hidden by default
   const { data: fullReport, isLoading: reportLoading } = trpc.report.full.useQuery(
-    {},
+    { lifecycleFilter },
     { enabled: isAuthenticated }
    );
 
@@ -1080,6 +1083,40 @@ export default function Home() {
           <span className="text-[10px] text-muted-foreground ml-auto">
             {businessLineFiltered.length} of {personalizedProjects.length} projects in your scope
           </span>
+        </div>
+
+        {/* Lifecycle Filter Bar — Stage 5A */}
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Status:</span>
+          {([
+            { key: "active", label: "Active", icon: CheckCircle2, color: "bg-emerald-500" },
+            { key: "stale", label: "Stale", icon: Clock, color: "bg-amber-400" },
+            { key: "all", label: "All (incl. stale)", icon: Layers, color: undefined as string | undefined },
+            { key: "archived", label: "Archived", icon: Archive, color: "bg-slate-400" },
+          ] as const).map(f => {
+            const Icon = f.icon;
+            const isActive = lifecycleFilter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setLifecycleFilter(f.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-navy text-white shadow-sm"
+                    : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                }`}
+              >
+                {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color}`} />}
+                <Icon className="w-3 h-3" />
+                {f.label}
+              </button>
+            );
+          })}
+          {lifecycleFilter === "stale" && (
+            <span className="text-[10px] text-amber-600 ml-2 italic">
+              Stale = no source signal for 60+ days. Use the Keep flag to protect important projects.
+            </span>
+          )}
         </div>
 
         {/* Action Tier Filter Bar */}

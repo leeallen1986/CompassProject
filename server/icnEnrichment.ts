@@ -13,7 +13,7 @@
  * ICN Gateway is JavaScript-rendered and has no public API.
  */
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "./db";
+import { getDb, touchProjectSourceSeen } from "./db";
 import { projects } from "../drizzle/schema";
 
 // ── Types ──
@@ -363,6 +363,8 @@ export async function validateProject(projectId: number): Promise<IcnValidationR
   if (updated) {
     await db.update(projects).set(updateData).where(eq(projects.id, projectId));
   }
+  // Stage 5A: ICN corroboration — update sourceLastSeenAt and re-activate if stale
+  await touchProjectSourceSeen(projectId, true);
 
   return {
     projectId,

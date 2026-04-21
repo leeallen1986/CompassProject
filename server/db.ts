@@ -245,49 +245,93 @@ export async function bulkUpdateProjectLifecycle(
 }
 
 /**
- * Mark projects as stale if they have no pipeline claims and were created > 30 days ago
- * with no recent activity. Skips projects that are already archived, awarded, or completed.
+ * Stage 5A: Mark projects as stale or archived based on sourceLastSeenAt (primary freshness
+ * signal) with lastActivityAt and createdAt as fallbacks.
+ *
+ * Thresholds:
+ *   - stale:   no source corroboration for 60+ days
+ *   - archived: no source corroboration for 180+ days
+ *
+ * Exemptions (never touched by this function):
+ *   - projects with an active pipeline claim
+ *   - projects with keepFlag = true
+ *   - projects already archived, awarded, or completed
+ *
+ * Freshness resolution order:
+ *   1. sourceLastSeenAt  (set by pipeline whenever a source mentions the project)
+ *   2. lastActivityAt    (set by user interactions and enrichment)
+ *   3. createdAt         (fallback — used only when neither above is set)
  */
-export async function markStaleProjects(): Promise<number> {
+export async function markStaleProjects(): Promise<{ staled: number; archived: number }> {
   const db = await getDb();
-  if (!db) return 0;
+  if (!db) return { staled: 0, archived: 0 };
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const now = Date.now();
+  const sixtyDaysAgo     = new Date(now - 60  * 24 * 60 * 60 * 1000);
+  const oneEightyDaysAgo = new Date(now - 180 * 24 * 60 * 60 * 1000);
 
-  // Get all active projects older than 30 days
-  const oldActiveProjects = await db.select({ id: projects.id })
+  // ── 1. Fetch all non-terminal active/stale projects ──
+  const candidates = await db.select({
+    id:               projects.id,
+    lifecycleStatus:  projects.lifecycleStatus,
+    sourceLastSeenAt: projects.sourceLastSeenAt,
+    lastActivityAt:   projects.lastActivityAt,
+    createdAt:        projects.createdAt,
+    keepFlag:         projects.keepFlag,
+  })
     .from(projects)
-    .where(and(
-      eq(projects.lifecycleStatus, "active"),
-      lt(projects.createdAt, thirtyDaysAgo),
-      or(
-        isNull(projects.lastActivityAt),
-        lt(projects.lastActivityAt, thirtyDaysAgo)
-      )
-    ));
+    .where(inArray(projects.lifecycleStatus, ["active", "stale"]));
 
-  if (oldActiveProjects.length === 0) return 0;
+  if (candidates.length === 0) return { staled: 0, archived: 0 };
 
-  // Get projects that have active pipeline claims (these should stay active)
-  const claimedProjectIds = await db.select({ projectId: pipelineClaims.projectId })
+  // ── 2. Fetch projects with active pipeline claims ──
+  const claimedRows = await db.select({ projectId: pipelineClaims.projectId })
     .from(pipelineClaims)
     .where(and(
-      inArray(pipelineClaims.projectId, oldActiveProjects.map(p => p.id)),
+      inArray(pipelineClaims.projectId, candidates.map(p => p.id)),
       ne(pipelineClaims.status, "lost")
     ));
+  const claimedSet = new Set(claimedRows.map(c => c.projectId));
 
-  const claimedSet = new Set(claimedProjectIds.map(c => c.projectId));
-  const staleIds = oldActiveProjects
-    .filter(p => !claimedSet.has(p.id))
-    .map(p => p.id);
+  // ── 3. Classify each candidate ──
+  const toArchive: number[] = [];
+  const toStale:   number[] = [];
 
-  if (staleIds.length === 0) return 0;
+  for (const p of candidates) {
+    // Never touch claimed or keep-flagged projects
+    if (claimedSet.has(p.id) || p.keepFlag) continue;
 
-  await db.update(projects)
-    .set({ lifecycleStatus: "stale" })
-    .where(inArray(projects.id, staleIds));
+    // Resolve effective freshness date
+    const freshness: Date = p.sourceLastSeenAt ?? p.lastActivityAt ?? p.createdAt;
 
-  return staleIds.length;
+    if (freshness < oneEightyDaysAgo) {
+      toArchive.push(p.id);
+    } else if (freshness < sixtyDaysAgo && p.lifecycleStatus === "active") {
+      toStale.push(p.id);
+    }
+  }
+
+  // ── 4. Apply updates ──
+  const nowDate = new Date();
+  if (toArchive.length > 0) {
+    await db.update(projects)
+      .set({
+        lifecycleStatus: "archived",
+        archivedAt:  nowDate,
+        staleReason: "No source corroboration for 180+ days (Stage 5A auto-archive)",
+      })
+      .where(inArray(projects.id, toArchive));
+  }
+  if (toStale.length > 0) {
+    await db.update(projects)
+      .set({
+        lifecycleStatus: "stale",
+        staleReason: "No source corroboration for 60+ days (Stage 5A auto-stale)",
+      })
+      .where(inArray(projects.id, toStale));
+  }
+
+  return { staled: toStale.length, archived: toArchive.length };
 }
 
 /**
@@ -299,6 +343,49 @@ export async function touchProjectActivity(projectId: number): Promise<void> {
 
   await db.update(projects)
     .set({ lastActivityAt: new Date(), lifecycleStatus: "active" })
+    .where(eq(projects.id, projectId));
+}
+
+/**
+ * Stage 5A: Update sourceLastSeenAt for a project (called whenever a pipeline source
+ * mentions or corroborates the project). Also re-activates stale projects.
+ *
+ * @param projectId  - the project to touch
+ * @param reactivate - if true, also set lifecycleStatus back to 'active' (default: true)
+ */
+export async function touchProjectSourceSeen(
+  projectId: number,
+  reactivate = true
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const updateData: Record<string, unknown> = {
+    sourceLastSeenAt: new Date(),
+  };
+  if (reactivate) {
+    updateData.lifecycleStatus = "active";
+    updateData.staleReason = null;
+  }
+
+  await db.update(projects)
+    .set(updateData)
+    .where(eq(projects.id, projectId));
+}
+
+/**
+ * Stage 5A: Set or clear the keepFlag for a project.
+ * Projects with keepFlag=true are never auto-staled or auto-archived.
+ */
+export async function setProjectKeepFlag(
+  projectId: number,
+  keep: boolean
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.update(projects)
+    .set({ keepFlag: keep })
     .where(eq(projects.id, projectId));
 }
 

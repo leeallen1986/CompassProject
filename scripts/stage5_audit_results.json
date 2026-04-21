@@ -1,0 +1,1292 @@
+{
+  "status": [
+    {
+      "lifecycleStatus": "stale",
+      "count": 740
+    },
+    {
+      "lifecycleStatus": "active",
+      "count": 368
+    },
+    {
+      "lifecycleStatus": "completed",
+      "count": 1
+    },
+    {
+      "lifecycleStatus": "archived",
+      "count": 1
+    }
+  ],
+  "priority_status": [
+    {
+      "priority": "hot",
+      "lifecycleStatus": "active",
+      "count": 102
+    },
+    {
+      "priority": "hot",
+      "lifecycleStatus": "stale",
+      "count": 246
+    },
+    {
+      "priority": "hot",
+      "lifecycleStatus": "archived",
+      "count": 1
+    },
+    {
+      "priority": "hot",
+      "lifecycleStatus": "completed",
+      "count": 1
+    },
+    {
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "count": 220
+    },
+    {
+      "priority": "warm",
+      "lifecycleStatus": "stale",
+      "count": 403
+    },
+    {
+      "priority": "cold",
+      "lifecycleStatus": "active",
+      "count": 46
+    },
+    {
+      "priority": "cold",
+      "lifecycleStatus": "stale",
+      "count": 91
+    }
+  ],
+  "tier_status": [
+    {
+      "actionTier": "tier1_actionable",
+      "lifecycleStatus": "active",
+      "count": 104
+    },
+    {
+      "actionTier": "tier1_actionable",
+      "lifecycleStatus": "stale",
+      "count": 301
+    },
+    {
+      "actionTier": "tier2_warm",
+      "lifecycleStatus": "active",
+      "count": 184
+    },
+    {
+      "actionTier": "tier2_warm",
+      "lifecycleStatus": "stale",
+      "count": 290
+    },
+    {
+      "actionTier": "tier3_monitor",
+      "lifecycleStatus": "active",
+      "count": 80
+    },
+    {
+      "actionTier": "tier3_monitor",
+      "lifecycleStatus": "stale",
+      "count": 149
+    },
+    {
+      "actionTier": "tier3_monitor",
+      "lifecycleStatus": "archived",
+      "count": 1
+    },
+    {
+      "actionTier": "tier3_monitor",
+      "lifecycleStatus": "completed",
+      "count": 1
+    }
+  ],
+  "sector": [
+    {
+      "sector": "energy",
+      "total": 406,
+      "stale": "257",
+      "active": "149",
+      "stale_pct": "63.3"
+    },
+    {
+      "sector": "infrastructure",
+      "total": 361,
+      "stale": "243",
+      "active": "118",
+      "stale_pct": "67.3"
+    },
+    {
+      "sector": "mining",
+      "total": 243,
+      "stale": "166",
+      "active": "75",
+      "stale_pct": "68.3"
+    },
+    {
+      "sector": "defence",
+      "total": 53,
+      "stale": "44",
+      "active": "9",
+      "stale_pct": "83.0"
+    },
+    {
+      "sector": "oil_gas",
+      "total": 47,
+      "stale": "30",
+      "active": "17",
+      "stale_pct": "63.8"
+    }
+  ],
+  "age_active": [
+    {
+      "age_bucket": "0-7 days",
+      "count": 153
+    },
+    {
+      "age_bucket": "8-30 days",
+      "count": 163
+    },
+    {
+      "age_bucket": "31-90 days",
+      "count": 52
+    }
+  ],
+  "age_stale": [
+    {
+      "age_bucket": "31-90 days",
+      "count": 740
+    }
+  ],
+  "missing_owner": [
+    {
+      "missing_owner": "93",
+      "has_owner": "1015",
+      "total": 1108
+    }
+  ],
+  "no_contractors": [
+    {
+      "empty_contractors": "363",
+      "has_contractors": "745",
+      "total": 1108
+    }
+  ],
+  "no_signals": [
+    {
+      "empty_signals": "76",
+      "has_signals": "1032",
+      "total": 1108
+    }
+  ],
+  "contact_conv": [
+    {
+      "lifecycleStatus": "stale",
+      "total_projects": 740,
+      "projects_with_contacts": 434,
+      "projects_without_contacts": 306,
+      "contact_coverage_pct": "58.6"
+    },
+    {
+      "lifecycleStatus": "active",
+      "total_projects": 368,
+      "projects_with_contacts": 127,
+      "projects_without_contacts": 241,
+      "contact_coverage_pct": "34.5"
+    }
+  ],
+  "enrichment": [
+    {
+      "enrichmentStatus": "pending",
+      "count": 24902,
+      "pct": "91.4"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "count": 1329,
+      "pct": "4.9"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "count": 1017,
+      "pct": "3.7"
+    }
+  ],
+  "source_dist": [
+    {
+      "source": "RSS/AI Extraction",
+      "total": 693,
+      "active": "352",
+      "stale": "341",
+      "stale_pct": "49.2"
+    },
+    {
+      "source": "Seed/Manual",
+      "total": 294,
+      "active": "1",
+      "stale": "291",
+      "stale_pct": "99.0"
+    },
+    {
+      "source": "Gov Major Projects",
+      "total": 37,
+      "active": "0",
+      "stale": "37",
+      "stale_pct": "100.0"
+    },
+    {
+      "source": "Other/Unknown",
+      "total": 28,
+      "active": "0",
+      "stale": "28",
+      "stale_pct": "100.0"
+    },
+    {
+      "source": "AEMO",
+      "total": 22,
+      "active": "0",
+      "stale": "22",
+      "stale_pct": "100.0"
+    },
+    {
+      "source": "AusTender",
+      "total": 19,
+      "active": "15",
+      "stale": "4",
+      "stale_pct": "21.1"
+    },
+    {
+      "source": "ICN Gateway",
+      "total": 17,
+      "active": "0",
+      "stale": "17",
+      "stale_pct": "100.0"
+    }
+  ],
+  "near_dupes": [
+    {
+      "name_prefix": "eva copper mine project",
+      "count": 2,
+      "project_ids": "15, 690077",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "liddell bess",
+      "count": 2,
+      "project_ids": "60012, 480027",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "tarraleah hydropower scheme redevelopmen",
+      "count": 2,
+      "project_ids": "120069, 690025",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "logan and gold coast faster rail project",
+      "count": 2,
+      "project_ids": "120074, 150005",
+      "statuses": "stale"
+    },
+    {
+      "name_prefix": "m1 pacific motorway extension to raymond",
+      "count": 2,
+      "project_ids": "120144, 660041",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "central-west orana renewable energy zone",
+      "count": 2,
+      "project_ids": "120185, 660035",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "oaky creek antimony project",
+      "count": 2,
+      "project_ids": "180012, 630009",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "blind creek solar farm and battery proje",
+      "count": 2,
+      "project_ids": "300008, 480071",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "gippsland offshore wind farm",
+      "count": 2,
+      "project_ids": "330038, 690063",
+      "statuses": "active, stale"
+    },
+    {
+      "name_prefix": "australian battery recycling industry re",
+      "count": 2,
+      "project_ids": "450030, 450031",
+      "statuses": "active"
+    },
+    {
+      "name_prefix": "westsun energy 1.3mw commercial solar pr",
+      "count": 2,
+      "project_ids": "450032, 450033",
+      "statuses": "active"
+    },
+    {
+      "name_prefix": "five battery projects totalling 7.9 gwh",
+      "count": 2,
+      "project_ids": "630001, 630002",
+      "statuses": "active"
+    },
+    {
+      "name_prefix": "amazon australia renewable energy ppas (",
+      "count": 2,
+      "project_ids": "690009, 690039",
+      "statuses": "active"
+    }
+  ],
+  "no_stage": [
+    {
+      "lifecycleStatus": "stale",
+      "no_stage": "0",
+      "has_stage": "740",
+      "total": 740
+    },
+    {
+      "lifecycleStatus": "completed",
+      "no_stage": "0",
+      "has_stage": "1",
+      "total": 1
+    },
+    {
+      "lifecycleStatus": "active",
+      "no_stage": "0",
+      "has_stage": "368",
+      "total": 368
+    },
+    {
+      "lifecycleStatus": "archived",
+      "no_stage": "0",
+      "has_stage": "1",
+      "total": 1
+    }
+  ],
+  "tier1_stale": [
+    {
+      "id": 390008,
+      "name": "Freeway Upgrade",
+      "owner": "Western Australian Government",
+      "priority": "warm",
+      "stage": "Procurement advanced, shortlisted teams ",
+      "createdAt": "2026-03-11T10:03:24.000Z",
+      "lastActivityAt": "2026-03-11T10:03:24.000Z"
+    },
+    {
+      "id": 390007,
+      "name": "Defence Air Base Building Refurbishment, WA",
+      "owner": "Department of Defence",
+      "priority": "warm",
+      "stage": "Tender Process Commenced",
+      "createdAt": "2026-03-11T10:03:15.000Z",
+      "lastActivityAt": "2026-03-11T10:03:15.000Z"
+    },
+    {
+      "id": 390003,
+      "name": "Regional NSW Health Rehabilitation Facility",
+      "owner": "NSW Health",
+      "priority": "hot",
+      "stage": "Contract Awarded, Moving to Construction",
+      "createdAt": "2026-03-11T10:03:12.000Z",
+      "lastActivityAt": "2026-03-11T10:03:12.000Z"
+    },
+    {
+      "id": 390004,
+      "name": "Regional NSW Waste Processing Facility",
+      "owner": "Undisclosed",
+      "priority": "warm",
+      "stage": "Early Procurement / Contractor Engagemen",
+      "createdAt": "2026-03-11T10:03:12.000Z",
+      "lastActivityAt": "2026-03-11T10:03:12.000Z"
+    },
+    {
+      "id": 360014,
+      "name": "North West Queensland Vanadium Region Development",
+      "owner": "Queensland Government (via ten",
+      "priority": "cold",
+      "stage": "Early Stage / Tender Process",
+      "createdAt": "2026-03-11T07:30:21.000Z",
+      "lastActivityAt": "2026-03-11T07:30:21.000Z"
+    },
+    {
+      "id": 360007,
+      "name": "Forelands Gold Project",
+      "owner": "BPM Minerals",
+      "priority": "hot",
+      "stage": "Exploration drilling underway",
+      "createdAt": "2026-03-11T07:29:58.000Z",
+      "lastActivityAt": "2026-03-11T07:29:58.000Z"
+    },
+    {
+      "id": 330053,
+      "name": "Never Never Gold Deposit Development",
+      "owner": "Ramelius Resources",
+      "priority": "hot",
+      "stage": "First ore delivered to processing hub",
+      "createdAt": "2026-03-11T06:21:07.000Z",
+      "lastActivityAt": "2026-03-11T06:21:07.000Z"
+    },
+    {
+      "id": 330049,
+      "name": "Clean Energy Commercialisation and Acceleration Te",
+      "owner": "Unknown",
+      "priority": "warm",
+      "stage": "Land secured, building work to start soo",
+      "createdAt": "2026-03-11T06:20:26.000Z",
+      "lastActivityAt": "2026-03-11T06:20:26.000Z"
+    },
+    {
+      "id": 330048,
+      "name": "Pilbara Renewable Energy Portfolio Expansion",
+      "owner": "Indigenous-corporate partnersh",
+      "priority": "warm",
+      "stage": "Seeking Expressions of Interest (EOI) fo",
+      "createdAt": "2026-03-11T06:20:25.000Z",
+      "lastActivityAt": "2026-03-11T06:20:25.000Z"
+    },
+    {
+      "id": 330044,
+      "name": "Sydney Metro West railway project",
+      "owner": "Transport for NSW",
+      "priority": "hot",
+      "stage": "Tunnelling completed (twin tunnels from ",
+      "createdAt": "2026-03-11T06:19:58.000Z",
+      "lastActivityAt": "2026-03-11T06:19:58.000Z"
+    },
+    {
+      "id": 330043,
+      "name": "Melton Station construction and boom gate removal",
+      "owner": "Victorian Government",
+      "priority": "hot",
+      "stage": "Under construction, significant progress",
+      "createdAt": "2026-03-11T06:19:57.000Z",
+      "lastActivityAt": "2026-03-11T06:19:57.000Z"
+    },
+    {
+      "id": 330040,
+      "name": "Community Battery Deployment Project (Regional Vic",
+      "owner": "Community focused retailer",
+      "priority": "warm",
+      "stage": "Deployment in progress (first of seven b",
+      "createdAt": "2026-03-11T06:19:46.000Z",
+      "lastActivityAt": "2026-03-11T06:19:46.000Z"
+    },
+    {
+      "id": 330039,
+      "name": "Australia's First Large-Scale Solar-Battery Hybrid",
+      "owner": "Unknown",
+      "priority": "hot",
+      "stage": "Construction Completion (last panel inst",
+      "createdAt": "2026-03-11T06:19:37.000Z",
+      "lastActivityAt": "2026-03-11T06:19:37.000Z"
+    },
+    {
+      "id": 330028,
+      "name": "Bulabul Battery storage project",
+      "owner": "Unknown",
+      "priority": "hot",
+      "stage": "Construction/Delivery",
+      "createdAt": "2026-03-11T06:18:14.000Z",
+      "lastActivityAt": "2026-03-11T06:18:14.000Z"
+    },
+    {
+      "id": 330026,
+      "name": "3.6GWh Solar-plus-Storage Developments",
+      "owner": "Edify Energy, Flow Power",
+      "priority": "hot",
+      "stage": "EPC contract secured / Project acquired",
+      "createdAt": "2026-03-11T06:18:06.000Z",
+      "lastActivityAt": "2026-03-11T06:18:06.000Z"
+    },
+    {
+      "id": 330020,
+      "name": "Riverstone Water Resource Recovery Facility Upgrad",
+      "owner": "Sydney Water",
+      "priority": "hot",
+      "stage": "Next phase awarded to North West Allianc",
+      "createdAt": "2026-03-11T06:17:08.000Z",
+      "lastActivityAt": "2026-03-11T06:17:08.000Z"
+    },
+    {
+      "id": 330018,
+      "name": "North-West Tasmania Irrigation Augmentation Progra",
+      "owner": "Tasmanian Irrigation",
+      "priority": "warm",
+      "stage": "Augmentation program announced",
+      "createdAt": "2026-03-11T06:17:06.000Z",
+      "lastActivityAt": "2026-03-11T06:17:06.000Z"
+    },
+    {
+      "id": 330012,
+      "name": "Bass Strait Decommissioning Project (Umbilicals an",
+      "owner": "ExxonMobil",
+      "priority": "warm",
+      "stage": "Decommissioning plans lodged",
+      "createdAt": "2026-03-11T06:16:00.000Z",
+      "lastActivityAt": "2026-03-11T06:16:00.000Z"
+    },
+    {
+      "id": 330007,
+      "name": "Toowoomba-Athol Road Safety Upgrade",
+      "owner": "Queensland Government",
+      "priority": "warm",
+      "stage": "Planning key upgrades",
+      "createdAt": "2026-03-11T06:15:36.000Z",
+      "lastActivityAt": "2026-03-11T06:15:36.000Z"
+    },
+    {
+      "id": 300036,
+      "name": "CON010642 — Department of Industry, Science and Re",
+      "owner": "Department of Industry, Scienc",
+      "priority": "cold",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-03-11T04:03:50.000Z",
+      "lastActivityAt": "2026-03-11T04:03:50.000Z"
+    }
+  ],
+  "no_value": [
+    {
+      "missing_value": "534",
+      "has_value": "574",
+      "total": 1108
+    }
+  ],
+  "no_location": [
+    {
+      "generic_location": "143",
+      "specific_location": "965",
+      "total": 1108
+    }
+  ],
+  "claims": [
+    {
+      "lifecycleStatus": "active",
+      "total_projects": 368,
+      "claimed_projects": 5,
+      "claim_pct": "1.4"
+    },
+    {
+      "lifecycleStatus": "stale",
+      "total_projects": 740,
+      "claimed_projects": 22,
+      "claim_pct": "3.0"
+    }
+  ],
+  "rss_sources": [
+    {
+      "name": "Stockhead",
+      "totalArticles": 319,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:38.000Z",
+      "queued": "0",
+      "extracted": "59",
+      "skipped": "565",
+      "total_articles": 624
+    },
+    {
+      "name": "ABC News - Business",
+      "totalArticles": 261,
+      "successCount": 14,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:46.000Z",
+      "queued": "0",
+      "extracted": "8",
+      "skipped": "379",
+      "total_articles": 387
+    },
+    {
+      "name": "Energy Storage News",
+      "totalArticles": 161,
+      "successCount": 13,
+      "failureCount": 2,
+      "lastFetchedAt": "2026-04-17T09:41:38.000Z",
+      "queued": "0",
+      "extracted": "104",
+      "skipped": "213",
+      "total_articles": 317
+    },
+    {
+      "name": "Energy News Bulletin",
+      "totalArticles": 176,
+      "successCount": 15,
+      "failureCount": 2,
+      "lastFetchedAt": "2026-04-17T09:41:34.000Z",
+      "queued": "0",
+      "extracted": "45",
+      "skipped": "233",
+      "total_articles": 278
+    },
+    {
+      "name": "Infrastructure Magazine",
+      "totalArticles": 71,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:35.000Z",
+      "queued": "0",
+      "extracted": "73",
+      "skipped": "188",
+      "total_articles": 261
+    },
+    {
+      "name": "PV Magazine Australia",
+      "totalArticles": 110,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:45.000Z",
+      "queued": "0",
+      "extracted": "81",
+      "skipped": "122",
+      "total_articles": 203
+    },
+    {
+      "name": "Small Caps",
+      "totalArticles": 98,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:37.000Z",
+      "queued": "0",
+      "extracted": "35",
+      "skipped": "158",
+      "total_articles": 193
+    },
+    {
+      "name": "Projectory Australia",
+      "totalArticles": 81,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:41.000Z",
+      "queued": "0",
+      "extracted": "72",
+      "skipped": "86",
+      "total_articles": 158
+    },
+    {
+      "name": "Renew Economy",
+      "totalArticles": 74,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:36.000Z",
+      "queued": "0",
+      "extracted": "56",
+      "skipped": "90",
+      "total_articles": 151
+    },
+    {
+      "name": "Mining Technology",
+      "totalArticles": 81,
+      "successCount": 19,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:33.000Z",
+      "queued": "0",
+      "extracted": "19",
+      "skipped": "126",
+      "total_articles": 145
+    },
+    {
+      "name": "Defence Connect",
+      "totalArticles": 72,
+      "successCount": 14,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:46.000Z",
+      "queued": "0",
+      "extracted": "7",
+      "skipped": "106",
+      "total_articles": 113
+    },
+    {
+      "name": "Utility Magazine",
+      "totalArticles": 50,
+      "successCount": 13,
+      "failureCount": 2,
+      "lastFetchedAt": "2026-04-17T09:41:41.000Z",
+      "queued": "0",
+      "extracted": "29",
+      "skipped": "69",
+      "total_articles": 98
+    },
+    {
+      "name": "Australian Mining",
+      "totalArticles": 50,
+      "successCount": 19,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:33.000Z",
+      "queued": "0",
+      "extracted": "26",
+      "skipped": "67",
+      "total_articles": 93
+    },
+    {
+      "name": "Roads & Infrastructure",
+      "totalArticles": 51,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:36.000Z",
+      "queued": "0",
+      "extracted": "37",
+      "skipped": "50",
+      "total_articles": 87
+    },
+    {
+      "name": "Inside Construction",
+      "totalArticles": 40,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:44.000Z",
+      "queued": "0",
+      "extracted": "16",
+      "skipped": "57",
+      "total_articles": 73
+    },
+    {
+      "name": "Energy Magazine",
+      "totalArticles": 35,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:37.000Z",
+      "queued": "0",
+      "extracted": "28",
+      "skipped": "44",
+      "total_articles": 72
+    },
+    {
+      "name": "Quarry Magazine",
+      "totalArticles": 35,
+      "successCount": 13,
+      "failureCount": 2,
+      "lastFetchedAt": "2026-04-17T09:41:45.000Z",
+      "queued": "0",
+      "extracted": "13",
+      "skipped": "57",
+      "total_articles": 70
+    },
+    {
+      "name": "ABC News - Australia",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T04:00:20.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "69",
+      "total_articles": 69
+    },
+    {
+      "name": "Pump Industry Australia",
+      "totalArticles": 36,
+      "successCount": 15,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:40.000Z",
+      "queued": "0",
+      "extracted": "36",
+      "skipped": "31",
+      "total_articles": 67
+    },
+    {
+      "name": "Renewables Now",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:58:40.000Z",
+      "queued": "0",
+      "extracted": "17",
+      "skipped": "50",
+      "total_articles": 67
+    },
+    {
+      "name": "Construction Equipment Guide",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:58:51.000Z",
+      "queued": "0",
+      "extracted": "4",
+      "skipped": "61",
+      "total_articles": 65
+    },
+    {
+      "name": "International Mining",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:56:09.000Z",
+      "queued": "0",
+      "extracted": "13",
+      "skipped": "49",
+      "total_articles": 62
+    },
+    {
+      "name": "Sourceable",
+      "totalArticles": 26,
+      "successCount": 9,
+      "failureCount": 6,
+      "lastFetchedAt": "2026-04-17T09:41:45.000Z",
+      "queued": "0",
+      "extracted": "4",
+      "skipped": "54",
+      "total_articles": 58
+    },
+    {
+      "name": "Rigzone News",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:59:22.000Z",
+      "queued": "0",
+      "extracted": "6",
+      "skipped": "45",
+      "total_articles": 51
+    },
+    {
+      "name": "Master Builders Australia",
+      "totalArticles": 20,
+      "successCount": 14,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-04-17T09:41:49.000Z",
+      "queued": "0",
+      "extracted": "2",
+      "skipped": "42",
+      "total_articles": 44
+    },
+    {
+      "name": "Mining Weekly SA",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:59:12.000Z",
+      "queued": "0",
+      "extracted": "5",
+      "skipped": "26",
+      "total_articles": 31
+    },
+    {
+      "name": "Diesel Progress",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:58:55.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "13",
+      "total_articles": 13
+    },
+    {
+      "name": "One Step Off The Grid",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:59:47.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "10",
+      "total_articles": 10
+    },
+    {
+      "name": "The Australian - Business",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:56:32.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "0",
+      "total_articles": 0
+    },
+    {
+      "name": "Fluid Handling Magazine",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:58:43.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "0",
+      "total_articles": 0
+    },
+    {
+      "name": "Build Australia",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-03-11T03:59:38.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "0",
+      "total_articles": 0
+    },
+    {
+      "name": "Mining Journal",
+      "totalArticles": 0,
+      "successCount": 0,
+      "failureCount": 0,
+      "lastFetchedAt": "2026-02-20T06:28:15.000Z",
+      "queued": "0",
+      "extracted": "0",
+      "skipped": "0",
+      "total_articles": 0
+    }
+  ],
+  "send_ready": [
+    {
+      "sendReadiness": null,
+      "count": 6106,
+      "pct": "100.0"
+    }
+  ],
+  "stale_hot": [
+    {
+      "id": 420004,
+      "name": "Higginsville Processing Hub Expansion",
+      "owner": "Westgold Resources",
+      "stage": "FID approved",
+      "sector": "mining",
+      "createdAt": "2026-03-12T00:31:14.000Z",
+      "lastActivityAt": "2026-03-12T00:31:14.000Z"
+    },
+    {
+      "id": 390005,
+      "name": "Defence Facility Upgrade, Western Sydney",
+      "owner": "Department of Defence",
+      "stage": "Delivery Phase / Lead Contractor Selecte",
+      "sector": "defence",
+      "createdAt": "2026-03-11T10:03:14.000Z",
+      "lastActivityAt": "2026-03-11T10:03:14.000Z"
+    },
+    {
+      "id": 390003,
+      "name": "Regional NSW Health Rehabilitation Facility",
+      "owner": "NSW Health",
+      "stage": "Contract Awarded, Moving to Construction",
+      "sector": "infrastructure",
+      "createdAt": "2026-03-11T10:03:12.000Z",
+      "lastActivityAt": "2026-03-11T10:03:12.000Z"
+    },
+    {
+      "id": 390002,
+      "name": "Great Western Highway Bridge Repair/Assessment",
+      "owner": "NSW Government (likely Transpo",
+      "stage": "Assessment and Repair",
+      "sector": "infrastructure",
+      "createdAt": "2026-03-11T10:03:00.000Z",
+      "lastActivityAt": "2026-03-11T10:03:00.000Z"
+    },
+    {
+      "id": 390001,
+      "name": "Darwin River Dam Pump Restoration",
+      "owner": "Unknown",
+      "stage": "Restoration/Repair",
+      "sector": "infrastructure",
+      "createdAt": "2026-03-11T10:02:59.000Z",
+      "lastActivityAt": "2026-03-11T10:02:59.000Z"
+    },
+    {
+      "id": 360007,
+      "name": "Forelands Gold Project",
+      "owner": "BPM Minerals",
+      "stage": "Exploration drilling underway",
+      "sector": "mining",
+      "createdAt": "2026-03-11T07:29:58.000Z",
+      "lastActivityAt": "2026-03-11T07:29:58.000Z"
+    },
+    {
+      "id": 330053,
+      "name": "Never Never Gold Deposit Development",
+      "owner": "Ramelius Resources",
+      "stage": "First ore delivered to processing hub",
+      "sector": "mining",
+      "createdAt": "2026-03-11T06:21:07.000Z",
+      "lastActivityAt": "2026-03-11T06:21:07.000Z"
+    },
+    {
+      "id": 330044,
+      "name": "Sydney Metro West railway project",
+      "owner": "Transport for NSW",
+      "stage": "Tunnelling completed (twin tunnels from ",
+      "sector": "infrastructure",
+      "createdAt": "2026-03-11T06:19:58.000Z",
+      "lastActivityAt": "2026-03-11T06:19:58.000Z"
+    },
+    {
+      "id": 330043,
+      "name": "Melton Station construction and boom gate removal",
+      "owner": "Victorian Government",
+      "stage": "Under construction, significant progress",
+      "sector": "infrastructure",
+      "createdAt": "2026-03-11T06:19:57.000Z",
+      "lastActivityAt": "2026-03-11T06:19:57.000Z"
+    },
+    {
+      "id": 330039,
+      "name": "Australia's First Large-Scale Solar-Battery Hybrid",
+      "owner": "Unknown",
+      "stage": "Construction Completion (last panel inst",
+      "sector": "energy",
+      "createdAt": "2026-03-11T06:19:37.000Z",
+      "lastActivityAt": "2026-03-11T06:19:37.000Z"
+    },
+    {
+      "id": 330036,
+      "name": "Surat Gas Project North",
+      "owner": "Arrow Energy",
+      "stage": "Operational/Expanding",
+      "sector": "energy",
+      "createdAt": "2026-03-11T06:19:26.000Z",
+      "lastActivityAt": "2026-03-11T06:19:26.000Z"
+    },
+    {
+      "id": 330035,
+      "name": "Delburn Wind Farm",
+      "owner": "Victorian Government (state-ow",
+      "stage": "Works commenced",
+      "sector": "energy",
+      "createdAt": "2026-03-11T06:19:13.000Z",
+      "lastActivityAt": "2026-03-11T06:19:13.000Z"
+    },
+    {
+      "id": 330033,
+      "name": "Flint Project",
+      "owner": "Australian Critical Minerals (",
+      "stage": "Drilling contractor appointed, drilling ",
+      "sector": "mining",
+      "createdAt": "2026-03-11T06:19:11.000Z",
+      "lastActivityAt": "2026-03-11T06:19:11.000Z"
+    },
+    {
+      "id": 330028,
+      "name": "Bulabul Battery storage project",
+      "owner": "Unknown",
+      "stage": "Construction/Delivery",
+      "sector": "energy",
+      "createdAt": "2026-03-11T06:18:14.000Z",
+      "lastActivityAt": "2026-03-11T06:18:14.000Z"
+    },
+    {
+      "id": 330027,
+      "name": "ACT Community Battery Network (Dickson)",
+      "owner": "ACT Government",
+      "stage": "Completed / Commissioned",
+      "sector": "energy",
+      "createdAt": "2026-03-11T06:18:06.000Z",
+      "lastActivityAt": "2026-03-11T06:18:06.000Z"
+    }
+  ],
+  "recent_no_contact": [
+    {
+      "id": 690097,
+      "name": "80619/6 — Department of Foreign Affairs and Trade ",
+      "owner": "Department of Foreign Affairs ",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T10:01:30.000Z"
+    },
+    {
+      "id": 690096,
+      "name": "81809 — Department of Foreign Affairs and Trade - ",
+      "owner": "Department of Foreign Affairs ",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T10:01:13.000Z"
+    },
+    {
+      "id": 690095,
+      "name": "0070041038 — Department of Home Affairs",
+      "owner": "Department of Home Affairs",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T10:00:46.000Z"
+    },
+    {
+      "id": 690094,
+      "name": "0070041011 — Department of Home Affairs",
+      "owner": "Department of Home Affairs",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T10:00:28.000Z"
+    },
+    {
+      "id": 690093,
+      "name": "0070041016 — Department of Home Affairs",
+      "owner": "Department of Home Affairs",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T10:00:08.000Z"
+    },
+    {
+      "id": 690092,
+      "name": "CON/GAUCON/CON009446/1 — Geoscience Australia",
+      "owner": "Geoscience Australia",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T09:59:42.000Z"
+    },
+    {
+      "id": 690091,
+      "name": "CON/GAUCON/CON009408/1 — Geoscience Australia",
+      "owner": "Geoscience Australia",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T09:59:22.000Z"
+    },
+    {
+      "id": 690090,
+      "name": "CN-UOS2602-004SAX — Grains Research and Developmen",
+      "owner": "Grains Research and Developmen",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Awarded — Active Contract",
+      "createdAt": "2026-04-17T09:58:53.000Z"
+    },
+    {
+      "id": 690089,
+      "name": "Cadia Gold Mine Operations",
+      "owner": "Newmont",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Processing operations ramping up post-ea",
+      "createdAt": "2026-04-17T09:45:47.000Z"
+    },
+    {
+      "id": 690088,
+      "name": "ECSP Gas Supply Agreement with AGL",
+      "owner": "AGL (buyer), Amplitude (seller",
+      "priority": "warm",
+      "sector": "oil_gas",
+      "stage": "Dependent on drilling results",
+      "createdAt": "2026-04-17T09:45:30.000Z"
+    },
+    {
+      "id": 690087,
+      "name": "Australian Battery Energy Storage System (BESS) Ro",
+      "owner": "Various (utilities, developers",
+      "priority": "warm",
+      "sector": "energy",
+      "stage": "Ongoing development, some projects hitti",
+      "createdAt": "2026-04-17T09:45:19.000Z"
+    },
+    {
+      "id": 690086,
+      "name": "Hazer low emissions hydrogen production facility",
+      "owner": "Hazer Group",
+      "priority": "warm",
+      "sector": "energy",
+      "stage": "Process design package collaboration",
+      "createdAt": "2026-04-17T09:45:18.000Z"
+    },
+    {
+      "id": 690085,
+      "name": "Queensland Black Spot Program (2026-27)",
+      "owner": "Federal Government / Local Cou",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "stage": "Funding committed, projects to be identi",
+      "createdAt": "2026-04-17T09:45:02.000Z"
+    },
+    {
+      "id": 690084,
+      "name": "Australian Critical Minerals for Defence",
+      "owner": "Australian Government / Variou",
+      "priority": "cold",
+      "sector": "defence",
+      "stage": "Early-stage, policy-driven growth",
+      "createdAt": "2026-04-17T09:44:51.000Z"
+    },
+    {
+      "id": 690082,
+      "name": "Trident Gold Project",
+      "owner": "Catalyst Metals",
+      "priority": "warm",
+      "sector": "mining",
+      "stage": "Pre-production, following strong grade c",
+      "createdAt": "2026-04-17T09:44:51.000Z"
+    },
+    {
+      "id": 690083,
+      "name": "Cadia Mine Operations Ramp-up",
+      "owner": "Newmont",
+      "priority": "warm",
+      "sector": "mining",
+      "stage": "Operational ramp-up post-earthquake",
+      "createdAt": "2026-04-17T09:44:51.000Z"
+    },
+    {
+      "id": 690081,
+      "name": "Eloise Mine Expansion",
+      "owner": "AIC Mines",
+      "priority": "warm",
+      "sector": "mining",
+      "stage": "Exploration and process plant expansion",
+      "createdAt": "2026-04-17T09:44:51.000Z"
+    },
+    {
+      "id": 690080,
+      "name": "Black Spot Program - Queensland Road Safety Projec",
+      "owner": "Federal Government (Department",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "stage": "Funding committed, projects to be identi",
+      "createdAt": "2026-04-17T09:44:50.000Z"
+    },
+    {
+      "id": 690079,
+      "name": "Princes Highway and Narooma Bridge Upgrades Study",
+      "owner": "Transport for NSW, Federal Gov",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "stage": "Planning and investigations underway",
+      "createdAt": "2026-04-17T09:44:43.000Z"
+    },
+    {
+      "id": 690078,
+      "name": "Mount Lindesay Highway Upgrade",
+      "owner": "Queensland Government, Federal",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "stage": "Complete",
+      "createdAt": "2026-04-17T09:44:42.000Z"
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2026-04",
+      "total": 153,
+      "active": "153",
+      "stale": "0"
+    },
+    {
+      "month": "2026-03",
+      "total": 361,
+      "active": "214",
+      "stale": "147"
+    },
+    {
+      "month": "2026-02",
+      "total": 596,
+      "active": "1",
+      "stale": "593"
+    }
+  ],
+  "never_touched": [
+    {
+      "never_touched": "367",
+      "has_activity": "1",
+      "total": 368
+    }
+  ],
+  "email_enrich": {
+    "error": "Unknown column 'enrichedemail' in 'group statement'"
+  }
+}

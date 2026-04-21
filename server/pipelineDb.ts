@@ -77,6 +77,20 @@ export async function updateRssSource(id: number, data: Partial<InsertRssSource>
   await db.update(rssSources).set(data).where(eq(rssSources.id, id));
 }
 
+/** Stage 5A: Quarantine a source (skipped in harvester without deleting it) */
+export async function quarantineRssSource(id: number, reason: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(rssSources).set({ quarantined: true, quarantineReason: reason }).where(eq(rssSources.id, id));
+}
+
+/** Stage 5A: Remove quarantine from a source */
+export async function unquarantineRssSource(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(rssSources).set({ quarantined: false, quarantineReason: null }).where(eq(rssSources.id, id));
+}
+
 export async function deleteRssSource(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

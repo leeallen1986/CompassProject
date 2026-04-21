@@ -149,6 +149,12 @@ export const projects = mysqlTable("projects", {
   archivedAt: timestamp("archivedAt"),
   projectoryEnriched: boolean("projectoryEnriched").default(false),
   actionTier: mysqlEnum("actionTier", ["tier1_actionable", "tier2_warm", "tier3_monitor"]).default("tier3_monitor"),
+  /** Stage 5A: primary freshness signal — updated whenever a source mentions this project */
+  sourceLastSeenAt: timestamp("sourceLastSeenAt"),
+  /** Stage 5A: human-readable reason why this project was marked stale/archived */
+  staleReason: varchar("staleReason", { length: 256 }),
+  /** Stage 5A: manual keep flag — prevents bulk archival even if old and uncorroborated */
+  keepFlag: boolean("keepFlag").default(false),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -414,9 +420,11 @@ export const rssSources = mysqlTable("rssSources", {
   lastError: text("lastError"),
   lastErrorAt: timestamp("lastErrorAt"),
   lastSuccessAt: timestamp("lastSuccessAt"),
+  /** Stage 5A: admin-controlled quarantine flag — skips source in harvester without deleting it */
+  quarantined: boolean("quarantined").default(false),
+  quarantineReason: varchar("quarantineReason", { length: 256 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
-
 export type RssSource = typeof rssSources.$inferSelect;
 export type InsertRssSource = typeof rssSources.$inferInsert;
 

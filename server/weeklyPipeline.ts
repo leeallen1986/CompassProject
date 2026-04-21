@@ -616,11 +616,12 @@ export async function runWeeklyPipeline(): Promise<WeeklyPipelineResult> {
   console.log(`[WeeklyPipeline] Step 23/${TOTAL_STEPS}: Running project staleness check...`);
   let staleCount = 0;
   try {
-    staleCount = await markStaleProjects();
+    const staleResult = await markStaleProjects();
+    staleCount = staleResult.staled + staleResult.archived;
     if (staleCount > 0) {
-      console.log(`[WeeklyPipeline] ✓ Marked ${staleCount} projects as stale`);
+      console.log(`[WeeklyPipeline] ✓ Marked ${staleResult.staled} projects as stale, ${staleResult.archived} archived (Stage 5A)`);
     } else {
-      console.log("[WeeklyPipeline] ✓ No new stale projects found");
+      console.log("[WeeklyPipeline] ✓ No new stale or archived projects found");
     }
   } catch (err: unknown) {
     console.error("[WeeklyPipeline] ✗ Staleness check failed:", err instanceof Error ? err.message : String(err));

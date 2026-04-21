@@ -17,6 +17,7 @@ import {
   createPipelineActivityEntry, getActivityByClaimId,
   getEmailDigestPrefs, upsertEmailDigestPrefs,
   updateProjectLifecycle, bulkUpdateProjectLifecycle, markStaleProjects, touchProjectActivity,
+  setProjectKeepFlag,
   getActiveProjects,
   verifyContactByUser, rejectContactByUser, getVerificationStats,
   getAllUsers, updateUserCampaignAccess,
@@ -26,6 +27,7 @@ import {
   createBusinessLine, updateBusinessLine, deleteBusinessLine,
   getAllRssSources, getActiveRssSources,
   createRssSource, updateRssSource, deleteRssSource,
+  quarantineRssSource, unquarantineRssSource,
   getRecentArticles, getArticlesByStatus, getArticleStats, getDailyExtractionStats,
   getFeedbackWeightsByUser,
 } from "./pipelineDb";
@@ -482,8 +484,8 @@ export const appRouter = router({
 
     /** Run staleness check (admin only) — marks old untouched projects as stale */
     markStale: adminProcedure.mutation(async () => {
-      const count = await markStaleProjects();
-      return { success: true, staleCount: count };
+      const result = await markStaleProjects();
+      return { success: true, staleCount: result.staled, archived: result.archived };
     }),
 
     /** Touch a project to keep it active (called on view/interact) */
@@ -491,6 +493,14 @@ export const appRouter = router({
       .input(z.object({ projectId: z.number() }))
       .mutation(async ({ input }) => {
         await touchProjectActivity(input.projectId);
+        return { success: true };
+      }),
+
+    /** Stage 5A: Set or clear the keepFlag for a project (admin only) */
+    setKeepFlag: adminProcedure
+      .input(z.object({ projectId: z.number(), keep: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await setProjectKeepFlag(input.projectId, input.keep);
         return { success: true };
       }),
 
@@ -603,7 +613,8 @@ export const appRouter = router({
     full: protectedProcedure
       .input(z.object({
         reportId: z.number().optional(),
-        lifecycleFilter: z.enum(["all", "active", "stale", "archived", "awarded", "completed"]).optional().default("all"),
+        // Stage 5A: default to 'active' — stale projects are hidden from the default view
+        lifecycleFilter: z.enum(["all", "active", "stale", "archived", "awarded", "completed"]).optional().default("active"),
       }))
       .query(async ({ ctx, input }) => {
         // Always fetch ALL projects across all reports for the unified dashboard
@@ -888,6 +899,22 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteRssSource(input.id);
+        return { success: true };
+      }),
+
+    /** Stage 5A: Quarantine a source (admin only) — skips it in harvester without deleting */
+    quarantine: adminProcedure
+      .input(z.object({ id: z.number(), reason: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        await quarantineRssSource(input.id, input.reason);
+        return { success: true };
+      }),
+
+    /** Stage 5A: Remove quarantine from a source (admin only) */
+    unquarantine: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await unquarantineRssSource(input.id);
         return { success: true };
       }),
   }),

@@ -938,12 +938,13 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   const stalenessStep = startStep("Staleness Check");
   console.log("[DailyPipeline] Step 21: Running project staleness check...");
   try {
-    const staleCount = await markStaleProjects();
-    completeStep(stalenessStep, { markedStale: staleCount });
+    const staleResult = await markStaleProjects();
+    const staleCount = staleResult.staled + staleResult.archived;
+    completeStep(stalenessStep, { markedStale: staleResult.staled, archived: staleResult.archived });
     if (staleCount > 0) {
-      console.log(`[DailyPipeline] Marked ${staleCount} projects as stale (no activity in 30+ days, no pipeline claims)`);
+      console.log(`[DailyPipeline] Marked ${staleResult.staled} projects as stale, ${staleResult.archived} archived (Stage 5A freshness check)`);
     } else {
-      console.log("[DailyPipeline] No new stale projects found");
+      console.log("[DailyPipeline] No new stale or archived projects found");
     }
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);

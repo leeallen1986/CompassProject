@@ -1898,7 +1898,8 @@ function PipelineRunHistoryTab() {
 // ── Platform Analytics Tab ──
 
 function PlatformAnalyticsTab() {
-  const { data: fullReport, isLoading } = trpc.report.full.useQuery({});
+  // Admin view: show all projects regardless of lifecycle status
+  const { data: fullReport, isLoading } = trpc.report.full.useQuery({ lifecycleFilter: "all" });
 
   if (isLoading || !fullReport) {
     return (

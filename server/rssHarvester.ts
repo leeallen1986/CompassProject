@@ -3,7 +3,7 @@
  * Runs on a configurable schedule (default: every 6 hours).
  * Zero AI credits consumed — pure RSS parsing + keyword matching.
  */
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   rssSources, rawArticles, businessLines,
@@ -189,8 +189,10 @@ export async function harvestAllFeeds(): Promise<HarvestSummary> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Load active sources and business lines
-  const activeSources = await db.select().from(rssSources).where(eq(rssSources.isActive, true));
+  // Load active sources and business lines — Stage 5A: also skip quarantined sources
+  const activeSources = await db.select().from(rssSources).where(
+    and(eq(rssSources.isActive, true), eq(rssSources.quarantined, false))
+  );
   const activeBusinessLines = await db.select().from(businessLines).where(eq(businessLines.isActive, true));
 
   const results: HarvestResult[] = [];

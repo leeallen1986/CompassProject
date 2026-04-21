@@ -14,7 +14,7 @@
  * - Skips articles older than 30 days
  */
 import { eq, and, sql, gte, desc } from "drizzle-orm";
-import { getDb } from "./db";
+import { getDb, touchProjectSourceSeen } from "./db";
 import {
   rawArticles, projects, reports, awardedProjects, drillingCampaigns,
   type RawArticle, type InsertProject, type InsertAwardedProject, type InsertDrillingCampaign,
@@ -469,28 +469,29 @@ async function extractBatch(
 
 // ── Check if a project already exists (deduplication) ──
 
-async function isProjectDuplicate(projectName: string, owner: string): Promise<boolean> {
+/**
+ * Stage 5A: Returns the matched project ID if a duplicate exists, or null if not..
+ * This allows the caller to call touchProjectSourceSeen on the matched project.
+ */
+async function isProjectDuplicate(projectName: string, _owner: string): Promise<number | null> {
   const db = await getDb();
-  if (!db) return false;
-
+  if (!db) return null;
   // Simple name-based dedup — check if a project with similar name exists
   const normalizedName = projectName.toLowerCase().trim().replace(/\s+/g, " ");
   const existing = await db.select({ id: projects.id, name: projects.name })
     .from(projects)
     .orderBy(desc(projects.id))
     .limit(200);
-
   for (const p of existing) {
     const existingNorm = p.name.toLowerCase().trim().replace(/\s+/g, " ");
     // Exact match or high similarity
-    if (existingNorm === normalizedName) return true;
+    if (existingNorm === normalizedName) return p.id;
     // Check if one contains the other (handles "BHP Olympic Dam Expansion" vs "Olympic Dam Expansion")
     if (existingNorm.includes(normalizedName) || normalizedName.includes(existingNorm)) {
-      return true;
+      return p.id;
     }
   }
-
-  return false;
+  return null;
 }
 
 // ── Check if an awarded project already exists ──
@@ -724,12 +725,14 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       }
 
       // Check for duplicate project
-      const isDup = await isProjectDuplicate(result.project.name, result.project.owner);
-      if (isDup) {
+      const dupProjectId = await isProjectDuplicate(result.project.name, result.project.owner);
+      if (dupProjectId !== null) {
         result.isDuplicate = true;
         await db.update(rawArticles)
           .set({ status: "extracted", extractedAt: new Date(), extractedData: result.project as unknown as Record<string, unknown> })
           .where(eq(rawArticles.id, result.articleId));
+        // Stage 5A: corroborate the existing project — update sourceLastSeenAt and re-activate if stale
+        await touchProjectSourceSeen(dupProjectId, true);
         duplicates++;
         allResults.push(result);
         continue;

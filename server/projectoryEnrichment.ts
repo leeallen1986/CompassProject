@@ -15,7 +15,7 @@
  * Rate-limited: 1.5s between requests. Only accesses pages for known projects.
  */
 import { eq, sql, desc, and } from "drizzle-orm";
-import { getDb } from "./db";
+import { getDb, touchProjectSourceSeen } from "./db";
 import {
   projects,
   projectoryEnrichmentLog,
@@ -561,6 +561,8 @@ export async function enrichProject(projectId: number): Promise<EnrichmentResult
     if (Object.keys(updateData).length > 0) {
       await db.update(projects).set(updateData).where(eq(projects.id, projectId));
     }
+    // Stage 5A: Projectory corroboration — update sourceLastSeenAt and re-activate if stale
+    await touchProjectSourceSeen(projectId, true);
 
     // Log enrichment
     const logEntry: InsertProjectoryEnrichmentLog = {

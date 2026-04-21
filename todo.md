@@ -1314,3 +1314,26 @@
 - [ ] G: Blocked contacts excluded from default approval view; visible only in audit filter
 - [x] H: Bulk actions — approve all send_ready, export blocked CSV
 - [x] I: Vitest tests for all Stage 4 additions (stage4.test.ts — 38 tests, all passing)
+
+## Stage 5A — Pipeline Repair: Freshness Tracking & Staleness Logic
+- [x] DB migration: add sourceLastSeenAt, staleReason, keepFlag fields to projects table
+- [x] DB migration: add quarantined, quarantineReason fields to rssSources table
+- [x] Rewrite markStaleProjects: sourceLastSeenAt-driven freshness, 60-day stale, 180-day archive thresholds
+- [x] keepFlag exemption: projects with keepFlag=true are never auto-staled or auto-archived
+- [x] Active pipeline claim exemption: projects with non-lost claims are never auto-staled or auto-archived
+- [x] staleReason field set on all stale/archive transitions with Stage 5A audit trail
+- [x] Add touchProjectSourceSeen function to db.ts (updates sourceLastSeenAt, re-activates stale projects)
+- [x] Wire touchProjectSourceSeen into RSS harvest path (aiExtractor.ts — on duplicate detection)
+- [x] Wire touchProjectSourceSeen into Projectory enrichment path (projectoryEnrichment.ts)
+- [x] Wire touchProjectSourceSeen into ICN validation path (icnEnrichment.ts)
+- [x] Add setProjectKeepFlag tRPC procedure to project router
+- [x] Add quarantineSource / unquarantineSource functions to pipelineDb.ts
+- [x] Add quarantine / unquarantine tRPC procedures to rssSources router
+- [x] Update rssHarvester to skip quarantined sources (isActive AND NOT quarantined)
+- [x] Change default lifecycleFilter from 'all' to 'active' in reports.full tRPC procedure
+- [x] Add lifecycleFilter state to Home.tsx and wire into trpc.report.full.useQuery
+- [x] Add Lifecycle filter bar (Active / Stale / All) to Home.tsx project list
+- [x] Update Admin.tsx PlatformAnalyticsTab to explicitly pass lifecycleFilter: 'all'
+- [x] Fix weeklyPipeline.test.ts mock to return new markStaleProjects shape ({ staled, archived })
+- [x] Write stage5a.test.ts (44 tests covering all Stage 5A features, all passing)
+- [x] Full test suite green (2207 tests, 76 files)
