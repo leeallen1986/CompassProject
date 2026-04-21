@@ -267,6 +267,8 @@ export async function checkApolloEligibility(
       name: projects.name,
       priority: projects.priority,
       lifecycleStatus: projects.lifecycleStatus,
+      suppressed: projects.suppressed,
+      projectType: projects.projectType,
     })
     .from(projects)
     .where(eq(projects.id, projectId))
@@ -280,6 +282,16 @@ export async function checkApolloEligibility(
   if (project.lifecycleStatus === "archived" || project.lifecycleStatus === "completed") {
     return makeIneligible(
       `Project is ${project.lifecycleStatus} — no enrichment needed`,
+      emptyGapAnalysis(),
+      emptyBudget()
+    );
+  }
+
+  // Stage 5D gate: never spend Apollo credits on suppressed projects
+  // (macro items, background accounts, program wrappers, completed/cancelled)
+  if (project.suppressed) {
+    return makeIneligible(
+      `Project "${project.name}" is suppressed (projectType: ${project.projectType || 'unknown'}) — Apollo enrichment blocked to conserve credits`,
       emptyGapAnalysis(),
       emptyBudget()
     );
@@ -489,18 +501,20 @@ export async function findEligibleProjects(
     };
   }
 
-  // Get hot priority active projects
+  // Get hot priority active non-suppressed opportunity projects
+  // Stage 5D gate: exclude suppressed projects (macro items, background accounts, etc.)
   const hotProjects = await db
     .select({ id: projects.id, name: projects.name })
     .from(projects)
     .where(
       and(
         eq(projects.priority, "hot"),
-        eq(projects.lifecycleStatus, "active")
+        eq(projects.lifecycleStatus, "active"),
+        sql`(${projects.suppressed} IS NULL OR ${projects.suppressed} = 0)`
       )
     );
 
-  // Get pipeline-claimed projects
+  // Get pipeline-claimed projects (also excluding suppressed)
   const claimedProjects = await db
     .select({
       id: projects.id,
@@ -508,7 +522,12 @@ export async function findEligibleProjects(
     })
     .from(projects)
     .innerJoin(pipelineClaims, eq(pipelineClaims.projectId, projects.id))
-    .where(eq(projects.lifecycleStatus, "active"));
+    .where(
+      and(
+        eq(projects.lifecycleStatus, "active"),
+        sql`(${projects.suppressed} IS NULL OR ${projects.suppressed} = 0)`
+      )
+    );
 
   // Merge and deduplicate
   const eligibleMap = new Map<number, { projectId: number; projectName: string; reason: ApolloEligibilityReason }>();

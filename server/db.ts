@@ -167,11 +167,28 @@ export async function createProjects(data: InsertProject[]): Promise<void> {
   await db.insert(projects).values(data);
 }
 
-export async function getProjectsByReportId(reportId: number) {
+export async function getProjectsByReportId(
+  reportId: number,
+  opts?: { includeSuppressed?: boolean }
+) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(projects).where(eq(projects.reportId, reportId));
+  // By default, exclude suppressed projects (macro items, background accounts, etc.)
+  // so they never leak into email digests or dashboard views.
+  if (opts?.includeSuppressed) {
+    return db.select().from(projects).where(eq(projects.reportId, reportId));
+  }
+
+  return db.select().from(projects).where(
+    and(
+      eq(projects.reportId, reportId),
+      or(
+        eq(projects.suppressed, false),
+        isNull(projects.suppressed)
+      )
+    )
+  );
 }
 
 export async function getAllProjects() {
