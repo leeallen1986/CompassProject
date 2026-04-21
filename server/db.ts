@@ -13,6 +13,7 @@ import {
   pipelineActivity, InsertPipelineActivity,
   emailDigestPrefs, InsertEmailDigestPref, EmailDigestPref,
   projectBusinessLineScores,
+  projectActions, InsertProjectAction, ProjectAction,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1638,4 +1639,364 @@ export async function classifyAllProductLanes(): Promise<Record<string, number>>
   }
 
   return summary;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Part D — Action Tracking helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the current ISO week key in the format "YYYYWww", e.g. "2026W17".
+ * Monday is the first day of the week (ISO 8601).
+ */
+export function getCurrentWeekKey(date: Date = new Date()): string {
+  // ISO week: Thursday of the week determines the year
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7; // Mon=1 … Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum); // nearest Thursday
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}W${String(weekNo).padStart(2, "0")}`;
+}
+
+/**
+ * Generates a deterministic, human-readable actionId.
+ * Format: ACT-{weekKey}-{userId6}-{projectId6}
+ * e.g. ACT-2026W17-000042-000317
+ *
+ * Same userId + projectId + weekKey always produces the same actionId,
+ * enabling upsert-on-conflict deduplication.
+ */
+export function generateActionId(userId: number, projectId: number, weekKey?: string): string {
+  const wk = weekKey ?? getCurrentWeekKey();
+  const u = String(userId).padStart(6, "0");
+  const p = String(projectId).padStart(6, "0");
+  return `ACT-${wk}-${u}-${p}`;
+}
+
+/** Outcome codes that close an action (set completedAt). */
+const CLOSING_OUTCOMES = new Set(["won", "lost", "not_relevant"]);
+
+/** Outcome codes that suppress new prompts for 14 days. */
+const COOLING_OUTCOMES = new Set(["already_active"]);
+
+/** Cooling period in milliseconds (14 days). */
+const COOLING_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
+
+type OutcomeCode =
+  | "not_started"
+  | "contacted"
+  | "meeting_booked"
+  | "proposal_sent"
+  | "won"
+  | "lost"
+  | "deferred"
+  | "not_relevant"
+  | "already_active"
+  | "contact_discovery_needed";
+
+type SourceContext =
+  | "weekly_email"
+  | "dashboard"
+  | "campaign"
+  | "emarsys_followup"
+  | "manual";
+
+type ProductLaneValue =
+  | "portable_air"
+  | "pumps"
+  | "pal"
+  | "bess"
+  | "multi_lane_pt";
+
+/**
+ * Upsert a projectAction for userId + projectId + current week.
+ * If a record already exists for this week, it is updated in-place.
+ * If the outcome is a closing outcome, completedAt is set.
+ */
+export async function upsertProjectAction(params: {
+  userId: number;
+  projectId: number;
+  contactId?: number;
+  campaignId?: number;
+  sourceContext?: SourceContext;
+  productLane?: ProductLaneValue;
+  recommendedAction?: string;
+  outcomeCode?: OutcomeCode;
+  outcomeNotes?: string;
+  weekKey?: string;
+}): Promise<ProjectAction> {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  const weekKey = params.weekKey ?? getCurrentWeekKey();
+  const actionId = generateActionId(params.userId, params.projectId, weekKey);
+  const outcomeCode = params.outcomeCode ?? "not_started";
+  const completedAt = CLOSING_OUTCOMES.has(outcomeCode) ? new Date() : null;
+
+  // Check if record already exists
+  const [existing] = await db
+    .select()
+    .from(projectActions)
+    .where(eq(projectActions.actionId, actionId))
+    .limit(1);
+
+  if (existing) {
+    // Update existing record
+    await db
+      .update(projectActions)
+      .set({
+        outcomeCode: outcomeCode as OutcomeCode,
+        outcomeNotes: params.outcomeNotes ?? existing.outcomeNotes,
+        contactId: params.contactId ?? existing.contactId,
+        productLane: params.productLane ?? existing.productLane,
+        recommendedAction: params.recommendedAction ?? existing.recommendedAction,
+        completedAt: completedAt ?? existing.completedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(projectActions.actionId, actionId));
+    const [updated] = await db
+      .select()
+      .from(projectActions)
+      .where(eq(projectActions.actionId, actionId))
+      .limit(1);
+    return updated;
+  }
+
+  // Insert new record
+  await db.insert(projectActions).values({
+    projectId: params.projectId,
+    contactId: params.contactId ?? null,
+    campaignId: params.campaignId ?? null,
+    userId: params.userId,
+    actionId,
+    sourceContext: params.sourceContext ?? "dashboard",
+    productLane: params.productLane ?? null,
+    recommendedAction: params.recommendedAction ?? null,
+    outcomeCode: outcomeCode as OutcomeCode,
+    outcomeNotes: params.outcomeNotes ?? null,
+    weekKey,
+    managerVisible: true,
+    completedAt: completedAt ?? null,
+  });
+
+  const [inserted] = await db
+    .select()
+    .from(projectActions)
+    .where(eq(projectActions.actionId, actionId))
+    .limit(1);
+  return inserted;
+}
+
+/**
+ * Update the outcome of an existing action by actionId.
+ * Enforces lifecycle rules:
+ *  - won / lost / not_relevant → sets completedAt
+ *  - deferred → keeps open, no completedAt change
+ *  - already_active → keeps open (cooling handled by getAlreadyActiveCooldownProjects)
+ *  - contact_discovery_needed → keeps open, flagged awaiting data
+ */
+export async function updateActionOutcome(params: {
+  actionId: string;
+  userId: number;
+  outcomeCode: OutcomeCode;
+  outcomeNotes?: string;
+}): Promise<ProjectAction | null> {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  const completedAt = CLOSING_OUTCOMES.has(params.outcomeCode) ? new Date() : undefined;
+
+  await db
+    .update(projectActions)
+    .set({
+      outcomeCode: params.outcomeCode,
+      outcomeNotes: params.outcomeNotes,
+      ...(completedAt !== undefined ? { completedAt } : {}),
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(projectActions.actionId, params.actionId),
+        eq(projectActions.userId, params.userId)
+      )
+    );
+
+  const [updated] = await db
+    .select()
+    .from(projectActions)
+    .where(eq(projectActions.actionId, params.actionId))
+    .limit(1);
+  return updated ?? null;
+}
+
+/**
+ * Get all actions for a specific project (all reps, most recent first).
+ */
+export async function getActionsForProject(projectId: number): Promise<ProjectAction[]> {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  return db
+    .select()
+    .from(projectActions)
+    .where(eq(projectActions.projectId, projectId))
+    .orderBy(desc(projectActions.updatedAt));
+}
+
+/**
+ * Get the latest action for a specific user + project combination.
+ */
+export async function getLatestActionForProject(
+  userId: number,
+  projectId: number
+): Promise<ProjectAction | null> {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  const [action] = await db
+    .select()
+    .from(projectActions)
+    .where(
+      and(
+        eq(projectActions.userId, userId),
+        eq(projectActions.projectId, projectId)
+      )
+    )
+    .orderBy(desc(projectActions.updatedAt))
+    .limit(1);
+  return action ?? null;
+}
+
+/**
+ * Get actions for a specific user, optionally filtered by weekKey and/or outcomeCode.
+ */
+export async function getActionsForUser(params: {
+  userId: number;
+  weekKey?: string;
+  outcomeCode?: OutcomeCode;
+  limit?: number;
+}): Promise<ProjectAction[]> {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  const conditions = [eq(projectActions.userId, params.userId)];
+  if (params.weekKey) conditions.push(eq(projectActions.weekKey, params.weekKey));
+  if (params.outcomeCode) conditions.push(eq(projectActions.outcomeCode, params.outcomeCode));
+
+  return db
+    .select()
+    .from(projectActions)
+    .where(and(...conditions))
+    .orderBy(desc(projectActions.updatedAt))
+    .limit(params.limit ?? 50);
+}
+
+/**
+ * Manager rollup — returns aggregated counts for a given week.
+ *
+ * Rollup rules:
+ *  - Only the latest outcomeCode per action record counts (not history).
+ *  - "This week" = the weekKey parameter (defaults to current ISO week).
+ *  - won / lost close the action (completedAt is set).
+ *  - deferred keeps action open but counts separately.
+ *  - already_active suppresses new prompts for 14 days.
+ *  - contact_discovery_needed keeps action open, flagged awaiting data.
+ *  - not_relevant closes action.
+ *
+ * Returns:
+ *  - totals by outcomeCode
+ *  - breakdown by rep (userId + name from join)
+ *  - breakdown by productLane
+ *  - breakdown by priority (hot/warm — requires project join)
+ */
+export async function getManagerRollup(weekKey?: string): Promise<{
+  weekKey: string;
+  totalActions: number;
+  byOutcome: Record<string, number>;
+  byRep: { userId: number; userName: string | null; count: number; byOutcome: Record<string, number> }[];
+  byLane: Record<string, number>;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  const wk = weekKey ?? getCurrentWeekKey();
+
+  // Fetch all actions for the week with user names
+  const rows = await db
+    .select({
+      id: projectActions.id,
+      userId: projectActions.userId,
+      userName: users.name,
+      outcomeCode: projectActions.outcomeCode,
+      productLane: projectActions.productLane,
+      managerVisible: projectActions.managerVisible,
+    })
+    .from(projectActions)
+    .leftJoin(users, eq(projectActions.userId, users.id))
+    .where(
+      and(
+        eq(projectActions.weekKey, wk),
+        eq(projectActions.managerVisible, true)
+      )
+    );
+
+  // Aggregate
+  const byOutcome: Record<string, number> = {};
+  const byLane: Record<string, number> = {};
+  const repMap: Map<number, { userName: string | null; count: number; byOutcome: Record<string, number> }> = new Map();
+
+  for (const row of rows) {
+    const outcome = row.outcomeCode ?? "not_started";
+    byOutcome[outcome] = (byOutcome[outcome] ?? 0) + 1;
+
+    if (row.productLane) {
+      byLane[row.productLane] = (byLane[row.productLane] ?? 0) + 1;
+    }
+
+    if (!repMap.has(row.userId)) {
+      repMap.set(row.userId, { userName: row.userName, count: 0, byOutcome: {} });
+    }
+    const rep = repMap.get(row.userId)!;
+    rep.count++;
+    rep.byOutcome[outcome] = (rep.byOutcome[outcome] ?? 0) + 1;
+  }
+
+  const byRep = Array.from(repMap.entries()).map(([userId, data]) => ({
+    userId,
+    userName: data.userName,
+    count: data.count,
+    byOutcome: data.byOutcome,
+  }));
+
+  return {
+    weekKey: wk,
+    totalActions: rows.length,
+    byOutcome,
+    byRep,
+    byLane,
+  };
+}
+
+/**
+ * Returns the subset of projectIds from the input list where the current user
+ * has an already_active action updated within the last 14 days.
+ * Used by the UI to suppress repeated prompts.
+ */
+export async function getAlreadyActiveCooldownProjects(
+  userId: number,
+  projectIds: number[]
+): Promise<number[]> {
+  if (projectIds.length === 0) return [];
+  const db = await getDb();
+  if (!db) throw new Error("[Database] Not available");
+  const cutoff = new Date(Date.now() - COOLING_PERIOD_MS);
+
+  const rows = await db
+    .select({ projectId: projectActions.projectId })
+    .from(projectActions)
+    .where(
+      and(
+        eq(projectActions.userId, userId),
+        eq(projectActions.outcomeCode, "already_active"),
+        inArray(projectActions.projectId, projectIds),
+        sql`${projectActions.updatedAt} >= ${cutoff}`
+      )
+    );
+
+  return rows.map((r: { projectId: number }) => r.projectId);
 }

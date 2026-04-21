@@ -1392,5 +1392,46 @@
 - [x] Phase 4: Home.tsx — productLaneFilter state added (default 'all'); laneFiltered step added in filter chain after projectTypeFiltered; PT Lane filter chip row added after tier filter chips; tier/priority counts updated to use laneFiltered; "Portable Air in Action" heading renamed to "PT Capital Sales in Action"
 - [x] Phase 5: server/ptCapitalSales.test.ts — 82 Vitest tests covering DIMENSION_TO_LANE map, classifyProductLaneFromScores (all 5 lanes + null + boundaries), normalizeStageCode patterns (all stage codes), email digest lane grouping, contact-discovery-needed state
 - [x] Phase 6: Full test suite green — 2526 / 2526 passing across 82 files · TypeScript: 0 errors
-- [ ] Phase 6: Checkpoint save — IN PROGRESS
-- [ ] Phase 6: PT Capital Sales validation document
+- [x] Phase 6: Checkpoint save — version 399f5ea3
+- [x] Phase 6: PT Capital Sales validation document — /home/ubuntu/pt_capital_sales_validation.md
+
+## Part D — Action Tracking (PT Capital Sales)
+### Phase A — Data Model
+- [x] Add projectActions table to drizzle/schema.ts (id, projectId, contactId, campaignId, userId, actionId, sourceContext, productLane, recommendedAction, outcomeCode, outcomeNotes, createdAt, updatedAt, completedAt, managerVisible)
+- [x] Define outcomeCode enum: not_started, contacted, meeting_booked, proposal_sent, won, lost, deferred, not_relevant, already_active, contact_discovery_needed
+- [x] Run pnpm db:push to apply migration
+- [x] Document projectFeedback relationship decision (projectActions supersedes for outcome tracking; projectFeedback retained for ML signal only)
+### Phase B — Action ID / Linking
+- [x] Implement generateActionId(userId, projectId, weekKey) → deterministic short code (e.g. ACT-{weekKey}-{userId6}-{projectId6})
+- [x] Upsert-on-conflict logic: same userId+projectId+weekKey updates existing record, does not create duplicate
+- [x] New week creates new instance (fresh weekKey); prior week record is preserved as history
+### Phase C — tRPC Procedures
+- [x] Add server/routers/projectActions.ts: upsertAction, updateOutcome, getActionsByUser, getActionsByProject, getManagerRollup procedures
+- [x] Add db.ts helpers: upsertProjectAction, updateActionOutcome, getActionsForRollup
+- [x] Wire projectActions router into server/routers.ts
+### Phase D — Manager Rollup
+- [x] getManagerRollup returns counts by outcomeCode, by rep, by productLane, by priority
+- [x] Define "this week" as ISO week (Mon–Sun) based on createdAt
+- [x] Only latest outcomeCode per action counts in rollup (not history)
+### Phase E — UI: This Week page
+- [x] Add action status badge to each shortlist row on This Week page
+- [x] Add one-click action buttons (Contacted / Meeting Booked / Proposal Sent / Won / Lost / Deferred / Not Relevant / Already Active / Contact Discovery Needed)
+- [x] Optional notes field (not mandatory) after click
+- [x] Add manager rollup panel to This Week page (visible to admin/manager role)
+### Phase F — UI: ProjectCard
+- [x] Show latest action outcomeCode badge on project card
+- [x] Show action owner (rep name) and last updated timestamp
+### Phase G — emailDigest.ts wiring
+- [x] Generate actionId for each shortlisted project in Monday digest
+- [x] Include actionId in digest content as reference code
+- [x] Include Atlas deep-link URL back to project on This Week page
+### Phase H — Reporting Rules (implemented in code)
+- [x] won/lost → completedAt set, action closed, no further prompts
+- [x] not_relevant → completedAt set, action closed unless manually reopened
+- [x] already_active → suppress new prompts for 14-day cooling period
+- [x] deferred → action remains open, urgency lowered (show as lower priority in rollup)
+- [x] contact_discovery_needed → action open, flagged as awaiting data
+### Phase I — Tests
+- [x] Write server/partD.test.ts: 60+ Vitest tests covering schema, generateActionId, upsert/dedup, outcome updates, rollup counts, PT lane preservation, repeated weekly prompts, contact_discovery_needed
+- [x] Full test suite green after Part D — 2603 / 2603 passing · TypeScript: 0 errors
+- [x] Save checkpoint and produce Part D validation pack

@@ -25,6 +25,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getLoginUrl } from "@/const";
 import NBACard from "@/components/NBACard";
 import WeeklyCoachingPanel from "@/components/WeeklyCoachingPanel";
+import ActionTracker from "@/components/ActionTracker";
+import ManagerRollup from "@/components/ManagerRollup";
 
 // ── Dismiss Button for Suggested Actions ──
 function DismissButton({ actionKey }: { actionKey: string }) {
@@ -499,6 +501,27 @@ export default function ThisWeek() {
                     <div className="mt-2" onClick={e => e.stopPropagation()}>
                       <NBACard projectId={project.id} projectName={project.name} compact />
                     </div>
+
+                    {/* CONTACT DISCOVERY ADVISORY — shown when no contacts exist */}
+                    {!project.bestStakeholder && project.contactDepth === 0 && (
+                      <div className="mt-2 flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-200">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-[10px] text-amber-700">
+                          <span className="font-semibold">Stakeholder discovery needed.</span>{" "}
+                          No high-relevance contacts found yet.{" "}
+                          <span className="font-medium">Recommended next step: contractor discovery / owner-side stakeholder search.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ACTION TRACKER — one-click outcome buttons */}
+                    <div className="mt-2">
+                      <ActionTracker
+                        projectId={project.id}
+                        productLane={(project as any).productLane}
+                        compact
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -617,6 +640,11 @@ export default function ThisWeek() {
                   ))}
                 </CardContent>
               </Card>
+            )}
+
+            {/* ── Manager Rollup ── (admin only) */}
+            {user?.role === "admin" && (
+              <ManagerRollup weekKey={weekLabel} />
             )}
 
             {/* ── Quick Stats Card ── */}

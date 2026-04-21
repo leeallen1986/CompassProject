@@ -6,6 +6,7 @@
  */
 import { useState, useMemo } from "react";
 import { ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles, ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2, Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin, Archive, RotateCcw, Clock, Award, KeyRound, FileText, Download, Pin, PinOff } from "lucide-react";
+import ActionTracker from "@/components/ActionTracker";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
@@ -1487,6 +1488,14 @@ export default function ProjectCard({
                   )}
                 </div>
               )}
+
+              {/* ── Action Tracker ── Part D */}
+              <div className="pt-4 border-t border-border mt-4">
+                <ActionTracker
+                  projectId={project.id}
+                  productLane={project.productLane ?? undefined}
+                />
+              </div>
             </div>
           </motion.div>
         )}

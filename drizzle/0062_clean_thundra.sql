@@ -1,0 +1,20 @@
+CREATE TABLE `projectActions` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`projectId` int NOT NULL,
+	`contactId` int,
+	`campaignId` int,
+	`userId` int NOT NULL,
+	`actionId` varchar(64) NOT NULL,
+	`sourceContext` enum('weekly_email','dashboard','campaign','emarsys_followup','manual') NOT NULL DEFAULT 'dashboard',
+	`productLane` enum('portable_air','pumps','pal','bess','multi_lane_pt'),
+	`recommendedAction` varchar(256),
+	`outcomeCode` enum('not_started','contacted','meeting_booked','proposal_sent','won','lost','deferred','not_relevant','already_active','contact_discovery_needed') NOT NULL DEFAULT 'not_started',
+	`outcomeNotes` text,
+	`weekKey` varchar(8) NOT NULL,
+	`managerVisible` boolean NOT NULL DEFAULT true,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	`completedAt` timestamp,
+	CONSTRAINT `projectActions_id` PRIMARY KEY(`id`),
+	CONSTRAINT `projectActions_actionId_unique` UNIQUE(`actionId`)
+);

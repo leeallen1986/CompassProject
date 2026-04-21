@@ -645,13 +645,20 @@ export async function sendWeeklyDigests(force = false): Promise<{
       const matchedProjectNames = new Set(matchedProjects.map(p => p.name));
       const matchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
 
+      // Part D: annotate each project with hasNoContacts and latestActionStatus
+      const contactProjectIds = new Set(allContacts.map(c => (c as any).projectId).filter(Boolean));
+      const annotatedProjects = matchedProjects.map(p => ({
+        ...p,
+        hasNoContacts: !contactProjectIds.has(p.id),
+      }));
+
       const territories = (profile.territories as string[]) || [];
 
       // Generate the personalized Monday digest
       const content = generateMondayDigest(
         user.name || "Team Member",
         report.weekEnding,
-        matchedProjects,
+        annotatedProjects,
         matchedContacts.map(c => ({
           name: c.name,
           title: c.title,

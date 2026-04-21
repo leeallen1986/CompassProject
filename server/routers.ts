@@ -63,6 +63,7 @@ import { sendWeeklyDigests } from "./emailDigest";
 import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
 import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { searchProjects } from "./aiProjectMatcher";
+import { projectActionsRouter } from "./routers/projectActions";
 import {
   apolloPeopleSearch, enrichSingleContact, enrichProjectContacts,
   revealContactEmail, validateApolloApiKey, inferDomain,
@@ -3683,5 +3684,6 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  projectActions: projectActionsRouter,
 });
 export type AppRouter = typeof appRouter;

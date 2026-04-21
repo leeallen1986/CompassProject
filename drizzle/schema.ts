@@ -1195,3 +1195,91 @@ export const emarsysExportLogs = mysqlTable("emarsysExportLogs", {
 export type EmarsysExportLog = typeof emarsysExportLogs.$inferSelect;
 export type InsertEmarsysExportLog = typeof emarsysExportLogs.$inferInsert;
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Part D — Action Tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * projectActions — tracks rep responses to weekly shortlisted opportunities.
+ *
+ * Design decisions:
+ *  - projectFeedback is retained as-is for ML personalization signal.
+ *  - projectActions is the authoritative outcome-tracking table for PT Capital
+ *    Sales reporting. It does NOT replace projectFeedback.
+ *  - actionId is a deterministic short code: ACT-{weekKey}-{userId6}-{projectId6}
+ *    where weekKey = ISO year + week (e.g. "2026W17"). Same userId+projectId+weekKey
+ *    upserts the existing record; a new week creates a new instance.
+ *  - Lifecycle rules (enforced in db.ts helpers):
+ *      won / lost         → completedAt set, action closed
+ *      not_relevant       → completedAt set, action closed unless manually reopened
+ *      already_active     → suppress new prompts for 14-day cooling period
+ *      deferred           → action open, lower urgency
+ *      contact_discovery_needed → action open, flagged awaiting data
+ */
+export const projectActions = mysqlTable("projectActions", {
+  id: int("id").autoincrement().primaryKey(),
+
+  // Core linkage
+  projectId: int("projectId").notNull(),
+  contactId: int("contactId"),          // nullable — no contact yet
+  campaignId: int("campaignId"),        // nullable — not tied to campaign
+  userId: int("userId").notNull(),      // rep who owns this action
+
+  // Stable reference code for email / weekly brief linking
+  // Format: ACT-{weekKey}-{userId6}-{projectId6}  e.g. ACT-2026W17-000042-000317
+  actionId: varchar("actionId", { length: 64 }).notNull().unique(),
+
+  // Where the action originated
+  sourceContext: mysqlEnum("sourceContext", [
+    "weekly_email",
+    "dashboard",
+    "campaign",
+    "emarsys_followup",
+    "manual",
+  ]).notNull().default("dashboard"),
+
+  // PT lane at time of action creation (snapshot — project lane may change later)
+  productLane: mysqlEnum("productLane", [
+    "portable_air",
+    "pumps",
+    "pal",
+    "bess",
+    "multi_lane_pt",
+  ]),
+
+  // What the system suggested the rep should do
+  recommendedAction: varchar("recommendedAction", { length: 256 }),
+
+  // Rep's recorded outcome
+  outcomeCode: mysqlEnum("outcomeCode", [
+    "not_started",
+    "contacted",
+    "meeting_booked",
+    "proposal_sent",
+    "won",
+    "lost",
+    "deferred",
+    "not_relevant",
+    "already_active",
+    "contact_discovery_needed",
+  ]).notNull().default("not_started"),
+
+  // Optional free-text note (not mandatory)
+  outcomeNotes: text("outcomeNotes"),
+
+  // ISO week key used for deduplication: e.g. "2026W17"
+  weekKey: varchar("weekKey", { length: 8 }).notNull(),
+
+  // Visibility
+  managerVisible: boolean("managerVisible").notNull().default(true),
+
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  // Set when action is closed (won / lost / not_relevant)
+  completedAt: timestamp("completedAt"),
+});
+
+export type ProjectAction = typeof projectActions.$inferSelect;
+export type InsertProjectAction = typeof projectActions.$inferInsert;
