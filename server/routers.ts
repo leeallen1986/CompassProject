@@ -22,6 +22,7 @@ import {
   verifyContactByUser, rejectContactByUser, getVerificationStats,
   getAllUsers, updateUserCampaignAccess,
   findDuplicateClusters, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep,
+  classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -616,6 +617,8 @@ export const appRouter = router({
         reportId: z.number().optional(),
         // Stage 5A: default to 'active' — stale projects are hidden from the default view
         lifecycleFilter: z.enum(["all", "active", "stale", "archived", "awarded", "completed"]).optional().default("active"),
+        // Stage 5D: default false — suppressed projects (macro items, background accounts, completed) are hidden
+        includeSuppressed: z.boolean().optional().default(false),
       }))
       .query(async ({ ctx, input }) => {
         // Always fetch ALL projects across all reports for the unified dashboard
@@ -638,19 +641,25 @@ export const appRouter = router({
           ? projectsList
           : projectsList.filter(p => (p.lifecycleStatus ?? "active") === input.lifecycleFilter);
 
+        // Stage 5D: Apply suppression filter — hide macro items, background accounts, and completed projects
+        // from the default rep view unless admin explicitly requests them
+        const filteredProjects = input.includeSuppressed
+          ? filteredByLifecycle
+          : filteredByLifecycle.filter(p => !p.suppressed);
+
         // Get the latest report for metadata (executive summary, etc.)
         const report = input.reportId
           ? await getReportById(input.reportId)
           : await getLatestReport();
 
-        // Build aggregate stats from filtered data
-        const hot = filteredByLifecycle.filter(p => p.priority === "hot").length;
-        const warm = filteredByLifecycle.filter(p => p.priority === "warm").length;
-        const cold = filteredByLifecycle.filter(p => p.priority === "cold").length;
+        // Build aggregate stats from filtered data (after suppression)
+        const hot = filteredProjects.filter(p => p.priority === "hot").length;
+        const warm = filteredProjects.filter(p => p.priority === "warm").length;
+        const cold = filteredProjects.filter(p => p.priority === "cold").length;
 
         const aggregateReport = report ? {
           ...report,
-          totalProjects: filteredByLifecycle.length,
+          totalProjects: filteredProjects.length,
           hotProjects: hot,
           warmProjects: warm,
           coldProjects: cold,
@@ -659,7 +668,7 @@ export const appRouter = router({
           id: 0,
           weekEnding: new Date().toISOString().slice(0, 10),
           generatedTime: new Date().toISOString(),
-          totalProjects: filteredByLifecycle.length,
+          totalProjects: filteredProjects.length,
           hotProjects: hot,
           warmProjects: warm,
           coldProjects: cold,
@@ -677,10 +686,10 @@ export const appRouter = router({
         };
 
         // Apply ML ranking if user is authenticated
-        let rankedProjects = filteredByLifecycle;
+        let rankedProjects = filteredProjects;
         let rankings: Awaited<ReturnType<typeof rankProjectsForUser>> | null = null;
         if (ctx.user) {
-          rankings = await rankProjectsForUser(ctx.user.id, filteredByLifecycle);
+          rankings = await rankProjectsForUser(ctx.user.id, filteredProjects);
           rankedProjects = rankings.map(r => r.project);
         }
 
@@ -3535,6 +3544,61 @@ export const appRouter = router({
       const result = await runDuplicateDetectionSweep();
       return { success: true, ...result };
     }),
+  }),
+
+  // ── Stage 5D: Project Classification ──────────────────────────────────────
+  classification: router({
+    /** Classify a single project inline (no DB write) — useful for preview before saving */
+    classifyOne: adminProcedure
+      .input(z.object({
+        name: z.string(),
+        stage: z.string().nullable().optional(),
+        owner: z.string().nullable().optional(),
+        location: z.string().nullable().optional(),
+        priority: z.string().nullable().optional(),
+      }))
+      .query(({ input }) => {
+        return classifyProjectType({
+          name: input.name,
+          stage: input.stage,
+          owner: input.owner,
+          location: input.location,
+          priority: input.priority,
+        });
+      }),
+
+    /** Re-classify all projects in the database and write results back (admin only) */
+    bulkClassify: adminProcedure.mutation(async () => {
+      const result = await classifyAllProjectTypes();
+      return { success: true, ...result };
+    }),
+
+    /** Get suppression statistics for the admin panel */
+    getStats: adminProcedure.query(async () => {
+      return getSuppressionStats();
+    }),
+
+    /** Override the suppression flag for a specific project (admin only) */
+    setSuppressed: adminProcedure
+      .input(z.object({
+        projectId: z.number().int().positive(),
+        suppressed: z.boolean(),
+        suppressionReason: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const { projects } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        await db.update(projects)
+          .set({
+            suppressed: input.suppressed,
+            suppressionReason: input.suppressionReason ?? null,
+          })
+          .where(eq(projects.id, input.projectId));
+        return { success: true };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

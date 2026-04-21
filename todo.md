@@ -1356,3 +1356,15 @@
 - [x] Wire runDuplicateDetectionSweep into daily pipeline as Step 22
 - [x] Write stage5c.test.ts: 49 Vitest tests covering tokenSimilarity, extractStateCode, findDuplicateClusters, mergeProjectIntoCanonical, dismissDuplicateCluster, runDuplicateDetectionSweep
 - [x] Full test suite green: 2280 / 2280 passing across 78 files
+
+## Stage 5D — Project Type Classification & Suppression
+
+- [x] Live data audit: 1,110 projects sampled, 24 distinct stage string patterns identified
+- [x] DB migration: projectType (enum), stageCode (enum), stageConfidence (float), suppressionReason (text), suppressed (boolean) added to projects table
+- [x] Implement normalizeStageCode, computeStageConfidence, inferProjectType, evaluateSuppression, classifyProject, classifyAllProjects, getSuppressionStats in db.ts
+- [x] Backfill script: 1,110 projects classified — 920 opportunities, 190 suppressed (52 background_account, 28 macro_item, 11 program_wrapper, 99 completed/cancelled)
+- [x] tRPC classification router: classifyOne, bulkClassify, getSuppressionStats procedures
+- [x] getDashboardData: includeSuppressed input field (default false), suppression filter applied before ML ranking
+- [x] Home.tsx: projectTypeFilter state (default 'opportunity'), projectTypeFiltered step in filter chain, Type filter chip row with count badges and helper text
+- [x] Write stage5d.test.ts: 64 Vitest tests covering normalizeStageCode (29), computeStageConfidence (5), inferProjectType (10), evaluateSuppression (9), classifyProject (11)
+- [x] Full test suite green: 2344 / 2344 passing across 79 files · TypeScript: 0 errors

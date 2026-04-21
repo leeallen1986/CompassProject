@@ -720,6 +720,8 @@ export default function Home() {
   const [actionTierFilter, setActionTierFilter] = useState<"all" | "tier1_actionable" | "tier2_warm" | "tier3_monitor">("all");
   // Stage 5A: default to 'active' — stale projects hidden from default view
   const [lifecycleFilter, setLifecycleFilter] = useState<"active" | "stale" | "all" | "archived">("active");
+  // Stage 5D: projectType filter — default 'opportunity' hides macro items and background accounts
+  const [projectTypeFilter, setProjectTypeFilter] = useState<"opportunity" | "all">("opportunity");
   const [showAllTerritories, setShowAllTerritories] = useState(false); // default: filter ON
   const [showAllBusinessLines, setShowAllBusinessLines] = useState(false); // default: filter ON
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
@@ -954,7 +956,15 @@ export default function Home() {
         return blIds.includes(Number(businessLineFilter));
       });
 
-  const filteredProjects = businessLineFiltered.filter((p: ProjectData) => {
+  // Stage 5D: projectType filter — 'opportunity' hides macro items, background accounts, program wrappers
+  const projectTypeFiltered = projectTypeFilter === "all"
+    ? businessLineFiltered
+    : businessLineFiltered.filter((p: ProjectData) => {
+        const pt = (p as any).projectType ?? "opportunity";
+        return pt === "opportunity";
+      });
+
+  const filteredProjects = projectTypeFiltered.filter((p: ProjectData) => {
     if (priorityFilter !== "all" && p.priority !== priorityFilter) return false;
     if (sectorFilter !== "all" && p.sector !== sectorFilter) return false;
     if (tierFilter !== "all") {
@@ -1146,6 +1156,40 @@ export default function Home() {
               </button>
             );
           })}
+        </div>
+
+        {/* Stage 5D: Project Type Filter */}
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Type:</span>
+          {([
+            { key: "opportunity", label: "Opportunities", description: "Active sales targets only", color: "bg-teal" },
+            { key: "all", label: "All incl. accounts", description: "Include background accounts & macro items", color: undefined as string | undefined },
+          ] as const).map(f => {
+            const isActive = projectTypeFilter === f.key;
+            const count = f.key === "opportunity"
+              ? personalizedProjects.filter((p: any) => !p.projectType || p.projectType === "opportunity").length
+              : personalizedProjects.length;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setProjectTypeFilter(f.key)}
+                title={f.description}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-navy text-white shadow-sm"
+                    : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                }`}
+              >
+                {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color}`} />}
+                {f.label} ({count})
+              </button>
+            );
+          })}
+          {projectTypeFilter === "opportunity" && (
+            <span className="text-[10px] text-teal-600 ml-2 italic">
+              Macro items, background accounts &amp; programme wrappers are hidden. Switch to &ldquo;All&rdquo; to see them.
+            </span>
+          )}
         </div>
 
         {/* Business Line Filter */}

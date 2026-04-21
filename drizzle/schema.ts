@@ -1,4 +1,4 @@
-import { int, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { int, float, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -161,6 +161,20 @@ export const projects = mysqlTable("projects", {
   mergedIntoId: int("mergedIntoId"),
   /** Stage 5C: reviewer dismissed this cluster pair as a false positive (not a real duplicate) */
   duplicateDismissed: boolean("duplicateDismissed").default(false),
+  /** Stage 5D: high-level project type classification */
+  projectType: mysqlEnum("projectType", ["opportunity", "background_account", "macro_item", "program_wrapper"]).default("opportunity"),
+  /** Stage 5D: normalised lifecycle stage code derived from free-text stage field */
+  stageCode: mysqlEnum("stageCode", [
+    "exploration", "feasibility", "planning", "design", "procurement",
+    "awarded", "construction", "commissioning", "operational",
+    "completed", "cancelled", "unknown"
+  ]).default("unknown"),
+  /** Stage 5D: confidence in the stageCode assignment (0.0–1.0) */
+  stageConfidence: float("stageConfidence").default(0.5),
+  /** Stage 5D: human-readable reason why this project is suppressed from the default rep view */
+  suppressionReason: varchar("suppressionReason", { length: 512 }),
+  /** Stage 5D: true = excluded from default rep-facing brief (macro, background, completed, etc.) */
+  suppressed: boolean("suppressed").default(false),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

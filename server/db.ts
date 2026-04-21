@@ -181,14 +181,30 @@ export async function getAllProjects() {
   return db.select().from(projects).orderBy(desc(projects.id));
 }
 
-export async function getActiveProjects() {
+export async function getActiveProjects(opts?: { includeSuppressed?: boolean }) {
   const db = await getDb();
   if (!db) return [];
 
+  const lifecycleFilter = or(
+    eq(projects.lifecycleStatus, "active"),
+    isNull(projects.lifecycleStatus)
+  );
+
+  if (opts?.includeSuppressed) {
+    // Admin view: show all lifecycle-active projects regardless of suppression
+    return db.select().from(projects)
+      .where(lifecycleFilter)
+      .orderBy(desc(projects.id));
+  }
+
+  // Default rep view: exclude suppressed projects (macro items, background accounts, completed, etc.)
   return db.select().from(projects)
-    .where(or(
-      eq(projects.lifecycleStatus, "active"),
-      isNull(projects.lifecycleStatus)
+    .where(and(
+      lifecycleFilter,
+      or(
+        eq(projects.suppressed, false),
+        isNull(projects.suppressed)
+      )
     ))
     .orderBy(desc(projects.id));
 }
@@ -1002,4 +1018,491 @@ export async function runDuplicateDetectionSweep(): Promise<{ clustersFound: num
     newAssignments += unassigned.length;
   }
   return { clustersFound: clusters.length, newAssignments };
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE 5D — PROJECT TYPE + STAGE NORMALIZATION + SUPPRESSION
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ProjectTypeValue = "opportunity" | "background_account" | "macro_item" | "program_wrapper";
+export type StageCodeValue =
+  | "exploration" | "feasibility" | "planning" | "design" | "procurement"
+  | "awarded" | "construction" | "commissioning" | "operational"
+  | "completed" | "cancelled" | "unknown";
+
+export interface ClassificationResult {
+  projectType: ProjectTypeValue;
+  stageCode: StageCodeValue;
+  stageConfidence: number;
+  suppressed: boolean;
+  suppressionReason: string | null;
+}
+
+// ── Stage code normalisation ──────────────────────────────────────────────────
+
+/**
+ * Map a free-text stage string to a normalised StageCodeValue.
+ * Returns { code, confidence } where confidence reflects how clearly
+ * the source text matched a known pattern.
+ */
+export function normalizeStageCode(stage: string | null | undefined): { code: StageCodeValue; confidence: number } {
+  if (!stage || stage.trim() === "") return { code: "unknown", confidence: 0.3 };
+  const s = stage.toLowerCase().trim();
+
+  // ── Completed / Cancelled (terminal — highest priority) ──────────────────
+  if (/\bdecommission(ed|ing)?\b/.test(s)) return { code: "cancelled", confidence: 0.95 };
+  if (/\bcancell?ed?\b/.test(s)) return { code: "cancelled", confidence: 0.95 };
+  if (/\bwithdrawn\b/.test(s)) return { code: "cancelled", confidence: 0.9 };
+  if (/\bclosed\b/.test(s) && !/\bclose to\b/.test(s)) return { code: "cancelled", confidence: 0.85 };
+  if (/\bfully complete[d]?\b/.test(s)) return { code: "completed", confidence: 0.95 };
+  if (/\bcomplete[d]?\s*(and\s*operational|\/\s*operational)?\b/.test(s) && !/\bnear(ing)?\s*complet\b/.test(s) && !/\bearly works near completion\b/.test(s)) return { code: "completed", confidence: 0.9 };
+  if (/^completed$/.test(s)) return { code: "completed", confidence: 0.98 };
+  if (/\bcommission(ed|ing)?\b/.test(s) && /\bcomplete[d]?\b/.test(s)) return { code: "completed", confidence: 0.9 };
+  if (/\bcommission(ed)?\b/.test(s) && !/\bpre-?commission\b/.test(s) && !/\bcommissioning phase\b/.test(s)) return { code: "commissioning", confidence: 0.85 };
+  if (/\bcommissioning\b/.test(s)) return { code: "commissioning", confidence: 0.9 };
+
+  // ── Operational ──────────────────────────────────────────────────────────
+  if (/\boperational\s*\/\s*(expan|upgrad|extend)/.test(s)) return { code: "operational", confidence: 0.85 };
+  if (/\boperational\b/.test(s)) return { code: "operational", confidence: 0.8 };
+  if (/\boperating\b/.test(s)) return { code: "operational", confidence: 0.75 };
+  if (/\bongoing\s*(operations|production)\b/.test(s)) return { code: "operational", confidence: 0.8 };
+  if (/\bramp.?up\b/.test(s) && !/\bpre.?construction\b/.test(s)) return { code: "operational", confidence: 0.7 };
+
+  // ── Construction ─────────────────────────────────────────────────────────
+  if (/\bunder\s*construction\b/.test(s)) return { code: "construction", confidence: 0.95 };
+  if (/\bconstruction\s*(commenced|started|underway|ongoing|progressing|has\s*begun)\b/.test(s)) return { code: "construction", confidence: 0.95 };
+  if (/\bconstruction\b/.test(s) && !/\bpre.?construction\b/.test(s)) return { code: "construction", confidence: 0.85 };
+  if (/\bunderway\b/.test(s)) return { code: "construction", confidence: 0.7 };
+  if (/\btunnell?ing\b/.test(s)) return { code: "construction", confidence: 0.85 };
+
+  // ── Awarded ───────────────────────────────────────────────────────────────
+  if (/\bawarded?\b/.test(s)) return { code: "awarded", confidence: 0.9 };
+  if (/\bcontract\s*(award|signed|executed)\b/.test(s)) return { code: "awarded", confidence: 0.9 };
+  if (/\bcommitted\b/.test(s)) return { code: "awarded", confidence: 0.75 };
+
+  // ── Procurement / Design ─────────────────────────────────────────────────
+  if (/\bprocurement\b/.test(s)) return { code: "procurement", confidence: 0.9 };
+  if (/\btender(ing)?\b/.test(s)) return { code: "procurement", confidence: 0.85 };
+  if (/\bdesign\s*\/?\s*procurement\b/.test(s)) return { code: "procurement", confidence: 0.85 };
+  if (/\bdesign\b/.test(s) && !/\bpre.?design\b/.test(s)) return { code: "design", confidence: 0.8 };
+
+  // ── Planning ─────────────────────────────────────────────────────────────
+  if (/\bplanning\s*(and\s*design|\/\s*design|\/\s*early|\/\s*development|\/\s*development)?\b/.test(s)) return { code: "planning", confidence: 0.85 };
+  if (/\bpre.?construction\b/.test(s)) return { code: "planning", confidence: 0.8 };
+  if (/\bearly\s*works?\b/.test(s)) return { code: "planning", confidence: 0.75 };
+  if (/\bdevelopment\s*(\/\s*feasibility|\/\s*planning)?\b/.test(s)) return { code: "planning", confidence: 0.7 };
+  if (/\bfunding\s*(secured|committed|approved)\b/.test(s)) return { code: "planning", confidence: 0.7 };
+  if (/\bpermits?\s*(secured|approved|received)\b/.test(s)) return { code: "planning", confidence: 0.75 };
+  if (/\bfast.?track\b/.test(s)) return { code: "planning", confidence: 0.7 };
+
+  // ── Feasibility ───────────────────────────────────────────────────────────
+  if (/\bfeasibility\b/.test(s)) return { code: "feasibility", confidence: 0.9 };
+  if (/\benvironmental\s*(approvals?|assessment|impact)\b/.test(s)) return { code: "feasibility", confidence: 0.8 };
+  if (/\beia\b/.test(s)) return { code: "feasibility", confidence: 0.8 };
+  if (/\bpre.?feasibility\b/.test(s)) return { code: "feasibility", confidence: 0.85 };
+  if (/\bscoping\b/.test(s)) return { code: "feasibility", confidence: 0.75 };
+  if (/\bproposed\b/.test(s)) return { code: "feasibility", confidence: 0.65 };
+  if (/\bconcept\b/.test(s)) return { code: "feasibility", confidence: 0.6 };
+  if (/\badvocating?\b/.test(s)) return { code: "feasibility", confidence: 0.55 };
+
+  // ── Exploration ───────────────────────────────────────────────────────────
+  if (/\bexploration\b/.test(s)) return { code: "exploration", confidence: 0.9 };
+  if (/\bdrilling\b/.test(s) && !/\bdrilling\s*complete\b/.test(s)) return { code: "exploration", confidence: 0.85 };
+  if (/\bresource\s*(definition|extension|delineation)\b/.test(s)) return { code: "exploration", confidence: 0.85 };
+  if (/\bspudded?\b/.test(s)) return { code: "exploration", confidence: 0.9 };
+  if (/\bregional\s*exploration\b/.test(s)) return { code: "exploration", confidence: 0.9 };
+
+  // ── Fallback ──────────────────────────────────────────────────────────────
+  return { code: "unknown", confidence: 0.3 };
+}
+
+// ── Stage confidence scoring ──────────────────────────────────────────────────
+
+/**
+ * Compute stageConfidence (0.0–1.0) for a project.
+ *
+ * Factors:
+ *  - Base confidence from normalizeStageCode
+ *  - +0.10 if a named owner is present (not generic/unknown)
+ *  - +0.10 if at least one named contractor is present
+ *  - +0.05 if sources array is non-empty
+ *  - +0.05 if priority is 'hot'
+ *  - -0.10 if owner is generic/unknown
+ *  - -0.15 if stageCode is 'unknown'
+ *
+ * Result is clamped to [0.05, 0.99].
+ */
+export function computeStageConfidence(params: {
+  stage: string | null | undefined;
+  owner: string | null | undefined;
+  contractors?: { name: string; status: string }[] | null;
+  sources?: { label: string; url: string }[] | null;
+  priority?: string | null;
+}): number {
+  const { code, confidence: base } = normalizeStageCode(params.stage);
+  let score = base;
+
+  const genericOwners = new Set(["unknown", "n/a", "tbc", "tbd", "various", "multiple", "national electricity market (nem)"]);
+  const ownerLower = (params.owner ?? "").toLowerCase().trim();
+  if (ownerLower && !genericOwners.has(ownerLower) && !ownerLower.startsWith("various") && !ownerLower.startsWith("multiple")) {
+    score += 0.10;
+  } else if (!ownerLower || genericOwners.has(ownerLower)) {
+    score -= 0.10;
+  }
+
+  if (params.contractors && params.contractors.length > 0) {
+    const namedContractors = params.contractors.filter(c => c.name && c.name.toLowerCase() !== "unknown" && c.name.toLowerCase() !== "tbc");
+    if (namedContractors.length > 0) score += 0.10;
+  }
+
+  if (params.sources && params.sources.length > 0) score += 0.05;
+  if (params.priority === "hot") score += 0.05;
+  if (code === "unknown") score -= 0.15;
+
+  return Math.min(0.99, Math.max(0.05, Math.round(score * 100) / 100));
+}
+
+// ── Project type inference ────────────────────────────────────────────────────
+
+const MACRO_NAME_PATTERNS: RegExp[] = [
+  /\broadmap\b/,
+  /\bstrategy\b/,
+  /\bpolicy\b/,
+  /\bframework\b/,
+  /\bcritical\s*minerals?\s*(strategy|policy|roadmap|for\s*defence)\b/,
+  /\bnational\s+rollout\b/,
+  /\bmarket\s*(update|commentary|analysis|trend)\b/,
+  /\bindustry\s*(update|commentary|trend)\b/,
+  /\btransition\s*(plan|roadmap|strategy)\b/,
+  /\bclimate\s*(policy|strategy|plan)\b/,
+  /\bnet\s*zero\s*(strategy|roadmap|plan|target)\b/,
+  /\brenewable\s*energy\s*(target|policy|zone)\b/,
+  /\belectricity\s*(market|network)\s*(reform|update|plan)\b/,
+  /\bhydrogen\s*(strategy|roadmap|policy)\b/,
+  /\boffshore\s*wind\s*(zone|policy|roadmap)\b/,
+];
+
+const MACRO_STAGE_PATTERNS: RegExp[] = [
+  /\bpolicy.?driven\b/,
+  /\badvocating?\b/,
+  /\bconcept\s*\/?\s*advocacy\b/,
+  /\bearly.?stage.*policy\b/,
+];
+
+const PROGRAM_WRAPPER_PATTERNS: RegExp[] = [
+  /\bprogram(me)?\b.*\bfunding\b/,
+  /\bfunding\s*(program(me)?|round|package|pool)\b/,
+  /\bportfolio\s*of\b/,
+  /\bblack\s*spot\s*program\b/,
+  /\binfrastructure\s*(fund|package|program(me)?)\b/,
+  /\bclean\s*energy\s*finance\s*corporation\b/,
+  /\bcefc\b/,
+  /\baren[ae]\b.*\bfund\b/,
+  /\bsage\s*fund\b/,
+  /\bstate\s*(government)?\s*(initiative|program(me)?|fund)\b/,
+];
+
+const BACKGROUND_STAGE_PATTERNS: RegExp[] = [
+  /^operational$/, // plain "operational" with no expansion qualifier
+  /\boperational\s*-?\s*(maintenance|monitoring|outage)\b/,
+  /\bongoing\s*operations?\b/,
+  /\boperating\b/,
+  /\bcompleted?\s*\/?\s*operational\b/,
+  /\boperational\s*\(post.?incident\)\b/,
+  /\boperational,?\s*scheme\s*closing\b/,
+];
+
+const BACKGROUND_NAME_PATTERNS: RegExp[] = [
+  /\boperations?\b.*\b(ramp.?up|ongoing|post.?earthquake)\b/,
+  /\bdischarge\s*records?\b/,
+  /\bmonitoring\b/,
+  /\boutage[s]?\b/,
+  /\brefinery\s*operations?\b/,
+  /\bquarry\s*operation\b/,
+];
+
+const AUSTENDER_CONTRACT_ID_PATTERN = /^\d{5,}(\/\d+)?\s*—/;
+
+/**
+ * Infer the projectType for a project based on its name, stage, owner, and location.
+ *
+ * Priority order:
+ *  1. macro_item — broad policy/trend/roadmap signals
+ *  2. program_wrapper — funding programmes / umbrella packages
+ *  3. background_account — operational accounts without new opportunity signals
+ *  4. opportunity — everything else (default)
+ *
+ * Note: completed/cancelled projects are NOT reclassified here — they retain
+ * their projectType but are suppressed via evaluateSuppression.
+ */
+export function inferProjectType(params: {
+  name: string;
+  stage: string | null | undefined;
+  owner: string | null | undefined;
+  location: string | null | undefined;
+  stageCode: StageCodeValue;
+}): ProjectTypeValue {
+  const nameLower = params.name.toLowerCase();
+  const stageLower = (params.stage ?? "").toLowerCase();
+  const ownerLower = (params.owner ?? "").toLowerCase();
+  const locationLower = (params.location ?? "").toLowerCase();
+
+  // ── AusTender contract IDs with no equipment/site signal ─────────────────
+  if (AUSTENDER_CONTRACT_ID_PATTERN.test(params.name)) {
+    // If the owner is a government department and there's no equipment signal in name, treat as macro
+    if (/department\s*of|government|dfat|home\s*affairs|foreign\s*affairs/.test(ownerLower)) {
+      return "macro_item";
+    }
+  }
+
+  // ── Macro item checks ─────────────────────────────────────────────────────
+  for (const pattern of MACRO_NAME_PATTERNS) {
+    if (pattern.test(nameLower)) return "macro_item";
+  }
+  for (const pattern of MACRO_STAGE_PATTERNS) {
+    if (pattern.test(stageLower)) return "macro_item";
+  }
+
+  // ── Broad national/multi-entity items with vague owner ───────────────────
+  const isNational = /\bnational\b/.test(locationLower) || locationLower === "national";
+  const isVagueOwner = /^(various|multiple|nem|national electricity market|state government|federal government|australian government)/.test(ownerLower.trim());
+  const isVagueName = /\brecords?\b|\bmonitoring\b|\brollout\b|\bexpansion\b/.test(nameLower) && isNational && isVagueOwner;
+  if (isVagueName) return "macro_item";
+
+  // ── Program wrapper checks ────────────────────────────────────────────────
+  for (const pattern of PROGRAM_WRAPPER_PATTERNS) {
+    if (pattern.test(nameLower)) return "program_wrapper";
+  }
+
+  // ── Background account checks ─────────────────────────────────────────────
+  // Operational with no expansion/upgrade signal = background_account
+  const hasExpansionSignal = /\bexpan(d|sion)\b|\bupgrad(e|ing)\b|\bnew\s*(package|stage|phase|contract|work)\b|\bextension\b/.test(nameLower) ||
+    /\bexpan(d|sion)\b|\bupgrad(e|ing)\b|\bnew\s*(package|stage|phase|contract|work)\b|\bextension\b/.test(stageLower);
+
+  if (params.stageCode === "operational" && !hasExpansionSignal) {
+    return "background_account";
+  }
+  for (const pattern of BACKGROUND_STAGE_PATTERNS) {
+    if (pattern.test(stageLower) && !hasExpansionSignal) return "background_account";
+  }
+  for (const pattern of BACKGROUND_NAME_PATTERNS) {
+    if (pattern.test(nameLower) && !hasExpansionSignal) return "background_account";
+  }
+
+  return "opportunity";
+}
+
+// ── Suppression rules ─────────────────────────────────────────────────────────
+
+/**
+ * Determine whether a project should be suppressed from the default rep-facing view.
+ *
+ * Suppression rules (in priority order):
+ *  1. Completed/cancelled stage → suppressed
+ *  2. macro_item type → suppressed
+ *  3. program_wrapper type → suppressed
+ *  4. background_account type → suppressed (visible in account/context views only)
+ *  5. Very low stageConfidence (< 0.25) AND no named owner → suppressed
+ *
+ * Returns { suppressed: boolean, suppressionReason: string | null }
+ */
+export function evaluateSuppression(params: {
+  projectType: ProjectTypeValue;
+  stageCode: StageCodeValue;
+  stageConfidence: number;
+  owner: string | null | undefined;
+}): { suppressed: boolean; suppressionReason: string | null } {
+  const { projectType, stageCode, stageConfidence } = params;
+  const ownerLower = (params.owner ?? "").toLowerCase().trim();
+  const genericOwners = new Set(["unknown", "n/a", "tbc", "tbd", ""]);
+  const hasNamedOwner = ownerLower.length > 0 && !genericOwners.has(ownerLower);
+
+  if (stageCode === "completed") {
+    return { suppressed: true, suppressionReason: "Project is completed — no active opportunity" };
+  }
+  if (stageCode === "cancelled") {
+    return { suppressed: true, suppressionReason: "Project is cancelled or decommissioned" };
+  }
+  if (projectType === "macro_item") {
+    return { suppressed: true, suppressionReason: "Macro/policy item — no specific buying route or target entity" };
+  }
+  if (projectType === "program_wrapper") {
+    return { suppressed: true, suppressionReason: "Programme wrapper — umbrella funding item, specific packages should be tracked separately" };
+  }
+  if (projectType === "background_account") {
+    return { suppressed: true, suppressionReason: "Background operational account — no new opportunity signal" };
+  }
+  if (stageConfidence < 0.25 && !hasNamedOwner) {
+    return { suppressed: true, suppressionReason: "Very low confidence and no named owner — insufficient signal for rep action" };
+  }
+
+  return { suppressed: false, suppressionReason: null };
+}
+
+// ── Full classification pipeline for a single project ─────────────────────────
+
+/**
+ * Run the full Stage 5D classification pipeline for a single project row.
+ * Returns all four classification fields ready to write to the DB.
+ */
+export function classifyProject(params: {
+  name: string;
+  stage: string | null | undefined;
+  owner: string | null | undefined;
+  location: string | null | undefined;
+  contractors?: { name: string; status: string }[] | null;
+  sources?: { label: string; url: string }[] | null;
+  priority?: string | null;
+}): ClassificationResult {
+  const { code: stageCode, confidence: baseConf } = normalizeStageCode(params.stage);
+  const stageConfidence = computeStageConfidence({
+    stage: params.stage,
+    owner: params.owner,
+    contractors: params.contractors,
+    sources: params.sources,
+    priority: params.priority,
+  });
+  const projectType = inferProjectType({
+    name: params.name,
+    stage: params.stage,
+    owner: params.owner,
+    location: params.location,
+    stageCode,
+  });
+  const { suppressed, suppressionReason } = evaluateSuppression({
+    projectType,
+    stageCode,
+    stageConfidence,
+    owner: params.owner,
+  });
+
+  return { projectType, stageCode, stageConfidence, suppressed, suppressionReason };
+}
+
+// ── Bulk DB classification ────────────────────────────────────────────────────
+
+/**
+ * Classify all projects in the database and write the results back.
+ * Processes in batches of 100 to avoid large transactions.
+ * Returns counts of how many were classified and how many were suppressed.
+ */
+export async function classifyAllProjects(): Promise<{
+  total: number;
+  suppressed: number;
+  byType: Record<ProjectTypeValue, number>;
+  byStageCode: Record<StageCodeValue, number>;
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const allProjects = await db
+    .select({
+      id: projects.id,
+      name: projects.name,
+      stage: projects.stage,
+      owner: projects.owner,
+      location: projects.location,
+      contractors: projects.contractors,
+      sources: projects.sources,
+      priority: projects.priority,
+    })
+    .from(projects);
+
+  const byType: Record<ProjectTypeValue, number> = {
+    opportunity: 0, background_account: 0, macro_item: 0, program_wrapper: 0,
+  };
+  const byStageCode: Record<StageCodeValue, number> = {
+    exploration: 0, feasibility: 0, planning: 0, design: 0, procurement: 0,
+    awarded: 0, construction: 0, commissioning: 0, operational: 0,
+    completed: 0, cancelled: 0, unknown: 0,
+  };
+  let suppressedCount = 0;
+
+  const BATCH = 100;
+  for (let i = 0; i < allProjects.length; i += BATCH) {
+    const batch = allProjects.slice(i, i + BATCH);
+    for (const p of batch) {
+      const result = classifyProject({
+        name: p.name,
+        stage: p.stage,
+        owner: p.owner,
+        location: p.location,
+        contractors: p.contractors as { name: string; status: string }[] | null,
+        sources: p.sources as { label: string; url: string }[] | null,
+        priority: p.priority,
+      });
+      await db.update(projects)
+        .set({
+          projectType: result.projectType,
+          stageCode: result.stageCode,
+          stageConfidence: result.stageConfidence,
+          suppressed: result.suppressed,
+          suppressionReason: result.suppressionReason,
+        })
+        .where(eq(projects.id, p.id));
+
+      byType[result.projectType]++;
+      byStageCode[result.stageCode]++;
+      if (result.suppressed) suppressedCount++;
+    }
+  }
+
+  return { total: allProjects.length, suppressed: suppressedCount, byType, byStageCode };
+}
+
+// ── Suppression stats query ───────────────────────────────────────────────────
+
+export async function getSuppressionStats(): Promise<{
+  totalActive: number;
+  totalSuppressed: number;
+  visibleOpportunities: number;
+  byType: { projectType: string; cnt: number }[];
+  byStageCode: { stageCode: string; cnt: number }[];
+  suppressedByReason: { suppressionReason: string; cnt: number }[];
+}> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [totalRows] = await db
+    .select({ cnt: sql<number>`COUNT(*)` })
+    .from(projects)
+    .where(eq(projects.lifecycleStatus, "active"));
+
+  const [suppressedRows] = await db
+    .select({ cnt: sql<number>`COUNT(*)` })
+    .from(projects)
+    .where(and(eq(projects.lifecycleStatus, "active"), eq(projects.suppressed, true)));
+
+  const [visibleRows] = await db
+    .select({ cnt: sql<number>`COUNT(*)` })
+    .from(projects)
+    .where(and(eq(projects.lifecycleStatus, "active"), eq(projects.suppressed, false)));
+
+  const byType = await db
+    .select({ projectType: projects.projectType, cnt: sql<number>`COUNT(*)` })
+    .from(projects)
+    .where(eq(projects.lifecycleStatus, "active"))
+    .groupBy(projects.projectType);
+
+  const byStageCode = await db
+    .select({ stageCode: projects.stageCode, cnt: sql<number>`COUNT(*)` })
+    .from(projects)
+    .where(eq(projects.lifecycleStatus, "active"))
+    .groupBy(projects.stageCode);
+
+  const suppressedByReason = await db
+    .select({ suppressionReason: projects.suppressionReason, cnt: sql<number>`COUNT(*)` })
+    .from(projects)
+    .where(and(eq(projects.lifecycleStatus, "active"), eq(projects.suppressed, true)))
+    .groupBy(projects.suppressionReason);
+
+  return {
+    totalActive: Number(totalRows.cnt),
+    totalSuppressed: Number(suppressedRows.cnt),
+    visibleOpportunities: Number(visibleRows.cnt),
+    byType: byType.map(r => ({ projectType: r.projectType ?? "opportunity", cnt: Number(r.cnt) })),
+    byStageCode: byStageCode.map(r => ({ stageCode: r.stageCode ?? "unknown", cnt: Number(r.cnt) })),
+    suppressedByReason: suppressedByReason.map(r => ({ suppressionReason: r.suppressionReason ?? "unknown", cnt: Number(r.cnt) })),
+  };
 }
