@@ -1471,3 +1471,27 @@
 - [x] Write server/emailOps.test.ts: 73 Vitest tests covering all 11 validation requirements
 - [x] Full test suite green after Email Ops sprint — 2661 / 2661 passing · TypeScript: 0 errors
 - [x] Save checkpoint and produce Email Ops validation pack
+
+## Pilot-Week Enrichment Sprint (Parts A–F) — COMPLETE (checkpoint: pending)
+### Part A — Pilot Shortlist Extraction
+- [x] Build getPilotShortlist() helper in db.ts: same query as live digest, returns projectId, name, priority, PT lane, owner, location, contactCount, enrichedContactCount, hasNoContacts
+- [x] Restrict to: projectType='opportunity', suppressed=false, lifecycleStatus not stale/archived, active PT Capital Sales shortlist rules
+### Part B — Enrichment Gating
+- [x] Build enrichmentGating(shortlist): priority order (hot no-contact → hot no-email → warm → contact_discovery_needed)
+- [x] Hard blocks: suppressed, background_account, macro_item, program_wrapper, stale/archived, non-shortlisted, blocked_from_send contacts via checkApolloEligibility()
+- [x] Stop condition: cumulative credits reach cap OR budget < CREDIT_STOP_BUFFER
+### Part C — Credit Plan
+- [x] Return estimated shortlist size, contacts needing enrichment, credit use (hot-only and hot+warm), recommended weekly cap, stop conditions via buildPilotEnrichmentPlan()
+### Part D — Pilot Enrichment Run
+- [x] Build pilotEnrichmentRun(dryRun): orchestrates gated enrichment, returns summary (projects considered/shortlisted/enriched, contacts enriched/missing, CDN projects, credits used/saved)
+- [x] Gap classification: soft-skipped (sufficient contacts), hard-blocked (Apollo ineligible), eligible (to enrich)
+### Part E — Post-batch QA
+- [x] Confirm sendReadiness refresh is invoked after enrichment pass via runPostBatchQA()
+- [x] evaluateEnrichmentQABatch() called on newly enriched contacts; passCount/failCount/sendReadyCount returned per project
+### Part F — Admin UI + tRPC
+- [x] Add tRPC procedures: pilotEnrichment.buildPlan, pilotEnrichment.runEnrichment, pilotEnrichment.getShortlist
+- [x] Add PilotEnrichmentPanel component to Admin dashboard with dry-run toggle and result summary panel
+### Tests
+- [x] Write server/pilotEnrichment.test.ts: 53 Vitest tests covering all 6 parts
+- [x] Full test suite green after Pilot Enrichment sprint — 2714 / 2714 passing · TypeScript: 0 errors
+- [x] Save checkpoint and produce Part A–F deliverable validation pack

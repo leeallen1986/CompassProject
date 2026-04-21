@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { runClientSideScrape, type ClientScrapeProgress, type ScrapedArticleData } from "@/lib/projectoryScraper";
+import PilotEnrichmentPanel from "@/components/PilotEnrichmentPanel";
 
 // ── Pipeline Stats Card ──
 
@@ -1001,6 +1002,8 @@ function PipelineOpsTab() {
         </div>
       </div>
 
+      {/* Pilot-Week Enrichment Run */}
+      <PilotEnrichmentPanel />
       {/* Contact Enrichment Stats */}
       {enrichStats && (
         <div className="bg-card rounded-lg border border-border p-4">

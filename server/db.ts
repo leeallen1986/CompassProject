@@ -16,6 +16,7 @@ import {
   projectActions, InsertProjectAction, ProjectAction,
   pipelineRuns,
   userEmailSendLog,
+  contactProjects,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2148,4 +2149,142 @@ export async function getEmailSendLogForWeek(
     .from(userEmailSendLog)
     .where(and(...conditions))
     .orderBy(desc(userEmailSendLog.sentAt));
+}
+
+// ── Pilot-Week Enrichment Helpers (Part A) ──
+
+/**
+ * PilotShortlistItem — the shape returned by getPilotShortlist().
+ * Mirrors the fields used by scoreAndFilterProjects() in emailDigest.ts.
+ */
+export interface PilotShortlistItem {
+  id: number;
+  name: string;
+  priority: "hot" | "warm" | "cold";
+  sector: string;
+  productLane: string | null;
+  stageCode: string | null;
+  lifecycleStatus: string;
+  suppressed: boolean | null;
+  projectType: string | null;
+  reportId: number;
+  /** Number of contacts linked via contactProjects junction */
+  contactCount: number;
+  /** Number of those contacts that have a non-null email */
+  contactsWithEmail: number;
+  /** True when contactCount === 0 — drives "Stakeholder discovery needed" advisory */
+  hasNoContacts: boolean;
+}
+
+/**
+ * Returns the pilot shortlist: the same set of projects that scoreAndFilterProjects()
+ * would include in the Monday digest.
+ *
+ * Filters applied (matching emailDigest.ts scoreAndFilterProjects logic):
+ *  - lifecycleStatus IN ('active')
+ *  - suppressed = false OR suppressed IS NULL
+ *  - projectType = 'opportunity' OR projectType IS NULL
+ *  - priority IN ('hot', 'warm')
+ *
+ * Returns projects ordered by priority (hot first) then by id desc.
+ */
+export async function getPilotShortlist(reportId?: number): Promise<PilotShortlistItem[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Resolve reportId — default to latest report
+  let resolvedReportId = reportId;
+  if (!resolvedReportId) {
+    const latest = await getLatestReport();
+    if (!latest) return [];
+    resolvedReportId = latest.id;
+  }
+
+  // Fetch shortlisted projects
+  const rows = await db
+    .select({
+      id: projects.id,
+      name: projects.name,
+      priority: projects.priority,
+      sector: projects.sector,
+      productLane: projects.productLane,
+      stageCode: projects.stageCode,
+      lifecycleStatus: projects.lifecycleStatus,
+      suppressed: projects.suppressed,
+      projectType: projects.projectType,
+      reportId: projects.reportId,
+    })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.reportId, resolvedReportId),
+        eq(projects.lifecycleStatus, "active"),
+        or(eq(projects.suppressed, false), isNull(projects.suppressed)),
+        or(
+          eq(projects.projectType, "opportunity"),
+          isNull(projects.projectType)
+        ),
+        inArray(projects.priority, ["hot", "warm"])
+      )
+    )
+    .orderBy(
+      sql`FIELD(${projects.priority}, 'hot', 'warm', 'cold')`,
+      desc(projects.id)
+    );
+
+  if (rows.length === 0) return [];
+
+  // Fetch contact counts per project via contactProjects junction
+  const projectIds = rows.map(r => r.id);
+  const contactRows = await db
+    .select({
+      projectId: contactProjects.projectId,
+      contactId: contactProjects.contactId,
+    })
+    .from(contactProjects)
+    .where(inArray(contactProjects.projectId, projectIds));
+
+  // Fetch email status for those contacts
+  const contactIds = Array.from(new Set(contactRows.map(c => c.contactId)));
+  let emailSet = new Set<number>();
+  if (contactIds.length > 0) {
+    const emailRows = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(
+        and(
+          inArray(contacts.id, contactIds),
+          sql`${contacts.email} IS NOT NULL`
+        )
+      );
+    emailSet = new Set(emailRows.map(r => r.id));
+  }
+
+  // Build per-project maps
+  const countMap = new Map<number, { total: number; withEmail: number }>();
+  for (const r of contactRows) {
+    const existing = countMap.get(r.projectId) ?? { total: 0, withEmail: 0 };
+    existing.total++;
+    if (emailSet.has(r.contactId)) existing.withEmail++;
+    countMap.set(r.projectId, existing);
+  }
+
+  return rows.map(r => {
+    const counts = countMap.get(r.id) ?? { total: 0, withEmail: 0 };
+    return {
+      ...r,
+      contactCount: counts.total,
+      contactsWithEmail: counts.withEmail,
+      hasNoContacts: counts.total === 0,
+    };
+  });
+}
+
+/**
+ * Returns the count of projects in the pilot shortlist for a given reportId.
+ * Used for parity checks between dashboard and email.
+ */
+export async function getPilotShortlistCount(reportId?: number): Promise<number> {
+  const items = await getPilotShortlist(reportId);
+  return items.length;
 }
