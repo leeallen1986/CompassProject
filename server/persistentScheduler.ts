@@ -19,19 +19,37 @@ import { digestScheduleLog } from "../drizzle/schema";
 import { eq, gte, and } from "drizzle-orm";
 
 /**
- * Check if a digest was already sent for a given day.
- * Queries by createdAt (not sentAt) since sentAt is populated after the fact.
- * Uses status = 'sent' to confirm it completed successfully.
+ * Get the current ISO week key in YYYY-WNN format (e.g. "2026-W17").
+ * Used for week-level dedup to prevent duplicate sends after server restarts.
  */
-async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<boolean> {
+function getCurrentISOWeekKey(): string {
+  const now = new Date();
+  const jan4 = new Date(Date.UTC(now.getUTCFullYear(), 0, 4));
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
+  const weekNum = Math.floor((now.getTime() - startOfWeek1.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+  return `${now.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+/**
+ * Check if a digest was already sent this ISO week.
+ * Uses week-level dedup (not day-level) to prevent duplicate sends after server restarts.
+ * A restart on the same Monday would previously re-fire the digest; week-level dedup prevents this.
+ */
+async function wasDigestSentThisWeek(digestType: "monday" | "thursday"): Promise<boolean> {
   try {
     const db = await getDb();
     if (!db) return false;
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    // Start of the current ISO week (Monday 00:00 UTC)
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon, ...
+    const daysToMonday = (dayOfWeek + 6) % 7; // days since Monday
+    const startOfWeek = new Date(now);
+    startOfWeek.setUTCDate(now.getUTCDate() - daysToMonday);
+    startOfWeek.setUTCHours(0, 0, 0, 0);
 
-    // Check if there's a successful send record created today for this digest type
+    // Check if there's a successful send record created this week for this digest type
     const result = await db
       .select()
       .from(digestScheduleLog)
@@ -39,7 +57,7 @@ async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<bo
         and(
           eq(digestScheduleLog.digestType, digestType),
           eq(digestScheduleLog.status, "sent"),
-          gte(digestScheduleLog.createdAt, today)   // use createdAt — sentAt may be null
+          gte(digestScheduleLog.createdAt, startOfWeek)
         )
       )
       .limit(1);
@@ -50,6 +68,11 @@ async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<bo
     // On error, assume it was sent to avoid duplicate sends
     return true;
   }
+}
+
+/** @deprecated Use wasDigestSentThisWeek for week-level dedup */
+async function wasDigestSentToday(digestType: "monday" | "thursday"): Promise<boolean> {
+  return wasDigestSentThisWeek(digestType);
 }
 
 /**

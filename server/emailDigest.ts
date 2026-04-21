@@ -259,6 +259,30 @@ function scoreProjectForUser(
 }
 
 /**
+ * Sanitize a contractor name: strip raw HTML fragments, anchor tags, URLs, hex colors.
+ * Returns null if the name is not a valid plain-text company name.
+ */
+function sanitizeContractorName(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const s = String(name).trim();
+  // Reject if it contains HTML tags, href patterns, URL fragments, or hex colors
+  if (
+    s.includes("<") ||
+    s.includes(">") ||
+    s.includes("href") ||
+    s.includes("//www.") ||
+    s.includes("http") ||
+    /^#[0-9a-fA-F]{3,6}$/.test(s) ||
+    s.startsWith("\"") ||
+    s.length < 3 ||
+    s.length > 200
+  ) {
+    return null;
+  }
+  return s;
+}
+
+/**
  * Format the "This Week" highlight section for the email digest.
  * Includes top 3 projects, top 2 stakeholders, and 1 urgent action.
  */
@@ -290,7 +314,13 @@ function formatThisWeekSection(
         section += `   🏗️ Activities: ${p.detectedActivities.slice(0, 3).join(", ")}\n`;
       }
       if (p.contractors && p.contractors.length > 0) {
-        section += `   🔧 Contractors: ${p.contractors.slice(0, 2).map(c => c.name).join(", ")}\n`;
+        const cleanContractors = p.contractors
+          .map(c => sanitizeContractorName(c.name))
+          .filter((n): n is string => n !== null)
+          .slice(0, 2);
+        if (cleanContractors.length > 0) {
+          section += `   🔧 Contractors: ${cleanContractors.join(", ")}\n`;
+        }
       }
       if (p.overview) {
         section += `   ${p.overview.substring(0, 120)}...\n`;
@@ -332,6 +362,9 @@ function generateMondayDigest(
   pipelineCount: number,
   thisWeekSection: string,
   territories: string[],
+  freshnessLine: string,
+  weekKey: string,
+  userId: number,
 ): string {
   // Apply tier-based filtering: only Tier 1 and select Tier 2 reach the brief
   const tierFiltered = matchedProjects.filter(p => {
@@ -350,6 +383,9 @@ function generateMondayDigest(
   let content = `**PT Capital Sales — Weekly Intelligence Brief — ${reportWeek}**\n\n`;
   content += `Hi ${userName || "there"},\n\n`;
   content += `Here's your personalised PT Capital Sales intelligence brief for **${territoryLabel}**.\n\n`;
+
+  // ── Freshness line near top of email ──
+  content += `_${freshnessLine}_\n\n`;
 
   // ── This Week Highlights (top of email) ──
   content += thisWeekSection;
@@ -396,13 +432,16 @@ function generateMondayDigest(
       const newBadge = p.isNew ? " [NEW]" : "";
       const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
       const stageBadge = p.stageCode && p.stageCode !== "unknown" ? ` | ${p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)}` : "";
+      // ACT reference code: ACT-{weekKey}-{userId}-{projectId}
+      const actCode = `ACT-${weekKey}-${userId}-${p.id}`;
       content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
-      content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}%\n`;
+      content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}% | Ref: ${actCode}\n`;
+      content += `   🔗 [View on dashboard →](/this-week)\n`;
       if (p.overview) {
         content += `   ${p.overview.substring(0, 120)}...\n`;
       }
-      // Edit 3: explicit contact-discovery-needed state
+      // Explicit contact-discovery-needed state
       if (p.hasNoContacts) {
         content += `   ⚠️ **Stakeholder discovery needed** — no high-relevance contacts found yet\n`;
         content += `   → Recommended next step: contractor discovery / owner-side stakeholder search\n`;
@@ -445,6 +484,9 @@ function generateThursdayReminder(
   pipelineCount: number,
   thisWeekSection: string,
   territories: string[],
+  freshnessLine: string,
+  weekKey: string,
+  userId: number,
 ): string {
   const territoryLabel = territories.length > 0
     ? territories.includes("NATIONAL") || territories.includes("National")
@@ -455,6 +497,9 @@ function generateThursdayReminder(
   let content = `**PT Capital Sales — Mid-Week Reminder — ${reportWeek}**\n\n`;
   content += `Hi ${userName || "there"},\n\n`;
   content += `Quick mid-week PT Capital Sales check-in for **${territoryLabel}** — here's what needs your attention.\n\n`;
+
+  // ── Freshness line near top ──
+  content += `_${freshnessLine}_\n\n`;
 
   // ── This Week Highlights (urgent actions + top projects) ──
   content += thisWeekSection;
@@ -470,8 +515,10 @@ function generateThursdayReminder(
     content += `**🔥 Hot & Actionable Projects in Your Territory (${actionable.length}):**\n\n`;
     for (const p of actionable.slice(0, 5)) {
       const newBadge = p.isNew ? " [NEW]" : "";
+      const actCode = `ACT-${weekKey}-${userId}-${p.id}`;
       content += `🔥 **${p.name}**${newBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
+      content += `   Ref: ${actCode} | 🔗 [View on dashboard →](/this-week)\n`;
       if (p.overview) {
         content += `   ${p.overview.substring(0, 100)}...\n`;
       }
@@ -607,8 +654,10 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   const allContacts = await getContactsByReportId(report.id);
 
   // Recipient selection: respects PILOT_MODE and PILOT_ALLOW_LIST env vars
-  const allUsers = await getEmailRecipients({ digestType: "monday" });
-  console.log(`[EmailDigest] Monday digest: ${allUsers.length} eligible recipients (dryRun=${dryRun})`);
+  // Exclude admin users from rep digest — admins receive manager rollup only
+  const allUsersRaw = await getEmailRecipients({ digestType: "monday" });
+  const allUsers = allUsersRaw.filter(({ user }) => user.role !== "admin");
+  console.log(`[EmailDigest] Monday digest: ${allUsers.length} eligible rep recipients (${allUsersRaw.length - allUsers.length} admin(s) excluded) (dryRun=${dryRun})`);
 
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
@@ -677,7 +726,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       const territories = (profile.territories as string[]) || [];
 
       // Generate the personalized Monday digest
-      const rawContent = generateMondayDigest(
+      const content = generateMondayDigest(
         user.name || "Team Member",
         report.weekEnding,
         annotatedProjects,
@@ -692,16 +741,14 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         pipeline.length,
         thisWeekSection,
         territories,
+        freshnessLine,
+        weekKey,
+        user.id,
       );
-      // Append freshness line
-      const content = rawContent + `\n\n---\n_${freshnessLine}_`;
 
-      // ── PT Capital Sales subject line ──
-      const laneLabel = (profile.assignedBusinessLines as string[] | null)?.length
-        ? (profile.assignedBusinessLines as string[]).slice(0, 2).join("/")
-        : "PT Capital Sales";
+      // ── PT Capital Sales subject line (clean — no BL label in subject) ──
       const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
-      const subject = `PT Capital Sales — Weekly Intelligence Brief — ${laneLabel} | ${territoryLabel} — ${report.weekEnding}`;
+      const subject = `PT Capital Sales — Weekly Intelligence Brief | ${territoryLabel} — ${report.weekEnding}`;
 
       // ── Dry-run: log preview without sending ──
       if (dryRun) {
@@ -803,8 +850,10 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
   const allProjects = await getProjectsByReportId(report.id);
 
   // Recipient selection: respects PILOT_MODE and PILOT_ALLOW_LIST env vars
-  const allUsers = await getEmailRecipients({ digestType: "thursday" });
-  console.log(`[EmailDigest] Thursday reminder: ${allUsers.length} eligible recipients (dryRun=${dryRun})`);
+  // Exclude admin users from rep Thursday reminder — admins receive manager rollup only
+  const allUsersRaw = await getEmailRecipients({ digestType: "thursday" });
+  const allUsers = allUsersRaw.filter(({ user }) => user.role !== "admin");
+  console.log(`[EmailDigest] Thursday reminder: ${allUsers.length} eligible rep recipients (${allUsersRaw.length - allUsers.length} admin(s) excluded) (dryRun=${dryRun})`);
 
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
@@ -860,13 +909,16 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
       const territories = (profile.territories as string[]) || [];
 
       // Generate the personalized Thursday reminder
-      const content = generateThursdayReminder(
+      const contentWithFreshness = generateThursdayReminder(
         user.name || "Team Member",
         report.weekEnding,
         hotProjects,
         pipeline.length,
         thisWeekSection,
         territories,
+        freshnessLine,
+        weekKey,
+        user.id,
       );
 
       // Send directly to user's email via Resend
@@ -877,15 +929,9 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
         continue;
       }
 
-      // Append freshness line
-      const contentWithFreshness = content + `\n\n---\n_${freshnessLine}_`;
-
-      // ── PT Capital Sales subject line ──
-      const laneLabel = (profile.assignedBusinessLines as string[] | null)?.length
-        ? (profile.assignedBusinessLines as string[]).slice(0, 2).join("/")
-        : "PT Capital Sales";
+      // ── PT Capital Sales subject line (clean — no BL label in subject) ──
       const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
-      const subject = `PT Capital Sales — Mid-Week Action Reminder — ${laneLabel} | ${territoryLabel} — ${report.weekEnding}`;
+      const subject = `PT Capital Sales — Mid-Week Action Reminder | ${territoryLabel} — ${report.weekEnding}`;
 
       // ── Dry-run: log preview without sending ──
       if (dryRun) {

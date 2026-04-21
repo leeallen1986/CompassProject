@@ -1508,3 +1508,21 @@
 - [ ] Fix buildPilotEnrichmentPlan DB connection issue in script context
 - [ ] Restrict Monday/Thursday digest to Ryan Pemberton, Amit Bhargava, Leo Williams
 - [ ] Restrict manager rollup to Lee Allen only
+
+## Email Cleanup Patch (Pilot Observed Issues — Apr 22 2026)
+
+- [x] A1: Fix subject line — remove "Portable Air" from PT Capital Sales digest subjects
+- [x] A2: Confirm Monday, Thursday, and manager rollup subjects are correct and consistent
+- [x] B1: Exclude Lee Allen (admin) from rep digest (monday + thursday) — manager rollup only
+- [ ] B2: Confirm and return exact recipient lists for all three email types
+- [ ] C1: Add visible freshness line near top of email body (not just footer)
+- [ ] C2: Add visible ACT-{weekKey}-{userId}-{projectId} reference code per project block
+- [ ] C3: Add visible deep-link to /this-week per project block
+- [ ] D1: Sanitize contractor/source fields — strip raw HTML, anchor fragments, URLs from projectoryEnrichmentLog.contractorsFound
+- [ ] D2: Suppress contractor line cleanly if no valid contractor name available
+- [ ] E1: Confirm PT Capital Sales digest uses intended final format (not legacy Portable Air)
+- [ ] F1: Fix scheduler separation — Thursday reminder must not fire during Monday/manual pilot send
+- [ ] F2: Fix dedup enforcement — week-level dedup must include userId + digestType + weekKey
+- [ ] F3: Confirm dry-run entries do NOT count as live sends for dedup
+- [ ] F4: Pilot send isolation — manual Monday run must not also send Thursday + manager rollup
+- [ ] F5: Return sample send-log rows showing digestType, userId, weekKey, dryRun, sentAt

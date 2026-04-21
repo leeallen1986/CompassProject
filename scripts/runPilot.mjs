@@ -35,7 +35,21 @@ process.env.EMAIL_DIGESTS_ENABLED = "true";
 const args = process.argv.slice(2);
 const DRY_RUN_ONLY    = args.includes("--dry-run-only");
 const SKIP_ENRICHMENT = args.includes("--skip-enrichment");
-const CONSERVATIVE_CREDIT_CAP = 25;
+// Full-shortlist cap: covers all 43 eligible projects (43 × 3 est. credits = 129 max).
+// We have 2,434 monthly credits remaining — no artificial cap for this pilot week.
+const PILOT_CREDIT_CAP = 150;
+
+// --type flag: restrict which email type is sent in STEP 6.
+// Values: monday | thursday | manager_rollup | all (default)
+// Example: npx tsx scripts/runPilot.mjs --type monday
+const typeArg = args.find(a => a.startsWith("--type="));
+const SEND_TYPE = typeArg ? typeArg.replace("--type=", "") : "all";
+const VALID_TYPES = ["monday", "thursday", "manager_rollup", "all"];
+if (!VALID_TYPES.includes(SEND_TYPE)) {
+  console.error(`  ❌ Invalid --type value: "${SEND_TYPE}". Must be one of: ${VALID_TYPES.join(", ")}`);
+  process.exit(1);
+}
+console.log(`  Send type: ${SEND_TYPE} (use --type=monday|thursday|manager_rollup|all to restrict)`);
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -77,7 +91,7 @@ console.log(`  PILOT_ALLOW_LIST=${ALL_PILOT_EMAILS.join(", ")}`);
 sep("STEP 2 — Dry-Run Enrichment Plan");
 let plan;
 try {
-  plan = await buildPilotEnrichmentPlan({ creditCap: CONSERVATIVE_CREDIT_CAP });
+  plan = await buildPilotEnrichmentPlan({ creditCap: PILOT_CREDIT_CAP });
 } catch (err) {
   console.error("  ❌ buildPilotEnrichmentPlan failed:", err.message);
   process.exit(1);
@@ -91,7 +105,7 @@ console.log(`  Eligible to enrich:          ${plan.eligible} (${hotEligible} hot
 console.log(`  Soft-skipped:                ${plan.softSkipped} (sufficient contacts already)`);
 console.log(`  Hard-blocked:                ${plan.hardBlocked} (Apollo ineligible)`);
 console.log(`  Estimated total credits:     ${plan.estimatedTotalCredits}`);
-console.log(`  Conservative cap:            ${CONSERVATIVE_CREDIT_CAP}`);
+  console.log(`  Pilot credit cap:            ${PILOT_CREDIT_CAP} (covers full eligible shortlist)`);
 console.log(`  Projects to enrich (capped): ${plan.toEnrich.length}`);
 console.log(`  Budget insufficient:         ${plan.budgetInsufficient}`);
 console.log(`  Daily remaining:             ${plan.creditBudget.dailyRemaining}`);
@@ -116,11 +130,11 @@ if (SKIP_ENRICHMENT) {
   console.log("  Skipping enrichment. Proceeding to email previews.");
 } else {
   sep("STEP 3 — Live Pilot Enrichment Run");
-  console.log(`  Running live enrichment (dryRun=false, creditCap=${CONSERVATIVE_CREDIT_CAP})...`);
+  console.log(`  Running live enrichment (dryRun=false, creditCap=${PILOT_CREDIT_CAP})...`);
   try {
     enrichmentResult = await pilotEnrichmentRun({
       dryRun: false,
-      creditCap: CONSERVATIVE_CREDIT_CAP,
+      creditCap: PILOT_CREDIT_CAP,
       userId: PILOT_MANAGER.userId,
     });
     const s = enrichmentResult.summary;
@@ -225,28 +239,41 @@ console.log(`\n  Quality check summary: ${qcPassed} passed, ${qcFailed} failed`)
 // STEP 6: Live send
 sep("STEP 6 — Live Send to Pilot Allow-List");
 console.log(`  Sending to: ${ALL_PILOT_EMAILS.join(", ")}`);
+console.log(`  Send type: ${SEND_TYPE} (only the requested type will be sent)`);
 
 let liveMondayResult   = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 let liveThursdayResult = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 let liveManagerResult  = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
 
-console.log("\n  Sending Monday PT Capital Sales digest...");
-try {
-  liveMondayResult = await sendWeeklyDigests(true, false);
-  console.log(`  Monday: sent=${liveMondayResult.sent}, failed=${liveMondayResult.failed}, skipped=${liveMondayResult.skipped}, alreadySent=${liveMondayResult.alreadySent}`);
-} catch (err) { console.error("  ❌ Monday live send failed:", err.message); }
+if (SEND_TYPE === "monday" || SEND_TYPE === "all") {
+  console.log("\n  Sending Monday PT Capital Sales digest...");
+  try {
+    liveMondayResult = await sendWeeklyDigests(true, false);
+    console.log(`  Monday: sent=${liveMondayResult.sent}, failed=${liveMondayResult.failed}, skipped=${liveMondayResult.skipped}, alreadySent=${liveMondayResult.alreadySent}`);
+  } catch (err) { console.error("  ❌ Monday live send failed:", err.message); }
+} else {
+  console.log("\n  Monday digest: SKIPPED (not requested via --type)");
+}
 
-console.log("\n  Sending Thursday reminder...");
-try {
-  liveThursdayResult = await sendThursdayReminders(true, false);
-  console.log(`  Thursday: sent=${liveThursdayResult.sent}, failed=${liveThursdayResult.failed}, skipped=${liveThursdayResult.skipped}, alreadySent=${liveThursdayResult.alreadySent}`);
-} catch (err) { console.error("  ❌ Thursday live send failed:", err.message); }
+if (SEND_TYPE === "thursday" || SEND_TYPE === "all") {
+  console.log("\n  Sending Thursday reminder...");
+  try {
+    liveThursdayResult = await sendThursdayReminders(true, false);
+    console.log(`  Thursday: sent=${liveThursdayResult.sent}, failed=${liveThursdayResult.failed}, skipped=${liveThursdayResult.skipped}, alreadySent=${liveThursdayResult.alreadySent}`);
+  } catch (err) { console.error("  ❌ Thursday live send failed:", err.message); }
+} else {
+  console.log("\n  Thursday reminder: SKIPPED (not requested via --type)");
+}
 
-console.log("\n  Sending manager rollup to Lee Allen...");
-try {
-  liveManagerResult = await sendManagerRollupEmail(true, false);
-  console.log(`  Manager rollup: sent=${liveManagerResult.sent}, failed=${liveManagerResult.failed}`);
-} catch (err) { console.error("  ❌ Manager rollup live send failed:", err.message); }
+if (SEND_TYPE === "manager_rollup" || SEND_TYPE === "all") {
+  console.log("\n  Sending manager rollup to Lee Allen...");
+  try {
+    liveManagerResult = await sendManagerRollupEmail(true, false);
+    console.log(`  Manager rollup: sent=${liveManagerResult.sent}, failed=${liveManagerResult.failed}`);
+  } catch (err) { console.error("  ❌ Manager rollup live send failed:", err.message); }
+} else {
+  console.log("\n  Manager rollup: SKIPPED (not requested via --type)");
+}
 
 // STEP 7: Summary
 sep("STEP 7 — Pilot Summary");
@@ -260,6 +287,27 @@ const enrichSummary = enrichmentResult?.summary ?? {
 const blockedDecisions = plan.decisions.filter(d => d.hardBlocked).map(d => ({
   projectId: d.projectId, projectName: d.projectName, reason: d.reason,
 }));
+
+// Credits saved by hard blocks: sum of estimated credits for hard-blocked projects
+const creditsSavedByHardBlocks = plan.decisions
+  .filter(d => d.hardBlocked)
+  .reduce((sum, d) => sum + CREDITS_PER_PROJECT_ESTIMATE, 0);
+const CREDITS_PER_PROJECT_ESTIMATE = 3; // mirrors pilotEnrichment.ts constant
+
+// Remaining gaps: shortlisted projects with no send-ready contacts after enrichment
+const enrichedProjectIds = new Set(
+  (enrichmentResult?.results ?? []).filter(r => r.status === "enriched").map(r => r.projectId)
+);
+const remainingGaps = plan.decisions
+  .filter(d => !d.softSkipped && d.contactsWithEmail === 0)
+  .map(d => ({
+    projectId: d.projectId,
+    projectName: d.projectName,
+    priority: d.priority,
+    hardBlocked: d.hardBlocked,
+    enrichedThisRun: enrichedProjectIds.has(d.projectId),
+    reason: d.hardBlocked ? d.reason : (enrichedProjectIds.has(d.projectId) ? "Enriched — QA pending" : "Not enriched this run"),
+  }));
 
 const summary = {
   pilotRunDate: new Date().toISOString(),
@@ -275,7 +323,9 @@ const summary = {
     sendReadyCount: enrichSummary.totalSendReady,
     contactDiscoveryNeeded: enrichSummary.noContactProjects,
     creditsUsed: enrichSummary.totalCreditsUsed,
+    creditsSavedByHardBlocks,
     blockedDecisions,
+    remainingGaps,
   },
   emailSend: {
     monday:        { sent: liveMondayResult.sent,   failed: liveMondayResult.failed   },
@@ -295,7 +345,16 @@ console.log(`    Projects failed:          ${summary.enrichment.projectsFailed}`
 console.log(`    Contacts added:           ${summary.enrichment.contactsAdded}`);
 console.log(`    Send-ready contacts:      ${summary.enrichment.sendReadyCount}`);
 console.log(`    Contact-discovery-needed: ${summary.enrichment.contactDiscoveryNeeded}`);
-console.log(`    Credits used:             ${summary.enrichment.creditsUsed}`);
+  console.log(`    Credits used:             ${summary.enrichment.creditsUsed}`);
+  console.log(`    Credits saved (hard blk): ${summary.enrichment.creditsSavedByHardBlocks}`);
+
+if (remainingGaps.length > 0) {
+  console.log("\n    Remaining contact gaps (no send-ready contacts):");
+  for (const g of remainingGaps) {
+    const tag = g.hardBlocked ? "[HARD-BLOCKED]" : g.enrichedThisRun ? "[ENRICHED-QA-PENDING]" : "[NOT-ENRICHED]";
+    console.log(`      ${tag} [${g.priority.toUpperCase()}] ${g.projectName}`);
+  }
+}
 
 if (blockedDecisions.length > 0) {
   console.log("\n    Blocked items:");
