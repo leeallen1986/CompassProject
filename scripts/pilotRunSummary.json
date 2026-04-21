@@ -1,0 +1,159 @@
+{
+  "pilotRunDate": "2026-04-21T23:04:08.784Z",
+  "pilotUsers": {
+    "reps": [
+      {
+        "userId": 2340043,
+        "name": "Ryan Pemberton",
+        "email": "ryan.pemberton@atlascopco.com"
+      },
+      {
+        "userId": 3870014,
+        "name": "Amit Bhargava",
+        "email": "amit.bhargava@atlascopco.com"
+      },
+      {
+        "userId": 840008,
+        "name": "Leo Williams",
+        "email": "leo.williams@atlascopco.com"
+      }
+    ],
+    "manager": {
+      "userId": 1,
+      "name": "Lee Allen",
+      "email": "lee.allen@atlascopco.com"
+    }
+  },
+  "enrichment": {
+    "shortlistSize": 63,
+    "eligible": 43,
+    "softSkipped": 0,
+    "hardBlocked": 20,
+    "projectsEnriched": 0,
+    "projectsFailed": 0,
+    "contactsAdded": 0,
+    "sendReadyCount": 0,
+    "contactDiscoveryNeeded": 63,
+    "creditsUsed": 0,
+    "blockedDecisions": [
+      {
+        "projectId": 690082,
+        "projectName": "Trident Gold Project",
+        "reason": "Project \"Trident Gold Project\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690081,
+        "projectName": "Eloise Mine Expansion",
+        "reason": "Project \"Eloise Mine Expansion\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690079,
+        "projectName": "Princes Highway and Narooma Bridge Upgrades Study",
+        "reason": "Project \"Princes Highway and Narooma Bridge Upgrades Study\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690077,
+        "projectName": "Eva Copper Mine Project",
+        "reason": "Project \"Eva Copper Mine Project\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690073,
+        "projectName": "Bass Strait Decommissioning Project",
+        "reason": "Project \"Bass Strait Decommissioning Project\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690067,
+        "projectName": "Goodwyn A Backfill Wells",
+        "reason": "Project \"Goodwyn A Backfill Wells\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690066,
+        "projectName": "Low emissions hydrogen production technology ramping up",
+        "reason": "Project \"Low emissions hydrogen production technology ramping up\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690062,
+        "projectName": "Suburban Rail Loop (SRL) East",
+        "reason": "Project \"Suburban Rail Loop (SRL) East\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690061,
+        "projectName": "CivEng Consulting Energy Transition Projects",
+        "reason": "Project \"CivEng Consulting Energy Transition Projects\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690053,
+        "projectName": "Princes Highway Upgrade (Narooma)",
+        "reason": "Project \"Princes Highway Upgrade (Narooma)\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690051,
+        "projectName": "Hybrid Renewables and Battery Project",
+        "reason": "Project \"Hybrid Renewables and Battery Project\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690049,
+        "projectName": "Western Australia Energy Security Project",
+        "reason": "Project \"Western Australia Energy Security Project\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690043,
+        "projectName": "EdenShield Defence and Infrastructure Push",
+        "reason": "Project \"EdenShield Defence and Infrastructure Push\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690035,
+        "projectName": "Tathra Wind Farm with 500MW BESS",
+        "reason": "Project \"Tathra Wind Farm with 500MW BESS\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690033,
+        "projectName": "Amazon Australia Renewable Energy PPAs with co-located BESS",
+        "reason": "Project \"Amazon Australia Renewable Energy PPAs with co-located BESS\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690025,
+        "projectName": "Tarraleah Hydropower Scheme Redevelopment",
+        "reason": "Project \"Tarraleah Hydropower Scheme Redevelopment\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690024,
+        "projectName": "Large-Scale Iron Ore Processing Development",
+        "reason": "Project \"Large-Scale Iron Ore Processing Development\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690018,
+        "projectName": "Amazon Australia Renewable Energy Deals",
+        "reason": "Project \"Amazon Australia Renewable Energy Deals\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690016,
+        "projectName": "Nickel Development",
+        "reason": "Project \"Nickel Development\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      },
+      {
+        "projectId": 690007,
+        "projectName": "Giga-scale green hydrogen projects (ICE)",
+        "reason": "Project \"Giga-scale green hydrogen projects (ICE)\" (priority: warm) does not meet auto-enrichment criteria. Use \"Enrich with Apollo\" button for manual enrichment."
+      }
+    ]
+  },
+  "emailSend": {
+    "monday": {
+      "sent": 4,
+      "failed": 0
+    },
+    "thursday": {
+      "sent": 4,
+      "failed": 0
+    },
+    "managerRollup": {
+      "sent": 3,
+      "failed": 0
+    }
+  },
+  "qualityChecks": {
+    "passed": 27,
+    "failed": 23
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "resolvedAt": "2026-04-21T22:36:38.582Z",
+  "pilotReps": [
+    {
+      "userId": 2340043,
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com"
+    },
+    {
+      "userId": 3870014,
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com"
+    },
+    {
+      "userId": 840008,
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com"
+    }
+  ],
+  "managerUser": {
+    "userId": 1,
+    "name": "Lee",
+    "email": "lee.allen@atlascopco.com"
+  },
+  "allResolved": [
+    {
+      "pilotName": "Lee Allen",
+      "expectedEmail": "lee.allen@atlascopco.com",
+      "found": true,
+      "userId": 1,
+      "dbName": "Lee",
+      "dbEmail": "lee.allen@atlascopco.com",
+      "dbRole": "admin"
+    },
+    {
+      "pilotName": "Ryan Pemberton",
+      "expectedEmail": "ryan.pemberton@atlascopco.com",
+      "found": true,
+      "userId": 2340043,
+      "dbName": "Ryan Pemberton",
+      "dbEmail": "ryan.pemberton@atlascopco.com",
+      "dbRole": "user"
+    },
+    {
+      "pilotName": "Amit Bhargava",
+      "expectedEmail": "amit.bhargava@atlascopco.com",
+      "found": true,
+      "userId": 3870014,
+      "dbName": "Amit Bhargava",
+      "dbEmail": "amit.bhargava@atlascopco.com",
+      "dbRole": "user"
+    },
+    {
+      "pilotName": "Leo Williams",
+      "expectedEmail": null,
+      "found": true,
+      "userId": 840008,
+      "dbName": "Leo Williams ",
+      "dbEmail": "leo.williams@atlascopco.com",
+      "dbRole": "user"
+    }
+  ]
+}

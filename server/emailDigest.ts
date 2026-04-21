@@ -573,11 +573,11 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   failed: number;
   skipped: number;
   alreadySent: number;
-  previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+  previews?: Array<{ userId: number; subject: string; contentLength: number; contentSnippet?: string }>;
 }> {
   const results: {
     sent: number; failed: number; skipped: number; alreadySent: number;
-    previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+    previews?: Array<{ userId: number; subject: string; contentLength: number; contentSnippet?: string }>;
   } = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
   if (dryRun) results.previews = [];
 
@@ -705,7 +705,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
 
       // ── Dry-run: log preview without sending ──
       if (dryRun) {
-        results.previews!.push({ userId: user.id, subject, contentLength: content.length });
+        results.previews!.push({ userId: user.id, subject, contentLength: content.length, contentSnippet: content.slice(0, 6000) });
         await logEmailSendExtended({
           userId: user.id, digestType: "monday", status: "dry_run",
           weekKey, itemCount: annotatedProjects.length, dryRun: true,
@@ -770,11 +770,11 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
   failed: number;
   skipped: number;
   alreadySent: number;
-  previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+  previews?: Array<{ userId: number; subject: string; contentLength: number; contentSnippet?: string }>;
 }> {
   const results: {
     sent: number; failed: number; skipped: number; alreadySent: number;
-    previews?: Array<{ userId: number; subject: string; contentLength: number }>;
+    previews?: Array<{ userId: number; subject: string; contentLength: number; contentSnippet?: string }>;
   } = { sent: 0, failed: 0, skipped: 0, alreadySent: 0 };
   if (dryRun) results.previews = [];
 
@@ -889,7 +889,7 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
 
       // ── Dry-run: log preview without sending ──
       if (dryRun) {
-        results.previews!.push({ userId: user.id, subject, contentLength: contentWithFreshness.length });
+        results.previews!.push({ userId: user.id, subject, contentLength: contentWithFreshness.length, contentSnippet: contentWithFreshness.slice(0, 6000) });
         await logEmailSendExtended({
           userId: user.id, digestType: "thursday", status: "dry_run",
           weekKey, itemCount: hotProjects.length, dryRun: true,

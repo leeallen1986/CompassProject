@@ -1495,3 +1495,16 @@
 - [x] Write server/pilotEnrichment.test.ts: 53 Vitest tests covering all 6 parts
 - [x] Full test suite green after Pilot Enrichment sprint — 2714 / 2714 passing · TypeScript: 0 errors
 - [x] Save checkpoint and produce Part A–F deliverable validation pack
+
+## Live Pilot Run (2026-04-22)
+- [ ] Step 1: Build dry-run plan — shortlist size, eligible/skipped/blocked, credit estimates
+- [ ] Step 2: Run live enrichment — hot-first, conservative cap, hard blocks, post-batch QA
+- [ ] Step 3: Generate Monday/Thursday/manager rollup email previews
+- [ ] Step 4: Confirm 6 email quality checks (actionIds, deep-links, freshness, CDN, zero-item)
+- [ ] Step 5: Send pilot emails to allow-list users only
+- [ ] Step 6: Produce pilot summary report
+
+- [ ] Resolve pilot user IDs from DB: Lee Allen, Ryan Pemberton, Amit Bhargava, Leo Williams
+- [ ] Fix buildPilotEnrichmentPlan DB connection issue in script context
+- [ ] Restrict Monday/Thursday digest to Ryan Pemberton, Amit Bhargava, Leo Williams
+- [ ] Restrict manager rollup to Lee Allen only

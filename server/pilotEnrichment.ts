@@ -48,7 +48,7 @@ import { contacts, contactProjects } from "../drizzle/schema";
 // ── Constants ──
 
 /** Credits to keep in reserve — stop enrichment when remaining < this value */
-const CREDIT_STOP_BUFFER = 20;
+const CREDIT_STOP_BUFFER = 5;
 
 /** Default per-run credit cap (overridable via options) */
 const DEFAULT_CREDIT_CAP = 150;
@@ -252,11 +252,11 @@ export async function buildPilotEnrichmentPlan(opts?: {
 
   // Get budget
   const budget = await getBudgetStatus();
-  const effectiveCap = Math.min(
-    creditCap,
-    budget.dailyRemaining - CREDIT_STOP_BUFFER,
-    budget.monthlyRemaining - CREDIT_STOP_BUFFER
-  );
+  // Clamp each budget term independently so a small daily remaining doesn't
+  // produce a large negative effectiveCap when CREDIT_STOP_BUFFER > dailyRemaining.
+  const dailyHeadroom    = Math.max(0, budget.dailyRemaining - CREDIT_STOP_BUFFER);
+  const monthlyHeadroom  = Math.max(0, budget.monthlyRemaining - CREDIT_STOP_BUFFER);
+  const effectiveCap = Math.min(creditCap, dailyHeadroom, monthlyHeadroom);
   const budgetInsufficient = effectiveCap <= 0;
 
   // Sort by priority
