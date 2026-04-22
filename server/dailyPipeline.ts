@@ -52,6 +52,8 @@ import { eq, and, sql } from "drizzle-orm";
 
 // New source architecture imports
 import { scanTargetCompanies } from "./asxMonitor";
+import { runTendersWAScraper } from "./tendersWAScraper";
+import { runQtolNTScraper } from "./qtolNTScraper";
 import { enrichUnenrichedProjects, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
 import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { recordSourceRun } from "./sourceMonitoring";
@@ -150,6 +152,27 @@ export interface DailyPipelineResult {
     totalDuplicates: number;
     totalErrors: number;
     duration: number;
+  };
+  tendersWA: {
+    ran: boolean;
+    tendersFound: number;
+    tendersRelevant: number;
+    projectsCreated: number;
+    projectsUpdated: number;
+    degraded: boolean;
+    degradedReason?: string;
+    errors: number;
+  };
+  qtolNT: {
+    ran: boolean;
+    tendersFound: number;
+    tendersRelevant: number;
+    projectsCreated: number;
+    projectsUpdated: number;
+    priorityIssuerTenders: number;
+    degraded: boolean;
+    degradedReason?: string;
+    errors: number;
   };
   duration: number;
   completedAt: string;
@@ -379,6 +402,86 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     recordSourceRun("asx_announcements", false, 0, 0, errMsg);
   }
   steps.push(asxStep);
+
+  // ── Step 3a: Tenders WA (daily) ──
+  const tendersWAStep = startStep("Tenders WA");
+  console.log("[DailyPipeline] Step 3a: Scraping Tenders WA...");
+  let tendersWAResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
+  try {
+    const stepStart = Date.now();
+    const waData = await withTimeout(runTendersWAScraper(runId || 0), STEP_TIMEOUT_MS, "Tenders WA");
+    tendersWAResult = {
+      ran: true,
+      tendersFound: waData.tendersFound,
+      tendersRelevant: waData.tendersRelevant,
+      projectsCreated: waData.projectsCreated,
+      projectsUpdated: waData.projectsUpdated,
+      degraded: waData.degraded,
+      degradedReason: waData.degradedReason,
+      errors: waData.errors.length,
+    };
+    if (waData.degraded) {
+      skipStep(tendersWAStep, waData.degradedReason || "Tenders WA unavailable");
+    } else {
+      completeStep(tendersWAStep, {
+        tendersFound: waData.tendersFound,
+        tendersRelevant: waData.tendersRelevant,
+        projectsCreated: waData.projectsCreated,
+        projectsUpdated: waData.projectsUpdated,
+        errors: waData.errors.length,
+      });
+    }
+    recordSourceRun("tenders_wa", !waData.degraded, waData.projectsCreated, Math.round((Date.now() - stepStart) / 1000));
+    console.log(`[DailyPipeline] Tenders WA complete: ${waData.tendersFound} found, ${waData.projectsCreated} created`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Tenders WA failed:", errMsg);
+    errors.push(`TendersWA: ${errMsg}`);
+    failStep(tendersWAStep, errMsg);
+    recordSourceRun("tenders_wa", false, 0, 0, errMsg);
+  }
+  steps.push(tendersWAStep);
+
+  // ── Step 3b: QTOL NT (daily) ──
+  const qtolNTStep = startStep("QTOL NT");
+  console.log("[DailyPipeline] Step 3b: Scraping QTOL NT...");
+  let qtolNTResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, priorityIssuerTenders: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
+  try {
+    const stepStart = Date.now();
+    const ntData = await withTimeout(runQtolNTScraper(runId || 0), STEP_TIMEOUT_MS, "QTOL NT");
+    qtolNTResult = {
+      ran: true,
+      tendersFound: ntData.tendersFound,
+      tendersRelevant: ntData.tendersRelevant,
+      projectsCreated: ntData.projectsCreated,
+      projectsUpdated: ntData.projectsUpdated,
+      priorityIssuerTenders: ntData.priorityIssuerTenders,
+      degraded: ntData.degraded,
+      degradedReason: ntData.degradedReason,
+      errors: ntData.errors.length,
+    };
+    if (ntData.degraded) {
+      skipStep(qtolNTStep, ntData.degradedReason || "QTOL NT unavailable");
+    } else {
+      completeStep(qtolNTStep, {
+        tendersFound: ntData.tendersFound,
+        tendersRelevant: ntData.tendersRelevant,
+        projectsCreated: ntData.projectsCreated,
+        projectsUpdated: ntData.projectsUpdated,
+        priorityIssuerTenders: ntData.priorityIssuerTenders,
+        errors: ntData.errors.length,
+      });
+    }
+    recordSourceRun("qtol_nt", !ntData.degraded, ntData.projectsCreated, Math.round((Date.now() - stepStart) / 1000));
+    console.log(`[DailyPipeline] QTOL NT complete: ${ntData.tendersFound} found, ${ntData.projectsCreated} created`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] QTOL NT failed:", errMsg);
+    errors.push(`QTOL NT: ${errMsg}`);
+    failStep(qtolNTStep, errMsg);
+    recordSourceRun("qtol_nt", false, 0, 0, errMsg);
+  }
+  steps.push(qtolNTStep);
 
   // ── Step 4: AusTender (Thursdays) ──
   const isThursday = dayOfWeek === 4;
@@ -1081,6 +1184,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     gov: govResult,
     austender: austenderResult,
     icn: icnResult,
+    tendersWA: tendersWAResult,
+    qtolNT: qtolNTResult,
     duration,
     completedAt,
     steps,

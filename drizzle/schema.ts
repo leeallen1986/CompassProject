@@ -177,6 +177,18 @@ export const projects = mysqlTable("projects", {
   suppressed: boolean("suppressed").default(false),
   /** PT Capital Sales Sprint: primary PT equipment lane for this opportunity */
   productLane: mysqlEnum("productLane", ["portable_air", "pumps", "pal", "bess", "multi_lane_pt"]),
+  /** Source Expansion Sprint: purpose of the primary source that created this project */
+  sourcePurpose: mysqlEnum("sourcePurpose", [
+    "live_tender",      // Active tender on a government portal — highest urgency
+    "forward_plan",     // Planned procurement in next 1-2 years — plan ahead
+    "project_signal",   // Project announced but not yet tendered — watch this
+    "contractor_path",  // ICN/subcontract opportunity — approach contractor
+    "awarded",          // Contract awarded — contractor confirmed
+  ]).default("project_signal"),
+  /** Source Expansion Sprint: government tender number for dedup (e.g. WAT-2024-12345, NT-2024-0001) */
+  tenderNumber: varchar("tenderNumber", { length: 64 }),
+  /** Source Expansion Sprint: tender closing date for urgency sorting */
+  tenderCloseDate: timestamp("tenderCloseDate"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

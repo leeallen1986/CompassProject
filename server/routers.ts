@@ -900,6 +900,33 @@ export const appRouter = router({
 
         return { reportId };
       }),
+
+    /** Live tenders closing within N days — surfaces urgency in This Week page */
+    closingSoon: protectedProcedure
+      .input(z.object({ daysAhead: z.number().optional().default(14) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const { projects: projectsTable } = await import("../drizzle/schema");
+        const { and, eq, isNotNull, lte, gte, sql: drizzleSql } = await import("drizzle-orm");
+        const cutoff = new Date(Date.now() + input.daysAhead * 24 * 60 * 60 * 1000);
+        const now = new Date();
+        const rows = await db
+          .select()
+          .from(projectsTable)
+          .where(
+            and(
+              eq(projectsTable.sourcePurpose, "live_tender"),
+              isNotNull(projectsTable.tenderCloseDate),
+              lte(projectsTable.tenderCloseDate, cutoff),
+              gte(projectsTable.tenderCloseDate, now),
+              eq(projectsTable.lifecycleStatus, "active")
+            )
+          )
+          .orderBy(projectsTable.tenderCloseDate)
+          .limit(20);
+        return rows;
+      }),
   }),
 
   // ── Admin: Business Line Management ──

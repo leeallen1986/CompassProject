@@ -1550,3 +1550,16 @@
 - [x] Phase 3: Project card — collapsed view with commercial cue, contact state, action buttons
 - [x] Phase 4: Filter simplification — 3 primary + advanced toggle, territory easy to clear
 - [x] Phase 5: Project detail — contacts/actions higher, contractor sanitizer, debug metadata collapsed
+
+## Source Expansion Sprint — WA + NT (Apr 22 2026)
+
+- [ ] Audit existing sources and research new source access methods
+- [ ] Implement source purpose tagging system (live_tender, forward_plan, contractor_path, commercial_lead, aggregator)
+- [ ] Tenders WA — live_tender source implementation
+- [ ] WA Pipeline of Work — forward_plan source implementation
+- [ ] WA Strategic Forward Procurement Plan — forward_plan source implementation
+- [ ] ICN Gateway WA reinforcement — contractor_path improvement
+- [ ] QTOL NT — live_tender source implementation with Power & Water issuer tracking
+- [ ] Dedup / precedence rules by sourcePurpose
+- [ ] Weekly brief surfacing logic by sourcePurpose
+- [ ] Validation pack and tests

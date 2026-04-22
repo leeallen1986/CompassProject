@@ -292,6 +292,12 @@ export default function ThisWeek() {
     staleTime: 0,
   });
 
+  // Live tenders closing within 14 days
+  const { data: closingSoonProjects } = trpc.report.closingSoon.useQuery(
+    { daysAhead: 14 },
+    { enabled: isAuthenticated, staleTime: 10 * 60 * 1000 }
+  );
+
   // ── All hooks must be before early returns ──
 
   // Destructure summary safely (null-safe)
@@ -536,6 +542,47 @@ export default function ThisWeek() {
             </div>
           )}
         </section>
+
+        {/* ── Closing Soon (live tenders) ── */}
+        {closingSoonProjects && closingSoonProjects.length > 0 && (
+          <CollapsibleSection
+            title="Closing Soon — Live Tenders"
+            count={closingSoonProjects.length}
+            defaultOpen={true}
+            icon={<Clock className="w-4 h-4 text-hot" />}
+            headerRight={
+              <span className="text-[10px] font-semibold text-hot bg-hot/10 px-2 py-0.5 rounded-full border border-hot/20">
+                Closing within 14 days
+              </span>
+            }
+            emptyMessage="No live tenders closing within 14 days."
+          >
+            <div>
+              {closingSoonProjects.map((project: any) => (
+                <div
+                  key={project.id}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors cursor-pointer border-b border-border last:border-0"
+                  onClick={() => navigate(`/dashboard?project=${project.id}`)}
+                >
+                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-hot text-white">
+                    {project.priority}
+                  </span>
+                  <span className="flex-1 text-sm font-semibold text-navy truncate">{project.name}</span>
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
+                    <MapPin className="w-3 h-3" />{project.location}
+                  </span>
+                  {project.tenderCloseDate && (
+                    <span className="text-[11px] font-bold text-hot flex items-center gap-1 shrink-0">
+                      <Clock className="w-3 h-3" />
+                      Closes {new Date(project.tenderCloseDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                    </span>
+                  )}
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
 
         {/* ── Waiting on Contact Discovery ── */}
         <CollapsibleSection
