@@ -145,11 +145,40 @@ const COMPANY_ALIASES: Record<string, string> = {
  * Normalize a company name to its canonical form.
  */
 export function normalizeCompanyName(name: string): string {
-  const lower = name.toLowerCase().trim();
+  // ── Step 1: Sanitize HTML and malformed fragments ──
+  // Strip HTML tags, anchor fragments, URLs, hex colors, and other invalid patterns
+  let sanitized = name.trim();
+  
+  // Reject if contains HTML tags, href patterns, URLs, or other malformed content
+  if (
+    sanitized.includes("<") ||
+    sanitized.includes(">") ||
+    sanitized.includes("href") ||
+    sanitized.includes("//www.") ||
+    sanitized.includes("http") ||
+    /^#[0-9a-fA-F]{3,6}$/.test(sanitized) ||
+    sanitized.startsWith('"')
+  ) {
+    // If the name contains HTML/URL fragments, try to extract just the text content
+    // by removing everything between < and > and stripping URL-like patterns
+    sanitized = sanitized
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/href\s*=\s*["']?[^"'\s>]*["']?/gi, "") // Remove href attributes
+      .replace(/https?:\/\/[^\s"'<>]*/g, "") // Remove URLs
+      .replace(/\/\/www\.[^\s"'<>]*/g, "") // Remove //www. patterns
+      .trim();
+    
+    // If after stripping we still have invalid content, return empty to skip this contractor
+    if (!sanitized || sanitized.length < 3 || sanitized.length > 200) {
+      return ""; // Return empty string to signal invalid contractor name
+    }
+  }
+  
+  const lower = sanitized.toLowerCase();
   if (COMPANY_ALIASES[lower]) return COMPANY_ALIASES[lower];
 
   // Remove common suffixes
-  let clean = name.trim()
+  let clean = sanitized
     .replace(/\s*(pty\.?\s*ltd\.?|ltd\.?|limited|inc\.?|corp\.?|group)\s*$/i, "")
     .replace(/\s*(australia|aust\.?)\s*$/i, "")
     .trim();
@@ -159,7 +188,7 @@ export function normalizeCompanyName(name: string): string {
     clean = clean.replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  return clean || name.trim();
+  return clean || sanitized;
 }
 
 // ── Placeholder Filtering ──
@@ -282,6 +311,11 @@ export async function buildContractorRegistry(): Promise<RegistryBuildResult> {
       }
 
       const canonical = normalizeCompanyName(c.name);
+      // Skip if sanitization returned empty (HTML/malformed content)
+      if (!canonical) {
+        result.skippedPlaceholders++;
+        continue;
+      }
       const key = canonical.toLowerCase();
       const role = classifyRole(c.name, c.detail, c.status, project.owner);
       const confidence = c.status === "confirmed" ? 90 : (c.confidence ? Math.round(c.confidence * 100) : 50);

@@ -191,9 +191,32 @@ function skipStep(step: PipelineStep, reason?: string): PipelineStep {
 }
 
 // ── Pipeline timeout ──
-const PIPELINE_TIMEOUT_MS = 55 * 60 * 1000; // 55 minutes max (enrichment step alone can take 25 min)
+const PIPELINE_TIMEOUT_MS = 90 * 60 * 1000; // 90 minutes max (enrichment is downstream and bounded)
 const STEP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per step max
 const ENRICHMENT_TIMEOUT_MS = 25 * 60 * 1000; // 25 minutes for contact enrichment (500 contacts × ~2s each)
+
+/**
+ * Steps that are considered "critical" for the pipeline to be marked as completed.
+ * Enrichment steps (contact enrichment, web discovery, Apollo gap-fill) are NOT critical —
+ * their failure is recorded in errors[] but does not flip the run status to "failed".
+ */
+const CRITICAL_STEP_NAMES = new Set([
+  "RSS Harvest",
+  "AI Extraction",
+  "Tier Classification",
+  "Staleness Check",
+  "Source Monitoring Snapshot",
+]);
+
+/** Enrichment step names — failures are tolerated; run still completes */
+const ENRICHMENT_STEP_NAMES = new Set([
+  "Contact Enrichment",
+  "Web Stakeholder Discovery",
+  "Apollo Gap-Fill",
+  "Role Relevance Classification",
+  "Second-Pass Contact Search",
+  "Contractor Enrichment Pass",
+]);
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -985,6 +1008,49 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   const duration = Math.round((Date.now() - startTime) / 1000);
   const completedAt = new Date().toISOString();
 
+  // ── Write core completion record BEFORE enrichment results are considered ──
+  // This ensures the run is always recorded as completed if all critical steps passed,
+  // even if enrichment steps timed out or failed downstream.
+  const coreStepsFailed = steps.filter(s => CRITICAL_STEP_NAMES.has(s.name) && s.status === "failed");
+  const enrichmentStepsFailed = steps.filter(s => ENRICHMENT_STEP_NAMES.has(s.name) && s.status === "failed");
+  const coreStatus: "completed" | "failed" = coreStepsFailed.length > 0 ? "failed" : "completed";
+
+  if (runId) {
+    try {
+      const db = await getDb();
+      if (!db) throw new Error("No database connection");
+      await db.update(pipelineRuns).set({
+        status: coreStatus,
+        completedAt: new Date(),
+        durationMs: Math.round((Date.now() - startTime) * 1000),
+        feedsFetched: harvestResult.totalSources,
+        feedErrors: harvestResult.totalErrors,
+        articlesIngested: harvestResult.totalNew,
+        articlesSkippedKeyword: (harvestResult as any).totalSkipped || 0,
+        articlesDuplicate: harvestResult.totalDuplicates,
+        articlesExtracted: extractionResult.extracted,
+        projectsCreated: extractionResult.extracted + projectoryResult.totalNewProjects + govResult.totalNewProjects + dmirsResult.totalNewProjects + austenderResult.totalNewProjects + aemoResult.totalNewProjects + icnResult.totalNewProjects + asxResult.newProjects,
+        projectsDuplicate: extractionResult.duplicates,
+        drillingCampaignsCreated: (extractionResult as any).drillingCampaignsInserted || 0,
+        awardedProjectsCreated: (extractionResult as any).awardedProjectsInserted || 0,
+        austenderContracts: austenderResult.totalNewProjects,
+        dmirsProjects: dmirsResult.totalNewProjects,
+        projectoryProjects: projectoryResult.totalNewProjects,
+        projectoryEnriched: projectoryEnrichResult.enriched,
+        govProjects: govResult.totalNewProjects,
+        aemoProjects: aemoResult.totalNewProjects,
+        icnProjects: icnResult.totalNewProjects,
+        contactsEnriched: enrichmentResult.enriched,
+        apolloCreditsUsed: enrichmentResult.dailyUsed,
+        steps: steps,
+        errors: errors.length > 0 ? errors : null,
+      }).where(eq(pipelineRuns.id, runId));
+      console.log(`[DailyPipeline] Core completion record written (status=${coreStatus}, ${coreStepsFailed.length} critical failures, ${enrichmentStepsFailed.length} enrichment failures tolerated)`);
+    } catch (err) {
+      console.error("[DailyPipeline] Failed to write core completion record:", err);
+    }
+  }
+
   const result: DailyPipelineResult = {
     harvest: {
       totalSources: harvestResult.totalSources,
@@ -1020,17 +1086,18 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     steps,
   };
 
-  // ── Save pipeline run results to database ──
+  // ── Final update: refresh with complete duration and final step list ──
   if (runId) {
     try {
       const db = await getDb();
       if (!db) throw new Error("No database connection");
 
       const hasErrors = errors.length > 0;
-      const hasFailed = steps.some(s => s.status === "failed");
+      // Only critical step failures flip the run to "failed"
+      const hasCriticalFailure = steps.some(s => CRITICAL_STEP_NAMES.has(s.name) && s.status === "failed");
 
       await db.update(pipelineRuns).set({
-        status: hasFailed ? "failed" : "completed",
+        status: hasCriticalFailure ? "failed" : "completed",
         completedAt: new Date(),
         durationMs: duration * 1000,
         // RSS harvest stats
@@ -1066,6 +1133,29 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       console.error("[DailyPipeline] Failed to update pipeline run log:", err);
     }
   }
+
+  // ── Health Summary Log ──
+  const criticalFailed = steps.filter(s => CRITICAL_STEP_NAMES.has(s.name) && s.status === "failed");
+  const enrichmentFailed = steps.filter(s => ENRICHMENT_STEP_NAMES.has(s.name) && s.status === "failed");
+  const degradedSources: string[] = [];
+  if (asxResult.newProjects === 0 && asxResult.companiesChecked === 0) degradedSources.push("ASX (endpoint 404)");
+  if (projectoryEnrichResult.enriched === 0 && projectoryResult.totalNewProjects === 0) degradedSources.push("Projectory (service 415)");
+
+  console.log("\n" + "═".repeat(60));
+  console.log("  PIPELINE RUN SUMMARY");
+  console.log("═".repeat(60));
+  console.log(`  Run ID:          ${runId || "N/A"}`);
+  console.log(`  Status:          ${criticalFailed.length > 0 ? "FAILED (critical)" : "COMPLETED"}`);
+  console.log(`  Duration:        ${duration}s`);
+  console.log(`  Critical steps:  ${criticalFailed.length === 0 ? "All passed" : criticalFailed.map(s => s.name).join(", ") + " FAILED"}`);
+  console.log(`  Enrichment:      ${enrichmentFailed.length === 0 ? "All passed" : enrichmentFailed.map(s => s.name).join(", ") + " failed (tolerated)"}`);
+  if (degradedSources.length > 0) {
+    console.log(`  Degraded:        ${degradedSources.join(", ")}`);
+  }
+  console.log(`  RSS:             ${harvestResult.totalNew} new / ${harvestResult.totalDuplicates} dupes / ${harvestResult.totalErrors} errors`);
+  console.log(`  Projects:        ${extractionResult.extracted} extracted, ${asxResult.newProjects} ASX, ${dmirsResult.totalNewProjects} DMIRS`);
+  console.log(`  Contacts:        ${enrichmentResult.enriched} enriched, ${enrichmentResult.dailyUsed} Apollo credits`);
+  console.log("═".repeat(60) + "\n");
 
   console.log(`[DailyPipeline] Pipeline complete in ${duration}s`);
   return result;

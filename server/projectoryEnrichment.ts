@@ -88,6 +88,10 @@ export interface ContractorFrequencyItem {
 // ── Session Management ──
 
 let currentSession: ProjectorySession | null = null;
+
+// Track Projectory health status to avoid repeated 415 errors
+let projectoryHealthCheckDone = false;
+let projectoryIsAvailable = true;
 const SESSION_TTL_MS = 90 * 60 * 1000; // 90 minutes (conservative, actual is ~2 hours)
 const RATE_LIMIT_MS = 1500;
 
@@ -403,6 +407,39 @@ export async function enrichProject(projectId: number): Promise<EnrichmentResult
       stageUpdated: false,
       sourceUrl: "",
       error: "Project not found",
+    };
+  }
+
+  // Check Projectory health on first call (fail fast if service is down)
+  if (!projectoryHealthCheckDone) {
+    projectoryHealthCheckDone = true;
+    try {
+      const healthRes = await fetch("https://www.projectory.com.au/login", {
+        redirect: "manual",
+      }).catch(() => null);
+      
+      if (!healthRes || healthRes.status === 415) {
+        projectoryIsAvailable = false;
+        console.log("[Projectory] Service unavailable (HTTP 415). Skipping all Projectory enrichment.");
+      }
+    } catch (err) {
+      projectoryIsAvailable = false;
+      console.log("[Projectory] Health check failed. Skipping enrichment.");
+    }
+  }
+  
+  // If Projectory is unavailable, skip enrichment but don't error
+  if (!projectoryIsAvailable) {
+    return {
+      projectId,
+      projectName: project.name,
+      matched: false,
+      enriched: false,
+      contractorsDiscovered: 0,
+      consultantsDiscovered: 0,
+      stageUpdated: false,
+      sourceUrl: "",
+      error: "Projectory service unavailable",
     };
   }
 

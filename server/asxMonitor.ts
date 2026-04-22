@@ -67,15 +67,44 @@ export interface AsxMonitorResult {
 }
 
 // ── ASX API ──
-
 const ASX_API_BASE = "https://www.asx.com.au/asx/v2/statistics/announcements.json";
 const RATE_LIMIT_MS = 1500; // 1.5s between requests
+
+// Track ASX API health to avoid repeated 404 errors
+let asxHealthCheckDone = false;
+let asxIsAvailable = true;
 
 async function fetchCompanyAnnouncements(
   companyCode: string,
   daysBack: number = 7
 ): Promise<AsxAnnouncement[]> {
   try {
+    // Check ASX API health on first call (fail fast if endpoint is down)
+    if (!asxHealthCheckDone) {
+      asxHealthCheckDone = true;
+      try {
+        const healthRes = await fetch(`${ASX_API_BASE}?company_code=BHP&num_items=1`, {
+          headers: {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          },
+        }).catch(() => null);
+        
+        if (!healthRes || healthRes.status === 404) {
+          asxIsAvailable = false;
+          console.log("[ASX] API endpoint unavailable (HTTP 404). Skipping ASX monitoring.");
+        }
+      } catch (err) {
+        asxIsAvailable = false;
+        console.log("[ASX] Health check failed. Skipping monitoring.");
+      }
+    }
+    
+    // If ASX is unavailable, skip monitoring but don't error
+    if (!asxIsAvailable) {
+      return [];
+    }
+    
     const url = `${ASX_API_BASE}?company_code=${companyCode}&num_items=20`;
     const response = await fetch(url, {
       headers: {

@@ -294,7 +294,11 @@ export function classifyRoleRelevance(
  * Classify all contacts that don't have a roleRelevance value yet.
  * Uses both the title and roleBucket fields.
  */
-export async function classifyAllContactRelevance(): Promise<{
+const ROLE_RELEVANCE_BATCH_SIZE = 5000; // Max contacts to classify per pipeline run
+
+export async function classifyAllContactRelevance(
+  batchSize: number = ROLE_RELEVANCE_BATCH_SIZE
+): Promise<{
   total: number;
   classified: number;
   highCount: number;
@@ -304,42 +308,72 @@ export async function classifyAllContactRelevance(): Promise<{
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Get all contacts
-  const allContacts = await db
+  // Only fetch unclassified contacts (or re-classify all if batchSize is large)
+  // Fetch in batches to avoid loading 26k+ rows into memory
+  const unclassifiedContacts = await db
     .select({
       id: contacts.id,
       title: contacts.title,
       roleBucket: contacts.roleBucket,
       linkedinHeadline: contacts.linkedinHeadline,
     })
-    .from(contacts);
+    .from(contacts)
+    .where(isNull(contacts.roleRelevance))
+    .limit(batchSize);
 
-  let highCount = 0;
-  let mediumCount = 0;
-  let lowCount = 0;
-
-  // Classify each contact
-  for (const contact of allContacts) {
-    // Use linkedinHeadline if available (more accurate), fall back to title
-    const titleToUse = contact.linkedinHeadline || contact.title;
-    const relevance = classifyRoleRelevance(titleToUse, contact.roleBucket);
-
-    await db
-      .update(contacts)
-      .set({ roleRelevance: relevance })
-      .where(eq(contacts.id, contact.id));
-
-    if (relevance === "high") highCount++;
-    else if (relevance === "medium") mediumCount++;
-    else lowCount++;
+  if (unclassifiedContacts.length === 0) {
+    // All contacts already classified — get current distribution
+    const dist = await getRoleRelevanceDistribution();
+    return {
+      total: dist.total,
+      classified: dist.total - dist.unclassified,
+      highCount: dist.high,
+      mediumCount: dist.medium,
+      lowCount: dist.low,
+    };
   }
 
+  // Classify all fetched contacts in memory (fast — pure JS, no DB round-trips)
+  const highIds: number[] = [];
+  const mediumIds: number[] = [];
+  const lowIds: number[] = [];
+
+  for (const contact of unclassifiedContacts) {
+    const titleToUse = contact.linkedinHeadline || contact.title;
+    const relevance = classifyRoleRelevance(titleToUse, contact.roleBucket);
+    if (relevance === "high") highIds.push(contact.id);
+    else if (relevance === "medium") mediumIds.push(contact.id);
+    else lowIds.push(contact.id);
+  }
+
+  // Bulk UPDATE — 3 queries instead of N queries
+  const CHUNK = 1000; // MySQL IN clause limit safety
+  const dbConn = db; // Capture non-null reference for use in closure
+  async function bulkUpdate(ids: number[], relevance: "high" | "medium" | "low") {
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const chunk = ids.slice(i, i + CHUNK);
+      if (chunk.length === 0) continue;
+      await dbConn
+        .update(contacts)
+        .set({ roleRelevance: relevance })
+        .where(sql`${contacts.id} IN (${sql.join(chunk.map(id => sql`${id}`), sql`, `)})`);
+    }
+  }
+
+  await Promise.all([
+    bulkUpdate(highIds, "high"),
+    bulkUpdate(mediumIds, "medium"),
+    bulkUpdate(lowIds, "low"),
+  ]);
+
+  console.log(`[RoleRelevance] Classified ${unclassifiedContacts.length} contacts: ${highIds.length} high, ${mediumIds.length} medium, ${lowIds.length} low`);
+
   return {
-    total: allContacts.length,
-    classified: allContacts.length,
-    highCount,
-    mediumCount,
-    lowCount,
+    total: unclassifiedContacts.length,
+    classified: unclassifiedContacts.length,
+    highCount: highIds.length,
+    mediumCount: mediumIds.length,
+    lowCount: lowIds.length,
   };
 }
 
