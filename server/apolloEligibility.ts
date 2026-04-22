@@ -33,7 +33,7 @@ import {
 const DAILY_CREDIT_CAP = 50;           // Max Apollo credits per day (auto-enrichment only)
 const PER_PROJECT_CREDIT_CAP = 10;     // Max credits per project per auto-enrichment run
 const MIN_CONTACTS_THRESHOLD = 3;      // Projects with fewer contacts are eligible for gap-fill
-const MONTHLY_BUDGET_CAP = 2000;       // Monthly budget limit for auto-enrichment (Apollo plan: 2500/mo, we reserve 500 buffer)
+const MONTHLY_BUDGET_CAP = 1550;       // Monthly budget limit for auto-enrichment (= DAILY_CREDIT_CAP × 31; Apollo plan: 2500/mo, we keep 950 buffer)
 
 // ── Types ──
 

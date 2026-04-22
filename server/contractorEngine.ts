@@ -148,6 +148,12 @@ export function normalizeCompanyName(name: string): string {
   // ── Step 1: Sanitize HTML and malformed fragments ──
   // Strip HTML tags, anchor fragments, URLs, hex colors, and other invalid patterns
   let sanitized = name.trim();
+
+  // Hard length cap: anything over 150 chars is a description/paragraph, not a company name
+  if (sanitized.length > 150) return "";
+
+  // Reject multi-sentence strings (contains a full stop followed by a capital letter)
+  if (/\.[A-Z]/.test(sanitized) || sanitized.split(".").length > 3) return "";
   
   // Reject if contains HTML tags, href patterns, URLs, or other malformed content
   if (

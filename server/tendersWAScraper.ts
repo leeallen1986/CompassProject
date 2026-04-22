@@ -3,14 +3,20 @@
  * ==================
  * Source: https://www.tenders.wa.gov.au/watenders/
  * Purpose: live_tender — active WA government tenders relevant to Atlas Copco PT
- * Access: Session cookie + CSRF nonce POST flow (no public API)
+ * Access: Session cookie + CSRF nonce, single GET of all open tenders, local keyword filter
  * Frequency: Daily (runs as part of the main pipeline)
  *
- * Access Method:
- *   1. GET /watenders/tender/search/tender-search.action → JSESSIONID cookie + CSRFNONCE
- *   2. POST /watenders/tender/search/tender-search.action?action=search-from-main-page&CSRFNONCE={nonce}
- *      with body: keywords={keyword}
- *   3. Parse HTML table rows (class="odd"/"even") for tender data
+ * Access Method (corrected after live diagnostics):
+ *   1. GET /watenders/index.do → JSESSIONID cookie + CSRFNONCE
+ *   2. GET /watenders/tender/search/tender-search.action?action=advanced-tender-search-open-tender&CSRFNONCE={nonce}
+ *      → returns ALL open tenders (145+ rows) in a single page
+ *   3. Parse HTML: rows have class "odd"/"even" but with extra whitespace — use attribute selector
+ *      - Agency: td.nowrap.top.firstTableColumn (hidden)
+ *      - Category: td.nowrap.top (second td, hidden)
+ *      - Tender number: td[class*="left"][class*="top"] → <b> tag
+ *      - Title: td.top → first <a> link text (NOT the img link)
+ *      - Close date: span.SUMMARY_CLOSINGDATE
+ *   4. Filter locally by keyword/category, then LLM-extract relevant ones
  *
  * Degraded Mode: If session fails or site is unavailable, returns empty array and logs clearly.
  */
@@ -22,9 +28,10 @@ import { eq } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 
 const BASE_URL = "https://www.tenders.wa.gov.au/watenders";
+const SESSION_URL = `${BASE_URL}/index.do`;
 const SEARCH_URL = `${BASE_URL}/tender/search/tender-search.action`;
 
-// PT-relevant keywords for Tenders WA search
+// PT-relevant keywords for local filtering
 const SEARCH_KEYWORDS = [
   "mining",
   "oil gas",
@@ -36,19 +43,27 @@ const SEARCH_KEYWORDS = [
   "pipeline",
   "processing plant",
   "water treatment",
+  "pump",
+  "generator",
+  "power station",
+  "desalination",
 ];
 
-// Categories to include (Tenders WA category names)
+// Categories to include (Tenders WA UNSPSC category names — partial match)
+// Note: "Industrial Cleaning Services" and "Transportation and Storage and Mail Services" removed
+// as they produce mostly irrelevant results. LLM handles remaining noise in broad categories.
 const RELEVANT_CATEGORIES = [
   "Building and Facility Construction and Maintenance Services",
   "Engineering and Research and Technology Based Services",
   "Mining",
   "Energy",
   "Oil and Gas",
-  "Industrial Cleaning Services",
   "Environmental Services",
   "Plant and Equipment",
   "Utilities",
+  "Industrial Production and Manufacturing Services",
+  "Building and Construction Machinery",
+  "Power Generation and Distribution Machinery",
 ];
 
 // Agencies to prioritise (partial match)
@@ -63,16 +78,23 @@ const PRIORITY_AGENCIES = [
   "Horizon Power",
   "Synergy",
   "ATCO",
+  "Woodside",
+  "Rio Tinto",
+  "BHP",
+  "Fortescue",
+  "Chevron",
+  "Santos",
 ];
 
 export interface TendersWATender {
   tenderNumber: string;
+  tenderId: string;
   title: string;
   agency: string;
   category: string;
   closeDate: string | null;
   url: string;
-  keywords: string[];
+  matchedKeywords: string[];
 }
 
 // ── Session Management ──
@@ -93,12 +115,13 @@ async function getSession(): Promise<WaSession | null> {
   }
 
   try {
-    const res = await fetch(SEARCH_URL, {
+    const res = await fetch(SESSION_URL, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-AU,en;q=0.9",
       },
+      redirect: "follow",
     });
 
     if (!res.ok) {
@@ -115,9 +138,9 @@ async function getSession(): Promise<WaSession | null> {
     }
     const cookies = `JSESSIONID=${jsessionMatch[1]}`;
 
-    // Extract CSRFNONCE from HTML
+    // Extract CSRFNONCE from HTML — it appears as var nonce = "CSRFNONCE=XXXXX" or in href attributes
     const html = await res.text();
-    const nonceMatch = html.match(/CSRFNONCE=([A-F0-9]+)/);
+    const nonceMatch = html.match(/CSRFNONCE=([A-F0-9]{32})/);
     if (!nonceMatch) {
       console.warn("[TendersWA] No CSRFNONCE in page");
       return null;
@@ -125,6 +148,7 @@ async function getSession(): Promise<WaSession | null> {
 
     sessionCache = { cookies, nonce: nonceMatch[1] };
     sessionFetchedAt = now;
+    console.log(`[TendersWA] Session acquired (NONCE: ${nonceMatch[1].substring(0, 8)}...)`);
     return sessionCache;
   } catch (err) {
     console.warn(`[TendersWA] Session error: ${err instanceof Error ? err.message : String(err)}`);
@@ -132,98 +156,122 @@ async function getSession(): Promise<WaSession | null> {
   }
 }
 
-// ── Search ──
+// ── Fetch All Open Tenders ──
 
-async function searchTenders(keyword: string, session: WaSession): Promise<TendersWATender[]> {
-  try {
-    const url = `${SEARCH_URL}?action=search-from-main-page&CSRFNONCE=${session.nonce}&resetdt=1`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-AU,en;q=0.9",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": session.cookies,
-        "Referer": SEARCH_URL,
-      },
-      body: `keywords=${encodeURIComponent(keyword)}`,
-    });
+async function fetchAllOpenTenders(session: WaSession): Promise<string> {
+  const url = `${SEARCH_URL}?action=advanced-tender-search-open-tender&CSRFNONCE=${session.nonce}`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-AU,en;q=0.9",
+      "Cookie": session.cookies,
+      "Referer": SESSION_URL,
+    },
+  });
 
-    if (!res.ok) {
-      // CSRF nonce may have rotated — clear session cache
-      if (res.status === 403) {
-        sessionCache = null;
-      }
-      return [];
+  if (!res.ok) {
+    if (res.status === 403) {
+      sessionCache = null; // CSRF nonce rotated
     }
-
-    const html = await res.text();
-    return parseTenderResults(html, keyword);
-  } catch (err) {
-    console.warn(`[TendersWA] Search error for "${keyword}": ${err instanceof Error ? err.message : String(err)}`);
-    return [];
+    throw new Error(`HTTP ${res.status} fetching open tenders`);
   }
+
+  return res.text();
 }
 
 // ── HTML Parsing ──
 
-function parseTenderResults(html: string, keyword: string): TendersWATender[] {
+function parseTenderResults(html: string): TendersWATender[] {
   const $ = cheerio.load(html);
   const tenders: TendersWATender[] = [];
 
-  // Tenders WA results are in table rows with class "odd" or "even"
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  $('tr.odd, tr.even').each((_idx: number, row: any) => {
+  // Rows have class "odd" or "even" but with extra whitespace in the attribute
+  // Use a filter approach instead of class selector to handle whitespace
+  $("tr").filter((_idx, el) => {
+    const cls = ($(el).attr("class") || "").trim();
+    return cls === "odd" || cls === "even";
+  }).each((_idx, row) => {
     const $row = $(row);
-    const cells = $row.find("td");
 
-    if (cells.length < 3) return;
-
-    // Column layout (based on research):
-    // [0] Agency (hidden, firstTableColumn)
-    // [1] Category (hidden, nowrap)
-    // [2] Tender details (left top) — contains title link + tender number + close date
+    // Agency: first td with firstTableColumn class (hidden via CSS)
     const agency = $row.find("td.firstTableColumn").text().trim();
-    const category = $row.find("td.nowrap").first().text().trim();
-    const detailCell = $row.find("td.left.top, td[class*='left'][class*='top']").first();
 
-    // Extract tender number and title from the detail cell
-    const titleLink = detailCell.find("a").first();
-    const title = titleLink.text().trim();
-    const href = titleLink.attr("href") || "";
-    const tenderUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`;
+    // Category: td.nowrap that does NOT have firstTableColumn (i.e., the second td.nowrap)
+    const category = $row.find("td.nowrap").filter((_i, el) => {
+      const cls = $(el).attr("class") || "";
+      return !cls.includes("firstTableColumn");
+    }).first().text().trim();
 
-    // Extract tender number from the text (usually in format "WAT-YYYY-NNNNN" or just a number)
-    const detailText = detailCell.text();
-    const tenderNumberMatch = detailText.match(/\b(WAT-\d{4}-\d+|\d{5,})\b/);
-    const tenderNumber = tenderNumberMatch ? tenderNumberMatch[1] : "";
+    // Tender number: td with both "left" and "top" in class → <b> tag
+    const tenderNumCell = $row.find("td").filter((_i, el) => {
+      const cls = $(el).attr("class") || "";
+      return cls.includes("left") && cls.includes("top");
+    }).first();
+    const tenderNumber = tenderNumCell.find("b").first().text().trim();
 
-    // Extract close date
-    const closeDateMatch = detailText.match(/Close[sd]?:?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
-    const closeDate = closeDateMatch ? closeDateMatch[1] : null;
+    // Title: td.top that does NOT have "nowrap" AND does NOT have "left" in class
+    const titleCell = $row.find("td.top").filter((_i, el) => {
+      const cls = $(el).attr("class") || "";
+      return !cls.includes("nowrap") && !cls.includes("left");
+    }).first();
+
+    // Find the first anchor that contains text (not just an image)
+    let title = "";
+    let href = "";
+    let tenderId = "";
+    titleCell.find("a").each((_i, anchor) => {
+      const $a = $(anchor);
+      const text = $a.text().trim();
+      const h = $a.attr("href") || "";
+      if (text && text.length > 3 && !$a.find("img").length) {
+        title = text;
+        href = h;
+        // Extract tender ID from URL: ?id=12345
+        const idMatch = h.match(/[?&]id=(\d+)/);
+        tenderId = idMatch ? idMatch[1] : "";
+        return false; // break
+      }
+    });
+
+    // Close date: span.SUMMARY_CLOSINGDATE
+    const closeDateRaw = $row.find("span.SUMMARY_CLOSINGDATE").text().trim();
+    const closeDate = closeDateRaw || null;
 
     if (!title || title.length < 5) return;
 
-    // Filter out irrelevant categories
-    const isRelevantCategory = RELEVANT_CATEGORIES.some(cat =>
-      category.toLowerCase().includes(cat.toLowerCase().substring(0, 15))
+    const tenderUrl = href.startsWith("http") ? href : `https://www.tenders.wa.gov.au${href}`;
+
+    // Local keyword + category filter
+    const titleLower = title.toLowerCase();
+    const categoryLower = category.toLowerCase();
+    const agencyLower = agency.toLowerCase();
+
+    const matchedKeywords = SEARCH_KEYWORDS.filter(kw =>
+      titleLower.includes(kw.toLowerCase()) ||
+      categoryLower.includes(kw.toLowerCase())
     );
 
-    // Filter: must have relevant category OR keyword in title
-    const titleLower = title.toLowerCase();
-    const hasKeywordInTitle = SEARCH_KEYWORDS.some(kw => titleLower.includes(kw.toLowerCase()));
+    const isRelevantCategory = RELEVANT_CATEGORIES.some(cat =>
+      categoryLower.includes(cat.toLowerCase().substring(0, 20))
+    );
 
-    if (!isRelevantCategory && !hasKeywordInTitle) return;
+    const isPriorityAgency = PRIORITY_AGENCIES.some(ag =>
+      agencyLower.includes(ag.toLowerCase().substring(0, 15))
+    );
+
+    // Keep if: relevant category OR keyword match OR priority agency
+    if (!isRelevantCategory && matchedKeywords.length === 0 && !isPriorityAgency) return;
 
     tenders.push({
       tenderNumber,
+      tenderId,
       title,
       agency,
       category,
       closeDate,
       url: tenderUrl,
-      keywords: [keyword],
+      matchedKeywords: matchedKeywords.length > 0 ? matchedKeywords : ["category-match"],
     });
   });
 
@@ -235,12 +283,8 @@ function parseTenderResults(html: string, keyword: string): TendersWATender[] {
 function dedupTenders(tenders: TendersWATender[]): TendersWATender[] {
   const seen = new Map<string, TendersWATender>();
   for (const t of tenders) {
-    const key = t.tenderNumber || t.title.toLowerCase().replace(/\s+/g, " ").trim();
-    if (seen.has(key)) {
-      // Merge keywords
-      const existing = seen.get(key)!;
-      existing.keywords = Array.from(new Set([...existing.keywords, ...t.keywords]));
-    } else {
+    const key = t.tenderId || t.tenderNumber || t.title.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!seen.has(key)) {
       seen.set(key, { ...t });
     }
   }
@@ -261,6 +305,7 @@ interface ExtractedProject {
   tenderNumber: string;
   tenderCloseDate: string | null;
   sourcePurpose: "live_tender";
+  isRelevant: boolean;
 }
 
 async function extractProjectFromTender(tender: TendersWATender): Promise<ExtractedProject | null> {
@@ -275,26 +320,26 @@ Tender Details:
 - Close Date: ${tender.closeDate || "Unknown"}
 - URL: ${tender.url}
 
-Extract the following as JSON:
+Extract the following as JSON. Set isRelevant=false if this tender has no plausible connection to portable compressed air, pumps, BESS, nitrogen, or similar PT equipment.
+
 {
   "name": "concise project name (max 80 chars)",
   "owner": "the government agency or company name",
   "location": "WA location if determinable, else 'Western Australia'",
   "value": "estimated contract value if mentioned, else 'Unknown'",
   "sector": "one of: mining, oil_gas, infrastructure, energy, defence",
-  "overview": "2-3 sentence description of what this tender is for and why Atlas Copco PT equipment (compressors, pumps, BESS) might be relevant",
-  "equipmentSignals": ["list of PT equipment types that might be needed: compressor, pump, BESS, nitrogen, etc."],
+  "overview": "2-3 sentence description of what this tender is for and why Atlas Copco PT equipment might be relevant",
+  "equipmentSignals": ["list of PT equipment types that might be needed"],
   "priority": "hot if closing within 30 days or high-value construction/mining, warm if relevant but longer timeline, cold if marginal relevance",
   "tenderNumber": "${tender.tenderNumber || ""}",
   "tenderCloseDate": "${tender.closeDate || "null"}",
-  "sourcePurpose": "live_tender"
-}
-
-Only return valid JSON. If this tender is not relevant to Atlas Copco PT equipment (compressors, pumps, BESS, nitrogen), return null.`;
+  "sourcePurpose": "live_tender",
+  "isRelevant": true or false
+}`;
 
     const response = await invokeLLM({
       messages: [
-        { role: "system" as const, content: "You extract project intelligence from government tenders. Return valid JSON only, or the word null if not relevant." },
+        { role: "system" as const, content: "You extract project intelligence from government tenders. Return valid JSON only." },
         { role: "user" as const, content: prompt },
       ],
       response_format: {
@@ -343,6 +388,7 @@ Only return valid JSON. If this tender is not relevant to Atlas Copco PT equipme
 
 export interface TendersWAResult {
   tendersFound: number;
+  tendersFiltered: number;
   tendersRelevant: number;
   projectsCreated: number;
   projectsUpdated: number;
@@ -354,6 +400,7 @@ export interface TendersWAResult {
 export async function runTendersWAScraper(reportId: number): Promise<TendersWAResult> {
   const result: TendersWAResult = {
     tendersFound: 0,
+    tendersFiltered: 0,
     tendersRelevant: 0,
     projectsCreated: 0,
     projectsUpdated: 0,
@@ -370,20 +417,22 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
     return result;
   }
 
-  console.log("[TendersWA] Session acquired. Starting tender search...");
-
-  // Search across all keywords
-  const allTenders: TendersWATender[] = [];
-  for (const keyword of SEARCH_KEYWORDS) {
-    const tenders = await searchTenders(keyword, session);
-    allTenders.push(...tenders);
-    // Rate limit: 1s between searches
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  // Fetch all open tenders in one request
+  let html: string;
+  try {
+    html = await fetchAllOpenTenders(session);
+  } catch (err) {
+    result.degraded = true;
+    result.degradedReason = `Failed to fetch open tenders: ${err instanceof Error ? err.message : String(err)}`;
+    console.log(`[TendersWA] ${result.degradedReason}. Skipping.`);
+    return result;
   }
 
+  // Parse and filter
+  const allTenders = parseTenderResults(html);
   const deduped = dedupTenders(allTenders);
   result.tendersFound = deduped.length;
-  console.log(`[TendersWA] Found ${deduped.length} unique tenders across ${SEARCH_KEYWORDS.length} keyword searches`);
+  console.log(`[TendersWA] Found ${deduped.length} relevant tenders after local filter (from full open tender list)`);
 
   if (deduped.length === 0) {
     return result;
@@ -399,12 +448,13 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
   // Process each tender
   for (const tender of deduped) {
     try {
-      // Check if we already have this tender in the DB
-      if (tender.tenderNumber) {
+      // Check if we already have this tender in the DB (by tenderId or tenderNumber)
+      const lookupKey = tender.tenderId ? `WAT-${tender.tenderId}` : null;
+      if (lookupKey) {
         const existing = await db
           .select({ id: projects.id })
           .from(projects)
-          .where(eq(projects.tenderNumber, tender.tenderNumber))
+          .where(eq(projects.tenderNumber, lookupKey))
           .limit(1);
 
         if (existing.length > 0) {
@@ -415,7 +465,7 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
               sourceLastSeenAt: new Date(),
               tenderCloseDate: tender.closeDate ? new Date(tender.closeDate) : undefined,
             })
-            .where(eq(projects.tenderNumber, tender.tenderNumber));
+            .where(eq(projects.tenderNumber, lookupKey));
           result.projectsUpdated++;
           continue;
         }
@@ -423,19 +473,22 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
 
       // Extract project via LLM
       const extracted = await extractProjectFromTender(tender);
-      if (!extracted) continue;
+      if (!extracted) {
+        result.tendersFiltered++;
+        continue;
+      }
 
       result.tendersRelevant++;
 
-      // Build project key
-      const projectKey = tender.tenderNumber
-        ? `WAT-${tender.tenderNumber}`
+      // Build project key using tender ID (stable) or fallback
+      const projectKey = tender.tenderId
+        ? `WAT-${tender.tenderId}`
         : `WAT-${extracted.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 50)}-${Date.now()}`;
 
-      // Parse close date
+      // Parse close date — Tenders WA format: "19 Jun, 2026 2:00 PM"
       let tenderCloseDate: Date | null = null;
-      if (extracted.tenderCloseDate) {
-        const parsed = new Date(extracted.tenderCloseDate);
+      if (tender.closeDate) {
+        const parsed = new Date(tender.closeDate);
         if (!isNaN(parsed.getTime())) {
           tenderCloseDate = parsed;
         }
@@ -461,13 +514,13 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
         lifecycleStatus: "active",
         actionTier: extracted.priority === "hot" ? "tier1_actionable" : extracted.priority === "warm" ? "tier2_warm" : "tier3_monitor",
         sourcePurpose: "live_tender",
-        tenderNumber: tender.tenderNumber || null,
+        tenderNumber: projectKey,
         tenderCloseDate: tenderCloseDate,
         sourceLastSeenAt: new Date(),
       });
 
       result.projectsCreated++;
-      console.log(`[TendersWA] Created project: ${extracted.name} (${tender.tenderNumber || "no number"})`);
+      console.log(`[TendersWA] Created: ${extracted.name} (${projectKey}, closes: ${tender.closeDate || "unknown"})`);
 
       // Rate limit LLM calls
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -478,6 +531,6 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
     }
   }
 
-  console.log(`[TendersWA] Complete — ${result.tendersFound} found, ${result.tendersRelevant} relevant, ${result.projectsCreated} created, ${result.projectsUpdated} updated`);
+  console.log(`[TendersWA] Complete — ${result.tendersFound} found, ${result.tendersFiltered} filtered by LLM, ${result.tendersRelevant} relevant, ${result.projectsCreated} created, ${result.projectsUpdated} updated`);
   return result;
 }
