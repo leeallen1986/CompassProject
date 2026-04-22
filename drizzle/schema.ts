@@ -1286,3 +1286,16 @@ export const projectActions = mysqlTable("projectActions", {
 
 export type ProjectAction = typeof projectActions.$inferSelect;
 export type InsertProjectAction = typeof projectActions.$inferInsert;
+
+// ── Manager Rollup Recipients ──
+// Configurable list of users who receive the manager rollup email.
+// If this table is empty, sendManagerRollupEmail falls back to all role='admin' users.
+export const managerRollupRecipients = mysqlTable("managerRollupRecipients", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").notNull(),
+  addedBy: int("addedBy").notNull(),
+  addedAt: timestamp("addedAt").defaultNow().notNull(),
+});
+
+export type ManagerRollupRecipient = typeof managerRollupRecipients.$inferSelect;
+export type InsertManagerRollupRecipient = typeof managerRollupRecipients.$inferInsert;

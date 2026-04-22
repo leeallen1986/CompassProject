@@ -2257,6 +2257,228 @@ function DuplicatesTab() {
   );
 }
 
+// ── Email Preview Tab ──
+
+function EmailPreviewTab() {
+  const { data: allUsers, isLoading: usersLoading } = trpc.digest.listAllUsers.useQuery();
+  const { data: rollupRecipients, isLoading: rollupLoading } = trpc.digest.listRollupRecipients.useQuery();
+  const utils = trpc.useUtils();
+
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [previewType, setPreviewType] = useState<"monday" | "thursday" | "manager_rollup">("monday");
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewSubject, setPreviewSubject] = useState<string | null>(null);
+  const [previewUserName, setPreviewUserName] = useState<string | null>(null);
+  const [addRecipientId, setAddRecipientId] = useState<string>("");
+
+  const previewMonday = trpc.digest.previewMonday.useMutation({
+    onSuccess: (data) => {
+      if (data) {
+        setPreviewContent(data.content);
+        setPreviewSubject(data.subject);
+        setPreviewUserName(data.userName);
+      } else {
+        toast.error("No preview data returned — user may have no matching projects");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const previewThursday = trpc.digest.previewThursday.useMutation({
+    onSuccess: (data) => {
+      if (data) {
+        setPreviewContent(data.content);
+        setPreviewSubject(data.subject);
+        setPreviewUserName(data.userName);
+      } else {
+        toast.error("No preview data returned");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const previewManagerRollup = trpc.digest.previewManagerRollup.useMutation({
+    onSuccess: (data) => {
+      if (data?.previews && data.previews.length > 0) {
+        const first = data.previews[0];
+        setPreviewContent((first as any).contentSnippet ?? "(no content)");
+        setPreviewSubject(first.subject);
+        setPreviewUserName("Manager Rollup");
+      } else {
+        toast.error("No manager rollup preview returned");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const addRecipient = trpc.digest.addRollupRecipient.useMutation({
+    onSuccess: () => { utils.digest.listRollupRecipients.invalidate(); toast.success("Recipient added"); setAddRecipientId(""); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const removeRecipient = trpc.digest.removeRollupRecipient.useMutation({
+    onSuccess: () => { utils.digest.listRollupRecipients.invalidate(); toast.success("Recipient removed"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const isGenerating = previewMonday.isPending || previewThursday.isPending || previewManagerRollup.isPending;
+
+  function handleGenerate() {
+    setPreviewContent(null);
+    setPreviewSubject(null);
+    if (previewType === "monday" && selectedUserId) {
+      previewMonday.mutate({ userId: selectedUserId });
+    } else if (previewType === "thursday" && selectedUserId) {
+      previewThursday.mutate({ userId: selectedUserId });
+    } else if (previewType === "manager_rollup") {
+      previewManagerRollup.mutate();
+    } else {
+      toast.error("Please select a user first");
+    }
+  }
+
+  const repUsers = (allUsers || []).filter(u => u.role !== "admin");
+
+  return (
+    <div className="space-y-6">
+      {/* Email Preview Panel */}
+      <div className="bg-card rounded-lg border border-border p-5">
+        <h2 className="text-base font-bold text-navy flex items-center gap-2 mb-4">
+          <Mail className="w-4 h-4 text-gold" /> Email Preview
+        </h2>
+
+        <div className="flex flex-wrap gap-3 mb-4">
+          {/* Email type selector */}
+          <div className="flex gap-2">
+            {(["monday", "thursday", "manager_rollup"] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => { setPreviewType(t); setPreviewContent(null); }}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all border ${
+                  previewType === t
+                    ? "bg-navy text-white border-navy"
+                    : "bg-card text-muted-foreground border-border hover:border-navy/40"
+                }`}
+              >
+                {t === "monday" ? "Monday Digest" : t === "thursday" ? "Thursday Reminder" : "Manager Rollup"}
+              </button>
+            ))}
+          </div>
+
+          {/* User selector (not shown for manager_rollup) */}
+          {previewType !== "manager_rollup" && (
+            <select
+              value={selectedUserId ?? ""}
+              onChange={e => setSelectedUserId(Number(e.target.value) || null)}
+              className="px-3 py-1.5 rounded-md text-xs border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-gold/40"
+            >
+              <option value="">Select rep user...</option>
+              {repUsers.map(u => (
+                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+              ))}
+            </select>
+          )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || (previewType !== "manager_rollup" && !selectedUserId)}
+            className="bg-gold text-navy hover:bg-gold/90 text-xs px-4 py-1.5 h-auto"
+          >
+            {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Eye className="w-3.5 h-3.5 mr-1" />}
+            Generate Preview
+          </Button>
+        </div>
+
+        {previewSubject && (
+          <div className="mb-3 p-3 bg-navy/5 rounded-md border border-navy/10">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Subject</p>
+            <p className="text-sm font-semibold text-navy">{previewSubject}</p>
+            {previewUserName && <p className="text-xs text-muted-foreground mt-0.5">Recipient: {previewUserName}</p>}
+          </div>
+        )}
+
+        {previewContent && (
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="bg-slate-50 px-4 py-2 border-b border-border flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Body Preview</span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(previewContent); toast.success("Copied to clipboard"); }}
+                className="text-xs text-navy hover:underline"
+              >Copy</button>
+            </div>
+            <pre className="p-4 text-xs text-foreground whitespace-pre-wrap font-mono max-h-[600px] overflow-y-auto leading-relaxed">
+              {previewContent}
+            </pre>
+          </div>
+        )}
+
+        {!previewContent && !isGenerating && (
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            Select an email type{previewType !== "manager_rollup" ? " and a rep user" : ""}, then click Generate Preview.
+          </div>
+        )}
+      </div>
+
+      {/* Manager Rollup Recipient Configuration */}
+      <div className="bg-card rounded-lg border border-border p-5">
+        <h2 className="text-base font-bold text-navy flex items-center gap-2 mb-1">
+          <Users className="w-4 h-4 text-gold" /> Manager Rollup Recipients
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Configurable list. If empty, all users with <code>role=admin</code> receive the rollup.
+        </p>
+
+        {rollupLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin text-gold" />
+        ) : (
+          <div className="space-y-2 mb-4">
+            {(rollupRecipients || []).length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No explicit recipients configured — falling back to all admins.</p>
+            ) : (
+              (rollupRecipients || []).map(r => (
+                <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-md border border-border bg-slate-50">
+                  <div>
+                    <span className="text-sm font-medium text-navy">{r.userName ?? `User #${r.userId}`}</span>
+                    {r.userEmail && <span className="text-xs text-muted-foreground ml-2">{r.userEmail}</span>}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeRecipient.mutate({ userId: r.userId })}
+                    className="text-hot hover:bg-hot/10 h-7 px-2 text-xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <select
+            value={addRecipientId}
+            onChange={e => setAddRecipientId(e.target.value)}
+            className="flex-1 px-3 py-1.5 rounded-md text-xs border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-gold/40"
+          >
+            <option value="">Add recipient...</option>
+            {(allUsers || []).map(u => (
+              <option key={u.id} value={u.id}>{u.name} ({u.email}) — {u.role}</option>
+            ))}
+          </select>
+          <Button
+            onClick={() => addRecipientId && addRecipient.mutate({ userId: Number(addRecipientId) })}
+            disabled={!addRecipientId || addRecipient.isPending}
+            className="bg-navy text-white hover:bg-navy-light text-xs px-4 h-auto py-1.5"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Admin Page ──
 
 export default function Admin() {
@@ -2337,6 +2559,9 @@ export default function Admin() {
             <TabsTrigger value="duplicates" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <Copy className="w-3.5 h-3.5 mr-1.5" /> Duplicates
             </TabsTrigger>
+            <TabsTrigger value="emailpreview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
+              <Mail className="w-3.5 h-3.5 mr-1.5" /> Email Preview
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -2369,6 +2594,10 @@ export default function Admin() {
 
           <TabsContent value="duplicates">
             <DuplicatesTab />
+          </TabsContent>
+
+          <TabsContent value="emailpreview">
+            <EmailPreviewTab />
           </TabsContent>
         </Tabs>
       </main>

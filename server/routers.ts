@@ -59,7 +59,7 @@ import {
   createTemplate, listTemplates, getTemplateById, updateTemplate,
   deleteTemplate, incrementTemplateUsage, personaliseTemplate, getTemplateStats,
 } from "./outreachTemplates";
-import { sendWeeklyDigests } from "./emailDigest";
+import { sendWeeklyDigests, sendThursdayReminders, sendManagerRollupEmail } from "./emailDigest";
 import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFallback";
 import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { searchProjects } from "./aiProjectMatcher";
@@ -592,7 +592,85 @@ export const appRouter = router({
       const results = await sendWeeklyDigests(true);
       return results;
     }),
-    // Thursday reminder removed — Monday digest only
+
+    /** Send Thursday reminder now */
+    sendThursdayNow: adminProcedure.mutation(async () => {
+      return sendThursdayReminders(true);
+    }),
+
+    /** Send manager rollup now */
+    sendManagerRollupNow: adminProcedure.mutation(async () => {
+      return sendManagerRollupEmail(true);
+    }),
+
+    /** Preview Monday digest for a specific user (dry-run, no send) */
+    previewMonday: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        // Run a targeted dry-run for the specific user only
+        const { sendWeeklyDigestsForUser } = await import("./emailDigest");
+        return sendWeeklyDigestsForUser(input.userId);
+      }),
+
+    /** Preview Thursday reminder for a specific user (dry-run, no send) */
+    previewThursday: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { sendThursdayReminderForUser } = await import("./emailDigest");
+        return sendThursdayReminderForUser(input.userId);
+      }),
+
+    /** Preview manager rollup (dry-run, no send) */
+    previewManagerRollup: adminProcedure
+      .mutation(async () => {
+        return sendManagerRollupEmail(false, true);
+      }),
+
+    /** List all configured manager rollup recipients */
+    listRollupRecipients: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { managerRollupRecipients, users: usersTable } = await import("../drizzle/schema");
+      const { eq: eqOp } = await import("drizzle-orm");
+      const rows = await db.select().from(managerRollupRecipients);
+      // Enrich with user info
+      const enriched = await Promise.all(rows.map(async (row) => {
+        const [user] = await db.select().from(usersTable).where(eqOp(usersTable.id, row.userId));
+        return { ...row, userName: user?.name ?? null, userEmail: user?.email ?? null };
+      }));
+      return enriched;
+    }),
+
+    /** Add a user to the manager rollup recipient list */
+    addRollupRecipient: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { managerRollupRecipients } = await import("../drizzle/schema");
+        await db.insert(managerRollupRecipients).values({ userId: input.userId, addedBy: ctx.user.id });
+        return { success: true };
+      }),
+
+    /** Remove a user from the manager rollup recipient list */
+    removeRollupRecipient: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { managerRollupRecipients } = await import("../drizzle/schema");
+        const { eq: eqOp } = await import("drizzle-orm");
+        await db.delete(managerRollupRecipients).where(eqOp(managerRollupRecipients.userId, input.userId));
+        return { success: true };
+      }),
+
+    /** List all users (for recipient picker) */
+    listAllUsers: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { users: usersTable } = await import("../drizzle/schema");
+      return db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role }).from(usersTable);
+    }),
   }),
 
   // ── AI Project Search / Matching ──

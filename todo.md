@@ -1526,3 +1526,10 @@
 - [ ] F3: Confirm dry-run entries do NOT count as live sends for dedup
 - [ ] F4: Pilot send isolation — manual Monday run must not also send Thursday + manager rollup
 - [ ] F5: Return sample send-log rows showing digestType, userId, weekKey, dryRun, sentAt
+
+## Monday Pilot Run + Admin Email Preview UI (Apr 22 2026)
+
+- [ ] Schedule Monday pilot run after midnight: --type=monday, 3 reps only, enrichment + QA + send
+- [ ] Admin Email Preview UI: preview Monday/Thursday/manager rollup by user before send
+- [ ] Configurable manager recipient list: separate from role='admin', managed via Admin UI
+- [ ] Return pilot run summary + Thursday recommendation after Monday run completes

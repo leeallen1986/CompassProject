@@ -1090,20 +1090,26 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
   // Get rollup data
   const rollup = await getManagerRollup(weekKey);
 
-  // Get admin recipients
-  const { users: usersTable } = await import("../drizzle/schema");
-  const { eq: eqOp } = await import("drizzle-orm");
+  // Get manager rollup recipients: use configurable table first, fall back to role='admin'
+  const { users: usersTable, managerRollupRecipients: rollupRecipientsTable } = await import("../drizzle/schema");
+  const { eq: eqOp, inArray } = await import("drizzle-orm");
   const db = await getDb();
   if (!db) {
     console.warn("[EmailDigest] No DB for manager rollup");
     return results;
   }
-  const admins = await db
-    .select()
-    .from(usersTable)
-    .where(eqOp(usersTable.role, "admin"));
-
-  console.log(`[EmailDigest] Manager rollup: ${admins.length} admin recipients (dryRun=${dryRun})`);
+  // Check configurable recipient list
+  const configuredRows = await db.select().from(rollupRecipientsTable);
+  let admins;
+  if (configuredRows.length > 0) {
+    const userIds = configuredRows.map(r => r.userId);
+    admins = await db.select().from(usersTable).where(inArray(usersTable.id, userIds));
+    console.log(`[EmailDigest] Manager rollup: ${admins.length} configured recipients (dryRun=${dryRun})`);
+  } else {
+    // Fallback: all admin-role users
+    admins = await db.select().from(usersTable).where(eqOp(usersTable.role, "admin"));
+    console.log(`[EmailDigest] Manager rollup: ${admins.length} admin-role recipients (fallback, dryRun=${dryRun})`);
+  }
 
   const content = generateManagerRollupEmail(rollup, report.weekEnding, freshnessLine);
   const subject = `PT Capital Sales — Manager Rollup — Week of ${report.weekEnding}`;
@@ -1165,4 +1171,168 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
   }
 
   return results;
+}
+
+// ── Per-user preview helpers (dry-run only, used by Admin Email Preview UI) ──
+
+/**
+ * Generate a Monday digest preview for a single specific user.
+ * Always dry-run — never sends. Returns subject + full content.
+ */
+export async function sendWeeklyDigestsForUser(userId: number): Promise<{
+  subject: string;
+  content: string;
+  contentLength: number;
+  userName: string;
+} | null> {
+  const weekKey = getCurrentWeekKey();
+  const report = await getLatestReport();
+  if (!report) return null;
+
+  const latestRun = await getLatestPipelineRun();
+  const freshnessLine = latestRun?.completedAt
+    ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
+    : `Data as of: ${report.weekEnding}`;
+
+  const allProjects = await getProjectsByReportId(report.id);
+  const allContacts = await getContactsByReportId(report.id);
+
+  const db = await getDb();
+  if (!db) return null;
+  const { users: usersTable, userProfiles: userProfilesTable } = await import("../drizzle/schema");
+  const { eq: eqOp } = await import("drizzle-orm");
+  const [user] = await db.select().from(usersTable).where(eqOp(usersTable.id, userId));
+  if (!user) return null;
+  const [profile] = await db.select().from(userProfilesTable).where(eqOp(userProfilesTable.userId, userId));
+  if (!profile) return null;
+
+  let thisWeekSection = "";
+  try {
+    const thisWeekData = await getThisWeekForEmail(userId);
+    thisWeekSection = formatThisWeekSection(
+      thisWeekData.top3Projects,
+      thisWeekData.top2Stakeholders,
+      thisWeekData.urgentAction,
+      "/",
+    );
+  } catch { /* ignore */ }
+
+  const matchedProjects = await scoreAndFilterProjects(allProjects, {
+    territories: profile.territories as string[] | null,
+    industries: profile.industries as string[] | null,
+    offerCategories: profile.offerCategories as string[] | null,
+    customerTypes: profile.customerTypes as string[] | null,
+    dealSizeMin: profile.dealSizeMin,
+    dealSizeMax: profile.dealSizeMax,
+    assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+  });
+
+  const contactProjectIds = new Set(allContacts.map(c => (c as any).projectId).filter(Boolean));
+  const annotatedProjects = matchedProjects.map(p => ({
+    ...p,
+    hasNoContacts: !contactProjectIds.has(p.id),
+  }));
+
+  const territories = (profile.territories as string[]) || [];
+  const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
+  const pipeline = await getPipelineClaimsByUser(userId);
+
+  const content = generateMondayDigest(
+    user.name || "Team Member",
+    report.weekEnding,
+    annotatedProjects,
+    matchedContacts.map(c => ({
+      name: c.name,
+      title: c.title,
+      company: c.company,
+      project: c.project,
+      priority: c.priority,
+      email: c.email,
+    })),
+    pipeline.length,
+    thisWeekSection,
+    territories,
+    freshnessLine,
+    weekKey,
+    userId,
+  );
+
+  const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
+  const subject = `PT Capital Sales — Weekly Intelligence Brief | ${territoryLabel} — ${report.weekEnding}`;
+
+  return { subject, content, contentLength: content.length, userName: user.name || "Team Member" };
+}
+
+/**
+ * Generate a Thursday reminder preview for a single specific user.
+ * Always dry-run — never sends. Returns subject + full content.
+ */
+export async function sendThursdayReminderForUser(userId: number): Promise<{
+  subject: string;
+  content: string;
+  contentLength: number;
+  userName: string;
+} | null> {
+  const weekKey = getCurrentWeekKey();
+  const report = await getLatestReport();
+  if (!report) return null;
+
+  const latestRun = await getLatestPipelineRun();
+  const freshnessLine = latestRun?.completedAt
+    ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
+    : `Data as of: ${report.weekEnding}`;
+
+  const allProjects = await getProjectsByReportId(report.id);
+  const allContacts = await getContactsByReportId(report.id);
+
+  const db = await getDb();
+  if (!db) return null;
+  const { users: usersTable, userProfiles: userProfilesTable } = await import("../drizzle/schema");
+  const { eq: eqOp } = await import("drizzle-orm");
+  const [user] = await db.select().from(usersTable).where(eqOp(usersTable.id, userId));
+  if (!user) return null;
+  const [profile] = await db.select().from(userProfilesTable).where(eqOp(userProfilesTable.userId, userId));
+  if (!profile) return null;
+
+  const matchedProjects = await scoreAndFilterProjects(allProjects, {
+    territories: profile.territories as string[] | null,
+    industries: profile.industries as string[] | null,
+    offerCategories: profile.offerCategories as string[] | null,
+    customerTypes: profile.customerTypes as string[] | null,
+    dealSizeMin: profile.dealSizeMin,
+    dealSizeMax: profile.dealSizeMax,
+    assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+  });
+
+  const territories = (profile.territories as string[]) || [];
+  const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
+  const pipeline = await getPipelineClaimsByUser(userId);
+
+  let thisWeekSection = "";
+  try {
+    const thisWeekData = await getThisWeekForEmail(userId);
+    thisWeekSection = formatThisWeekSection(
+      thisWeekData.top3Projects,
+      thisWeekData.top2Stakeholders,
+      thisWeekData.urgentAction,
+      "/",
+    );
+  } catch { /* ignore */ }
+
+  const content = generateThursdayReminder(
+    user.name || "Team Member",
+    report.weekEnding,
+    matchedProjects,
+    pipeline.length,
+    thisWeekSection,
+    territories,
+    freshnessLine,
+    weekKey,
+    userId,
+  );
+
+  const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
+  const subject = `PT Capital Sales — Mid-Week Action Reminder | ${territoryLabel} — ${report.weekEnding}`;
+
+  return { subject, content, contentLength: content.length, userName: user.name || "Team Member" };
 }
