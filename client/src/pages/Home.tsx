@@ -4,7 +4,7 @@
  * Deep navy header, gold accents, tabbed layout, priority-coded cards
  * Now fetches data from the database via tRPC API
  */
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
@@ -725,6 +725,7 @@ export default function Home() {
   const [productLaneFilter, setProductLaneFilter] = useState("all");
   const [showAllTerritories, setShowAllTerritories] = useState(false); // default: filter ON
   const [showAllBusinessLines, setShowAllBusinessLines] = useState(false); // default: filter ON
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showScoringGuide, setShowScoringGuide] = useState(() => {
     return !localStorage.getItem("atlas-scoring-guide-dismissed");
   });
@@ -1060,179 +1061,247 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container py-6 sm:py-8">
-        {/* Compact Filter Strip — Territory + Business Line in one row */}
-        <div className="flex items-center gap-2 mb-3 bg-card rounded-lg border border-border px-4 py-2.5 flex-wrap">
-          <Filter className="w-4 h-4 text-gold shrink-0" />
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Scope:</span>
+        {/* ── Primary Filter Row ── */}
+        {(() => {
+          // Count active advanced filters for badge
+          const advancedActiveCount = [
+            sectorFilter !== "all",
+            lifecycleFilter !== "active",
+            actionTierFilter !== "all",
+            projectTypeFilter !== "opportunity",
+            businessLineFilter !== "all",
+            tierFilter !== "all",
+            !showAllBusinessLines && userAssignedBLIds.size > 0,
+          ].filter(Boolean).length;
 
-          {/* Territory badge */}
-          {userTerritories.length > 0 && (
-            <button
-              onClick={() => setShowAllTerritories(!showAllTerritories)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                !showAllTerritories
-                  ? "bg-teal/15 text-teal border border-teal/30"
-                  : "bg-card text-muted-foreground border border-border hover:border-teal/30"
-              }`}
-            >
-              <Globe className="w-3 h-3" />
-              {showAllTerritories ? "All Territories" : userTerritories.join(", ")}
-            </button>
-          )}
+          const laneOptions = [
+            { key: "all", label: "All Lanes" },
+            { key: "portable_air", label: "Portable Air", bg: "bg-blue-600", text: "text-white" },
+            { key: "pumps", label: "Pumps", bg: "bg-emerald-700", text: "text-white" },
+            { key: "pal", label: "PAL", bg: "bg-violet-600", text: "text-white" },
+            { key: "bess", label: "BESS", bg: "bg-amber-600", text: "text-white" },
+            { key: "multi_lane_pt", label: "Multi-Lane", bg: "bg-slate-600", text: "text-white" },
+          ];
 
-          {/* Business Line badge */}
-          {userAssignedBLIds.size > 0 && profileData?.assignedBusinessLines && profileData.assignedBusinessLines.length > 0 && (
-            <button
-              onClick={() => setShowAllBusinessLines(!showAllBusinessLines)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                !showAllBusinessLines
-                  ? "bg-gold/15 text-gold-dark border border-gold/30"
-                  : "bg-card text-muted-foreground border border-border hover:border-gold/30"
-              }`}
-            >
-              <Briefcase className="w-3 h-3" />
-              {showAllBusinessLines ? "All BLs" : profileData.assignedBusinessLines.join(", ")}
-            </button>
-          )}
+          const priorityOptions = [
+            { key: "all", label: "All" },
+            { key: "hot", label: "Hot", dot: "bg-hot" },
+            { key: "warm", label: "Warm", dot: "bg-warm" },
+            { key: "cold", label: "Cold", dot: "bg-cold" },
+          ];
 
-          {/* Project count */}
-          <span className="text-[10px] text-muted-foreground ml-auto">
-            {businessLineFiltered.length} of {personalizedProjects.length} projects in your scope
-          </span>
-        </div>
+          return (
+            <div className="mb-4 bg-card rounded-lg border border-border px-4 py-3 space-y-2.5">
+              {/* Row 1: Lane · Priority · Territory */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* PT Lane pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-0.5">Lane</span>
+                  {laneOptions.map(opt => {
+                    const isActive = productLaneFilter === opt.key;
+                    if (opt.key === "all") {
+                      return (
+                        <button key={opt.key} onClick={() => setProductLaneFilter(opt.key)}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                            isActive ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                          }`}>
+                          {opt.label}
+                        </button>
+                      );
+                    }
+                    return (
+                      <button key={opt.key} onClick={() => setProductLaneFilter(isActive ? "all" : opt.key)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+                          isActive ? `${(opt as any).bg} ${(opt as any).text} shadow-sm` : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
-        {/* Lifecycle Filter Bar — Stage 5A */}
-        <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Status:</span>
-          {([
-            { key: "active", label: "Active", icon: CheckCircle2, color: "bg-emerald-500" },
-            { key: "stale", label: "Stale", icon: Clock, color: "bg-amber-400" },
-            { key: "all", label: "All (incl. stale)", icon: Layers, color: undefined as string | undefined },
-            { key: "archived", label: "Archived", icon: Archive, color: "bg-slate-400" },
-          ] as const).map(f => {
-            const Icon = f.icon;
-            const isActive = lifecycleFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setLifecycleFilter(f.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                  isActive
-                    ? "bg-navy text-white shadow-sm"
-                    : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-                }`}
-              >
-                {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color}`} />}
-                <Icon className="w-3 h-3" />
-                {f.label}
-              </button>
-            );
-          })}
-          {lifecycleFilter === "stale" && (
-            <span className="text-[10px] text-amber-600 ml-2 italic">
-              Stale = no source signal for 60+ days. Use the Keep flag to protect important projects.
-            </span>
-          )}
-        </div>
+                <span className="w-px h-5 bg-border" />
 
-        {/* Action Tier Filter Bar */}
-        <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Focus:</span>
-          {([
-            { key: "all", label: "All Projects", icon: BarChart3, count: personalizedProjects.length, color: undefined as string | undefined },
-            { key: "tier1_actionable", label: "Action Now", icon: Target, count: personalizedProjects.filter((p: any) => p.actionTier === "tier1_actionable").length, color: "bg-emerald-500" },
-            { key: "tier2_warm", label: "Warm Opportunity", icon: TrendingUp, count: personalizedProjects.filter((p: any) => p.actionTier === "tier2_warm").length, color: "bg-amber-500" },
-            { key: "tier3_monitor", label: "Monitor", icon: Eye, count: personalizedProjects.filter((p: any) => p.actionTier === "tier3_monitor").length, color: "bg-slate-400" },
-          ] as const).map(f => {
-            const Icon = f.icon;
-            const isActive = actionTierFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setActionTierFilter(f.key as any)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                  isActive
-                    ? "bg-navy text-white shadow-sm"
-                    : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-                }`}
-              >
-                {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color}`} />}
-                <Icon className="w-3 h-3" />
-                {f.label} ({f.count})
-              </button>
-            );
-          })}
-        </div>
+                {/* Priority pills */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-0.5">Priority</span>
+                  {priorityOptions.map(opt => {
+                    const isActive = priorityFilter === opt.key;
+                    return (
+                      <button key={opt.key} onClick={() => setPriorityFilter(isActive && opt.key !== "all" ? "all" : opt.key)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                          isActive ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        {(opt as any).dot && <span className={`inline-block w-2 h-2 rounded-full ${(opt as any).dot}`} />}
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
-        {/* Stage 5D: Project Type Filter */}
-        <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-thin pb-1">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Type:</span>
-          {([
-            { key: "opportunity", label: "Opportunities", description: "Active sales targets only", color: "bg-teal" },
-            { key: "all", label: "All incl. accounts", description: "Include background accounts & macro items", color: undefined as string | undefined },
-          ] as const).map(f => {
-            const isActive = projectTypeFilter === f.key;
-            const count = f.key === "opportunity"
-              ? personalizedProjects.filter((p: any) => !p.projectType || p.projectType === "opportunity").length
-              : personalizedProjects.length;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setProjectTypeFilter(f.key)}
-                title={f.description}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                  isActive
-                    ? "bg-navy text-white shadow-sm"
-                    : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-                }`}
-              >
-                {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color}`} />}
-                {f.label} ({count})
-              </button>
-            );
-          })}
-          {projectTypeFilter === "opportunity" && (
-            <span className="text-[10px] text-teal-600 ml-2 italic">
-              Macro items, background accounts &amp; programme wrappers are hidden. Switch to &ldquo;All&rdquo; to see them.
-            </span>
-          )}
-        </div>
+                <span className="w-px h-5 bg-border" />
 
-        {/* Business Line Filter */}
-        {activeBusinessLines && activeBusinessLines.length > 0 && (
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-thin pb-1">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Business Line:</span>
-            <button
-              onClick={() => setBusinessLineFilter("all")}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                businessLineFilter === "all"
-                  ? "bg-navy text-white shadow-sm"
-                  : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-              }`}
-            >
-              All PT ({territoryFiltered.length})
-            </button>
-            {activeBusinessLines.map((bl: any) => {
-              const count = territoryFiltered.filter((p: ProjectData) => {
-                const ids = p.matchedBusinessLines;
-                return ids && ids.includes(bl.id);
-              }).length;
-              return (
-                <button
-                  key={bl.id}
-                  onClick={() => setBusinessLineFilter(String(bl.id))}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                    businessLineFilter === String(bl.id)
-                      ? "bg-navy text-white shadow-sm"
-                      : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-                  }`}
-                >
-                  {bl.name} ({count})
+                {/* Territory toggle */}
+                {userTerritories.length > 0 && (
+                  <button onClick={() => setShowAllTerritories(!showAllTerritories)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                      !showAllTerritories
+                        ? "bg-teal/15 text-teal border border-teal/30"
+                        : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                    }`}>
+                    <Globe className="w-3 h-3" />
+                    {showAllTerritories ? "All Territories" : userTerritories.join(", ")}
+                  </button>
+                )}
+
+                {/* More filters toggle */}
+                <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className={`ml-auto flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                    showAdvancedFilters || advancedActiveCount > 0
+                      ? "bg-navy/10 text-navy border border-navy/20"
+                      : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                  }`}>
+                  <Filter className="w-3 h-3" />
+                  More filters
+                  {advancedActiveCount > 0 && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-navy text-white text-[9px] font-bold">
+                      {advancedActiveCount}
+                    </span>
+                  )}
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`} />
                 </button>
-              );
-            })}
-          </div>
-        )}
+
+                {/* Project count */}
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {filteredProjects.length} projects
+                </span>
+              </div>
+
+              {/* Advanced filter panel */}
+              {showAdvancedFilters && (
+                <div className="pt-2.5 border-t border-border space-y-2.5">
+                  {/* Row: Sector */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-16 shrink-0">Sector</span>
+                    {["all", "mining", "oil_gas", "infrastructure", "energy", "defence"].map(s => (
+                      <button key={s} onClick={() => setSectorFilter(s)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                          sectorFilter === s ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        {s !== "all" && sectorIcons[s]}
+                        {s === "all" ? "All" : sectorLabels[s]}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Row: Lifecycle */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-16 shrink-0">Status</span>
+                    {([
+                      { key: "active", label: "Active", dot: "bg-emerald-500" },
+                      { key: "stale", label: "Stale", dot: "bg-amber-400" },
+                      { key: "all", label: "All", dot: undefined as string | undefined },
+                      { key: "archived", label: "Archived", dot: "bg-slate-400" },
+                    ] as const).map(f => (
+                      <button key={f.key} onClick={() => setLifecycleFilter(f.key)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                          lifecycleFilter === f.key ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        {f.dot && <span className={`inline-block w-2 h-2 rounded-full ${f.dot}`} />}
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Row: Action Tier */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-16 shrink-0">Focus</span>
+                    {([
+                      { key: "all", label: "All", dot: undefined as string | undefined },
+                      { key: "tier1_actionable", label: "Action Now", dot: "bg-emerald-500" },
+                      { key: "tier2_warm", label: "Warm", dot: "bg-amber-500" },
+                      { key: "tier3_monitor", label: "Monitor", dot: "bg-slate-400" },
+                    ] as const).map(f => (
+                      <button key={f.key} onClick={() => setActionTierFilter(f.key as any)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                          actionTierFilter === f.key ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        {f.dot && <span className={`inline-block w-2 h-2 rounded-full ${f.dot}`} />}
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Row: Project Type */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-16 shrink-0">Type</span>
+                    {([
+                      { key: "opportunity", label: "Opportunities only" },
+                      { key: "all", label: "All incl. accounts" },
+                    ] as const).map(f => (
+                      <button key={f.key} onClick={() => setProjectTypeFilter(f.key)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                          projectTypeFilter === f.key ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Row: Business Line */}
+                  {activeBusinessLines && activeBusinessLines.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-16 shrink-0">BL</span>
+                      <button onClick={() => setBusinessLineFilter("all")}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                          businessLineFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                        }`}>
+                        All PT
+                      </button>
+                      {activeBusinessLines.map((bl: any) => (
+                        <button key={bl.id} onClick={() => setBusinessLineFilter(String(bl.id))}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                            businessLineFilter === String(bl.id) ? "bg-navy text-white shadow-sm" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                          }`}>
+                          {bl.name}
+                        </button>
+                      ))}
+                      {/* BL scope toggle */}
+                      {userAssignedBLIds.size > 0 && profileData?.assignedBusinessLines && profileData.assignedBusinessLines.length > 0 && (
+                        <button onClick={() => setShowAllBusinessLines(!showAllBusinessLines)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                            !showAllBusinessLines ? "bg-gold/15 text-gold-dark border border-gold/30" : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                          }`}>
+                          <Briefcase className="w-3 h-3" />
+                          {showAllBusinessLines ? "All BLs" : "My BLs: " + profileData.assignedBusinessLines.join(", ")}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Reset button */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => {
+                        setSectorFilter("all");
+                        setLifecycleFilter("active");
+                        setActionTierFilter("all");
+                        setProjectTypeFilter("opportunity");
+                        setBusinessLineFilter("all");
+                        setTierFilter("all");
+                        setShowAllBusinessLines(false);
+                        setShowAdvancedFilters(false);
+                      }}
+                      className="text-xs font-semibold text-muted-foreground hover:text-navy transition-colors underline"
+                    >
+                      Reset advanced filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto mb-6 -mx-1 px-1 scrollbar-thin">
@@ -1393,49 +1462,7 @@ export default function Home() {
                 </button>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-              <PriorityFilter active={priorityFilter} onChange={setPriorityFilter} stats={{ total: laneFiltered.length, hot: hotProjects.length, warm: warmProjects.length, cold: coldProjects.length }} />
-              <SectorFilter active={sectorFilter} onChange={setSectorFilter} />
-            </div>
-            {/* Tier filter */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Action Tier:</span>
-              {[
-                { key: "all", label: "All Tiers", count: laneFiltered.length },
-                { key: "tier1_actionable", label: "Action Now", count: tier1Count, color: "bg-emerald-500" },
-                { key: "tier2_warm", label: "Warm", count: tier2Count, color: "bg-amber-500" },
-                { key: "tier3_monitor", label: "Monitor", count: tier3Count, color: "bg-slate-400" },
-                { key: "unclassified", label: "Unclassified", count: tierUnclassifiedCount },
-              ].map(f => (
-                <button key={f.key} onClick={() => setTierFilter(f.key)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${tierFilter === f.key ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"}`}>
-                  {f.color && <span className={`inline-block w-2 h-2 rounded-full ${f.color} mr-1.5`} />}
-                  {f.label} ({f.count})
-                </button>
-              ))}
-            </div>
-
-            {/* PT Lane filter */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PT Lane:</span>
-              {[
-                { key: "all", label: "All Lanes" },
-                { key: "portable_air", label: "Portable Air" },
-                { key: "pumps", label: "Pumps" },
-                { key: "pal", label: "PAL" },
-                { key: "bess", label: "BESS" },
-                { key: "multi_lane_pt", label: "Multi-Lane PT" },
-              ].map(f => (
-                <button key={f.key} onClick={() => setProductLaneFilter(f.key)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                    productLaneFilter === f.key
-                      ? "bg-navy text-white shadow-sm"
-                      : "bg-card text-muted-foreground border border-border hover:border-navy/30"
-                  }`}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            {/* Projects tab uses the global filter bar above — no duplicate filter rows */}
 
             {(["hot", "warm", "cold"] as const).map(priority => {
               const group = filteredProjects.filter((p: ProjectData) => p.priority === priority);
