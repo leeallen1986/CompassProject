@@ -52,6 +52,12 @@
   --color-hot: oklch(0.60 0.22 30);
   --color-warm: oklch(0.72 0.15 75);
   --color-cold: oklch(0.55 0.10 250);
+  /* PT Lane colors */
+  --color-lane-portable-air: oklch(0.45 0.15 255);
+  --color-lane-pumps: oklch(0.45 0.13 175);
+  --color-lane-pal: oklch(0.45 0.18 295);
+  --color-lane-bess: oklch(0.58 0.15 70);
+  --color-lane-multi: oklch(0.40 0.03 255);
   --color-slate-50: oklch(0.97 0.002 250);
   --color-slate-100: oklch(0.95 0.004 250);
   --color-slate-200: oklch(0.90 0.006 250);

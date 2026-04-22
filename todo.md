@@ -1542,3 +1542,11 @@
 - [ ] Preview Monday digest for Amit Bhargava — validate all 8 checks
 - [ ] Preview Monday digest for Leo Williams — validate all 8 checks
 - [ ] Return go/no-go summary before scheduled send fires
+
+## UI/UX Redesign Sprint (Approved Apr 22)
+
+- [x] Phase 1: PT lane color tokens in index.css + LaneBadge component
+- [x] Phase 2: This Week page — compact header, top actions, micro-summary strip, collapsible sections, demoted coaching panel
+- [ ] Phase 3: Project card — collapsed view with commercial cue, contact state, action buttons
+- [ ] Phase 4: Filter simplification — 3 primary + advanced toggle, territory easy to clear
+- [ ] Phase 5: Project detail — contacts/actions higher, contractor sanitizer, debug metadata collapsed
