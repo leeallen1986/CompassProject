@@ -1533,3 +1533,12 @@
 - [ ] Admin Email Preview UI: preview Monday/Thursday/manager rollup by user before send
 - [ ] Configurable manager recipient list: separate from role='admin', managed via Admin UI
 - [ ] Return pilot run summary + Thursday recommendation after Monday run completes
+
+## Pre-Send Checklist (Monday Pilot — Apr 22 2026)
+
+- [ ] Run pipeline to refresh stale project data (last run 26/03/2026)
+- [ ] Configure manager rollup: add Lee Allen only (remove Tim, Ray from pilot)
+- [ ] Preview Monday digest for Ryan Pemberton — validate all 8 checks
+- [ ] Preview Monday digest for Amit Bhargava — validate all 8 checks
+- [ ] Preview Monday digest for Leo Williams — validate all 8 checks
+- [ ] Return go/no-go summary before scheduled send fires
