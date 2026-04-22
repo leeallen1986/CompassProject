@@ -14,7 +14,7 @@ import {
   BarChart3, Pickaxe, Fuel, Building, Building2, Shield,
   ArrowUpRight, Database, FileText, Loader2, LogIn, LogOut, ChevronDown, Settings, Target, Sparkles, Globe, Filter,
   ShieldCheck, AlertTriangle, CheckCircle2, Linkedin, Bot, CircleHelp, ThumbsUp,
-  Archive, Clock, Award, Check, Eye, Briefcase, Layers, Megaphone
+  Archive, Clock, Award, Check, Eye, Briefcase, Layers, Megaphone, Gavel, MapPin
 } from "lucide-react";
 import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -845,6 +845,16 @@ export default function Home() {
     return ids;
   }, [profile?.assignedBusinessLines, blNameToIdMap]);
 
+  // Live tenders operator view state
+  const [liveTenderPriorityFilter, setLiveTenderPriorityFilter] = useState("all");
+  const [liveTenderSectorFilter, setLiveTenderSectorFilter] = useState("all");
+
+  // Fetch all live tenders for the operator view
+  const { data: allLiveTenders } = trpc.report.liveTenders.useQuery(
+    { limit: 150 },
+    { enabled: isAuthenticated, staleTime: 5 * 60 * 1000 }
+  );
+
   // ── Auth gates ──
   if (authLoading) return <LoadingPage />;
   if (!isAuthenticated) return <LoginPage />;
@@ -1310,6 +1320,15 @@ export default function Home() {
               <TabsTrigger value="projects" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">All Projects ({territoryFiltered.length})</TabsTrigger>
               <TabsTrigger value="awarded" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Awarded Projects</TabsTrigger>
               <TabsTrigger value="drilling" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Drilling & Exploration</TabsTrigger>
+              <TabsTrigger value="live-tenders" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-hot data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap flex items-center gap-1">
+                <Gavel className="w-3.5 h-3.5" />
+                Live Tenders
+                {allLiveTenders && allLiveTenders.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-hot/20 text-hot text-[10px] font-bold data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                    {allLiveTenders.length}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="ai-search" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI Search</TabsTrigger>
               <TabsTrigger value="contacts" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">Contacts ({territoryFilteredContacts.length})</TabsTrigger>
               <TabsTrigger value="contractors" className="flex-none text-xs sm:text-sm font-semibold data-[state=active]:bg-gold data-[state=active]:text-navy px-3 sm:px-4 whitespace-nowrap flex items-center gap-1"><BarChart3 className="w-3.5 h-3.5" />Contractors</TabsTrigger>
@@ -1429,6 +1448,60 @@ export default function Home() {
               <KPICard value={hotProjects.length} label="Hot Priority" accent="gold" />
               <KPICard value={businessLineFiltered.filter((p: any) => p.isNew).length} label="New This Week" accent="warm" />
             </div>
+
+            {/* Closing Soon — Live Tenders summary in overview */}
+            {allLiveTenders && allLiveTenders.filter((t: any) => {
+              const days = t.tenderCloseDate ? Math.ceil((new Date(t.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+              return days !== null && days <= 14;
+            }).length > 0 && (
+              <div className="bg-hot/5 border border-hot/20 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-hot" />
+                    <h3 className="text-sm font-bold text-navy">Closing Soon — Live Tenders</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-[10px] font-bold">
+                      {allLiveTenders.filter((t: any) => {
+                        const days = t.tenderCloseDate ? Math.ceil((new Date(t.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                        return days !== null && days <= 14;
+                      }).length} within 14 days
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("live-tenders")}
+                    className="text-xs font-semibold text-hot hover:text-hot/80 flex items-center gap-1 transition-colors"
+                  >
+                    View all <ArrowUpRight className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {allLiveTenders.filter((t: any) => {
+                    const days = t.tenderCloseDate ? Math.ceil((new Date(t.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                    return days !== null && days <= 14;
+                  }).slice(0, 5).map((t: any) => {
+                    const days = Math.ceil((new Date(t.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-hot/5 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/dashboard?project=${t.id}`)}
+                      >
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          t.priority === "hot" ? "bg-hot text-white" : t.priority === "warm" ? "bg-warm text-navy" : "bg-cold text-white"
+                        }`}>{t.priority}</span>
+                        <span className="flex-1 text-sm font-medium text-navy truncate">{t.name}</span>
+                        <span className={`shrink-0 text-[11px] font-bold flex items-center gap-1 ${
+                          days <= 7 ? "text-hot" : "text-amber-600"
+                        }`}>
+                          <Clock className="w-3 h-3" />
+                          {days <= 0 ? "Closing today" : `${days}d`}
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0 -rotate-90" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Hot Projects */}
             <div>
@@ -1580,6 +1653,168 @@ export default function Home() {
             </div>
           </TabsContent>
 
+          {/* ===== LIVE TENDERS TAB ===== */}
+          <TabsContent value="live-tenders" className="space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Gavel className="w-5 h-5 text-hot" />
+                <h2 className="text-lg font-bold text-navy">Live Tenders</h2>
+                <span className="px-2 py-0.5 rounded-full bg-hot/15 text-hot text-xs font-bold">
+                  {(allLiveTenders ?? []).length} open
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Active government tenders with a plausible PT equipment requirement. Sorted by close date.
+              </p>
+            </div>
+
+            {/* Filters */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Priority:</span>
+              {["all", "hot", "warm", "cold"].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setLiveTenderPriorityFilter(p)}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                    liveTenderPriorityFilter === p
+                      ? p === "hot" ? "bg-hot text-white" : p === "warm" ? "bg-warm text-navy" : p === "cold" ? "bg-cold text-white" : "bg-navy text-white"
+                      : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                  }`}
+                >
+                  {p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
+              ))}
+              <span className="text-slate-300 mx-1">|</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sector:</span>
+              {["all", "mining", "infrastructure", "energy", "oil_gas", "defence"].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setLiveTenderSectorFilter(s)}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                    liveTenderSectorFilter === s
+                      ? "bg-navy text-white"
+                      : "bg-card text-muted-foreground border border-border hover:border-navy/30"
+                  }`}
+                >
+                  {s === "all" ? "All Sectors" : s === "oil_gas" ? "Oil & Gas" : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {/* Tender table */}
+            {(() => {
+              const filtered = (allLiveTenders ?? []).filter((t: any) => {
+                if (liveTenderPriorityFilter !== "all" && t.priority !== liveTenderPriorityFilter) return false;
+                if (liveTenderSectorFilter !== "all" && t.sector !== liveTenderSectorFilter) return false;
+                return true;
+              });
+              const now = Date.now();
+              const daysUntilClose = (closeDate: any) => {
+                if (!closeDate) return null;
+                const diff = new Date(closeDate).getTime() - now;
+                return Math.ceil(diff / (1000 * 60 * 60 * 24));
+              };
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Gavel className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No live tenders match the current filters.</p>
+                  </div>
+                );
+              }
+              return (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-navy text-white">
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Tender</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Agency / Owner</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Sector</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Priority</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Closes</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Equipment Signals</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((t: any, i: number) => {
+                        const days = daysUntilClose(t.tenderCloseDate);
+                        const isUrgent = days !== null && days <= 14;
+                        const sectorLabel: Record<string, string> = { mining: "Mining", oil_gas: "Oil & Gas", infrastructure: "Infrastructure", energy: "Energy", defence: "Defence" };
+                        const priorityClass = t.priority === "hot" ? "bg-hot text-white" : t.priority === "warm" ? "bg-warm text-navy" : "bg-cold text-white";
+                        return (
+                          <tr
+                            key={t.id}
+                            className={`border-t border-border cursor-pointer transition-colors ${
+                              i % 2 === 0 ? "bg-card" : "bg-slate-50"
+                            } hover:bg-gold/5`}
+                            onClick={() => navigate(`/dashboard?project=${t.id}`)}
+                          >
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-navy text-sm leading-snug max-w-xs">{t.name}</div>
+                              {t.tenderNumber && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">{t.tenderNumber}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-sm text-foreground">{t.owner}</div>
+                              {t.location && (
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-2.5 h-2.5" />{t.location}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-navy/10 text-navy">
+                                {sectorLabel[t.sector] ?? t.sector}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${priorityClass}`}>
+                                {t.priority}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {t.tenderCloseDate ? (
+                                <div className={`text-xs font-semibold flex items-center gap-1 ${isUrgent ? "text-hot" : "text-foreground"}`}>
+                                  <Clock className="w-3 h-3" />
+                                  {new Date(t.tenderCloseDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" })}
+                                  {days !== null && (
+                                    <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                      days <= 7 ? "bg-hot/15 text-hot" : days <= 14 ? "bg-warm/20 text-amber-700" : "bg-slate-100 text-slate-500"
+                                    }`}>
+                                      {days <= 0 ? "Closing today" : `${days}d`}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {((t.equipmentSignals ?? []) as string[]).slice(0, 3).map((sig: string, si: number) => (
+                                  <span key={si} className="px-1.5 py-0.5 rounded text-[10px] bg-teal/10 text-teal font-medium">{sig}</span>
+                                ))}
+                                {((t.equipmentSignals ?? []) as string[]).length > 3 && (
+                                  <span className="text-[10px] text-muted-foreground">+{(t.equipmentSignals as string[]).length - 3}</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+
+            <p className="text-[11px] text-muted-foreground italic">
+              Click any row to open the full project detail. Tenders are sourced from Tenders WA and QTOL NT, refreshed daily.
+            </p>
+          </TabsContent>
+
           {/* ===== CONTACTS TAB ===== */}
           <TabsContent value="contacts" className="space-y-5">
             <div className="flex items-center gap-2 mb-2">
@@ -1655,6 +1890,8 @@ export default function Home() {
                       { source: "Gov Major Projects", type: "Government Data", schedule: "Weekly (Tuesdays) + Sunday Mega-Scrape", coverage: "Infrastructure Australia + NREPL: Transport, Water, Energy, Defence", credits: "None" },
                       { source: "AusTender OCDS", type: "Government API", schedule: "Weekly (Thursdays) + Sunday Mega-Scrape", coverage: "Federal Contracts >$1M: Construction, Mining, Energy, Water, Defence", credits: "None" },
                       { source: "ICN Gateway", type: "Industry Portal", schedule: "Weekly (Saturdays) + Sunday Mega-Scrape", coverage: "Major Projects with Open Work Packages: Defence, Mining, Transport, Energy", credits: "None" },
+                      { source: "Tenders WA", type: "Live Tender Portal", schedule: "Daily (06:00 UTC)", coverage: "WA Government Open Tenders: Construction, Engineering, Mining, Infrastructure, Energy", credits: "~90/day" },
+                      { source: "QTOL NT", type: "Live Tender Portal", schedule: "Daily (06:00 UTC)", coverage: "NT Government Open Tenders: Power & Water, Infrastructure, Mining, Construction", credits: "~10/day" },
                       { source: "Apollo.io People Search", type: "Contact Enrichment", schedule: "On-demand (per project)", coverage: "275M+ contacts — verified emails, titles, LinkedIn (no phone numbers)", credits: "1 credit/reveal" },
                     ].map((row, i) => (
                       <tr key={i} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"}`}>
@@ -1707,7 +1944,7 @@ export default function Home() {
         <div className="container text-center">
           <p className="text-xs font-medium text-gold mb-1">Powered by Multi-Source Intelligence Pipeline</p>
           <p className="text-xs">Atlas Copco Power Technique — Market Intelligence Dashboard</p>
-          <p className="text-xs mt-1">Data sourced from 32 RSS feeds, Projectory, DMIRS MINEDEX, AEMO, AusTender, ICN Gateway, Gov Major Projects, and Apollo.io. Ranked by your preferences.</p>
+          <p className="text-xs mt-1">Data sourced from 32 RSS feeds, Projectory, DMIRS MINEDEX, AEMO, AusTender, ICN Gateway, Gov Major Projects, Tenders WA, QTOL NT, and Apollo.io. Ranked by your preferences.</p>
         </div>
       </footer>
     </div>

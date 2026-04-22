@@ -901,6 +901,39 @@ export const appRouter = router({
         return { reportId };
       }),
 
+    /** All live tenders sorted by close date — for the operator view */
+    liveTenders: protectedProcedure
+      .input(z.object({
+        limit: z.number().optional().default(100),
+        sector: z.string().optional(),
+        priority: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const { projects: projectsTable } = await import("../drizzle/schema");
+        const { and, eq, isNotNull, gte, or, isNull } = await import("drizzle-orm");
+        const now = new Date();
+        const conditions: any[] = [
+          eq(projectsTable.sourcePurpose, "live_tender"),
+          eq(projectsTable.lifecycleStatus, "active"),
+          // Only show tenders that haven't closed yet (or have no close date)
+          or(
+            isNull(projectsTable.tenderCloseDate),
+            gte(projectsTable.tenderCloseDate, now)
+          ),
+        ];
+        if (input.sector) conditions.push(eq(projectsTable.sector, input.sector as any));
+        if (input.priority) conditions.push(eq(projectsTable.priority, input.priority as any));
+        const rows = await db
+          .select()
+          .from(projectsTable)
+          .where(and(...conditions))
+          .orderBy(projectsTable.tenderCloseDate)
+          .limit(input.limit);
+        return rows;
+      }),
+
     /** Live tenders closing within N days — surfaces urgency in This Week page */
     closingSoon: protectedProcedure
       .input(z.object({ daysAhead: z.number().optional().default(14) }))

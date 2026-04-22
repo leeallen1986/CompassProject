@@ -551,9 +551,17 @@ export default function ThisWeek() {
             defaultOpen={true}
             icon={<Clock className="w-4 h-4 text-hot" />}
             headerRight={
-              <span className="text-[10px] font-semibold text-hot bg-hot/10 px-2 py-0.5 rounded-full border border-hot/20">
-                Closing within 14 days
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-hot bg-hot/10 px-2 py-0.5 rounded-full border border-hot/20">
+                  Closing within 14 days
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate("/dashboard?tab=live-tenders"); }}
+                  className="text-[10px] font-semibold text-hot hover:text-hot/70 flex items-center gap-0.5 transition-colors"
+                >
+                  View all <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
             }
             emptyMessage="No live tenders closing within 14 days."
           >

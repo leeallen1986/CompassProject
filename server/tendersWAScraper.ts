@@ -445,8 +445,14 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
     return result;
   }
 
-  // Process each tender
-  for (const tender of deduped) {
+  // ── Bounded concurrency pool (5 workers) ──
+  // Each worker processes one tender at a time. This reduces wall-clock time
+  // from ~4-5 min (sequential + 500ms delay) to ~1-2 min without overwhelming
+  // the LLM API. Errors are isolated per tender; degraded mode is unaffected.
+  const CONCURRENCY = 5;
+
+  // Shared counters — updated atomically (JS is single-threaded, no mutex needed)
+  const processTender = async (tender: TendersWATender): Promise<void> => {
     try {
       // Check if we already have this tender in the DB (by tenderId or tenderNumber)
       const lookupKey = tender.tenderId ? `WAT-${tender.tenderId}` : null;
@@ -467,7 +473,7 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
             })
             .where(eq(projects.tenderNumber, lookupKey));
           result.projectsUpdated++;
-          continue;
+          return;
         }
       }
 
@@ -475,7 +481,7 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
       const extracted = await extractProjectFromTender(tender);
       if (!extracted) {
         result.tendersFiltered++;
-        continue;
+        return;
       }
 
       result.tendersRelevant++;
@@ -521,14 +527,17 @@ export async function runTendersWAScraper(reportId: number): Promise<TendersWARe
 
       result.projectsCreated++;
       console.log(`[TendersWA] Created: ${extracted.name} (${projectKey}, closes: ${tender.closeDate || "unknown"})`);
-
-      // Rate limit LLM calls
-      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (err) {
       const msg = `Failed to process tender "${tender.title}": ${err instanceof Error ? err.message : String(err)}`;
       result.errors.push(msg);
       console.warn(`[TendersWA] ${msg}`);
     }
+  };
+
+  // Process deduped list in batches of CONCURRENCY
+  for (let i = 0; i < deduped.length; i += CONCURRENCY) {
+    const batch = deduped.slice(i, i + CONCURRENCY);
+    await Promise.all(batch.map(processTender));
   }
 
   console.log(`[TendersWA] Complete — ${result.tendersFound} found, ${result.tendersFiltered} filtered by LLM, ${result.tendersRelevant} relevant, ${result.projectsCreated} created, ${result.projectsUpdated} updated`);

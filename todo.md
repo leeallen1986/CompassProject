@@ -1563,3 +1563,21 @@
 - [ ] Dedup / precedence rules by sourcePurpose
 - [ ] Weekly brief surfacing logic by sourcePurpose
 - [ ] Validation pack and tests
+
+## Validation & Optimisation Sprint (Apr 22 2026)
+
+- [x] Audit #1: Live-tender output quality — Tenders WA + QTOL NT (relevance rate, close-date parsing, noise)
+- [x] Fix Apollo daily/monthly credit cap mismatch (DAILY_CREDIT_CAP vs MONTHLY_CREDIT_CAP consistency)
+- [x] Tenders WA LLM concurrency — add bounded concurrency (5 workers), keep degraded mode intact
+- [x] Lightweight live-tender operator view — sourcePurpose=live_tender filter, sort by tenderCloseDate, "closing in X days", clickable path from Closing Soon
+- [x] Scope WA Pipeline of Work as forward_plan source (proposal only, no build yet)
+
+## PT Capital Sales Brief Adoption Sprint (queued — after current sprint)
+
+- [ ] Part A: End-to-end weekly brief audit (per-user: Monday digest, This Week page, action tracker, manager rollup)
+- [ ] Part B: Brief tightening — 3-5 top actions max, Contact Discovery section, Closing Soon only when relevant
+- [ ] Part C: Actionability quality gate — not suppressed, not stale, projectType=opportunity, territory/lane, named contact or discovery-needed, working deep-link
+- [ ] Part D: Enrichment alignment — shortlist-only, stop once usable contact or discovery-needed, post-batch QA before digest
+- [ ] Part E: Manager operating loop — weekly review format, cadence, key metrics (contacted/meeting/proposal/not-started/discovery-needed/active)
+- [ ] Part F: Adoption metrics scorecard — emails sent, actions shown/clicked, not-started, discovery-needed, proposal/meeting movement, per-user pattern
+- [ ] Part G: Deliver findings + quick fixes before wider rollout

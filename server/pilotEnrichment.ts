@@ -50,8 +50,15 @@ import { contacts, contactProjects } from "../drizzle/schema";
 /** Credits to keep in reserve — stop enrichment when remaining < this value */
 const CREDIT_STOP_BUFFER = 5;
 
-/** Default per-run credit cap (overridable via options) */
-const DEFAULT_CREDIT_CAP = 150;
+/**
+ * Default per-run credit cap (overridable via options).
+ * Set to match DAILY_CREDIT_CAP (50) in apolloEligibility.ts so that
+ * buildPilotEnrichmentPlan never requests more credits than the daily budget
+ * allows.  The effectiveCap = min(creditCap, dailyHeadroom, monthlyHeadroom)
+ * clamp in buildPilotEnrichmentPlan would catch an over-large value anyway,
+ * but keeping the constants aligned avoids misleading log output.
+ */
+const DEFAULT_CREDIT_CAP = 50; // Must equal DAILY_CREDIT_CAP in apolloEligibility.ts
 
 /** Estimated credits per project (conservative: 3 contacts × 1 credit each) */
 const CREDITS_PER_PROJECT_ESTIMATE = 3;
