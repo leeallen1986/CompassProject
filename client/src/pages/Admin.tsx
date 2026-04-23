@@ -2400,6 +2400,61 @@ function EmailPreviewTab() {
           }
         </div>
 
+        {/* Pipeline freshness status */}
+        {scheduleStatus && (() => {
+          const p = (scheduleStatus as any).pipeline as {
+            status: string; lastCompletedAt: string | null; lastRunAt: string | null;
+            ageHours: number | null; blockedReason: string | null; nextScheduled: string;
+          } | undefined;
+          const gate = (scheduleStatus as any).digestGate as { blocked: boolean; reason: string | null } | undefined;
+          if (!p) return null;
+          const statusColor = p.status === 'fresh' ? 'text-teal' : p.status === 'running' ? 'text-warm' : 'text-hot';
+          const statusBg = p.status === 'fresh' ? 'bg-teal/10 border-teal/20' : p.status === 'running' ? 'bg-warm/10 border-warm/20' : 'bg-hot/10 border-hot/20';
+          const nextPipelineD = new Date(p.nextScheduled);
+          const nextPipelineUtc = nextPipelineD.toUTCString().replace(' GMT', ' UTC');
+          const nextPipelineAwst = new Date(nextPipelineD.getTime() + 8 * 3600000).toUTCString().replace(' GMT', ' AWST');
+          const nextPipelineAest = new Date(nextPipelineD.getTime() + 10 * 3600000).toUTCString().replace(' GMT', ' AEST');
+          return (
+            <div className={`rounded-md border px-3 py-2.5 mb-4 text-xs ${statusBg}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    p.status === 'fresh' ? 'bg-teal' : p.status === 'running' ? 'bg-warm' : 'bg-hot'
+                  }`} />
+                  Pipeline Data Freshness
+                </span>
+                <span className={`font-bold uppercase tracking-wide ${statusColor}`}>{p.status.replace('_', ' ')}</span>
+              </div>
+              {p.lastCompletedAt && (
+                <div className="flex items-center justify-between text-muted-foreground mb-0.5">
+                  <span>Last successful run</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(p.lastCompletedAt).toUTCString().replace(' GMT', ' UTC')}
+                    {p.ageHours !== null ? ` (${p.ageHours}h ago)` : ''}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-muted-foreground mb-0.5">
+                <span>Next pipeline run</span>
+                <span className="font-medium text-foreground">{nextPipelineUtc}</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground mb-0.5">
+                <span className="invisible">Next pipeline run</span>
+                <span className="text-muted-foreground">{nextPipelineAwst} / {nextPipelineAest}</span>
+              </div>
+              {gate?.blocked && (
+                <div className="mt-2 pt-2 border-t border-hot/20 text-hot font-medium">
+                  ⚠ Digest gate BLOCKED — {gate.reason || 'pipeline data is stale or failed'}.
+                  Set DIGEST_STALE_FALLBACK=true or run the pipeline manually to unblock.
+                </div>
+              )}
+              {!gate?.blocked && p.status === 'fresh' && (
+                <div className="mt-1.5 text-teal font-medium">✓ Digest gate CLEARED — pipeline data is fresh.</div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Schedule status grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           {/* Monday */}

@@ -83,7 +83,7 @@ import {
   scoreAndSaveProjects, getUnscoredProjectIds, SCORING_DIMENSIONS,
   type DimensionScore, type ProjectScores,
 } from "./businessLineScoring";
-import { getDb } from "./db";
+import { getDb, checkPipelineFreshness } from "./db";
 import { projects, contacts, pipelineRuns as pipelineRunsTable, campaignContacts as campaignContactsTable, campaigns as campaignsTable, collateralItems as collateralItemsTable } from "../drizzle/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { enrichProject, enrichUnenrichedProjects, getContractorFrequency, getEnrichmentStats as getProjectoryEnrichmentStats, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
@@ -715,11 +715,37 @@ export const appRouter = router({
         ? process.env.PILOT_ALLOW_LIST.split(",").map((s: string) => s.trim()).filter(Boolean)
         : [];
 
+      // Pipeline freshness gate status
+      const freshness = await checkPipelineFreshness(26);
+
+      // Next pipeline run: 20:00 UTC daily
+      const nextPipeline = new Date(now);
+      nextPipeline.setUTCHours(20, 0, 0, 0);
+      if (nextPipeline <= now) nextPipeline.setUTCDate(nextPipeline.getUTCDate() + 1);
+
+      // Digest gate: blocked if freshness is stale/failed/never_run AND DIGEST_STALE_FALLBACK is not set
+      const digestGateBlocked =
+        (freshness.status === "stale" || freshness.status === "failed" || freshness.status === "never_run") &&
+        process.env.DIGEST_STALE_FALLBACK !== "true";
+
       return {
         enabled: process.env.EMAIL_DIGESTS_ENABLED === "true",
+        staleFallback: process.env.DIGEST_STALE_FALLBACK === "true",
         pilotMode: isPilot,
         pilotAllowList: isPilot ? pilotAllowList : [],
         recipientCount: repRecipients.length,
+        pipeline: {
+          status: freshness.status,
+          lastCompletedAt: freshness.lastCompletedAt,
+          lastRunAt: freshness.lastRunAt,
+          ageHours: freshness.ageHours,
+          blockedReason: freshness.blockedReason,
+          nextScheduled: nextPipeline,
+        },
+        digestGate: {
+          blocked: digestGateBlocked,
+          reason: digestGateBlocked ? freshness.blockedReason : null,
+        },
         monday: {
           lastSent: lastMonday?.sentAt ?? null,
           lastStatus: lastMonday?.status ?? null,

@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
+import { startDailyScheduler } from "../dailyPipeline";
 import { storagePut } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -101,7 +102,10 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // Start the daily pipeline scheduler (runs at 20:00 UTC — 3h before Monday digest)
+    startDailyScheduler();
     // Start the persistent email digest scheduler (recovers from restarts)
+    // Must start AFTER startDailyScheduler so pipeline is always wired first.
     startPersistentScheduler();
   });
 }

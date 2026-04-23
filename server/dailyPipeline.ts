@@ -1267,9 +1267,14 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 }
 
 // ── In-process scheduler ──
-// Runs daily at 23:00 UTC (09:00 AEST / 07:00 AWST)
+// Runs daily at 20:00 UTC (04:00 AEST / 04:00 AWST next day)
+// Scheduled 3 hours before the Monday 23:00 UTC digest window to ensure
+// fresh data is available for the freshness gate check.
 
 let schedulerStarted = false;
+
+/** UTC hour at which the daily pipeline runs. Must be before DIGEST_HOUR (23). */
+const PIPELINE_HOUR_UTC = 20;
 
 export function startDailyScheduler(): void {
   if (schedulerStarted) return;
@@ -1283,13 +1288,13 @@ export function startDailyScheduler(): void {
   function scheduleNext(): void {
     const now = new Date();
     const next = new Date(now);
-    next.setUTCHours(23, 0, 0, 0);
+    next.setUTCHours(PIPELINE_HOUR_UTC, 0, 0, 0);
     if (next <= now) {
       next.setDate(next.getDate() + 1);
     }
     const delay = next.getTime() - now.getTime();
     const hoursUntil = Math.round(delay / 3600000 * 10) / 10;
-    console.log(`[DailyPipeline] Next run scheduled in ${hoursUntil}h at ${next.toISOString()}`);
+    console.log(`[DailyPipeline] Next run scheduled in ${hoursUntil}h at ${next.toISOString()} (${PIPELINE_HOUR_UTC}:00 UTC daily)`);
 
     setTimeout(async () => {
       try {

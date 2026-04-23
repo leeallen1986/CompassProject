@@ -2033,6 +2033,185 @@ export async function getLatestPipelineRun() {
 }
 
 /**
+ * Freshness gate: checks whether the last successful pipeline run is within the
+ * acceptable window before the Monday digest fires.
+ *
+ * Freshness rules:
+ *   fresh   = last completed run within FRESHNESS_WINDOW_HOURS (default 26h)
+ *   stale   = no completed run within the window (but no recent failure either)
+ *   failed  = last run has status "failed" and no subsequent completed run
+ *   running = a run is currently in progress (treat as fresh if started within 4h)
+ *
+ * The 26h window is intentionally > 24h to tolerate minor scheduler drift
+ * (e.g. server restart at 20:05 instead of 20:00 the previous day).
+ */
+export type PipelineFreshnessStatus = "fresh" | "stale" | "failed" | "running" | "never_run";
+
+export interface PipelineFreshnessResult {
+  status: PipelineFreshnessStatus;
+  lastCompletedAt: Date | null;
+  lastRunAt: Date | null;
+  lastRunStatus: string | null;
+  ageHours: number | null;
+  windowHours: number;
+  blockedReason: string | null;
+}
+
+export async function checkPipelineFreshness(
+  windowHours = 26
+): Promise<PipelineFreshnessResult> {
+  const db = await getDb();
+  const windowHoursNum = windowHours;
+
+  if (!db) {
+    return {
+      status: "stale",
+      lastCompletedAt: null,
+      lastRunAt: null,
+      lastRunStatus: null,
+      ageHours: null,
+      windowHours: windowHoursNum,
+      blockedReason: "Database unavailable — cannot verify pipeline freshness",
+    };
+  }
+
+  // Get the most recent pipeline run (any status)
+  const [latestRun] = await db
+    .select({
+      id: pipelineRuns.id,
+      status: pipelineRuns.status,
+      startedAt: pipelineRuns.startedAt,
+      completedAt: pipelineRuns.completedAt,
+    })
+    .from(pipelineRuns)
+    .orderBy(desc(pipelineRuns.startedAt))
+    .limit(1);
+
+  // Get the most recent completed run
+  const [lastCompleted] = await db
+    .select({
+      id: pipelineRuns.id,
+      completedAt: pipelineRuns.completedAt,
+    })
+    .from(pipelineRuns)
+    .where(eq(pipelineRuns.status, "completed"))
+    .orderBy(desc(pipelineRuns.completedAt))
+    .limit(1);
+
+  const now = new Date();
+
+  // No runs at all
+  if (!latestRun) {
+    return {
+      status: "never_run",
+      lastCompletedAt: null,
+      lastRunAt: null,
+      lastRunStatus: null,
+      ageHours: null,
+      windowHours: windowHoursNum,
+      blockedReason: "No pipeline runs found — pipeline has never executed",
+    };
+  }
+
+  const lastRunAt = latestRun.startedAt ? new Date(latestRun.startedAt) : null;
+  const lastCompletedAt = lastCompleted?.completedAt ? new Date(lastCompleted.completedAt) : null;
+  const ageHours = lastCompletedAt
+    ? Math.round(((now.getTime() - lastCompletedAt.getTime()) / 3600000) * 10) / 10
+    : null;
+
+  // Currently running (started within 4h, not yet completed)
+  if (latestRun.status === "running" && lastRunAt) {
+    const runningForHours = (now.getTime() - lastRunAt.getTime()) / 3600000;
+    if (runningForHours < 4) {
+      return {
+        status: "running",
+        lastCompletedAt,
+        lastRunAt,
+        lastRunStatus: "running",
+        ageHours,
+        windowHours: windowHoursNum,
+        blockedReason: null, // running is treated as fresh — will complete before digest
+      };
+    }
+    // Running for > 4h = phantom/stuck run, treat as failed
+    return {
+      status: "failed",
+      lastCompletedAt,
+      lastRunAt,
+      lastRunStatus: "running (stuck)",
+      ageHours,
+      windowHours: windowHoursNum,
+      blockedReason: `Pipeline run has been in 'running' state for ${Math.round(runningForHours)}h — likely stuck. Last completed run: ${
+        lastCompletedAt ? lastCompletedAt.toUTCString() : "never"
+      }`,
+    };
+  }
+
+  // Last run failed and no subsequent completed run within window
+  if (latestRun.status === "failed") {
+    // If there's a completed run within the window despite the latest being failed, still fresh
+    if (lastCompletedAt && ageHours !== null && ageHours <= windowHoursNum) {
+      return {
+        status: "fresh",
+        lastCompletedAt,
+        lastRunAt,
+        lastRunStatus: latestRun.status,
+        ageHours,
+        windowHours: windowHoursNum,
+        blockedReason: null,
+      };
+    }
+    return {
+      status: "failed",
+      lastCompletedAt,
+      lastRunAt,
+      lastRunStatus: "failed",
+      ageHours,
+      windowHours: windowHoursNum,
+      blockedReason: `Last pipeline run failed. Last successful run: ${
+        lastCompletedAt ? `${ageHours}h ago (${lastCompletedAt.toUTCString()})` : "never"
+      }`,
+    };
+  }
+
+  // Completed run exists — check age
+  if (lastCompletedAt && ageHours !== null) {
+    if (ageHours <= windowHoursNum) {
+      return {
+        status: "fresh",
+        lastCompletedAt,
+        lastRunAt,
+        lastRunStatus: latestRun.status,
+        ageHours,
+        windowHours: windowHoursNum,
+        blockedReason: null,
+      };
+    }
+    // Completed but outside window
+    return {
+      status: "stale",
+      lastCompletedAt,
+      lastRunAt,
+      lastRunStatus: latestRun.status,
+      ageHours,
+      windowHours: windowHoursNum,
+      blockedReason: `Last successful pipeline run was ${ageHours}h ago — outside the ${windowHoursNum}h freshness window`,
+    };
+  }
+
+  // Fallback: no completed run
+  return {
+    status: "stale",
+    lastCompletedAt: null,
+    lastRunAt,
+    lastRunStatus: latestRun.status,
+    ageHours: null,
+    windowHours: windowHoursNum,
+    blockedReason: "No successful pipeline run found",
+  };
+}
+
+/**
  * Recipient selection for email digests.
  *
  * Selection rules (in priority order):

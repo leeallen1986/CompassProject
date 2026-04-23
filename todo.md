@@ -1714,3 +1714,17 @@
 - [x] Audit recipient scope: confirm pilot-only vs full distribution and surface count in panel
 - [x] Audit email content guards: item cap, 0-item guard, duplicate Monday/Thursday trigger prevention
 - [x] Clarify Publish-required activation in the status banner (not just env var wording)
+
+## Digest Automation & Freshness Gate (Parts A–F)
+
+- [x] Part A: Wire startDailyScheduler() into server/_core/index.ts — run daily at 20:00 UTC (3h before digest)
+- [x] Part A: Ensure pipeline writes clean completion/failed record to pipelineRun table on every run
+- [x] Part A: Cleanup stale/phantom runs on startup (already exists, confirm wired)
+- [x] Part B: Add checkPipelineFreshness() helper — reads last successful pipelineRun within 26h window
+- [x] Part B: Add freshness gate at top of sendWeeklyDigests() — hold if stale/failed, notify owner
+- [x] Part C: Add DIGEST_STALE_FALLBACK env flag — if true, send with stale warning in subject/body
+- [x] Part D: Document final production execution order (7 steps)
+- [x] Part E: Extend scheduleStatus query to return pipeline freshness, next pipeline run, digest blocked/cleared state
+- [x] Part E: Update Digest Control Panel UI to show pipeline freshness row and digest gate status
+- [x] Part F: Write vitest tests for freshness gate logic (fresh/stale/failed/fallback) — 17/17 pass
+- [x] Part F: Run all tests and confirm pass

@@ -21,6 +21,7 @@ import {
   getCurrentWeekKey,
   getManagerRollup,
   wasEmailSentToUserThisWeek,
+  checkPipelineFreshness,
 } from "./db";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
@@ -765,6 +766,57 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
     return results;
   }
 
+  // ── Freshness Gate ──
+  // Block the Monday digest if the pipeline data is stale or failed.
+  // Bypass: force=true (admin Force Re-send) OR dryRun=true OR DIGEST_STALE_FALLBACK=true.
+  //
+  // Freshness window: 26h (tolerates minor scheduler drift).
+  // If stale/failed and DIGEST_STALE_FALLBACK=true, digest sends with a clear stale warning.
+  if (!force && !dryRun) {
+    const freshness = await checkPipelineFreshness(26);
+    const isBlocked = freshness.status === "stale" || freshness.status === "failed" || freshness.status === "never_run";
+
+    if (isBlocked) {
+      const allowStaleFallback = process.env.DIGEST_STALE_FALLBACK === "true";
+
+      if (!allowStaleFallback) {
+        // Hard block: hold the digest and notify owner
+        console.warn(
+          `[EmailDigest] 🚫 FRESHNESS GATE: Monday digest HELD. Pipeline status: ${freshness.status}. Reason: ${freshness.blockedReason}`
+        );
+        try {
+          const { notifyOwner } = await import("./_core/notification");
+          await notifyOwner({
+            title: "⚠️ Monday Digest HELD — Pipeline Freshness Gate",
+            content: [
+              `The Monday digest was blocked by the freshness gate and was NOT sent.`,
+              `Pipeline status: **${freshness.status.toUpperCase()}**`,
+              `Reason: ${freshness.blockedReason}`,
+              `Last successful run: ${freshness.lastCompletedAt ? freshness.lastCompletedAt.toUTCString() : "never"}`,
+              ``,
+              `To override and send with stale data, set DIGEST_STALE_FALLBACK=true and trigger a manual send from the Admin panel.`,
+            ].join("\n"),
+          });
+        } catch (notifyErr) {
+          console.error("[EmailDigest] Failed to notify owner of freshness gate hold:", notifyErr);
+        }
+        // Return with a special marker so callers can detect the hold
+        return { ...results, skipped: -1 }; // skipped=-1 signals freshness gate hold
+      }
+
+      // Stale fallback: send but flag clearly in subject and body
+      console.warn(
+        `[EmailDigest] ⚠ STALE FALLBACK: Sending Monday digest with stale data (DIGEST_STALE_FALLBACK=true). Pipeline status: ${freshness.status}`
+      );
+      // staleWarning is injected into the email subject and body below
+      (results as any).__staleWarning = `[STALE DATA — pipeline ${freshness.status}: ${freshness.blockedReason}]`;
+    } else {
+      console.log(
+        `[EmailDigest] ✓ Freshness gate passed: pipeline status=${freshness.status}, last completed ${freshness.ageHours}h ago`
+      );
+    }
+  }
+
   const weekKey = getCurrentWeekKey();
 
   // Get the latest report
@@ -931,7 +983,10 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
 
       // ── PT Capital Sales subject line (clean — no BL label in subject) ──
       const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
-      const subject = `PT Capital Sales — Weekly Intelligence Brief | ${territoryLabel} — ${report.weekEnding}`;
+      const staleWarning = (results as any).__staleWarning as string | undefined;
+      const subject = staleWarning
+        ? `[STALE DATA] PT Capital Sales — Weekly Intelligence Brief | ${territoryLabel} — ${report.weekEnding}`
+        : `PT Capital Sales — Weekly Intelligence Brief | ${territoryLabel} — ${report.weekEnding}`;
 
       // ── Dry-run: log preview without sending ──
       if (dryRun) {
