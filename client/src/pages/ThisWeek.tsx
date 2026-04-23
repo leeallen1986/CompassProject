@@ -555,12 +555,15 @@ export default function ThisWeek() {
                 <span className="text-[10px] font-semibold text-hot bg-hot/10 px-2 py-0.5 rounded-full border border-hot/20">
                   Closing within 14 days
                 </span>
-                <button
+                <span
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); navigate("/dashboard?tab=live-tenders"); }}
-                  className="text-[10px] font-semibold text-hot hover:text-hot/70 flex items-center gap-0.5 transition-colors"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); navigate("/dashboard?tab=live-tenders"); } }}
+                  className="text-[10px] font-semibold text-hot hover:text-hot/70 flex items-center gap-0.5 transition-colors cursor-pointer"
                 >
                   View all <ChevronRight className="w-3 h-3" />
-                </button>
+                </span>
               </div>
             }
             emptyMessage="No live tenders closing within 14 days."
