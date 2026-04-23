@@ -544,10 +544,13 @@ export default function ThisWeek() {
         </section>
 
         {/* ── Closing Soon (live tenders) ── */}
-        {closingSoonProjects && closingSoonProjects.length > 0 && (
+{(() => {
+          // Only show HOT and WARM in the collapsed Closing Soon view
+          const hotWarmClosing = (closingSoonProjects ?? []).filter((p: any) => p.priority === 'hot' || p.priority === 'warm');
+          return hotWarmClosing.length > 0 ? (
           <CollapsibleSection
             title="Closing Soon — Live Tenders"
-            count={closingSoonProjects.length}
+            count={hotWarmClosing.length}
             defaultOpen={true}
             icon={<Clock className="w-4 h-4 text-hot" />}
             headerRight={
@@ -566,34 +569,58 @@ export default function ThisWeek() {
                 </span>
               </div>
             }
-            emptyMessage="No live tenders closing within 14 days."
+            emptyMessage="No hot or warm live tenders closing within 14 days."
           >
             <div>
-              {closingSoonProjects.map((project: any) => (
-                <div
-                  key={project.id}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors cursor-pointer border-b border-border last:border-0"
-                  onClick={() => navigate(`/dashboard?project=${project.id}`)}
-                >
-                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-hot text-white">
-                    {project.priority}
-                  </span>
-                  <span className="flex-1 text-sm font-semibold text-navy truncate">{project.name}</span>
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
-                    <MapPin className="w-3 h-3" />{project.location}
-                  </span>
-                  {project.tenderCloseDate && (
-                    <span className="text-[11px] font-bold text-hot flex items-center gap-1 shrink-0">
-                      <Clock className="w-3 h-3" />
-                      Closes {new Date(project.tenderCloseDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+              {hotWarmClosing.map((project: any) => {
+                const daysLeft = project.tenderCloseDate
+                  ? Math.ceil((new Date(project.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  : null;
+                const priorityBadge = project.priority === 'hot'
+                  ? 'bg-hot text-white'
+                  : project.priority === 'warm'
+                  ? 'bg-warm text-navy'
+                  : 'bg-slate-400 text-white';
+                const dateColor = daysLeft !== null && daysLeft <= 7
+                  ? 'text-hot'
+                  : daysLeft !== null && daysLeft <= 14
+                  ? 'text-amber-600'
+                  : 'text-muted-foreground';
+                const rowHover = project.priority === 'hot' ? 'hover:bg-red-50' : 'hover:bg-amber-50';
+                return (
+                  <div
+                    key={project.id}
+                    className={`flex items-center gap-3 px-4 py-2.5 ${rowHover} transition-colors cursor-pointer border-b border-border last:border-0`}
+                    onClick={() => navigate(`/dashboard?project=${project.id}`)}
+                  >
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge}`}>
+                      {project.priority}
                     </span>
-                  )}
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                </div>
-              ))}
+                    <span className="flex-1 text-sm font-semibold text-navy truncate">{project.name}</span>
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
+                      <MapPin className="w-3 h-3" />{project.location}
+                    </span>
+                    {project.tenderCloseDate && (
+                      <span className={`text-[11px] font-bold flex items-center gap-1 shrink-0 ${dateColor}`}>
+                        <Clock className="w-3 h-3" />
+                        Closes {new Date(project.tenderCloseDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                        {daysLeft !== null && (
+                          <span className={`ml-1 px-1 py-0.5 rounded text-[9px] font-bold ${
+                            daysLeft <= 7 ? 'bg-hot/15 text-hot' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {daysLeft <= 0 ? 'today' : `${daysLeft}d`}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  </div>
+                );
+              })}
             </div>
           </CollapsibleSection>
-        )}
+          ) : null;
+        })()}
 
         {/* ── Waiting on Contact Discovery ── */}
         <CollapsibleSection
