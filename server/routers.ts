@@ -23,6 +23,7 @@ import {
   getAllUsers, updateUserCampaignAccess,
   findDuplicateClusters, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep,
   classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
+  getEmailRecipients,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -706,8 +707,19 @@ export const appRouter = router({
       nextThursday.setUTCDate(now.getUTCDate() + (dayOfWeek === 4 && now.getUTCHours() < 23 ? 0 : daysToThursday));
       nextThursday.setUTCHours(23, 0, 0, 0);
 
+      // Recipient scope
+      const allRecipientsRaw = await getEmailRecipients({ digestType: "monday" });
+      const repRecipients = allRecipientsRaw.filter(({ user }) => user.role !== "admin");
+      const isPilot = process.env.PILOT_MODE === "true";
+      const pilotAllowList = process.env.PILOT_ALLOW_LIST
+        ? process.env.PILOT_ALLOW_LIST.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : [];
+
       return {
         enabled: process.env.EMAIL_DIGESTS_ENABLED === "true",
+        pilotMode: isPilot,
+        pilotAllowList: isPilot ? pilotAllowList : [],
+        recipientCount: repRecipients.length,
         monday: {
           lastSent: lastMonday?.sentAt ?? null,
           lastStatus: lastMonday?.status ?? null,

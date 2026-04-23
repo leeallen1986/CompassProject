@@ -1706,3 +1706,11 @@
 - [x] Add scheduleStatus query (last sent, next scheduled, enabled flag)
 - [x] Add sendNow, forceSendNow, sendThursdayNow mutations wired to Admin UI
 - [x] Confirm Monday digest next scheduled: 27 Apr 2026 23:00 UTC (= 28 Apr AEST)
+
+## Email Digest — Pre-publish Operational Checks
+
+- [x] Fix timezone wording in Digest Control Panel: show UTC / AWST / AEST for all scheduled times
+- [x] Harden Force Re-send button: move to collapsed danger zone, add recovery/debug label and warning
+- [x] Audit recipient scope: confirm pilot-only vs full distribution and surface count in panel
+- [x] Audit email content guards: item cap, 0-item guard, duplicate Monday/Thursday trigger prevention
+- [x] Clarify Publish-required activation in the status banner (not just env var wording)

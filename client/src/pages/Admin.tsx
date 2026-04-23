@@ -14,7 +14,7 @@ import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
   CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash, Target, Search,
-  Ban, SendHorizonal,
+  Ban, SendHorizonal, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2271,6 +2271,7 @@ function EmailPreviewTab() {
   const [previewSubject, setPreviewSubject] = useState<string | null>(null);
   const [previewUserName, setPreviewUserName] = useState<string | null>(null);
   const [addRecipientId, setAddRecipientId] = useState<string>("");
+  const [showDangerZone, setShowDangerZone] = useState(false);
 
   const previewMonday = trpc.digest.previewMonday.useMutation({
     onSuccess: (data) => {
@@ -2372,20 +2373,36 @@ function EmailPreviewTab() {
           <SendHorizonal className="w-4 h-4 text-gold" /> Digest Control Panel
         </h2>
 
-        {/* Enabled status */}
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium mb-4 ${
+        {/* Enabled status banner */}
+        <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded-md text-sm font-medium mb-4 ${
           scheduleStatus?.enabled
             ? 'bg-teal/10 text-teal border border-teal/20'
             : 'bg-hot/10 text-hot border border-hot/20'
         }`}>
-          <div className={`w-2 h-2 rounded-full ${ scheduleStatus?.enabled ? 'bg-teal' : 'bg-hot' }`} />
-          {scheduleStatus?.enabled
-            ? 'Email digests ENABLED — scheduler is active'
-            : 'Email digests DISABLED — set EMAIL_DIGESTS_ENABLED=true to activate'}
+          <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${ scheduleStatus?.enabled ? 'bg-teal' : 'bg-hot' }`} />
+          <div>
+            {scheduleStatus?.enabled
+              ? 'Email digests ENABLED — scheduler is active on the production server.'
+              : 'Email digests DISABLED in this environment. EMAIL_DIGESTS_ENABLED=true is set in production secrets and will activate after Publish.'}
+          </div>
+        </div>
+
+        {/* Recipient scope */}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium mb-4 ${
+          scheduleStatus?.pilotMode
+            ? 'bg-warm/10 text-warm border border-warm/20'
+            : 'bg-navy/5 text-navy border border-navy/10'
+        }`}>
+          <Users className="w-3.5 h-3.5 shrink-0" />
+          {scheduleStatus?.pilotMode
+            ? `PILOT MODE — sending only to ${scheduleStatus.pilotAllowList?.length ?? 0} allow-listed address(es): ${scheduleStatus.pilotAllowList?.join(', ') || '(none set)'}`
+            : `Full distribution — ${scheduleStatus?.recipientCount ?? '…'} rep recipient(s) with completed onboarding profiles`
+          }
         </div>
 
         {/* Schedule status grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          {/* Monday */}
           <div className="border border-border rounded-lg p-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Monday Digest</div>
             <div className="space-y-1.5">
@@ -2400,16 +2417,33 @@ function EmailPreviewTab() {
                     : 'Never sent'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Next scheduled</span>
-                <span className="font-medium text-navy">
-                  {scheduleStatus?.monday?.nextScheduled
-                    ? new Date(scheduleStatus.monday.nextScheduled).toLocaleString()
-                    : '—'}
-                </span>
-              </div>
+              {scheduleStatus?.monday?.nextScheduled && (() => {
+                const d = new Date(scheduleStatus.monday.nextScheduled);
+                const utcStr = d.toUTCString().replace(' GMT', ' UTC');
+                const awstMs = d.getTime() + 8 * 3600000;
+                const awstStr = new Date(awstMs).toUTCString().replace(' GMT', ' AWST');
+                const aestMs = d.getTime() + 10 * 3600000;
+                const aestStr = new Date(aestMs).toUTCString().replace(' GMT', ' AEST');
+                return (
+                  <div className="space-y-0.5">
+                    <div className="flex items-start justify-between text-xs gap-2">
+                      <span className="text-muted-foreground shrink-0">Next scheduled</span>
+                      <span className="font-medium text-navy text-right">{utcStr}</span>
+                    </div>
+                    <div className="flex items-start justify-between text-xs gap-2">
+                      <span className="text-muted-foreground shrink-0 invisible">Next scheduled</span>
+                      <span className="text-muted-foreground text-right">{awstStr}</span>
+                    </div>
+                    <div className="flex items-start justify-between text-xs gap-2">
+                      <span className="text-muted-foreground shrink-0 invisible">Next scheduled</span>
+                      <span className="text-muted-foreground text-right">{aestStr}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
+          {/* Thursday */}
           <div className="border border-border rounded-lg p-4">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Thursday Reminder</div>
             <div className="space-y-1.5">
@@ -2424,20 +2458,36 @@ function EmailPreviewTab() {
                     : 'Never sent'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Next scheduled</span>
-                <span className="font-medium text-navy">
-                  {scheduleStatus?.thursday?.nextScheduled
-                    ? new Date(scheduleStatus.thursday.nextScheduled).toLocaleString()
-                    : '—'}
-                </span>
-              </div>
+              {scheduleStatus?.thursday?.nextScheduled && (() => {
+                const d = new Date(scheduleStatus.thursday.nextScheduled);
+                const utcStr = d.toUTCString().replace(' GMT', ' UTC');
+                const awstMs = d.getTime() + 8 * 3600000;
+                const awstStr = new Date(awstMs).toUTCString().replace(' GMT', ' AWST');
+                const aestMs = d.getTime() + 10 * 3600000;
+                const aestStr = new Date(aestMs).toUTCString().replace(' GMT', ' AEST');
+                return (
+                  <div className="space-y-0.5">
+                    <div className="flex items-start justify-between text-xs gap-2">
+                      <span className="text-muted-foreground shrink-0">Next scheduled</span>
+                      <span className="font-medium text-navy text-right">{utcStr}</span>
+                    </div>
+                    <div className="flex items-start justify-between text-xs gap-2">
+                      <span className="text-muted-foreground shrink-0 invisible">Next scheduled</span>
+                      <span className="text-muted-foreground text-right">{awstStr}</span>
+                    </div>
+                    <div className="flex items-start justify-between text-xs gap-2">
+                      <span className="text-muted-foreground shrink-0 invisible">Next scheduled</span>
+                      <span className="text-muted-foreground text-right">{aestStr}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
 
-        {/* Manual send buttons */}
-        <div className="flex flex-wrap gap-2">
+        {/* Normal send buttons */}
+        <div className="flex flex-wrap gap-2 mb-3">
           <Button
             onClick={() => sendNow.mutate()}
             disabled={sendNow.isPending || forceSendNow.isPending}
@@ -2455,23 +2505,44 @@ function EmailPreviewTab() {
             {sendThursdayNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <SendHorizonal className="w-3.5 h-3.5 mr-1" />}
             Send Thursday Reminder Now
           </Button>
-          <Button
-            onClick={() => {
-              if (confirm('Force-send bypasses the weekly dedup guard. This will re-send to users who already received this week. Continue?')) {
-                forceSendNow.mutate();
-              }
-            }}
-            disabled={sendNow.isPending || forceSendNow.isPending}
-            variant="outline"
-            className="text-xs px-4 h-8 border-hot text-hot bg-transparent hover:bg-hot/5"
-          >
-            {forceSendNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
-            Force Re-send (bypass dedup)
-          </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-3">
-          "Send Now" respects the weekly dedup guard (skips users who already received this week). "Force Re-send" bypasses it — use only after a content fix.
+        <p className="text-[11px] text-muted-foreground mb-4">
+          "Send Now" respects the weekly dedup guard — skips users who already received this week.
         </p>
+
+        {/* Danger zone — collapsed by default */}
+        <div className="border border-hot/30 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowDangerZone(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-hot bg-hot/5 hover:bg-hot/10 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Recovery / Debug Actions
+            </span>
+            {showDangerZone ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          {showDangerZone && (
+            <div className="px-4 py-3 bg-hot/3 space-y-3">
+              <p className="text-[11px] text-hot/80 leading-relaxed">
+                <strong>Force Re-send bypasses the weekly dedup guard.</strong> This will re-send to users who have already received this week's digest. Use only after a confirmed content error that requires a corrected re-send. Do not use for routine sends.
+              </p>
+              <Button
+                onClick={() => {
+                  if (confirm('RECOVERY ACTION: Force-send will re-send to ALL eligible recipients, including those who already received this week. Only proceed if you are correcting a confirmed content error. Continue?')) {
+                    forceSendNow.mutate();
+                  }
+                }}
+                disabled={sendNow.isPending || forceSendNow.isPending}
+                variant="outline"
+                className="text-xs px-4 h-8 border-hot text-hot bg-transparent hover:bg-hot/10"
+              >
+                {forceSendNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <AlertTriangle className="w-3.5 h-3.5 mr-1" />}
+                Force Re-send (bypass dedup — recovery only)
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Email Preview Panel */}
