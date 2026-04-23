@@ -98,6 +98,9 @@ async function logUserEmailSend(
   }
 }
 
+/** Brief readiness classification — determines which section a project appears in */
+export type BriefReadiness = "action_ready" | "discovery_needed" | "monitor_only";
+
 interface DigestProject {
   id: number;
   name: string;
@@ -117,6 +120,10 @@ interface DigestProject {
   stageCode?: string | null;
   /** PT Capital Sales Sprint: true if no contacts linked to this project */
   hasNoContacts?: boolean;
+  /** Brief readiness classification */
+  briefReadiness?: BriefReadiness;
+  /** Best send-ready contact for this project (name + title + contact path) */
+  bestContact?: { name: string; title: string; email?: string | null; linkedin?: string | null } | null;
 }
 
 interface DigestContact {
@@ -126,6 +133,63 @@ interface DigestContact {
   project: string;
   priority: string;
   email: string | null;
+  roleRelevance?: string | null;
+  linkedin?: string | null;
+}
+
+/**
+ * Classify a project's brief readiness based on contact availability.
+ *
+ * action_ready: has at least one send-ready contact (email or LinkedIn)
+ *   with high/medium roleRelevance, OR has verified contractor + tier1 stage.
+ * discovery_needed: tier1/tier2 hot/warm but no usable contacts.
+ * monitor_only: everything else (tier3, cold tier2).
+ */
+function classifyBriefReadiness(
+  project: DigestProject,
+  projectContacts: DigestContact[],
+): { readiness: BriefReadiness; bestContact: DigestProject["bestContact"] } {
+  const tier = project.actionTier || "tier3_monitor";
+  const priority = project.priority as "hot" | "warm" | "cold";
+
+  // Monitor-only: tier3 or cold tier2 — these never lead the brief
+  if (tier === "tier3_monitor") return { readiness: "monitor_only", bestContact: null };
+  if (tier === "tier2_warm" && priority === "cold") return { readiness: "monitor_only", bestContact: null };
+
+  // Find the best send-ready contact: high/medium relevance + has email or LinkedIn
+  const sendReady = projectContacts
+    .filter(c =>
+      (c.roleRelevance === "high" || c.roleRelevance === "medium") &&
+      (c.email || c.linkedin)
+    )
+    .sort((a, b) => {
+      const relOrder: Record<string, number> = { high: 2, medium: 1, low: 0 };
+      return (relOrder[b.roleRelevance ?? "low"] ?? 0) - (relOrder[a.roleRelevance ?? "low"] ?? 0);
+    });
+
+  if (sendReady.length > 0) {
+    const best = sendReady[0];
+    return {
+      readiness: "action_ready",
+      bestContact: { name: best.name, title: best.title, email: best.email, linkedin: best.linkedin },
+    };
+  }
+
+  // Fallback: verified contractor + tier1 = action_ready (route-to-buy path)
+  const hasVerifiedContractor = !project.hasNoContacts &&
+    project.actionTier === "tier1_actionable" &&
+    projectContacts.length > 0;
+  // Even without high-rel contacts, if there are ANY contacts with email, it's action_ready
+  const anyContactWithEmail = projectContacts.find(c => c.email);
+  if (hasVerifiedContractor && anyContactWithEmail) {
+    return {
+      readiness: "action_ready",
+      bestContact: { name: anyContactWithEmail.name, title: anyContactWithEmail.title, email: anyContactWithEmail.email, linkedin: anyContactWithEmail.linkedin },
+    };
+  }
+
+  // No usable contacts — discovery needed
+  return { readiness: "discovery_needed", bestContact: null };
 }
 
 /**
@@ -300,11 +364,19 @@ function formatThisWeekSection(
 ): string {
   let section = "";
 
-  // ── Urgent Action ──
+  // ── Urgent Action (contact-aware wording) ──
   if (urgentAction) {
-    const priorityEmoji = urgentAction.priority === "urgent" ? "🚨" : "⚡";
-    section += `${priorityEmoji} **ACTION REQUIRED: ${urgentAction.title}**\n`;
-    section += `${urgentAction.description}\n\n`;
+    const isDiscoveryAction = urgentAction.type === "tier1_new" || urgentAction.type === "contractor_gap";
+    if (isDiscoveryAction) {
+      // No usable contact path — softer wording
+      section += `🔍 **DISCOVERY NEEDED: ${urgentAction.title}**\n`;
+      section += `${urgentAction.description}\n\n`;
+    } else {
+      // Has a contact path — real action
+      const priorityEmoji = urgentAction.priority === "urgent" ? "🚨" : "⚡";
+      section += `${priorityEmoji} **ACTION: ${urgentAction.title}**\n`;
+      section += `${urgentAction.description}\n\n`;
+    }
   }
 
   // ── Top 3 Projects ──
@@ -373,16 +445,21 @@ function generateMondayDigest(
   weekKey: string,
   userId: number,
 ): string {
-  // Apply tier-based filtering: only Tier 1 and select Tier 2 reach the brief
-  const tierFiltered = matchedProjects.filter(p => {
-    const tier = p.actionTier || "tier3_monitor";
-    const priority = p.priority as "hot" | "warm" | "cold";
-    return shouldIncludeInBrief(tier, priority);
-  });
+  // ── Brief Readiness Split ──
+  // Separate projects into action_ready, discovery_needed, monitor_only
+  const actionReady = matchedProjects.filter(p => p.briefReadiness === "action_ready");
+  const discoveryNeeded = matchedProjects.filter(p => p.briefReadiness === "discovery_needed");
+  const monitorOnly = matchedProjects.filter(p => p.briefReadiness === "monitor_only");
 
-  // Cap at 15 items — more than this overwhelms reps. Tier 1 (actionable) items are always included first.
-  const BRIEF_ITEM_CAP = 15;
-  const top10 = tierFiltered.slice(0, BRIEF_ITEM_CAP);
+  // Brief caps
+  const TOP_ACTIONS_CAP = 5;
+  const DISCOVERY_CAP = 2;
+  const MONITOR_CAP = 3;
+
+  const topActions = actionReady.slice(0, TOP_ACTIONS_CAP);
+  const discoveryItems = discoveryNeeded.slice(0, DISCOVERY_CAP);
+  const monitorItems = monitorOnly.slice(0, MONITOR_CAP);
+
   const territoryLabel = territories.length > 0
     ? territories.includes("NATIONAL") || territories.includes("National")
       ? "National"
@@ -400,67 +477,50 @@ function generateMondayDigest(
   content += thisWeekSection;
   content += `\n`;
 
-  // ── Personalized Matches ──
+  // ── Summary stats ──
   content += `---\n\n`;
-  content += `**Your Personalised Project Matches:**\n\n`;
+  const totalInBrief = actionReady.length + discoveryNeeded.length;
+  const hotCount = matchedProjects.filter(p => p.priority === "hot").length;
+  const warmCount = matchedProjects.filter(p => p.priority === "warm").length;
+  const newCount = matchedProjects.filter(p => p.isNew).length;
+  content += `**Summary:** ${totalInBrief} shortlisted projects (${actionReady.length} action-ready, ${discoveryNeeded.length} need discovery) | ${hotCount} hot, ${warmCount} warm, ${newCount} new\n\n`;
 
-  // Summary stats
-  const hotCount = tierFiltered.filter(p => p.priority === "hot").length;
-  const warmCount = tierFiltered.filter(p => p.priority === "warm").length;
-  const newCount = tierFiltered.filter(p => p.isNew).length;
-  const tier1Count = tierFiltered.filter(p => p.actionTier === "tier1_actionable").length;
-  const tier2Count = tierFiltered.filter(p => p.actionTier === "tier2_warm").length;
-  content += `**Summary:** ${tierFiltered.length} matching projects (${hotCount} hot, ${warmCount} warm, ${newCount} new this week)\n`;
-  content += `**Action Tiers:** ${tier1Count} actionable, ${tier2Count} warm pipeline\n\n`;
-
-  // Lane labels for PT Capital Sales grouping
-  const LANE_LABELS: Record<string, string> = {
-    portable_air: "Portable Air",
-    pumps: "Pumps & Dewatering",
-    pal: "PAL / Generators",
-    bess: "BESS",
-    multi_lane_pt: "Multi-Lane PT",
-  };
-
-  // Group top projects by productLane
-  const laneGroups: Record<string, typeof top10> = {};
-  for (const p of top10) {
-    const lane = p.productLane || "multi_lane_pt";
-    if (!laneGroups[lane]) laneGroups[lane] = [];
-    laneGroups[lane].push(p);
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 1: TOP ACTIONS (action_ready only, max 5)
+  // ═══════════════════════════════════════════════════════════════
+  if (topActions.length > 0) {
+    content += `## 🎯 Top Actions — Ready to Act (${topActions.length})\n\n`;
+    for (const p of topActions) {
+      content += renderProjectBlock(p, weekKey, userId, "action_ready");
+    }
+  } else {
+    content += `## 🎯 Top Actions\n\n`;
+    content += `_No action-ready projects this week — all shortlisted projects need stakeholder discovery first._\n\n`;
   }
 
-  // Render by lane
-  const laneOrder = ["portable_air", "pumps", "pal", "bess", "multi_lane_pt"];
-  for (const lane of laneOrder) {
-    const group = laneGroups[lane];
-    if (!group || group.length === 0) continue;
-    content += `\n**${LANE_LABELS[lane] || lane} (${group.length}):**\n\n`;
-    for (const p of group) {
-      const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
-      const newBadge = p.isNew ? " [NEW]" : "";
-      const tierBadge = p.actionTier === "tier1_actionable" ? " [ACTIONABLE]" : p.actionTier === "tier2_warm" ? " [WARM]" : "";
-      const stageBadge = p.stageCode && p.stageCode !== "unknown" ? ` | ${p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)}` : "";
-      // ACT reference code: ACT-{weekKey}-{userId}-{projectId}
-      const actCode = `ACT-${weekKey}-${userId}-${p.id}`;
-      content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
-      content += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
-      content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}% | Ref: ${actCode}\n`;
-      const siteUrl = getSiteUrl();
-      content += `   🔗 [View on dashboard →](${siteUrl}/this-week)\n`;
-      if (p.overview) {
-        content += `   ${p.overview.substring(0, 120)}...\n`;
-      }
-      // Explicit contact-discovery-needed state
-      if (p.hasNoContacts) {
-        content += `   ⚠️ **No contacts yet** — use AI Search to find the procurement lead or contractor PM\n`;
-        content += `   → Open project card → Contacts tab → run enrichment\n`;
-      }
-      content += `\n`;
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 2: STAKEHOLDER DISCOVERY NEEDED (max 2)
+  // ═══════════════════════════════════════════════════════════════
+  if (discoveryItems.length > 0) {
+    content += `## 🔍 Stakeholder Discovery Needed (${discoveryItems.length})\n\n`;
+    content += `_These projects are high-priority but have no send-ready contacts yet. Run enrichment or AI Search to find the right person before outreach._\n\n`;
+    for (const p of discoveryItems) {
+      content += renderProjectBlock(p, weekKey, userId, "discovery_needed");
     }
   }
 
-  // Contacts
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION 3: MONITOR (optional, max 3)
+  // ═══════════════════════════════════════════════════════════════
+  if (monitorItems.length > 0) {
+    content += `## 📋 Monitor (${monitorItems.length})\n\n`;
+    content += `_Warm-pipeline projects to keep on your radar._\n\n`;
+    for (const p of monitorItems) {
+      content += renderProjectBlock(p, weekKey, userId, "monitor_only");
+    }
+  }
+
+  // ── Key Contacts ──
   if (matchedContacts.length > 0) {
     content += `\n**Key Contacts (${Math.min(matchedContacts.length, 5)} of ${matchedContacts.length}):**\n\n`;
     for (const c of matchedContacts.slice(0, 5)) {
@@ -480,6 +540,52 @@ function generateMondayDigest(
   content += `Update your territory and industry preferences in Settings to refine your matches.`;
 
   return content;
+}
+
+/**
+ * Render a single project block in the email brief.
+ * Adapts wording based on readiness classification.
+ */
+function renderProjectBlock(
+  p: DigestProject & { relevanceScore: number },
+  weekKey: string,
+  userId: number,
+  readiness: BriefReadiness,
+): string {
+  let block = "";
+  const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
+  const newBadge = p.isNew ? " [NEW]" : "";
+  const stageBadge = p.stageCode && p.stageCode !== "unknown" ? ` | ${p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)}` : "";
+  const actCode = `ACT-${weekKey}-${userId}-${p.id}`;
+  const siteUrl = getSiteUrl();
+
+  block += `${priorityEmoji} **${p.name}**${newBadge}\n`;
+  block += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
+  block += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}% | Ref: ${actCode}\n`;
+  block += `   🔗 [View on dashboard →](${siteUrl}/this-week)\n`;
+
+  if (p.overview) {
+    block += `   ${p.overview.substring(0, 120)}...\n`;
+  }
+
+  // ── Readiness-specific messaging ──
+  if (readiness === "action_ready" && p.bestContact) {
+    const contact = p.bestContact;
+    const contactPath = contact.email
+      ? `Email: ${contact.email}`
+      : contact.linkedin
+        ? `[LinkedIn](${contact.linkedin})`
+        : "";
+    block += `   ✅ **Next step:** Reach out to **${contact.name}** (${contact.title}) — ${contactPath}\n`;
+  } else if (readiness === "discovery_needed") {
+    block += `   🔍 **Coverage Gap** — no send-ready contacts found yet\n`;
+    block += `   → Open project card → Contacts tab → run enrichment or AI Search\n`;
+  } else if (readiness === "monitor_only") {
+    // Minimal — no action line needed
+  }
+
+  block += `\n`;
+  return block;
 }
 
 /**
@@ -662,7 +768,38 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
 
   // Get all projects and contacts for this report
   const allProjects = await getProjectsByReportId(report.id);
-  const allContacts = await getContactsByReportId(report.id);
+  let allContacts = await getContactsByReportId(report.id);
+
+  // ── Pre-digest enrichment: target hot/tier1 projects with no send-ready contacts ──
+  // This runs BEFORE per-user scoring so enriched contacts are available for all reps.
+  try {
+    const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
+    const enrichCandidates = allProjects
+      .filter(p =>
+        (p.priority === "hot" || (p as any).actionTier === "tier1_actionable") &&
+        !p.suppressed &&
+        !contactProjectNames.has(p.name)
+      )
+      .slice(0, 5); // cap at 5 to keep digest latency reasonable
+
+    if (enrichCandidates.length > 0) {
+      console.log(`[EmailDigest] Pre-digest enrichment: ${enrichCandidates.length} hot projects with no contacts`);
+      const { enrichProjectContacts } = await import("./apolloEnrichment");
+      for (const p of enrichCandidates) {
+        try {
+          await enrichProjectContacts(p.id, report.id, { enrichEmails: true, maxPerCompany: 3 });
+          console.log(`[EmailDigest] Pre-digest enriched: ${p.name} (id=${p.id})`);
+        } catch (enrichErr) {
+          console.warn(`[EmailDigest] Pre-digest enrichment failed for ${p.name}:`, enrichErr);
+        }
+      }
+      // Re-fetch contacts after enrichment so new contacts appear in the digest
+      allContacts = await getContactsByReportId(report.id);
+      console.log(`[EmailDigest] Post-enrichment contact count: ${allContacts.length}`);
+    }
+  } catch (enrichErr) {
+    console.warn(`[EmailDigest] Pre-digest enrichment step failed (non-fatal):`, enrichErr);
+  }
 
   // Recipient selection: respects PILOT_MODE and PILOT_ALLOW_LIST env vars
   // Exclude admin users from rep digest — admins receive manager rollup only
@@ -727,13 +864,33 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       const matchedProjectNames = new Set(matchedProjects.map(p => p.name));
       const matchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
 
-      // Part D: annotate each project with hasNoContacts
+      // Part D: annotate each project with hasNoContacts + briefReadiness
       // Contacts join by project name (not projectId), so use name-based lookup
       const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
-      const annotatedProjects = matchedProjects.map(p => ({
-        ...p,
-        hasNoContacts: !contactProjectNames.has(p.name),
-      }));
+      const annotatedProjects = matchedProjects.map(p => {
+        const hasNoContacts = !contactProjectNames.has(p.name);
+        // Find contacts for this project (fuzzy name match)
+        const projectContacts: DigestContact[] = matchedContacts
+          .filter(c =>
+            c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
+            p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+          )
+          .map(c => ({
+            ...c,
+            roleRelevance: (c as any).roleRelevance ?? null,
+            linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+          }));
+        const { readiness, bestContact } = classifyBriefReadiness(
+          { ...p, hasNoContacts },
+          projectContacts,
+        );
+        return {
+          ...p,
+          hasNoContacts,
+          briefReadiness: readiness,
+          bestContact,
+        };
+      });
 
       const territories = (profile.territories as string[]) || [];
 
@@ -1251,11 +1408,26 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
   });
 
-  const contactProjectIds = new Set(allContacts.map(c => (c as any).projectId).filter(Boolean));
-  const annotatedProjects = matchedProjects.map(p => ({
-    ...p,
-    hasNoContacts: !contactProjectIds.has(p.id),
-  }));
+  const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
+  const matchedContacts2 = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
+  const annotatedProjects = matchedProjects.map(p => {
+    const hasNoContacts = !contactProjectNames.has(p.name);
+    const projectContacts: DigestContact[] = matchedContacts2
+      .filter(c =>
+        c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
+        p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+      )
+      .map(c => ({
+        name: c.name, title: c.title, company: c.company, project: c.project, priority: c.priority, email: c.email,
+        roleRelevance: (c as any).roleRelevance ?? null,
+        linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+      }));
+    const { readiness, bestContact } = classifyBriefReadiness(
+      { ...p, hasNoContacts },
+      projectContacts,
+    );
+    return { ...p, hasNoContacts, briefReadiness: readiness, bestContact };
+  });
 
   const territories = (profile.territories as string[]) || [];
   const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));

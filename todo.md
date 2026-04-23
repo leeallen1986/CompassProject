@@ -1596,6 +1596,16 @@
 ## Controlled Email Retest (23 Apr 2026)
 - [x] Part A: Duplicate send root-cause analysis — confirmed admin sendNow(force=true) bypassed dedup 3min after scheduler. Fix: sendNow now passes force=false, new forceSendNow for intentional bypass
 - [x] Part B: Monday digest dry-run smoke test — 3 pilot reps (Ryan, Leo, Amit), 24/24 QC checks pass, 15 items each (cap working), all deep-links absolute (compasspt.manus.space), freshness line present, ACT refs present
-- [ ] Part C: Live Monday retest — awaiting user approval to send (dry-run clean)
+- [x] Part C: Live Monday retest — sent with force=true to 3 pilot reps (Ryan, Leo, Amit), 1 send each confirmed in logs, no Thursday/manager sent
 - [x] Part D: Manager rollup hold — projectActions table confirmed empty (0 rows), rollup stays on hold
 - [x] Part E: Compile and deliver full retest report
+
+## Brief Readiness Split (23 Apr 2026)
+- [x] Classify shortlisted projects as action_ready / discovery_needed / monitor_only
+- [x] Gating rules: action_ready requires send-ready contact OR named stakeholder with contact path OR verified contractor + strong context
+- [x] Restructure email template: Top Actions (3-5, action_ready only), Stakeholder Discovery Needed (1-2), Monitor (optional)
+- [x] Wording fix: no "ACTION REQUIRED" on no-contact projects; use "Discovery Needed" / "Coverage Gap" / "Needs Stakeholder Mapping"
+- [x] Pre-digest enrichment: trigger targeted enrichment on shortlist before Monday digest generation
+- [x] Brief caps enforcement: Top Actions max 5, Discovery max 2, Monitor optional
+- [x] Dry-run before/after comparison for one pilot rep
+- [x] Vitest tests for brief readiness classification (15 tests passing)
