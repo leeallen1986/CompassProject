@@ -24,9 +24,15 @@ import {
 } from "./db";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
+import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 import { userEmailSendLog } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+
+/** Absolute base URL for email deep-links. Falls back to empty string (relative) if not configured. */
+function getSiteUrl(): string {
+  return ENV.appSiteUrl || "";
+}
 
 /**
  * Get today's date as YYYY-MM-DD in UTC.
@@ -344,7 +350,8 @@ function formatThisWeekSection(
 
   // ── Link back to This Week ──
   section += `---\n`;
-  section += `**[View full "This Week" summary →](${thisWeekUrl})**\n`;
+  const siteUrlSection = getSiteUrl();
+  section += `**[View full "This Week" summary →](${siteUrlSection}${thisWeekUrl})**\n`;
   section += `See all priority projects, stage changes, and suggested actions in one place.\n`;
 
   return section;
@@ -373,7 +380,9 @@ function generateMondayDigest(
     return shouldIncludeInBrief(tier, priority);
   });
 
-  const top10 = tierFiltered.slice(0, 10);
+  // Cap at 15 items — more than this overwhelms reps. Tier 1 (actionable) items are always included first.
+  const BRIEF_ITEM_CAP = 15;
+  const top10 = tierFiltered.slice(0, BRIEF_ITEM_CAP);
   const territoryLabel = territories.length > 0
     ? territories.includes("NATIONAL") || territories.includes("National")
       ? "National"
@@ -437,14 +446,15 @@ function generateMondayDigest(
       content += `${priorityEmoji} **${p.name}**${newBadge}${tierBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
       content += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}% | Ref: ${actCode}\n`;
-      content += `   🔗 [View on dashboard →](/this-week)\n`;
+      const siteUrl = getSiteUrl();
+      content += `   🔗 [View on dashboard →](${siteUrl}/this-week)\n`;
       if (p.overview) {
         content += `   ${p.overview.substring(0, 120)}...\n`;
       }
       // Explicit contact-discovery-needed state
       if (p.hasNoContacts) {
-        content += `   ⚠️ **Stakeholder discovery needed** — no high-relevance contacts found yet\n`;
-        content += `   → Recommended next step: contractor discovery / owner-side stakeholder search\n`;
+        content += `   ⚠️ **No contacts yet** — use AI Search to find the procurement lead or contractor PM\n`;
+        content += `   → Open project card → Contacts tab → run enrichment\n`;
       }
       content += `\n`;
     }
@@ -518,7 +528,8 @@ function generateThursdayReminder(
       const actCode = `ACT-${weekKey}-${userId}-${p.id}`;
       content += `🔥 **${p.name}**${newBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
-      content += `   Ref: ${actCode} | 🔗 [View on dashboard →](/this-week)\n`;
+      const siteUrlThurs = getSiteUrl();
+      content += `   Ref: ${actCode} | 🔗 [View on dashboard →](${siteUrlThurs}/this-week)\n`;
       if (p.overview) {
         content += `   ${p.overview.substring(0, 100)}...\n`;
       }
@@ -716,11 +727,12 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       const matchedProjectNames = new Set(matchedProjects.map(p => p.name));
       const matchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
 
-      // Part D: annotate each project with hasNoContacts and latestActionStatus
-      const contactProjectIds = new Set(allContacts.map(c => (c as any).projectId).filter(Boolean));
+      // Part D: annotate each project with hasNoContacts
+      // Contacts join by project name (not projectId), so use name-based lookup
+      const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
       const annotatedProjects = matchedProjects.map(p => ({
         ...p,
-        hasNoContacts: !contactProjectIds.has(p.id),
+        hasNoContacts: !contactProjectNames.has(p.name),
       }));
 
       const territories = (profile.territories as string[]) || [];
@@ -1007,7 +1019,18 @@ function generateManagerRollupEmail(
   };
 
   let content = `# PT Capital Sales — Manager Rollup — Week of ${weekEnding}\n\n`;
+  content += `_${freshnessLine}_\n\n`;
   content += `**Total actions logged this week:** ${rollup.totalActions}\n\n`;
+
+  // ── Early return for empty rollup — still send so manager knows the system ran ──
+  if (rollup.totalActions === 0) {
+    content += `_No rep actions have been logged this week yet. Reps can log outcomes from the Action Tracker on the dashboard._\n\n`;
+    content += `**Next steps for manager:**\n`;
+    content += `- Check that reps have received and opened their Monday brief\n`;
+    content += `- Remind reps to log outcomes using the action tracker on each project card\n`;
+    content += `- Review the [dashboard](${getSiteUrl()}/this-week) for this week's priority projects\n`;
+    return content;
+  }
 
   // ── Outcome summary ──
   if (Object.keys(rollup.byOutcome).length > 0) {
@@ -1044,6 +1067,7 @@ function generateManagerRollupEmail(
   }
 
   content += `---\n_${freshnessLine}_\n`;
+  content += `\n[View dashboard →](${getSiteUrl()}/this-week)\n`;
   return content;
 }
 

@@ -1581,3 +1581,14 @@
 - [ ] Part E: Manager operating loop — weekly review format, cadence, key metrics (contacted/meeting/proposal/not-started/discovery-needed/active)
 - [ ] Part F: Adoption metrics scorecard — emails sent, actions shown/clicked, not-started, discovery-needed, proposal/meeting movement, per-user pattern
 - [ ] Part G: Deliver findings + quick fixes before wider rollout
+
+## PT Capital Sales Brief Adoption Sprint — Active (Apr 23 2026)
+
+- [x] Part A: Audit full brief workflow — digest, This Week, action tracker, rollup (8 quality checks per action)
+- [x] Part B: Measure current item counts, recommend final item cap (3-5 max), define what gets excluded
+- [x] Part C: Implement actionability quality gate (projectType, suppressed, stale, territory, contact, deep-link, rendering)
+- [x] Part D: Audit enrichment alignment — shortlist-only, post-batch QA, credit waste
+- [x] Part E: Define manager operating loop — weekly review format, cadence, challenge questions
+- [x] Part F: Define adoption scorecard — emails sent, actions shown/updated, not-started, discovery-needed, meeting/proposal movement
+- [x] Part G: Apply quick fixes — copy, ordering, gating, no-contact messaging, broken links
+- [x] Part H: Save checkpoint and deliver full findings report
