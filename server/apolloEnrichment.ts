@@ -20,6 +20,7 @@ import {
   projects,
   projectEnrichmentCache,
   apolloCreditLog,
+  contactProjects,
   type InsertContact,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -643,7 +644,29 @@ export async function enrichProjectContacts(
         .limit(1);
 
       if (existing.length > 0) {
-        console.log(`[Apollo] Skipping duplicate: ${enrichedPerson.name} at ${company.name}`);
+        // Contact already exists — ensure it is linked to this project
+        const existingContactId = existing[0].id;
+        const existingLink = await db
+          .select({ id: contactProjects.id })
+          .from(contactProjects)
+          .where(
+            and(
+              eq(contactProjects.contactId, existingContactId),
+              eq(contactProjects.projectId, projectId)
+            )
+          )
+          .limit(1);
+        if (existingLink.length === 0) {
+          await db.insert(contactProjects).values({
+            contactId: existingContactId,
+            projectId,
+            projectName: project.name,
+            relevance: company.name === project.owner ? "primary" : "secondary",
+          });
+          console.log(`[Apollo] Linked existing contact ${enrichedPerson.name} to project ${project.name}`);
+        } else {
+          console.log(`[Apollo] Skipping duplicate: ${enrichedPerson.name} at ${company.name}`);
+        }
         allResults.push(enrichedPerson);
         continue;
       }
@@ -679,7 +702,18 @@ export async function enrichProjectContacts(
       };
 
       const [inserted] = await db.insert(contacts).values(contactData);
-      enrichedPerson.contactId = inserted.insertId;
+      const newContactId = inserted.insertId;
+      enrichedPerson.contactId = newContactId;
+
+      // ── Fix: link contact to project via contactProjects junction ──
+      // Without this row, readiness checks cannot see this contact for the project.
+      await db.insert(contactProjects).values({
+        contactId: newContactId,
+        projectId,
+        projectName: project.name,
+        relevance: company.name === project.owner ? "primary" : "secondary",
+      });
+
       allResults.push(enrichedPerson);
     }
 
@@ -844,8 +878,89 @@ export async function revealContactEmail(
 // ── Domain Inference ──
 
 /** Try to infer a company's domain from its name */
+// ── Owner-type routing ──
+
+/**
+ * Classify an owner string into a routing category before Apollo search.
+ *
+ * Returns:
+ *  "private"     → has a usable company identity; proceed with Apollo
+ *  "government"  → public authority / government body; Apollo unlikely to help, flag for fallback
+ *  "unknown"     → missing, generic, or dirty owner; block Apollo call entirely
+ *  "contractor_desc" → owner field contains a contractor description/scope text, not a company name
+ */
+export type OwnerType = "private" | "government" | "unknown" | "contractor_desc";
+
+const GOVERNMENT_PATTERNS = [
+  /\bdepartment\b/i, /\bministry\b/i, /\bauthority\b/i,
+  /\bcouncil\b/i, /\bgovernment\b/i, /\bstate\s+government\b/i,
+  /\bfederal\b/i, /\bcommonwealth\b/i, /\bmunicip/i,
+  /\bwater\s+corporation\b/i, /\bpower\s+and\s+water\b/i,
+  /\baustralian\s+government\b/i, /\bntg\b/i, /\bqld\s+gov/i,
+  /\bnsw\s+gov/i, /\bvic\s+gov/i, /\bsa\s+gov/i, /\bwa\s+gov/i,
+  /\btas\s+gov/i, /\bact\s+gov/i, /\.gov\.au/i,
+  /\bmain\s+roads\b/i, /\btransport\s+for\b/i,
+  /\binfrastructure\s+nsw\b/i, /\binfrastructure\s+victoria\b/i,
+  /\bnetwork\s+rail\b/i, /\bausnet\b/i, /\baustender\b/i,
+  /\bhydro\s+tasmania\b/i, /\baemo\b/i, /\baer\b/i,
+];
+
+const DIRTY_OWNER_PATTERNS = [
+  /^unknown$/i,
+  /^n\/a$/i,
+  /^tbc$/i,
+  /^tbd$/i,
+  /^various$/i,
+  /^multiple$/i,
+  /^consortium$/i,
+  /^[^a-z]{0,3}$/i,                // too short / all symbols
+  /^[•\-*#]/,                       // starts with bullet/list character
+  /design.*certif/i,                // contractor scope descriptions
+  /removal.*replacement/i,
+  /installation.*cabinet/i,
+  /electrical.*upgrade/i,
+  /hydraulic.*upgrade/i,
+  /construction.*shall/i,
+  /replacement.*flooring/i,
+  /water.*drainage.*service/i,
+];
+
+export function classifyOwnerType(ownerName: string): OwnerType {
+  if (!ownerName || ownerName.trim().length === 0) return "unknown";
+  const trimmed = ownerName.trim();
+
+  // Block dirty / garbage strings
+  for (const pattern of DIRTY_OWNER_PATTERNS) {
+    if (pattern.test(trimmed)) return "unknown";
+  }
+
+  // Block strings that are clearly contractor scope descriptions (> 80 chars with no company-like structure)
+  if (trimmed.length > 80 && /[.•\-]{2,}/.test(trimmed)) return "contractor_desc";
+  if (trimmed.length > 120) return "contractor_desc";
+
+  // Detect government bodies
+  for (const pattern of GOVERNMENT_PATTERNS) {
+    if (pattern.test(trimmed)) return "government";
+  }
+
+  return "private";
+}
+
 export function inferDomain(companyName: string): string | null {
   if (!companyName) return null;
+
+  // Pre-flight: block non-private owners
+  const ownerType = classifyOwnerType(companyName);
+  if (ownerType === "unknown" || ownerType === "contractor_desc") {
+    console.log(`[Apollo] Blocked domain inference for "${companyName.slice(0, 60)}" (type=${ownerType})`);
+    return null;
+  }
+  // Government bodies: block naive domain inference (they have unusual domains)
+  // Return null so Apollo is skipped; caller should route to fallback
+  if (ownerType === "government") {
+    // Only allow if we have an explicit known-domain mapping below
+    // (fall through to knownDomains check, then return null if not found)
+  }
 
   // Known Australian company domain mappings
   const knownDomains: Record<string, string> = {
@@ -921,13 +1036,28 @@ export function inferDomain(companyName: string): string | null {
   const normalised = companyName.toLowerCase().trim();
   if (knownDomains[normalised]) return knownDomains[normalised];
 
-  // Try to build a domain from the company name
-  const cleaned = normalised
-    .replace(/\s*(pty|ltd|limited|inc|corp|corporation|group|australia|holdings|resources|mining|energy)\s*/gi, " ")
-    .trim()
-    .replace(/\s+/g, "");
+  // Government bodies not in knownDomains: block naive inference
+  // (government domains are too varied to guess reliably)
+  if (ownerType === "government") {
+    console.log(`[Apollo] Blocked domain inference for government body: "${companyName.slice(0, 60)}"`);
+    return null;
+  }
 
-  if (!cleaned || cleaned.length < 2) return null;
+  // Try to build a domain from the company name
+  // Strip common suffixes but preserve the core company identity
+  const cleaned = normalised
+    .replace(/\s*(pty\.?\s*ltd\.?|ltd\.?|limited|inc\.?|corp\.?|corporation|group|australia|holdings|resources|mining|energy)\s*/gi, " ")
+    .trim()
+    .replace(/[^a-z0-9]/g, ""); // Only alphanumeric — prevents garbage domains
+
+  // Require at least 3 chars to avoid single-letter or empty domains
+  if (!cleaned || cleaned.length < 3) return null;
+
+  // Cap domain length to prevent absurdly long strings from long company names
+  if (cleaned.length > 30) {
+    console.log(`[Apollo] Domain too long after cleaning (${cleaned.length} chars), skipping: "${companyName.slice(0, 60)}"`);
+    return null;
+  }
 
   // Try .com.au first (Australian companies), then .com
   return `${cleaned}.com.au`;

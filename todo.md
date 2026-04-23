@@ -1609,3 +1609,10 @@
 - [x] Brief caps enforcement: Top Actions max 5, Discovery max 2, Monitor optional
 - [x] Dry-run before/after comparison for one pilot rep
 - [x] Vitest tests for brief readiness classification (15 tests passing)
+
+## Enrichment Repair (23 Apr 2026)
+- [x] Fix contactProjects junction linking in enrichProjectContacts (contacts found but not linked to project)
+- [x] Fix owner/domain normalization (block "Unknown", garbage strings, contractor descriptions)
+- [x] Add owner-type routing (private → Apollo, government → fallback, dirty → block)
+- [x] Controlled 4-project validation batch (1 private, 1 gov, 1 unlinked, 1 dirty) — 2/4 now action-ready
+- [x] Tests for normalization and routing logic (28 tests passing)
