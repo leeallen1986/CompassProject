@@ -587,20 +587,26 @@ export const appRouter = router({
 
   // ── Admin Digest Trigger ──
   digest: router({
-    /** Send Monday digest now — compulsory to all users with profiles */
+    /** Send Monday digest now — respects per-user weekly dedup guard */
     sendNow: adminProcedure.mutation(async () => {
+      const results = await sendWeeklyDigests(false);
+      return results;
+    }),
+
+    /** Force-send Monday digest — bypasses dedup (use with caution, e.g. after content fix) */
+    forceSendNow: adminProcedure.mutation(async () => {
       const results = await sendWeeklyDigests(true);
       return results;
     }),
 
-    /** Send Thursday reminder now */
+    /** Send Thursday reminder now — respects per-user weekly dedup guard */
     sendThursdayNow: adminProcedure.mutation(async () => {
-      return sendThursdayReminders(true);
+      return sendThursdayReminders(false);
     }),
 
-    /** Send manager rollup now */
+    /** Send manager rollup now — respects per-user weekly dedup guard */
     sendManagerRollupNow: adminProcedure.mutation(async () => {
-      return sendManagerRollupEmail(true);
+      return sendManagerRollupEmail(false);
     }),
 
     /** Preview Monday digest for a specific user (dry-run, no send) */

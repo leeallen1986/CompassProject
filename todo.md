@@ -1592,3 +1592,10 @@
 - [x] Part F: Define adoption scorecard — emails sent, actions shown/updated, not-started, discovery-needed, meeting/proposal movement
 - [x] Part G: Apply quick fixes — copy, ordering, gating, no-contact messaging, broken links
 - [x] Part H: Save checkpoint and deliver full findings report
+
+## Controlled Email Retest (23 Apr 2026)
+- [x] Part A: Duplicate send root-cause analysis — confirmed admin sendNow(force=true) bypassed dedup 3min after scheduler. Fix: sendNow now passes force=false, new forceSendNow for intentional bypass
+- [x] Part B: Monday digest dry-run smoke test — 3 pilot reps (Ryan, Leo, Amit), 24/24 QC checks pass, 15 items each (cap working), all deep-links absolute (compasspt.manus.space), freshness line present, ACT refs present
+- [ ] Part C: Live Monday retest — awaiting user approval to send (dry-run clean)
+- [x] Part D: Manager rollup hold — projectActions table confirmed empty (0 rows), rollup stays on hold
+- [x] Part E: Compile and deliver full retest report
