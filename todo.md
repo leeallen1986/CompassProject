@@ -1624,3 +1624,14 @@
 - [x] Surface blockedReason in dashboard / brief so reps see why a project is blocked
 - [x] Run full hot/warm shortlist rerun (25 projects) with correct routing — 3 new action-ready, 8 gov blocked, 5 unknown blocked
 - [x] Produce rerun summary report
+
+## Government-Owner Fallback Discovery Sprint (23 Apr 2026)
+- [x] Identify the 8 blocked government/public-owner projects from DB
+- [x] Build govFallbackEnrichment service (Projectory path + web search path + LLM role inference)
+- [x] Define govFallbackStatus enum: government_fallback_contact_found / government_fallback_named_person_no_email / government_fallback_role_only / government_fallback_no_result / government_fallback_manual_review_required
+- [x] Add govFallbackStatus field to projects schema and push migration
+- [x] Run fallback on all 8 government-blocked projects — 8/8 role_only, 0 named people, 7 new junction rows
+- [x] Update emailDigest.ts renderProjectBlock to surface govFallbackStatus with specific gov body wording
+- [x] Surface govFallbackStatus in brief: gov body / manual discovery / owner data gap wording
+- [x] 43 tests passing (briefReadiness + ownerRouting)
+- [x] Validation batch report: 8 processed, 0 named, 24 role-only inferred, 0 newly action-ready, 8 still blocked (all role_only)

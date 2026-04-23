@@ -578,8 +578,22 @@ function renderProjectBlock(
         : "";
     block += `   ✅ **Next step:** Reach out to **${contact.name}** (${contact.title}) — ${contactPath}\n`;
   } else if (readiness === "discovery_needed") {
-    block += `   🔍 **Coverage Gap** — no send-ready contacts found yet\n`;
-    block += `   → Open project card → Contacts tab → run enrichment or AI Search\n`;
+    // Surface govFallbackStatus if available for more specific guidance
+    const govStatus = (p as any).govFallbackStatus as string | null;
+    const blockedReason = (p as any).enrichmentBlockedReason as string | null;
+    if (govStatus === "government_fallback_role_only") {
+      block += `   🏛️ **Government / Public Body** — roles identified, no named contact yet\n`;
+      block += `   → Manual discovery needed: search LinkedIn for procurement/project delivery contacts at ${p.owner}\n`;
+    } else if (govStatus === "government_fallback_no_result" || govStatus === "government_fallback_manual_review_required") {
+      block += `   🏛️ **Government / Public Body** — no contact path found via automated discovery\n`;
+      block += `   → Manual review required: check issuer website or tender portal for contact details\n`;
+    } else if (blockedReason === "blocked_unknown_owner" || blockedReason === "blocked_dirty_owner_string") {
+      block += `   ⚠️ **Owner Data Gap** — owner name too poor to enrich automatically\n`;
+      block += `   → Check source data and update owner name to unlock enrichment\n`;
+    } else {
+      block += `   🔍 **Coverage Gap** — no send-ready contacts found yet\n`;
+      block += `   → Open project card → Contacts tab → run enrichment or AI Search\n`;
+    }
   } else if (readiness === "monitor_only") {
     // Minimal — no action line needed
   }

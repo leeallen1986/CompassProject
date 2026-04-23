@@ -204,6 +204,13 @@ export const projects = mysqlTable("projects", {
     "blocked_dirty_owner_string",
     "blocked_no_usable_domain",
   ]),
+  govFallbackStatus: mysqlEnum("govFallbackStatus", [
+    "government_fallback_contact_found",
+    "government_fallback_named_person_no_email",
+    "government_fallback_role_only",
+    "government_fallback_no_result",
+    "government_fallback_manual_review_required",
+  ]),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

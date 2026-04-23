@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `govFallbackStatus` enum('government_fallback_contact_found','government_fallback_named_person_no_email','government_fallback_role_only','government_fallback_no_result','government_fallback_manual_review_required');
