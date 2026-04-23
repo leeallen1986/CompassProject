@@ -911,7 +911,14 @@ export default function AccountAttack() {
                         ))
                       ) : (
                         <div className="px-4 py-3 text-[11px] text-muted-foreground italic">
-                          No stakeholders directly linked to your lane. Showing adjacent contacts below.
+                          {accountData.account?.accountType === "Government / Public Body" ? (
+                            <span>
+                              <span className="font-semibold not-italic text-muted-foreground">Government / Public Body</span> — direct contact enrichment is limited for government entities.
+                              {" "}Engage via the <span className="font-semibold not-italic">contractor delivery chain</span> below, or monitor <span className="font-semibold not-italic">tender publications</span> for this account.
+                            </span>
+                          ) : (
+                            "No stakeholders directly linked to your lane. Showing adjacent contacts below."
+                          )}
                         </div>
                       )}
                       {adjacentStakeholders.length > 0 && (
