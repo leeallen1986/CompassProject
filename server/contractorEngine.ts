@@ -585,8 +585,18 @@ export async function detectPairings(): Promise<PairingDetectionResult> {
   // Clear old pairings and insert new ones
   await db.delete(contractorPairings);
 
+  // Determine the max co-occurrence count for relative normalisation
+  const maxCoOccurrence = Math.max(...meaningfulPairs.map(p => p.projectIds.size), 1);
+
   for (const pair of meaningfulPairs) {
-    const strength = Math.min(100, pair.projectIds.size * 15 + (pair.sectors.size > 1 ? 10 : 0));
+    // Fix 3: Logarithmic strength score so differentiation is preserved across the full range.
+    // Formula: log(count + 1) / log(maxCount + 1) * 80  +  sector diversity bonus (up to 10)
+    //          + state diversity bonus (up to 10).
+    // This ensures a pairing with 2 co-occurrences never scores the same as one with 20.
+    const logScore = Math.log(pair.projectIds.size + 1) / Math.log(maxCoOccurrence + 1) * 80;
+    const sectorBonus = Math.min(10, (pair.sectors.size - 1) * 5);
+    const stateBonus = Math.min(10, pair.states.size * 2);
+    const strength = Math.min(100, Math.round(logScore + sectorBonus + stateBonus));
 
     const validPairingType = (t: string) => {
       const valid = ["owner_epc", "owner_contractor", "contractor_consultant", "contractor_subcontractor", "contractor_region", "epc_subcontractor", "other"];

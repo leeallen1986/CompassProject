@@ -40,6 +40,16 @@ const LANE_MULTIPLIERS: Record<LensMode, { primary: number; adjacent: number; un
   open: { primary: 1.0, adjacent: 1.0, unclassified: 1.0 },
 };
 
+// Visual opacity applied to rows based on lens mode + lane relevance
+// Focused: primary full, adjacent/unclassified dimmed
+// Balanced: primary + adjacent full, unclassified slightly dimmed
+// Open: all full
+const LANE_ROW_OPACITY: Record<LensMode, Record<"primary" | "adjacent" | "unclassified", string>> = {
+  focused:  { primary: "",           adjacent: "opacity-50",  unclassified: "opacity-30" },
+  balanced: { primary: "",           adjacent: "",            unclassified: "opacity-60" },
+  open:     { primary: "",           adjacent: "",            unclassified: "" },
+};
+
 // Map user profile business lines to PT lane keys
 function businessLinesToLane(lines: string[] | null | undefined): string | null {
   if (!lines || lines.length === 0) return null;
@@ -172,6 +182,10 @@ function InputBar({
                 </button>
               ))}
             </div>
+            {/* Fix 7: Show active lens description so Balanced vs Open is self-explanatory */}
+            <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+              {LENS_LABELS[lensMode].desc}
+            </p>
           </div>
 
           {/* PT Lane filter */}
@@ -297,8 +311,10 @@ function AccountHeader({ account }: { account: NonNullable<any> }) {
 }
 
 // ── Opportunity Row ──
-function OpportunityRow({ opp, navigate, laneRelevance }: {
-  opp: any; navigate: (path: string) => void; laneRelevance: "primary" | "adjacent" | "unclassified";
+function OpportunityRow({ opp, navigate, laneRelevance, lensMode }: {
+  opp: any; navigate: (path: string) => void;
+  laneRelevance: "primary" | "adjacent" | "unclassified";
+  lensMode?: LensMode;
 }) {
   const relevanceIndicator = laneRelevance === "primary"
     ? "border-l-4 border-l-gold"
@@ -306,12 +322,15 @@ function OpportunityRow({ opp, navigate, laneRelevance }: {
       ? "border-l-4 border-l-slate-300"
       : "border-l-2 border-l-transparent";
 
+  // Fix 7: Apply opacity based on lens mode + lane relevance for Balanced vs Open differentiation
+  const opacityClass = lensMode ? (LANE_ROW_OPACITY[lensMode][laneRelevance] || "") : "";
+
   const tenderClose = opp.tenderCloseDate ? new Date(opp.tenderCloseDate) : null;
   const daysToClose = tenderClose ? Math.ceil((tenderClose.getTime() - Date.now()) / 86400000) : null;
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-border last:border-0 ${relevanceIndicator}`}
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-border last:border-0 ${relevanceIndicator} ${opacityClass}`}
       onClick={() => navigate(`/dashboard?project=${opp.id}`)}
     >
       <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(opp.priority)}`}>
@@ -605,6 +624,21 @@ export default function AccountAttack() {
     return LANE_MULTIPLIERS[lensMode][relevance];
   }, [lensMode]);
 
+  // ── Primary-lane project count (for zero-lane signal) ──
+  const primaryLaneProjectCount = useMemo(() => {
+    if (!accountData?.opportunities) return 0;
+    return accountData.opportunities.filter(
+      (o: any) => classifyLaneRelevance(o.productLane) === "primary"
+    ).length;
+  }, [accountData?.opportunities, classifyLaneRelevance]);
+
+  // Human-readable label for the user's primary lane
+  const primaryLaneLabel = useMemo(() => {
+    if (!userLane) return "your lane";
+    const opt = LANE_OPTIONS.find(o => o.key === userLane);
+    return opt ? opt.label : userLane;
+  }, [userLane]);
+
   // ── Sorted opportunities ──
   const sortedOpportunities = useMemo(() => {
     if (!accountData?.opportunities) return [];
@@ -830,6 +864,16 @@ export default function AccountAttack() {
               defaultOpen={true}
               icon={<Target className="w-4 h-4 text-gold" />}
             >
+              {/* Fix 1: Zero-primary-lane banner in Focused mode */}
+              {lensMode === "focused" && userLane && primaryLaneProjectCount === 0 && hasOpportunities && (
+                <div className="mx-4 mt-3 mb-1 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    <span className="font-semibold">No {primaryLaneLabel} projects found for this account.</span>{" "}
+                    Showing all lanes — switch to <span className="font-semibold">Balanced</span> or <span className="font-semibold">Open</span> to explore.
+                  </p>
+                </div>
+              )}
               {hasOpportunities ? (
                 <div>
                   {sortedOpportunities.map(opp => (
@@ -838,6 +882,7 @@ export default function AccountAttack() {
                       opp={opp}
                       navigate={navigate}
                       laneRelevance={classifyLaneRelevance(opp.productLane)}
+                      lensMode={lensMode}
                     />
                   ))}
                 </div>
@@ -892,8 +937,21 @@ export default function AccountAttack() {
                 </div>
               ) : (
                 <div className="px-4 py-6 text-center">
-                  <p className="text-xs text-muted-foreground">No enriched contacts yet for this account.</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Open a project card and run enrichment to discover stakeholders.</p>
+                  {accountData.account?.accountType === "Government / Public Body" ? (
+                    <>
+                      <p className="text-xs text-muted-foreground font-medium">Government / Public Body</p>
+                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed max-w-xs mx-auto">
+                        Direct contact enrichment is limited for government entities. Engage via the
+                        <span className="font-semibold"> contractor delivery chain</span> below, or monitor
+                        <span className="font-semibold"> tender publications</span> for this account.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">No enriched contacts yet for this account.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Open a project card and run enrichment to discover stakeholders.</p>
+                    </>
+                  )}
                 </div>
               )}
             </CollapsibleSection>
@@ -965,6 +1023,17 @@ export default function AccountAttack() {
                   ))}
                 </div>
               </CollapsibleSection>
+            )}
+
+            {/* Fix 6: Sparse-state bottom note — shown when no action history or collateral is present.
+                Ensures the page feels intentionally complete rather than abandoned. */}
+            {!hasActionHistory && !hasCollateral && (
+              <div className="mt-2 mb-4 mx-4 rounded-lg border border-dashed border-border px-4 py-3 text-center">
+                <p className="text-[11px] text-muted-foreground">
+                  <span className="font-semibold">No action history or collateral on file.</span>
+                  {" "}Log your first touchpoint or attach a flyer via the project cards above.
+                </p>
+              </div>
             )}
           </>
         )}

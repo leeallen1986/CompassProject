@@ -14,6 +14,29 @@ import {
 } from "../../drizzle/schema";
 import { eq, and, sql, desc, inArray, like, or } from "drizzle-orm";
 
+// ── Dirty-owner patterns (Fix 2) ──
+// Block LLM-generated guess strings from appearing in the typeahead.
+// These patterns match uncertainty markers written by the LLM during enrichment.
+const DIRTY_OWNER_PATTERNS = [
+  /^unknown$/i,                        // exact "Unknown"
+  /^unknown\s*\(/i,                    // "Unknown ("
+  /^various\s*\(/i,                    // "Various ("
+  /\blikely\b/i,                       // "... (likely Fortescue ...)"
+  /\be\.g\./i,                         // "... (e.g., ...)"
+  /\bpossibly\b/i,                     // "... (possibly ...)"
+  /\bprobably\b/i,                     // "... (probably ...)"
+  /\bor similar\b/i,                   // "... or similar entity"
+  /\bsimilar entity\b/i,
+  /\bstate-backed\b/i,
+  /\bgovernment called in\b/i,
+  /\binitiative\b.*\bgovernment\b/i,
+];
+
+function isDirtyOwner(owner: string): boolean {
+  if (owner.length > 80) return true; // LLM guess strings are typically long
+  return DIRTY_OWNER_PATTERNS.some(pattern => pattern.test(owner));
+}
+
 // ── Account search (typeahead) ──
 const accountSearch = protectedProcedure
   .input(z.object({ query: z.string().min(1).max(200) }))
@@ -29,16 +52,16 @@ const accountSearch = protectedProcedure
         and(
           sql`${projects.owner} IS NOT NULL`,
           sql`${projects.owner} != ''`,
-          sql`${projects.owner} != 'Unknown'`,
           sql`LOWER(${projects.owner}) LIKE ${`%${input.query.toLowerCase()}%`}`
         )
       )
-      .limit(20);
+      .limit(50); // fetch more, then filter dirty ones client-side
 
     return results
       .map(r => r.owner)
-      .filter((o): o is string => !!o && o.length > 0)
-      .sort((a, b) => a.localeCompare(b));
+      .filter((o): o is string => !!o && o.length > 0 && !isDirtyOwner(o))
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 20); // cap at 20 after dirty filtering
   });
 
 // ── Load full account data ──
@@ -288,7 +311,12 @@ const loadAccountData = protectedProcedure
           projectNameMap.set(p.id, p.name);
         }
 
-        contractorData = contractorRows.map(c => ({
+        // Fix 4: Exclude owner-role entries from the contractor chain.
+        // The account owner is already shown in the header — listing them again in
+        // the contractor chain is noise and inflates the count.
+        const nonOwnerContractorRows = contractorRows.filter(c => c.primaryRole !== 'owner');
+
+        contractorData = nonOwnerContractorRows.map(c => ({
           id: c.id,
           name: c.canonicalName,
           primaryRole: c.primaryRole,
