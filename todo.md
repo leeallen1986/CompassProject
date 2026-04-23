@@ -1651,3 +1651,30 @@
 - [x] Route: /account-attack, gold nav link in header (desktop + mobile)
 - [x] Vitest tests: 30 tests passing (account type classification, seller-lens weighting, opportunity sorting, discovery labels)
 - [x] Validation: Hydro Tasmania cockpit verified — all sections rendering, Focused lens reorders opportunities, stakeholder collapse working, government body type correct
+
+## Account Attack Phase 1.1 Cleanup Sprint (23 Apr 2026)
+- [x] Fix 1: Focused lens zero-primary-lane amber banner (Critical)
+- [x] Fix 2: Typeahead dirty-owner filtering — block "likely", "e.g.", "Unknown (", "Various (", >80 chars (High)
+- [x] Fix 3: Contractor co-occurrence score — logarithmic scaling replaces linear (was all 100, now 41–89) (High)
+- [x] Fix 4: Owner-role entries removed from Contractor & Delivery Chain (Medium)
+- [x] Fix 5: Government-specific stakeholder fallback in Focused mode (Medium)
+- [x] Fix 6: Sparse-state bottom note when Action History + Collateral both absent (Low/Medium)
+- [x] Fix 7: Balanced vs Open differentiation — lens description line + Balanced dims unclassified rows at 60% opacity (Medium)
+- [x] Revalidation across 5 account types (strong private, government, sparse, multi-lane, dirty-data) — all pass
+
+## Account Attack Phase 2 — AI Synthesis Layer (23 Apr 2026)
+- [x] DB schema: accountResearchRuns table (cache key, result JSON, TTL, status, token usage, errors)
+- [x] Research trigger evaluation logic (recommend vs not-recommend)
+- [x] LLM prompt construction from Atlas internal context
+- [x] Structured output schema (stakeholderMap, salesBrief, recommendedActions)
+- [x] Run Research tRPC procedure with depth control (quick/standard/deep)
+- [x] TTL/caching by objective (7-30 day windows)
+- [x] Rate-limit guardrails (one run per cache key within freshness window)
+- [x] UI: Research trigger banner and Run Research button
+- [x] UI: Research state machine (ready, recommended, researching, complete, failed, stale)
+- [x] UI: Stakeholder Map display panel (Your Lane / Other PT Lane grouping)
+- [x] UI: Sales Brief display panel (11 sections, source tags)
+- [x] UI: Recommended Actions display panel (evidence-linked, demoted unverified)
+- [x] Stale badge + refresh prompt when research expires
+- [x] Error handling / degraded mode (Phase 1 stays visible on failure)
+- [x] Validation across 4 account types

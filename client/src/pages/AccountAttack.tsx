@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { sanitizeContractorName } from "@shared/utils";
+import AccountResearchPanel from "@/components/AccountResearchPanel";
 import {
   Search, Target, Building2, Users, HardHat, Mail, Linkedin,
   MapPin, Calendar, ChevronRight, ChevronDown, ChevronUp,
@@ -999,6 +1000,15 @@ export default function AccountAttack() {
                 </div>
               )}
             </CollapsibleSection>
+
+            {/* ── Phase 2: AI Research Synthesis ── */}
+            <AccountResearchPanel
+              accountName={selectedAccount}
+              accountData={accountData}
+              lensMode={lensMode}
+              userLane={userLane}
+              primaryLaneLabel={primaryLaneLabel}
+            />
 
             {/* Action History — only if populated */}
             {hasActionHistory && (

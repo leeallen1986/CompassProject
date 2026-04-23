@@ -477,6 +477,20 @@
       "when": 1776913316436,
       "tag": "0067_narrow_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "5",
+      "when": 1776923395536,
+      "tag": "0068_wandering_gamora",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "5",
+      "when": 1776924396185,
+      "tag": "0069_nasty_nova",
+      "breakpoints": true
     }
   ]
 }

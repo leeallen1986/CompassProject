@@ -1333,3 +1333,49 @@ export const managerRollupRecipients = mysqlTable("managerRollupRecipients", {
 
 export type ManagerRollupRecipient = typeof managerRollupRecipients.$inferSelect;
 export type InsertManagerRollupRecipient = typeof managerRollupRecipients.$inferInsert;
+
+
+/**
+ * Account Attack Phase 2 — AI research run cache.
+ * Stores structured LLM synthesis results (stakeholder map, sales brief, recommended actions)
+ * keyed by account + objective + lens + lane + depth + optional project/tender.
+ * TTL varies by objective (7–30 days). One fresh run per cache key at a time.
+ */
+export const accountResearchRuns = mysqlTable("accountResearchRuns", {
+  id: int("id").primaryKey().autoincrement(),
+
+  // Cache key components
+  accountName: varchar("accountName", { length: 512 }).notNull(),
+  objective: varchar("objective", { length: 128 }).notNull(),
+  lensMode: varchar("lensMode", { length: 32 }).notNull(),
+  ptLaneFocus: varchar("ptLaneFocus", { length: 128 }),
+  researchDepth: mysqlEnum("researchDepth", ["quick", "standard", "deep"]).default("quick").notNull(),
+  knownProjectId: int("knownProjectId"),
+  sellerLaneContext: text("sellerLaneContext"),
+
+  // Run metadata
+  userId: int("userId").notNull(),
+  status: mysqlEnum("status", ["pending", "running", "complete", "failed"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+
+  // Structured output (JSON blobs)
+  stakeholderMap: json("stakeholderMap"),
+  salesBrief: json("salesBrief"),
+  recommendedActions: json("recommendedActions"),
+
+  // Input context snapshot (for audit / reproducibility)
+  inputContext: json("inputContext"),
+
+  // Token usage
+  promptTokens: int("promptTokens"),
+  completionTokens: int("completionTokens"),
+  totalTokens: int("totalTokens"),
+
+  // TTL
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AccountResearchRun = typeof accountResearchRuns.$inferSelect;
+export type InsertAccountResearchRun = typeof accountResearchRuns.$inferInsert;

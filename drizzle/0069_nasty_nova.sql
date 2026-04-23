@@ -1,0 +1,1 @@
+ALTER TABLE `accountResearchRuns` MODIFY COLUMN `sellerLaneContext` text;

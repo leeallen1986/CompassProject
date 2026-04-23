@@ -65,6 +65,7 @@ import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakehold
 import { searchProjects } from "./aiProjectMatcher";
 import { projectActionsRouter } from "./routers/projectActions";
 import { accountAttackRouter } from "./routers/accountAttack";
+import { accountResearchRouter } from "./routers/accountResearch";
 import { pilotEnrichmentRouter } from "./routers/pilotEnrichment";
 import {
   apolloPeopleSearch, enrichSingleContact, enrichProjectContacts,
@@ -3833,5 +3834,6 @@ export const appRouter = router({
   projectActions: projectActionsRouter,
   pilotEnrichment: pilotEnrichmentRouter,
   accountAttack: accountAttackRouter,
+  accountResearch: accountResearchRouter,
 });
 export type AppRouter = typeof appRouter;
