@@ -569,13 +569,38 @@ export async function enrichProjectContacts(
   // Build list of companies to search
   const companies: { name: string; domain: string }[] = [];
 
-  // Add owner
-  const ownerDomain = inferDomain(project.owner);
-  if (ownerDomain) {
+  // Add owner — with owner-type routing and blocked-reason recording
+  const ownerType = classifyOwnerType(project.owner || "");
+  const ownerDomain = inferDomain(project.owner || "");
+
+  if (ownerType === "government") {
+    // Block Apollo; record reason so dashboard can surface it
+    await db.update(projects)
+      .set({ enrichmentBlockedReason: "blocked_government_owner_manual_discovery" })
+      .where(eq(projects.id, projectId));
+    console.log(`[Apollo] Project "${project.name}": blocked — government owner (manual discovery needed)`);
+  } else if (ownerType === "unknown") {
+    await db.update(projects)
+      .set({ enrichmentBlockedReason: "blocked_unknown_owner" })
+      .where(eq(projects.id, projectId));
+    console.log(`[Apollo] Project "${project.name}": blocked — unknown/missing owner`);
+  } else if (ownerType === "contractor_desc") {
+    await db.update(projects)
+      .set({ enrichmentBlockedReason: "blocked_dirty_owner_string" })
+      .where(eq(projects.id, projectId));
+    console.log(`[Apollo] Project "${project.name}": blocked — owner field is a contractor description`);
+  } else if (!ownerDomain) {
+    // Private owner but domain inference failed
+    await db.update(projects)
+      .set({ enrichmentBlockedReason: "blocked_no_usable_domain" })
+      .where(eq(projects.id, projectId));
+    console.log(`[Apollo] Project "${project.name}": blocked — no usable domain for private owner "${project.owner}"`);
+  } else {
+    // Private owner with usable domain — proceed
     companies.push({ name: project.owner, domain: ownerDomain });
   }
 
-  // Add contractors
+  // Add contractors (always attempted regardless of owner type)
   if (project.contractors) {
     for (const c of project.contractors) {
       if (c.name && !companies.find((co) => co.name === c.name)) {
@@ -585,6 +610,12 @@ export async function enrichProjectContacts(
         }
       }
     }
+  }
+
+  // If no companies to search at all, return early with zero results
+  if (companies.length === 0) {
+    console.log(`[Apollo] Project "${project.name}": no companies to search, skipping`);
+    return { people: [], totalFound: 0, searchCreditsUsed: 0, enrichCreditsUsed: 0 };
   }
 
   // Default target titles for portable air / heavy industry

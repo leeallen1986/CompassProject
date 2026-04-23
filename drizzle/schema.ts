@@ -189,6 +189,21 @@ export const projects = mysqlTable("projects", {
   tenderNumber: varchar("tenderNumber", { length: 64 }),
   /** Source Expansion Sprint: tender closing date for urgency sorting */
   tenderCloseDate: timestamp("tenderCloseDate"),
+  /**
+   * Enrichment Repair Sprint: explicit reason why Apollo enrichment was blocked for this project.
+   * null = not yet evaluated or enrichment succeeded.
+   * Values:
+   *   blocked_government_owner_manual_discovery — owner is a government/public authority; Apollo blocked, manual discovery needed
+   *   blocked_unknown_owner                     — owner is missing, "Unknown", TBC, or similar
+   *   blocked_dirty_owner_string                — owner field contains contractor scope text, not a company name
+   *   blocked_no_usable_domain                  — owner is private but domain inference produced no usable result
+   */
+  enrichmentBlockedReason: mysqlEnum("enrichmentBlockedReason", [
+    "blocked_government_owner_manual_discovery",
+    "blocked_unknown_owner",
+    "blocked_dirty_owner_string",
+    "blocked_no_usable_domain",
+  ]),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

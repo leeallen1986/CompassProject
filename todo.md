@@ -1616,3 +1616,11 @@
 - [x] Add owner-type routing (private → Apollo, government → fallback, dirty → block)
 - [x] Controlled 4-project validation batch (1 private, 1 gov, 1 unlinked, 1 dirty) — 2/4 now action-ready
 - [x] Tests for normalization and routing logic (28 tests passing)
+
+## Full Shortlist Rerun + Blocked-Reason Labeling (23 Apr 2026)
+- [x] Add explicit blockedReason field to projects schema (blocked_government_owner_manual_discovery / blocked_unknown_owner / blocked_dirty_owner_string / blocked_no_usable_domain)
+- [x] Update enrichProjectContacts to write blockedReason when Apollo is skipped
+- [x] Update briefReadiness classifier to use blockedReason in readiness output
+- [x] Surface blockedReason in dashboard / brief so reps see why a project is blocked
+- [x] Run full hot/warm shortlist rerun (25 projects) with correct routing — 3 new action-ready, 8 gov blocked, 5 unknown blocked
+- [x] Produce rerun summary report

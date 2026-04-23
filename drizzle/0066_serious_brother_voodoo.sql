@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `enrichmentBlockedReason` enum('blocked_government_owner_manual_discovery','blocked_unknown_owner','blocked_dirty_owner_string','blocked_no_usable_domain');
