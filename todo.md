@@ -1635,3 +1635,19 @@
 - [x] Surface govFallbackStatus in brief: gov body / manual discovery / owner data gap wording
 - [x] 43 tests passing (briefReadiness + ownerRouting)
 - [x] Validation batch report: 8 processed, 0 named, 24 role-only inferred, 0 newly action-ready, 8 still blocked (all role_only)
+
+## Account Attack Phase 1 Build (23 Apr 2026)
+- [x] tRPC query: account search/typeahead (distinct owner names from projects)
+- [x] tRPC query: account-level data aggregation (projects, contacts, contractors, pipeline claims, outreach history, collateral)
+- [x] Account Attack page shell with input bar (account name, territory, PT lane, lens mode, research depth)
+- [x] Account Header block (name, type, project count, HOT/WARM stats, states, sectors, PT lane distribution)
+- [x] Current Opportunities block (lane-weighted display score, priority badges, lane badges, location, value, stage)
+- [x] Known Stakeholders block (name, title, company, linked project, KEY/MED relevance, email links, source labels, gov fallback role-only display)
+- [x] Contractor & Delivery Chain block (contractor role, pairings with co-occurrence counts, sanitized display)
+- [x] Action History block (conditional — shows when outreach/pipeline data exists)
+- [x] Collateral Match block (conditional — shows when collateral matches exist)
+- [x] Seller-lens weighting (Focused / Balanced / Open) — client-side ranking with 3x/0.5x, 2x/1x, 1x/1x multipliers, stakeholder collapse in Focused mode
+- [x] Empty/sparse state handling ("Select an Account" empty state, conditional section visibility)
+- [x] Route: /account-attack, gold nav link in header (desktop + mobile)
+- [x] Vitest tests: 30 tests passing (account type classification, seller-lens weighting, opportunity sorting, discovery labels)
+- [x] Validation: Hydro Tasmania cockpit verified — all sections rendering, Focused lens reorders opportunities, stakeholder collapse working, government body type correct

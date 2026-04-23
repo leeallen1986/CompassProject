@@ -16,7 +16,7 @@ import {
   AlertTriangle, CheckCircle2, UserPlus, Search,
   Linkedin, Mail, ExternalLink, Zap, Eye, Layers,
   HardHat, Wrench, Clock, Globe, Megaphone, X,
-  ChevronDown, ChevronUp, MoreHorizontal,
+  ChevronDown, ChevronUp, MoreHorizontal, Crosshair,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -418,6 +418,10 @@ export default function ThisWeek() {
               <Target className="w-3 h-3" /> Pipeline
             </Link>
             <span className="text-slate-700">|</span>
+            <Link href="/account-attack" className="text-gold hover:text-gold-light flex items-center gap-1 transition-colors">
+              <Crosshair className="w-3 h-3" /> Account Attack
+            </Link>
+            <span className="text-slate-700">|</span>
             <Link href="/my-profile" className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors">
               <Sparkles className="w-3 h-3" /> My Style
             </Link>
@@ -454,6 +458,9 @@ export default function ThisWeek() {
                 </Link>
                 <Link href="/my-profile" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
                   <Sparkles className="w-4 h-4" /> My Style
+                </Link>
+                <Link href="/account-attack" className="flex items-center gap-2 px-4 py-2 text-sm text-gold hover:text-gold-light hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
+                  <Crosshair className="w-4 h-4" /> Account Attack
                 </Link>
                 <Link href="/collateral" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
                   <Layers className="w-4 h-4" /> Collateral

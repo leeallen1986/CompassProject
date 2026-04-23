@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import MyProfile from "./pages/MyProfile";
 import CollateralLibrary from "./pages/CollateralLibrary";
 import Campaigns from "./pages/Campaigns";
+import AccountAttack from "./pages/AccountAttack";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -33,6 +34,7 @@ function Router() {
       <Route path={"/my-profile"} component={MyProfile} />
       <Route path={"/collateral"} component={CollateralLibrary} />
       <Route path={"/campaigns"} component={Campaigns} />
+      <Route path={"/account-attack"} component={AccountAttack} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

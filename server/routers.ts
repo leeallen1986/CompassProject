@@ -64,6 +64,7 @@ import { generateAndSaveLLMContacts, runLLMFallbackBulk } from "./llmContactFall
 import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { searchProjects } from "./aiProjectMatcher";
 import { projectActionsRouter } from "./routers/projectActions";
+import { accountAttackRouter } from "./routers/accountAttack";
 import { pilotEnrichmentRouter } from "./routers/pilotEnrichment";
 import {
   apolloPeopleSearch, enrichSingleContact, enrichProjectContacts,
@@ -3831,5 +3832,6 @@ export const appRouter = router({
   }),
   projectActions: projectActionsRouter,
   pilotEnrichment: pilotEnrichmentRouter,
+  accountAttack: accountAttackRouter,
 });
 export type AppRouter = typeof appRouter;
