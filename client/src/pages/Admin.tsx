@@ -14,7 +14,7 @@ import {
   BarChart3, Clock, AlertTriangle, CheckCircle2, XCircle, Filter, Users,
   UserPlus, Copy, KeyRound, Mail, Landmark, FileSearch, Network,
   CreditCard, TrendingUp, Activity, Eye, Wifi, WifiOff, CircleDot, Hash, Target, Search,
-  Ban,
+  Ban, SendHorizonal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2262,6 +2262,7 @@ function DuplicatesTab() {
 function EmailPreviewTab() {
   const { data: allUsers, isLoading: usersLoading } = trpc.digest.listAllUsers.useQuery();
   const { data: rollupRecipients, isLoading: rollupLoading } = trpc.digest.listRollupRecipients.useQuery();
+  const { data: scheduleStatus, refetch: refetchStatus } = trpc.digest.scheduleStatus.useQuery();
   const utils = trpc.useUtils();
 
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -2321,6 +2322,30 @@ function EmailPreviewTab() {
     onError: (e) => toast.error(e.message),
   });
 
+  const sendNow = trpc.digest.sendNow.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Monday digest sent: ${data.sent} sent, ${data.failed} failed, ${data.skipped} skipped`);
+      refetchStatus();
+    },
+    onError: (e) => toast.error(`Send failed: ${e.message}`),
+  });
+
+  const forceSendNow = trpc.digest.forceSendNow.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Force-sent Monday digest: ${data.sent} sent, ${data.failed} failed, ${data.skipped} skipped`);
+      refetchStatus();
+    },
+    onError: (e) => toast.error(`Force send failed: ${e.message}`),
+  });
+
+  const sendThursdayNow = trpc.digest.sendThursdayNow.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Thursday reminder sent: ${data.sent} sent, ${data.failed} failed, ${data.skipped} skipped`);
+      refetchStatus();
+    },
+    onError: (e) => toast.error(`Send failed: ${e.message}`),
+  });
+
   const isGenerating = previewMonday.isPending || previewThursday.isPending || previewManagerRollup.isPending;
 
   function handleGenerate() {
@@ -2341,6 +2366,114 @@ function EmailPreviewTab() {
 
   return (
     <div className="space-y-6">
+      {/* Digest Control Panel */}
+      <div className="bg-card rounded-lg border border-border p-5">
+        <h2 className="text-base font-bold text-navy flex items-center gap-2 mb-4">
+          <SendHorizonal className="w-4 h-4 text-gold" /> Digest Control Panel
+        </h2>
+
+        {/* Enabled status */}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium mb-4 ${
+          scheduleStatus?.enabled
+            ? 'bg-teal/10 text-teal border border-teal/20'
+            : 'bg-hot/10 text-hot border border-hot/20'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${ scheduleStatus?.enabled ? 'bg-teal' : 'bg-hot' }`} />
+          {scheduleStatus?.enabled
+            ? 'Email digests ENABLED — scheduler is active'
+            : 'Email digests DISABLED — set EMAIL_DIGESTS_ENABLED=true to activate'}
+        </div>
+
+        {/* Schedule status grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          <div className="border border-border rounded-lg p-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Monday Digest</div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Last sent</span>
+                <span className={`font-medium ${
+                  scheduleStatus?.monday?.lastStatus === 'sent' ? 'text-teal' :
+                  scheduleStatus?.monday?.lastStatus === 'failed' ? 'text-hot' : 'text-muted-foreground'
+                }`}>
+                  {scheduleStatus?.monday?.lastSent
+                    ? new Date(scheduleStatus.monday.lastSent).toLocaleString()
+                    : 'Never sent'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Next scheduled</span>
+                <span className="font-medium text-navy">
+                  {scheduleStatus?.monday?.nextScheduled
+                    ? new Date(scheduleStatus.monday.nextScheduled).toLocaleString()
+                    : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="border border-border rounded-lg p-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Thursday Reminder</div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Last sent</span>
+                <span className={`font-medium ${
+                  scheduleStatus?.thursday?.lastStatus === 'sent' ? 'text-teal' :
+                  scheduleStatus?.thursday?.lastStatus === 'failed' ? 'text-hot' : 'text-muted-foreground'
+                }`}>
+                  {scheduleStatus?.thursday?.lastSent
+                    ? new Date(scheduleStatus.thursday.lastSent).toLocaleString()
+                    : 'Never sent'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Next scheduled</span>
+                <span className="font-medium text-navy">
+                  {scheduleStatus?.thursday?.nextScheduled
+                    ? new Date(scheduleStatus.thursday.nextScheduled).toLocaleString()
+                    : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Manual send buttons */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => sendNow.mutate()}
+            disabled={sendNow.isPending || forceSendNow.isPending}
+            className="bg-navy text-white hover:bg-navy-light text-xs px-4 h-8"
+          >
+            {sendNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <SendHorizonal className="w-3.5 h-3.5 mr-1" />}
+            Send Monday Digest Now
+          </Button>
+          <Button
+            onClick={() => sendThursdayNow.mutate()}
+            disabled={sendThursdayNow.isPending}
+            variant="outline"
+            className="text-xs px-4 h-8 border-navy text-navy bg-transparent hover:bg-navy/5"
+          >
+            {sendThursdayNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <SendHorizonal className="w-3.5 h-3.5 mr-1" />}
+            Send Thursday Reminder Now
+          </Button>
+          <Button
+            onClick={() => {
+              if (confirm('Force-send bypasses the weekly dedup guard. This will re-send to users who already received this week. Continue?')) {
+                forceSendNow.mutate();
+              }
+            }}
+            disabled={sendNow.isPending || forceSendNow.isPending}
+            variant="outline"
+            className="text-xs px-4 h-8 border-hot text-hot bg-transparent hover:bg-hot/5"
+          >
+            {forceSendNow.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+            Force Re-send (bypass dedup)
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          "Send Now" respects the weekly dedup guard (skips users who already received this week). "Force Re-send" bypasses it — use only after a content fix.
+        </p>
+      </div>
+
       {/* Email Preview Panel */}
       <div className="bg-card rounded-lg border border-border p-5">
         <h2 className="text-base font-bold text-navy flex items-center gap-2 mb-4">

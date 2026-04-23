@@ -672,6 +672,55 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    /** Get digest schedule status — last sent times and next scheduled times */
+    scheduleStatus: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { monday: null, thursday: null, enabled: false };
+      const { digestScheduleLog } = await import("../drizzle/schema");
+      const { desc: descOp, eq: eqOp } = await import("drizzle-orm");
+
+      const [lastMonday] = await db
+        .select()
+        .from(digestScheduleLog)
+        .where(eqOp(digestScheduleLog.digestType, "monday"))
+        .orderBy(descOp(digestScheduleLog.createdAt))
+        .limit(1);
+
+      const [lastThursday] = await db
+        .select()
+        .from(digestScheduleLog)
+        .where(eqOp(digestScheduleLog.digestType, "thursday"))
+        .orderBy(descOp(digestScheduleLog.createdAt))
+        .limit(1);
+
+      // Calculate next Monday 23:00 UTC
+      const now = new Date();
+      const nextMonday = new Date(now);
+      const dayOfWeek = now.getUTCDay();
+      const daysToMonday = (1 - dayOfWeek + 7) % 7 || 7;
+      nextMonday.setUTCDate(now.getUTCDate() + (dayOfWeek === 1 && now.getUTCHours() < 23 ? 0 : daysToMonday));
+      nextMonday.setUTCHours(23, 0, 0, 0);
+
+      const nextThursday = new Date(now);
+      const daysToThursday = (4 - dayOfWeek + 7) % 7 || 7;
+      nextThursday.setUTCDate(now.getUTCDate() + (dayOfWeek === 4 && now.getUTCHours() < 23 ? 0 : daysToThursday));
+      nextThursday.setUTCHours(23, 0, 0, 0);
+
+      return {
+        enabled: process.env.EMAIL_DIGESTS_ENABLED === "true",
+        monday: {
+          lastSent: lastMonday?.sentAt ?? null,
+          lastStatus: lastMonday?.status ?? null,
+          nextScheduled: nextMonday,
+        },
+        thursday: {
+          lastSent: lastThursday?.sentAt ?? null,
+          lastStatus: lastThursday?.status ?? null,
+          nextScheduled: nextThursday,
+        },
+      };
+    }),
+
     /** List all users (for recipient picker) */
     listAllUsers: adminProcedure.query(async () => {
       const db = await getDb();

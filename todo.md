@@ -1696,3 +1696,13 @@
 - [x] Contractor typeahead: DDH1 Drilling, DDH1 Drilling (Perenti) with Contractor badges
 - [x] Contractor-mode account view: amber "Contractor Account" banner, contractor badge on account header
 - [x] Browser validation: DDH1 contractor mode, Acme Mining no-match, External Prospect form, LLM results
+
+## Email Digest — 28 April Activation
+
+- [x] Audit email digest system (scheduler, send logic, kill switch)
+- [x] Confirm Resend API key valid (emailSender tests pass 3/3)
+- [x] Set EMAIL_DIGESTS_ENABLED=true in production secrets
+- [x] Add Digest Control Panel to Admin Email Preview tab
+- [x] Add scheduleStatus query (last sent, next scheduled, enabled flag)
+- [x] Add sendNow, forceSendNow, sendThursdayNow mutations wired to Admin UI
+- [x] Confirm Monday digest next scheduled: 27 Apr 2026 23:00 UTC (= 28 Apr AEST)
