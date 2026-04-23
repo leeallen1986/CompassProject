@@ -1678,3 +1678,21 @@
 - [x] Stale badge + refresh prompt when research expires
 - [x] Error handling / degraded mode (Phase 1 stays visible on failure)
 - [x] Validation across 4 account types
+
+## Account Attack Phase 3 — External Prospect Mode (23 Apr 2026)
+- [x] Design: dual-mode entry (Atlas Account Mode vs External Prospect Mode)
+- [x] Design: account-not-found decision tree (no match → close-match suggestions → external research CTA)
+- [x] tRPC query: suggestCloseMatches (fuzzy name matching against existing owners)
+- [x] tRPC mutation: runExternalProspect (LLM-powered external research with structured output)
+- [x] ExternalProspectPanel component: no-match amber banner, close-match suggestions, Research Externally CTA
+- [x] ExternalProspectForm component: industry, region, research objective selectors
+- [x] ExternalProspectResults component: source-labeled output (EXTERNAL / AI-INFERRED / UNVERIFIED badges)
+- [x] Enter key handler on account search input (trigger no-match flow for unknown accounts)
+- [x] Evidence labeling: ATLAS-KNOWN / EXTERNAL / AI-INFERRED / MISSING-UNVERIFIED
+- [x] Confidence badges: HIGH / MEDIUM / LOW on each section
+- [x] Warning flags for speculative data (generic name, no public data)
+- [x] Re-run Research and Back to Suggestions navigation buttons
+- [x] Data quality disclaimer on form and results
+- [x] Contractor typeahead: DDH1 Drilling, DDH1 Drilling (Perenti) with Contractor badges
+- [x] Contractor-mode account view: amber "Contractor Account" banner, contractor badge on account header
+- [x] Browser validation: DDH1 contractor mode, Acme Mining no-match, External Prospect form, LLM results

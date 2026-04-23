@@ -13,6 +13,7 @@ import {
   collateralItems, collateralProjectMatches,
 } from "../../drizzle/schema";
 import { eq, and, sql, desc, inArray, like, or } from "drizzle-orm";
+import { invokeLLM } from "../_core/llm";
 
 // ── Dirty-owner patterns (Fix 2) ──
 // Block LLM-generated guess strings from appearing in the typeahead.
@@ -38,30 +39,60 @@ function isDirtyOwner(owner: string): boolean {
 }
 
 // ── Account search (typeahead) ──
+// Returns merged results from project owners AND contractor registry,
+// so contractor-type accounts like DDH1 Drilling appear in the typeahead.
 const accountSearch = protectedProcedure
   .input(z.object({ query: z.string().min(1).max(200) }))
   .query(async ({ input }) => {
     const db = await getDb();
     if (!db) return [];
 
-    // Search distinct owners from projects table
-    const results = await db
+    const q = input.query.toLowerCase();
+
+    // ── Source 1: Project owners ──
+    const ownerResults = await db
       .selectDistinct({ owner: projects.owner })
       .from(projects)
       .where(
         and(
           sql`${projects.owner} IS NOT NULL`,
           sql`${projects.owner} != ''`,
-          sql`LOWER(${projects.owner}) LIKE ${`%${input.query.toLowerCase()}%`}`
+          sql`LOWER(${projects.owner}) LIKE ${`%${q}%`}`
         )
       )
-      .limit(50); // fetch more, then filter dirty ones client-side
+      .limit(50);
 
-    return results
+    const ownerNames = ownerResults
       .map(r => r.owner)
-      .filter((o): o is string => !!o && o.length > 0 && !isDirtyOwner(o))
-      .sort((a, b) => a.localeCompare(b))
-      .slice(0, 20); // cap at 20 after dirty filtering
+      .filter((o): o is string => !!o && o.length > 0 && !isDirtyOwner(o));
+
+    // ── Source 2: Contractor registry ──
+    const contractorResults = await db
+      .select({
+        canonicalName: contractorRegistry.canonicalName,
+        primaryRole: contractorRegistry.primaryRole,
+        projectCount: contractorRegistry.projectCount,
+      })
+      .from(contractorRegistry)
+      .where(
+        sql`LOWER(${contractorRegistry.canonicalName}) LIKE ${`%${q}%`}`
+      )
+      .limit(30);
+
+    // Build a set of owner names for deduplication
+    const ownerSet = new Set(ownerNames.map(n => n.toLowerCase()));
+
+    // Merge: owner entries first, then contractor entries not already in owner list
+    const merged: { name: string; accountKind: 'owner' | 'contractor' }[] = [
+      ...ownerNames.map(n => ({ name: n, accountKind: 'owner' as const })),
+      ...contractorResults
+        .filter(c => !ownerSet.has(c.canonicalName.toLowerCase()))
+        .map(c => ({ name: c.canonicalName, accountKind: 'contractor' as const })),
+    ];
+
+    return merged
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 20);
   });
 
 // ── Load full account data ──
@@ -93,6 +124,149 @@ const loadAccountData = protectedProcedure
       .orderBy(desc(projects.createdAt));
 
     if (accountProjects.length === 0) {
+      // ── Contractor-mode fallback ──
+      // If no projects found as owner, check if the account is a contractor in the registry.
+      // If so, load the projects they appear on via contractorProjectLinks.
+      const contractorRow = await db
+        .select()
+        .from(contractorRegistry)
+        .where(eq(contractorRegistry.canonicalName, accountName))
+        .limit(1);
+
+      if (contractorRow.length > 0) {
+        const contractor = contractorRow[0];
+        // Get all project links for this contractor
+        const links = await db
+          .select()
+          .from(contractorProjectLinks)
+          .where(eq(contractorProjectLinks.contractorId, contractor.id));
+
+        if (links.length === 0) {
+          return { account: null, opportunities: [], stakeholders: [], contractors: [], contractorPairings: [], actionHistory: [], collateral: [] };
+        }
+
+        const linkedProjectIds = links.map(l => l.projectId);
+        const linkedProjects = await db
+          .select()
+          .from(projects)
+          .where(inArray(projects.id, linkedProjectIds))
+          .orderBy(desc(projects.createdAt));
+
+        if (linkedProjects.length === 0) {
+          return { account: null, opportunities: [], stakeholders: [], contractors: [], contractorPairings: [], actionHistory: [], collateral: [] };
+        }
+
+        // Build summary stats from linked projects
+        const sectorCounts: Record<string, number> = {};
+        const stateCounts: Record<string, number> = {};
+        const laneCounts: Record<string, number> = {};
+        const statusCounts: Record<string, number> = { active: 0, stale: 0, archived: 0, awarded: 0, completed: 0 };
+        let hotCount = 0, warmCount = 0, coldCount = 0;
+        for (const p of linkedProjects) {
+          if (p.sector) sectorCounts[p.sector] = (sectorCounts[p.sector] || 0) + 1;
+          if (p.location) {
+            const stateMatch = p.location.match(/\b(WA|QLD|NSW|VIC|SA|TAS|NT|ACT)\b/i);
+            if (stateMatch) { const s = stateMatch[1].toUpperCase(); stateCounts[s] = (stateCounts[s] || 0) + 1; }
+          }
+          if (p.productLane) laneCounts[p.productLane] = (laneCounts[p.productLane] || 0) + 1;
+          else laneCounts["unclassified"] = (laneCounts["unclassified"] || 0) + 1;
+          const ls = p.lifecycleStatus || "active";
+          statusCounts[ls] = (statusCounts[ls] || 0) + 1;
+          if (p.priority === "hot") hotCount++;
+          else if (p.priority === "warm") warmCount++;
+          else coldCount++;
+        }
+
+        // Map contractor primaryRole to accountType label
+        const roleToType: Record<string, string> = {
+          epc: "EPC / Head Contractor",
+          contractor: "Contractor",
+          drilling: "Drilling Contractor",
+          consultant: "Consultant / Engineer",
+          supplier: "Supplier",
+          owner: "Owner / Client",
+        };
+        const contractorAccountType = roleToType[contractor.primaryRole] || "Contractor";
+
+        const contractorAccount = {
+          name: accountName,
+          accountType: contractorAccountType,
+          accountKind: "contractor" as const,
+          projectCount: linkedProjects.length,
+          hotCount, warmCount, coldCount,
+          statusDistribution: statusCounts,
+          sectorDistribution: sectorCounts,
+          stateDistribution: stateCounts,
+          laneDistribution: laneCounts,
+          contractorMeta: {
+            primaryRole: contractor.primaryRole,
+            compositeScore: contractor.compositeScore,
+            confirmedCount: contractor.confirmedCount,
+          },
+        };
+
+        const contractorOpportunities = linkedProjects.map(p => ({
+          id: p.id,
+          name: p.name,
+          location: p.location,
+          value: p.value,
+          priority: p.priority,
+          sector: p.sector,
+          productLane: p.productLane,
+          stageCode: p.stageCode,
+          stage: p.stage,
+          overview: p.overview,
+          actionTier: p.actionTier,
+          lifecycleStatus: p.lifecycleStatus,
+          equipmentSignals: p.equipmentSignals,
+          contractors: p.contractors,
+          sources: p.sources,
+          timeline: p.timeline,
+          completion: p.completion,
+          isNew: p.isNew,
+          createdAt: p.createdAt,
+          enrichmentBlockedReason: p.enrichmentBlockedReason,
+          govFallbackStatus: p.govFallbackStatus,
+          tenderCloseDate: p.tenderCloseDate,
+          keepFlag: p.keepFlag,
+          // Annotate with this contractor's role on the project
+          contractorRole: links.find(l => l.projectId === p.id)?.role ?? null,
+        }));
+
+        // Fetch pairings for this contractor
+        const pairingRows = await db
+          .select()
+          .from(contractorPairings)
+          .where(
+            or(
+              eq(contractorPairings.companyAName, accountName),
+              eq(contractorPairings.companyBName, accountName),
+            )
+          )
+          .orderBy(desc(contractorPairings.strengthScore))
+          .limit(10);
+
+        return {
+          account: contractorAccount,
+          opportunities: contractorOpportunities,
+          stakeholders: [],
+          contractors: [],
+          contractorPairings: pairingRows.map(p => ({
+            id: p.id,
+            companyAName: p.companyAName,
+            companyARoleInPairing: p.companyARoleInPairing,
+            companyBName: p.companyBName,
+            companyBRoleInPairing: p.companyBRoleInPairing,
+            pairingType: p.pairingType,
+            coOccurrenceCount: p.coOccurrenceCount,
+            strengthScore: p.strengthScore,
+          })),
+          actionHistory: [],
+          collateral: [],
+        };
+      }
+
+      // Not an owner and not a contractor — truly not found
       return {
         account: null,
         opportunities: [],
@@ -500,7 +674,166 @@ const loadAccountData = protectedProcedure
     };
   });
 
+// ── Suggest close matches for no-match state ──
+// Returns up to 5 fuzzy-matched Atlas accounts for a query that returned no exact match.
+// Used to show "Did you mean?" suggestions before offering External Prospect Mode.
+const suggestCloseMatches = protectedProcedure
+  .input(z.object({ query: z.string().min(1).max(200) }))
+  .query(async ({ input }) => {
+    const db = await getDb();
+    if (!db) return [];
+
+    const q = input.query.toLowerCase();
+    // Extract first significant word (3+ chars) for broader fuzzy match
+    const words = q.split(/\s+/).filter(w => w.length >= 3);
+    if (words.length === 0) return [];
+
+    const suggestions: { name: string; accountKind: 'owner' | 'contractor'; matchReason: string }[] = [];
+    const seen = new Set<string>();
+
+    // Try each significant word as a LIKE match
+    for (const word of words.slice(0, 3)) {
+      const ownerRows = await db
+        .selectDistinct({ owner: projects.owner })
+        .from(projects)
+        .where(
+          and(
+            sql`${projects.owner} IS NOT NULL`,
+            sql`${projects.owner} != ''`,
+            sql`LOWER(${projects.owner}) LIKE ${`%${word}%`}`
+          )
+        )
+        .limit(10);
+
+      for (const r of ownerRows) {
+        if (r.owner && !seen.has(r.owner.toLowerCase()) && !isDirtyOwner(r.owner)) {
+          seen.add(r.owner.toLowerCase());
+          suggestions.push({ name: r.owner, accountKind: 'owner', matchReason: `Matches "${word}"` });
+        }
+      }
+
+      const contractorRows = await db
+        .select({ canonicalName: contractorRegistry.canonicalName })
+        .from(contractorRegistry)
+        .where(sql`LOWER(${contractorRegistry.canonicalName}) LIKE ${`%${word}%`}`)
+        .limit(10);
+
+      for (const r of contractorRows) {
+        if (!seen.has(r.canonicalName.toLowerCase())) {
+          seen.add(r.canonicalName.toLowerCase());
+          suggestions.push({ name: r.canonicalName, accountKind: 'contractor', matchReason: `Matches "${word}"` });
+        }
+      }
+    }
+
+    return suggestions.slice(0, 6);
+  });
+
+// ── External Prospect Mode ──
+// Runs a bounded LLM synthesis for accounts NOT found in Atlas.
+// Output is clearly labelled as external / not Atlas-verified.
+const runExternalProspect = protectedProcedure
+  .input(z.object({
+    companyName: z.string().min(1).max(200),
+    industry: z.string().optional(),
+    region: z.string().optional(),
+    objective: z.enum(['general', 'map_stakeholders', 'pursue_tender', 'explore_cross_sell', 'meeting_prep']).optional(),
+  }))
+  .mutation(async ({ input, ctx }) => {
+    const systemPrompt = `You are a B2B sales intelligence assistant for Atlas Copco Power Technique (PT).
+Atlas Copco PT sells portable air compressors, pumps/dewatering, BESS, PAL, and nitrogen equipment into mining, oil & gas, infrastructure, energy, and defence sectors.
+
+You are being asked to research a company that does NOT yet exist in the Atlas Copco internal project database.
+This is an EXTERNAL PROSPECT — treat all output as externally-sourced intelligence, not Atlas-verified data.
+
+Your task: produce a structured prospect brief for the company below.
+Be honest about what you know vs. what is inferred. Do NOT fabricate specific contacts, emails, or phone numbers.
+Label every claim with a confidence level: HIGH (well-known public fact), MEDIUM (reasonable inference), or LOW (speculative).
+
+Return a JSON object matching this exact schema (no extra keys):
+{
+  "companyOverview": {
+    "description": "string — 2-3 sentence company description",
+    "industry": "string",
+    "region": "string",
+    "estimatedSize": "string — e.g. Large Enterprise / Mid-Market / SME",
+    "publiclyListed": "boolean | null",
+    "confidence": "HIGH | MEDIUM | LOW"
+  },
+  "relevanceToAtlasCopco": {
+    "summary": "string — why this company might need PT equipment",
+    "likelyEquipmentNeeds": ["string"],
+    "estimatedOpportunitySize": "string — e.g. $500K-$2M annually",
+    "confidence": "HIGH | MEDIUM | LOW"
+  },
+  "knownProjects": [
+    {
+      "name": "string",
+      "description": "string",
+      "status": "string",
+      "region": "string",
+      "confidence": "HIGH | MEDIUM | LOW"
+    }
+  ],
+  "stakeholderGuidance": {
+    "typicalBuyingRoles": ["string — e.g. Fleet Manager, Project Manager, Procurement"],
+    "suggestedEntryPoints": ["string — e.g. LinkedIn search for Operations Director"],
+    "warningFlags": ["string — e.g. May have preferred supplier agreements"]
+  },
+  "recommendedActions": [
+    {
+      "action": "string",
+      "rationale": "string",
+      "confidence": "HIGH | MEDIUM | LOW",
+      "isVerified": false
+    }
+  ],
+  "dataQualityWarning": "string — honest statement about data limitations for this company"
+}`;
+
+    const userPrompt = `Company: ${input.companyName}
+Industry: ${input.industry || 'Unknown'}
+Region: ${input.region || 'Australia'}
+Objective: ${input.objective || 'general'}
+
+Produce the external prospect brief for this company.`;
+
+    try {
+      const response = await invokeLLM({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const rawContent = response?.choices?.[0]?.message?.content;
+      if (!rawContent) throw new Error('Empty LLM response');
+      const content = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent);
+
+      const parsed = JSON.parse(content);
+      return {
+        success: true as const,
+        companyName: input.companyName,
+        sourceLabel: 'EXTERNAL — Not Atlas-verified' as const,
+        generatedAt: new Date().toISOString(),
+        result: parsed,
+      };
+    } catch (err) {
+      return {
+        success: false as const,
+        companyName: input.companyName,
+        sourceLabel: 'EXTERNAL — Not Atlas-verified' as const,
+        generatedAt: new Date().toISOString(),
+        error: err instanceof Error ? err.message : 'Unknown error',
+        result: null,
+      };
+    }
+  });
+
 export const accountAttackRouter = router({
   search: accountSearch,
   loadAccountData,
+  suggestCloseMatches,
+  runExternalProspect,
 });

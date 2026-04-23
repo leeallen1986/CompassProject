@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { sanitizeContractorName } from "@shared/utils";
 import AccountResearchPanel from "@/components/AccountResearchPanel";
+import ExternalProspectPanel from "@/components/ExternalProspectPanel";
 import {
   Search, Target, Building2, Users, HardHat, Mail, Linkedin,
   MapPin, Calendar, ChevronRight, ChevronDown, ChevronUp,
@@ -112,6 +113,8 @@ function CollapsibleSection({
 }
 
 // ── Input Bar ──
+type SearchResult = { name: string; accountKind: 'owner' | 'contractor' };
+
 function InputBar({
   accountName, setAccountName, lensMode, setLensMode,
   laneFilter, setLaneFilter, searchResults, isSearching, onSelect,
@@ -119,7 +122,7 @@ function InputBar({
   accountName: string; setAccountName: (v: string) => void;
   lensMode: LensMode; setLensMode: (v: LensMode) => void;
   laneFilter: string; setLaneFilter: (v: string) => void;
-  searchResults: string[]; isSearching: boolean;
+  searchResults: SearchResult[]; isSearching: boolean;
   onSelect: (name: string) => void;
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -141,20 +144,30 @@ function InputBar({
               onChange={e => { setAccountName(e.target.value); setShowDropdown(true); }}
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && accountName.trim()) {
+                  onSelect(accountName.trim());
+                  setShowDropdown(false);
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
               className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
             />
             {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
           </div>
           {showDropdown && searchResults.length > 0 && (
             <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto">
-              {searchResults.map((name, i) => (
+              {searchResults.map((result, i) => (
                 <button
                   key={i}
                   className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors flex items-center gap-2"
-                  onMouseDown={() => { onSelect(name); setShowDropdown(false); }}
+                  onMouseDown={() => { onSelect(result.name); setShowDropdown(false); }}
                 >
                   <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="truncate">{name}</span>
+                  <span className="truncate flex-1">{result.name}</span>
+                  {result.accountKind === 'contractor' && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">Contractor</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -222,12 +235,26 @@ function InputBar({
 
 // ── Account Header ──
 function AccountHeader({ account }: { account: NonNullable<any> }) {
+  const isContractor = account.accountKind === 'contractor';
   return (
     <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+      {isContractor && (
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+          <HardHat className="w-3.5 h-3.5 shrink-0" />
+          <span><strong>Contractor Account</strong> — Projects shown are those where {account.name} appears as a contractor or EPC partner, not as the project owner.</span>
+        </div>
+      )}
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <h2 className="text-xl font-bold text-navy tracking-tight">{account.name}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{account.accountType}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-muted-foreground">{account.accountType}</p>
+            {isContractor && account.contractorMeta?.compositeScore != null && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal/10 text-teal border border-teal/20">
+                Score {account.contractorMeta.compositeScore}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-center">
@@ -843,12 +870,14 @@ export default function AccountAttack() {
           />
         )}
 
-        {/* Account not found */}
+        {/* Account not found — show close-match suggestions + External Prospect Mode */}
         {selectedAccount && !isLoadingAccount && !hasAccount && (
-          <EmptyState
-            icon={<AlertTriangle className="w-6 h-6 text-amber-500" />}
-            title="No Projects Found"
-            description={`No projects found with owner "${selectedAccount}". Try a different account name or check the spelling.`}
+          <ExternalProspectPanel
+            searchQuery={selectedAccount}
+            onSelectMatch={(name: string) => {
+              setAccountName(name);
+              setSelectedAccount(name);
+            }}
           />
         )}
 
