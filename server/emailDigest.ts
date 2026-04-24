@@ -563,7 +563,7 @@ function renderProjectBlock(
   block += `${priorityEmoji} **${p.name}**${newBadge}\n`;
   block += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
   block += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}% | Ref: ${actCode}\n`;
-  block += `   🔗 [View on dashboard →](${siteUrl}/this-week)\n`;
+  block += `   🔗 [View project →](${siteUrl}/project/${p.id})\n`;
 
   if (p.overview) {
     block += `   ${p.overview.substring(0, 120)}...\n`;
@@ -650,7 +650,7 @@ function generateThursdayReminder(
       content += `🔥 **${p.name}**${newBadge}\n`;
       content += `   📍 ${p.location} | 💰 ${p.value} | ${p.owner}\n`;
       const siteUrlThurs = getSiteUrl();
-      content += `   Ref: ${actCode} | 🔗 [View on dashboard →](${siteUrlThurs}/this-week)\n`;
+      content += `   Ref: ${actCode} | 🔗 [View project →](${siteUrlThurs}/project/${p.id})\n`;
       if (p.overview) {
         content += `   ${p.overview.substring(0, 100)}...\n`;
       }

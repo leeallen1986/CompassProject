@@ -359,7 +359,7 @@ function OpportunityRow({ opp, navigate, laneRelevance, lensMode }: {
   return (
     <div
       className={`flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-border last:border-0 ${relevanceIndicator} ${opacityClass}`}
-      onClick={() => navigate(`/dashboard?project=${opp.id}`)}
+      onClick={() => navigate(`/project/${opp.id}`)}
     >
       <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(opp.priority)}`}>
         {opp.priority}

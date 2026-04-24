@@ -203,6 +203,49 @@ export async function getAllProjects() {
   return db.select().from(projects).orderBy(desc(projects.id));
 }
 
+/**
+ * Fetch a single project by ID — ignores lifecycle and suppression filters.
+ * Used for deep-linking: the project detail page must always load regardless of scope.
+ */
+export async function getProjectById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Fetch contacts linked to a specific project (via contactProjects junction + direct match).
+ */
+export async function getContactsForProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get the project name for fallback matching
+  const proj = await getProjectById(projectId);
+  if (!proj) return [];
+  // Get contacts linked via junction table
+  const linkedContactIds = await db.select({ contactId: contactProjects.contactId })
+    .from(contactProjects)
+    .where(eq(contactProjects.projectId, projectId));
+  const ids = linkedContactIds.map(r => r.contactId);
+  if (ids.length > 0) {
+    return db.select().from(contacts).where(inArray(contacts.id, ids));
+  }
+  // Fallback: match by project name substring
+  return db.select().from(contacts).where(
+    sql`LOWER(${contacts.project}) LIKE LOWER(${'%' + proj.name.slice(0, 40) + '%'})`
+  ).limit(20);
+}
+
+/**
+ * Get pipeline claims for a specific project.
+ */
+export async function getPipelineClaimsForProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pipelineClaims).where(eq(pipelineClaims.projectId, projectId));
+}
+
 export async function getActiveProjects(opts?: { includeSuppressed?: boolean }) {
   const db = await getDb();
   if (!db) return [];

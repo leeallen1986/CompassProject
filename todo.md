@@ -1728,3 +1728,14 @@
 - [x] Part E: Update Digest Control Panel UI to show pipeline freshness row and digest gate status
 - [x] Part F: Write vitest tests for freshness gate logic (fresh/stale/failed/fallback) — 17/17 pass
 - [x] Part F: Run all tests and confirm pass
+
+## Project Deep-Link Trust Bug Fix
+
+- [x] Audit current routing and project link patterns across all entry points
+- [x] Build /project/:id route and backend getProjectById endpoint
+- [x] Create ProjectDetailView component with full project detail rendering
+- [x] Handle out-of-scope projects: show banner with options to expand filters or return
+- [x] Handle missing/deleted projects: show explicit error state
+- [x] Update all entry points to use /project/:id links (email, This Week, Top Actions, Closing Soon, stakeholders, Account Attack, manager views)
+- [x] Add list highlighting when navigating back to dashboard with projectId
+- [x] Browser-validate deep-link for in-scope, out-of-scope, and error states

@@ -739,9 +739,14 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const pid = params.get("project");
     const tab = params.get("tab");
+    const expand = params.get("expandFilters");
     // Clean up URL immediately
-    if (pid || tab) {
+    if (pid || tab || expand) {
       window.history.replaceState({}, "", window.location.pathname);
+    }
+    // If expandFilters=true, switch lifecycle filter to show all projects
+    if (expand === "true") {
+      setLifecycleFilter("all");
     }
     return pid ? Number(pid) : null;
   });
@@ -1483,7 +1488,7 @@ export default function Home() {
                       <div
                         key={t.id}
                         className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-hot/5 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/dashboard?project=${t.id}`)}
+                        onClick={() => navigate(`/project/${t.id}`)}
                       >
                         <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
                           t.priority === "hot" ? "bg-hot text-white" : t.priority === "warm" ? "bg-warm text-navy" : "bg-cold text-white"
@@ -1748,7 +1753,7 @@ export default function Home() {
                             className={`border-t border-border cursor-pointer transition-colors ${
                               i % 2 === 0 ? "bg-card" : "bg-slate-50"
                             } hover:bg-gold/5`}
-                            onClick={() => navigate(`/dashboard?project=${t.id}`)}
+                            onClick={() => navigate(`/project/${t.id}`)}
                           >
                             <td className="px-4 py-3">
                               <div className="font-semibold text-navy text-sm leading-snug max-w-xs">{t.name}</div>

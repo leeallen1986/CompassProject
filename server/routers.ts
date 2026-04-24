@@ -24,6 +24,7 @@ import {
   findDuplicateClusters, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep,
   classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
   getEmailRecipients,
+  getProjectById, getContactsForProject, getPipelineClaimsForProject,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -475,6 +476,36 @@ export const appRouter = router({
 
   // ── Project Lifecycle endpoints ──
   projectLifecycle: router({
+    /** Deep-link: fetch a single project by ID with all related data (contacts, claims, business lines) */
+    byId: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const [project, projectContacts, claims, businessLines] = await Promise.all([
+          getProjectById(input.id),
+          getContactsForProject(input.id),
+          getPipelineClaimsForProject(input.id),
+          getActiveBusinessLines(),
+        ]);
+        if (!project) return { project: null, contacts: [], claims: [], businessLineNames: {}, scopeFlags: null };
+        // Build business line name map
+        const businessLineNames: Record<number, string> = {};
+        businessLines.forEach((bl: any) => { businessLineNames[bl.id] = bl.name; });
+        // Compute scope flags for the banner
+        const scopeFlags = {
+          isActive: (project.lifecycleStatus ?? "active") === "active",
+          isSuppressed: !!project.suppressed,
+          isStale: project.lifecycleStatus === "stale",
+          isArchived: project.lifecycleStatus === "archived",
+          isAwarded: project.lifecycleStatus === "awarded",
+          isCompleted: project.lifecycleStatus === "completed",
+          lifecycleStatus: project.lifecycleStatus ?? "active",
+          suppressionReason: project.suppressionReason,
+        };
+        // Get the user's claim if any
+        const userClaim = claims.find(c => c.userId === ctx.user.id) ?? null;
+        return { project, contacts: projectContacts, claims, userClaim, businessLineNames, scopeFlags };
+      }),
+
     /** Update a single project's lifecycle status */
     update: protectedProcedure
       .input(z.object({

@@ -160,7 +160,7 @@ export default function WeeklyCoachingPanel() {
                 {coaching.topActions.map((action, i) => (
                   <button
                     key={i}
-                    onClick={() => navigate(`/dashboard?project=${action.projectId}`)}
+                    onClick={() => navigate(`/project/${action.projectId}`)}
                     className={`w-full text-left rounded-md border-l-4 px-3 py-2 hover:shadow-sm transition-all ${urgencyColors[action.urgency] || urgencyColors.medium}`}
                   >
                     <div className="flex items-start gap-2">
@@ -188,7 +188,7 @@ export default function WeeklyCoachingPanel() {
                 {coaching.overlookedOpportunities.map((opp, i) => (
                   <button
                     key={i}
-                    onClick={() => navigate(`/dashboard?project=${opp.projectId}`)}
+                    onClick={() => navigate(`/project/${opp.projectId}`)}
                     className="w-full text-left rounded-md border border-amber-200 bg-amber-50/50 px-3 py-2.5 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -213,7 +213,7 @@ export default function WeeklyCoachingPanel() {
                 Adjacent Business Line Opportunity
               </h3>
               <button
-                onClick={() => navigate(`/dashboard?project=${coaching.adjacentBLOpportunity!.exampleProjectId}`)}
+                onClick={() => navigate(`/project/${coaching.adjacentBLOpportunity!.exampleProjectId}`)}
                 className="w-full text-left rounded-md border border-teal/20 bg-teal/5 px-3 py-2.5 hover:shadow-sm transition-all"
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -235,7 +235,7 @@ export default function WeeklyCoachingPanel() {
               {/* Early Stage Warm Up */}
               {coaching.earlyStageWarmUp && (
                 <button
-                  onClick={() => navigate(`/dashboard?project=${coaching.earlyStageWarmUp!.projectId}`)}
+                  onClick={() => navigate(`/project/${coaching.earlyStageWarmUp!.projectId}`)}
                   className="text-left rounded-md border border-blue-200 bg-blue-50/50 px-3 py-2.5 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center gap-1.5 mb-1">

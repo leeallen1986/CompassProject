@@ -168,7 +168,7 @@ function CompactProjectRow({ project, navigate }: { project: any; navigate: (pat
   return (
     <div
       className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer border-b border-border last:border-0"
-      onClick={() => navigate(`/dashboard?project=${project.id}`)}
+      onClick={() => navigate(`/project/${project.id}`)}
     >
       <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(project.priority)}`}>
         {project.priority}
@@ -194,7 +194,7 @@ function TopActionCard({ action, navigate }: { action: any; navigate: (path: str
         isHigh ? "border-gold/30 hover:border-gold/50" :
         "border-border hover:border-navy/30"
       }`}
-      onClick={() => action.projectId && navigate(`/dashboard?project=${action.projectId}`)}
+      onClick={() => action.projectId && navigate(`/project/${action.projectId}`)}
     >
       {/* Header: priority + lane */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -598,7 +598,7 @@ export default function ThisWeek() {
                   <div
                     key={project.id}
                     className={`flex items-center gap-3 px-4 py-2.5 ${rowHover} transition-colors cursor-pointer border-b border-border last:border-0`}
-                    onClick={() => navigate(`/dashboard?project=${project.id}`)}
+                    onClick={() => navigate(`/project/${project.id}`)}
                   >
                     <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge}`}>
                       {project.priority}
@@ -735,7 +735,7 @@ export default function ThisWeek() {
                 <div
                   key={i}
                   className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/dashboard?project=${change.projectId}`)}
+                  onClick={() => navigate(`/project/${change.projectId}`)}
                 >
                   {change.isUpgrade ? (
                     <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

@@ -17,12 +17,15 @@ import MyProfile from "./pages/MyProfile";
 import CollateralLibrary from "./pages/CollateralLibrary";
 import Campaigns from "./pages/Campaigns";
 import AccountAttack from "./pages/AccountAttack";
+import ProjectDetail from "./pages/ProjectDetail";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={ThisWeek} />
+      <Route path={"/this-week"} component={ThisWeek} />
+      <Route path={"/project/:id"} component={ProjectDetail} />
       <Route path={"/dashboard"} component={Home} />
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
