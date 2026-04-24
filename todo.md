@@ -1739,3 +1739,13 @@
 - [x] Update all entry points to use /project/:id links (email, This Week, Top Actions, Closing Soon, stakeholders, Account Attack, manager views)
 - [x] Add list highlighting when navigating back to dashboard with projectId
 - [x] Browser-validate deep-link for in-scope, out-of-scope, and error states
+
+## UX Tightening — Scope Clarity (Apr 2026)
+- [x] Part A: Strict rep scope default — scopedProjects filters by laneMatch in strict mode
+- [x] Part B: Visible Scope Bar — ScopeBar component with Strict/Balanced/Open modes, territory + BL chips
+- [x] Part C: Why-you-see-this labels — ScopeReasonChip on project rows and stakeholder rows
+- [x] Part D: This Week page cleanup — Top Actions capped at 3, New Stakeholders split into in-scope vs other notable (collapsed by default)
+- [x] Part E: CompactProjectRow shows scope reason chip inline
+- [x] Part G: Empty section cleanup — empty sections show concise message + CTA link
+- [x] Part H: Count label clarity — micro-summary strip shows scoped count + adjacent hidden count
+- [x] Server: scopeReason and laneMatch fields added to ThisWeekProject and ThisWeekStakeholder interfaces

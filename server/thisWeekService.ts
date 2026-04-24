@@ -41,6 +41,9 @@ export interface ThisWeekProject {
   bestStakeholder: { name: string; title: string; company: string; relevance: string; email: string | null; linkedin: string | null } | null;
   suggestedAction: string;
   contactDepth: number; // how many high/medium contacts exist for this project
+  // ── Scope context (why the rep sees this) ──
+  scopeReason: string; // e.g. "WA + Portable Air match", "WA cross-sell", "Outside lane — adjacent PT"
+  laneMatch: boolean; // true if project matches user's primary selling lane
 }
 
 export interface ThisWeekStakeholder {
@@ -55,6 +58,9 @@ export interface ThisWeekStakeholder {
   linkedin: string | null;
   enrichmentSource: string | null;
   createdAt: Date;
+  // ── Scope context ──
+  laneMatch: boolean;
+  scopeReason: string;
 }
 
 export interface StageChange {
@@ -433,6 +439,46 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       } : null,
       suggestedAction,
       contactDepth: relevantContacts.length,
+      // ── Scope reason ──
+      // Determine why this project is surfaced for the rep
+      scopeReason: (() => {
+        const hasTerritory = userContext.territories.length > 0;
+        const hasLane = userContext.assignedBusinessLines.length > 0;
+        const territoryMatch = hasTerritory && locationMatchesTerritories(p.location, userContext.territories);
+        const laneMatchCheck = hasLane && topBLs.some(bl =>
+          userContext.assignedBusinessLines.some(ubl =>
+            ubl.toLowerCase() === bl.name.toLowerCase() ||
+            bl.name.toLowerCase().includes(ubl.toLowerCase()) ||
+            ubl.toLowerCase().includes(bl.name.toLowerCase())
+          )
+        );
+        if (!hasTerritory && !hasLane) return "In your pipeline";
+        if (territoryMatch && laneMatchCheck) {
+          const lane = userContext.assignedBusinessLines[0] ?? "your lane";
+          const terr = userContext.territories[0] ?? "your territory";
+          return `${terr} + ${lane} match`;
+        }
+        if (territoryMatch && !laneMatchCheck && topBLs.length > 0) {
+          return `${userContext.territories[0]} cross-sell — ${topBLs[0].name}`;
+        }
+        if (territoryMatch) return `Live tender in ${userContext.territories[0]}`;
+        if (tier === "tier1_actionable") return "Active-stage — action now";
+        return "Adjacent PT — outside primary lane";
+      })(),
+      laneMatch: (() => {
+        if (userContext.assignedBusinessLines.length === 0) return true;
+        const blScores = blScoresMap[p.id] ?? {};
+        const topBLsCheck = Object.entries(blScores)
+          .filter(([_, score]) => score >= 40)
+          .map(([name]) => name);
+        return topBLsCheck.some(bl =>
+          userContext.assignedBusinessLines.some(ubl =>
+            ubl.toLowerCase() === bl.toLowerCase() ||
+            bl.toLowerCase().includes(ubl.toLowerCase()) ||
+            ubl.toLowerCase().includes(bl.toLowerCase())
+          )
+        );
+      })(),
     };
   });
 
@@ -458,19 +504,51 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const newStakeholders: ThisWeekStakeholder[] = recentContacts.slice(0, 10).map(c => ({
-    id: c.id,
-    name: c.name,
-    title: c.title,
-    company: c.company,
-    project: c.project,
-    roleRelevance: ((c as any).roleRelevance ?? "medium") as "high" | "medium" | "low",
-    roleBucket: c.roleBucket,
-    email: c.email,
-    linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
-    enrichmentSource: c.enrichmentSource,
-    createdAt: c.createdAt,
-  }));
+  // Build a set of project names that are in-scope for territory matching
+  const inScopeProjectNames = new Set(rankedProjects.map(p => p.name.toLowerCase().slice(0, 30)));
+
+  const newStakeholders: ThisWeekStakeholder[] = recentContacts.slice(0, 20).map(c => {
+    // Determine if this stakeholder's project is in the user's territory scope
+    const contactProjectLower = c.project.toLowerCase().slice(0, 30);
+    const inScopeArray = Array.from(inScopeProjectNames);
+    const projectInScope = inScopeProjectNames.has(contactProjectLower) ||
+      inScopeArray.some(n => n.includes(contactProjectLower) || contactProjectLower.includes(n));
+    // Determine lane match based on roleBucket
+    const portableAirRoles = ["maintenance", "reliability", "mechanical", "equipment", "fleet", "hme", "shutdown", "fixed plant"];
+    const roleLower = (c.roleBucket ?? "").toLowerCase();
+    const titleLower = (c.title ?? "").toLowerCase();
+    const isPortableAirRole = portableAirRoles.some(r => roleLower.includes(r) || titleLower.includes(r));
+    const hasLane = userContext.assignedBusinessLines.length > 0;
+    const laneMatch = !hasLane || isPortableAirRole;
+    // Build scope reason
+    let scopeReason = "New contact this week";
+    if (projectInScope && laneMatch) {
+      const terr = userContext.territories[0] ?? "your territory";
+      const lane = userContext.assignedBusinessLines[0] ?? "your lane";
+      scopeReason = `${terr} + ${lane} match`;
+    } else if (projectInScope) {
+      scopeReason = `${userContext.territories[0] ?? "Territory"} — adjacent role`;
+    } else if (laneMatch) {
+      scopeReason = `${userContext.assignedBusinessLines[0] ?? "Lane"} role — outside territory`;
+    } else {
+      scopeReason = "Outside primary scope";
+    }
+    return {
+      id: c.id,
+      name: c.name,
+      title: c.title,
+      company: c.company,
+      project: c.project,
+      roleRelevance: ((c as any).roleRelevance ?? "medium") as "high" | "medium" | "low",
+      roleBucket: c.roleBucket,
+      email: c.email,
+      linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+      enrichmentSource: c.enrichmentSource,
+      createdAt: c.createdAt,
+      laneMatch,
+      scopeReason,
+    };
+  });
 
   // ── 3. Stage Changes ──
   // Detect projects that are new (isNew=true) and in Tier 1 — these represent stage upgrades

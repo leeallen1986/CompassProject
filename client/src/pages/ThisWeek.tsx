@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getLoginUrl } from "@/const";
 import NBACard from "@/components/NBACard";
+import ScopeBar, { type ScopeMode } from "@/components/ScopeBar";
 import WeeklyCoachingPanel from "@/components/WeeklyCoachingPanel";
 import ActionTracker from "@/components/ActionTracker";
 import ManagerRollup from "@/components/ManagerRollup";
@@ -175,6 +176,9 @@ function CompactProjectRow({ project, navigate }: { project: any; navigate: (pat
       </span>
       <LaneBadge lane={(project as any).productLane} />
       <span className="flex-1 text-sm font-semibold text-navy truncate">{project.name}</span>
+      {project.scopeReason && (
+        <ScopeReasonChip reason={project.scopeReason} laneMatch={project.laneMatch} />
+      )}
       <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
         <MapPin className="w-3 h-3" />{project.location}
       </span>
@@ -275,12 +279,31 @@ function LoginPage() {
   );
 }
 
+// ── Scope Reason Chip ──
+function ScopeReasonChip({ reason, laneMatch }: { reason?: string; laneMatch?: boolean }) {
+  if (!reason) return null;
+  const isMatch = laneMatch === true;
+  const isAdjacent = reason.toLowerCase().includes("adjacent") || reason.toLowerCase().includes("outside");
+  const isCrossSell = reason.toLowerCase().includes("cross-sell");
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${
+      isMatch ? "bg-teal/10 text-teal border border-teal/20" :
+      isCrossSell ? "bg-gold/10 text-gold-dark border border-gold/20" :
+      isAdjacent ? "bg-slate-100 text-slate-500 border border-slate-200" :
+      "bg-navy/5 text-navy/60 border border-navy/10"
+    }`}>
+      {reason}
+    </span>
+  );
+}
+
 // ── Main Component ──
 export default function ThisWeek() {
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
   const [showCoaching, setShowCoaching] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
+  const [scopeMode, setScopeMode] = useState<ScopeMode>("strict");
 
   const { data: summary, isLoading } = trpc.thisWeek.summary.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -319,43 +342,66 @@ export default function ThisWeek() {
     ? Date.now() - new Date(lastSuccessfulPipelineRun).getTime() > 7 * 24 * 60 * 60 * 1000
     : false;
 
-  // Top Actions — up to 5 suggested actions, enriched with project data
+  // ── Scope filtering based on scopeMode ──
+  const scopedProjects = useMemo(() => {
+    if (scopeMode === "open") return topProjects;
+    if (scopeMode === "balanced") {
+      // Include lane matches + cross-sells, exclude pure adjacent/outside
+      return topProjects.filter((p: any) => {
+        const reason = (p.scopeReason ?? "").toLowerCase();
+        return !reason.includes("outside primary");
+      });
+    }
+    // strict: only lane matches
+    return topProjects.filter((p: any) => p.laneMatch !== false);
+  }, [topProjects, scopeMode]);
+
+  // Split newStakeholders: in-scope vs other notable
+  const inScopeStakeholders = useMemo(() => {
+    return newStakeholders.filter((c: any) => c.laneMatch !== false && !(c.scopeReason ?? "").toLowerCase().includes("outside"));
+  }, [newStakeholders]);
+  const otherStakeholders = useMemo(() => {
+    return newStakeholders.filter((c: any) => c.laneMatch === false || (c.scopeReason ?? "").toLowerCase().includes("outside"));
+  }, [newStakeholders]);
+
+  // Top Actions — up to 3 (Part D: max 3 visible, action-ready only)
   const topActions = useMemo(() => {
-    return suggestedActions.slice(0, 5).map((action: any) => {
-      const project = topProjects.find((p: any) => p.id === action.projectId);
+    return suggestedActions.slice(0, 3).map((action: any) => {
+      const project = scopedProjects.find((p: any) => p.id === action.projectId) ||
+                      topProjects.find((p: any) => p.id === action.projectId);
       return { ...action, project };
     });
-  }, [suggestedActions, topProjects]);
+  }, [suggestedActions, scopedProjects, topProjects]);
 
-  // Waiting on Contact Discovery
+  // Waiting on Contact Discovery (from scoped projects)
   const waitingOnDiscovery = useMemo(() => {
-    return topProjects.filter((p: any) =>
+    return scopedProjects.filter((p: any) =>
       !p.bestStakeholder && (p.contactDepth === 0 || p.sendReadiness === "contact_discovery_needed")
     );
-  }, [topProjects]);
+  }, [scopedProjects]);
 
   // Already Active / Claimed
   const alreadyActive = useMemo(() => {
-    return topProjects.filter((p: any) =>
+    return scopedProjects.filter((p: any) =>
       p.lifecycleStatus === "contacted" || p.hasLoggedActionThisWeek
     );
-  }, [topProjects]);
+  }, [scopedProjects]);
 
   // Warm Monitor
   const warmMonitor = useMemo(() => {
-    const topActionIds = new Set(suggestedActions.slice(0, 5).map((a: any) => a.projectId).filter(Boolean));
-    const activeIds = new Set(topProjects.filter((p: any) => p.lifecycleStatus === "contacted" || p.hasLoggedActionThisWeek).map((p: any) => p.id));
-    return topProjects.filter((p: any) =>
+    const topActionIds = new Set(suggestedActions.slice(0, 3).map((a: any) => a.projectId).filter(Boolean));
+    const activeIds = new Set(scopedProjects.filter((p: any) => p.lifecycleStatus === "contacted" || p.hasLoggedActionThisWeek).map((p: any) => p.id));
+    return scopedProjects.filter((p: any) =>
       p.priority === "warm" &&
       (p.actionTier === "tier2_warm" || p.actionTier === "tier3_monitor") &&
       !topActionIds.has(p.id) &&
       !activeIds.has(p.id)
     );
-  }, [topProjects, suggestedActions]);
+  }, [scopedProjects, suggestedActions]);
 
-  // Micro-summary counts
-  const hotCount = useMemo(() => topProjects.filter((p: any) => p.priority === "hot").length, [topProjects]);
-  const warmCount = useMemo(() => topProjects.filter((p: any) => p.priority === "warm").length, [topProjects]);
+  // Micro-summary counts (based on scoped projects)
+  const hotCount = useMemo(() => scopedProjects.filter((p: any) => p.priority === "hot").length, [scopedProjects]);
+  const warmCount = useMemo(() => scopedProjects.filter((p: any) => p.priority === "warm").length, [scopedProjects]);
   const discoveryCount = waitingOnDiscovery.length;
 
   // Week key for manager rollup
@@ -488,6 +534,16 @@ export default function ThisWeek() {
         </div>
       </header>
 
+      {/* ── Scope Bar — Part B ── */}
+      <ScopeBar
+        territories={userContext?.territories ?? []}
+        businessLines={userContext?.assignedBusinessLines ?? []}
+        mode={scopeMode}
+        onModeChange={setScopeMode}
+        inScopeCount={scopedProjects.length}
+        totalCount={topProjects.length}
+      />
+
       {/* ── Main Content ── */}
       <main className="container py-5 sm:py-6 space-y-5">
 
@@ -521,28 +577,35 @@ export default function ThisWeek() {
             </>
           )}
           <span className="ml-auto text-xs text-muted-foreground">
-            {stats.totalInScope} projects in scope
+            {scopedProjects.length} in scope
+            {scopeMode !== "open" && topProjects.length > scopedProjects.length && (
+              <span className="text-slate-400"> · {topProjects.length - scopedProjects.length} adjacent hidden</span>
+            )}
           </span>
         </div>
 
-        {/* ── Top Actions strip ── */}
+        {/* ── Top Actions strip (max 3, action-ready only — Part D) ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-navy flex items-center gap-2">
               <Zap className="w-4 h-4 text-gold" />
-              Top Actions
+              My Top Actions
+              <span className="text-[10px] font-normal text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded-full">
+                {userContext?.territories?.[0] ?? ""} · {userContext?.assignedBusinessLines?.[0] ?? ""}
+              </span>
             </h2>
             <Link href="/dashboard" className="text-xs text-teal hover:text-teal-light font-semibold flex items-center gap-1 transition-colors">
-              View all projects <ArrowRight className="w-3.5 h-3.5" />
+              View all <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {topActions.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-              No urgent actions this week. Check the sections below for projects to monitor.
+            <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
+              No urgent actions this week.
+              <Link href="/pipeline" className="ml-2 text-teal font-semibold hover:text-teal-light">Browse pipeline →</Link>
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3">
               {topActions.map((action: any, i: number) => (
                 <TopActionCard key={action.actionKey || i} action={action} navigate={navigate} />
               ))}
@@ -674,25 +737,26 @@ export default function ThisWeek() {
           </div>
         </CollapsibleSection>
 
-        {/* ── New Stakeholders (compact card) ── */}
-        {newStakeholders.length > 0 && (
+        {/* ── New Stakeholders — split into in-scope vs other notable (Parts C + D) ── */}
+        {inScopeStakeholders.length > 0 && (
           <CollapsibleSection
-            title="New Stakeholders This Week"
-            count={newStakeholders.length}
-            defaultOpen={newStakeholders.length > 0}
-            icon={<UserPlus className="w-4 h-4" />}
+            title="New Stakeholders for My Scope"
+            count={inScopeStakeholders.length}
+            defaultOpen={true}
+            icon={<UserPlus className="w-4 h-4 text-teal" />}
           >
             <div className="divide-y divide-border">
-              {newStakeholders.slice(0, 6).map((contact: any) => (
+              {inScopeStakeholders.slice(0, 8).map((contact: any) => (
                 <div key={contact.id} className="flex items-center gap-3 px-4 py-2.5">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-navy truncate">{contact.name}</span>
                       <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
                         contact.roleRelevance === "high" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                       }`}>
                         {contact.roleRelevance === "high" ? "KEY" : "MED"}
                       </span>
+                      <ScopeReasonChip reason={contact.scopeReason} laneMatch={contact.laneMatch} />
                     </div>
                     <div className="text-[11px] text-muted-foreground truncate">{contact.title} · {contact.company}</div>
                     <div className="text-[10px] text-teal font-medium truncate">Project: {contact.project}</div>
@@ -711,13 +775,55 @@ export default function ThisWeek() {
                   </div>
                 </div>
               ))}
-              {newStakeholders.length > 6 && (
+              {inScopeStakeholders.length > 8 && (
                 <div className="px-4 py-2.5">
                   <Link href="/dashboard?tab=contacts" className="text-xs text-teal hover:text-teal-light font-semibold transition-colors">
-                    View all {newStakeholders.length} new contacts →
+                    View all {inScopeStakeholders.length} in-scope contacts →
                   </Link>
                 </div>
               )}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* Other Notable Stakeholders — collapsed by default */}
+        {otherStakeholders.length > 0 && (
+          <CollapsibleSection
+            title="Other Notable Stakeholders"
+            count={otherStakeholders.length}
+            defaultOpen={false}
+            icon={<Users className="w-4 h-4 text-muted-foreground" />}
+            headerRight={
+              <span className="text-[10px] text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                Outside primary scope
+              </span>
+            }
+          >
+            <div className="divide-y divide-border">
+              {otherStakeholders.slice(0, 5).map((contact: any) => (
+                <div key={contact.id} className="flex items-center gap-3 px-4 py-2.5 opacity-80">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-navy truncate">{contact.name}</span>
+                      <ScopeReasonChip reason={contact.scopeReason} laneMatch={contact.laneMatch} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">{contact.title} · {contact.company}</div>
+                    <div className="text-[10px] text-slate-400 font-medium truncate">Project: {contact.project}</div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {contact.email && (
+                      <a href={`mailto:${contact.email}`} className="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <Mail className="w-3 h-3 inline mr-0.5" />Email
+                      </a>
+                    )}
+                    {contact.linkedin && (
+                      <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <Linkedin className="w-3 h-3 inline mr-0.5" />LI
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </CollapsibleSection>
         )}
