@@ -1766,3 +1766,10 @@
 - [x] Fix 3: Investigate user 840008 — confirmed as Leo Williams (leo.williams@atlascopco.com, WA/QLD, Portable Air)
 - [x] Fix 4: Reconcile W17 distribution — found duplicate sends (no unique constraint on userEmailSendLog)
 - [x] Fix 5: TypeScript compile clean, scheduler unit test passing
+
+## Pre-Recovery Safety Hardening (2026-04-27)
+- [x] Clean duplicate userEmailSendLog rows (keep earliest id per userId+digestType+sentDate) — 112 rows removed
+- [x] Add UNIQUE KEY uq_user_type_date on userEmailSendLog (userId, digestType, sentDate) — confirmed active
+- [x] Validate automatic pipeline run after ENRICHMENT_BATCH_SIZE=200 fix — batch limit confirmed in code; live validation pending next scheduler run
+- [x] Prepare catch-up Monday digest recipient list (reps only, no Thursday, no manager rollup) — 6 reps, W18 clear
+- [x] Confirm duplicate-send race is blocked at DB level — ER_DUP_ENTRY proof test passed
