@@ -1780,3 +1780,11 @@
 - [x] Verify dedup alreadySentThisWeek logic still works with Sunday fire day — week key adjusted for Sunday
 - [x] Review Thursday reminder timing for Australian morning alignment — Thu 23:00 UTC = Fri 07:00 AWST / 09:00 AEST (noted, not changed)
 - [x] Update Digest Control Panel to show times in UTC, AWST, AEST — static labels + dynamic next-fire rows added
+
+## Catch-up Digest Scope Corrections (2026-04-27)
+- [x] Update Leo Williams: territory=NATIONAL, businessLine=Portable Air
+- [x] Update Dan Day: territory=NSW,VIC,SA,TAS,ACT, businessLine=Pump (Flow)
+- [x] Confirm NATIONAL is a valid/used territory label in the platform — confirmed, supported everywhere
+- [x] Regenerate digest previews for all 7 catch-up recipients — 6 registered, Brett Hansen not yet in users table
+- [x] Validate each preview is correctly scoped by territory + business line — all 6 scopes verified
+- [x] Return refreshed preview summary before send — see report below
