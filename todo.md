@@ -1749,3 +1749,13 @@
 - [x] Part G: Empty section cleanup — empty sections show concise message + CTA link
 - [x] Part H: Count label clarity — micro-summary strip shows scoped count + adjacent hidden count
 - [x] Server: scopeReason and laneMatch fields added to ThisWeekProject and ThisWeekStakeholder interfaces
+
+## ReportId Fragmentation Fix (Apr 2026)
+- [x] Diagnose reportId fragmentation: each scraper creates its own report row, TendersWA/QTOL NT use pipeline runId as reportId
+- [x] Fix emailDigest.ts: replace getProjectsByReportId with getActiveProjects for Monday digest
+- [x] Fix emailDigest.ts: replace getContactsByReportId with getAllContacts for Monday digest
+- [x] Fix emailDigest.ts: same fix for Thursday reminder, sendWeeklyDigestsForUser, sendThursdayReminderForUser
+- [x] Fix dailyPipeline.ts: create canonical report at pipeline startup, pass to TendersWA and QTOL NT
+- [x] Consolidate duplicate imports in dailyPipeline.ts (reports, eq)
+- [x] Write vitest tests for reportId fix (3 tests: digest calls getActiveProjects, not getProjectsByReportId)
+- [x] All 2871 tests passing (93 test files)

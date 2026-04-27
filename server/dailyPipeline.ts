@@ -47,7 +47,7 @@ import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
 import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
 import { markStaleProjects, runDuplicateDetectionSweep, getDb } from "./db";
-import { pipelineRuns, type PipelineStep } from "../drizzle/schema";
+import { pipelineRuns, reports, type PipelineStep } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 
 // New source architecture imports
@@ -297,6 +297,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 
   // Create pipeline run log entry
   let runId: number | null = null;
+  let canonicalReportId: number = 0;
   try {
     const db = await getDb();
     if (db) {
@@ -307,6 +308,35 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       });
       runId = inserted.insertId;
       console.log(`[DailyPipeline] Pipeline run logged: ID ${runId}`);
+
+      // ── Create or reuse a canonical report for today ──
+      // All scrapers should link their projects to this single report ID.
+      // Previously, each scraper created its own report row (fragmentation bug).
+      const today = new Date();
+      const weekEnding = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const existing = await db.select().from(reports).where(eq(reports.weekEnding, weekEnding)).limit(1);
+      if (existing.length > 0) {
+        canonicalReportId = existing[0].id;
+        console.log(`[DailyPipeline] Reusing today's report: ID ${canonicalReportId} (weekEnding=${weekEnding})`);
+      } else {
+        const [newReport] = await db.insert(reports).values({
+          weekEnding,
+          generatedTime: today.toISOString(),
+          totalProjects: 0,
+          hotProjects: 0,
+          warmProjects: 0,
+          coldProjects: 0,
+          confirmedContractors: 0,
+          predictedContractors: 0,
+          capexOpportunities: 0,
+          totalContacts: 0,
+          sourcesSearched: "Pipeline (multi-source)",
+          newProjectsCount: 0,
+          executiveSummaryMain: "Auto-generated from daily pipeline run.",
+        });
+        canonicalReportId = Number(newReport.insertId);
+        console.log(`[DailyPipeline] Created new canonical report: ID ${canonicalReportId} (weekEnding=${weekEnding})`);
+      }
     }
   } catch (err) {
     console.error("[DailyPipeline] Failed to create pipeline run log:", err);
@@ -409,7 +439,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   let tendersWAResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
   try {
     const stepStart = Date.now();
-    const waData = await withTimeout(runTendersWAScraper(runId || 0), STEP_TIMEOUT_MS, "Tenders WA");
+    const waData = await withTimeout(runTendersWAScraper(canonicalReportId || runId || 0), STEP_TIMEOUT_MS, "Tenders WA");
     tendersWAResult = {
       ran: true,
       tendersFound: waData.tendersFound,
@@ -448,7 +478,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   let qtolNTResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, priorityIssuerTenders: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
   try {
     const stepStart = Date.now();
-    const ntData = await withTimeout(runQtolNTScraper(runId || 0), STEP_TIMEOUT_MS, "QTOL NT");
+    const ntData = await withTimeout(runQtolNTScraper(canonicalReportId || runId || 0), STEP_TIMEOUT_MS, "QTOL NT");
     qtolNTResult = {
       ran: true,
       tendersFound: ntData.tendersFound,

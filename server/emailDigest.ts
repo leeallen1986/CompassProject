@@ -13,6 +13,8 @@ import {
   getLatestReport,
   getProjectsByReportId,
   getContactsByReportId,
+  getActiveProjects,
+  getAllContacts,
   getPipelineClaimsByUser,
   getDb,
   getEmailRecipients,
@@ -832,9 +834,13 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
     ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
     : `Data as of: ${report.weekEnding}`;
 
-  // Get all projects and contacts for this report
-  const allProjects = await getProjectsByReportId(report.id);
-  let allContacts = await getContactsByReportId(report.id);
+  // Get all active, non-suppressed projects and quality-filtered contacts.
+  // NOTE: We no longer filter by reportId because reportId assignment is fragmented
+  // across scrapers (each creates its own report row). Instead we load all active
+  // projects and let the per-user scoring + tier classification handle relevance.
+  const allProjects = await getActiveProjects();
+  let allContacts = await getAllContacts();
+  console.log(`[EmailDigest] Loaded ${allProjects.length} active projects, ${allContacts.length} quality contacts (report.id=${report.id} used for metadata only)`);
 
   // ── Pre-digest enrichment: target hot/tier1 projects with no send-ready contacts ──
   // This runs BEFORE per-user scoring so enriched contacts are available for all reps.
@@ -860,7 +866,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         }
       }
       // Re-fetch contacts after enrichment so new contacts appear in the digest
-      allContacts = await getContactsByReportId(report.id);
+      allContacts = await getAllContacts();
       console.log(`[EmailDigest] Post-enrichment contact count: ${allContacts.length}`);
     }
   } catch (enrichErr) {
@@ -1084,8 +1090,8 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
     ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
     : `Data as of: ${report.weekEnding}`;
 
-  // Get all projects for this report
-  const allProjects = await getProjectsByReportId(report.id);
+  // Get all active, non-suppressed projects (not filtered by reportId — see sendWeeklyDigests comment)
+  const allProjects = await getActiveProjects();
 
   // Recipient selection: respects PILOT_MODE and PILOT_ALLOW_LIST env vars
   // Exclude admin users from rep Thursday reminder — admins receive manager rollup only
@@ -1444,8 +1450,8 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
     : `Data as of: ${report.weekEnding}`;
 
-  const allProjects = await getProjectsByReportId(report.id);
-  const allContacts = await getContactsByReportId(report.id);
+  const allProjects = await getActiveProjects();
+  const allContacts = await getAllContacts();
 
   const db = await getDb();
   if (!db) return null;
@@ -1547,8 +1553,8 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
     : `Data as of: ${report.weekEnding}`;
 
-  const allProjects = await getProjectsByReportId(report.id);
-  const allContacts = await getContactsByReportId(report.id);
+  const allProjects = await getActiveProjects();
+  const allContacts = await getAllContacts();
 
   const db = await getDb();
   if (!db) return null;
