@@ -19,8 +19,11 @@ import {
   getDb,
   getEmailRecipients,
   logEmailSendExtended,
+  claimDigestSendSlot,
+  finaliseDigestSendSlot,
   getLatestPipelineRun,
   getCurrentWeekKey,
+  getDigestWeekKey,
   getManagerRollup,
   wasEmailSentToUserThisWeek,
   checkPipelineFreshness,
@@ -819,7 +822,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
     }
   }
 
-  const weekKey = getCurrentWeekKey();
+  const weekKey = getDigestWeekKey();
 
   // Get the latest report
   const report = await getLatestReport();
@@ -886,12 +889,14 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
     }
 
     try {
-      // ── Per-user deduplication: skip if already sent this week (or today for backward compat) ──
+      // ── Per-user deduplication: atomic claim-before-send (replaces check-then-send race) ──
+      // claimDigestSendSlot uses INSERT IGNORE — only ONE concurrent goroutine wins the slot.
+      // Dry-run and force mode bypass the claim so previews and manual re-sends still work.
       if (!force && !dryRun) {
-        const alreadySentThisWeek = await wasEmailSentToUserThisWeek(user.id, "monday", weekKey);
-        if (alreadySentThisWeek) {
+        const claimed = await claimDigestSendSlot(user.id, "monday", weekKey);
+        if (!claimed) {
           results.alreadySent++;
-          console.log(`[EmailDigest] ⏭ Monday digest already sent to ${user.name} this week (${weekKey}), skipping`);
+          console.log(`[EmailDigest] ⏭ Monday digest slot already claimed for ${user.name} (${weekKey}), skipping`);
           continue;
         }
       }
@@ -1022,27 +1027,19 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
 
       if (sent) {
         results.sent++;
-        await logEmailSendExtended({
-          userId: user.id, digestType: "monday", status: "sent",
-          weekKey, itemCount: annotatedProjects.length, dryRun: false,
-        });
+        // Finalise the pre-claimed slot from 'pending' → 'sent'
+        await finaliseDigestSendSlot(user.id, "monday", weekKey, "sent", { itemCount: annotatedProjects.length });
         console.log(`[EmailDigest] ✓ Monday digest sent for ${user.name} (${territories.join(", ")})`);
       } else {
         results.failed++;
-        await logEmailSendExtended({
-          userId: user.id, digestType: "monday", status: "failed",
-          weekKey, itemCount: annotatedProjects.length, dryRun: false,
-          error: "sendEmail returned false",
-        });
+        await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: "sendEmail returned false" });
         console.warn(`[EmailDigest] ✗ Failed to send Monday digest for ${user.name}`);
       }
     } catch (error) {
       console.error(`[EmailDigest] Failed for user ${user.id}:`, error);
       results.failed++;
-      if (user?.id) await logEmailSendExtended({
-        userId: user.id, digestType: "monday", status: "failed",
-        weekKey, dryRun: false, error: String(error),
-      });
+      // Attempt to finalise the slot as failed (may not exist if claim itself failed)
+      if (user?.id) await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: String(error) });
     }
   }
 
@@ -1075,7 +1072,7 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
     return results;
   }
 
-  const weekKey = getCurrentWeekKey();
+  const weekKey = getDigestWeekKey();
 
   // Get the latest report
   const report = await getLatestReport();
@@ -1106,12 +1103,12 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
     }
 
     try {
-      // ── Per-user deduplication: skip if already sent this week ──
+      // ── Per-user deduplication: atomic claim-before-send ──
       if (!force && !dryRun) {
-        const alreadySentThisWeek = await wasEmailSentToUserThisWeek(user.id, "thursday", weekKey);
-        if (alreadySentThisWeek) {
+        const claimed = await claimDigestSendSlot(user.id, "thursday", weekKey);
+        if (!claimed) {
           results.alreadySent++;
-          console.log(`[EmailDigest] ⏭ Thursday reminder already sent to ${user.name} this week (${weekKey}), skipping`);
+          console.log(`[EmailDigest] ⏭ Thursday reminder slot already claimed for ${user.name} (${weekKey}), skipping`);
           continue;
         }
       }
@@ -1197,27 +1194,17 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
 
       if (sent) {
         results.sent++;
-        await logEmailSendExtended({
-          userId: user.id, digestType: "thursday", status: "sent",
-          weekKey, itemCount: hotProjects.length, dryRun: false,
-        });
+        await finaliseDigestSendSlot(user.id, "thursday", weekKey, "sent", { itemCount: hotProjects.length });
         console.log(`[EmailDigest] ✓ Thursday reminder sent for ${user.name} (${territories.join(", ")})`);
       } else {
         results.failed++;
-        await logEmailSendExtended({
-          userId: user.id, digestType: "thursday", status: "failed",
-          weekKey, itemCount: hotProjects.length, dryRun: false,
-          error: "sendEmail returned false",
-        });
+        await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: "sendEmail returned false" });
         console.warn(`[EmailDigest] ✗ Failed to send Thursday reminder for ${user.name}`);
       }
     } catch (error) {
       console.error(`[EmailDigest] Thursday reminder failed for user ${user.id}:`, error);
       results.failed++;
-      if (user?.id) await logEmailSendExtended({
-        userId: user.id, digestType: "thursday", status: "failed",
-        weekKey, dryRun: false, error: String(error),
-      });
+      if (user?.id) await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: String(error) });
     }
   }
 
@@ -1328,7 +1315,7 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
     return results;
   }
 
-  const weekKey = getCurrentWeekKey();
+  const weekKey = getDigestWeekKey();
 
   // Get the latest report for weekEnding label
   const report = await getLatestReport();
@@ -1378,8 +1365,8 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
 
     try {
       if (!force && !dryRun) {
-        const alreadySent = await wasEmailSentToUserThisWeek(admin.id, "manager_rollup", weekKey);
-        if (alreadySent) {
+        const claimed = await claimDigestSendSlot(admin.id, "manager_rollup", weekKey);
+        if (!claimed) {
           results.alreadySent++;
           continue;
         }
@@ -1404,25 +1391,16 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
 
       if (sent) {
         results.sent++;
-        await logEmailSendExtended({
-          userId: admin.id, digestType: "manager_rollup", status: "sent",
-          weekKey, itemCount: rollup.totalActions, dryRun: false,
-        });
+        await finaliseDigestSendSlot(admin.id, "manager_rollup", weekKey, "sent", { itemCount: rollup.totalActions });
         console.log(`[EmailDigest] ✓ Manager rollup sent to ${admin.name}`);
       } else {
         results.failed++;
-        await logEmailSendExtended({
-          userId: admin.id, digestType: "manager_rollup", status: "failed",
-          weekKey, dryRun: false, error: "sendEmail returned false",
-        });
+        await finaliseDigestSendSlot(admin.id, "manager_rollup", weekKey, "failed", { error: "sendEmail returned false" });
       }
     } catch (error) {
       console.error(`[EmailDigest] Manager rollup failed for admin ${admin.id}:`, error);
       results.failed++;
-      await logEmailSendExtended({
-        userId: admin.id, digestType: "manager_rollup", status: "failed",
-        weekKey, dryRun: false, error: String(error),
-      });
+      await finaliseDigestSendSlot(admin.id, "manager_rollup", weekKey, "failed", { error: String(error) });
     }
   }
 
@@ -1441,7 +1419,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
   contentLength: number;
   userName: string;
 } | null> {
-  const weekKey = getCurrentWeekKey();
+  const weekKey = getDigestWeekKey();
   const report = await getLatestReport();
   if (!report) return null;
 
@@ -1544,7 +1522,7 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
   contentLength: number;
   userName: string;
 } | null> {
-  const weekKey = getCurrentWeekKey();
+  const weekKey = getDigestWeekKey();
   const report = await getLatestReport();
   if (!report) return null;
 

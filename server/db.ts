@@ -1706,6 +1706,25 @@ export function getCurrentWeekKey(date: Date = new Date()): string {
 }
 
 /**
+ * Returns the ISO week key for digest deduplication.
+ *
+ * The Monday digest fires on Sunday 22:00 UTC, but should be stamped with the
+ * *upcoming* Monday's week key (ISO 8601 week of the Monday it lands in inboxes).
+ * Without this, a Sunday fire returns W17 while the Monday dedup check also
+ * returns W17 — causing the scheduler to think it already sent this week.
+ *
+ * Rule: if today is Sunday (UTC), advance by 1 day before computing the week key.
+ */
+export function getDigestWeekKey(date: Date = new Date()): string {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  // Sunday (0) → advance to Monday so we get the upcoming week's key
+  if (d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return getCurrentWeekKey(d);
+}
+
+/**
  * Generates a deterministic, human-readable actionId.
  * Format: ACT-{weekKey}-{userId6}-{projectId6}
  * e.g. ACT-2026W17-000042-000317
@@ -2321,6 +2340,74 @@ export async function logEmailSendExtended(params: {
     });
   } catch (err) {
     console.error("[EmailOps] Error logging email send:", err);
+  }
+}
+
+/**
+ * Atomically claim the send slot for a user+digestType+weekKey.
+ *
+ * Uses INSERT IGNORE (MySQL) so that only ONE concurrent goroutine can win the
+ * claim — the unique constraint (uq_user_type_date) ensures the second INSERT
+ * is silently discarded. Returns true if this caller won the slot (should send),
+ * false if another goroutine already claimed it (should skip).
+ *
+ * This replaces the check-then-send pattern (wasEmailSentToUserThisWeek + send)
+ * which has a TOCTOU race: both goroutines pass the check before either writes.
+ */
+export async function claimDigestSendSlot(
+  userId: number,
+  digestType: "monday" | "thursday" | "manager_rollup",
+  weekKey: string,
+): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return false; // No DB → fail safe (don't send)
+    const today = new Date().toISOString().slice(0, 10);
+    // INSERT IGNORE: silently skips if the unique key already exists
+    const result = await db.execute(
+      sql`INSERT IGNORE INTO userEmailSendLog
+        (userId, digestType, sentDate, weekKey, status, itemCount, dryRun, createdAt)
+        VALUES
+        (${userId}, ${digestType}, ${today}, ${weekKey}, 'pending', 0, 0, NOW())`
+    );
+    // affectedRows = 1 → we inserted (won the slot)
+    // affectedRows = 0 → duplicate was ignored (another goroutine already claimed it)
+    const affectedRows = (result[0] as any).affectedRows ?? 0;
+    return affectedRows > 0;
+  } catch (err) {
+    console.error(`[EmailOps] claimDigestSendSlot error for user ${userId}:`, err);
+    return false; // Fail safe: don't send on error
+  }
+}
+
+/**
+ * Update an existing send-log row from 'pending' to 'sent' or 'failed'.
+ * Called after the email is dispatched to finalise the claim.
+ */
+export async function finaliseDigestSendSlot(
+  userId: number,
+  digestType: "monday" | "thursday" | "manager_rollup",
+  weekKey: string,
+  status: "sent" | "failed",
+  opts?: { itemCount?: number; error?: string },
+): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    const today = new Date().toISOString().slice(0, 10);
+    await db.execute(
+      sql`UPDATE userEmailSendLog
+        SET status = ${status},
+            itemCount = ${opts?.itemCount ?? 0},
+            error = ${opts?.error ?? null}
+        WHERE userId = ${userId}
+          AND digestType = ${digestType}
+          AND sentDate = ${today}
+          AND weekKey = ${weekKey}
+          AND status = 'pending'`
+    );
+  } catch (err) {
+    console.error(`[EmailOps] finaliseDigestSendSlot error for user ${userId}:`, err);
   }
 }
 

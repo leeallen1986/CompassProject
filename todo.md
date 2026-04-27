@@ -1788,3 +1788,9 @@
 - [x] Regenerate digest previews for all 7 catch-up recipients — 6 registered, Brett Hansen not yet in users table
 - [x] Validate each preview is correctly scoped by territory + business line — all 6 scopes verified
 - [x] Return refreshed preview summary before send — see report below
+
+## Pre-flight Duplicate Send Race Fix (2026-04-27)
+- [x] Replace wasEmailSentToUserThisWeek check + send pattern with atomic INSERT IGNORE claim guard in emailDigest.ts
+- [x] Fix getDigestWeekKey: already applied to all 5 digest functions
+- [x] TypeScript compile clean after fix — 0 errors
+- [x] Save checkpoint
