@@ -765,8 +765,21 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
         actionTier: classifyStage(result.project.stage),
       };
 
-      const [insertResult] = await db.insert(projects).values(projectData);
-      const newProjectId = Number(insertResult.insertId);
+      let newProjectId: number;
+      try {
+        const [insertResult] = await db.insert(projects).values(projectData);
+        newProjectId = Number(insertResult.insertId);
+      } catch (insertErr) {
+        const insertErrMsg = insertErr instanceof Error ? insertErr.message : String(insertErr);
+        console.error(`[AI Extractor] ❌ Failed to insert project "${result.project.name}" (article ${result.articleId}): ${insertErrMsg}`);
+        // Mark article as failed so it can be retried — but continue processing the rest of the batch
+        await db.update(rawArticles)
+          .set({ status: "failed" })
+          .where(eq(rawArticles.id, result.articleId));
+        failed++;
+        allResults.push(result);
+        continue;
+      }
 
       // Mark article as extracted
       await db.update(rawArticles)

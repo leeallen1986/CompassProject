@@ -13,6 +13,8 @@ export type DataApiCallOptions = {
   formData?: Record<string, unknown>;
 };
 
+const DATA_API_TIMEOUT_MS = 30_000; // 30s per-call timeout
+
 export async function callDataApi(
   apiId: string,
   options: DataApiCallOptions = {}
@@ -28,22 +30,37 @@ export async function callDataApi(
   const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
   const fullUrl = new URL("webdevtoken.v1.WebDevService/CallApi", baseUrl).toString();
 
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-    },
-    body: JSON.stringify({
-      apiId,
-      query: options.query,
-      body: options.body,
-      path_params: options.pathParams,
-      multipart_form_data: options.formData,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DATA_API_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(fullUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "connect-protocol-version": "1",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify({
+        apiId,
+        query: options.query,
+        body: options.body,
+        path_params: options.pathParams,
+        multipart_form_data: options.formData,
+      }),
+      signal: controller.signal,
+    });
+  } catch (fetchErr: unknown) {
+    clearTimeout(timeoutId);
+    if (fetchErr instanceof Error && fetchErr.name === "AbortError") {
+      throw new Error(`Data API call to "${apiId}" timed out after ${DATA_API_TIMEOUT_MS / 1000}s`);
+    }
+    throw fetchErr;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

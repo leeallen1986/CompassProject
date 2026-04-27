@@ -72,6 +72,12 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+//** Blocked domains that produce garbage/hallucinated emails */
+const BLOCKED_EMAIL_DOMAINS = [
+  "unknown", "various", "tba", "tbc", "tbd", "na", "none",
+  "multiple", "undisclosed", "confidential", "notavailable",
+];
+
 /** Infer a corporate email pattern from name and company */
 function inferEmail(name: string, company: string): string | null {
   if (!name || !company) return null;
@@ -80,7 +86,6 @@ function inferEmail(name: string, company: string): string | null {
   const first = parts[0].replace(/[^a-z]/g, "");
   const last = parts[parts.length - 1].replace(/[^a-z]/g, "");
   if (!first || !last) return null;
-
   // Clean company domain
   const domain = company
     .toLowerCase()
@@ -88,8 +93,12 @@ function inferEmail(name: string, company: string): string | null {
     .trim()
     .replace(/\s+/g, "")
     .replace(/[^a-z0-9]/g, "");
-
   if (!domain) return null;
+  // Block garbage domains
+  if (BLOCKED_EMAIL_DOMAINS.includes(domain)) {
+    console.warn(`[Enrichment] Blocked garbage email domain: "${domain}" from company "${company}"`);
+    return null;
+  }
   return `${first}.${last}@${domain}.com.au`;
 }
 
@@ -554,8 +563,16 @@ export async function runEnrichmentPipeline(
   let enriched = 0;
   let notFound = 0;
   let failed = 0;
+  const total = pendingContacts.length;
+  const startTime = Date.now();
+  console.log(`[Enrichment] Starting pipeline run: ${total} contacts to process (daily used: ${dailyCount}/${DAILY_ENRICHMENT_CAP})`);
 
-  for (const contact of pendingContacts) {
+  for (let idx = 0; idx < pendingContacts.length; idx++) {
+    const contact = pendingContacts[idx];
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+    if (idx % 50 === 0 || idx === total - 1) {
+      console.log(`[Enrichment] Progress: ${idx + 1}/${total} (enriched=${enriched}, notFound=${notFound}, failed=${failed}, elapsed=${elapsed}s)`);
+    }
     const result = await enrichContact(
       contact.id,
       contact.name,
@@ -597,6 +614,9 @@ export async function runEnrichmentPipeline(
     allResults.push(result);
     await sleep(DELAY_BETWEEN_CALLS_MS);
   }
+
+  const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[Enrichment] Pipeline run complete: ${total} processed in ${totalElapsed}s (enriched=${enriched}, notFound=${notFound}, failed=${failed})`);
 
   return {
     processed: pendingContacts.length,
