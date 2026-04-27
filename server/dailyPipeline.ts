@@ -216,7 +216,13 @@ function skipStep(step: PipelineStep, reason?: string): PipelineStep {
 // ── Pipeline timeout ──
 const PIPELINE_TIMEOUT_MS = 90 * 60 * 1000; // 90 minutes max (enrichment is downstream and bounded)
 const STEP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per step max
-const ENRICHMENT_TIMEOUT_MS = 25 * 60 * 1000; // 25 minutes for contact enrichment (500 contacts × ~2s each)
+const ENRICHMENT_TIMEOUT_MS = 25 * 60 * 1000; // 25 minutes for contact enrichment
+// Per-run batch limit: process at most this many contacts per automatic pipeline run.
+// Rationale: 24,236 pending contacts caused the scheduler to time out at 25 min.
+// At ~2s per contact, 200 contacts = ~400s (~6.7 min), well within the 25-min window.
+// The backlog drains across successive nightly runs (200/night ≈ 121 nights to clear).
+// Manual admin-triggered runs can use a higher limit via the Admin dashboard.
+const ENRICHMENT_BATCH_SIZE = 200;
 
 /**
  * Steps that are considered "critical" for the pipeline to be marked as completed.
@@ -820,7 +826,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   console.log("[DailyPipeline] Step 10: Enriching contacts...");
   let enrichmentResult;
   try {
-    enrichmentResult = await withTimeout(runEnrichmentPipeline(), ENRICHMENT_TIMEOUT_MS, "Contact Enrichment");
+    enrichmentResult = await withTimeout(runEnrichmentPipeline(ENRICHMENT_BATCH_SIZE), ENRICHMENT_TIMEOUT_MS, "Contact Enrichment");
     completeStep(enrichmentStep, {
       processed: enrichmentResult.processed,
       enriched: enrichmentResult.enriched,

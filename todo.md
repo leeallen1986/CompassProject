@@ -1759,3 +1759,10 @@
 - [x] Consolidate duplicate imports in dailyPipeline.ts (reports, eq)
 - [x] Write vitest tests for reportId fix (3 tests: digest calls getActiveProjects, not getProjectsByReportId)
 - [x] All 2871 tests passing (93 test files)
+
+## Operating Model Fixes (2026-04-27)
+- [x] Fix 1: Add ENRICHMENT_BATCH_SIZE=200 to dailyPipeline.ts — stops 24,236-contact timeout
+- [x] Fix 2: Fix Monday scheduler next-fire logic — alreadySentThisWeek flag prevents same-day re-fire
+- [x] Fix 3: Investigate user 840008 — confirmed as Leo Williams (leo.williams@atlascopco.com, WA/QLD, Portable Air)
+- [x] Fix 4: Reconcile W17 distribution — found duplicate sends (no unique constraint on userEmailSendLog)
+- [x] Fix 5: TypeScript compile clean, scheduler unit test passing

@@ -182,8 +182,28 @@ function getCurrentUTCTime(): string {
  * Calculate milliseconds until next target weekday at target hour (UTC).
  * targetDay: 1 = Monday, 4 = Thursday
  * targetHour: UTC hour to send (default 23)
+ * alreadySentThisWeek: when true, always advance to NEXT week even if today is
+ *   the target day and the target hour hasn't been reached yet. This prevents
+ *   the scheduler from firing a second time later the same day after a digest
+ *   was already sent earlier (e.g. via startup catch-up or manual trigger).
+ *
+ * Bug that was fixed: previously the function only advanced to next week when
+ *   `next <= now` (i.e. the target time had already passed). If the digest was
+ *   sent at 04:00 UTC and the scheduler restarted at 01:59 UTC, `next` (23:00
+ *   UTC same day) was still in the future, so `daysUntil` stayed 0 and the
+ *   timer fired again at 23:00 UTC that same evening.
+ *
+ * Before fix example (Monday 01:59 UTC, digest already sent at 04:05 UTC):
+ *   daysUntil = 0, next = Monday 23:00 UTC → delay = 21h → fires TONIGHT
+ *
+ * After fix example (same scenario, alreadySentThisWeek = true):
+ *   daysUntil forced to 7 → next = NEXT Monday 23:00 UTC → delay = 165h
  */
-function getDelayUntilNextWeekday(targetDay: number, targetHour: number = 23): number {
+function getDelayUntilNextWeekday(
+  targetDay: number,
+  targetHour: number = 23,
+  alreadySentThisWeek: boolean = false
+): number {
   const now = new Date();
   const next = new Date(now);
   next.setUTCHours(targetHour, 0, 0, 0);
@@ -192,10 +212,19 @@ function getDelayUntilNextWeekday(targetDay: number, targetHour: number = 23): n
   const currentDay = now.getUTCDay();
   let daysUntil = (targetDay - currentDay + 7) % 7;
 
-  // If today is the target day but we haven't reached the target hour yet,
-  // send today. Otherwise, advance to next week.
-  if (daysUntil === 0 && next <= now) {
-    daysUntil = 7; // Already past today's send time, wait until next week
+  if (daysUntil === 0) {
+    // Today IS the target day.
+    if (alreadySentThisWeek) {
+      // Digest already sent this week — always jump to next week regardless of
+      // whether the target hour has been reached yet.
+      daysUntil = 7;
+    } else if (next <= now) {
+      // Target hour has already passed today and digest not yet sent — this
+      // should not normally happen (startup catch-up handles it), but advance
+      // to next week as a safety measure.
+      daysUntil = 7;
+    }
+    // else: target hour is still ahead today and not yet sent → fire today (daysUntil stays 0)
   }
 
   next.setDate(next.getDate() + daysUntil);
@@ -248,10 +277,15 @@ export async function startPersistentScheduler(): Promise<void> {
   }
 
   // ── Recurring: Schedule next Monday digest ──
-  function scheduleNextMonday(): void {
-    const delay = getDelayUntilNextWeekday(1, 23);
+  // Pass alreadySentThisWeek so that if the digest was sent earlier today (e.g.
+  // via startup catch-up or manual trigger), the timer targets NEXT Monday
+  // rather than firing again at 23:00 UTC the same day.
+  async function scheduleNextMonday(): Promise<void> {
+    const alreadySent = await wasDigestSentThisWeek("monday");
+    const delay = getDelayUntilNextWeekday(1, 23, alreadySent);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
-    console.log(`[PersistentScheduler] Next Monday digest scheduled in ${hoursUntil}h`);
+    const nextFireUTC = new Date(Date.now() + delay).toISOString();
+    console.log(`[PersistentScheduler] Next Monday digest scheduled in ${hoursUntil}h (fires at ${nextFireUTC} UTC, alreadySentThisWeek=${alreadySent})`);
     setTimeout(async () => {
       await sendMondayDigestSafe();
       scheduleNextMonday();
@@ -259,10 +293,12 @@ export async function startPersistentScheduler(): Promise<void> {
   }
 
   // ── Recurring: Schedule next Thursday reminder + manager rollup ──
-  function scheduleNextThursday(): void {
-    const delay = getDelayUntilNextWeekday(4, 23);
+  async function scheduleNextThursday(): Promise<void> {
+    const alreadySent = await wasDigestSentThisWeek("thursday");
+    const delay = getDelayUntilNextWeekday(4, 23, alreadySent);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
-    console.log(`[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h`);
+    const nextFireUTC = new Date(Date.now() + delay).toISOString();
+    console.log(`[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h (fires at ${nextFireUTC} UTC, alreadySentThisWeek=${alreadySent})`);
     setTimeout(async () => {
       await sendThursdayReminderSafe();
       // Manager rollup 30 min after rep reminder
