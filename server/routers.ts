@@ -725,14 +725,22 @@ export const appRouter = router({
         .orderBy(descOp(digestScheduleLog.createdAt))
         .limit(1);
 
-      // Calculate next Monday 23:00 UTC
+       // Calculate next Monday digest fire time: Sunday 22:00 UTC
+      // This lands as Monday 06:00 AWST / 08:00 AEST — first emails of the working week.
       const now = new Date();
-      const nextMonday = new Date(now);
       const dayOfWeek = now.getUTCDay();
-      const daysToMonday = (1 - dayOfWeek + 7) % 7 || 7;
-      nextMonday.setUTCDate(now.getUTCDate() + (dayOfWeek === 1 && now.getUTCHours() < 23 ? 0 : daysToMonday));
-      nextMonday.setUTCHours(23, 0, 0, 0);
-
+      const nextMonday = new Date(now);
+      // Target: Sunday (0) at 22:00 UTC
+      const daysToSunday = (0 - dayOfWeek + 7) % 7;
+      if (daysToSunday === 0 && now.getUTCHours() >= 22) {
+        // Already past 22:00 UTC on Sunday — next occurrence is next Sunday
+        nextMonday.setUTCDate(now.getUTCDate() + 7);
+      } else {
+        nextMonday.setUTCDate(now.getUTCDate() + daysToSunday);
+      }
+      nextMonday.setUTCHours(22, 0, 0, 0);
+      // Calculate next Thursday reminder: Thursday 23:00 UTC
+      // This lands as Friday 07:00 AWST / 09:00 AEST.
       const nextThursday = new Date(now);
       const daysToThursday = (4 - dayOfWeek + 7) % 7 || 7;
       nextThursday.setUTCDate(now.getUTCDate() + (dayOfWeek === 4 && now.getUTCHours() < 23 ? 0 : daysToThursday));

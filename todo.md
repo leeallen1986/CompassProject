@@ -1773,3 +1773,10 @@
 - [x] Validate automatic pipeline run after ENRICHMENT_BATCH_SIZE=200 fix — batch limit confirmed in code; live validation pending next scheduler run
 - [x] Prepare catch-up Monday digest recipient list (reps only, no Thursday, no manager rollup) — 6 reps, W18 clear
 - [x] Confirm duplicate-send race is blocked at DB level — ER_DUP_ENTRY proof test passed
+
+## Digest Send Time Fix (2026-04-27)
+- [x] Change Monday digest recurring schedule from Mon 23:00 UTC to Sun 22:00 UTC (06:00 AWST / 08:00 AEST Mon)
+- [x] Validate next-fire time in logs after change (UTC, AWST, AEST) — 7 scenarios all pass
+- [x] Verify dedup alreadySentThisWeek logic still works with Sunday fire day — week key adjusted for Sunday
+- [x] Review Thursday reminder timing for Australian morning alignment — Thu 23:00 UTC = Fri 07:00 AWST / 09:00 AEST (noted, not changed)
+- [x] Update Digest Control Panel to show times in UTC, AWST, AEST — static labels + dynamic next-fire rows added

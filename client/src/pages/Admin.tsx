@@ -2459,7 +2459,8 @@ function EmailPreviewTab() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
           {/* Monday */}
           <div className="border border-border rounded-lg p-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Monday Digest</div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Monday Digest</div>
+            <div className="text-[10px] text-muted-foreground mb-2 font-mono">Sun 22:00 UTC → Mon 06:00 AWST / 08:00 AEST</div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Last sent</span>
@@ -2500,7 +2501,8 @@ function EmailPreviewTab() {
           </div>
           {/* Thursday */}
           <div className="border border-border rounded-lg p-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Thursday Reminder</div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Thursday Reminder</div>
+            <div className="text-[10px] text-muted-foreground mb-2 font-mono">Thu 23:00 UTC → Fri 07:00 AWST / 09:00 AEST</div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Last sent</span>

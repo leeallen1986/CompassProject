@@ -7,10 +7,15 @@
  * 3. Runs missed digests immediately on startup if needed
  * 4. Uses a persistent timer that survives process restarts
  *
- * Schedule:
- *  - Monday 23:00 UTC  — Full weekly digest (all reps)
- *  - Thursday 23:00 UTC — Mid-week action reminder (all reps)
- *  - Thursday 23:30 UTC — Manager rollup email (admin users only)
+ * Schedule (all times UTC):
+ *  - Sunday  22:00 UTC  → Monday  06:00 AWST / 08:00 AEST — Full weekly digest (all reps)
+ *  - Thursday 23:00 UTC → Friday  07:00 AWST / 09:00 AEST — Mid-week action reminder (all reps)
+ *  - Thursday 23:30 UTC → Friday  07:30 AWST / 09:30 AEST — Manager rollup email (admin users only)
+ *
+ * Note on Thursday timing: Thursday 23:00 UTC resolves to Friday morning in Australia.
+ * This is intentional — the "Thursday reminder" is a mid-week email that lands Friday
+ * morning, giving reps the weekend to prepare. If a true Thursday morning AU send is
+ * needed, change targetDay=3 (Wed) at 22:00 UTC → Thursday 06:00 AWST / 08:00 AEST.
  */
 
 import { getDb } from "./db";
@@ -18,38 +23,92 @@ import { sendWeeklyDigests, sendThursdayReminders, sendManagerRollupEmail } from
 import { digestScheduleLog } from "../drizzle/schema";
 import { eq, gte, and } from "drizzle-orm";
 
+// ── Schedule constants ──────────────────────────────────────────────────────
+/**
+ * MONDAY_DIGEST_DAY / MONDAY_DIGEST_HOUR
+ * The Monday weekly digest fires on Sunday at 22:00 UTC so it lands in
+ * Australian inboxes at the start of the working week:
+ *   22:00 UTC Sunday = 06:00 AWST Monday = 08:00 AEST Monday
+ */
+const MONDAY_DIGEST_DAY = 0;   // 0 = Sunday UTC (lands Monday morning AU)
+const MONDAY_DIGEST_HOUR = 22; // 22:00 UTC = 06:00 AWST / 08:00 AEST
+
+/**
+ * THURSDAY_REMINDER_DAY / THURSDAY_REMINDER_HOUR
+ * The Thursday reminder fires Thursday at 23:00 UTC, landing Friday morning AU:
+ *   23:00 UTC Thursday = 07:00 AWST Friday = 09:00 AEST Friday
+ * This is the current schedule. To move to true Thursday morning AU, change to
+ * Wednesday 22:00 UTC (= Thursday 06:00 AWST / 08:00 AEST).
+ */
+const THURSDAY_REMINDER_DAY = 4;   // 4 = Thursday UTC
+const THURSDAY_REMINDER_HOUR = 23; // 23:00 UTC = 07:00 AWST Fri / 09:00 AEST Fri
+
+// ────────────────────────────────────────────────────────────────────────────
+
 /**
  * Get the current ISO week key in YYYY-WNN format (e.g. "2026-W17").
  * Used for week-level dedup to prevent duplicate sends after server restarts.
+ *
+ * IMPORTANT: For the Monday digest, "this week" is defined as the ISO week that
+ * the digest belongs to — i.e. the Monday that follows the Sunday fire time.
+ * We use the ISO week of (now + 1 day) when checking from Sunday so that a
+ * Sunday 22:00 UTC send is correctly associated with the coming Monday's week.
  */
-function getCurrentISOWeekKey(): string {
-  const now = new Date();
-  const jan4 = new Date(Date.UTC(now.getUTCFullYear(), 0, 4));
+function getCurrentISOWeekKey(forMondayDigest: boolean = false): string {
+  // For Monday digest sent on Sunday, advance by 1 day so the week key
+  // reflects the Monday the digest is for, not the Sunday it fires on.
+  const ref = new Date();
+  if (forMondayDigest && ref.getUTCDay() === 0) {
+    ref.setUTCDate(ref.getUTCDate() + 1);
+  }
+  const jan4 = new Date(Date.UTC(ref.getUTCFullYear(), 0, 4));
   const startOfWeek1 = new Date(jan4);
   startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
-  const weekNum = Math.floor((now.getTime() - startOfWeek1.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-  return `${now.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+  const weekNum = Math.floor((ref.getTime() - startOfWeek1.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+  return `${ref.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
 }
 
 /**
  * Check if a digest was already sent this ISO week.
  * Uses week-level dedup (not day-level) to prevent duplicate sends after server restarts.
- * A restart on the same Monday would previously re-fire the digest; week-level dedup prevents this.
+ *
+ * For the Monday digest (which fires on Sunday UTC), "this week" is the ISO week
+ * of the coming Monday, so we look back from Monday 00:00 UTC of that week.
  */
 async function wasDigestSentThisWeek(digestType: "monday" | "thursday"): Promise<boolean> {
   try {
     const db = await getDb();
     if (!db) return false;
 
-    // Start of the current ISO week (Monday 00:00 UTC)
     const now = new Date();
-    const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon, ...
-    const daysToMonday = (dayOfWeek + 6) % 7; // days since Monday
-    const startOfWeek = new Date(now);
-    startOfWeek.setUTCDate(now.getUTCDate() - daysToMonday);
-    startOfWeek.setUTCHours(0, 0, 0, 0);
 
-    // Check if there's a successful send record created this week for this digest type
+    let startOfWeek: Date;
+    if (digestType === "monday") {
+      // For Monday digest: "this week" starts on the Monday that this digest is for.
+      // If today is Sunday (0), the relevant Monday is tomorrow.
+      // If today is Mon–Sat, the relevant Monday is the most recent Monday.
+      const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon, ...
+      if (dayOfWeek === 0) {
+        // Sunday — the digest is for NEXT Monday
+        startOfWeek = new Date(now);
+        startOfWeek.setUTCDate(now.getUTCDate() + 1); // tomorrow = Monday
+        startOfWeek.setUTCHours(0, 0, 0, 0);
+      } else {
+        // Mon–Sat — use this week's Monday
+        const daysToMonday = (dayOfWeek + 6) % 7;
+        startOfWeek = new Date(now);
+        startOfWeek.setUTCDate(now.getUTCDate() - daysToMonday);
+        startOfWeek.setUTCHours(0, 0, 0, 0);
+      }
+    } else {
+      // Thursday reminder: standard ISO week (Mon–Sun)
+      const dayOfWeek = now.getUTCDay();
+      const daysToMonday = (dayOfWeek + 6) % 7;
+      startOfWeek = new Date(now);
+      startOfWeek.setUTCDate(now.getUTCDate() - daysToMonday);
+      startOfWeek.setUTCHours(0, 0, 0, 0);
+    }
+
     const result = await db
       .select()
       .from(digestScheduleLog)
@@ -91,7 +150,7 @@ async function logDigestAttempt(
     await db.insert(digestScheduleLog).values({
       digestType,
       scheduledFor: now,
-      sentAt: status === "sent" ? now : null,   // populate sentAt on success
+      sentAt: status === "sent" ? now : null,
       status,
       error: error || null,
     });
@@ -104,10 +163,9 @@ async function logDigestAttempt(
  * Send Monday digest and log the result
  */
 async function sendMondayDigestSafe(): Promise<void> {
-  // Double-check guard: re-verify not already sent before sending
-  const alreadySent = await wasDigestSentToday("monday");
+  const alreadySent = await wasDigestSentThisWeek("monday");
   if (alreadySent) {
-    console.log("[PersistentScheduler] ✓ Monday digest already sent today — skipping");
+    console.log("[PersistentScheduler] ✓ Monday digest already sent this week — skipping");
     return;
   }
   try {
@@ -128,9 +186,9 @@ async function sendMondayDigestSafe(): Promise<void> {
  * Send Thursday reminder and log the result
  */
 async function sendThursdayReminderSafe(): Promise<void> {
-  const alreadySent = await wasDigestSentToday("thursday");
+  const alreadySent = await wasDigestSentThisWeek("thursday");
   if (alreadySent) {
-    console.log("[PersistentScheduler] ✓ Thursday reminder already sent today — skipping");
+    console.log("[PersistentScheduler] ✓ Thursday reminder already sent this week — skipping");
     return;
   }
   try {
@@ -164,7 +222,7 @@ async function sendManagerRollupSafe(): Promise<void> {
 }
 
 /**
- * Check if today is Monday (1) in UTC
+ * Get current UTC day of week (0=Sun, 1=Mon, ..., 6=Sat)
  */
 function getTodayDayOfWeek(): number {
   return new Date().getUTCDay();
@@ -180,112 +238,123 @@ function getCurrentUTCTime(): string {
 
 /**
  * Calculate milliseconds until next target weekday at target hour (UTC).
- * targetDay: 1 = Monday, 4 = Thursday
- * targetHour: UTC hour to send (default 23)
- * alreadySentThisWeek: when true, always advance to NEXT week even if today is
- *   the target day and the target hour hasn't been reached yet. This prevents
- *   the scheduler from firing a second time later the same day after a digest
+ *
+ * targetDay: 0=Sun, 1=Mon, 4=Thu
+ * targetHour: UTC hour to send
+ * alreadySentThisWeek: when true, always advance to NEXT occurrence (7 days)
+ *   even if today is the target day and the target hour hasn't been reached yet.
+ *   This prevents the scheduler from firing again the same day after a digest
  *   was already sent earlier (e.g. via startup catch-up or manual trigger).
- *
- * Bug that was fixed: previously the function only advanced to next week when
- *   `next <= now` (i.e. the target time had already passed). If the digest was
- *   sent at 04:00 UTC and the scheduler restarted at 01:59 UTC, `next` (23:00
- *   UTC same day) was still in the future, so `daysUntil` stayed 0 and the
- *   timer fired again at 23:00 UTC that same evening.
- *
- * Before fix example (Monday 01:59 UTC, digest already sent at 04:05 UTC):
- *   daysUntil = 0, next = Monday 23:00 UTC → delay = 21h → fires TONIGHT
- *
- * After fix example (same scenario, alreadySentThisWeek = true):
- *   daysUntil forced to 7 → next = NEXT Monday 23:00 UTC → delay = 165h
  */
 function getDelayUntilNextWeekday(
   targetDay: number,
-  targetHour: number = 23,
+  targetHour: number,
   alreadySentThisWeek: boolean = false
 ): number {
   const now = new Date();
   const next = new Date(now);
   next.setUTCHours(targetHour, 0, 0, 0);
 
-  // Advance to the next occurrence of targetDay
   const currentDay = now.getUTCDay();
   let daysUntil = (targetDay - currentDay + 7) % 7;
 
   if (daysUntil === 0) {
     // Today IS the target day.
     if (alreadySentThisWeek) {
-      // Digest already sent this week — always jump to next week regardless of
-      // whether the target hour has been reached yet.
+      // Digest already sent this week — always jump to next occurrence.
       daysUntil = 7;
     } else if (next <= now) {
-      // Target hour has already passed today and digest not yet sent — this
-      // should not normally happen (startup catch-up handles it), but advance
-      // to next week as a safety measure.
+      // Target hour has already passed today and digest not yet sent —
+      // advance to next week as a safety measure.
       daysUntil = 7;
     }
-    // else: target hour is still ahead today and not yet sent → fire today (daysUntil stays 0)
+    // else: target hour is still ahead today and not yet sent → fire today
   }
 
-  next.setDate(next.getDate() + daysUntil);
+  next.setUTCDate(next.getUTCDate() + daysUntil);
   return next.getTime() - now.getTime();
 }
 
 /**
+ * Format a UTC timestamp as AU timezone strings for logging
+ */
+function formatAUTimes(utcDate: Date): string {
+  const awst = new Date(utcDate.getTime() + 8 * 3600000);
+  const aest = new Date(utcDate.getTime() + 10 * 3600000);
+  const fmt = (d: Date) => d.toISOString().replace("T", " ").slice(0, 16);
+  return `${fmt(awst)} AWST / ${fmt(aest)} AEST`;
+}
+
+/**
  * Main scheduler that runs on startup and periodically checks for missed digests.
- * Schedule:
- *  - Monday 23:00 UTC  — Full weekly digest (all reps)
- *  - Thursday 23:00 UTC — Mid-week action reminder (all reps)
- *  - Thursday 23:30 UTC — Manager rollup email (admin users only)
+ *
+ * Monday digest:   Sunday 22:00 UTC = Monday 06:00 AWST / 08:00 AEST
+ * Thursday digest: Thursday 23:00 UTC = Friday 07:00 AWST / 09:00 AEST
  */
 export async function startPersistentScheduler(): Promise<void> {
-  // Kill switch: if EMAIL_DIGESTS_ENABLED is not "true", do not schedule or send anything
   if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
     console.log("[PersistentScheduler] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Scheduler will not run.");
     return;
   }
 
-  console.log("[PersistentScheduler] Starting persistent email digest scheduler (Monday + Thursday + Manager Rollup)...");
+  console.log("[PersistentScheduler] Starting persistent email digest scheduler...");
+  console.log("[PersistentScheduler] Schedule: Monday digest = Sun 22:00 UTC (Mon 06:00 AWST / 08:00 AEST)");
+  console.log("[PersistentScheduler] Schedule: Thursday reminder = Thu 23:00 UTC (Fri 07:00 AWST / 09:00 AEST)");
 
-  // ── Startup: Check for missed digests ──
   const today = getTodayDayOfWeek();
   const currentTime = getCurrentUTCTime();
   console.log(`[PersistentScheduler] Current time: ${currentTime} UTC | Day: ${today} (0=Sun, 1=Mon, 4=Thu)`);
 
-  // Check if today is Monday and digest hasn't been sent yet
-  if (today === 1) {
-    const mondayAlreadySent = await wasDigestSentToday("monday");
+  // ── Startup catch-up: Monday digest ──
+  // Fires on Sunday (0) at 22:00 UTC. Also catch up if server restarted on Monday
+  // before the digest was sent (e.g. server was down Sunday night).
+  if (today === MONDAY_DIGEST_DAY) {
+    // It's Sunday — check if we're past 22:00 UTC and digest not yet sent
+    const now = new Date();
+    if (now.getUTCHours() >= MONDAY_DIGEST_HOUR) {
+      const mondayAlreadySent = await wasDigestSentThisWeek("monday");
+      if (!mondayAlreadySent) {
+        console.log("[PersistentScheduler] ⚠ Sunday 22:00 UTC passed — sending Monday digest now...");
+        await sendMondayDigestSafe();
+      } else {
+        console.log("[PersistentScheduler] ✓ Monday digest already sent this week");
+      }
+    }
+  } else if (today === 1) {
+    // It's Monday — catch up if digest was missed (server was down Sunday night)
+    const mondayAlreadySent = await wasDigestSentThisWeek("monday");
     if (!mondayAlreadySent) {
-      console.log("[PersistentScheduler] ⚠ Monday digest not sent yet — sending now...");
+      console.log("[PersistentScheduler] ⚠ Monday catch-up: digest not sent — sending now...");
       await sendMondayDigestSafe();
     } else {
-      console.log("[PersistentScheduler] ✓ Monday digest already sent today");
+      console.log("[PersistentScheduler] ✓ Monday digest already sent this week");
     }
   }
 
-  // Check if today is Thursday and reminder hasn't been sent yet
-  if (today === 4) {
-    const thursdayAlreadySent = await wasDigestSentToday("thursday");
+  // ── Startup catch-up: Thursday reminder ──
+  if (today === THURSDAY_REMINDER_DAY) {
+    const thursdayAlreadySent = await wasDigestSentThisWeek("thursday");
     if (!thursdayAlreadySent) {
       console.log("[PersistentScheduler] ⚠ Thursday reminder not sent yet — sending now...");
       await sendThursdayReminderSafe();
-      // Manager rollup runs 30 min after Thursday reminder
       setTimeout(() => sendManagerRollupSafe(), 30 * 60 * 1000);
     } else {
-      console.log("[PersistentScheduler] ✓ Thursday reminder already sent today");
+      console.log("[PersistentScheduler] ✓ Thursday reminder already sent this week");
     }
   }
 
   // ── Recurring: Schedule next Monday digest ──
-  // Pass alreadySentThisWeek so that if the digest was sent earlier today (e.g.
-  // via startup catch-up or manual trigger), the timer targets NEXT Monday
-  // rather than firing again at 23:00 UTC the same day.
   async function scheduleNextMonday(): Promise<void> {
     const alreadySent = await wasDigestSentThisWeek("monday");
-    const delay = getDelayUntilNextWeekday(1, 23, alreadySent);
+    const delay = getDelayUntilNextWeekday(MONDAY_DIGEST_DAY, MONDAY_DIGEST_HOUR, alreadySent);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
-    const nextFireUTC = new Date(Date.now() + delay).toISOString();
-    console.log(`[PersistentScheduler] Next Monday digest scheduled in ${hoursUntil}h (fires at ${nextFireUTC} UTC, alreadySentThisWeek=${alreadySent})`);
+    const nextFireUTC = new Date(Date.now() + delay);
+    const auTimes = formatAUTimes(nextFireUTC);
+    console.log(
+      `[PersistentScheduler] Next Monday digest scheduled in ${hoursUntil}h` +
+      ` | UTC: ${nextFireUTC.toISOString()} | AU: ${auTimes}` +
+      ` | alreadySentThisWeek=${alreadySent}`
+    );
     setTimeout(async () => {
       await sendMondayDigestSafe();
       scheduleNextMonday();
@@ -295,13 +364,17 @@ export async function startPersistentScheduler(): Promise<void> {
   // ── Recurring: Schedule next Thursday reminder + manager rollup ──
   async function scheduleNextThursday(): Promise<void> {
     const alreadySent = await wasDigestSentThisWeek("thursday");
-    const delay = getDelayUntilNextWeekday(4, 23, alreadySent);
+    const delay = getDelayUntilNextWeekday(THURSDAY_REMINDER_DAY, THURSDAY_REMINDER_HOUR, alreadySent);
     const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
-    const nextFireUTC = new Date(Date.now() + delay).toISOString();
-    console.log(`[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h (fires at ${nextFireUTC} UTC, alreadySentThisWeek=${alreadySent})`);
+    const nextFireUTC = new Date(Date.now() + delay);
+    const auTimes = formatAUTimes(nextFireUTC);
+    console.log(
+      `[PersistentScheduler] Next Thursday reminder scheduled in ${hoursUntil}h` +
+      ` | UTC: ${nextFireUTC.toISOString()} | AU: ${auTimes}` +
+      ` | alreadySentThisWeek=${alreadySent}`
+    );
     setTimeout(async () => {
       await sendThursdayReminderSafe();
-      // Manager rollup 30 min after rep reminder
       setTimeout(() => sendManagerRollupSafe(), 30 * 60 * 1000);
       scheduleNextThursday();
     }, delay);
@@ -310,5 +383,5 @@ export async function startPersistentScheduler(): Promise<void> {
   scheduleNextMonday();
   scheduleNextThursday();
 
-  console.log("[PersistentScheduler] ✓ Persistent scheduler initialized (Monday + Thursday + Manager Rollup)");
+  console.log("[PersistentScheduler] ✓ Persistent scheduler initialized");
 }
