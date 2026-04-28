@@ -9,11 +9,23 @@
  *  2. An Australian news source does NOT make the project Australian.
  *  3. Only explicit location evidence in the project text determines geography.
  *  4. If location is ambiguous, classify as "blocked_location_unclear".
+ *
+ * Rule Hierarchy (Case A — cross-border conflict):
+ *  Tier 1 — Hard program overrides (AUKUS, ANZAC, Osborne, etc.)
+ *  Tier 2 — Strong AU evidence: AU state in location field + AU source domain
+ *  Tier 3 — AU state text match (confidence ≥ 0.9) outranks narrative foreign mention
+ *  Tier 4 — AU owner + (AU state OR AU source) outranks narrative foreign mention
+ *  Tier 5 — AU source domain + "in australia" phrase in overview
+ *  Tier 6 — Foreign mention is ONLY about origin/supplier, not project location
+ *  Default — block as blocked_cross_border_signal
+ *
+ * Foreign keywords in narrative text (e.g. "London-based developer") must NOT block
+ * a project when stronger Australian evidence exists from owner + state + source.
  */
 
 import { getDb } from "./db";
 import { projects } from "../drizzle/schema";
-import { eq, isNull, and, or } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 
 // ── Australian state/territory patterns ──
 // Each entry: canonical code → list of keywords that confirm the project is in that state.
@@ -49,7 +61,7 @@ const AU_STATE_PATTERNS: Record<string, string[]> = {
   SA: [
     "south australia", "adelaide", "olympic dam", "whyalla", "port augusta",
     "port pirie", "roxby downs", "ceduna", "prominent hill", "carrapateena",
-    "woomera", "leigh creek",
+    "woomera", "leigh creek", "osborne",
   ],
   NT: [
     "northern territory", "darwin", "alice springs", "tennant creek",
@@ -154,11 +166,50 @@ const AUSTRALIA_CONFIRM_PATTERNS = [
   "australia", "australian",
 ];
 
+/**
+ * Phrases that indicate the foreign keyword is about the project's LOCATION,
+ * not merely the origin/nationality of a supplier, developer, or executive.
+ * If the overview contains a foreign keyword but NONE of these anchor phrases,
+ * the foreign keyword is treated as narrative context, not a location signal.
+ *
+ * Examples of narrative-only foreign mentions (should NOT block):
+ *  - "London-based developer Revera Energy has secured..."  → company origin
+ *  - "technology from Kotobuki Engineering (Japan)"         → tech origin
+ *  - "executive in Canada"                                  → exec location
+ *  - "US companies have signed a deal to bring ... to Australia" → supplier origin
+ *
+ * Examples of location-anchored foreign mentions (SHOULD block):
+ *  - "project located in Ghana and Nigeria"                 → project location
+ *  - "supply agreements across Middle East, Europe, Africa, and Australia" → multi-region
+ *  - "construction of a mine in Chile"                      → project location
+ */
+const FOREIGN_LOCATION_ANCHOR_PHRASES = [
+  // Direct project-location statements (must be unambiguous — not exec/supplier mentions)
+  "located in", "location:", "project in", "mine in", "plant in",
+  "facility in", "site in", "construction in",
+  // Explicit project-country statements
+  "project is in", "project is located", "situated in",
+  // Multi-country scope statements (these mean the project spans multiple countries)
+  "across the middle east", "across europe", "across africa",
+  "across asia", "across latin america", "across south america",
+  // Specific foreign project locations (unambiguous — these are never exec/supplier mentions)
+  "in ghana", "in nigeria", "in zambia", "in chile", "in peru",
+  "in indonesia", "in mongolia", "in the philippines",
+  "in saudi arabia", "in the uae", "in dubai",
+  "in the united states", "in the usa",
+  // NOTE: "in canada", "in india", "in china", "based in", "operations in", "development in",
+  // "deployment in", "installation in" are intentionally excluded because they commonly appear
+  // in narrative text about executive location, technology origin, or supplier headquarters
+  // and would create false positives for legitimate Australian projects.
+  // AusTender location field explicitly outside Australia
+  "outside australia",
+];
+
 // ── Australian owner patterns (secondary signal) ──
 // These are inherently Australian entities. If the owner matches AND the location
 // field has an AU state, this provides corroborating evidence.
-// IMPORTANT: This does NOT override foreign project location — it only helps
-// resolve the "vague location + AU state" ambiguity.
+// NOTE: "australian centre for international" is intentionally excluded here because
+// ACIAR funds projects in foreign countries — AU owner does NOT mean AU project location.
 const AU_OWNER_PATTERNS = [
   // Government — federal
   "department of defence", "department of defense", "department of industry",
@@ -171,7 +222,6 @@ const AU_OWNER_PATTERNS = [
   "department of energy", "department of environment",
   "department of finance", "department of treasury",
   "department of resources", "department of mines",
-  "australian centre for international",
   "infrastructure australia", "federal government",
   // Government — state
   "nsw gov", "qld gov", "wa gov", "vic gov", "sa gov", "nt gov", "tas gov",
@@ -198,8 +248,9 @@ const AU_OWNER_PATTERNS = [
   "sandfire", "regis resources", "saracen", "ramelius",
   "chalice mining", "de grey mining", "bellevue gold",
   "capricorn metals", "red 5", "westgold", "silver lake",
+  "indiana resources",
   // Defence
-  "asc pty", "bae systems australia", "thales australia",
+  "asc pty", "asc /", "asc/", "bae systems australia", "thales australia",
   "raytheon australia", "lockheed martin australia",
   // Infrastructure & construction
   "transurban", "lendlease", "cimic", "downer", "john holland",
@@ -224,6 +275,28 @@ const AU_OWNER_PATTERNS = [
   "australia", "australian",
 ];
 
+// ── Australian source domain patterns ──
+// Source URLs from these domains strongly indicate the project is Australian.
+const AU_SOURCE_DOMAIN_PATTERNS = [
+  // Government
+  ".gov.au", "tenders.gov.au", "infrastructureaustralia.gov.au",
+  "aemo.com.au", "aer.gov.au",
+  // Mining & resources
+  "stockhead.com.au", "miningweekly.com.au", "resourcesandgeoscience.nsw.gov.au",
+  "dmp.wa.gov.au", "dmirs.wa.gov.au",
+  // Energy
+  "reneweconomy.com.au", "pv-magazine-australia.com", "energymagazine.com.au",
+  "theenergist.com.au",
+  // Construction & infrastructure
+  "constructionreview.com.au", "infrastructuremagazine.com.au",
+  "theurbandeveloper.com", "australianmining.com.au",
+  // Finance & business
+  "afr.com", "smh.com.au", "theaustralian.com.au", "abc.net.au",
+  "businessnews.com.au", "watoday.com.au",
+  // Industry
+  "quarrymagazine.com", "miningmonthly.com.au",
+];
+
 export interface GeoClassification {
   projectCountry: string | null;   // ISO 3166-1 alpha-2 (AU, US, CA, etc.)
   projectState: string | null;     // e.g. WA, QLD, NSW, or foreign region
@@ -235,12 +308,18 @@ export interface GeoClassification {
  * Classify a project's geography from its text fields.
  * This is a deterministic rules-based classifier — no LLM required.
  *
- * Priority order:
- *  1. Explicit foreign location → blocked_non_australian_project
- *  2. Explicit AU state/territory → AU + state, confidence 0.9+
- *  3. "Australia" mentioned + no foreign signal → AU + unknown state, confidence 0.7
- *  4. Location field contains an AU state abbreviation → AU + state, confidence 0.8
- *  5. Unknown/ambiguous → blocked_location_unclear
+ * Priority order (updated):
+ *  1. Hard program overrides (AUKUS, ANZAC, Osborne Naval Shipyard) → AU
+ *  2. Explicit foreign location WITH location-anchor phrase AND no strong AU evidence → block
+ *  3. Explicit AU state/territory text match → AU + state, confidence 0.9+
+ *  4. "Australia" mentioned + no anchored foreign signal → AU + unknown state, confidence 0.7
+ *  5. Location field contains an AU state abbreviation → AU + state, confidence 0.8
+ *  6. Unknown/ambiguous → blocked_location_unclear
+ *
+ * Cross-border conflict resolution (Case A):
+ *  - Foreign keyword in narrative text (no anchor phrase) + AU state/source → ALLOW as AU
+ *  - Foreign keyword with anchor phrase + AU state/source → BLOCK (genuinely multi-country)
+ *  - Foreign keyword with anchor phrase + no AU state/source → BLOCK
  */
 export function classifyProjectGeography(project: {
   name: string;
@@ -261,22 +340,31 @@ export function classifyProjectGeography(project: {
   const sourceUrls = (project.sources ?? []).map(s => s.url.toLowerCase()).join(" ");
   const sourceLabels = (project.sources ?? []).map(s => s.label.toLowerCase()).join(" ");
 
-  // ── Step 0: Project-name-level overrides ──
-  // Some project names contain inherently Australian programs that mention foreign countries
+  // ── Step 0: Hard program/project-name overrides ──
+  // These project names are inherently Australian programs even when they mention foreign countries.
   const projectNameLower = project.name.toLowerCase();
   const AU_PROJECT_NAME_OVERRIDES = [
-    "aukus",           // AUKUS is AU-UK-US but the project is in Australia
-    "anzac",           // ANZAC programs are AU/NZ but primarily AU-based
-    "australian aid",  // Australian aid programs — AU government, foreign recipients
+    "aukus",                    // AUKUS is AU-UK-US but the program is in Australia
+    "anzac",                    // ANZAC programs are AU/NZ but primarily AU-based
+    "osborne naval shipyard",   // Osborne is in SA, Australia
+    "hunter class frigate",     // Hunter-class frigates are built in Australia
+    "hunter-class frigate",
+    "arafura class",            // Arafura-class OPVs built in Australia
+    "evolved cape class",       // Cape-class patrol boats — AU
+    "land 400",                 // Australian Army vehicle program
+    "land 8116",                // Australian Army program
+    "air 6000",                 // Australian Air Force program
+    "sea 1000",                 // Australian submarine program
+    "sea 5000",                 // Australian frigate program
   ];
   const isAuProjectOverride = AU_PROJECT_NAME_OVERRIDES.some(p => projectNameLower.includes(p));
 
   // ── Step 1: Check for explicit foreign location ──
-  let foreignMatch: { country: string; code: string } | null = null;
+  let foreignMatch: { country: string; code: string; matchedPattern: string } | null = null;
   for (const fc of FOREIGN_COUNTRY_PATTERNS) {
     for (const pattern of fc.patterns) {
       if (projectText.includes(pattern)) {
-        foreignMatch = { country: fc.country, code: fc.code };
+        foreignMatch = { country: fc.country, code: fc.code, matchedPattern: pattern };
         break;
       }
     }
@@ -319,40 +407,91 @@ export function classifyProjectGeography(project: {
     }
   }
 
+  // ── Step 5: Check source domains for AU origin ──
+  const hasAuSourceDomain = AU_SOURCE_DOMAIN_PATTERNS.some(d => sourceUrls.includes(d));
+
+  // ── Step 6: Check owner for AU patterns ──
+  const ownerLower = project.owner.toLowerCase();
+  const hasAuOwner = AU_OWNER_PATTERNS.some(p => ownerLower.includes(p));
+
+  // ── Step 7: Determine if foreign match is location-anchored or merely narrative ──
+  // A foreign keyword is "anchored" if it appears alongside a phrase that indicates
+  // the foreign country IS the project location (not just origin of a supplier/exec).
+  let foreignIsLocationAnchored = false;
+  if (foreignMatch) {
+    const overviewLower = (project.overview ?? "").toLowerCase();
+    foreignIsLocationAnchored = FOREIGN_LOCATION_ANCHOR_PHRASES.some(phrase =>
+      overviewLower.includes(phrase)
+    );
+  }
+
   // ── Decision logic ──
 
   // Case A: Both foreign AND Australian signals → cross-border conflict
   if (foreignMatch && (auStateMatch || hasAustraliaKeyword || locationFieldState)) {
-    // A0: If the project name is an AU program override (AUKUS, ANZAC), suppress foreign match
+
+    // A0 (Tier 1): Hard program override — always AU regardless of foreign mentions
     if (isAuProjectOverride) {
       const state = auStateMatch ?? locationFieldState;
       return {
         projectCountry: "AU",
         projectState: state,
-        locationConfidence: 0.85,
+        locationConfidence: 0.9,
         geoBlockedReason: null,
       };
     }
-    // If the AU signal is a specific state/city, trust it over a vague foreign mention
+
+    // A1 (Tier 2): Foreign mention is NOT location-anchored (narrative-only)
+    // + strong AU evidence (AU state text match OR AU source domain)
+    // → The foreign keyword is about supplier/exec origin, not project location
+    if (!foreignIsLocationAnchored && (auStateMatch || hasAuSourceDomain)) {
+      const state = auStateMatch ?? locationFieldState;
+      return {
+        projectCountry: "AU",
+        projectState: state,
+        locationConfidence: auStateMatch ? 0.8 : 0.72,
+        geoBlockedReason: null,
+      };
+    }
+
+    // A2 (Tier 3): AU state text match with high confidence outranks vague foreign mention
+    // (Even if foreign is anchored, a specific AU city/region is stronger evidence)
     if (auStateMatch && auStateConfidence >= 0.9) {
       return {
         projectCountry: "AU",
         projectState: auStateMatch,
-        locationConfidence: 0.7, // Lower confidence due to conflict
-        geoBlockedReason: null,  // Allow but flag
-      };
-    }
-    // A2: If AU owner + AU state in location field, trust as AU (e.g. CSIRO + NSW)
-    const ownerLowerA = project.owner.toLowerCase();
-    const hasAuOwnerA = AU_OWNER_PATTERNS.some(p => ownerLowerA.includes(p));
-    if (hasAuOwnerA && (auStateMatch || locationFieldState)) {
-      return {
-        projectCountry: "AU",
-        projectState: auStateMatch ?? locationFieldState,
-        locationConfidence: 0.65,
+        locationConfidence: 0.75,
         geoBlockedReason: null,
       };
     }
+
+    // A3 (Tier 4): AU owner + (AU state OR AU source domain)
+    // → Known AU entity operating in Australia
+    // IMPORTANT: Only fires when foreign mention is NOT location-anchored.
+    // If the overview says "project in Ghana and Nigeria", an AU owner cannot override that.
+    if (!foreignIsLocationAnchored && hasAuOwner && (auStateMatch || locationFieldState || hasAuSourceDomain)) {
+      return {
+        projectCountry: "AU",
+        projectState: auStateMatch ?? locationFieldState,
+        locationConfidence: 0.7,
+        geoBlockedReason: null,
+      };
+    }
+
+    // A4 (Tier 5): AU source domain + "in australia" phrase in overview
+    // → Project is explicitly described as being in Australia by an AU source
+    // IMPORTANT: Only fires when foreign mention is NOT location-anchored.
+    if (!foreignIsLocationAnchored && hasAuSourceDomain && hasAustraliaKeyword) {
+      return {
+        projectCountry: "AU",
+        projectState: locationFieldState,
+        locationConfidence: 0.68,
+        geoBlockedReason: null,
+      };
+    }
+
+    // A5 (Default): Foreign mention is anchored to a location AND no strong AU override
+    // → Genuinely multi-country or foreign project — block
     return {
       projectCountry: null,
       projectState: null,
@@ -409,20 +548,17 @@ export function classifyProjectGeography(project: {
       };
     }
 
-    // D2: Vague location — need corroborating evidence from overview OR owner
-    const ownerLower = project.owner.toLowerCase();
-    const hasAuOwner = AU_OWNER_PATTERNS.some(p => ownerLower.includes(p));
-
-    if (hasAuEvidenceInOverview || hasAustraliaKeyword || hasAuOwner) {
+    // D2: Vague location — need corroborating evidence from overview OR owner OR source
+    if (hasAuEvidenceInOverview || hasAustraliaKeyword || hasAuOwner || hasAuSourceDomain) {
       return {
         projectCountry: "AU",
         projectState: locationFieldState,
-        locationConfidence: hasAuOwner ? 0.75 : 0.7,
+        locationConfidence: hasAuOwner ? 0.75 : hasAuSourceDomain ? 0.72 : 0.7,
         geoBlockedReason: null,
       };
     }
 
-    // Vague location + no AU evidence in overview or owner → unclear
+    // Vague location + no AU evidence in overview, owner, or source → unclear
     return {
       projectCountry: null,
       projectState: null,
@@ -442,9 +578,7 @@ export function classifyProjectGeography(project: {
   }
 
   // Case F: No text-based geography signal — check if owner is a known AU entity
-  const ownerLowerF = project.owner.toLowerCase();
-  const hasAuOwnerF = AU_OWNER_PATTERNS.some(p => ownerLowerF.includes(p));
-  if (hasAuOwnerF) {
+  if (hasAuOwner) {
     return {
       projectCountry: "AU",
       projectState: null,
@@ -487,7 +621,7 @@ export async function classifyAndPersistProject(projectId: number): Promise<GeoC
     projectState: classification.projectState,
     locationConfidence: classification.locationConfidence,
     geoBlockedReason: classification.geoBlockedReason,
-  }).where(eq(projects.id, projectId));
+  }).where(eq(projects.id, row.id));
 
   return classification;
 }
@@ -549,6 +683,70 @@ export async function backfillGeoClassification(): Promise<{
   }
 
   return { total: unclassified.length, australian, blocked, unclear };
+}
+
+/**
+ * Re-classify ALL projects (including already-classified ones).
+ * Used when the classifier rules change and we need to re-evaluate existing classifications.
+ */
+export async function reclassifyAllProjects(): Promise<{
+  total: number;
+  australian: number;
+  blocked: number;
+  unclear: number;
+  reclassified: number;
+}> {
+  const db = await getDb();
+  if (!db) return { total: 0, australian: 0, blocked: 0, unclear: 0, reclassified: 0 };
+
+  const allProjects = await db.select({
+    id: projects.id,
+    name: projects.name,
+    location: projects.location,
+    owner: projects.owner,
+    overview: projects.overview,
+    sources: projects.sources,
+    sector: projects.sector,
+    prevCountry: projects.projectCountry,
+    prevBlockedReason: projects.geoBlockedReason,
+  }).from(projects);
+
+  let australian = 0;
+  let blocked = 0;
+  let unclear = 0;
+  let reclassified = 0;
+
+  for (const row of allProjects) {
+    const sources = row.sources as Array<{ label: string; url: string; date?: string }> | null;
+    const classification = classifyProjectGeography({
+      name: row.name,
+      location: row.location,
+      owner: row.owner,
+      overview: row.overview ?? null,
+      sources,
+      sector: row.sector,
+    });
+
+    const changed =
+      classification.projectCountry !== row.prevCountry ||
+      classification.geoBlockedReason !== row.prevBlockedReason;
+
+    if (changed) {
+      await db.update(projects).set({
+        projectCountry: classification.projectCountry,
+        projectState: classification.projectState,
+        locationConfidence: classification.locationConfidence,
+        geoBlockedReason: classification.geoBlockedReason,
+      }).where(eq(projects.id, row.id));
+      reclassified++;
+    }
+
+    if (classification.projectCountry === "AU") australian++;
+    else if (classification.geoBlockedReason === "blocked_non_australian_project") blocked++;
+    else unclear++;
+  }
+
+  return { total: allProjects.length, australian, blocked, unclear, reclassified };
 }
 
 /**

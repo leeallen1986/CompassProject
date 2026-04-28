@@ -1836,3 +1836,14 @@
 - [x] Confirm no duplicate projects created
 - [x] Confirm refresh fires on re-run (not just first insert)
 - [x] Run tests and save checkpoint
+
+## Geo Classification Rule Hierarchy (Apr 2026)
+
+- [x] Add CSIRO to AU owner patterns
+- [x] Add AUKUS and other AU defence program overrides (Osborne Naval Shipyard, Hunter-class frigate, LAND/SEA/AIR programs)
+- [x] Add FOREIGN_LOCATION_ANCHOR_PHRASES to distinguish narrative vs location-anchored foreign mentions
+- [x] Add general precedence rule: AU owner + AU state + AU source outranks foreign narrative mentions
+- [x] Fix A3/A4 tiers to require !foreignIsLocationAnchored (prevents ACIAR false positive)
+- [x] Fix source parsing bug in backfill scripts (mysql2 auto-parses JSON columns)
+- [x] Backfill and validate geo reclassification — 7/9 blocked projects reclassified to AU, 2 correctly remain blocked
+- [x] All 2866/2871 tests passing (5 pre-existing reportIdFix failures unrelated)
