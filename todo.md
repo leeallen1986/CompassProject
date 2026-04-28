@@ -1853,3 +1853,10 @@
 - [x] Suppress repeated "Monday Digest HELD" emails — only notify once per week using digestScheduleLog dedup
 - [x] Log a 'failed' row to digestScheduleLog on first hold so subsequent cold-starts skip the notification
 - [x] Fix emailDigest.test.ts to handle freshness gate sentinel (skipped=-1) as a valid outcome
+
+## ICN Operationalization (from corrected audit)
+- [ ] ICN digest treatment: split into action-ready (full card), discovery-needed (strategic signal), monitor-only (footnote)
+- [ ] Contact count cleanup: add usableContactCount, sendReadyContactCount, highRelevanceContactCount; exclude CRM junk/Atlas internal billing
+- [ ] ICN enrichment queue: build targeted enrichment for 14 discovery-needed ICN projects (owner + principal contractor contacts)
+- [ ] BL scoring review: fix BESS coverage gap, VicGrid REZ tagging, generic Air/PAL/Pump co-tagging
+- [ ] Territory matching cleanup: use exact state matching, no substring false positives

@@ -13,8 +13,8 @@
  * 1. Pre-filter: keyword-based scoring to narrow 500+ projects to top ~60
  * 2. LLM ranking: deep analysis of the shortlist with reasoning
  */
-import { desc, eq } from "drizzle-orm";
-import { getDb } from "./db";
+import { desc, eq, sql } from "drizzle-orm";
+import { getDb, CRM_JUNK_EXCLUSION } from "./db";
 import { projects, contacts, userProfiles, type Project, type Contact } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 
@@ -342,10 +342,11 @@ export async function searchProjects(query: string, userId?: number): Promise<Ma
   // Step 3: LLM ranking
   const { matches, searchInsight, suggestedKeywords } = await llmRankProjects(query, preFiltered);
 
-  // Step 4: Enrich with contact counts
+  // Step 4: Enrich with contact counts (CRM junk excluded)
   if (matches.length > 0) {
     const allContacts = await db.select()
       .from(contacts)
+      .where(CRM_JUNK_EXCLUSION)
       .orderBy(desc(contacts.id));
 
     for (const match of matches) {

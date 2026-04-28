@@ -331,8 +331,9 @@ const ICN_PROJECTS: IcnProject[] = [
       "Transmission tower construction requires compressed air systems",
       "Substation construction needs portable power supply",
       "Remote construction requires lighting towers",
+      "REZ includes battery energy storage system (BESS) construction",
     ],
-    businessLineHints: ["air", "pal"],
+    businessLineHints: ["air", "pal", "bess"],
   },
   // ── Civil Infrastructure ──
   {

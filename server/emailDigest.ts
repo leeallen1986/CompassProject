@@ -309,7 +309,17 @@ function scoreProjectForUser(
     for (const terr of territories) {
       if (terr === "National" || terr === "NATIONAL") { matched = true; break; }
       const keywords = stateMap[terr] || [terr.toLowerCase()];
-      if (keywords.some(k => loc.includes(k))) { matched = true; break; }
+      // Use word-boundary matching to prevent substring false positives
+      // e.g. "SA" must not match "USA", "WA" must not match "water"
+      if (keywords.some(k => {
+        // Short abbreviations (2-3 chars) need strict word-boundary matching
+        if (k.length <= 3) {
+          const re = new RegExp(`(?:^|[\\s,;/|()\\-])${k}(?:$|[\\s,;/|()\\-])`, "i");
+          return re.test(loc);
+        }
+        // Longer keywords (city/state names) are safe with includes
+        return loc.includes(k);
+      })) { matched = true; break; }
     }
     score += matched ? 15 : -20;
   }

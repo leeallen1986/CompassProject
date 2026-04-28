@@ -496,20 +496,33 @@ export async function getContactsByReportId(reportId: number) {
   return db.select().from(contacts).where(eq(contacts.reportId, reportId));
 }
 
+/**
+ * CRM junk exclusion clause — shared across all rep-facing contact queries.
+ * Excludes:
+ *   1. Contacts where roleBucket is a phone number (CRM bulk import artefact)
+ *   2. Atlas Copco internal / billing emails
+ *   3. Generic shared-mailbox emails (info@, admin@, noreply@, portal@, support@, sales@)
+ */
+export const CRM_JUNK_EXCLUSION = sql`
+  NOT (${contacts.roleBucket} REGEXP '^[0-9+() -]{6,}$')
+  AND NOT (${contacts.email} LIKE '%atlascopco%' OR ${contacts.email} LIKE '%portal.invoices%')
+  AND NOT (${contacts.email} LIKE '%noreply%' OR ${contacts.email} LIKE 'info@%' OR ${contacts.email} LIKE 'admin@%' OR ${contacts.email} LIKE 'support@%' OR ${contacts.email} LIKE 'sales@%')
+`;
+
 export async function getAllContacts(includeAll = false) {
   const db = await getDb();
   if (!db) return [];
 
   if (includeAll) {
-    // Admin view: return all contacts
+    // Admin view: return all contacts (including CRM junk for audit purposes)
     return db.select().from(contacts).orderBy(desc(contacts.id));
   }
 
   // Quality filter: only return contacts with score >= 60 or LinkedIn-verified
-  // This prevents low-quality LLM hallucinations from reaching the sales team
+  // PLUS CRM junk exclusion to remove bulk-imported billing/phone contacts
   return db.select().from(contacts)
     .where(
-      sql`(${contacts.verificationScore} >= 60 OR ${contacts.enrichmentSource} = 'linkedin' OR ${contacts.verificationStatus} = 'verified')`
+      sql`(${contacts.verificationScore} >= 60 OR ${contacts.enrichmentSource} = 'linkedin' OR ${contacts.verificationStatus} = 'verified') AND ${CRM_JUNK_EXCLUSION}`
     )
     .orderBy(desc(contacts.id));
 }
@@ -2553,6 +2566,7 @@ export async function getPilotShortlist(reportId?: number): Promise<PilotShortli
   if (rows.length === 0) return [];
 
   // Fetch contact counts per project via contactProjects junction
+  // EXCLUDING CRM junk contacts (phone-in-roleBucket, Atlas internal, generic emails)
   const projectIds = rows.map(r => r.id);
   const contactRows = await db
     .select({
@@ -2560,9 +2574,15 @@ export async function getPilotShortlist(reportId?: number): Promise<PilotShortli
       contactId: contactProjects.contactId,
     })
     .from(contactProjects)
-    .where(inArray(contactProjects.projectId, projectIds));
+    .innerJoin(contacts, eq(contactProjects.contactId, contacts.id))
+    .where(
+      and(
+        inArray(contactProjects.projectId, projectIds),
+        CRM_JUNK_EXCLUSION
+      )
+    );
 
-  // Fetch email status for those contacts
+  // Fetch email status for those contacts (already CRM-junk-filtered)
   const contactIds = Array.from(new Set(contactRows.map(c => c.contactId)));
   let emailSet = new Set<number>();
   if (contactIds.length > 0) {

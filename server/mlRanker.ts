@@ -58,7 +58,15 @@ function extractTerritory(location: string): string[] {
   };
 
   for (const [state, keywords] of Object.entries(stateMap)) {
-    if (keywords.some(kw => loc.includes(kw))) {
+    if (keywords.some(kw => {
+      // Short abbreviations (2-3 chars) need strict word-boundary matching
+      // to prevent "SA" matching "USA", "WA" matching "water", etc.
+      if (kw.length <= 3) {
+        const re = new RegExp(`(?:^|[\\s,;/|()\\-])${kw}(?:$|[\\s,;/|()\\-])`, "i");
+        return re.test(loc);
+      }
+      return loc.includes(kw);
+    })) {
       territories.push(state);
     }
   }

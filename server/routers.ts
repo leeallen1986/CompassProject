@@ -2484,6 +2484,121 @@ export const appRouter = router({
     validateAll: adminProcedure.mutation(async () => {
       return icnValidateAllProjects();
     }),
+
+    /** Targeted enrichment queue for discovery-needed ICN projects */
+    enrichDiscoveryNeeded: adminProcedure
+      .input(z.object({ maxProjects: z.number().min(1).max(20).default(5) }).optional())
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+
+        // Find ICN projects with lastIcnSeenAt but zero usable contacts
+        const icnProjects = await db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            owner: projects.owner,
+            location: projects.location,
+            reportId: projects.reportId,
+            sector: projects.sector,
+            contractors: projects.contractors,
+          })
+          .from(projects)
+          .where(
+            sql`${projects.lastIcnSeenAt} IS NOT NULL AND ${projects.projectCountry} = 'AU'`
+          )
+          .orderBy(desc(projects.lastActivityAt));
+
+        // Filter to those with zero usable contacts (exclude CRM junk)
+        const discoveryNeeded: typeof icnProjects = [];
+        for (const p of icnProjects) {
+          const [countRow] = await db
+            .select({ cnt: sql<number>`COUNT(DISTINCT c.id)` })
+            .from(sql`contactProjects cp`)
+            .innerJoin(sql`contacts c`, sql`c.id = cp.contactId`)
+            .where(
+              sql`cp.projectId = ${p.id}
+                AND NOT (c.roleBucket REGEXP '^[0-9+() -]{6,}$')
+                AND NOT (c.email LIKE '%atlascopco%' OR c.email LIKE '%portal.invoices%')
+                AND NOT (c.email LIKE '%noreply%' OR c.email LIKE 'info@%' OR c.email LIKE 'admin@%')`
+            );
+          if (Number(countRow?.cnt ?? 0) === 0) {
+            discoveryNeeded.push(p);
+          }
+          if (discoveryNeeded.length >= (input?.maxProjects ?? 5)) break;
+        }
+
+        if (discoveryNeeded.length === 0) {
+          return {
+            totalQueued: 0,
+            totalEnriched: 0,
+            totalContactsFound: 0,
+            results: [],
+            message: "All ICN projects already have usable contacts.",
+          };
+        }
+
+        // Run enrichment on each discovery-needed project
+        const results: { projectId: number; name: string; contactsFound: number; source: string; error?: string }[] = [];
+        let totalContactsFound = 0;
+
+        for (const p of discoveryNeeded) {
+          try {
+            // Try web search first
+            const contractorsList = Array.isArray(p.contractors)
+              ? (p.contractors as { name: string; status: string }[])
+              : [];
+
+            const { discoverAndSaveStakeholders } = await import("./webStakeholderDiscovery");
+            const webResult = await discoverAndSaveStakeholders({
+              id: p.id,
+              reportId: p.reportId,
+              name: p.name,
+              owner: p.owner || "Unknown",
+              contractors: contractorsList,
+              sector: p.sector || "infrastructure",
+              location: p.location || "Australia",
+            });
+
+            if (webResult.contactsFound > 0) {
+              results.push({ projectId: p.id, name: p.name, contactsFound: webResult.contactsFound, source: "web_search" });
+              totalContactsFound += webResult.contactsFound;
+              continue;
+            }
+
+            // Fallback to LLM stakeholder inference
+            const { generateAndSaveLLMContacts } = await import("./llmContactFallback");
+            const llmResult = await generateAndSaveLLMContacts(
+              p.id,
+              p.reportId,
+              p.name,
+              p.owner || "Unknown",
+              contractorsList,
+              p.sector || "infrastructure",
+              "",
+              p.location || "Australia",
+            );
+            if (llmResult && llmResult.contacts && llmResult.contacts.length > 0) {
+              results.push({ projectId: p.id, name: p.name, contactsFound: llmResult.contacts.length, source: "llm" });
+              totalContactsFound += llmResult.contacts.length;
+              continue;
+            }
+
+            results.push({ projectId: p.id, name: p.name, contactsFound: 0, source: "none" });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            results.push({ projectId: p.id, name: p.name, contactsFound: 0, source: "error", error: msg });
+          }
+        }
+
+        return {
+          totalQueued: discoveryNeeded.length,
+          totalEnriched: results.filter(r => r.contactsFound > 0).length,
+          totalContactsFound,
+          results,
+          message: `Enriched ${results.filter(r => r.contactsFound > 0).length}/${discoveryNeeded.length} ICN projects with ${totalContactsFound} new contacts.`,
+        };
+      }),
   }),
 
   // ── ASX Monitoring ──
