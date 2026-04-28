@@ -54,7 +54,7 @@ vi.mock("./austenderScraper", () => ({
 
 vi.mock("./icnScraper", () => ({
   runIcnScraper: vi.fn().mockResolvedValue({
-    totalNewProjects: 2, totalDuplicates: 22, totalErrors: 0, duration: 3,
+    totalNewProjects: 2, totalUpdated: 20, totalDuplicates: 0, totalErrors: 0, duration: 3, reactivated: [],
   }),
 }));
 

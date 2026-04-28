@@ -1,5 +1,5 @@
 /**
- * ICN Gateway Scraper
+ * ICN Gateway Scraper — Upsert Engine
  *
  * Curated database of major projects from the Industry Capability Network (ICN)
  * Gateway platform (https://gateway.icn.org.au/projects).
@@ -11,6 +11,35 @@
  * Since ICN doesn't expose a public API, we maintain a curated list of the
  * highest-value projects visible on their platform, with direct links to
  * each project page for work package details.
+ *
+ * ── Upsert Engine Design ──
+ *
+ * Every Saturday run performs a full upsert against the curated ICN_PROJECTS list:
+ *
+ *   INSERT path (project not in DB):
+ *     - Insert as normal with lastIcnSeenAt = now()
+ *     - Trigger contact enrichment + business line scoring
+ *
+ *   UPDATE path (project already in DB):
+ *     - Update lastIcnSeenAt = now()
+ *     - Update lastActivityAt = now()  ← makes it visible to reps again
+ *     - Update all ICN-derived fields: stage, priority, work-package counts,
+ *       opportunityNote, equipmentSignals, contractors, timeline
+ *     - Update updatedAt (handled by MySQL onUpdateNow)
+ *     - Do NOT re-trigger contact enrichment (contacts already exist)
+ *
+ * ── Staleness Rule ──
+ *
+ *   21-day / 3-missed-runs rule:
+ *   If a project is NOT present in the ICN_PROJECTS list on a given run, its
+ *   lastIcnSeenAt will not be updated. Once lastIcnSeenAt is older than 21 days
+ *   (i.e., the project has been absent from 3 consecutive weekly Saturday runs),
+ *   the project is treated as dropped from ICN. Its lastActivityAt is frozen at
+ *   its last-seen value and it ages out naturally via the existing recency filter.
+ *
+ *   This means: projects that are removed from the curated list or genuinely
+ *   dropped from ICN will become stale within 3 weeks — without any manual
+ *   intervention or artificial timestamp manipulation.
  *
  * Runs weekly (Saturdays) as part of the daily pipeline.
  */
@@ -41,16 +70,19 @@ interface IcnProject {
 export interface IcnScrapeResult {
   totalFetched: number;
   totalNewProjects: number;
+  totalUpdated: number;
   totalDuplicates: number;
   totalSkipped: number;
   totalErrors: number;
   errors: string[];
   duration: number;
+  /** Projects that were stale before this run and are now visible again */
+  reactivated: string[];
 }
 
 // ── Curated ICN Gateway Projects ──
 // Source: https://gateway.icn.org.au/projects
-// Last updated: February 2026
+// Last updated: April 2026
 
 const ICN_PROJECTS: IcnProject[] = [
   // ── Defence ──
@@ -240,8 +272,7 @@ const ICN_PROJECTS: IcnProject[] = [
     description: "North West Shelf subsea tieback program using existing infrastructure to develop reserves from NWS Project fields. Includes subsea installation, pipeline construction, and platform modifications.",
     estimatedValue: "$5+ billion",
     equipmentRelevance: [
-      "Platform modification requires compressed air for welding and blasting",
-      "Pipeline construction needs portable power for welding rigs",
+      "Platform modification requires compressed air for maintenance",
       "Offshore construction requires portable generators",
     ],
     businessLineHints: ["air", "pal"],
@@ -533,34 +564,30 @@ function mapCapexGrade(value?: string): "A" | "B" | "Unknown" {
   return "Unknown";
 }
 
-// ── Deduplication ──
+// ── Project Lookup by projectKey ──
 
-async function isIcnDuplicate(projectName: string): Promise<boolean> {
+/**
+ * Look up an existing ICN project by its deterministic projectKey.
+ * Returns the project row if found, null otherwise.
+ */
+async function findExistingIcnProject(projectKey: string) {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return null;
 
-  const normalized = projectName.toLowerCase().trim();
   const existing = await db
-    .select({ name: projects.name })
+    .select({
+      id: projects.id,
+      name: projects.name,
+      priority: projects.priority,
+      lastActivityAt: projects.lastActivityAt,
+      lastIcnSeenAt: projects.lastIcnSeenAt,
+      lifecycleStatus: projects.lifecycleStatus,
+    })
     .from(projects)
-    .where(sql`LOWER(${projects.name}) LIKE ${`%${normalized.slice(0, 60)}%`}`)
+    .where(eq(projects.projectKey, projectKey))
     .limit(1);
 
-  if (existing.length > 0) return true;
-
-  // Fuzzy match on key words
-  const words = normalized.split(/\s+/).filter(w => w.length > 3);
-  if (words.length >= 2) {
-    const pattern = `%${words[0]}%${words[1]}%`;
-    const fuzzy = await db
-      .select({ name: projects.name })
-      .from(projects)
-      .where(sql`LOWER(${projects.name}) LIKE ${pattern}`)
-      .limit(1);
-    if (fuzzy.length > 0) return true;
-  }
-
-  return false;
+  return existing.length > 0 ? existing[0] : null;
 }
 
 // ── Report helper ──
@@ -602,11 +629,13 @@ export async function runIcnScraper(): Promise<IcnScrapeResult> {
   const errors: string[] = [];
   let totalFetched = 0;
   let totalNewProjects = 0;
+  let totalUpdated = 0;
   let totalDuplicates = 0;
   let totalSkipped = 0;
   let totalErrors = 0;
+  const reactivated: string[] = [];
 
-  console.log(`[ICN] Starting scrape — ${ICN_PROJECTS.length} ICN Gateway projects...`);
+  console.log(`[ICN] Starting upsert run — ${ICN_PROJECTS.length} ICN Gateway projects...`);
 
   // Look up business line IDs
   const allBL = await db.select().from(businessLines);
@@ -620,16 +649,13 @@ export async function runIcnScraper(): Promise<IcnScrapeResult> {
   }
 
   const reportId = await getOrCreateTodayReport();
+  const now = new Date();
 
   for (const icnProject of ICN_PROJECTS) {
     totalFetched++;
 
-    // Dedup check
-    const isDup = await isIcnDuplicate(icnProject.name);
-    if (isDup) {
-      totalDuplicates++;
-      continue;
-    }
+    // Derive the deterministic project key (same formula as insert)
+    const projectKey = `icn-${icnProject.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 120)}`;
 
     // Map business lines
     const rawBLIds = matchBusinessLines(icnProject);
@@ -644,71 +670,127 @@ export async function runIcnScraper(): Promise<IcnScrapeResult> {
     const priority = mapPriority(icnProject);
     const capexGrade = mapCapexGrade(icnProject.estimatedValue);
     const opportunityRoute = priority === "hot" ? "Direct CAPEX" : priority === "warm" ? "Fleet CAPEX" : "OPEX/Monitor";
+    const stage = `Active — ${icnProject.workPackages.open} open, ${icnProject.workPackages.awarded} awarded, ${icnProject.workPackages.closed} closed work packages`;
+    const opportunityNote = `ICN Gateway project with ${icnProject.workPackages.total} work packages (${icnProject.workPackages.open} open, ${icnProject.workPackages.awarded} awarded). ${icnProject.equipmentRelevance[0]}`;
 
-    const projectData: InsertProject = {
-      reportId,
-      projectKey: `icn-${icnProject.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 120)}`,
-      name: icnProject.name,
-      location: `${icnProject.state}, Australia`,
-      value: icnProject.estimatedValue || "Not disclosed",
-      owner: icnProject.owner,
-      priority,
-      capexGrade,
-      opportunityRoute,
-      sector: icnProject.sector,
-      isNew: true,
-      stage: `Active — ${icnProject.workPackages.open} open work packages`,
-      overview: icnProject.description,
-      equipmentSignals: icnProject.equipmentRelevance,
-      contractors: [
-        { name: icnProject.owner, status: "confirmed", confidence: 1.0, detail: `ICN Gateway project owner` },
-      ],
-      opportunityNote: `ICN Gateway project with ${icnProject.workPackages.total} work packages (${icnProject.workPackages.open} open). ${icnProject.equipmentRelevance[0]}`,
-      sources: [
-        {
-          label: "ICN Gateway",
-          url: icnProject.icnProjectId > 0
-            ? `https://gateway.icn.org.au/projects/${icnProject.icnProjectId}`
-            : "https://gateway.icn.org.au/projects",
-          date: new Date().toISOString().split("T")[0],
-        },
-      ],
-      timeline: `${icnProject.openDate} — ${icnProject.closeDate}`,
-      completion: icnProject.closeDate,
-      matchedBusinessLines: mappedBLIds.length > 0 ? mappedBLIds : undefined,
-    };
+    // ── Check if project already exists ──
+    const existing = await findExistingIcnProject(projectKey);
 
-    try {
-      const [inserted] = await db.insert(projects).values(projectData).$returningId();
-      scoreProjectAsync(inserted.id, "ICN");
-      totalNewProjects++;
-      console.log(`[ICN] New project: ${icnProject.name} (${icnProject.estimatedValue || "N/A"}, ${icnProject.state})`);
+    if (existing) {
+      // ── UPDATE PATH ──
+      // Project exists — refresh all ICN-derived fields and mark as seen
+      const wasStale = existing.lastActivityAt
+        ? (now.getTime() - new Date(existing.lastActivityAt).getTime()) > 30 * 24 * 60 * 60 * 1000
+        : true;
 
-      // Auto-discover and enrich contacts
       try {
-        const contactResults = await generateAndEnrichContacts(
-          inserted.id,
-          reportId,
-          icnProject.name,
-          icnProject.owner,
-          [{ name: icnProject.owner, status: "confirmed" }],
-          icnProject.sector
-        );
-        if (contactResults.length > 0) {
-          console.log(`[ICN] Auto-enriched ${contactResults.length} contacts for ${icnProject.name}`);
+        await db.update(projects).set({
+          // Refresh activity timestamp — makes project visible to reps again
+          lastActivityAt: now,
+          // Record that this project was seen in today's ICN run
+          lastIcnSeenAt: now,
+          // Update all ICN-derived fields that may have changed
+          stage,
+          priority,
+          capexGrade,
+          opportunityRoute,
+          opportunityNote,
+          equipmentSignals: icnProject.equipmentRelevance,
+          contractors: [
+            { name: icnProject.owner, status: "confirmed", confidence: 1.0, detail: "ICN Gateway project owner" },
+          ],
+          timeline: `${icnProject.openDate} — ${icnProject.closeDate}`,
+          completion: icnProject.closeDate,
+          matchedBusinessLines: mappedBLIds.length > 0 ? mappedBLIds : undefined,
+          // Restore to active lifecycle status if it was stale
+          lifecycleStatus: "active",
+          // Clear any stale reason
+          staleReason: null,
+          // updatedAt is handled by MySQL onUpdateNow()
+        }).where(eq(projects.id, existing.id));
+
+        totalUpdated++;
+        if (wasStale) {
+          reactivated.push(icnProject.name);
+          console.log(`[ICN] REACTIVATED: ${icnProject.name} (was stale, now active, priority=${priority})`);
+        } else {
+          console.log(`[ICN] Updated: ${icnProject.name} (priority=${priority}, ${icnProject.workPackages.open} open WPs)`);
         }
-      } catch (enrichErr) {
-        console.warn(`[ICN] Contact enrichment failed for ${icnProject.name}:`, enrichErr instanceof Error ? enrichErr.message : String(enrichErr));
+      } catch (updateErr) {
+        const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+        errors.push(`Update "${icnProject.name}": ${msg}`);
+        totalErrors++;
       }
-    } catch (insertErr) {
-      const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
-      errors.push(`Insert "${icnProject.name}": ${msg}`);
-      totalErrors++;
+    } else {
+      // ── INSERT PATH ──
+      // New project — insert with full data and trigger enrichment
+      const projectData: InsertProject = {
+        reportId,
+        projectKey,
+        name: icnProject.name,
+        location: `${icnProject.state}, Australia`,
+        value: icnProject.estimatedValue || "Not disclosed",
+        owner: icnProject.owner,
+        priority,
+        capexGrade,
+        opportunityRoute,
+        sector: icnProject.sector,
+        isNew: true,
+        stage,
+        overview: icnProject.description,
+        equipmentSignals: icnProject.equipmentRelevance,
+        contractors: [
+          { name: icnProject.owner, status: "confirmed", confidence: 1.0, detail: "ICN Gateway project owner" },
+        ],
+        opportunityNote,
+        sources: [
+          {
+            label: "ICN Gateway",
+            url: icnProject.icnProjectId > 0
+              ? `https://gateway.icn.org.au/projects/${icnProject.icnProjectId}`
+              : "https://gateway.icn.org.au/projects",
+            date: now.toISOString().split("T")[0],
+          },
+        ],
+        timeline: `${icnProject.openDate} — ${icnProject.closeDate}`,
+        completion: icnProject.closeDate,
+        matchedBusinessLines: mappedBLIds.length > 0 ? mappedBLIds : undefined,
+        lastIcnSeenAt: now,
+        lastActivityAt: now,
+      };
+
+      try {
+        const [inserted] = await db.insert(projects).values(projectData).$returningId();
+        scoreProjectAsync(inserted.id, "ICN");
+        totalNewProjects++;
+        console.log(`[ICN] New project: ${icnProject.name} (${icnProject.estimatedValue || "N/A"}, ${icnProject.state})`);
+
+        // Auto-discover and enrich contacts
+        try {
+          const contactResults = await generateAndEnrichContacts(
+            inserted.id,
+            reportId,
+            icnProject.name,
+            icnProject.owner,
+            [{ name: icnProject.owner, status: "confirmed" }],
+            icnProject.sector
+          );
+          if (contactResults.length > 0) {
+            console.log(`[ICN] Auto-enriched ${contactResults.length} contacts for ${icnProject.name}`);
+          }
+        } catch (enrichErr) {
+          console.warn(`[ICN] Contact enrichment failed for ${icnProject.name}:`, enrichErr instanceof Error ? enrichErr.message : String(enrichErr));
+        }
+      } catch (insertErr) {
+        const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
+        errors.push(`Insert "${icnProject.name}": ${msg}`);
+        totalErrors++;
+      }
     }
   }
 
   // Update report stats
-  if (totalNewProjects > 0) {
+  if (totalNewProjects > 0 || totalUpdated > 0) {
     const allProjects = await db.select().from(projects).where(eq(projects.reportId, reportId));
     const hot = allProjects.filter(p => p.priority === "hot").length;
     const warm = allProjects.filter(p => p.priority === "warm").length;
@@ -724,16 +806,21 @@ export async function runIcnScraper(): Promise<IcnScrapeResult> {
   }
 
   const duration = Math.round((Date.now() - startTime) / 1000);
-  console.log(`[ICN] Scrape complete in ${duration}s: ${totalNewProjects} new, ${totalDuplicates} duplicates, ${totalSkipped} skipped`);
+  console.log(`[ICN] Upsert run complete in ${duration}s: ${totalNewProjects} new, ${totalUpdated} updated (${reactivated.length} reactivated), ${totalErrors} errors`);
+  if (reactivated.length > 0) {
+    console.log(`[ICN] Reactivated projects: ${reactivated.join(", ")}`);
+  }
 
   return {
     totalFetched,
     totalNewProjects,
+    totalUpdated,
     totalDuplicates,
     totalSkipped,
     totalErrors,
     errors,
     duration,
+    reactivated,
   };
 }
 

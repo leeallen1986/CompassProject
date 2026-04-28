@@ -1827,3 +1827,12 @@
 - [x] Surface foreign projects in low-priority out-of-scope section only — blocked projects excluded from all rep views, admin can see via includeGeoBlocked flag
 - [x] Validate against Bayan Mining / Desert Star example — #690042 correctly blocked as blocked_location_unclear (conf 0.3)
 - [x] Run tests and save checkpoint
+
+## ICN Gateway Upsert Engine (2026-04-28)
+- [x] Add lastIcnSeenAt field to projects schema + push migration
+- [x] Rebuild icnScraper.ts as full upsert engine: update lastActivityAt, work-package counts, stage, priority, contractors on every Saturday run
+- [x] Add staleness rule: projects not re-seen in 21 days (3 missed weekly runs) get lastActivityAt frozen — they age out naturally
+- [x] Validate before/after for 5+ high-value projects (AUKUS, BAE, Sydney Metro, North East Link, Snowy 2.0)
+- [x] Confirm no duplicate projects created
+- [x] Confirm refresh fires on re-run (not just first insert)
+- [x] Run tests and save checkpoint

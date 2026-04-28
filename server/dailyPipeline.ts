@@ -792,7 +792,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   const icnValidationStep = startStep("ICN Validation");
   let icnValidationResult = { ran: false, validated: 0, contractorsFound: 0, failed: 0 };
   const icnStep = startStep("ICN Gateway Scrape (Legacy)");
-  let icnResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
+  let icnResult = { ran: false, totalNewProjects: 0, totalUpdated: 0, totalDuplicates: 0, totalErrors: 0, duration: 0, reactivated: [] as string[] };
   if (isSaturday) {
     console.log("[DailyPipeline] Step 9: Running ICN validation on existing projects...");
     try {
@@ -827,12 +827,16 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       icnResult = {
         ran: true,
         totalNewProjects: scrapeResult.totalNewProjects,
+        totalUpdated: scrapeResult.totalUpdated,
         totalDuplicates: scrapeResult.totalDuplicates,
         totalErrors: scrapeResult.totalErrors,
         duration: scrapeResult.duration,
+        reactivated: scrapeResult.reactivated,
       };
       completeStep(icnStep, {
         newProjects: scrapeResult.totalNewProjects,
+        updated: scrapeResult.totalUpdated,
+        reactivated: scrapeResult.reactivated.length,
         duplicates: scrapeResult.totalDuplicates,
         errors: scrapeResult.totalErrors,
       });

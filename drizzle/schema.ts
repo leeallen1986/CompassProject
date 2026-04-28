@@ -223,6 +223,13 @@ export const projects = mysqlTable("projects", {
     "blocked_location_unclear",
     "blocked_cross_border_signal",
   ]),
+  /**
+   * ICN Gateway Upsert Engine: timestamp of the last time this project was seen in an ICN scraper run.
+   * null = never seen by ICN scraper (non-ICN project, or inserted before this field was added).
+   * Used to detect staleness: if lastIcnSeenAt is older than 21 days (3 missed weekly runs),
+   * the project is treated as dropped from ICN and its lastActivityAt is frozen (not refreshed).
+   */
+  lastIcnSeenAt: timestamp("lastIcnSeenAt"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

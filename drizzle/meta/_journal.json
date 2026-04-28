@@ -498,6 +498,13 @@
       "when": 1777364123327,
       "tag": "0070_material_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "5",
+      "when": 1777368623012,
+      "tag": "0071_perfect_kree",
+      "breakpoints": true
     }
   ]
 }
