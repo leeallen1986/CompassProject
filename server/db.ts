@@ -2366,9 +2366,9 @@ export async function claimDigestSendSlot(
     // INSERT IGNORE: silently skips if the unique key already exists
     const result = await db.execute(
       sql`INSERT IGNORE INTO userEmailSendLog
-        (userId, digestType, sentDate, weekKey, status, itemCount, dryRun, createdAt)
+        (userId, digestType, sentDate, weekKey, status, itemCount, dryRun)
         VALUES
-        (${userId}, ${digestType}, ${today}, ${weekKey}, 'pending', 0, 0, NOW())`
+        (${userId}, ${digestType}, ${today}, ${weekKey}, 'pending', 0, 0)`
     );
     // affectedRows = 1 → we inserted (won the slot)
     // affectedRows = 0 → duplicate was ignored (another goroutine already claimed it)

@@ -1804,3 +1804,11 @@
 - [x] Add self-ping keepalive to pipeline runner — pings /api/ping every 2 min during pipeline execution to prevent CloudRun container recycling
 - [x] Add /api/ping lightweight health endpoint to Express server
 - [x] Keepalive properly cleaned up via try/finally in outer runDailyPipeline wrapper
+
+## Kevin Arnandes Catch-up & One-off Send Infrastructure (2026-04-28)
+- [x] Add sendWeeklyDigestToUser function to emailDigest.ts (actual send, not dry-run)
+- [x] Add digest.sendNowForUser admin tRPC procedure in routers.ts
+- [x] Fix claimDigestSendSlot: remove non-existent createdAt column (table uses sentAt with DEFAULT CURRENT_TIMESTAMP)
+- [x] Send Kevin Arnandes W18 catch-up digest to kevinarnandes@gmail.com — confirmed delivered (Resend id: 5893ba2a)
+- [x] Kevin's send log entry recorded: userId=11580001, weekKey=2026W18, status=sent
+- [x] Kevin will receive all future Monday + Thursday digests automatically (profile: NATIONAL, BESS + Portable Air)

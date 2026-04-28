@@ -1442,9 +1442,11 @@ export async function sendWeeklyDigestToUser(userId: number): Promise<{
     });
 
     if (sent) {
-      // Log the send
+      // Log the send — claim the slot first (INSERT IGNORE), then finalise to 'sent'
       const weekKey = getDigestWeekKey();
       await claimDigestSendSlot(userId, "monday", weekKey);
+      // Always finalise regardless of whether claim returned true/false
+      // (the row may already exist from a previous failed attempt)
       await finaliseDigestSendSlot(userId, "monday", weekKey, "sent", {});
       console.log(`[EmailDigest] ✓ Catch-up Monday digest sent to ${preview.userName} (${userEmail})`);
     }
