@@ -287,11 +287,41 @@ export async function cleanupStaleRuns(): Promise<number> {
   }
 }
 
+// ── Self-ping keepalive ──
+// CloudRun recycles containers that have no HTTP traffic for ~15 min.
+// During a long pipeline run (35+ min), no user requests may arrive,
+// so the container gets killed mid-pipeline. This keepalive pings the
+// server's own /api/ping endpoint every 2 minutes to simulate traffic.
+function startKeepalive(): { stop: () => void } {
+  const port = process.env.PORT || "3000";
+  const url = `http://localhost:${port}/api/ping`;
+  let stopped = false;
+  const interval = setInterval(async () => {
+    if (stopped) return;
+    try {
+      await fetch(url, { signal: AbortSignal.timeout(5000) });
+    } catch {
+      // Ignore — best-effort keepalive
+    }
+  }, 2 * 60 * 1000); // every 2 minutes
+  return {
+    stop() {
+      stopped = true;
+      clearInterval(interval);
+    },
+  };
+}
+
 // ── Main pipeline ──
 
 export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipelineResult> {
-  // Wrap the entire pipeline in a global timeout
-  return withTimeout(_runDailyPipelineInner(triggeredBy), PIPELINE_TIMEOUT_MS, "Daily pipeline global timeout");
+  // Start keepalive at the outer level so it's cleaned up even on timeout
+  const keepalive = startKeepalive();
+  try {
+    return await withTimeout(_runDailyPipelineInner(triggeredBy), PIPELINE_TIMEOUT_MS, "Daily pipeline global timeout");
+  } finally {
+    keepalive.stop();
+  }
 }
 
 async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipelineResult> {

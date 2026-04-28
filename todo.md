@@ -1795,3 +1795,12 @@
 - [x] TypeScript compile clean after fix — 0 errors
 - [x] Save checkpoint
 - [x] Fix outreach generator: remove XAVS1800 as default fallback — no-collateral emails should be solution/outcome-focused without hardcoded product model references
+- [x] Remove redundant external Manus scheduled task for Monday digest — confirmed no external task exists; the HELD notification was from in-process catch-up logic
+- [x] Investigate and fix pipeline timeout (latest run timed out/server restarted — marked as failed during cleanup)
+
+## Digest Freshness Gate & Pipeline Keepalive Fixes (2026-04-28)
+- [x] Fix sendMondayDigestSafe: detect freshness gate hold (skipped=-1) and do NOT log as 'sent' — prevents false positive dedup
+- [x] Fix sendThursdayReminderSafe: same freshness-gate-aware logic
+- [x] Add self-ping keepalive to pipeline runner — pings /api/ping every 2 min during pipeline execution to prevent CloudRun container recycling
+- [x] Add /api/ping lightweight health endpoint to Express server
+- [x] Keepalive properly cleaned up via try/finally in outer runDailyPipeline wrapper

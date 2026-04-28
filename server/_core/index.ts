@@ -78,6 +78,9 @@ async function startServer() {
     }
   });
 
+  // Lightweight health ping — used by pipeline keepalive to prevent CloudRun container recycling
+  app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+
   // tRPC API
   app.use(
     "/api/trpc",

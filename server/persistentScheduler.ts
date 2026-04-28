@@ -160,7 +160,12 @@ async function logDigestAttempt(
 }
 
 /**
- * Send Monday digest and log the result
+ * Send Monday digest and log the result.
+ *
+ * IMPORTANT: When sendWeeklyDigests returns skipped=-1, the freshness gate
+ * blocked the send. We must NOT log this as "sent" — otherwise the next
+ * catch-up attempt (after a server restart) will think the digest was
+ * delivered and skip it permanently for the week.
  */
 async function sendMondayDigestSafe(): Promise<void> {
   const alreadySent = await wasDigestSentThisWeek("monday");
@@ -171,10 +176,30 @@ async function sendMondayDigestSafe(): Promise<void> {
   try {
     console.log("[PersistentScheduler] 📧 Sending Monday digest...");
     const result = await sendWeeklyDigests();
-    await logDigestAttempt("monday", "sent");
-    console.log(
-      `[PersistentScheduler] ✓ Monday digest sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
-    );
+
+    // Freshness gate hold: skipped=-1 means the digest was blocked, NOT sent
+    if (result.skipped === -1) {
+      console.warn(
+        "[PersistentScheduler] ⚠ Monday digest HELD by freshness gate — NOT logging as sent"
+      );
+      // Do NOT log as "sent" — leave the slot open for the next catch-up
+      // after the pipeline completes successfully.
+      return;
+    }
+
+    // Only log as "sent" if at least one email was actually delivered
+    if (result.sent > 0) {
+      await logDigestAttempt("monday", "sent");
+      console.log(
+        `[PersistentScheduler] ✓ Monday digest sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
+      );
+    } else {
+      // No emails sent (all skipped/failed) — log but don't mark as "sent"
+      // so catch-up can retry later if needed
+      console.warn(
+        `[PersistentScheduler] ⚠ Monday digest returned 0 sent (${result.failed} failed, ${result.skipped} skipped) — not logging as sent`
+      );
+    }
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     await logDigestAttempt("monday", "failed", errMsg);
@@ -183,7 +208,8 @@ async function sendMondayDigestSafe(): Promise<void> {
 }
 
 /**
- * Send Thursday reminder and log the result
+ * Send Thursday reminder and log the result.
+ * Same freshness-gate-aware logic as sendMondayDigestSafe.
  */
 async function sendThursdayReminderSafe(): Promise<void> {
   const alreadySent = await wasDigestSentThisWeek("thursday");
@@ -195,10 +221,17 @@ async function sendThursdayReminderSafe(): Promise<void> {
     console.log("[PersistentScheduler] 📧 Sending Thursday reminder...");
     await logDigestAttempt("thursday", "pending");
     const result = await sendThursdayReminders();
-    await logDigestAttempt("thursday", "sent");
-    console.log(
-      `[PersistentScheduler] ✓ Thursday reminder sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
-    );
+
+    if (result.sent > 0) {
+      await logDigestAttempt("thursday", "sent");
+      console.log(
+        `[PersistentScheduler] ✓ Thursday reminder sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
+      );
+    } else {
+      console.warn(
+        `[PersistentScheduler] ⚠ Thursday reminder returned 0 sent (${result.failed} failed, ${result.skipped} skipped) — not logging as sent`
+      );
+    }
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     await logDigestAttempt("thursday", "failed", errMsg);
