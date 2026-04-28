@@ -25,10 +25,12 @@
  * 16. Contractor Enrichment Pass (Tue/Fri)
  * 17. Role Relevance Classification (daily)
  * 18. Second-Pass Contact Search (Wed/Sat)
- * 19. Weekly Digest (Mondays)
- * 20. Thursday Mid-Week Reminder (Thursdays)
- * 21. Staleness Check
- * 22. Source Monitoring Snapshot
+ * 19. Hot Project SLA Enforcement (daily)
+ * 20. Discovery Queue Processing (daily, batch 10)
+ * 21. Weekly Digest (Mondays)
+ * 22. Thursday Mid-Week Reminder (Thursdays)
+ * 23. Staleness Check
+ * 24. Source Monitoring Snapshot
  *
  * Every step is logged with timing, counts, and error detail into the pipelineRuns table.
  */
@@ -62,6 +64,7 @@ import { classifyAllProjects } from "./tierClassification";
 import { runContractorEnrichmentPass } from "./contractorEnrichmentPass";
 import { classifyAllContactRelevance } from "./roleRelevance";
 import { runBulkSecondPass } from "./secondPassContactSearch";
+import { enforceHotProjectSLA, processDiscoveryQueue } from "./discoveryQueue";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -174,6 +177,17 @@ export interface DailyPipelineResult {
     degradedReason?: string;
     errors: number;
   };
+  discoveryQueue: {
+    slaQueued: number;
+    slaAlreadyOk: number;
+    slaSkipped: number;
+    processed: number;
+    newSendReady: number;
+    newNamedNoEmail: number;
+    newRoleOnly: number;
+    blocked: number;
+    failed: number;
+  };
   duration: number;
   completedAt: string;
   steps: PipelineStep[];
@@ -245,6 +259,8 @@ const ENRICHMENT_STEP_NAMES = new Set([
   "Role Relevance Classification",
   "Second-Pass Contact Search",
   "Contractor Enrichment Pass",
+  "Hot Project SLA Enforcement",
+  "Discovery Queue Processing",
 ]);
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -1119,6 +1135,64 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(secondPassStep);
 
   // ════════════════════════════════════════════════════════════
+  // DISCOVERY QUEUE
+  // ════════════════════════════════════════════════════════════
+
+  // ── Step 19: Hot Project SLA Enforcement (daily) ──
+  const hotSlaStep = startStep("Hot Project SLA Enforcement");
+  console.log("[DailyPipeline] Step 19: Enforcing hot project SLA — queuing discovery for hot/actioned projects missing contacts...");
+  let slaResult = { queued: 0, alreadyOk: 0, skipped: 0 };
+  try {
+    slaResult = await withTimeout(enforceHotProjectSLA(), STEP_TIMEOUT_MS, "Hot Project SLA");
+    completeStep(hotSlaStep, {
+      queued: slaResult.queued,
+      alreadyOk: slaResult.alreadyOk,
+      skipped: slaResult.skipped,
+    });
+    console.log(`[DailyPipeline] Hot SLA enforcement: ${slaResult.queued} queued, ${slaResult.alreadyOk} already OK, ${slaResult.skipped} skipped`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Hot SLA enforcement failed:", errMsg);
+    errors.push(`Hot SLA: ${errMsg}`);
+    failStep(hotSlaStep, errMsg);
+  }
+  steps.push(hotSlaStep);
+
+  // ── Step 20: Discovery Queue Processing (daily, batch 10) ──
+  // Processes the highest-priority queued projects (Priority A first).
+  // Batch size is intentionally small (10) to stay within pipeline timeout.
+  // Each project triggers Apollo/web/LLM discovery which can take 5-15s per project.
+  const DISCOVERY_QUEUE_BATCH = 10;
+  const discoveryQueueStep = startStep("Discovery Queue Processing");
+  console.log(`[DailyPipeline] Step 20: Processing discovery queue (batch ${DISCOVERY_QUEUE_BATCH}, Priority A first)...`);
+  let discoveryQueueResult = { processed: 0, priorityA: 0, priorityB: 0, priorityC: 0, newSendReady: 0, newNamedNoEmail: 0, newRoleOnly: 0, blocked: 0, failed: 0, results: [] as any[] };
+  try {
+    discoveryQueueResult = await withTimeout(
+      processDiscoveryQueue({ maxBatch: DISCOVERY_QUEUE_BATCH }),
+      ENRICHMENT_TIMEOUT_MS, // 25 min — same as contact enrichment
+      "Discovery Queue"
+    );
+    completeStep(discoveryQueueStep, {
+      processed: discoveryQueueResult.processed,
+      priorityA: discoveryQueueResult.priorityA,
+      priorityB: discoveryQueueResult.priorityB,
+      priorityC: discoveryQueueResult.priorityC,
+      newSendReady: discoveryQueueResult.newSendReady,
+      newNamedNoEmail: discoveryQueueResult.newNamedNoEmail,
+      newRoleOnly: discoveryQueueResult.newRoleOnly,
+      blocked: discoveryQueueResult.blocked,
+      failed: discoveryQueueResult.failed,
+    });
+    console.log(`[DailyPipeline] Discovery queue: ${discoveryQueueResult.processed} processed — ${discoveryQueueResult.newSendReady} send-ready, ${discoveryQueueResult.newNamedNoEmail} named-no-email, ${discoveryQueueResult.newRoleOnly} role-only, ${discoveryQueueResult.blocked} blocked, ${discoveryQueueResult.failed} failed`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Discovery queue processing failed:", errMsg);
+    errors.push(`Discovery Queue: ${errMsg}`);
+    failStep(discoveryQueueStep, errMsg);
+  }
+  steps.push(discoveryQueueStep);
+
+  // ════════════════════════════════════════════════════════════
   // DIGEST & NOTIFICATIONS
   // Email digests are now handled exclusively by the persistentScheduler
   // to prevent duplicate sends. The per-user deduplication in emailDigest.ts
@@ -1256,6 +1330,17 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     icn: icnResult,
     tendersWA: tendersWAResult,
     qtolNT: qtolNTResult,
+    discoveryQueue: {
+      slaQueued: slaResult.queued,
+      slaAlreadyOk: slaResult.alreadyOk,
+      slaSkipped: slaResult.skipped,
+      processed: discoveryQueueResult.processed,
+      newSendReady: discoveryQueueResult.newSendReady,
+      newNamedNoEmail: discoveryQueueResult.newNamedNoEmail,
+      newRoleOnly: discoveryQueueResult.newRoleOnly,
+      blocked: discoveryQueueResult.blocked,
+      failed: discoveryQueueResult.failed,
+    },
     duration,
     completedAt,
     steps,
@@ -1330,6 +1415,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   console.log(`  RSS:             ${harvestResult.totalNew} new / ${harvestResult.totalDuplicates} dupes / ${harvestResult.totalErrors} errors`);
   console.log(`  Projects:        ${extractionResult.extracted} extracted, ${asxResult.newProjects} ASX, ${dmirsResult.totalNewProjects} DMIRS`);
   console.log(`  Contacts:        ${enrichmentResult.enriched} enriched, ${enrichmentResult.dailyUsed} Apollo credits`);
+  console.log(`  Discovery SLA:   ${slaResult.queued} queued, ${slaResult.alreadyOk} already OK, ${slaResult.skipped} skipped`);
+  console.log(`  Discovery Queue: ${discoveryQueueResult.processed} processed — ${discoveryQueueResult.newSendReady} send-ready, ${discoveryQueueResult.failed} failed`);
   console.log("═".repeat(60) + "\n");
 
   console.log(`[DailyPipeline] Pipeline complete in ${duration}s`);

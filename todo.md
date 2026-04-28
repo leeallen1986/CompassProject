@@ -1874,3 +1874,11 @@
 - [x] Validation sample: 5 hot (3 queued, 2 send-ready), 5 ICN (5 queued), 3 gov (2 queued, 1 send-ready)
 - [x] Backfill: 321 projects updated in single bulk query (15 send-ready, 707 no-contacts, 306 blocked)
 - [x] Run tests (2867/2871 pass, 4 pre-existing failures) and save checkpoint
+
+## Discovery Queue Pipeline Integration
+
+- [x] Wire enforceHotProjectSLA() into daily pipeline — Step 19 (after second-pass, before digest)
+- [x] Wire processDiscoveryQueue() into daily pipeline — Step 20 (batch 10, Priority A first, 25min timeout)
+- [x] Add pipeline result reporting: DailyPipelineResult.discoveryQueue + health summary log lines
+- [x] Write vitest tests: 40 tests covering owner classification, priority, triggers, status derivation, pipeline integration
+- [x] Run tests: 2907/2911 pass (4 pre-existing failures unchanged), 0 new regressions

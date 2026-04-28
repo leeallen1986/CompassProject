@@ -193,7 +193,7 @@ async function assessContactState(
   };
 }
 
-function deriveDiscoveryStatus(
+export function deriveDiscoveryStatus(
   ownerType: OwnerType,
   contactState: { sendReady: number; named: number; roleOnly: number }
 ): DiscoveryStatus {
