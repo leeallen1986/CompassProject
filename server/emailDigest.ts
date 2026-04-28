@@ -1410,6 +1410,54 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
 // ── Per-user preview helpers (dry-run only, used by Admin Email Preview UI) ──
 
 /**
+ * Send the Monday digest to a single specific user.
+ * Bypasses the freshness gate and dedup guard (force send).
+ * Logs the send to userEmailSendLog.
+ */
+export async function sendWeeklyDigestToUser(userId: number): Promise<{
+  sent: boolean;
+  subject: string;
+  userName: string;
+  error?: string;
+} | null> {
+  const preview = await sendWeeklyDigestsForUser(userId);
+  if (!preview) return null;
+
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const { users: usersTable } = await import("../drizzle/schema");
+    const { eq: eqOp } = await import("drizzle-orm");
+    const [user] = await db.select().from(usersTable).where(eqOp(usersTable.id, userId));
+    if (!user) return null;
+
+    const userEmail = user.email || (user as any).oauthEmail;
+    if (!userEmail) return { sent: false, subject: preview.subject, userName: preview.userName, error: "No email address" };
+
+    const sent = await sendEmail({
+      to: userEmail,
+      subject: preview.subject,
+      markdownContent: preview.content,
+      textContent: preview.content,
+    });
+
+    if (sent) {
+      // Log the send
+      const weekKey = getDigestWeekKey();
+      await claimDigestSendSlot(userId, "monday", weekKey);
+      await finaliseDigestSendSlot(userId, "monday", weekKey, "sent", {});
+      console.log(`[EmailDigest] ✓ Catch-up Monday digest sent to ${preview.userName} (${userEmail})`);
+    }
+
+    return { sent, subject: preview.subject, userName: preview.userName };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[EmailDigest] Failed to send catch-up digest to user ${userId}:`, errMsg);
+    return { sent: false, subject: preview.subject, userName: preview.userName, error: errMsg };
+  }
+}
+
+/**
  * Generate a Monday digest preview for a single specific user.
  * Always dry-run — never sends. Returns subject + full content.
  */

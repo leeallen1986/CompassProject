@@ -643,6 +643,14 @@ export const appRouter = router({
       return sendManagerRollupEmail(false);
     }),
 
+    /** Send Monday digest to a single specific user (force, bypasses dedup + freshness gate) */
+    sendNowForUser: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { sendWeeklyDigestToUser } = await import("./emailDigest");
+        return sendWeeklyDigestToUser(input.userId);
+      }),
+
     /** Preview Monday digest for a specific user (dry-run, no send) */
     previewMonday: adminProcedure
       .input(z.object({ userId: z.number() }))
