@@ -1108,17 +1108,9 @@ export async function sendApprovedEmail(contactId: number): Promise<{ success: b
         console.log(`[Campaign] Attaching collateral: ${collateral.fileName} to email for ${recipientEmail}`);
       }
     } else {
-      // Fallback: always attach the XAVS1800 flyer even if no collateral is linked
-      const [xavs] = await db.select().from(collateralItems)
-        .where(like(collateralItems.name, "%XAVS1800%"));
-      if (xavs && xavs.fileUrl) {
-        attachments.push({
-          path: xavs.fileUrl,
-          filename: xavs.fileName || "atlas_copco_xavs1800_flyer.pdf",
-          contentType: xavs.fileMimeType || "application/pdf",
-        });
-        console.log(`[Campaign] Attaching XAVS1800 fallback collateral to email for ${recipientEmail}`);
-      }
+      // No collateral linked — send without attachment.
+      // Do NOT attach XAVS1800 or any product-specific PDF by default.
+      console.log(`[Campaign] No collateral linked to campaign — sending email without product attachment for ${recipientEmail}`);
     }
   } catch (err) {
     console.warn("[Campaign] Failed to fetch collateral for attachment, sending without:", err);

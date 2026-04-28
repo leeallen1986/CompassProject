@@ -421,20 +421,23 @@ describe("getCollateralProfile — collateral routing", () => {
     expect(profile.systemProductDesc).toContain("XAVS1800");
   });
 
-  // ── Default fallback ──
-  it("falls back to XAVS1800 for unknown collateral names", () => {
+  // ── Default fallback (generic no-collateral profile) ──
+  it("falls back to generic profile for unknown collateral names (NOT XAVS1800)", () => {
     const profile = getCollateralProfile("Some Unknown Product");
-    expect(profile.systemProductDesc).toContain("XAVS1800");
+    expect(profile.systemProductDesc).not.toContain("XAVS1800");
+    expect(profile.systemProductDesc).toContain("Atlas Copco Power Technique");
   });
 
-  it("falls back to XAVS1800 when collateralName is undefined", () => {
+  it("falls back to generic profile when collateralName is undefined (NOT XAVS1800)", () => {
     const profile = getCollateralProfile(undefined);
-    expect(profile.systemProductDesc).toContain("XAVS1800");
+    expect(profile.systemProductDesc).not.toContain("XAVS1800");
+    expect(profile.systemProductDesc).toContain("Atlas Copco Power Technique");
   });
 
-  it("falls back to XAVS1800 when collateralName is empty string", () => {
+  it("falls back to generic profile when collateralName is empty string (NOT XAVS1800)", () => {
     const profile = getCollateralProfile("");
-    expect(profile.systemProductDesc).toContain("XAVS1800");
+    expect(profile.systemProductDesc).not.toContain("XAVS1800");
+    expect(profile.systemProductDesc).toContain("Atlas Copco Power Technique");
   });
 
   // ── Critical regression: generic 'compressor' should NOT match XAVS1800 ──

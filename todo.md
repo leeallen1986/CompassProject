@@ -1794,3 +1794,4 @@
 - [x] Fix getDigestWeekKey: already applied to all 5 digest functions
 - [x] TypeScript compile clean after fix — 0 errors
 - [x] Save checkpoint
+- [x] Fix outreach generator: remove XAVS1800 as default fallback — no-collateral emails should be solution/outcome-focused without hardcoded product model references

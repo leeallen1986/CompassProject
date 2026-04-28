@@ -388,7 +388,7 @@ KEY DIFFERENTIATORS vs. COMPETITORS:
     commercialRules: `12. ABSOLUTELY NO RENTAL/HIRE LANGUAGE: Never use the words "rental", "hire", "rent", "lease", "OPEX", "hire-purchase", or "rent-to-own". All messaging must be CAPEX/purchase focused. Use "service agreement", "fleet investment", or "equipment partnership" instead. Position Atlas Copco as a long-term equipment partner for drilling contractors.`,
   },
 
-  // ── XAVS1800 COMPRESSOR (DEFAULT) ──────────────────────────────────────
+  // ── XAVS1800 COMPRESSOR (EXPLICIT MATCH ONLY — not a catch-all default) ────
   {
     pattern: /xavs|1800|abrasive\s*blast|surface\s*prep/i,
     knowledge: `
@@ -504,6 +504,90 @@ OTHER ATLAS COPCO PT BUSINESS LINES (mention only if relevant):
 - Nitrogen: portable nitrogen generation with membrane technology
 `;
 
+// ── GENERIC NO-COLLATERAL PROFILE ─────────────────────────────────────────
+// Used when no campaign collateral is linked. Keeps emails solution/outcome-
+// focused without referencing any specific product model.
+const GENERIC_NO_COLLATERAL_PROFILE: CollateralProfile = {
+  pattern: /^$/, // never matched directly — used only as fallback
+  knowledge: `
+NO SPECIFIC PRODUCT COLLATERAL IS LINKED TO THIS OUTREACH.
+
+Do NOT reference any specific product model number (e.g. XAVS1800, CDR, DrillAir X1350).
+Instead, write an outcome-focused email that:
+- References Atlas Copco Power Technique's broad capability (compressed air, power, air treatment, BESS, pumps)
+- Focuses on the recipient's project, role, and business challenges
+- Positions Atlas Copco as a solutions partner, not a product vendor
+- Mentions that you can share relevant product information once you understand their specific requirements
+
+ATLAS COPCO POWER TECHNIQUE CAPABILITY SUMMARY:
+- Portable Air: High-volume compressors (250–1800+ cfm) for blasting, drilling, construction, mining
+- Air Treatment: Portable desiccant dryers for pipeline, offshore, instrument air, quality-critical blasting
+- Power & Lighting: Generators (8–1500+ kVA) and LED lighting towers for remote and project sites
+- BESS: ZenergiZe battery energy storage and hybrid diesel+battery solutions for off-grid and ESG-driven projects
+- Pumps: Submersible and centrifugal pumps for mine dewatering, flood control, and water management
+- Nitrogen: Portable nitrogen generation for pipeline purging, inerting, and specialty applications
+`,
+  roleHooks: {
+    procurement: {
+      kpis: ["Total cost of ownership (TCO)", "Supplier consolidation", "Contract compliance", "On-time delivery", "Cost savings vs. budget"],
+      painPoints: ["Managing multiple equipment vendors across projects", "Unpredictable maintenance costs", "Long lead times on equipment", "Vendor qualification complexity"],
+      messagingAngle: "Position Atlas Copco as a single-source equipment partner that simplifies vendor management, reduces TCO, and delivers across multiple product categories.",
+      productHook: "Atlas Copco Power Technique covers compressed air, power, air treatment, and pumping from a single supplier — simplifying your vendor list and giving you one service agreement across your project equipment needs.",
+    },
+    engineering: {
+      kpis: ["Equipment reliability", "Technical spec compliance", "Safety standards", "Energy efficiency", "System integration"],
+      painPoints: ["Equipment spec mismatches discovered on-site", "Noise and emission compliance on sensitive sites", "Integrating equipment from multiple vendors", "Reliability in harsh Australian conditions"],
+      messagingAngle: "Lead with technical credibility — Atlas Copco's engineering heritage, compliance credentials, and the breadth of solutions available for complex project requirements.",
+      productHook: "Atlas Copco Power Technique equipment is engineered for Australian conditions — from the Pilbara to offshore — with compliance-ready specs and a service network that backs every unit in the field.",
+    },
+    operations: {
+      kpis: ["Equipment uptime", "Productivity per shift", "Fuel efficiency", "Mobilisation speed", "Multi-site coordination"],
+      painPoints: ["Equipment downtime halting crews", "Slow mobilisation to remote sites", "Managing equipment from multiple vendors", "Fuel and logistics costs on remote projects"],
+      messagingAngle: "Emphasise uptime, reliability, and Atlas Copco's national service network — equipment that shows up ready and keeps running.",
+      productHook: "Atlas Copco's national service network means parts and support are available wherever your project is — from metropolitan shutdowns to remote mine sites. One call covers compressed air, power, and pumping.",
+    },
+    project_management: {
+      kpis: ["On-time project delivery", "Budget adherence", "Risk mitigation", "Vendor coordination", "Stakeholder satisfaction"],
+      painPoints: ["Equipment delays pushing back project milestones", "Coordinating multiple equipment vendors on tight schedules", "Budget overruns from ad-hoc equipment sourcing", "Equipment failures cascading into programme delays"],
+      messagingAngle: "Position Atlas Copco as a reliability partner — one vendor, one service agreement, equipment that arrives on time and performs as specified.",
+      productHook: "On a tight project schedule, equipment reliability is non-negotiable. Atlas Copco Power Technique provides compressed air, power, and ancillary equipment under a single service agreement — one vendor to coordinate, one point of contact when you need support.",
+    },
+    maintenance: {
+      kpis: ["Mean time between failures", "Planned vs. unplanned maintenance ratio", "Parts availability", "Maintenance cost per operating hour"],
+      painPoints: ["Sourcing genuine parts quickly for remote sites", "Ageing equipment fleet with increasing breakdowns", "Managing multiple equipment brands and service providers", "Unplanned downtime disrupting maintenance schedules"],
+      messagingAngle: "Highlight Atlas Copco's genuine parts availability, preventive maintenance programmes, and service agreements with guaranteed response times.",
+      productHook: "Atlas Copco's service agreements lock in response times and genuine parts pricing — reducing unplanned downtime and giving your maintenance team predictable costs across compressed air, power, and pumping equipment.",
+    },
+    fleet: {
+      kpis: ["Fleet utilisation rate", "Cost per operating hour", "Fleet age & replacement cycle", "Fuel efficiency", "Compliance currency"],
+      painPoints: ["Mixed equipment brands driving up maintenance complexity", "Ageing fleet with increasing repair costs", "Tracking certification and compliance across too many units", "Fleet logistics for remote project sites"],
+      messagingAngle: "Talk fleet simplification — consolidating to Atlas Copco across compressed air, power, and ancillary equipment reduces complexity and total cost.",
+      productHook: "Consolidating your project equipment fleet to Atlas Copco Power Technique simplifies parts, training, and service — one provider across compressed air, power, and pumping, with national coverage for remote sites.",
+    },
+    executive: {
+      kpis: ["EBITDA / margin improvement", "Capital allocation efficiency", "ESG / sustainability targets", "Strategic partnerships", "Shareholder value"],
+      painPoints: ["Equipment fleet costs eroding project margins", "Pressure to demonstrate ESG progress on projects", "Finding strategic equipment partners, not transactional vendors", "Capital allocation decisions for project equipment"],
+      messagingAngle: "Elevate to strategic partnership — Atlas Copco as a long-term equipment partner that improves margins, supports ESG credentials, and simplifies vendor management.",
+      productHook: "Atlas Copco Power Technique offers a strategic equipment partnership across compressed air, power, BESS, and pumping — with service agreements that lock in costs, ESG-aligned hybrid solutions, and a national network that supports your projects wherever they are.",
+    },
+    construction: {
+      kpis: ["Daily productivity", "Site setup time", "Equipment mobilisation", "Safety & environmental compliance", "Multi-crew coordination"],
+      painPoints: ["Equipment mobilisation delays on tight-turnaround projects", "Noise and emission restrictions near occupied facilities", "Coordinating multiple equipment vendors on site", "Equipment reliability on critical-path activities"],
+      messagingAngle: "Focus on reliability and mobilisation speed — Atlas Copco equipment that arrives ready, performs to spec, and is backed by a national service network.",
+      productHook: "Atlas Copco Power Technique equipment is built for Australian construction and project sites — compliant, reliable, and backed by a service network that covers everything from compressed air to power and pumping.",
+    },
+    other: {
+      kpis: ["Operational efficiency", "Cost management", "Risk reduction", "Compliance"],
+      painPoints: ["Equipment reliability concerns on critical projects", "Vendor management complexity", "Cost pressures on project equipment"],
+      messagingAngle: "Take a broad value approach — Atlas Copco Power Technique as a reliable, full-capability equipment partner backed by a national service network.",
+      productHook: "Atlas Copco Power Technique provides compressed air, power, air treatment, BESS, and pumping solutions for project-driven industries across Australia — backed by a national service and parts network.",
+    },
+  },
+  productRules: `11. NO SPECIFIC PRODUCT MODEL: Do NOT mention any specific Atlas Copco product model number (e.g. XAVS1800, CDR 850, DrillAir X1350, QAS 150). Instead, reference Atlas Copco Power Technique's capability broadly (e.g. "high-volume portable compressors", "portable air treatment", "battery energy storage"). Mention that you can share relevant product details once you understand their specific requirements. The email should feel like a capability introduction, not a product pitch.`,
+  systemProductDesc: "Atlas Copco Power Technique full capability — portable air, power, air treatment, BESS, and pumping solutions for project-driven industries in Australia",
+  commercialRules: `12. COMMERCIAL LANGUAGE: Position Atlas Copco as a solutions partner. Use outcome-focused language (e.g. "reliable compressed air supply", "on-site power solutions", "air treatment for quality-critical applications"). Avoid rental/hire language unless the recipient is clearly a rental company. Do NOT reference specific product pricing or model-specific commercial terms.`,
+};
+
 /** Find the best collateral profile for a given collateral name */
 export function getCollateralProfile(collateralName?: string): CollateralProfile {
   if (collateralName) {
@@ -513,8 +597,9 @@ export function getCollateralProfile(collateralName?: string): CollateralProfile
       }
     }
   }
-  // Default to XAVS1800 profile (last in the array)
-  return COLLATERAL_PROFILES[COLLATERAL_PROFILES.length - 1];
+  // No collateral linked — use the generic outcome-focused profile
+  // (does NOT default to XAVS1800 or any other specific product)
+  return GENERIC_NO_COLLATERAL_PROFILE;
 }
 
 /** Get the best role-KPI match for a contact's role bucket within a collateral profile */
