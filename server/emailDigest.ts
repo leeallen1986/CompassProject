@@ -32,8 +32,68 @@ import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClass
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
-import { userEmailSendLog } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { userEmailSendLog, digestScheduleLog } from "../drizzle/schema";
+import { eq, and, gte } from "drizzle-orm";
+
+/**
+ * Check if a freshness-gate hold notification was already sent this week.
+ * Prevents spamming the owner with repeated "digest HELD" emails on every
+ * server cold-start (CloudRun spins up on each request).
+ * Returns true if a 'held' record exists for monday this week.
+ */
+async function wasFreshnessHeldNotifiedThisWeek(): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+
+    // Compute start of this ISO week (Monday 00:00 UTC).
+    // If today is Sunday, the relevant Monday is tomorrow (same logic as persistentScheduler).
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay();
+    const startOfWeek = new Date(now);
+    if (dayOfWeek === 0) {
+      startOfWeek.setUTCDate(now.getUTCDate() + 1);
+    } else {
+      startOfWeek.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+    }
+    startOfWeek.setUTCHours(0, 0, 0, 0);
+
+    const result = await db
+      .select()
+      .from(digestScheduleLog)
+      .where(
+        and(
+          eq(digestScheduleLog.digestType, "monday"),
+          eq(digestScheduleLog.status, "failed"),
+          gte(digestScheduleLog.createdAt, startOfWeek)
+        )
+      )
+      .limit(1);
+
+    return result.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Log a freshness-gate hold event so subsequent cold-starts don't re-notify.
+ */
+async function logFreshnessHeld(reason: string): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.insert(digestScheduleLog).values({
+      digestType: "monday",
+      scheduledFor: new Date(),
+      sentAt: null,
+      status: "failed",
+      error: `FRESHNESS_GATE_HELD: ${reason}`,
+    });
+  } catch {
+    // Non-critical — ignore
+  }
+}
 
 /** Absolute base URL for email deep-links. Falls back to empty string (relative) if not configured. */
 function getSiteUrl(): string {
@@ -789,22 +849,37 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         console.warn(
           `[EmailDigest] 🚫 FRESHNESS GATE: Monday digest HELD. Pipeline status: ${freshness.status}. Reason: ${freshness.blockedReason}`
         );
-        try {
-          const { notifyOwner } = await import("./_core/notification");
-          await notifyOwner({
-            title: "⚠️ Monday Digest HELD — Pipeline Freshness Gate",
-            content: [
-              `The Monday digest was blocked by the freshness gate and was NOT sent.`,
-              `Pipeline status: **${freshness.status.toUpperCase()}**`,
-              `Reason: ${freshness.blockedReason}`,
-              `Last successful run: ${freshness.lastCompletedAt ? freshness.lastCompletedAt.toUTCString() : "never"}`,
-              ``,
-              `To override and send with stale data, set DIGEST_STALE_FALLBACK=true and trigger a manual send from the Admin panel.`,
-            ].join("\n"),
-          });
-        } catch (notifyErr) {
-          console.error("[EmailDigest] Failed to notify owner of freshness gate hold:", notifyErr);
+
+        // Dedup: only notify the owner ONCE per week — CloudRun cold-starts on every
+        // request, so without this guard the owner gets spammed on every retry.
+        const alreadyNotified = await wasFreshnessHeldNotifiedThisWeek();
+        if (!alreadyNotified) {
+          // Log the hold FIRST so any concurrent cold-starts also see it
+          await logFreshnessHeld(freshness.blockedReason ?? freshness.status);
+          try {
+            const { notifyOwner } = await import("./_core/notification");
+            await notifyOwner({
+              title: "⚠️ Monday Digest HELD — Pipeline Freshness Gate",
+              content: [
+                `The Monday digest was blocked by the freshness gate and was NOT sent.`,
+                `Pipeline status: **${freshness.status.toUpperCase()}**`,
+                `Reason: ${freshness.blockedReason}`,
+                `Last successful run: ${freshness.lastCompletedAt ? freshness.lastCompletedAt.toUTCString() : "never"}`,
+                ``,
+                `To override and send with stale data, set DIGEST_STALE_FALLBACK=true and trigger a manual send from the Admin panel.`,
+                ``,
+                `(This notification will not repeat until next week.)`,
+              ].join("\n"),
+            });
+          } catch (notifyErr) {
+            console.error("[EmailDigest] Failed to notify owner of freshness gate hold:", notifyErr);
+          }
+        } else {
+          console.log(
+            "[EmailDigest] Freshness gate hold already notified this week — suppressing duplicate notification"
+          );
         }
+
         // Return with a special marker so callers can detect the hold
         return { ...results, skipped: -1 }; // skipped=-1 signals freshness gate hold
       }

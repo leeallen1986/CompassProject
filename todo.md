@@ -1847,3 +1847,9 @@
 - [x] Fix source parsing bug in backfill scripts (mysql2 auto-parses JSON columns)
 - [x] Backfill and validate geo reclassification — 7/9 blocked projects reclassified to AU, 2 correctly remain blocked
 - [x] All 2866/2871 tests passing (5 pre-existing reportIdFix failures unrelated)
+
+## Freshness Gate Notification Dedup (2026-04-28)
+
+- [x] Suppress repeated "Monday Digest HELD" emails — only notify once per week using digestScheduleLog dedup
+- [x] Log a 'failed' row to digestScheduleLog on first hold so subsequent cold-starts skip the notification
+- [x] Fix emailDigest.test.ts to handle freshness gate sentinel (skipped=-1) as a valid outcome
