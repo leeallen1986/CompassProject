@@ -1812,3 +1812,18 @@
 - [x] Send Kevin Arnandes W18 catch-up digest to kevinarnandes@gmail.com — confirmed delivered (Resend id: 5893ba2a)
 - [x] Kevin's send log entry recorded: userId=11580001, weekKey=2026W18, status=sent
 - [x] Kevin will receive all future Monday + Thursday digests automatically (profile: NATIONAL, BESS + Portable Air)
+
+## Australia-Only Project Location Guard (2026-04-28)
+- [x] Add projectCountry, projectState, locationConfidence fields to projects schema
+- [x] Push schema migration for geography fields
+- [x] Build geography classification logic (derive country/state/confidence from project text, location, source)
+- [x] Backfill existing projects with geography classification (final: 1223 AU, 58 unclear, 9 cross-border)
+- [x] Add AU-only gate to weekly digest (Monday + Thursday) — inherits from getActiveProjects
+- [x] Add AU-only gate to This Week view — filter in thisWeekService.ts
+- [x] Add AU-only gate to Top Actions cards — inherits from This Week
+- [x] Add AU-only gate to Account Attack current opportunities — filter in accountAttack.ts
+- [x] Add blocked reason values: blocked_non_australian_project, blocked_location_unclear, blocked_cross_border_signal
+- [x] Separate contact/company nationality from project geography in scoring — classifier uses project location/overview, NOT owner/contact nationality
+- [x] Surface foreign projects in low-priority out-of-scope section only — blocked projects excluded from all rep views, admin can see via includeGeoBlocked flag
+- [x] Validate against Bayan Mining / Desert Star example — #690042 correctly blocked as blocked_location_unclear (conf 0.3)
+- [x] Run tests and save checkpoint

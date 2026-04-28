@@ -849,6 +849,8 @@ export const appRouter = router({
         lifecycleFilter: z.enum(["all", "active", "stale", "archived", "awarded", "completed"]).optional().default("active"),
         // Stage 5D: default false — suppressed projects (macro items, background accounts, completed) are hidden
         includeSuppressed: z.boolean().optional().default(false),
+        // AU-only gate: default false — geo-blocked projects are hidden from rep views
+        includeGeoBlocked: z.boolean().optional().default(false),
       }))
       .query(async ({ ctx, input }) => {
         // Always fetch ALL projects across all reports for the unified dashboard
@@ -873,9 +875,14 @@ export const appRouter = router({
 
         // Stage 5D: Apply suppression filter — hide macro items, background accounts, and completed projects
         // from the default rep view unless admin explicitly requests them
-        const filteredProjects = input.includeSuppressed
+        const afterSuppression = input.includeSuppressed
           ? filteredByLifecycle
           : filteredByLifecycle.filter(p => !p.suppressed);
+
+        // AU-only gate: exclude geo-blocked projects unless admin explicitly requests them
+        const filteredProjects = input.includeGeoBlocked
+          ? afterSuppression
+          : afterSuppression.filter(p => !p.geoBlockedReason);
 
         // Get the latest report for metadata (executive summary, etc.)
         const report = input.reportId

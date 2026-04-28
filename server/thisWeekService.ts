@@ -198,9 +198,12 @@ const TIER_RANK: Record<string, number> = {
 export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSummary> {
   const db = await getDb();
 
-  // Get all projects (active lifecycle)
+  // Get all projects (active lifecycle, AU-only)
   const allProjects = await getAllProjects();
-  const activeProjects = allProjects.filter(p => (p.lifecycleStatus ?? "active") === "active");
+  const activeProjects = allProjects.filter(p =>
+    (p.lifecycleStatus ?? "active") === "active" &&
+    !p.geoBlockedReason // AU-only gate: exclude geo-blocked projects from rep views
+  );
 
   // Get all contacts
   const allContacts = await getAllContacts();

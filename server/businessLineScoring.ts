@@ -18,6 +18,7 @@
 
 import { getDb } from "./db";
 import { projectBusinessLineScores, projects } from "../drizzle/schema";
+import { classifyAndPersistProject } from "./geoClassifier";
 import { matchCollateralAsync } from "./collateralService";
 import { eq, and, inArray } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
@@ -143,6 +144,17 @@ export function scoreProjectAsync(projectId: number, source: string = "unknown")
 
   // Also run collateral matching for the new project (non-blocking)
   matchCollateralAsync(projectId, source);
+
+  // Geo-classify the project immediately (AU-only gate)
+  classifyAndPersistProject(projectId)
+    .then(result => {
+      if (result?.geoBlockedReason) {
+        console.log(`[GeoClassifier] Project ${projectId} from ${source}: BLOCKED (${result.geoBlockedReason}, confidence=${result.locationConfidence})`);
+      }
+    })
+    .catch(err => {
+      console.error(`[GeoClassifier] Failed to classify project ${projectId}:`, err instanceof Error ? err.message : String(err));
+    });
 }
 
 // ── Score a single project ──

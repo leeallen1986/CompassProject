@@ -211,6 +211,18 @@ export const projects = mysqlTable("projects", {
     "government_fallback_no_result",
     "government_fallback_manual_review_required",
   ]),
+  /** Australia Location Guard: derived country of the project site (ISO 3166-1 alpha-2) */
+  projectCountry: varchar("projectCountry", { length: 2 }),
+  /** Australia Location Guard: derived state/region of the project site (e.g. WA, QLD, NSW) */
+  projectState: varchar("projectState", { length: 64 }),
+  /** Australia Location Guard: confidence in the geography classification (0.0–1.0) */
+  locationConfidence: float("locationConfidence"),
+  /** Australia Location Guard: if non-null, the project is blocked from rep-facing views */
+  geoBlockedReason: mysqlEnum("geoBlockedReason", [
+    "blocked_non_australian_project",
+    "blocked_location_unclear",
+    "blocked_cross_border_signal",
+  ]),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

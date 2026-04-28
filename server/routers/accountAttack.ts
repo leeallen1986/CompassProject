@@ -12,7 +12,7 @@ import {
   pipelineClaims, outreachEmails,
   collateralItems, collateralProjectMatches,
 } from "../../drizzle/schema";
-import { eq, and, sql, desc, inArray, like, or } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, like, or, isNull } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 
 // ── Dirty-owner patterns (Fix 2) ──
@@ -116,12 +116,16 @@ const loadAccountData = protectedProcedure
 
     const accountName = input.accountName;
 
-    // ── 1. All projects for this account (by owner match) ──
-    const accountProjects = await db
+    // ── 1. All projects for this account (by owner match, AU-only) ──
+    const accountProjectsRaw = await db
       .select()
       .from(projects)
-      .where(eq(projects.owner, accountName))
+      .where(and(
+        eq(projects.owner, accountName),
+        isNull(projects.geoBlockedReason) // AU-only gate
+      ))
       .orderBy(desc(projects.createdAt));
+    const accountProjects = accountProjectsRaw;
 
     if (accountProjects.length === 0) {
       // ── Contractor-mode fallback ──
@@ -149,7 +153,10 @@ const loadAccountData = protectedProcedure
         const linkedProjects = await db
           .select()
           .from(projects)
-          .where(inArray(projects.id, linkedProjectIds))
+          .where(and(
+            inArray(projects.id, linkedProjectIds),
+            isNull(projects.geoBlockedReason) // AU-only gate
+          ))
           .orderBy(desc(projects.createdAt));
 
         if (linkedProjects.length === 0) {

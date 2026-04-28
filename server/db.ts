@@ -246,7 +246,7 @@ export async function getPipelineClaimsForProject(projectId: number) {
   return db.select().from(pipelineClaims).where(eq(pipelineClaims.projectId, projectId));
 }
 
-export async function getActiveProjects(opts?: { includeSuppressed?: boolean }) {
+export async function getActiveProjects(opts?: { includeSuppressed?: boolean; includeGeoBlocked?: boolean }) {
   const db = await getDb();
   if (!db) return [];
 
@@ -255,22 +255,31 @@ export async function getActiveProjects(opts?: { includeSuppressed?: boolean }) 
     isNull(projects.lifecycleStatus)
   );
 
+  // AU-only gate: exclude geo-blocked projects from rep views by default
+  const geoFilter = opts?.includeGeoBlocked
+    ? undefined
+    : isNull(projects.geoBlockedReason);
+
   if (opts?.includeSuppressed) {
     // Admin view: show all lifecycle-active projects regardless of suppression
+    // Still apply geo filter unless explicitly overridden
+    const conditions = geoFilter ? and(lifecycleFilter, geoFilter) : lifecycleFilter;
     return db.select().from(projects)
-      .where(lifecycleFilter)
+      .where(conditions)
       .orderBy(desc(projects.id));
   }
 
-  // Default rep view: exclude suppressed projects (macro items, background accounts, completed, etc.)
+  // Default rep view: exclude suppressed AND geo-blocked projects
+  const baseConditions = and(
+    lifecycleFilter,
+    or(
+      eq(projects.suppressed, false),
+      isNull(projects.suppressed)
+    )
+  );
+  const conditions = geoFilter ? and(baseConditions, geoFilter) : baseConditions;
   return db.select().from(projects)
-    .where(and(
-      lifecycleFilter,
-      or(
-        eq(projects.suppressed, false),
-        isNull(projects.suppressed)
-      )
-    ))
+    .where(conditions)
     .orderBy(desc(projects.id));
 }
 
