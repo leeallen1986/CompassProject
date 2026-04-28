@@ -505,6 +505,13 @@
       "when": 1777368623012,
       "tag": "0071_perfect_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "5",
+      "when": 1777374949788,
+      "tag": "0072_omniscient_cerise",
+      "breakpoints": true
     }
   ]
 }

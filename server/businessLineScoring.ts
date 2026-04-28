@@ -20,6 +20,7 @@ import { getDb } from "./db";
 import { projectBusinessLineScores, projects } from "../drizzle/schema";
 import { classifyAndPersistProject } from "./geoClassifier";
 import { matchCollateralAsync } from "./collateralService";
+import { queueDiscoveryForProject } from "./discoveryQueue";
 import { eq, and, inArray } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 import { computeScoreModifiers, applyScoreAdjustments, type ActivityScoreModifiers } from "./activitySignalLayer";
@@ -150,7 +151,16 @@ export function scoreProjectAsync(projectId: number, source: string = "unknown")
     .then(result => {
       if (result?.geoBlockedReason) {
         console.log(`[GeoClassifier] Project ${projectId} from ${source}: BLOCKED (${result.geoBlockedReason}, confidence=${result.locationConfidence})`);
+        return; // Don't queue discovery for geo-blocked projects
       }
+      // Queue contact discovery for in-scope projects (fire-and-forget)
+      queueDiscoveryForProject(projectId, `post_insert_${source}`)
+        .then((queued: boolean) => {
+          if (queued) console.log(`[DiscoveryQueue] Queued project ${projectId} from ${source} for contact discovery`);
+        })
+        .catch((err: unknown) => {
+          console.error(`[DiscoveryQueue] Failed to queue project ${projectId}:`, err instanceof Error ? err.message : String(err));
+        });
     })
     .catch(err => {
       console.error(`[GeoClassifier] Failed to classify project ${projectId}:`, err instanceof Error ? err.message : String(err));

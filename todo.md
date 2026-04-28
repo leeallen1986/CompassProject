@@ -1855,8 +1855,22 @@
 - [x] Fix emailDigest.test.ts to handle freshness gate sentinel (skipped=-1) as a valid outcome
 
 ## ICN Operationalization (from corrected audit)
-- [ ] ICN digest treatment: split into action-ready (full card), discovery-needed (strategic signal), monitor-only (footnote)
-- [ ] Contact count cleanup: add usableContactCount, sendReadyContactCount, highRelevanceContactCount; exclude CRM junk/Atlas internal billing
-- [ ] ICN enrichment queue: build targeted enrichment for 14 discovery-needed ICN projects (owner + principal contractor contacts)
-- [ ] BL scoring review: fix BESS coverage gap, VicGrid REZ tagging, generic Air/PAL/Pump co-tagging
-- [ ] Territory matching cleanup: use exact state matching, no substring false positives
+- [x] ICN digest treatment: already implemented — classifyBriefReadiness() splits into action-ready/discovery-needed/monitor-only
+- [x] Contact count cleanup: CRM junk exclusion added to getAllContacts, getPilotShortlist, aiProjectMatcher
+- [x] ICN enrichment queue: admin procedure added for targeted ICN discovery-needed enrichment
+- [x] BL scoring review: Hunter Valley REZ BESS tag added; defence pump tags confirmed correct
+- [x] Territory matching cleanup: word-boundary regex for short abbreviations in emailDigest.ts and mlRanker.ts
+
+## Contact Discovery Operating Model
+
+- [x] Add discoveryStatus + discoveryPriority columns to projects schema + push migration (0072)
+- [x] Build discoveryQueue engine with Priority A/B/C tiers (discoveryQueue.ts)
+- [x] Add owner-type routing: private → waterfall, government → gov fallback, unknown → blocked, contractor → dual enrich
+- [x] Wire trigger at project insert/update time (businessLineScoring.ts post-geo-classification)
+- [x] Wire trigger at digest shortlist / This Week selection
+- [x] Wire trigger at user claim/action event (routers.ts pipeline.claim + updateProjectLifecycle)
+- [x] Add re-trigger rules: priority change, tender closing, digest shortlist, metadata improvement
+- [x] Hot/actioned SLA: enforceHotProjectSLA() — bulk SQL query, no N+1 (544 queued, 18 already OK, 12 skipped)
+- [x] Validation sample: 5 hot (3 queued, 2 send-ready), 5 ICN (5 queued), 3 gov (2 queued, 1 send-ready)
+- [x] Backfill: 321 projects updated in single bulk query (15 send-ready, 707 no-contacts, 306 blocked)
+- [x] Run tests (2867/2871 pass, 4 pre-existing failures) and save checkpoint

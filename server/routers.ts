@@ -151,6 +151,7 @@ import {
 } from "./templateService";
 import { storagePut } from "./storage";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
+import { queueDiscoveryForProject, processDiscoveryQueue, enforceHotProjectSLA, backfillDiscoveryStatus } from "./discoveryQueue";
 import {
   previewEmarsysExport,
   generateEmarsysExport,
@@ -387,6 +388,12 @@ export const appRouter = router({
 
         // Track activity
         await trackActivity(ctx.user.id, "pipeline_claimed", { projectId: input.projectId, claimId, metadata: { reportId: input.reportId } });
+
+        // Trigger contact discovery for claimed project (fire-and-forget)
+        queueDiscoveryForProject(input.projectId, "user_claimed").catch((err: unknown) => {
+          console.warn(`[DiscoveryQueue] Failed to queue discovery for claimed project ${input.projectId}:`, err instanceof Error ? err.message : String(err));
+        });
+
         return { claimId, alreadyClaimed: false };
       }),
     updateStatus: protectedProcedure
@@ -514,6 +521,12 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         await updateProjectLifecycle(input.projectId, input.status, ctx.user.id);
+        // Re-trigger discovery when project becomes active again
+        if (input.status === "active") {
+          queueDiscoveryForProject(input.projectId, "lifecycle_reactivated").catch((err: unknown) => {
+            console.warn(`[DiscoveryQueue] Re-trigger failed for project ${input.projectId}:`, err instanceof Error ? err.message : String(err));
+          });
+        }
         return { success: true };
       }),
 
@@ -2598,6 +2611,40 @@ export const appRouter = router({
           results,
           message: `Enriched ${results.filter(r => r.contactsFound > 0).length}/${discoveryNeeded.length} ICN projects with ${totalContactsFound} new contacts.`,
         };
+      }),
+  }),
+
+  // ── Contact Discovery Queue ──
+  discoveryQueue: router({
+    /** Process the discovery queue (run enrichment on queued projects) */
+    process: adminProcedure
+      .input(z.object({
+        priority: z.enum(["A", "B", "C"]).optional(),
+        maxBatch: z.number().min(1).max(50).optional(),
+      }).optional())
+      .mutation(async ({ input }) => {
+        return processDiscoveryQueue({
+          priorityFilter: input?.priority as any,
+          maxBatch: input?.maxBatch,
+        });
+      }),
+
+    /** Enforce hot project SLA — queue all hot/actioned projects missing contacts */
+    enforceHotSLA: adminProcedure.mutation(async () => {
+      return enforceHotProjectSLA();
+    }),
+
+    /** Backfill discoveryStatus for all existing projects */
+    backfill: adminProcedure.mutation(async () => {
+      return backfillDiscoveryStatus();
+    }),
+
+    /** Queue discovery for a specific project */
+    queueProject: adminProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        const queued = await queueDiscoveryForProject(input.projectId, "manual_admin");
+        return { queued, projectId: input.projectId };
       }),
   }),
 

@@ -224,6 +224,30 @@ export const projects = mysqlTable("projects", {
     "blocked_cross_border_signal",
   ]),
   /**
+   * Contact Discovery Operating Model: unified project-level discovery state.
+   * Tracks where this project is in the contact discovery lifecycle.
+   */
+  discoveryStatus: mysqlEnum("discoveryStatus", [
+    "no_contacts",                // No contacts at all — needs discovery
+    "discovery_queued",           // Discovery job created, waiting to run
+    "discovery_running",          // Discovery job currently executing
+    "role_only",                  // Only generic role titles found (e.g. "Procurement Manager"), no named person
+    "named_contact_no_email",     // Named person found but no email address
+    "send_ready_contact",         // At least one named person with verified email
+    "blocked_government_owner",   // Government/public owner — Apollo blocked, needs gov fallback
+    "blocked_dirty_owner",        // Owner field is garbage (contractor scope text, etc.)
+    "blocked_no_usable_domain",   // Private owner but no domain could be inferred
+  ]).default("no_contacts"),
+  /**
+   * Contact Discovery Operating Model: priority tier for discovery queue.
+   * A = hot/tender/actioned/digest, B = warm/strategic, C = cold/backlog
+   */
+  discoveryPriority: mysqlEnum("discoveryPriority", ["A", "B", "C"]).default("C"),
+  /** Contact Discovery Operating Model: timestamp of last discovery attempt */
+  lastDiscoveryAt: timestamp("lastDiscoveryAt"),
+  /** Contact Discovery Operating Model: number of discovery attempts made */
+  discoveryAttempts: int("discoveryAttempts").default(0),
+  /**
    * ICN Gateway Upsert Engine: timestamp of the last time this project was seen in an ICN scraper run.
    * null = never seen by ICN scraper (non-ICN project, or inserted before this field was added).
    * Used to detect staleness: if lastIcnSeenAt is older than 21 days (3 missed weekly runs),
