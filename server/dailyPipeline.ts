@@ -62,6 +62,8 @@ import { recordSourceRun } from "./sourceMonitoring";
 import { runContractorEngine } from "./contractorEngine";
 import { classifyAllProjects } from "./tierClassification";
 import { runContractorEnrichmentPass } from "./contractorEnrichmentPass";
+import { backfillOrphanContacts } from "./backfillOrphanContacts";
+import { cleanContractorUrls } from "./cleanContractorUrls";
 import { classifyAllContactRelevance } from "./roleRelevance";
 import { runBulkSecondPass } from "./secondPassContactSearch";
 import { enforceHotProjectSLA, processDiscoveryQueue } from "./discoveryQueue";
@@ -1171,27 +1173,24 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(contractorStep);
 
   // ── Step 16: Contractor Enrichment Pass (Tuesdays + Fridays) ──
+  // Fix 7: Run contractor enrichment DAILY for hot/warm projects (was Tue/Fri only).
+  // This unblocks 6+ government-owner projects that are permanently stuck without contractors.
   const contractorEnrichStep = startStep("Contractor Enrichment Pass");
-  if (dayOfWeek === 2 || dayOfWeek === 5) {
-    console.log("[DailyPipeline] Step 16: Running contractor enrichment pass on projects missing contractors...");
-    try {
-      const ceResult = await runContractorEnrichmentPass(20);
-      completeStep(contractorEnrichStep, {
-        total: ceResult.total,
-        enriched: ceResult.enriched,
-        contractorsDiscovered: ceResult.contractorsDiscovered,
-        failed: ceResult.failed,
-        skipped: ceResult.skipped,
-      });
-      console.log(`[DailyPipeline] Contractor enrichment pass: ${ceResult.enriched} enriched, ${ceResult.contractorsDiscovered} contractors discovered, ${ceResult.failed} failed`);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[DailyPipeline] Contractor enrichment pass failed:", errMsg);
-      failStep(contractorEnrichStep, errMsg);
-    }
-  } else {
-    skipStep(contractorEnrichStep, "Runs on Tuesdays and Fridays");
-    console.log("[DailyPipeline] Step 16: Skipping contractor enrichment pass (runs Tue/Fri)");
+  console.log("[DailyPipeline] Step 16: Running contractor enrichment pass on projects missing contractors (daily for hot/warm)...");
+  try {
+    const ceResult = await runContractorEnrichmentPass(30);
+    completeStep(contractorEnrichStep, {
+      total: ceResult.total,
+      enriched: ceResult.enriched,
+      contractorsDiscovered: ceResult.contractorsDiscovered,
+      failed: ceResult.failed,
+      skipped: ceResult.skipped,
+    });
+    console.log(`[DailyPipeline] Contractor enrichment pass: ${ceResult.enriched} enriched, ${ceResult.contractorsDiscovered} contractors discovered, ${ceResult.failed} failed`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Contractor enrichment pass failed:", errMsg);
+    failStep(contractorEnrichStep, errMsg);
   }
   steps.push(contractorEnrichStep);
 
@@ -1261,13 +1260,12 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   }
   steps.push(hotSlaStep);
 
-  // ── Step 20: Discovery Queue Processing (daily, batch 3) ──
+  // ── Step 20: Discovery Queue Processing (daily, batch 50) ──
   // Processes the highest-priority queued projects (Priority A first).
-  // Batch size is intentionally small (3) to stay within pipeline timeout.
+  // Fix 3: Raised from 3 to 50 to clear the 456-project backlog in ~10 days.
   // Each project triggers Apollo/web/LLM discovery which can take 5-15s per project.
-  // Batch=3 keeps total pipeline runtime under 35 minutes (safe for CloudRun service).
-  // Increase to 5-10 once execution is moved to a CloudRun Job (Phase 2).
-  const DISCOVERY_QUEUE_BATCH = 3;
+  // Batch=50 keeps total pipeline runtime under 25 minutes (within ENRICHMENT_TIMEOUT_MS).
+  const DISCOVERY_QUEUE_BATCH = 50;
   markStepStarted("Discovery Queue Processing");
   const discoveryQueueStep = startStep("Discovery Queue Processing");
   console.log(`[DailyPipeline] Step 20: Processing discovery queue (batch ${DISCOVERY_QUEUE_BATCH}, Priority A first)...`);
@@ -1368,9 +1366,48 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   }
   steps.push(dupSweepStep);
 
-  // ── Step 23: Source Monitoring Snapshot ──
+  // ── Step 23: Orphan Contact Backfill (Fix 5) ──
+  const backfillStep = startStep("Orphan Contact Backfill");
+  console.log("[DailyPipeline] Step 23: Backfilling orphan enriched contacts to projects...");
+  try {
+    const backfillResult = await backfillOrphanContacts(false);
+    completeStep(backfillStep, {
+      totalOrphans: backfillResult.totalOrphans,
+      matchedHigh: backfillResult.matchedHigh,
+      matchedMedium: backfillResult.matchedMedium,
+      unmatched: backfillResult.unmatched,
+      linksCreated: backfillResult.linksCreated,
+    });
+    console.log(`[DailyPipeline] Orphan backfill: ${backfillResult.linksCreated} links created (${backfillResult.matchedHigh} high, ${backfillResult.matchedMedium} medium confidence)`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Orphan backfill failed:", errMsg);
+    failStep(backfillStep, errMsg);
+  }
+  steps.push(backfillStep);
+
+  // ── Step 24: URL-as-Contractor Cleanup (Fix 6) ──
+  const urlCleanupStep = startStep("URL Contractor Cleanup");
+  console.log("[DailyPipeline] Step 24: Cleaning URL-as-contractor-name data...");
+  try {
+    const cleanResult = await cleanContractorUrls(false);
+    completeStep(urlCleanupStep, {
+      scanned: cleanResult.totalProjectsScanned,
+      projectsCleaned: cleanResult.projectsWithUrlContractors,
+      contractorsRemoved: cleanResult.contractorsRemoved,
+      requeued: cleanResult.projectsRequeued,
+    });
+    console.log(`[DailyPipeline] URL cleanup: ${cleanResult.projectsWithUrlContractors} projects cleaned, ${cleanResult.contractorsRemoved} URL contractors removed, ${cleanResult.projectsRequeued} requeued`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] URL contractor cleanup failed:", errMsg);
+    failStep(urlCleanupStep, errMsg);
+  }
+  steps.push(urlCleanupStep);
+
+  // ── Step 25: Source Monitoring Snapshot ──
   const monitorStep = startStep("Source Monitoring Snapshot");
-  console.log("[DailyPipeline] Step 23: Recording source monitoring snapshot...");
+  console.log("[DailyPipeline] Step 25: Recording source monitoring snapshot...");
   try {
     completeStep(monitorStep, {
       totalSteps: steps.length,

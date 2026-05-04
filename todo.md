@@ -1980,3 +1980,13 @@
 - [ ] Update Admin panel to call trpc.admin.triggerPipeline instead of /api/scheduled/pipeline
 - [ ] Add 30s polling of pipelineFreshness in Admin panel when a run is active (shows live step/progress)
 - [ ] Run tests and save checkpoint
+
+## Contact Discovery Recovery Sprint (4 May 2026)
+
+- [x] Fix 1: Stop null-contact reveal retries + dedup loop
+- [x] Fix 2: Redirect Contact Enrichment to project-linked contacts only
+- [x] Fix 3: Raise discovery queue batch size to 50
+- [x] Fix 4: Fix Hot Project SLA Enforcement failure
+- [x] Fix 5: Backfill orphan enriched contacts to projects
+- [x] Fix 6: Clean URL-as-contractor-name data
+- [x] Fix 7: Improve contractor fallback for blocked government-owner projects

@@ -85,6 +85,7 @@ export async function getProjectsMissingContractors(limit: number = 50): Promise
         ),
       )
     )
+    .orderBy(sql`FIELD(${projects.priority}, 'hot', 'warm', 'cold')`)
     .limit(limit);
 
   return candidates;

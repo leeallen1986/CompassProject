@@ -32,7 +32,7 @@ import { generateAndSaveLLMContacts } from "./llmContactFallback";
 // ── Constants ──
 
 /** Max projects to process per queue run (prevents runaway) */
-const MAX_BATCH_SIZE = 20;
+const MAX_BATCH_SIZE = 50; // Fix 3: Raised from 20 to 50 to clear backlog faster
 
 /** Cooldown: don't re-attempt discovery within this window (hours) */
 const DISCOVERY_COOLDOWN_HOURS = 72;
@@ -220,7 +220,7 @@ export function deriveDiscoveryStatus(
 export function shouldTriggerDiscovery(project: {
   discoveryStatus?: string | null;
   discoveryPriority?: string | null;
-  lastDiscoveryAt?: Date | null;
+  lastDiscoveryAt?: Date | string | null;
   discoveryAttempts?: number | null;
   projectCountry?: string | null;
   geoBlockedReason?: string | null;
@@ -251,10 +251,16 @@ export function shouldTriggerDiscovery(project: {
   }
 
   // Cooldown check
+  // Fix 4: Handle lastDiscoveryAt as either Date object or string (raw SQL returns strings)
   if (project.lastDiscoveryAt) {
-    const hoursSince = (Date.now() - project.lastDiscoveryAt.getTime()) / (1000 * 60 * 60);
-    if (hoursSince < DISCOVERY_COOLDOWN_HOURS) {
-      return { trigger: false, reason: `cooldown_${Math.round(hoursSince)}h_of_${DISCOVERY_COOLDOWN_HOURS}h` };
+    const lastDiscoveryTime = project.lastDiscoveryAt instanceof Date
+      ? project.lastDiscoveryAt.getTime()
+      : new Date(project.lastDiscoveryAt).getTime();
+    if (!isNaN(lastDiscoveryTime)) {
+      const hoursSince = (Date.now() - lastDiscoveryTime) / (1000 * 60 * 60);
+      if (hoursSince < DISCOVERY_COOLDOWN_HOURS) {
+        return { trigger: false, reason: `cooldown_${Math.round(hoursSince)}h_of_${DISCOVERY_COOLDOWN_HOURS}h` };
+      }
     }
   }
 

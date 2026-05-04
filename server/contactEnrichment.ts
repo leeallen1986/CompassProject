@@ -534,18 +534,24 @@ export async function runEnrichmentPipeline(
     };
   }
 
-  // Get pending contacts
-  const pendingContacts = await db
-    .select()
-    .from(contacts)
-    .where(
-      or(
-        eq(contacts.enrichmentStatus, "pending"),
-        isNull(contacts.enrichmentStatus)
-      )
-    )
-    .orderBy(desc(contacts.createdAt))
-    .limit(limit);
+  // Get pending contacts — PRIORITIZE project-linked contacts over orphan CRM imports
+  // Fix 2: Only enrich contacts that are linked to active, unsuppressed projects.
+  // This prevents the daily budget from being consumed by 17,000+ orphan CRM contacts.
+  const [projectLinkedRows] = await db.execute(sql`
+    SELECT c.*
+    FROM contacts c
+    INNER JOIN contactProjects cp ON cp.contactId = c.id
+    INNER JOIN projects p ON p.id = cp.projectId
+    WHERE (c.enrichmentStatus = 'pending' OR c.enrichmentStatus IS NULL)
+      AND (p.suppressed = false OR p.suppressed IS NULL)
+      AND (p.lifecycleStatus = 'active' OR p.lifecycleStatus = 'awarded' OR p.lifecycleStatus IS NULL)
+      AND c.enrichmentSource != 'manual'
+    ORDER BY
+      FIELD(p.priority, 'hot', 'warm', 'cold'),
+      c.createdAt DESC
+    LIMIT ${limit}
+  `) as any;
+  const pendingContacts = (Array.isArray(projectLinkedRows) ? projectLinkedRows : []) as any[];
 
   if (pendingContacts.length === 0) {
     return {

@@ -400,6 +400,27 @@ export async function apolloPeopleEnrich(params: {
 // ── High-Level Enrichment Functions ──
 
 /**
+ * Check if an Apollo person ID was already revealed recently (dedup guard).
+ * Prevents the same person from being re-revealed in a loop when the contact
+ * record fails to save (e.g., enrichment returns "not_found" or errors).
+ */
+async function wasRecentlyRevealed(apolloPersonId: string, windowHours: number = 168): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ cnt: sql<number>`COUNT(*)` })
+    .from(apolloCreditLog)
+    .where(
+      and(
+        eq(apolloCreditLog.apolloPersonId, apolloPersonId),
+        eq(apolloCreditLog.action, "reveal"),
+        sql`${apolloCreditLog.createdAt} > DATE_SUB(NOW(), INTERVAL ${windowHours} HOUR)`
+      )
+    );
+  return Number(row?.cnt || 0) > 0;
+}
+
+/**
  * Search for contacts at a company using Apollo People Search (free).
  * Returns a list of people found — obfuscated names, no emails yet.
  * Users can then choose which contacts to "reveal" (enrich) for 1 credit each.
@@ -649,6 +670,13 @@ export async function enrichProjectContacts(
 
       // Step 2: Enrich for email (1 credit) — only if requested
       if (enrichEmails && person.apolloId) {
+        // ── Fix 1: Dedup guard — skip if this Apollo person was already revealed recently ──
+        const alreadyRevealed = await wasRecentlyRevealed(person.apolloId, 168); // 7-day window
+        if (alreadyRevealed) {
+          console.log(`[Apollo] DEDUP SKIP: ${person.name} (${person.apolloId}) was already revealed within 7 days — skipping to prevent credit waste`);
+          allResults.push({ ...person, status: "failed", error: "dedup_recently_revealed" } as any);
+          continue;
+        }
         enrichedPerson = await enrichSingleContact(person);
         if (enrichedPerson.status === "enriched") {
           enrichCreditsUsed++;
@@ -796,6 +824,22 @@ export async function revealContactEmail(
     .limit(1);
 
   if (!contact) throw new Error(`Contact ${contactId} not found`);
+
+  // ── Fix 1: Dedup guard — skip if this contact was already enriched/revealed recently ──
+  if (contact.enrichmentStatus === "enriched" && contact.enrichedAt) {
+    const hoursSinceEnrich = (Date.now() - new Date(contact.enrichedAt).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceEnrich < 168) { // 7 days
+      console.log(`[Apollo] DEDUP SKIP revealContactEmail: contact ${contactId} (${contact.name}) was enriched ${Math.round(hoursSinceEnrich)}h ago — skipping`);
+      return null;
+    }
+  }
+  if (contact.enrichmentStatus === "not_found" && contact.enrichedAt) {
+    const hoursSinceAttempt = (Date.now() - new Date(contact.enrichedAt).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceAttempt < 168) { // 7 days
+      console.log(`[Apollo] DEDUP SKIP revealContactEmail: contact ${contactId} (${contact.name}) was already attempted ${Math.round(hoursSinceAttempt)}h ago (not_found) — skipping`);
+      return null;
+    }
+  }
 
   // Already has a verified email? Return it
   if (contact.email && contact.emailVerified) {
