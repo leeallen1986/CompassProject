@@ -490,15 +490,68 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`Enrichment failed: ${e.message}`),
   });
   const { data: enrichStats } = trpc.dataPipeline.enrichmentStats.useQuery();
-  const fullPipelineMut = trpc.dailyPipeline.run.useMutation({
-    onSuccess: (data) => {
-      // Pipeline now runs in the background — response is immediate with { launched, triggeredBy, launchedAt }
-      toast.success(`Pipeline launched by ${data.triggeredBy} — running in background. Refresh pipeline history in a few minutes to see results.`);
-      // Refresh stats after a short delay to pick up the new 'running' record
-      setTimeout(() => refetchStats(), 3000);
-    },
-    onError: (e) => toast.error(`Pipeline failed to launch: ${e.message}`),
-  });
+  // Pipeline trigger uses the streaming endpoint directly (keeps CloudRun connection alive)
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+  const triggerFullPipeline = async () => {
+    setPipelineRunning(true);
+    toast.info("Pipeline launched — streaming progress. This may take 30-60 minutes.");
+    try {
+      const resp = await fetch("/api/scheduled/pipeline", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (resp.status === 401) {
+        toast.error("Unauthorized — admin login required");
+        setPipelineRunning(false);
+        return;
+      }
+      if (resp.status === 409) {
+        const data = await resp.json();
+        toast.warning(`Pipeline already running (run ID ${data.runId})`);
+        setPipelineRunning(false);
+        return;
+      }
+      if (resp.status === 200 && resp.headers.get("content-type")?.includes("json")) {
+        const data = await resp.json();
+        toast.info(`Pipeline already completed recently (run ID ${data.runId})`);
+        setPipelineRunning(false);
+        return;
+      }
+      // Streaming NDJSON response — read line by line
+      const reader = resp.body?.getReader();
+      if (!reader) {
+        toast.error("Failed to read pipeline stream");
+        setPipelineRunning(false);
+        return;
+      }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const event = JSON.parse(line);
+            if (event.event === "completed") {
+              toast.success(`Pipeline completed in ${Math.round(event.durationSeconds / 60)} min — ${event.summary?.projectsExtracted ?? 0} projects, ${event.summary?.contactsEnriched ?? 0} contacts enriched`);
+            } else if (event.event === "failed") {
+              toast.error(`Pipeline failed after ${Math.round(event.durationSeconds / 60)} min: ${event.error}`);
+            }
+          } catch { /* ignore parse errors */ }
+        }
+      }
+      refetchStats();
+    } catch (err) {
+      toast.error(`Pipeline connection error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setPipelineRunning(false);
+    }
+  };
+  const fullPipelineMut = { isPending: pipelineRunning, mutate: triggerFullPipeline };
   const weeklyPipelineMut = trpc.weeklyPipeline.run.useMutation({
     onSuccess: (data) => {
       toast.success(`Weekly mega-scrape complete in ${Math.floor(data.duration / 60)}m ${data.duration % 60}s: ${data.totalNewProjects} new projects, ${data.totalNewContacts} new contacts`);

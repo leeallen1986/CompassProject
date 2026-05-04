@@ -40,6 +40,8 @@ vi.mock("./dailyPipeline", async (importOriginal) => {
     runDailyPipeline: vi.fn().mockResolvedValue({
       extraction: { extracted: 5 },
       enrichment: { enriched: 3 },
+      discoveryQueue: { slaQueued: 2 },
+      steps: [{ name: 'rss', status: 'ok' }, { name: 'scrapers', status: 'ok' }],
       duration: 120000,
     }),
     // Keep startDailyScheduler and cleanupStaleRuns as no-ops for tests
@@ -83,8 +85,16 @@ function makeReq(overrides: Partial<Request> = {}): Request {
 }
 
 function makeRes() {
-  const captured = { status: null as number | null, body: null as unknown };
+  const captured = {
+    status: null as number | null,
+    body: null as unknown,
+    lines: [] as string[],
+    headers: {} as Record<string, string>,
+    ended: false,
+  };
   const res = {
+    writableEnded: false,
+    destroyed: false,
     status(code: number) {
       captured.status = code;
       return res;
@@ -92,6 +102,21 @@ function makeRes() {
     json(data: unknown) {
       captured.body = data;
       return res;
+    },
+    setHeader(name: string, value: string) {
+      captured.headers[name] = value;
+      return res;
+    },
+    flushHeaders() {
+      return res;
+    },
+    write(chunk: string) {
+      captured.lines.push(chunk.trim());
+      return true;
+    },
+    end() {
+      captured.ended = true;
+      res.writableEnded = true;
     },
   } as unknown as Response;
   return { res, captured };
@@ -239,7 +264,7 @@ describe("handleScheduledPipelineTrigger", () => {
 
   // ── Happy path ──
 
-  it("returns 202 started when no run is in progress or recently completed", async () => {
+  it("streams NDJSON when no run is in progress or recently completed", async () => {
     mockAuthSuccess();
     mockDb({ inProgressId: null, recentCompletedId: null, insertId: 42 });
 
@@ -248,16 +273,31 @@ describe("handleScheduledPipelineTrigger", () => {
 
     await handleScheduledPipelineTrigger(req, res);
 
-    expect(captured.status).toBe(202);
-    const body = captured.body as ScheduledPipelineResponse;
-    expect(body.status).toBe("started");
-    expect(body.runId).toBe(42);
-    expect(body.message).toContain("42");
+    // Should set streaming headers
+    expect(captured.headers["Content-Type"]).toBe("application/x-ndjson");
+    expect(captured.headers["Cache-Control"]).toBe("no-cache, no-store");
+    expect(captured.headers["X-Accel-Buffering"]).toBe("no");
+
+    // Should have written at least the started line
+    expect(captured.lines.length).toBeGreaterThanOrEqual(1);
+    const startedLine = JSON.parse(captured.lines[0]);
+    expect(startedLine.event).toBe("started");
+    expect(startedLine.triggeredAt).toBeDefined();
+    expect(startedLine.message).toContain("Pipeline launched");
+
+    // Should have ended the stream (pipeline mock resolves immediately)
+    // Wait for the background promise to resolve
+    await new Promise(r => setTimeout(r, 50));
+    expect(captured.ended).toBe(true);
+
+    // Should have a completed or failed line
+    const lastLine = JSON.parse(captured.lines[captured.lines.length - 1]);
+    expect(["completed", "failed"]).toContain(lastLine.event);
   });
 
   // ── Response shape ──
 
-  it("always includes triggeredAt in ISO format", async () => {
+  it("started event includes triggeredAt in ISO format", async () => {
     mockAuthSuccess();
     mockDb({ inProgressId: null, recentCompletedId: null, insertId: 1 });
 
@@ -265,11 +305,12 @@ describe("handleScheduledPipelineTrigger", () => {
     const { res, captured } = makeRes();
 
     await handleScheduledPipelineTrigger(req, res);
+    await new Promise(r => setTimeout(r, 50));
 
-    const body = captured.body as ScheduledPipelineResponse;
-    expect(body.triggeredAt).toBeDefined();
-    expect(() => new Date(body.triggeredAt)).not.toThrow();
-    expect(new Date(body.triggeredAt).toISOString()).toBe(body.triggeredAt);
+    const startedLine = JSON.parse(captured.lines[0]);
+    expect(startedLine.triggeredAt).toBeDefined();
+    expect(() => new Date(startedLine.triggeredAt)).not.toThrow();
+    expect(new Date(startedLine.triggeredAt).toISOString()).toBe(startedLine.triggeredAt);
   });
 
   it("returns 401 response with triggeredAt even on auth failure", async () => {

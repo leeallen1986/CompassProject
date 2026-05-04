@@ -11,6 +11,18 @@
  * Method: POST
  * Path:   /api/scheduled/pipeline
  *
+ * Execution model:
+ *   The endpoint uses NDJSON streaming to keep the HTTP connection alive
+ *   while the pipeline runs. CloudRun kills instances when there are no
+ *   active HTTP connections, so we must keep this connection open for the
+ *   full pipeline duration (30-60 minutes).
+ *
+ *   Stream format:
+ *     Line 1: {"event":"started","runId":123,"triggeredAt":"..."}
+ *     Lines 2-N: {"event":"heartbeat","elapsed":30,"status":"running"}
+ *     Last line: {"event":"completed","runId":123,"duration":1800,"summary":{...}}
+ *     OR:       {"event":"failed","runId":123,"error":"..."}
+ *
  * Idempotency:
  *   - If a pipeline run with status "running" was started within the last
  *     4 hours, returns 409 with the in-progress run ID.
@@ -18,11 +30,8 @@
  *     (default 4h), returns 200 with status="already_ran" and the run ID.
  *     This handles Manus scheduler retries without creating duplicate runs.
  *
- * Response shape (always JSON):
- *   { status, runId, message, triggeredAt, pipelineResult? }
- *
  * Status values:
- *   "started"     — pipeline launched successfully
+ *   "started"     — pipeline launched, streaming progress
  *   "already_ran" — a completed run exists within the idempotency window
  *   "in_progress" — a run is already executing (409)
  *   "error"       — unexpected failure (500)
@@ -41,6 +50,9 @@ const IDEMPOTENCY_WINDOW_HOURS = 4;
 /** Hours within which a "running" status is considered genuinely in-progress. */
 const IN_PROGRESS_WINDOW_HOURS = 4;
 
+/** Heartbeat interval in milliseconds (30 seconds). */
+const HEARTBEAT_INTERVAL_MS = 30_000;
+
 export type ScheduledPipelineResponse = {
   status: "started" | "already_ran" | "in_progress" | "error";
   runId: number | null;
@@ -50,41 +62,45 @@ export type ScheduledPipelineResponse = {
 };
 
 /**
- * Authenticate the scheduled-task request.
+ * Authenticate the request.
+ * Accepts:
+ *   1. Scheduled-task cookie + X-Scheduled-Task header (automated trigger)
+ *   2. Admin/owner session cookie (manual trigger from Admin panel)
  *
- * The Manus platform injects an app_session_id cookie for scheduled tasks,
- * which resolves to a user with role="user". We verify the JWT is valid
- * (same mechanism as all other requests) and then confirm the request
- * carries the X-Scheduled-Task header as an additional signal.
- *
- * Returns the authenticated user or null if auth fails.
+ * Returns { authenticated, triggeredBy } or null if auth fails.
  */
-async function authenticateScheduledRequest(req: Request): Promise<boolean> {
-  // Must carry the scheduled-task marker header
-  const scheduledHeader = req.headers["x-scheduled-task"];
-  if (!scheduledHeader) {
-    console.warn("[ScheduledPipeline] Missing X-Scheduled-Task header — rejecting");
-    return false;
-  }
-
-  // Verify the session cookie (same JWT verification as all other requests)
+async function authenticateRequest(req: Request): Promise<{ triggeredBy: string } | null> {
   try {
     const user = await sdk.authenticateRequest(req);
     if (!user) {
       console.warn("[ScheduledPipeline] No user resolved from session cookie — rejecting");
-      return false;
+      return null;
     }
-    console.log(`[ScheduledPipeline] Authenticated as user: ${user.name || user.openId} (role=${user.role})`);
-    return true;
+
+    // Scheduled-task path: requires X-Scheduled-Task header
+    const scheduledHeader = req.headers["x-scheduled-task"];
+    if (scheduledHeader) {
+      console.log(`[ScheduledPipeline] Authenticated as scheduled-task user: ${user.name || user.openId}`);
+      return { triggeredBy: "scheduled-task" };
+    }
+
+    // Admin path: requires admin role (owner)
+    if (user.role === "admin") {
+      console.log(`[ScheduledPipeline] Authenticated as admin: ${user.name || user.openId}`);
+      return { triggeredBy: user.name || user.openId || "admin" };
+    }
+
+    // Regular user without scheduled-task header — reject
+    console.warn(`[ScheduledPipeline] User ${user.name || user.openId} is not admin and missing X-Scheduled-Task header — rejecting`);
+    return null;
   } catch (err) {
     console.warn("[ScheduledPipeline] Auth failed:", err instanceof Error ? err.message : String(err));
-    return false;
+    return null;
   }
 }
 
 /**
  * Check if a pipeline run is currently in progress.
- * Returns the run ID if one is running, null otherwise.
  */
 async function getInProgressRunId(): Promise<number | null> {
   try {
@@ -110,7 +126,6 @@ async function getInProgressRunId(): Promise<number | null> {
 
 /**
  * Check if a completed run exists within the idempotency window.
- * Returns the run ID if one exists, null otherwise.
  */
 async function getRecentCompletedRunId(): Promise<number | null> {
   try {
@@ -135,12 +150,24 @@ async function getRecentCompletedRunId(): Promise<number | null> {
 }
 
 /**
+ * Write a line of NDJSON to the response stream.
+ * Returns false if the connection is closed.
+ */
+function writeLine(res: Response, data: Record<string, unknown>): boolean {
+  if (res.writableEnded || res.destroyed) return false;
+  try {
+    res.write(JSON.stringify(data) + "\n");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Express route handler for POST /api/scheduled/pipeline
  *
- * The pipeline is run asynchronously — the endpoint responds immediately
- * with status="started" and the run ID, then the pipeline executes in the
- * background. This prevents the Manus scheduler from timing out waiting
- * for a 35-minute pipeline to complete.
+ * Uses NDJSON streaming to keep the CloudRun connection alive while the
+ * pipeline runs. Sends heartbeat lines every 30 seconds.
  */
 export async function handleScheduledPipelineTrigger(
   req: Request,
@@ -148,33 +175,33 @@ export async function handleScheduledPipelineTrigger(
 ): Promise<void> {
   const triggeredAt = new Date().toISOString();
   const logPrefix = "[ScheduledPipeline]";
+  const startMs = Date.now();
 
   console.log(`${logPrefix} POST /api/scheduled/pipeline received at ${triggeredAt}`);
 
   // ── Auth ──
-  const isAuthed = await authenticateScheduledRequest(req);
-  if (!isAuthed) {
-    const body: ScheduledPipelineResponse = {
+  const authResult = await authenticateRequest(req);
+  if (!authResult) {
+    res.status(401).json({
       status: "error",
       runId: null,
-      message: "Unauthorized — valid session cookie and X-Scheduled-Task header required",
+      message: "Unauthorized — valid admin session or scheduled-task cookie required",
       triggeredAt,
-    };
-    res.status(401).json(body);
+    } satisfies ScheduledPipelineResponse);
     return;
   }
+  const { triggeredBy } = authResult;
 
   // ── Idempotency: in-progress check ──
   const inProgressId = await getInProgressRunId();
   if (inProgressId !== null) {
     console.log(`${logPrefix} Pipeline already in progress (run ID ${inProgressId}) — returning 409`);
-    const body: ScheduledPipelineResponse = {
+    res.status(409).json({
       status: "in_progress",
       runId: inProgressId,
       message: `Pipeline run ${inProgressId} is already executing — skipping duplicate trigger`,
       triggeredAt,
-    };
-    res.status(409).json(body);
+    } satisfies ScheduledPipelineResponse);
     return;
   }
 
@@ -184,63 +211,88 @@ export async function handleScheduledPipelineTrigger(
     console.log(
       `${logPrefix} Pipeline already completed within ${IDEMPOTENCY_WINDOW_HOURS}h window (run ID ${recentId}) — returning 200 already_ran`
     );
-    const body: ScheduledPipelineResponse = {
+    res.status(200).json({
       status: "already_ran",
       runId: recentId,
       message: `Pipeline run ${recentId} completed within the last ${IDEMPOTENCY_WINDOW_HOURS}h — no duplicate run needed`,
       triggeredAt,
-    };
-    res.status(200).json(body);
+    } satisfies ScheduledPipelineResponse);
     return;
   }
 
-  // ── Launch pipeline asynchronously ──
-  // Respond immediately so the Manus scheduler doesn't time out.
-  // The pipeline logs its own run ID to the database.
-  console.log(`${logPrefix} Launching daily pipeline (triggered by: scheduled-task)...`);
+  // ── Start streaming response ──
+  // Set headers for NDJSON streaming — prevents CloudRun from buffering
+  // and keeps the connection alive for the full pipeline duration.
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.setHeader("Cache-Control", "no-cache, no-store");
+  res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+  res.setHeader("Transfer-Encoding", "chunked");
+  res.status(200);
+  res.flushHeaders();
 
-  // We need to get the run ID before responding. Insert a placeholder row
-  // synchronously, then kick off the pipeline with that ID.
-  let runId: number | null = null;
-  try {
-    const db = await getDb();
-    if (db) {
-      const [inserted] = await db.insert(pipelineRuns).values({
-        runType: "daily",
-        status: "running",
-        triggeredBy: "scheduled-task",
-      });
-      runId = inserted.insertId;
-      console.log(`${logPrefix} Pipeline run registered: ID ${runId}`);
+  console.log(`${logPrefix} Launching daily pipeline with streaming heartbeat (triggered by: ${triggeredBy})...`);
+
+  // Send initial "started" event
+  writeLine(res, { event: "started", triggeredAt, message: "Pipeline launched" });
+
+  // Start heartbeat timer
+  let heartbeatCount = 0;
+  const heartbeatTimer = setInterval(() => {
+    heartbeatCount++;
+    const elapsed = Math.round((Date.now() - startMs) / 1000);
+    const alive = writeLine(res, {
+      event: "heartbeat",
+      seq: heartbeatCount,
+      elapsedSeconds: elapsed,
+      status: "running",
+    });
+    if (!alive) {
+      console.warn(`${logPrefix} Connection closed by client after ${elapsed}s — heartbeat stopped`);
+      clearInterval(heartbeatTimer);
     }
-  } catch (err) {
-    console.error(`${logPrefix} Failed to register pipeline run:`, err);
-    // Continue anyway — runDailyPipeline will create its own entry
-  }
+  }, HEARTBEAT_INTERVAL_MS);
 
-  // Respond immediately with "started"
-  const body: ScheduledPipelineResponse = {
-    status: "started",
-    runId,
-    message: `Daily pipeline launched (run ID: ${runId ?? "pending"})`,
-    triggeredAt,
-  };
-  res.status(202).json(body);
+  // Run pipeline synchronously within the streaming request
+  try {
+    const result = await runDailyPipeline(triggeredBy);
+    clearInterval(heartbeatTimer);
 
-  // Run pipeline in background — do NOT await in the request handler
-  runDailyPipeline("scheduled-task").then(result => {
+    const durationSec = Math.round((Date.now() - startMs) / 1000);
     console.log(
-      `${logPrefix} ✓ Pipeline completed (run ID ${runId}): ` +
-      `${result.extraction.extracted} new projects extracted, ` +
+      `${logPrefix} ✓ Pipeline completed: ` +
+      `${result.extraction.extracted} new projects, ` +
       `${result.enrichment.enriched} contacts enriched, ` +
-      `duration=${Math.round((result.duration || 0) / 1000)}s`
+      `duration=${durationSec}s`
     );
-  }).catch(err => {
-    console.error(
-      `${logPrefix} ✗ Pipeline failed (run ID ${runId}):`,
-      err instanceof Error ? err.message : String(err)
-    );
-  });
+
+    writeLine(res, {
+      event: "completed",
+      durationSeconds: durationSec,
+      summary: {
+        projectsExtracted: result.extraction.extracted,
+        contactsEnriched: result.enrichment.enriched,
+        discoveryQueued: result.discoveryQueue?.slaQueued ?? 0,
+        errorCount: result.steps.filter(s => s.status === 'failed').length,
+      },
+    });
+  } catch (err) {
+    clearInterval(heartbeatTimer);
+
+    const durationSec = Math.round((Date.now() - startMs) / 1000);
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`${logPrefix} ✗ Pipeline failed after ${durationSec}s:`, errorMsg);
+
+    writeLine(res, {
+      event: "failed",
+      durationSeconds: durationSec,
+      error: errorMsg,
+    });
+  } finally {
+    // End the streaming response
+    if (!res.writableEnded) {
+      res.end();
+    }
+  }
 }
 
 /**

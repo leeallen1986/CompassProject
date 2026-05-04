@@ -1928,3 +1928,16 @@
 - [ ] Trigger job via gcloud run jobs execute from scheduled task
 - [ ] Admin "Run Pipeline" button calls job trigger API instead of in-process
 - [ ] Service process has zero pipeline code — pure API + UI
+
+## Streaming NDJSON Pipeline Fix (CloudRun Keep-Alive)
+- [x] Rewrote /api/scheduled/pipeline from fire-and-forget 202 to streaming NDJSON response
+- [x] Stream format: started → heartbeat (30s) → completed/failed events
+- [x] CloudRun connection stays alive for full pipeline duration (prevents instance kill)
+- [x] Set headers: Content-Type application/x-ndjson, Cache-Control no-cache, X-Accel-Buffering no, Transfer-Encoding chunked
+- [x] writeLine() helper with connection-closed detection (writableEnded/destroyed)
+- [x] Heartbeat timer with auto-cleanup on client disconnect
+- [x] Updated Admin.tsx to call streaming endpoint directly (reads NDJSON stream, not tRPC)
+- [x] Updated scheduledPipeline.test.ts: makeRes() mock includes setHeader/flushHeaders/write/end/writableEnded/destroyed
+- [x] Updated happy-path tests to expect NDJSON streaming output instead of JSON response
+- [x] Updated runDailyPipeline mock to include steps[] and discoveryQueue fields
+- [x] Full test suite: 2940/2945 pass (5 pre-existing failures, 0 new regressions)
