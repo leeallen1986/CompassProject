@@ -492,10 +492,12 @@ function PipelineOpsTab() {
   const { data: enrichStats } = trpc.dataPipeline.enrichmentStats.useQuery();
   const fullPipelineMut = trpc.dailyPipeline.run.useMutation({
     onSuccess: (data) => {
-      toast.success(`Full pipeline complete in ${data.duration}s: ${data.extraction.extracted} projects, ${data.enrichment.enriched} contacts enriched`);
-      refetchStats();
+      // Pipeline now runs in the background — response is immediate with { launched, triggeredBy, launchedAt }
+      toast.success(`Pipeline launched by ${data.triggeredBy} — running in background. Refresh pipeline history in a few minutes to see results.`);
+      // Refresh stats after a short delay to pick up the new 'running' record
+      setTimeout(() => refetchStats(), 3000);
     },
-    onError: (e) => toast.error(`Pipeline failed: ${e.message}`),
+    onError: (e) => toast.error(`Pipeline failed to launch: ${e.message}`),
   });
   const weeklyPipelineMut = trpc.weeklyPipeline.run.useMutation({
     onSuccess: (data) => {

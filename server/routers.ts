@@ -2019,8 +2019,25 @@ export const appRouter = router({
   // ── Full daily pipeline (admin only) ──
   dailyPipeline: router({
     run: adminProcedure.mutation(async ({ ctx }) => {
-      const result = await runDailyPipeline(ctx.user.name || "admin");
-      return result;
+      // Fire-and-forget: respond immediately so the HTTP request closes before
+      // CloudRun's 60-minute request timeout kills the pipeline mid-run.
+      // The pipeline writes its own run record to pipelineRuns and updates it on completion.
+      const triggeredBy = ctx.user.name || "admin";
+      console.log(`[DailyPipeline] Manual trigger by ${triggeredBy} — launching in background`);
+      runDailyPipeline(triggeredBy).then(result => {
+        console.log(
+          `[DailyPipeline] ✓ Manual run completed: ` +
+          `${result.extraction?.extracted ?? 0} extracted, ` +
+          `${result.enrichment?.enriched ?? 0} enriched, ` +
+          `duration=${Math.round((result.duration || 0) / 1000)}s`
+        );
+      }).catch(err => {
+        console.error(
+          `[DailyPipeline] ✗ Manual run failed:`,
+          err instanceof Error ? err.message : String(err)
+        );
+      });
+      return { launched: true, triggeredBy, launchedAt: new Date().toISOString() };
     }),
     history: adminProcedure
       .input(z.object({ limit: z.number().min(1).max(100).optional() }).optional())

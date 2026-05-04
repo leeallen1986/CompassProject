@@ -1910,3 +1910,9 @@
 - [x] Removed: contact dump section, long prose overview blocks, repeated Unknown fields, cluttered multi-link footer
 - [x] Above-the-fold summary line: hot | new | ready-to-act | need-contacts + freshness in one line
 - [x] Full test suite: 2939/2945 pass (6 pre-existing failures, 0 new regressions)
+
+## Pipeline Timeout Fix (CloudRun 60min HTTP limit)
+- [x] /api/scheduled/pipeline was already fire-and-forget (confirmed correct)
+- [x] Admin manual trigger (dailyPipeline.run) converted to fire-and-forget — returns { launched, triggeredBy, launchedAt } immediately
+- [x] Admin.tsx onSuccess handler updated for new response shape — toast + 3s delayed refetch
+- [x] Full test suite: 2939/2945 pass (6 pre-existing failures, 0 new regressions)
