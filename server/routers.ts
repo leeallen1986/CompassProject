@@ -141,6 +141,7 @@ import {
 import { parseBlastContactList } from "./campaignImport";
 import { previewImportFile, parseImportFile, analyseImportFile, parseCompanyList, type ColumnMapping } from "./campaignCsvImport";
 import { stagingRouter } from "./routers/stagingRouter";
+import { contactValidationRouter } from "./routers/contactValidation";
 import { searchContactsByDomain, searchContactsByCompanyName, getAvailableRoles } from "./hunterContactSearch";
 import { startCompanySearch, getCompanySearchProgress } from "./companySearchJob";
 import { startEnrichmentJob, getEnrichmentJobProgress } from "./enrichmentJob";
@@ -4159,5 +4160,6 @@ export const appRouter = router({
   pilotEnrichment: pilotEnrichmentRouter,
   accountAttack: accountAttackRouter,
   accountResearch: accountResearchRouter,
+  contactValidation: contactValidationRouter,
 });
 export type AppRouter = typeof appRouter;

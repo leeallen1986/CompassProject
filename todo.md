@@ -2022,3 +2022,15 @@
 - [ ] Enforce trust tier in digest: exclude llm_inferred from Must Act / action cards
 - [ ] Enforce trust tier in weekly dashboard: Top 3 cards show only send_ready contacts
 - [ ] Add Suggested Stakeholders section to project detail view for llm_inferred contacts
+
+## Verified Contact Recovery Waterfall
+- [x] Audit hot/warm project contact coverage and identify top-20 priority projects
+- [x] Add contactTrustTier column (send_ready / named_unverified / llm_inferred) and backfill 27,582 contacts
+- [x] Demote 13 unsafe send_ready_contact projects (LLM/unverified contacts)
+- [x] Wire Hunter API as fallback email finder/verifier for named_unverified contacts only
+- [x] Build hunterVerificationLog table and full Hunter verification service
+- [x] Build contactWaterfall engine: role-lane mapping, composite scoring, 5-slot slate generation
+- [x] Build contactCandidateSlates and contactValidationActions tables
+- [x] Build contactValidation tRPC router: submitAction, hunterVerifyContact, hunterVerifyProject, getSlate, regenerateSlate, getTop20HotSlates, generateTop20Slates, getValidationStats
+- [x] Build Contact Validation admin page (/contact-validation) with 5-slot slate view and rep actions
+- [x] Enforce trust tier in all backend services: digest, thisWeekService, discoveryQueue, apolloEnrichment, contactEnrichment, llmContactFallback

@@ -1437,3 +1437,156 @@ export const accountResearchRuns = mysqlTable("accountResearchRuns", {
 
 export type AccountResearchRun = typeof accountResearchRuns.$inferSelect;
 export type InsertAccountResearchRun = typeof accountResearchRuns.$inferInsert;
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contact Validation Workflow
+// Reps and admins can Accept / Reject / Wrong company / Wrong role / Backup only
+// Accepted named_unverified contacts are promoted to send_ready.
+// LLM contacts remain llm_inferred unless independently verified.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * contactValidationActions — audit log of every rep/admin validation decision.
+ * One row per decision. Multiple decisions per contact are allowed (history).
+ */
+export const contactValidationActions = mysqlTable("contactValidationActions", {
+  id: int("id").autoincrement().primaryKey(),
+  contactId: int("contactId").notNull(),
+  projectId: int("projectId"),               // context project (optional)
+  userId: int("userId").notNull(),            // who made the decision
+  userName: varchar("userName", { length: 256 }),
+
+  // The decision
+  action: mysqlEnum("action", [
+    "accept",            // Contact is correct — promote to send_ready if email present
+    "reject",            // Contact is wrong — demote, do not use
+    "wrong_company",     // Name is right but company is wrong — flag for re-search
+    "wrong_role",        // Person exists but role is not relevant — keep as backup
+    "backup_only",       // Valid contact but not primary — keep as named_unverified
+    "verify_email",      // Rep confirmed email is correct — promote to send_ready
+  ]).notNull(),
+
+  // What tier the contact was in BEFORE this action
+  previousTier: mysqlEnum("previousTier", ["send_ready", "named_unverified", "llm_inferred"]),
+  // What tier the contact moved to AFTER this action
+  newTier: mysqlEnum("newTier", ["send_ready", "named_unverified", "llm_inferred"]),
+
+  // Optional note from rep
+  note: text("note"),
+
+  // Whether this was triggered by Hunter email verification
+  hunterVerified: boolean("hunterVerified").notNull().default(false),
+  hunterConfidence: int("hunterConfidence"),   // 0-100 Hunter confidence score
+  hunterStatus: varchar("hunterStatus", { length: 32 }), // valid | accept_all | unknown | invalid
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContactValidationAction = typeof contactValidationActions.$inferSelect;
+export type InsertContactValidationAction = typeof contactValidationActions.$inferInsert;
+
+/**
+ * contactCandidateSlates — the structured 5-slot candidate slate per project.
+ *
+ * For each hot/warm project, the waterfall engine produces:
+ *   slot 1: primary (highest confidence, send_ready preferred)
+ *   slot 2: backup_1 (second-best, named_unverified OK)
+ *   slot 3: backup_2 (third-best)
+ *   slot 4: commercial (procurement / commercial / contracts role)
+ *   slot 5: technical (operations / maintenance / engineering role)
+ *
+ * Slates are regenerated when discovery runs or a validation action changes a contact tier.
+ */
+export const contactCandidateSlates = mysqlTable("contactCandidateSlates", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+
+  // Slot assignments — contactId for each slot (nullable = not yet found)
+  primaryContactId: int("primaryContactId"),
+  backup1ContactId: int("backup1ContactId"),
+  backup2ContactId: int("backup2ContactId"),
+  commercialContactId: int("commercialContactId"),
+  technicalContactId: int("technicalContactId"),
+
+  // Slot metadata (JSON snapshots for display without extra joins)
+  primarySnapshot: json("primarySnapshot").$type<SlotSnapshot | null>(),
+  backup1Snapshot: json("backup1Snapshot").$type<SlotSnapshot | null>(),
+  backup2Snapshot: json("backup2Snapshot").$type<SlotSnapshot | null>(),
+  commercialSnapshot: json("commercialSnapshot").$type<SlotSnapshot | null>(),
+  technicalSnapshot: json("technicalSnapshot").$type<SlotSnapshot | null>(),
+
+  // Coverage summary
+  totalSlotsFilled: int("totalSlotsFilled").notNull().default(0),  // 0-5
+  sendReadySlots: int("sendReadySlots").notNull().default(0),       // slots with send_ready contacts
+  namedUnverifiedSlots: int("namedUnverifiedSlots").notNull().default(0),
+  llmSlots: int("llmSlots").notNull().default(0),
+
+  // Source waterfall used to generate this slate
+  sourcesUsed: json("sourcesUsed").$type<string[]>(),  // e.g. ["apollo", "web_search", "hunter_fallback"]
+
+  // Lifecycle
+  generatedAt: timestamp("generatedAt").defaultNow().notNull(),
+  generatedBy: mysqlEnum("generatedBy", ["waterfall_engine", "manual", "admin"]).notNull().default("waterfall_engine"),
+  isStale: boolean("isStale").notNull().default(false),  // true when contacts have changed since generation
+  staleSince: timestamp("staleSince"),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContactCandidateSlate = typeof contactCandidateSlates.$inferSelect;
+export type InsertContactCandidateSlate = typeof contactCandidateSlates.$inferInsert;
+
+/**
+ * Snapshot type for a single slate slot — stored as JSON in contactCandidateSlates.
+ * Avoids N+1 joins when rendering the slate card.
+ */
+export interface SlotSnapshot {
+  contactId: number;
+  name: string;
+  title: string;
+  company: string;
+  email: string | null;
+  linkedin: string | null;
+  enrichmentSource: string;
+  contactTrustTier: "send_ready" | "named_unverified" | "llm_inferred";
+  confidenceScore: string;
+  roleRelevance: string;
+  roleLane: "primary" | "commercial" | "technical" | "backup";
+}
+
+/**
+ * hunterVerificationLog — tracks every Hunter.io API call for named_unverified contacts.
+ * Hunter is ONLY used as a fallback verifier for already-named people, not for discovery.
+ */
+export const hunterVerificationLog = mysqlTable("hunterVerificationLog", {
+  id: int("id").autoincrement().primaryKey(),
+  contactId: int("contactId").notNull(),
+  projectId: int("projectId"),
+
+  // What was queried
+  queryType: mysqlEnum("queryType", [
+    "email_finder",     // Hunter Email Finder: first + last + domain → email
+    "email_verifier",   // Hunter Email Verifier: verify an existing email address
+  ]).notNull(),
+  queryInput: json("queryInput").$type<Record<string, string>>(),  // { firstName, lastName, domain } or { email }
+
+  // Hunter response
+  hunterStatus: varchar("hunterStatus", { length: 32 }),   // valid | accept_all | unknown | invalid
+  hunterConfidence: int("hunterConfidence"),                // 0-100
+  emailFound: varchar("emailFound", { length: 320 }),       // email returned by Hunter (if any)
+  hunterSources: json("hunterSources").$type<string[]>(),   // source URLs Hunter used
+
+  // What happened as a result
+  contactUpdated: boolean("contactUpdated").notNull().default(false),
+  tierPromoted: boolean("tierPromoted").notNull().default(false),  // true if contact moved to send_ready
+
+  // Cost tracking
+  apiCreditsUsed: int("apiCreditsUsed").notNull().default(1),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type HunterVerificationLogRow = typeof hunterVerificationLog.$inferSelect;
+export type InsertHunterVerificationLog = typeof hunterVerificationLog.$inferInsert;

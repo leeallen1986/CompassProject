@@ -1,0 +1,60 @@
+CREATE TABLE `contactCandidateSlates` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`projectId` int NOT NULL,
+	`primaryContactId` int,
+	`backup1ContactId` int,
+	`backup2ContactId` int,
+	`commercialContactId` int,
+	`technicalContactId` int,
+	`primarySnapshot` json,
+	`backup1Snapshot` json,
+	`backup2Snapshot` json,
+	`commercialSnapshot` json,
+	`technicalSnapshot` json,
+	`totalSlotsFilled` int NOT NULL DEFAULT 0,
+	`sendReadySlots` int NOT NULL DEFAULT 0,
+	`namedUnverifiedSlots` int NOT NULL DEFAULT 0,
+	`llmSlots` int NOT NULL DEFAULT 0,
+	`sourcesUsed` json,
+	`generatedAt` timestamp NOT NULL DEFAULT (now()),
+	`generatedBy` enum('waterfall_engine','manual','admin') NOT NULL DEFAULT 'waterfall_engine',
+	`isStale` boolean NOT NULL DEFAULT false,
+	`staleSince` timestamp,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `contactCandidateSlates_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `contactValidationActions` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`contactId` int NOT NULL,
+	`projectId` int,
+	`userId` int NOT NULL,
+	`userName` varchar(256),
+	`action` enum('accept','reject','wrong_company','wrong_role','backup_only','verify_email') NOT NULL,
+	`previousTier` enum('send_ready','named_unverified','llm_inferred'),
+	`newTier` enum('send_ready','named_unverified','llm_inferred'),
+	`note` text,
+	`hunterVerified` boolean NOT NULL DEFAULT false,
+	`hunterConfidence` int,
+	`hunterStatus` varchar(32),
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `contactValidationActions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `hunterVerificationLog` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`contactId` int NOT NULL,
+	`projectId` int,
+	`queryType` enum('email_finder','email_verifier') NOT NULL,
+	`queryInput` json,
+	`hunterStatus` varchar(32),
+	`hunterConfidence` int,
+	`emailFound` varchar(320),
+	`hunterSources` json,
+	`contactUpdated` boolean NOT NULL DEFAULT false,
+	`tierPromoted` boolean NOT NULL DEFAULT false,
+	`apiCreditsUsed` int NOT NULL DEFAULT 1,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `hunterVerificationLog_id` PRIMARY KEY(`id`)
+);
