@@ -33,8 +33,99 @@ import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClass
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
-import { userEmailSendLog, digestScheduleLog } from "../drizzle/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { userEmailSendLog, digestScheduleLog, projectValidationGates } from "../drizzle/schema";
+import { eq, and, gte, inArray } from "drizzle-orm";
+
+// ── Territory-Level Digest Send Threshold ──
+//
+// Rules (per WA rollout spec):
+//   1. Minimum 3 digest-safe Must Act items (action_ready + digestSafe gate = true)
+//   2. Each qualifying item must have a named, verified contact (send_ready trust tier)
+//   3. No territory contamination: all qualifying items must be in the rep's territory
+//   4. No weak filler cards: discovery_needed items do NOT count toward the threshold
+//
+// Returns: { passes: boolean; reason: string; qualifyingCount: number }
+
+export interface TerritoryThresholdResult {
+  passes: boolean;
+  reason: string;
+  qualifyingCount: number;
+  digestSafeProjectIds: number[];
+}
+
+export async function checkTerritoryThreshold(
+  annotatedProjects: Array<DigestProject & { briefReadiness?: BriefReadiness; bestContact?: DigestProject["bestContact"] }>,
+  territories: string[],
+  minQualifying = 3,
+): Promise<TerritoryThresholdResult> {
+  const db = await getDb();
+
+  // Step 1: Find action_ready projects with a verified bestContact
+  const actionReadyWithContact = annotatedProjects.filter(
+    p => p.briefReadiness === "action_ready" && p.bestContact?.email
+  );
+
+  if (actionReadyWithContact.length === 0) {
+    return {
+      passes: false,
+      reason: "No action-ready projects with verified contacts found for this territory",
+      qualifyingCount: 0,
+      digestSafeProjectIds: [],
+    };
+  }
+
+  // Step 2: Check which of those have digestSafe = true in projectValidationGates
+  let digestSafeProjectIds: number[] = [];
+  if (db) {
+    const projectIds = actionReadyWithContact.map(p => p.id);
+    const gates = await db
+      .select({ projectId: projectValidationGates.projectId })
+      .from(projectValidationGates)
+      .where(
+        and(
+          inArray(projectValidationGates.projectId, projectIds),
+          eq(projectValidationGates.digestSafe, true),
+        )
+      );
+    digestSafeProjectIds = gates.map(g => g.projectId);
+  } else {
+    // No DB: fall back to all action-ready projects (graceful degradation)
+    digestSafeProjectIds = actionReadyWithContact.map(p => p.id);
+  }
+
+  // Step 3: Territory contamination check
+  // A project is territory-clean if it has no territory set (national) or matches the rep's territories
+  const qualifying = actionReadyWithContact.filter(p => {
+    if (!digestSafeProjectIds.includes(p.id)) return false;
+    // Territory check: if rep has territories, project location must match at least one
+    if (territories.length === 0) return true; // national rep — no contamination possible
+    const loc = ((p as any).location || "").toLowerCase();
+    return territories.some(t => loc.includes(t.toLowerCase()));
+  });
+
+  const qualifyingCount = qualifying.length;
+
+  if (qualifyingCount < minQualifying) {
+    const gatedCount = digestSafeProjectIds.length;
+    const actionReadyCount = actionReadyWithContact.length;
+    let reason: string;
+    if (gatedCount === 0 && actionReadyCount > 0) {
+      reason = `${actionReadyCount} action-ready project${actionReadyCount !== 1 ? "s" : ""} found but none have been validated as digest-safe yet (0 of ${minQualifying} required). Run the Contact Validation workflow first.`;
+    } else if (qualifying.length < gatedCount) {
+      reason = `Territory contamination: ${gatedCount} digest-safe project${gatedCount !== 1 ? "s" : ""} found but only ${qualifying.length} match this rep's territory (${territories.join("/")}). ${minQualifying - qualifying.length} more needed.`;
+    } else {
+      reason = `Only ${qualifyingCount} digest-safe Must Act item${qualifyingCount !== 1 ? "s" : ""} with verified contacts (${minQualifying} required). Validate more projects before sending.`;
+    }
+    return { passes: false, reason, qualifyingCount, digestSafeProjectIds };
+  }
+
+  return {
+    passes: true,
+    reason: `${qualifyingCount} digest-safe Must Act items with verified contacts — threshold met`,
+    qualifyingCount,
+    digestSafeProjectIds,
+  };
+}
 
 /**
  * Check if a freshness-gate hold notification was already sent this week.
@@ -1240,6 +1331,30 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       });
 
       const territories = (profile.territories as string[]) || [];
+
+      // ── Territory-Level Send Threshold ──
+      // Block the digest for this rep if the territory quality threshold is not met.
+      // force=true (admin re-send) and dryRun=true both bypass the threshold so
+      // admins can preview and manually override.
+      if (!force && !dryRun) {
+        const threshold = await checkTerritoryThreshold(annotatedProjects, territories);
+        if (!threshold.passes) {
+          results.skipped++;
+          console.log(
+            `[EmailDigest] ⏸ Territory threshold NOT met for ${user.name} (${territories.join("/") || "National"}): ${threshold.reason}`
+          );
+          // Log the hold so it is visible in the admin dashboard
+          await logEmailSendExtended({
+            userId: user.id, digestType: "monday", status: "failed",
+            weekKey, itemCount: 0, dryRun: false,
+            error: `TERRITORY_THRESHOLD_HELD: ${threshold.reason}`,
+          });
+          continue;
+        }
+        console.log(
+          `[EmailDigest] ✓ Territory threshold met for ${user.name}: ${threshold.reason}`
+        );
+      }
 
       // Generate the personalized Monday digest
       const content = generateMondayDigest(

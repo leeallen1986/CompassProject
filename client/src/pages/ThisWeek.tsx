@@ -534,6 +534,9 @@ export default function ThisWeek() {
           closingSoonCount={closingSoon.length}
         />
 
+        {/* ── Gate Summary Banner ── */}
+        <GateSummaryBanner />
+
         {/* ── Top 3 Actions ── */}
         <section>
           <div className="flex items-center gap-2 mb-4">
@@ -632,6 +635,73 @@ export default function ThisWeek() {
         </CollapsibleSection>
 
       </main>
+    </div>
+  );
+}
+
+// ── Gate Summary Banner ──
+// Shows digest readiness status: how many demoted projects are gated as digest-safe,
+// whether the territory threshold is met, and a link to the validation workflow.
+function GateSummaryBanner() {
+  const { data, isLoading } = trpc.contactValidation.getGateSummary.useQuery(undefined, {
+    staleTime: 120_000,
+  });
+
+  if (isLoading || !data) return null;
+
+  const { demotedTotal, digestSafeCount, thresholdMet, totalDigestSafe, minThreshold } = data;
+
+  // Only show the banner if there are demoted projects or the threshold is not yet met
+  if (demotedTotal === 0 && thresholdMet) return null;
+
+  const allDemotedGated = digestSafeCount >= demotedTotal && demotedTotal > 0;
+
+  return (
+    <div className={`rounded-lg border px-4 py-3 flex items-center gap-3 flex-wrap ${
+      thresholdMet
+        ? "bg-emerald-50 border-emerald-200"
+        : "bg-amber-50 border-amber-200"
+    }`}>
+      <Shield className={`w-4 h-4 shrink-0 ${
+        thresholdMet ? "text-emerald-600" : "text-amber-500"
+      }`} />
+      <div className="flex-1 min-w-0">
+        {thresholdMet ? (
+          <p className="text-sm font-semibold text-emerald-700">
+            Digest threshold met — {totalDigestSafe} digest-safe items ready
+            {demotedTotal > 0 && !allDemotedGated && (
+              <span className="font-normal text-emerald-600">
+                {" "}({digestSafeCount} of {demotedTotal} demoted projects gated)
+              </span>
+            )}
+          </p>
+        ) : (
+          <p className="text-sm font-semibold text-amber-700">
+            Digest on hold — {totalDigestSafe} of {minThreshold} required digest-safe items validated
+            {demotedTotal > 0 && (
+              <span className="font-normal text-amber-600">
+                {" "}({digestSafeCount}/{demotedTotal} demoted projects gated)
+              </span>
+            )}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {thresholdMet
+            ? "WA digest will send on the next scheduled run."
+            : `Validate ${minThreshold - totalDigestSafe} more project${minThreshold - totalDigestSafe !== 1 ? "s" : ""} in the Contact Validation workflow before the digest can send.`
+          }
+        </p>
+      </div>
+      <Link
+        href="/contact-validation"
+        className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-md border transition-colors ${
+          thresholdMet
+            ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
+            : "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200"
+        }`}
+      >
+        {thresholdMet ? "Review gates" : "Validate now"}
+      </Link>
     </div>
   );
 }

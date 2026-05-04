@@ -841,6 +841,56 @@ export const contactValidationRouter = router({
         slateStats,
       };
     }),
+  // ── Gate Summary: lightweight endpoint for the This Week banner ──
+  // Returns demoted project count, how many are digest-safe, and territory threshold status.
+  getGateSummary: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return { demotedTotal: 0, digestSafeCount: 0, remainingToGate: 0, thresholdMet: false, totalDigestSafe: 0, minThreshold: 3 };
+
+      // Count demoted projects (named_contact_no_email, hot/warm)
+      const [demotedRows] = await (db as any).execute(
+        `SELECT COUNT(*) as cnt
+         FROM projects
+         WHERE discoveryStatus = 'named_contact_no_email'
+           AND priority IN ('hot', 'warm')`
+      );
+      const demotedTotal = Array.isArray(demotedRows) && demotedRows[0] ? Number(demotedRows[0].cnt || 0) : 0;
+
+      // Count how many of those have digestSafe = true in projectValidationGates
+      const [gatedRows] = await (db as any).execute(
+        `SELECT COUNT(*) as cnt
+         FROM projectValidationGates pvg
+         JOIN projects p ON p.id = pvg.projectId
+         WHERE pvg.digestSafe = 1
+           AND p.discoveryStatus = 'named_contact_no_email'
+           AND p.priority IN ('hot', 'warm')`
+      );
+      const digestSafeCount = Array.isArray(gatedRows) && gatedRows[0] ? Number(gatedRows[0].cnt || 0) : 0;
+
+      // Count total digest-safe projects across all hot/warm (for threshold check)
+      const [allGatedRows] = await (db as any).execute(
+        `SELECT COUNT(*) as cnt
+         FROM projectValidationGates pvg
+         JOIN projects p ON p.id = pvg.projectId
+         WHERE pvg.digestSafe = 1
+           AND p.priority IN ('hot', 'warm')`
+      );
+      const totalDigestSafe = Array.isArray(allGatedRows) && allGatedRows[0] ? Number(allGatedRows[0].cnt || 0) : 0;
+
+      const MIN_THRESHOLD = 3;
+      const thresholdMet = totalDigestSafe >= MIN_THRESHOLD;
+      const remainingToGate = Math.max(0, demotedTotal - digestSafeCount);
+
+      return {
+        demotedTotal,
+        digestSafeCount,
+        remainingToGate,
+        thresholdMet,
+        totalDigestSafe,
+        minThreshold: MIN_THRESHOLD,
+      };
+    }),
 });
 
 export type ContactValidationRouter = typeof contactValidationRouter;

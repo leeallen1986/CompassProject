@@ -2044,3 +2044,10 @@
 - [x] Add source-level reporting: candidates / accepted / rejected / promoted / bounce rate by source
 - [x] Wire Validate First KPI pill into This Week header strip
 - [x] Keep digest in review-first mode until validated contacts are confirmed
+
+## Territory-Level Digest Send Threshold & Gate Summary
+- [x] Generate slates for 13 demoted projects and run Hunter verify all via server-side script
+- [x] Build territory-level digest send threshold: min 3 digest-safe Must Act items, named verified contacts, no territory contamination, no weak filler cards
+- [x] Block digest send if territory threshold not met (return threshold failure reason in digest preview)
+- [x] Add Gate Summary banner to This Week page: demoted project gate progress (X of 13 gated digest-safe)
+- [ ] WA digest preview: only show after threshold is met
