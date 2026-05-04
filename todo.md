@@ -1916,3 +1916,15 @@
 - [x] Admin manual trigger (dailyPipeline.run) converted to fire-and-forget — returns { launched, triggeredBy, launchedAt } immediately
 - [x] Admin.tsx onSuccess handler updated for new response shape — toast + 3s delayed refetch
 - [x] Full test suite: 2939/2945 pass (6 pre-existing failures, 0 new regressions)
+
+## Pipeline Execution Hardening (Phase 1 — Today)
+- [x] Reduce discovery queue batch size from 10 to 3 (estimated runtime: 28-34 min)
+- [x] Add 4 incremental stat checkpoints: after extraction, after scrapers, after contact enrichment, after discovery queue
+- [x] writeProgressCheckpoint() helper: fire-and-forget, non-fatal, writes partial stats + current step list to DB
+- [x] Full test suite: 2939/2945 pass (6 pre-existing failures, 0 new regressions)
+
+## Pipeline Execution Model (Phase 2 — CloudRun Job Migration)
+- [ ] Extract pipeline into standalone CloudRun Job entrypoint (no Express dependency)
+- [ ] Trigger job via gcloud run jobs execute from scheduled task
+- [ ] Admin "Run Pipeline" button calls job trigger API instead of in-process
+- [ ] Service process has zero pipeline code — pure API + UI

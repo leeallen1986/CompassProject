@@ -398,6 +398,25 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   // PRIMARY DISCOVERY SOURCES
   // ════════════════════════════════════════════════════════════
 
+  /**
+   * Write a partial progress checkpoint to pipelineRuns.
+   * Called after each major step group so that if the pipeline is killed mid-run,
+   * the DB record shows the stats that were completed rather than all-zero.
+   * Fire-and-forget: errors are logged but never rethrow.
+   */
+  async function writeProgressCheckpoint(partial: Record<string, unknown>): Promise<void> {
+    if (!runId) return;
+    try {
+      const db = await getDb();
+      if (!db) return;
+      await db.update(pipelineRuns)
+        .set({ ...partial, steps, errors: errors.length > 0 ? errors : null } as any)
+        .where(eq(pipelineRuns.id, runId));
+    } catch (err) {
+      console.warn(`[DailyPipeline] Progress checkpoint write failed (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+
   // ── Step 1: RSS Harvest (daily) ──
   const harvestStep = startStep("RSS Harvest");
   console.log("[DailyPipeline] Step 1: Harvesting RSS feeds...");
@@ -449,6 +468,16 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     extractionResult = { processed: 0, extracted: 0, duplicates: 0, skipped: 0, failed: 0, creditsUsed: 0, results: [] };
   }
   steps.push(extractionStep);
+  // ── Progress checkpoint 1/4: harvest + extraction ──
+  void writeProgressCheckpoint({
+    feedsFetched: harvestResult.totalSources,
+    feedErrors: harvestResult.totalErrors,
+    articlesIngested: harvestResult.totalNew,
+    articlesDuplicate: harvestResult.totalDuplicates,
+    articlesExtracted: extractionResult.extracted,
+    projectsCreated: extractionResult.extracted,
+    projectsDuplicate: extractionResult.duplicates,
+  });
 
   // ── Step 3: ASX Targeted Monitoring (daily — lightweight) ──
   const asxStep = startStep("ASX Targeted Monitoring");
@@ -866,6 +895,24 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   }
   steps.push(icnValidationStep);
   steps.push(icnStep);
+  // ── Progress checkpoint 2/4: scrapers complete ──
+  void writeProgressCheckpoint({
+    feedsFetched: harvestResult.totalSources,
+    feedErrors: harvestResult.totalErrors,
+    articlesIngested: harvestResult.totalNew,
+    articlesDuplicate: harvestResult.totalDuplicates,
+    articlesExtracted: extractionResult.extracted,
+    projectsCreated: extractionResult.extracted + projectoryResult.totalNewProjects + govResult.totalNewProjects + dmirsResult.totalNewProjects + austenderResult.totalNewProjects + aemoResult.totalNewProjects + icnResult.totalNewProjects + asxResult.newProjects,
+    projectsDuplicate: extractionResult.duplicates,
+    drillingCampaignsCreated: (extractionResult as any).drillingCampaignsInserted || 0,
+    awardedProjectsCreated: (extractionResult as any).awardedProjectsInserted || 0,
+    austenderContracts: austenderResult.totalNewProjects,
+    dmirsProjects: dmirsResult.totalNewProjects,
+    projectoryProjects: projectoryResult.totalNewProjects,
+    govProjects: govResult.totalNewProjects,
+    aemoProjects: aemoResult.totalNewProjects,
+    icnProjects: icnResult.totalNewProjects,
+  });
 
   // ════════════════════════════════════════════════════════════
   // CONTACT & SCORING PIPELINE
@@ -895,6 +942,26 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     enrichmentResult = { processed: 0, enriched: 0, notFound: 0, failed: 0, dailyUsed: 0, results: [] };
   }
   steps.push(enrichmentStep);
+  // ── Progress checkpoint 3/4: contact enrichment complete ──
+  void writeProgressCheckpoint({
+    feedsFetched: harvestResult.totalSources,
+    feedErrors: harvestResult.totalErrors,
+    articlesIngested: harvestResult.totalNew,
+    articlesDuplicate: harvestResult.totalDuplicates,
+    articlesExtracted: extractionResult.extracted,
+    projectsCreated: extractionResult.extracted + projectoryResult.totalNewProjects + govResult.totalNewProjects + dmirsResult.totalNewProjects + austenderResult.totalNewProjects + aemoResult.totalNewProjects + icnResult.totalNewProjects + asxResult.newProjects,
+    projectsDuplicate: extractionResult.duplicates,
+    drillingCampaignsCreated: (extractionResult as any).drillingCampaignsInserted || 0,
+    awardedProjectsCreated: (extractionResult as any).awardedProjectsInserted || 0,
+    austenderContracts: austenderResult.totalNewProjects,
+    dmirsProjects: dmirsResult.totalNewProjects,
+    projectoryProjects: projectoryResult.totalNewProjects,
+    govProjects: govResult.totalNewProjects,
+    aemoProjects: aemoResult.totalNewProjects,
+    icnProjects: icnResult.totalNewProjects,
+    contactsEnriched: enrichmentResult.enriched,
+    apolloCreditsUsed: enrichmentResult.dailyUsed,
+  });
 
   // ── Step 11: Web Stakeholder Discovery ──
   const webDiscoveryStep = startStep("Web Stakeholder Discovery");
@@ -1158,11 +1225,13 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   }
   steps.push(hotSlaStep);
 
-  // ── Step 20: Discovery Queue Processing (daily, batch 10) ──
+  // ── Step 20: Discovery Queue Processing (daily, batch 3) ──
   // Processes the highest-priority queued projects (Priority A first).
-  // Batch size is intentionally small (10) to stay within pipeline timeout.
+  // Batch size is intentionally small (3) to stay within pipeline timeout.
   // Each project triggers Apollo/web/LLM discovery which can take 5-15s per project.
-  const DISCOVERY_QUEUE_BATCH = 10;
+  // Batch=3 keeps total pipeline runtime under 35 minutes (safe for CloudRun service).
+  // Increase to 5-10 once execution is moved to a CloudRun Job (Phase 2).
+  const DISCOVERY_QUEUE_BATCH = 3;
   const discoveryQueueStep = startStep("Discovery Queue Processing");
   console.log(`[DailyPipeline] Step 20: Processing discovery queue (batch ${DISCOVERY_QUEUE_BATCH}, Priority A first)...`);
   let discoveryQueueResult = { processed: 0, priorityA: 0, priorityB: 0, priorityC: 0, newSendReady: 0, newNamedNoEmail: 0, newRoleOnly: 0, blocked: 0, failed: 0, results: [] as any[] };
@@ -1191,6 +1260,27 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     failStep(discoveryQueueStep, errMsg);
   }
   steps.push(discoveryQueueStep);
+  // ── Progress checkpoint 4/4: discovery queue complete ──
+  void writeProgressCheckpoint({
+    feedsFetched: harvestResult.totalSources,
+    feedErrors: harvestResult.totalErrors,
+    articlesIngested: harvestResult.totalNew,
+    articlesDuplicate: harvestResult.totalDuplicates,
+    articlesExtracted: extractionResult.extracted,
+    projectsCreated: extractionResult.extracted + projectoryResult.totalNewProjects + govResult.totalNewProjects + dmirsResult.totalNewProjects + austenderResult.totalNewProjects + aemoResult.totalNewProjects + icnResult.totalNewProjects + asxResult.newProjects,
+    projectsDuplicate: extractionResult.duplicates,
+    drillingCampaignsCreated: (extractionResult as any).drillingCampaignsInserted || 0,
+    awardedProjectsCreated: (extractionResult as any).awardedProjectsInserted || 0,
+    austenderContracts: austenderResult.totalNewProjects,
+    dmirsProjects: dmirsResult.totalNewProjects,
+    projectoryProjects: projectoryResult.totalNewProjects,
+    projectoryEnriched: projectoryEnrichResult.enriched,
+    govProjects: govResult.totalNewProjects,
+    aemoProjects: aemoResult.totalNewProjects,
+    icnProjects: icnResult.totalNewProjects,
+    contactsEnriched: enrichmentResult.enriched,
+    apolloCreditsUsed: enrichmentResult.dailyUsed,
+  });
 
   // ════════════════════════════════════════════════════════════
   // DIGEST & NOTIFICATIONS
