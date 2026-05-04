@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
 import { startDailyScheduler } from "../dailyPipeline";
 import { storagePut } from "../storage";
+import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -80,6 +81,11 @@ async function startServer() {
 
   // Lightweight health ping — used by pipeline keepalive to prevent CloudRun container recycling
   app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+
+  // External scheduled pipeline trigger — called by Manus scheduled task daily at 20:00 UTC
+  // Auth: app_session_id cookie (Manus scheduled-task JWT) + X-Scheduled-Task header
+  // Idempotent: returns 200 already_ran if completed within 4h, 409 if currently running
+  app.post("/api/scheduled/pipeline", handleScheduledPipelineTrigger);
 
   // tRPC API
   app.use(

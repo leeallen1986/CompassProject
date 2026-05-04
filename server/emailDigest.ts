@@ -868,13 +868,21 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
           await logFreshnessHeld(freshness.blockedReason ?? freshness.status);
           try {
             const { notifyOwner } = await import("./_core/notification");
+            const digestAttemptedAt = new Date();
+            const stalenessHours = freshness.lastCompletedAt
+              ? Math.round(((digestAttemptedAt.getTime() - freshness.lastCompletedAt.getTime()) / 3600000) * 10) / 10
+              : null;
             await notifyOwner({
               title: "⚠️ Monday Digest HELD — Pipeline Freshness Gate",
               content: [
                 `The Monday digest was blocked by the freshness gate and was NOT sent.`,
                 `Pipeline status: **${freshness.status.toUpperCase()}**`,
                 `Reason: ${freshness.blockedReason}`,
-                `Last successful run: ${freshness.lastCompletedAt ? freshness.lastCompletedAt.toUTCString() : "never"}`,
+                ``,
+                `Last successful pipeline run: ${freshness.lastCompletedAt ? freshness.lastCompletedAt.toUTCString() : "never"}`,
+                `Digest attempted at: ${digestAttemptedAt.toUTCString()}`,
+                `Freshness threshold: ${freshness.windowHours}h`,
+                `Actual staleness: ${stalenessHours !== null ? `${stalenessHours}h` : "unknown (no completed run found)"}`,
                 ``,
                 `To override and send with stale data, set DIGEST_STALE_FALLBACK=true and trigger a manual send from the Admin panel.`,
                 ``,

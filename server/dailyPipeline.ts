@@ -1433,14 +1433,42 @@ let schedulerStarted = false;
 /** UTC hour at which the daily pipeline runs. Must be before DIGEST_HOUR (23). */
 const PIPELINE_HOUR_UTC = 20;
 
+/**
+ * Start the in-process daily pipeline scheduler.
+ *
+ * PRODUCTION NOTE:
+ * This in-process scheduler is a DEVELOPMENT FALLBACK ONLY.
+ * In production (NODE_ENV=production), the pipeline is triggered externally
+ * by a Manus scheduled task that POSTs to POST /api/scheduled/pipeline daily
+ * at 20:00 UTC. That external trigger is the source of truth for production
+ * and is immune to CloudRun idle shutdowns.
+ *
+ * This scheduler is kept active in development so local dev environments
+ * still get automatic pipeline runs without needing an external scheduler.
+ * In production, it logs a warning and exits immediately.
+ */
 export function startDailyScheduler(): void {
   if (schedulerStarted) return;
   schedulerStarted = true;
 
-  // Cleanup stale runs from previous server instances
+  // Always run startup cleanup regardless of environment
   cleanupStaleRuns().then(count => {
     if (count > 0) console.log(`[DailyPipeline] Startup cleanup: marked ${count} stale runs as failed`);
   }).catch(() => {});
+
+  // In production, the external Manus scheduled task is the source of truth.
+  // Do NOT start the in-process scheduler — it would be unreliable on CloudRun.
+  if (process.env.NODE_ENV === "production") {
+    console.log(
+      "[DailyPipeline] Production mode: in-process scheduler DISABLED. " +
+      "Daily pipeline is triggered externally via POST /api/scheduled/pipeline " +
+      `(Manus scheduled task, ${PIPELINE_HOUR_UTC}:00 UTC daily).`
+    );
+    return;
+  }
+
+  // Development mode: use in-process setTimeout as a convenience.
+  console.log(`[DailyPipeline] Development mode: in-process scheduler active (${PIPELINE_HOUR_UTC}:00 UTC daily).`);
 
   function scheduleNext(): void {
     const now = new Date();
@@ -1451,13 +1479,13 @@ export function startDailyScheduler(): void {
     }
     const delay = next.getTime() - now.getTime();
     const hoursUntil = Math.round(delay / 3600000 * 10) / 10;
-    console.log(`[DailyPipeline] Next run scheduled in ${hoursUntil}h at ${next.toISOString()} (${PIPELINE_HOUR_UTC}:00 UTC daily)`);
+    console.log(`[DailyPipeline] [DEV] Next run scheduled in ${hoursUntil}h at ${next.toISOString()} (${PIPELINE_HOUR_UTC}:00 UTC daily)`);
 
     setTimeout(async () => {
       try {
-        await runDailyPipeline("scheduler");
+        await runDailyPipeline("scheduler-dev");
       } catch (err: unknown) {
-        console.error("[DailyPipeline] Scheduled run failed:", err instanceof Error ? err.message : String(err));
+        console.error("[DailyPipeline] [DEV] Scheduled run failed:", err instanceof Error ? err.message : String(err));
       }
       // Always schedule next run, even if current one failed/timed out
       scheduleNext();
