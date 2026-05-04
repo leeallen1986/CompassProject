@@ -831,6 +831,81 @@ export const appRouter = router({
       const { users: usersTable } = await import("../drizzle/schema");
       return db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role }).from(usersTable);
     }),
+
+    /**
+     * Preview the WA digest (dry-run) — returns the digest content for review.
+     * Does NOT send any emails. Used to review the digest before approving the first live send.
+     * Runs sendWeeklyDigests(false, true) which is dryRun=true.
+     */
+    previewWADigest: adminProcedure.mutation(async () => {
+      const results = await sendWeeklyDigests(false, true);
+      return results;
+    }),
+
+    /**
+     * Get the current manual preview gate status for all territories.
+     * Shows whether the first send has been approved and whether auto-send is enabled.
+     */
+    getSendControlStatus: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { digestSendControl } = await import("../drizzle/schema");
+      const { desc: descOp } = await import("drizzle-orm");
+      return db.select().from(digestSendControl).orderBy(descOp(digestSendControl.updatedAt));
+    }),
+
+    /**
+     * Approve the first live send for a territory after reviewing the dry-run preview.
+     * Sets firstSendApproved=true and autoSendEnabled=true for the territory.
+     * After this, the weekly digest will send automatically when the territory threshold is met.
+     */
+    approveFirstSend: adminProcedure
+      .input(z.object({ territory: z.string().min(1).max(32) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("DB unavailable");
+        const { digestSendControl } = await import("../drizzle/schema");
+        const { eq: eqOp } = await import("drizzle-orm");
+
+        // Upsert: create or update the control record for this territory
+        const [existing] = await db
+          .select()
+          .from(digestSendControl)
+          .where(eqOp(digestSendControl.territory, input.territory))
+          .limit(1);
+
+        const approvedBy = ctx.user.name || ctx.user.email || String(ctx.user.id);
+        const now = new Date();
+
+        if (existing) {
+          await db
+            .update(digestSendControl)
+            .set({
+              firstSendApproved: true,
+              firstSendApprovedAt: now,
+              firstSendApprovedBy: approvedBy,
+              autoSendEnabled: true,
+            })
+            .where(eqOp(digestSendControl.territory, input.territory));
+        } else {
+          await db.insert(digestSendControl).values({
+            territory: input.territory,
+            firstSendApproved: true,
+            firstSendApprovedAt: now,
+            firstSendApprovedBy: approvedBy,
+            autoSendEnabled: true,
+          });
+        }
+
+        console.log(`[DigestSendControl] First send approved for territory "${input.territory}" by ${approvedBy}`);
+        return {
+          success: true,
+          territory: input.territory,
+          approvedBy,
+          approvedAt: now,
+          autoSendEnabled: true,
+        };
+      }),
   }),
 
   // ── AI Project Search / Matching ──

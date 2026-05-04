@@ -33,7 +33,7 @@ import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClass
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
-import { userEmailSendLog, digestScheduleLog, projectValidationGates } from "../drizzle/schema";
+import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl } from "../drizzle/schema";
 import { eq, and, gte, inArray } from "drizzle-orm";
 
 // ── Territory-Level Digest Send Threshold ──
@@ -1354,6 +1354,57 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         console.log(
           `[EmailDigest] ✓ Territory threshold met for ${user.name}: ${threshold.reason}`
         );
+
+        // ── Manual Preview Gate ──
+        // The first live digest send for each territory requires a manual preview/review.
+        // Even when the territory threshold is met, the digest is held until an admin
+        // explicitly approves the first send via the digest preview endpoint.
+        // After one approved cycle, autoSendEnabled is set to true and this gate is bypassed.
+        const db = await getDb();
+        if (db) {
+          const primaryTerritory = territories[0] || "National";
+          const [sendControl] = await db
+            .select()
+            .from(digestSendControl)
+            .where(eq(digestSendControl.territory, primaryTerritory))
+            .limit(1);
+
+          if (!sendControl) {
+            // No control record yet — create one and hold the send
+            await db.insert(digestSendControl).values({
+              territory: primaryTerritory,
+              firstSendApproved: false,
+              autoSendEnabled: false,
+            });
+            results.skipped++;
+            console.log(
+              `[EmailDigest] ⏸ MANUAL PREVIEW GATE: First send for territory "${primaryTerritory}" requires manual preview approval. Run a dry-run preview and approve it before the first live send.`
+            );
+            await logEmailSendExtended({
+              userId: user.id, digestType: "monday", status: "failed",
+              weekKey, itemCount: 0, dryRun: false,
+              error: `MANUAL_PREVIEW_GATE: First send for territory "${primaryTerritory}" requires manual preview approval via the admin digest preview endpoint.`,
+            });
+            continue;
+          }
+
+          if (!sendControl.autoSendEnabled && !sendControl.firstSendApproved) {
+            results.skipped++;
+            console.log(
+              `[EmailDigest] ⏸ MANUAL PREVIEW GATE: Territory "${primaryTerritory}" has not completed the required preview/review cycle. Approve the digest preview before the first live send.`
+            );
+            await logEmailSendExtended({
+              userId: user.id, digestType: "monday", status: "failed",
+              weekKey, itemCount: 0, dryRun: false,
+              error: `MANUAL_PREVIEW_GATE: Territory "${primaryTerritory}" awaiting first-send approval. Preview the digest and approve it in the admin dashboard.`,
+            });
+            continue;
+          }
+
+          console.log(
+            `[EmailDigest] ✓ Manual preview gate passed for territory "${primaryTerritory}" (autoSend=${sendControl.autoSendEnabled}, firstApproved=${sendControl.firstSendApproved})`
+          );
+        }
       }
 
       // Generate the personalized Monday digest

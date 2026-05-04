@@ -1,0 +1,1 @@
+ALTER TABLE `projects` MODIFY COLUMN `discoveryStatus` enum('no_contacts','discovery_queued','discovery_running','role_only','named_contact_no_email','send_ready_contact','blocked_government_owner','blocked_dirty_owner','blocked_no_usable_domain','watchlist_monitor') DEFAULT 'no_contacts';

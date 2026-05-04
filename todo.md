@@ -2051,3 +2051,18 @@
 - [x] Block digest send if territory threshold not met (return threshold failure reason in digest preview)
 - [x] Add Gate Summary banner to This Week page: demoted project gate progress (X of 13 gated digest-safe)
 - [ ] WA digest preview: only show after threshold is met
+
+## Hunter Key Confirmation & Manual Preview Gate
+- [x] Confirm HUNTER_API_KEY presence and whether Hunter verification actually ran or silently skipped
+- [x] Re-run Hunter verification on 13 demoted projects after key is confirmed present (Hunter ran live; 0 email matches — structurally weak project cohort)
+- [x] Add manual preview gate: block first automatic digest send, require one manual preview/review pass
+- [x] Add digest preview endpoint to admin dashboard (dry-run mode, shows exact email content)
+- [x] Report: Hunter ran live, 0 emails recovered (structurally weak cohort), 13 projects moved to watchlist_monitor
+
+## Revised Digest Threshold & Watchlist State
+- [x] Add watchlist_monitor discoveryStatus value to schema
+- [x] Move 13 structurally weak demoted projects to watchlist_monitor state (not blocking digest)
+- [x] Fix territory threshold: use digest-eligible project quality, not demoted-project count
+- [x] Build WA digest candidate pool from send-ready + digest-safe projects only
+- [x] Add manual preview gate: first digest send requires manual review, not automatic
+- [x] Add digest preview endpoint to admin dashboard (dry-run, shows exact email content)

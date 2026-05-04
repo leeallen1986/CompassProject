@@ -237,6 +237,7 @@ export const projects = mysqlTable("projects", {
     "blocked_government_owner",   // Government/public owner — Apollo blocked, needs gov fallback
     "blocked_dirty_owner",        // Owner field is garbage (contractor scope text, etc.)
     "blocked_no_usable_domain",   // Private owner but no domain could be inferred
+    "watchlist_monitor",          // Structurally weak for current digest — monitor for future recovery
   ]).default("no_contacts"),
   /**
    * Contact Discovery Operating Model: priority tier for discovery queue.
@@ -1611,3 +1612,33 @@ export const projectValidationGates = mysqlTable("projectValidationGates", {
 
 export type ProjectValidationGate = typeof projectValidationGates.$inferSelect;
 export type InsertProjectValidationGate = typeof projectValidationGates.$inferInsert;
+
+/**
+ * digestSendControl — global digest send gate.
+ * The first live digest send requires a manual preview/review cycle.
+ * Once an admin approves the first send, automatic sends are enabled.
+ * This prevents the digest from firing automatically the first time
+ * the territory threshold is met, even if all quality gates pass.
+ */
+export const digestSendControl = mysqlTable("digestSendControl", {
+  id: int("id").autoincrement().primaryKey(),
+  territory: varchar("territory", { length: 32 }).notNull(),  // e.g. "WA", "QLD", "NSW"
+  /** Whether the first send has been manually previewed and approved */
+  firstSendApproved: boolean("firstSendApproved").notNull().default(false),
+  /** Timestamp when the first send was approved */
+  firstSendApprovedAt: timestamp("firstSendApprovedAt"),
+  /** Who approved the first send */
+  firstSendApprovedBy: varchar("firstSendApprovedBy", { length: 255 }),
+  /** Whether automatic sends are now enabled (set to true after first approved cycle) */
+  autoSendEnabled: boolean("autoSendEnabled").notNull().default(false),
+  /** Last digest preview generated (dry-run) */
+  lastPreviewAt: timestamp("lastPreviewAt"),
+  /** Last live digest sent */
+  lastLiveSendAt: timestamp("lastLiveSendAt"),
+  /** Total live sends completed */
+  liveSendCount: int("liveSendCount").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DigestSendControl = typeof digestSendControl.$inferSelect;
+export type InsertDigestSendControl = typeof digestSendControl.$inferInsert;

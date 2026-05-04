@@ -2333,6 +2333,147 @@ function DuplicatesTab() {
   );
 }
 
+// ── Digest Preview Gate Panel ──
+
+function DigestPreviewGatePanel() {
+  const { data: sendControls, refetch: refetchControls, isLoading } = trpc.digest.getSendControlStatus.useQuery();
+  const utils = trpc.useUtils();
+
+  const [previewResult, setPreviewResult] = useState<{ sent: number; failed: number; skipped: number; previews?: Array<{ userId: number; subject: string; contentLength: number; contentSnippet?: string }> } | null>(null);
+  const [showPreviewContent, setShowPreviewContent] = useState<string | null>(null);
+
+  const previewWADigest = trpc.digest.previewWADigest.useMutation({
+    onSuccess: (data) => {
+      setPreviewResult(data);
+      if (data.previews && data.previews.length > 0) {
+        toast.success(`Preview generated: ${data.previews.length} digest(s) ready for review`);
+      } else {
+        toast.info(`Preview ran: ${data.skipped} skipped (territory threshold or preview gate may be holding). Check the digest hold log for details.`);
+      }
+      refetchControls();
+    },
+    onError: (e) => toast.error(`Preview failed: ${e.message}`),
+  });
+
+  const approveFirstSend = trpc.digest.approveFirstSend.useMutation({
+    onSuccess: (data) => {
+      toast.success(`First send approved for territory "${data.territory}". Auto-send is now enabled.`);
+      utils.digest.getSendControlStatus.invalidate();
+    },
+    onError: (e) => toast.error(`Approval failed: ${e.message}`),
+  });
+
+  return (
+    <div className="bg-card rounded-lg border border-amber-200 p-5">
+      <h2 className="text-base font-bold text-navy flex items-center gap-2 mb-1">
+        <Shield className="w-4 h-4 text-amber-500" /> WA Digest — Preview & First-Send Approval
+      </h2>
+      <p className="text-xs text-muted-foreground mb-4">
+        The first live digest send for each territory requires a manual preview and approval. Run a dry-run preview, review the output, then approve the first send. After one approved cycle, automatic sends are enabled.
+      </p>
+
+      {/* Send control status */}
+      {!isLoading && sendControls && sendControls.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {sendControls.map((ctrl) => (
+            <div key={ctrl.id} className={`flex items-center justify-between px-3 py-2 rounded-md text-xs border ${
+              ctrl.autoSendEnabled
+                ? 'bg-teal/8 border-teal/20 text-teal'
+                : ctrl.firstSendApproved
+                ? 'bg-gold/8 border-gold/20 text-gold-dark'
+                : 'bg-amber-50 border-amber-200 text-amber-700'
+            }`}>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${
+                  ctrl.autoSendEnabled ? 'bg-teal' : ctrl.firstSendApproved ? 'bg-gold' : 'bg-amber-400'
+                }`} />
+                <span className="font-semibold">{ctrl.territory}</span>
+                <span className="text-[10px] opacity-70">
+                  {ctrl.autoSendEnabled
+                    ? `Auto-send enabled — approved by ${ctrl.firstSendApprovedBy ?? 'admin'} on ${ctrl.firstSendApprovedAt ? new Date(ctrl.firstSendApprovedAt).toLocaleDateString() : '?'}`
+                    : ctrl.firstSendApproved
+                    ? 'First send approved — awaiting auto-send activation'
+                    : 'Awaiting first-send approval — preview required'}
+                </span>
+              </div>
+              {!ctrl.autoSendEnabled && (
+                <Button
+                  size="sm"
+                  className="text-[10px] h-6 px-2 bg-teal text-white hover:bg-teal/80"
+                  onClick={() => {
+                    if (confirm(`Approve the first live send for territory "${ctrl.territory}"? This will enable automatic weekly sends after one successful reviewed cycle.`)) {
+                      approveFirstSend.mutate({ territory: ctrl.territory });
+                    }
+                  }}
+                  disabled={approveFirstSend.isPending}
+                >
+                  {approveFirstSend.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Approve First Send'}
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(!sendControls || sendControls.length === 0) && !isLoading && (
+        <div className="mb-4 px-3 py-2 rounded-md text-xs bg-amber-50 border border-amber-200 text-amber-700">
+          No territory send-control records yet. Run a preview to create the WA record.
+        </div>
+      )}
+
+      {/* Preview button */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        <Button
+          onClick={() => { setPreviewResult(null); setShowPreviewContent(null); previewWADigest.mutate(); }}
+          disabled={previewWADigest.isPending}
+          className="bg-amber-600 text-white hover:bg-amber-700 text-xs px-4 h-8"
+        >
+          {previewWADigest.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Eye className="w-3.5 h-3.5 mr-1" />}
+          Run WA Digest Preview (dry-run)
+        </Button>
+      </div>
+
+      {/* Preview results */}
+      {previewResult && (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-3 text-xs">
+            <span className="px-2 py-0.5 rounded bg-teal/10 text-teal font-semibold">{previewResult.previews?.length ?? 0} preview(s) generated</span>
+            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold">{previewResult.skipped} skipped</span>
+            {previewResult.failed > 0 && <span className="px-2 py-0.5 rounded bg-hot/10 text-hot font-semibold">{previewResult.failed} failed</span>}
+          </div>
+          {previewResult.previews && previewResult.previews.length > 0 && (
+            <div className="space-y-2">
+              {previewResult.previews.map((p, i) => (
+                <div key={i} className="border border-border rounded-md overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-navy/3 text-xs">
+                    <span className="font-semibold text-navy truncate max-w-[70%]">{p.subject}</span>
+                    <button
+                      onClick={() => setShowPreviewContent(showPreviewContent === p.contentSnippet ? null : (p.contentSnippet ?? null))}
+                      className="text-gold hover:text-gold-dark font-semibold shrink-0 ml-2"
+                    >
+                      {showPreviewContent === p.contentSnippet ? 'Hide' : 'View content'}
+                    </button>
+                  </div>
+                  {showPreviewContent === p.contentSnippet && (
+                    <div className="p-3 bg-white text-xs font-mono whitespace-pre-wrap max-h-96 overflow-y-auto border-t border-border">
+                      {p.contentSnippet}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {(!previewResult.previews || previewResult.previews.length === 0) && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              No digest content generated — territory threshold may not be met yet, or no users have completed onboarding profiles for this territory. Check the Contact Validation workflow to gate more projects as digest-safe.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Email Preview Tab ──
 
 function EmailPreviewTab() {
@@ -2729,6 +2870,9 @@ function EmailPreviewTab() {
           )}
         </div>
       </div>
+
+      {/* WA Digest Preview Gate */}
+      <DigestPreviewGatePanel />
 
       {/* Email Preview Panel */}
       <div className="bg-card rounded-lg border border-border p-5">

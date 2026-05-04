@@ -540,6 +540,20 @@
       "when": 1777932879365,
       "tag": "0076_tired_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "5",
+      "when": 1777937124922,
+      "tag": "0077_blushing_annihilus",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "5",
+      "when": 1777937327303,
+      "tag": "0078_romantic_sprite",
+      "breakpoints": true
     }
   ]
 }
