@@ -522,13 +522,12 @@ function generateMondayDigest(
   userId: number,
 ): string {
   // ── Brief Readiness Split ──
-  // Separate projects into action_ready, discovery_needed, monitor_only
   const actionReady = matchedProjects.filter(p => p.briefReadiness === "action_ready");
   const discoveryNeeded = matchedProjects.filter(p => p.briefReadiness === "discovery_needed");
   const monitorOnly = matchedProjects.filter(p => p.briefReadiness === "monitor_only");
 
-  // Brief caps
-  const TOP_ACTIONS_CAP = 5;
+  // Brief caps — tighter than before: 3 must-act, 2 discovery, 3 monitor
+  const TOP_ACTIONS_CAP = 3;
   const DISCOVERY_CAP = 2;
   const MONITOR_CAP = 3;
 
@@ -542,140 +541,171 @@ function generateMondayDigest(
       : territories.join(", ")
     : "All Regions";
 
-  let content = `**PT Capital Sales — Weekly Intelligence Brief — ${reportWeek}**\n\n`;
-  content += `Hi ${userName || "there"},\n\n`;
-  content += `Here's your personalised PT Capital Sales intelligence brief for **${territoryLabel}**.\n\n`;
-
-  // ── Freshness line near top of email ──
-  content += `_${freshnessLine}_\n\n`;
-
-  // ── This Week Highlights (top of email) ──
-  content += thisWeekSection;
-  content += `\n`;
-
-  // ── Summary stats ──
-  content += `---\n\n`;
-  const totalInBrief = actionReady.length + discoveryNeeded.length;
   const hotCount = matchedProjects.filter(p => p.priority === "hot").length;
-  const warmCount = matchedProjects.filter(p => p.priority === "warm").length;
   const newCount = matchedProjects.filter(p => p.isNew).length;
-  content += `**Summary:** ${totalInBrief} shortlisted projects (${actionReady.length} action-ready, ${discoveryNeeded.length} need discovery) | ${hotCount} hot, ${warmCount} warm, ${newCount} new\n\n`;
+  const totalShown = topActions.length + discoveryItems.length + monitorItems.length;
+
+  // ── Header: 1 line, above the fold ──
+  let content = `**PT Capital Sales — ${territoryLabel} Brief — ${reportWeek}**\n\n`;
+  content += `Hi ${userName || "there"},\n\n`;
+
+  // ── Above-the-fold summary: counts + freshness in one line ──
+  const summaryParts: string[] = [];
+  if (hotCount > 0) summaryParts.push(`${hotCount} hot`);
+  if (newCount > 0) summaryParts.push(`${newCount} new`);
+  summaryParts.push(`${topActions.length} ready to act`);
+  if (discoveryItems.length > 0) summaryParts.push(`${discoveryItems.length} need contacts`);
+  content += `**This week:** ${summaryParts.join(" | ")} — _${freshnessLine}_\n\n`;
+
+  // ── This Week Highlights (injected from thisWeekService if available) ──
+  if (thisWeekSection && thisWeekSection.trim()) {
+    content += thisWeekSection;
+    content += `\n`;
+  }
 
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 1: TOP ACTIONS (action_ready only, max 5)
+  // SECTION 1: MUST ACT (action_ready, max 3)
   // ═══════════════════════════════════════════════════════════════
   if (topActions.length > 0) {
-    content += `## 🎯 Top Actions — Ready to Act (${topActions.length})\n\n`;
+    content += `---\n\n## 🟥 Must Act This Week (${topActions.length})\n\n`;
     for (const p of topActions) {
-      content += renderProjectBlock(p, weekKey, userId, "action_ready");
+      content += renderProjectCard(p, weekKey, userId, "action_ready");
     }
   } else {
-    content += `## 🎯 Top Actions\n\n`;
-    content += `_No action-ready projects this week — all shortlisted projects need stakeholder discovery first._\n\n`;
+    content += `---\n\n## 🟥 Must Act This Week\n\n`;
+    content += `_No action-ready opportunities this week — see Discovery Needed below._\n\n`;
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 2: STAKEHOLDER DISCOVERY NEEDED (max 2)
+  // SECTION 2: DISCOVERY NEEDED (max 2)
   // ═══════════════════════════════════════════════════════════════
   if (discoveryItems.length > 0) {
-    content += `## 🔍 Stakeholder Discovery Needed (${discoveryItems.length})\n\n`;
-    content += `_These projects are high-priority but have no send-ready contacts yet. Run enrichment or AI Search to find the right person before outreach._\n\n`;
+    content += `---\n\n## 🔍 Find the Contact First (${discoveryItems.length})\n\n`;
     for (const p of discoveryItems) {
-      content += renderProjectBlock(p, weekKey, userId, "discovery_needed");
+      content += renderProjectCard(p, weekKey, userId, "discovery_needed");
     }
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 3: MONITOR (optional, max 3)
+  // SECTION 3: MONITOR (max 3, minimal format)
   // ═══════════════════════════════════════════════════════════════
   if (monitorItems.length > 0) {
-    content += `## 📋 Monitor (${monitorItems.length})\n\n`;
-    content += `_Warm-pipeline projects to keep on your radar._\n\n`;
+    content += `---\n\n## 📌 On Radar (${monitorItems.length})\n\n`;
     for (const p of monitorItems) {
-      content += renderProjectBlock(p, weekKey, userId, "monitor_only");
+      content += renderProjectCard(p, weekKey, userId, "monitor_only");
     }
   }
 
-  // ── Key Contacts ──
-  if (matchedContacts.length > 0) {
-    content += `\n**Key Contacts (${Math.min(matchedContacts.length, 5)} of ${matchedContacts.length}):**\n\n`;
-    for (const c of matchedContacts.slice(0, 5)) {
-      content += `• **${c.name}** — ${c.title} at ${c.company}`;
-      if (c.email) content += ` (${c.email})`;
-      content += `\n`;
-    }
-  }
-
-  // Pipeline
+  // ── Footer: pipeline count + dashboard link only ──
+  content += `---\n\n`;
   if (pipelineCount > 0) {
-    content += `\n**Your Pipeline:** ${pipelineCount} active opportunities\n`;
+    content += `**Your pipeline:** ${pipelineCount} active — `;
   }
-
-  content += `\n---\n`;
-  content += `View the full dashboard for detailed project cards, contractor info, and source links.\n`;
-  content += `Update your territory and industry preferences in Settings to refine your matches.`;
+  content += `[Open full dashboard →](${getSiteUrl()}/)`;
+  if (totalShown < matchedProjects.length) {
+    content += ` | ${matchedProjects.length - totalShown} more opportunities in dashboard`;
+  }
+  content += `\n`;
 
   return content;
 }
 
 /**
- * Render a single project block in the email brief.
- * Adapts wording based on readiness classification.
+ * Render a single project card in the email brief.
+ *
+ * Design rules (tighter rep brief):
+ * - 1 project = max 5 lines
+ * - Atlas-known facts on line 2 (location, value, contractor/owner)
+ * - Why now on line 3 (stage, why it matters, AI-inferred if applicable)
+ * - Route-to-buy + known stakeholder OR role gap on line 4
+ * - Exact next step on line 5 (single action, not prose)
+ * - One project link only
+ * - No repeated "Unknown" fields
+ * - No long prose overview blocks
  */
-function renderProjectBlock(
+function renderProjectCard(
   p: DigestProject & { relevanceScore: number },
   weekKey: string,
   userId: number,
   readiness: BriefReadiness,
 ): string {
-  let block = "";
-  const priorityEmoji = p.priority === "hot" ? "🔥" : p.priority === "warm" ? "🌡️" : "❄️";
-  const newBadge = p.isNew ? " [NEW]" : "";
-  const stageBadge = p.stageCode && p.stageCode !== "unknown" ? ` | ${p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)}` : "";
-  const actCode = `ACT-${weekKey}-${userId}-${p.id}`;
+  const priorityLabel = p.priority === "hot" ? "🔥 HOT" : p.priority === "warm" ? "🟡 WARM" : "🔵 COLD";
+  const newBadge = p.isNew ? " • NEW" : "";
   const siteUrl = getSiteUrl();
 
-  block += `${priorityEmoji} **${p.name}**${newBadge}\n`;
-  block += `   📍 ${p.location} | 💰 ${p.value}${stageBadge} | ${p.owner}\n`;
-  block += `   Route: ${p.opportunityRoute} | Match: ${p.relevanceScore}% | Ref: ${actCode}\n`;
-  block += `   🔗 [View project →](${siteUrl}/project/${p.id})\n`;
+  // Line 1: Project name + priority badge + link
+  let card = `**${p.name}** — ${priorityLabel}${newBadge} — [View →](${siteUrl}/project/${p.id})\n`;
 
-  if (p.overview) {
-    block += `   ${p.overview.substring(0, 120)}...\n`;
+  // Line 2: Atlas-known facts (skip Unknown/empty fields)
+  const factParts: string[] = [];
+  if (p.location && p.location !== "Unknown" && p.location !== "unknown") factParts.push(p.location);
+  if (p.value && p.value !== "Unknown" && p.value !== "TBC") factParts.push(p.value);
+  // Owner only if not dirty/unknown
+  const ownerClean = p.owner && p.owner !== "Unknown" && p.owner !== "unknown" && p.owner.length > 2;
+  if (ownerClean) factParts.push(p.owner);
+  if (factParts.length > 0) {
+    card += `   ${factParts.join(" • ")}\n`;
   }
 
-  // ── Readiness-specific messaging ──
+  // Line 3: Why now (stage + brief context — max 100 chars, no prose)
+  const stageLabel = p.stageCode && p.stageCode !== "unknown" && p.stageCode !== "Unknown"
+    ? p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)
+    : null;
+  const routeLabel = p.opportunityRoute && p.opportunityRoute !== "Unknown" ? p.opportunityRoute : null;
+  const whyNowParts: string[] = [];
+  if (stageLabel) whyNowParts.push(stageLabel);
+  if (routeLabel) whyNowParts.push(routeLabel);
+  // Brief overview snippet — max 80 chars, only if it adds signal
+  if (p.overview && p.overview.length > 20) {
+    const snippet = p.overview.replace(/\s+/g, " ").trim().substring(0, 80);
+    whyNowParts.push(snippet + (p.overview.length > 80 ? "…" : ""));
+  }
+  if (whyNowParts.length > 0) {
+    card += `   ${whyNowParts.join(" • ")}\n`;
+  }
+
+  // Line 4 + 5: Readiness-specific action
   if (readiness === "action_ready" && p.bestContact) {
     const contact = p.bestContact;
-    const contactPath = contact.email
-      ? `Email: ${contact.email}`
-      : contact.linkedin
-        ? `[LinkedIn](${contact.linkedin})`
-        : "";
-    block += `   ✅ **Next step:** Reach out to **${contact.name}** (${contact.title}) — ${contactPath}\n`;
+    // Stakeholder line: name + title (skip if both empty)
+    const hasName = contact.name && contact.name !== "Unknown";
+    const hasTitle = contact.title && contact.title !== "Unknown";
+    if (hasName || hasTitle) {
+      const stakeholderLine = [hasName ? contact.name : null, hasTitle ? contact.title : null]
+        .filter(Boolean).join(", ");
+      card += `   👤 ${stakeholderLine}\n`;
+    }
+    // Next step: single concrete action
+    if (contact.email) {
+      card += `   ➡️ **Email ${contact.name || "contact"}:** ${contact.email}\n`;
+    } else if (contact.linkedin) {
+      card += `   ➡️ **Connect on LinkedIn:** [${contact.name || "View profile"}](${contact.linkedin})\n`;
+    } else {
+      card += `   ➡️ Open project card → Contacts tab to reach out\n`;
+    }
   } else if (readiness === "discovery_needed") {
-    // Surface govFallbackStatus if available for more specific guidance
     const govStatus = (p as any).govFallbackStatus as string | null;
     const blockedReason = (p as any).enrichmentBlockedReason as string | null;
     if (govStatus === "government_fallback_role_only") {
-      block += `   🏛️ **Government / Public Body** — roles identified, no named contact yet\n`;
-      block += `   → Manual discovery needed: search LinkedIn for procurement/project delivery contacts at ${p.owner}\n`;
+      card += `   🏙️ Gov / Public Body — roles found, no named contact\n`;
+      card += `   ➡️ Search LinkedIn for procurement contacts at ${ownerClean ? p.owner : "this organisation"}\n`;
     } else if (govStatus === "government_fallback_no_result" || govStatus === "government_fallback_manual_review_required") {
-      block += `   🏛️ **Government / Public Body** — no contact path found via automated discovery\n`;
-      block += `   → Manual review required: check issuer website or tender portal for contact details\n`;
+      card += `   🏙️ Gov / Public Body — no automated contact path\n`;
+      card += `   ➡️ Check tender portal or issuer website for contact details\n`;
     } else if (blockedReason === "blocked_unknown_owner" || blockedReason === "blocked_dirty_owner_string") {
-      block += `   ⚠️ **Owner Data Gap** — owner name too poor to enrich automatically\n`;
-      block += `   → Check source data and update owner name to unlock enrichment\n`;
+      card += `   ⚠️ Owner data gap — update owner name to unlock enrichment\n`;
+      card += `   ➡️ Open project card → edit owner field\n`;
     } else {
-      block += `   🔍 **Coverage Gap** — no send-ready contacts found yet\n`;
-      block += `   → Open project card → Contacts tab → run enrichment or AI Search\n`;
+      card += `   🔍 No send-ready contacts yet\n`;
+      card += `   ➡️ Open project card → Contacts tab → Run Enrichment\n`;
     }
   } else if (readiness === "monitor_only") {
-    // Minimal — no action line needed
+    // Monitor: minimal — just the facts, no action line
+    // (already covered by lines 1–3 above)
   }
 
-  block += `\n`;
-  return block;
+  card += `\n`;
+  return card;
 }
 
 /**
@@ -847,6 +877,18 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   //
   // Freshness window: 26h (tolerates minor scheduler drift).
   // If stale/failed and DIGEST_STALE_FALLBACK=true, digest sends with a clear stale warning.
+  //
+  // AUDIT: Any force bypass is logged with FORCE_OVERRIDE marker so it is always
+  // visible in server logs and auditable.
+  if (force && !dryRun) {
+    const freshness = await checkPipelineFreshness(26);
+    console.warn(
+      `[EmailDigest] ⚠ FORCE_OVERRIDE: sendWeeklyDigests(force=true) bypassing freshness gate.` +
+      ` Pipeline status: ${freshness.status} (${freshness.ageHours}h old).` +
+      ` Sending to all recipients with potentially stale data.`
+    );
+  }
+
   if (!force && !dryRun) {
     const freshness = await checkPipelineFreshness(26);
     const isBlocked = freshness.status === "stale" || freshness.status === "failed" || freshness.status === "never_run";
@@ -1504,15 +1546,45 @@ export async function sendManagerRollupEmail(force = false, dryRun = false): Pro
 
 /**
  * Send the Monday digest to a single specific user.
- * Bypasses the freshness gate and dedup guard (force send).
- * Logs the send to userEmailSendLog.
+ *
+ * FRESHNESS GATE: By default this function respects the same 26h freshness
+ * window as the batch send. Pass `forceOverride=true` only when an admin
+ * explicitly acknowledges they are sending with potentially stale data.
+ *
+ * @param userId - Target recipient
+ * @param forceOverride - When true, bypasses freshness gate AND dedup guard.
+ *   Must be explicit — callers cannot accidentally bypass the gate.
+ *   Logged to console with FORCE_OVERRIDE marker for audit trail.
  */
-export async function sendWeeklyDigestToUser(userId: number): Promise<{
+export async function sendWeeklyDigestToUser(userId: number, forceOverride = false): Promise<{
   sent: boolean;
   subject: string;
   userName: string;
+  freshnessBlocked?: boolean;
   error?: string;
 } | null> {
+  // ── Freshness Gate (mirrors sendWeeklyDigests) ──
+  // forceOverride must be explicitly true — default is false (safe).
+  if (!forceOverride) {
+    const freshness = await checkPipelineFreshness(26);
+    const isBlocked = freshness.status === "stale" || freshness.status === "failed" || freshness.status === "never_run";
+    if (isBlocked) {
+      console.warn(
+        `[EmailDigest] 🚫 FRESHNESS GATE: sendWeeklyDigestToUser(${userId}) BLOCKED.` +
+        ` Pipeline status: ${freshness.status}. Reason: ${freshness.blockedReason}.` +
+        ` Use forceOverride=true to send with stale data (will be logged).`
+      );
+      return { sent: false, subject: "", userName: "", freshnessBlocked: true, error: `Freshness gate: ${freshness.blockedReason}` };
+    }
+  } else {
+    // Audit log: any force override must be visible in logs
+    const freshness = await checkPipelineFreshness(26);
+    console.warn(
+      `[EmailDigest] ⚠ FORCE_OVERRIDE: sendWeeklyDigestToUser(${userId}) bypassing freshness gate.` +
+      ` Pipeline status: ${freshness.status} (${freshness.ageHours}h old). This will be sent with stale data.`
+    );
+  }
+
   const preview = await sendWeeklyDigestsForUser(userId);
   if (!preview) return null;
 
@@ -1529,7 +1601,7 @@ export async function sendWeeklyDigestToUser(userId: number): Promise<{
 
     const sent = await sendEmail({
       to: userEmail,
-      subject: preview.subject,
+      subject: forceOverride ? `[FORCE OVERRIDE] ${preview.subject}` : preview.subject,
       markdownContent: preview.content,
       textContent: preview.content,
     });
@@ -1541,7 +1613,11 @@ export async function sendWeeklyDigestToUser(userId: number): Promise<{
       // Always finalise regardless of whether claim returned true/false
       // (the row may already exist from a previous failed attempt)
       await finaliseDigestSendSlot(userId, "monday", weekKey, "sent", {});
-      console.log(`[EmailDigest] ✓ Catch-up Monday digest sent to ${preview.userName} (${userEmail})`);
+      console.log(
+        forceOverride
+          ? `[EmailDigest] ⚠ FORCE_OVERRIDE Monday digest sent to ${preview.userName} (${userEmail})`
+          : `[EmailDigest] ✓ Catch-up Monday digest sent to ${preview.userName} (${userEmail})`
+      );
     }
 
     return { sent, subject: preview.subject, userName: preview.userName };

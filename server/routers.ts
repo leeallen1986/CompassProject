@@ -656,12 +656,16 @@ export const appRouter = router({
       return sendManagerRollupEmail(false);
     }),
 
-    /** Send Monday digest to a single specific user (force, bypasses dedup + freshness gate) */
+    /**
+     * Send Monday digest to a single specific user.
+     * Respects freshness gate by default.
+     * Pass forceOverride=true to bypass freshness gate (will be logged with FORCE_OVERRIDE marker).
+     */
     sendNowForUser: adminProcedure
-      .input(z.object({ userId: z.number() }))
+      .input(z.object({ userId: z.number(), forceOverride: z.boolean().optional().default(false) }))
       .mutation(async ({ input }) => {
         const { sendWeeklyDigestToUser } = await import("./emailDigest");
-        return sendWeeklyDigestToUser(input.userId);
+        return sendWeeklyDigestToUser(input.userId, input.forceOverride);
       }),
 
     /** Preview Monday digest for a specific user (dry-run, no send) */

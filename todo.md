@@ -1891,3 +1891,22 @@
 - [x] Create Manus scheduled task firing daily at 20:00 UTC (cron: 0 0 20 * * *) — activates after publish
 - [x] Write 14 vitest tests for scheduledPipeline: auth, idempotency, happy path, response shape, constants
 - [x] Full test suite: 2919/2925 pass (6 pre-existing failures, 0 new regressions)
+
+## Digest Trust + Usability Fix
+
+### Part A — HOLD/Send Enforcement
+- [x] Traced full outbound send path — found 2 bypass vectors: sendWeeklyDigestToUser (no gate) + forceSendNow (no audit log)
+- [x] Added freshness gate to sendWeeklyDigestToUser with forceOverride=false default
+- [x] Added explicit FORCE_OVERRIDE audit log to admin send path and batch force=true path
+- [x] 20 HOLD enforcement tests pass: HELD blocks, fallback warns, force logs, dedup guard, skipped=-1 sentinel
+- [x] Test: HELD digest does not send to recipients (skipped=-1 returned, sendEmail not called)
+- [x] Test: DIGEST_STALE_FALLBACK cannot silently bypass — injects stale warning into subject
+- [x] Test: manual/admin send path respects HOLD unless forceOverride=true (explicit, logged)
+
+### Part B — Digest Redesign
+- [x] Audited current template — found: 5-item cap (now 3), contact dump, long prose overview, Unknown fields, no above-fold summary
+- [x] Designed tighter rep-brief: 3 must-act / 2 discovery / 3 monitor, max 5 lines per card
+- [x] Implemented renderProjectCard (was renderProjectBlock): name+badge+link, facts (no Unknown), why-now, stakeholder, next-step
+- [x] Removed: contact dump section, long prose overview blocks, repeated Unknown fields, cluttered multi-link footer
+- [x] Above-the-fold summary line: hot | new | ready-to-act | need-contacts + freshness in one line
+- [x] Full test suite: 2939/2945 pass (6 pre-existing failures, 0 new regressions)
