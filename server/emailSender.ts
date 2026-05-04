@@ -43,6 +43,8 @@ export interface SendEmailOptions {
   subject: string;
   /** Markdown-formatted content — will be converted to simple HTML */
   markdownContent: string;
+  /** Pre-built HTML content — bypasses markdown conversion when provided */
+  htmlContent?: string;
   /** Plain text fallback */
   textContent?: string;
   /** File attachments */
@@ -126,7 +128,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
   }
 
   try {
-    const htmlContent = markdownToHtml(options.markdownContent);
+    const htmlContent = options.htmlContent || markdownToHtml(options.markdownContent);
 
     const { data, error } = await client.emails.send({
       from: FROM_ADDRESS,

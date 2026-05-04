@@ -8,6 +8,7 @@
  *   - Thursday: Mid-week reminder (urgent actions, pipeline nudges, new hot projects since Monday)
  */
 import { sendEmail } from "./emailSender";
+import { buildDigestEmailHtml, buildDigestEmailText, type EmailSignal, type DigestEmailData } from "./emailTemplate";
 import {
   getAllUsersWithProfiles,
   getLatestReport,
@@ -709,6 +710,106 @@ function renderProjectCard(
 }
 
 /**
+ * Convert annotated projects into EmailSignal[] for the new HTML template.
+ * Caps at 5 signals total: up to 3 action_ready + 2 discovery_needed.
+ * Monitor-only projects are excluded from the email (they can see them on dashboard).
+ */
+function buildEmailSignals(
+  annotatedProjects: Array<DigestProject & { relevanceScore: number; briefReadiness?: BriefReadiness; bestContact?: DigestProject["bestContact"] }>,
+  territories: string[],
+): EmailSignal[] {
+  const signals: EmailSignal[] = [];
+  const actionReady = annotatedProjects.filter(p => p.briefReadiness === "action_ready").slice(0, 3);
+  const discoveryNeeded = annotatedProjects.filter(p => p.briefReadiness === "discovery_needed").slice(0, 2);
+
+  for (const p of actionReady) {
+    const productSuffix = p.productLane && p.productLane !== "Unknown"
+      ? p.productLane
+      : p.opportunityRoute && p.opportunityRoute !== "Unknown"
+        ? p.opportunityRoute
+        : null;
+    const title = productSuffix ? `${p.name} \u2014 ${productSuffix}` : p.name;
+    const company = p.owner && p.owner !== "Unknown" && p.owner !== "unknown" ? p.owner : "";
+
+    // Build pitch from overview
+    let pitch = "";
+    if (p.overview && p.overview.length > 20) {
+      pitch = p.overview.replace(/\s+/g, " ").trim();
+      if (pitch.length > 200) pitch = pitch.substring(0, 197) + "...";
+    } else {
+      pitch = `${p.name} presents an opportunity for Atlas Copco portable equipment solutions.`;
+    }
+
+    // Build CTA from bestContact
+    let ctaAction = "Open project card to view contacts and next steps.";
+    if (p.bestContact) {
+      const contactName = p.bestContact.name && p.bestContact.name !== "Unknown" ? p.bestContact.name : null;
+      const contactTitle = p.bestContact.title && p.bestContact.title !== "Unknown" ? p.bestContact.title : null;
+      if (contactName && contactTitle) {
+        ctaAction = `Contact the ${contactTitle} to discuss rental terms and availability.`;
+      } else if (contactName) {
+        ctaAction = `Reach out to ${contactName} to discuss equipment requirements.`;
+      } else if (contactTitle) {
+        ctaAction = `Contact the ${contactTitle} to propose tailored solutions.`;
+      }
+    }
+
+    // Product tag
+    const productTag = productSuffix
+      ? `${productSuffix} for ${p.sector && p.sector !== "Unknown" ? p.sector.replace(/_/g, " ") : "project"}`
+      : p.sector && p.sector !== "Unknown"
+        ? `Equipment solutions for ${p.sector.replace(/_/g, " ")}`
+        : "Portable equipment opportunity";
+
+    signals.push({
+      projectId: p.id,
+      badge: "action_ready",
+      title,
+      company,
+      pitch,
+      ctaAction,
+      productTag,
+    });
+  }
+
+  for (const p of discoveryNeeded) {
+    const productSuffix = p.productLane && p.productLane !== "Unknown"
+      ? p.productLane
+      : p.opportunityRoute && p.opportunityRoute !== "Unknown"
+        ? p.opportunityRoute
+        : null;
+    const title = productSuffix ? `${p.name} \u2014 ${productSuffix}` : p.name;
+    const company = p.owner && p.owner !== "Unknown" && p.owner !== "unknown" ? p.owner : "";
+
+    let pitch = "";
+    if (p.overview && p.overview.length > 20) {
+      pitch = p.overview.replace(/\s+/g, " ").trim();
+      if (pitch.length > 200) pitch = pitch.substring(0, 197) + "...";
+    } else {
+      pitch = `${p.name} may require portable equipment — contact discovery needed.`;
+    }
+
+    const ctaAction = "Engage with the Project Engineer to confirm detailed equipment needs and timelines.";
+
+    const productTag = productSuffix
+      ? `${productSuffix} for ${p.sector && p.sector !== "Unknown" ? p.sector.replace(/_/g, " ") : "project"}`
+      : "Equipment opportunity requiring contact discovery";
+
+    signals.push({
+      projectId: p.id,
+      badge: "discovery_needed",
+      title,
+      company,
+      pitch,
+      ctaAction,
+      productTag,
+    });
+  }
+
+  return signals;
+}
+
+/**
  * Generate a personalized Thursday mid-week reminder for a single user.
  * Lighter than the Monday digest — focuses on urgent actions, pipeline nudges,
  * and any new hot projects discovered since Monday.
@@ -1153,11 +1254,34 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         continue;
       }
 
+      // ── Build clean HTML email using benchmark template ──
+      const emailSignals = buildEmailSignals(annotatedProjects, territories);
+      const actionReadyCount = emailSignals.filter(s => s.badge === "action_ready").length;
+      const discoveryCount = emailSignals.filter(s => s.badge === "discovery_needed").length;
+      const summaryParts: string[] = [];
+      if (actionReadyCount > 0) summaryParts.push(`${actionReadyCount} action-ready opportunit${actionReadyCount === 1 ? "y" : "ies"}`);
+      if (discoveryCount > 0) summaryParts.push(`${discoveryCount} need${discoveryCount === 1 ? "s" : ""} contact discovery`);
+      const summaryLine = summaryParts.length > 0
+        ? `${summaryParts.join(" and ")} this week.`
+        : "Here's your weekly intelligence update.";
+
+      const emailData: DigestEmailData = {
+        userName: (user.name || "Team Member").split(" ")[0],
+        territory: territoryLabel,
+        weekLabel: report.weekEnding,
+        summaryLine,
+        signals: emailSignals,
+        dashboardUrl: getSiteUrl(),
+      };
+      const htmlContent = buildDigestEmailHtml(emailData);
+      const textContent = buildDigestEmailText(emailData);
+
       const sent = await sendEmail({
         to: userEmail,
         subject,
         markdownContent: content,
-        textContent: content,
+        htmlContent,
+        textContent,
       });
 
       if (sent) {
@@ -1320,13 +1444,29 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
         continue;
       }
 
+       // ── Build clean HTML email using benchmark template for Thursday ──
+      const thursdaySignals = buildEmailSignals(hotProjects, territories);
+      const thursSummaryLine = hotProjects.length > 0
+        ? `${hotProjects.length} hot opportunit${hotProjects.length === 1 ? "y" : "ies"} need${hotProjects.length === 1 ? "s" : ""} your attention this week.`
+        : "Quick mid-week check-in on your territory.";
+      const thursEmailData: DigestEmailData = {
+        userName: (user.name || "Team Member").split(" ")[0],
+        territory: territoryLabel,
+        weekLabel: report.weekEnding,
+        summaryLine: thursSummaryLine,
+        signals: thursdaySignals,
+        dashboardUrl: getSiteUrl(),
+      };
+      const thursHtmlContent = buildDigestEmailHtml(thursEmailData);
+      const thursTextContent = buildDigestEmailText(thursEmailData);
+
       const sent = await sendEmail({
         to: userEmail,
         subject,
         markdownContent: contentWithFreshness,
-        textContent: contentWithFreshness,
+        htmlContent: thursHtmlContent,
+        textContent: thursTextContent,
       });
-
       if (sent) {
         results.sent++;
         await finaliseDigestSendSlot(user.id, "thursday", weekKey, "sent", { itemCount: hotProjects.length });

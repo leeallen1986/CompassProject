@@ -1947,3 +1947,16 @@
 - [x] Fix reportIdFix.test.ts (2 failures) — added missing getDigestWeekKey and claimDigestSendSlot to db mock
 - [x] Fix stage5b.test.ts (1 failure) — replaced daysAgo(setDate) with millisecond arithmetic to fix DST boundary imprecision
 - [x] Full test suite: 2945/2945 pass (0 failures)
+
+## Email Digest Redesign — Match Benchmark Template
+- [x] Redesign HTML email template: card-based signals with status badges (Action ready / Discovery needed)
+- [x] Each card: project title + product relevance, company subtitle, pitch paragraph, italic CTA action, product tag pill
+- [x] Single "Open your dashboard →" CTA button at bottom
+- [x] Update email content generation to produce structured signal data for the new template
+- [x] Created emailTemplate.ts with buildDigestEmailHtml() and buildDigestEmailText()
+- [x] Added htmlContent option to SendEmailOptions (bypasses markdown converter)
+- [x] Created buildEmailSignals() bridge function in emailDigest.ts
+- [x] Wired new template into Monday digest sendEmail call
+- [x] Wired new template into Thursday reminder sendEmail call
+- [x] Added 24 unit tests for emailTemplate.ts (all pass)
+- [x] Full test suite: 2969/2969 pass (0 failures)
