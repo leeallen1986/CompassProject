@@ -1993,6 +1993,6 @@
 
 ## Web Stakeholder Linkage + Contact Sweep Sprint
 - [x] Fix web stakeholder contactProjects linkage bug in discovery queue
-- [ ] Run targeted contact sweep for hot/warm projects (no send-ready, valid owner/contractor)
-- [ ] Refresh weekly dashboards with qualified new contacts
-- [ ] Generate digest preview for review
+- [x] Run targeted contact sweep for hot/warm projects (no send-ready, valid owner/contractor)
+- [x] Refresh weekly dashboards with qualified new contacts
+- [x] Generate digest preview for review
