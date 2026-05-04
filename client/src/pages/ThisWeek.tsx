@@ -1,34 +1,24 @@
 /**
- * "This Week" — Phase 2 Redesign
- * Action-first layout: compact 64px navy header, top action cards,
- * collapsible sections (Waiting on Contact Discovery / Already Active / Warm Monitor),
- * demoted coaching panel, subordinate manager rollup.
+ * "This Week" — Redesigned Action Board
+ * Clean, low-noise, action-focused weekly dashboard for sales reps.
+ * Structure: Header → 5-pill KPI strip → Top 3 Action cards → Collapsible sections
  */
 import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import {
-  Flame, TrendingUp, Users, ArrowRight, ArrowUpRight,
+  Flame, TrendingUp, Users, ArrowRight,
   MapPin, Calendar, ChevronRight, Sparkles, Target,
-  Building, Pickaxe, Fuel, Shield, BarChart3,
-  LogOut, Settings, Database, Loader2, LogIn,
-  AlertTriangle, CheckCircle2, UserPlus, Search,
-  Linkedin, Mail, ExternalLink, Zap, Eye, Layers,
-  HardHat, Wrench, Clock, Globe, Megaphone, X,
+  BarChart3, LogOut, Database, Loader2, LogIn,
+  AlertTriangle, Search, Clock, X, Zap,
   ChevronDown, ChevronUp, MoreHorizontal, Crosshair,
+  UserCircle, Layers, Megaphone, Settings,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 import { getLoginUrl } from "@/const";
-import NBACard from "@/components/NBACard";
 import ScopeBar, { type ScopeMode } from "@/components/ScopeBar";
-import WeeklyCoachingPanel from "@/components/WeeklyCoachingPanel";
-import ActionTracker from "@/components/ActionTracker";
-import ManagerRollup from "@/components/ManagerRollup";
 import { LaneBadge } from "@/components/LaneBadge";
 
 // ── Dismiss Button ──
@@ -57,76 +47,51 @@ function DismissButton({ actionKey }: { actionKey: string }) {
   );
 }
 
-// ── Sector helpers ──
-const sectorLabels: Record<string, string> = {
-  mining: "Mining", oil_gas: "Oil & Gas", infrastructure: "Infrastructure",
-  energy: "Energy", defence: "Defence",
-};
-
-// ── Priority helpers ──
-function priorityBadge(priority: string) {
+// ── Priority badge helper ──
+function priorityBadgeClass(priority: string) {
   if (priority === "hot") return "bg-hot text-white";
   if (priority === "warm") return "bg-warm text-navy";
   return "bg-cold text-white";
 }
 
-function actionTypeIcon(type: string) {
-  if (type === "contact_outreach") return <Users className="w-4 h-4" />;
-  if (type === "contractor_gap") return <Search className="w-4 h-4" />;
-  if (type === "tier1_new") return <Zap className="w-4 h-4" />;
-  if (type === "stage_upgrade") return <ArrowUpRight className="w-4 h-4" />;
-  if (type === "high_value") return <Target className="w-4 h-4" />;
-  return <CheckCircle2 className="w-4 h-4" />;
-}
-
-/** Derive a plain-English "why now" sentence from project fields */
-function deriveWhyNow(project: any): string {
-  if (project.whyItMatters) return project.whyItMatters;
-  if (project.actionTier === "tier1_actionable") return "Action required now — outreach window is open.";
-  if (project.isNew) return "New project identified this week.";
-  if (project.stageCode) return `Stage: ${project.stageCode}.`;
-  if (project.overview) return project.overview.slice(0, 120) + (project.overview.length > 120 ? "…" : "");
-  return "Review project details for latest intelligence.";
-}
-
-/** Contact state row — named contact with role, or discovery needed */
-function ContactStateRow({ project }: { project: any }) {
-  if (project.bestStakeholder) {
-    return (
-      <div className="flex items-center gap-1.5 text-[11px]">
-        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-        <span className="font-semibold text-navy truncate">{project.bestStakeholder.name}</span>
-        {project.bestStakeholder.title && (
-          <span className="text-muted-foreground truncate">— {project.bestStakeholder.title}</span>
-        )}
-        {project.bestStakeholder.email && (
-          <a href={`mailto:${project.bestStakeholder.email}`} onClick={e => e.stopPropagation()} className="text-teal hover:text-teal-light shrink-0">
-            <Mail className="w-3 h-3" />
-          </a>
-        )}
-        {project.bestStakeholder.linkedin && (
-          <a href={project.bestStakeholder.linkedin} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-navy hover:text-gold-dark shrink-0">
-            <Linkedin className="w-3 h-3" />
-          </a>
-        )}
-      </div>
-    );
-  }
+// ── Status badge for rows ──
+function StatusBadge({ type }: { type: "action_ready" | "closing_soon" | "discovery_needed" }) {
+  const config = {
+    action_ready: { label: "Action-ready", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    closing_soon: { label: "Closing within 14 days", bg: "bg-hot/10 text-hot border-hot/20" },
+    discovery_needed: { label: "Discovery needed", bg: "bg-amber-50 text-amber-700 border-amber-200" },
+  };
+  const c = config[type];
   return (
-    <div className="flex items-center gap-1.5 text-[11px]">
-      <span className="w-2 h-2 rounded-full border-2 border-amber-400 shrink-0" />
-      <span className="text-amber-600 font-medium">Discovery needed</span>
-    </div>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${c.bg}`}>
+      {c.label}
+    </span>
   );
 }
 
-// ── Collapsible Section Wrapper ──
+// ── Scope Reason Chip ──
+function ScopeReasonChip({ reason }: { reason?: string }) {
+  if (!reason) return null;
+  const isCrossSell = reason.toLowerCase().includes("cross-sell");
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border shrink-0 ${
+      isCrossSell
+        ? "bg-gold/10 text-gold-dark border-gold/20"
+        : "bg-teal/10 text-teal border-teal/20"
+    }`}>
+      {reason}
+    </span>
+  );
+}
+
+// ── Collapsible Section ──
 function CollapsibleSection({
   title,
   count,
   defaultOpen = false,
   icon,
-  headerRight,
+  viewAllHref,
+  viewAllLabel,
   children,
   emptyMessage,
 }: {
@@ -134,7 +99,8 @@ function CollapsibleSection({
   count: number;
   defaultOpen?: boolean;
   icon: React.ReactNode;
-  headerRight?: React.ReactNode;
+  viewAllHref?: string;
+  viewAllLabel?: string;
   children: React.ReactNode;
   emptyMessage?: string;
 }) {
@@ -142,21 +108,29 @@ function CollapsibleSection({
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <button
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50/50 transition-colors text-left"
         onClick={() => setOpen(o => !o)}
       >
         <span className="text-muted-foreground shrink-0">{icon}</span>
         <span className="font-semibold text-navy text-sm flex-1">{title}</span>
-        <span className="text-xs font-bold text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full">{count}</span>
-        {headerRight && <span onClick={e => e.stopPropagation()}>{headerRight}</span>}
+        <span className="text-xs font-bold text-navy bg-slate-100 px-2.5 py-0.5 rounded-full">{count}</span>
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
       </button>
       {open && (
         <div className="border-t border-border">
           {count === 0 ? (
-            <p className="text-xs text-muted-foreground italic px-4 py-3">{emptyMessage || "Nothing here this week."}</p>
+            <p className="text-xs text-muted-foreground italic px-5 py-4">{emptyMessage || "Nothing here this week."}</p>
           ) : (
-            children
+            <>
+              {children}
+              {viewAllHref && count > 3 && (
+                <div className="px-5 py-3 border-t border-border">
+                  <Link href={viewAllHref} className="text-xs text-teal hover:text-teal-light font-semibold flex items-center gap-1 transition-colors">
+                    {viewAllLabel || `View all ${title.toLowerCase()} (${count})`} <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -164,50 +138,39 @@ function CollapsibleSection({
   );
 }
 
-// ── Compact Project Row (for collapsible sections) ──
-function CompactProjectRow({ project, navigate }: { project: any; navigate: (path: string) => void }) {
-  return (
-    <div
-      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer border-b border-border last:border-0"
-      onClick={() => navigate(`/project/${project.id}`)}
-    >
-      <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(project.priority)}`}>
-        {project.priority}
-      </span>
-      <LaneBadge lane={(project as any).productLane} />
-      <span className="flex-1 text-sm font-semibold text-navy truncate">{project.name}</span>
-      {project.scopeReason && (
-        <ScopeReasonChip reason={project.scopeReason} laneMatch={project.laneMatch} />
-      )}
-      <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
-        <MapPin className="w-3 h-3" />{project.location}
-      </span>
-      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-    </div>
-  );
-}
+// ── Top 3 Action Card ──
+function TopActionCard({ action, project, navigate }: { action: any; project: any; navigate: (path: string) => void }) {
+  // Determine card badge
+  const hasContact = project?.bestStakeholder;
+  const badgeType = hasContact ? "action_ready" : "discovery_needed";
+  const badgeLabel = hasContact ? "Action-ready" : "Discovery needed";
+  const badgeColor = hasContact
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : "bg-amber-50 text-amber-700 border-amber-200";
+  const badgeIcon = hasContact
+    ? <Zap className="w-3 h-3" />
+    : <Search className="w-3 h-3" />;
 
-// ── Top Action Card ──
-function TopActionCard({ action, navigate }: { action: any; navigate: (path: string) => void }) {
-  const isUrgent = action.priority === "urgent";
-  const isHigh = action.priority === "high";
+  // Build a short pitch from the project
+  const pitch = project?.whyItMatters
+    ? project.whyItMatters.slice(0, 140)
+    : project?.overview
+    ? project.overview.slice(0, 140)
+    : action.description?.slice(0, 140) || "";
+
+  // Next action text
+  const nextAction = project?.suggestedAction || action.description || "Review project details.";
+
   return (
     <div
-      className={`relative flex flex-col gap-2 p-4 rounded-xl border bg-card cursor-pointer hover:shadow-md transition-all group min-w-[220px] max-w-xs w-full ${
-        isUrgent ? "border-hot/40 hover:border-hot/60" :
-        isHigh ? "border-gold/30 hover:border-gold/50" :
-        "border-border hover:border-navy/30"
-      }`}
-      onClick={() => action.projectId && navigate(`/project/${action.projectId}`)}
+      className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card cursor-pointer hover:shadow-lg hover:border-navy/20 transition-all group"
+      onClick={() => project?.id && navigate(`/project/${project.id}`)}
     >
-      {/* Header: priority + lane */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
-          isUrgent ? "bg-hot text-white" : isHigh ? "bg-gold text-navy" : "bg-slate-200 text-slate-700"
-        }`}>
-          {action.priority}
+      {/* Badge */}
+      <div className="flex items-center gap-2">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeColor}`}>
+          {badgeIcon} {badgeLabel}
         </span>
-        {action.productLane && <LaneBadge lane={action.productLane} />}
         {action.actionKey && (
           <span className="ml-auto">
             <DismissButton actionKey={action.actionKey} />
@@ -215,31 +178,98 @@ function TopActionCard({ action, navigate }: { action: any; navigate: (path: str
         )}
       </div>
 
-      {/* Title */}
-      <div className="flex items-start gap-2">
-        <div className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-          isUrgent ? "bg-hot/15 text-hot" : isHigh ? "bg-gold/15 text-gold-dark" : "bg-slate-100 text-slate-500"
-        }`}>
-          {actionTypeIcon(action.type)}
-        </div>
-        <p className="text-sm font-bold text-navy leading-snug line-clamp-2">{action.title}</p>
-      </div>
+      {/* Project title */}
+      <h3 className="text-sm font-bold text-navy leading-snug line-clamp-2">
+        {project?.name || action.projectName || action.title}
+      </h3>
 
-      {/* Why now */}
-      <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{action.description}</p>
+      {/* Short pitch */}
+      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{pitch}</p>
 
       {/* Contact state */}
-      {action.project && <ContactStateRow project={action.project} />}
+      {hasContact ? (
+        <div className="flex items-center gap-2 text-xs">
+          <UserCircle className="w-4 h-4 text-navy shrink-0" />
+          <div className="min-w-0">
+            <span className="font-semibold text-navy">{project.bestStakeholder.name}</span>
+            {project.bestStakeholder.title && (
+              <span className="text-muted-foreground">, {project.bestStakeholder.title}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs">
+          <Users className="w-4 h-4 text-amber-500 shrink-0" />
+          <span className="text-amber-600 font-medium">
+            Role gap
+          </span>
+          <span className="text-muted-foreground">
+            Identify {project?.sector === "mining" ? "Maintenance or Procurement" : "key"} contact
+          </span>
+        </div>
+      )}
+
+      {/* Next action */}
+      <div className="flex items-start gap-2 mt-auto pt-1">
+        <ArrowRight className="w-3.5 h-3.5 text-gold shrink-0 mt-0.5" />
+        <p className="text-xs text-foreground/80 leading-relaxed line-clamp-2">{nextAction}</p>
+      </div>
 
       {/* Footer */}
-      <div className="mt-auto pt-1 flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">
-          {action.project?.value || ""}
-        </span>
-        <span className="text-[11px] text-teal font-semibold flex items-center gap-1 group-hover:text-teal-light transition-colors">
-          Open <ChevronRight className="w-3 h-3" />
+      <div className="flex items-center justify-end pt-1 border-t border-border/50">
+        <span className="text-xs text-teal font-semibold flex items-center gap-1 group-hover:text-teal-light transition-colors">
+          Detail <ChevronRight className="w-3.5 h-3.5" />
         </span>
       </div>
+    </div>
+  );
+}
+
+// ── Compact Project Row ──
+function CompactProjectRow({
+  project,
+  navigate,
+  statusType,
+  extraInfo,
+}: {
+  project: any;
+  navigate: (path: string) => void;
+  statusType?: "action_ready" | "closing_soon" | "discovery_needed";
+  extraInfo?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 transition-colors cursor-pointer border-b border-border last:border-0"
+      onClick={() => navigate(`/project/${project.id}`)}
+    >
+      {/* Project name + context */}
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-navy truncate">{project.name}</div>
+        {project.overview && (
+          <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+            {project.overview.slice(0, 80)}
+          </div>
+        )}
+      </div>
+
+      {/* Location */}
+      <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
+        <MapPin className="w-3 h-3" />{project.location}
+      </span>
+
+      {/* Lane badge */}
+      {project.topBusinessLines?.[0]?.name && (
+        <ScopeReasonChip reason={project.scopeReason} />
+      )}
+
+      {/* Extra info (e.g. closing date) */}
+      {extraInfo}
+
+      {/* Status badge */}
+      {statusType && <StatusBadge type={statusType} />}
+
+      {/* Chevron */}
+      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
     </div>
   );
 }
@@ -249,11 +279,13 @@ function ThisWeekSkeleton() {
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-navy h-16" />
-      <main className="container py-6 space-y-6">
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-44 w-60 shrink-0 rounded-xl" />)}
+      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        <div className="flex gap-3">
+          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 flex-1 rounded-lg" />)}
         </div>
-        <Skeleton className="h-14 rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
+        </div>
         <Skeleton className="h-14 rounded-lg" />
         <Skeleton className="h-14 rounded-lg" />
       </main>
@@ -279,29 +311,10 @@ function LoginPage() {
   );
 }
 
-// ── Scope Reason Chip ──
-function ScopeReasonChip({ reason, laneMatch }: { reason?: string; laneMatch?: boolean }) {
-  if (!reason) return null;
-  const isMatch = laneMatch === true;
-  const isAdjacent = reason.toLowerCase().includes("adjacent") || reason.toLowerCase().includes("outside");
-  const isCrossSell = reason.toLowerCase().includes("cross-sell");
-  return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide shrink-0 ${
-      isMatch ? "bg-teal/10 text-teal border border-teal/20" :
-      isCrossSell ? "bg-gold/10 text-gold-dark border border-gold/20" :
-      isAdjacent ? "bg-slate-100 text-slate-500 border border-slate-200" :
-      "bg-navy/5 text-navy/60 border border-navy/10"
-    }`}>
-      {reason}
-    </span>
-  );
-}
-
 // ── Main Component ──
 export default function ThisWeek() {
   const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [showCoaching, setShowCoaching] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [scopeMode, setScopeMode] = useState<ScopeMode>("strict");
 
@@ -321,101 +334,80 @@ export default function ThisWeek() {
     { enabled: isAuthenticated, staleTime: 10 * 60 * 1000 }
   );
 
-  // ── All hooks must be before early returns ──
-
-  // Destructure summary safely (null-safe)
+  // ── Destructure summary ──
   const topProjects: any[] = summary?.topProjects ?? [];
-  const newStakeholders: any[] = summary?.newStakeholders ?? [];
-  const stageChanges: any[] = summary?.stageChanges ?? [];
   const suggestedActions: any[] = summary?.suggestedActions ?? [];
-  const stats = summary?.stats ?? { totalInScope: 0, tier1Count: 0, tier2Count: 0, tier3Count: 0, hotCount: 0, warmCount: 0, newProjectsThisWeek: 0, projectsWithContractors: 0, projectsMissingContractors: 0 };
+  const stats = summary?.stats ?? {
+    totalInScope: 0, hotCount: 0, warmCount: 0,
+    actionReadyCount: 0, needDiscoveryCount: 0, closingSoonCount: 0,
+    tier1Count: 0, tier2Count: 0, tier3Count: 0,
+    totalProjects: 0, newProjectsThisWeek: 0, newContactsThisWeek: 0,
+    highRelevanceContacts: 0, projectsWithContractors: 0, projectsMissingContractors: 0,
+  };
   const weekLabel: string = summary?.weekLabel ?? "";
   const userContext = summary?.userContext;
-  const lastSuccessfulPipelineRun = summary?.lastSuccessfulPipelineRun;
   const dataFreshnessWarning = summary?.dataFreshnessWarning;
 
-  // Freshness line
-  const freshnessText = lastSuccessfulPipelineRun
-    ? `Data: ${new Date(lastSuccessfulPipelineRun).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`
-    : "Data: unknown";
-  const freshnessStale = lastSuccessfulPipelineRun
-    ? Date.now() - new Date(lastSuccessfulPipelineRun).getTime() > 7 * 24 * 60 * 60 * 1000
-    : false;
-
-  // ── Scope filtering based on scopeMode ──
+  // ── Scope filtering ──
   const scopedProjects = useMemo(() => {
     if (scopeMode === "open") return topProjects;
     if (scopeMode === "balanced") {
-      // Include lane matches + cross-sells, exclude pure adjacent/outside
       return topProjects.filter((p: any) => {
         const reason = (p.scopeReason ?? "").toLowerCase();
         return !reason.includes("outside primary");
       });
     }
-    // strict: only lane matches
     return topProjects.filter((p: any) => p.laneMatch !== false);
   }, [topProjects, scopeMode]);
 
-  // Split newStakeholders: in-scope vs other notable
-  const inScopeStakeholders = useMemo(() => {
-    return newStakeholders.filter((c: any) => c.laneMatch !== false && !(c.scopeReason ?? "").toLowerCase().includes("outside"));
-  }, [newStakeholders]);
-  const otherStakeholders = useMemo(() => {
-    return newStakeholders.filter((c: any) => c.laneMatch === false || (c.scopeReason ?? "").toLowerCase().includes("outside"));
-  }, [newStakeholders]);
+  // ── Derived lists ──
+  const actionReadyProjects = useMemo(() => {
+    return scopedProjects.filter((p: any) =>
+      p.bestStakeholder && (p.priority === "hot" || p.priority === "warm")
+    );
+  }, [scopedProjects]);
 
-  // Top Actions — up to 3 (Part D: max 3 visible, action-ready only)
+  const waitingOnDiscovery = useMemo(() => {
+    return scopedProjects.filter((p: any) =>
+      !p.bestStakeholder && (p.priority === "hot" || p.priority === "warm")
+    );
+  }, [scopedProjects]);
+
+  const closingSoon = useMemo(() => {
+    return (closingSoonProjects ?? []).filter((p: any) =>
+      p.priority === "hot" || p.priority === "warm"
+    );
+  }, [closingSoonProjects]);
+
+  // Top 3 Actions — from suggestedActions, enriched with project data
   const topActions = useMemo(() => {
     return suggestedActions.slice(0, 3).map((action: any) => {
       const project = scopedProjects.find((p: any) => p.id === action.projectId) ||
                       topProjects.find((p: any) => p.id === action.projectId);
-      return { ...action, project };
+      return { action, project };
     });
   }, [suggestedActions, scopedProjects, topProjects]);
 
-  // Waiting on Contact Discovery (from scoped projects)
-  const waitingOnDiscovery = useMemo(() => {
-    return scopedProjects.filter((p: any) =>
-      !p.bestStakeholder && (p.contactDepth === 0 || p.sendReadiness === "contact_discovery_needed")
-    );
-  }, [scopedProjects]);
-
-  // Already Active / Claimed
-  const alreadyActive = useMemo(() => {
-    return scopedProjects.filter((p: any) =>
-      p.lifecycleStatus === "contacted" || p.hasLoggedActionThisWeek
-    );
-  }, [scopedProjects]);
-
-  // Warm Monitor
-  const warmMonitor = useMemo(() => {
-    const topActionIds = new Set(suggestedActions.slice(0, 3).map((a: any) => a.projectId).filter(Boolean));
-    const activeIds = new Set(scopedProjects.filter((p: any) => p.lifecycleStatus === "contacted" || p.hasLoggedActionThisWeek).map((p: any) => p.id));
-    return scopedProjects.filter((p: any) =>
-      p.priority === "warm" &&
-      (p.actionTier === "tier2_warm" || p.actionTier === "tier3_monitor") &&
-      !topActionIds.has(p.id) &&
-      !activeIds.has(p.id)
-    );
-  }, [scopedProjects, suggestedActions]);
-
-  // Micro-summary counts (based on scoped projects)
+  // KPI counts
   const hotCount = useMemo(() => scopedProjects.filter((p: any) => p.priority === "hot").length, [scopedProjects]);
   const warmCount = useMemo(() => scopedProjects.filter((p: any) => p.priority === "warm").length, [scopedProjects]);
-  const discoveryCount = waitingOnDiscovery.length;
 
-  // Week key for manager rollup
-  const weekKey = useMemo(() => {
-    if (!weekLabel) return undefined;
-    const d = new Date(weekLabel + "T00:00:00Z");
-    const day = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-    return `${d.getUTCFullYear()}W${String(weekNo).padStart(2, "0")}`;
+  // Week date range for display
+  const weekDisplay = useMemo(() => {
+    if (!weekLabel) return "";
+    try {
+      const d = new Date(weekLabel);
+      const end = new Date(d);
+      end.setDate(end.getDate() + 6);
+      const fmt = (dt: Date) => dt.toLocaleDateString("en-AU", { day: "numeric" });
+      const monthFmt = (dt: Date) => dt.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
+      return `Week of ${fmt(d)} – ${fmt(end)} ${monthFmt(end)}`;
+    } catch {
+      return weekLabel;
+    }
   }, [weekLabel]);
 
-  // ── Early returns (after all hooks) ──
+  // ── Early returns ──
   if (authLoading) return <ThisWeekSkeleton />;
   if (!isAuthenticated) return <LoginPage />;
   if (profileLoading) return <ThisWeekSkeleton />;
@@ -428,65 +420,57 @@ export default function ThisWeek() {
   return (
     <div className="min-h-screen bg-background">
 
-      {/* ── Compact Header — 64px flat navy bar ── */}
+      {/* ── Header — 64px navy bar ── */}
       <header className="bg-navy h-16 flex items-center px-4 sm:px-6 gap-4 sticky top-0 z-30 shadow-sm">
-        {/* Left: title + week + territory */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <h1 className="text-white font-bold text-base sm:text-lg tracking-tight whitespace-nowrap">
-            This Week
-          </h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[11px] font-medium border border-white/10 whitespace-nowrap">
-            <Calendar className="w-3 h-3 mr-1" />
-            {weekLabel}
-          </span>
-          {(userContext?.territories?.length ?? 0) > 0 && (
-            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full bg-gold/15 text-gold text-[11px] font-medium border border-gold/20 whitespace-nowrap">
-              <MapPin className="w-3 h-3 mr-1" />
-              {userContext?.territories?.join(", ")}
-            </span>
-          )}
+        {/* Left: Logo + brand */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-8 h-8 rounded bg-gold/20 flex items-center justify-center">
+            <span className="text-gold font-bold text-sm">A</span>
+          </div>
+          <span className="text-white font-bold text-base tracking-tight hidden sm:block">ATLAS</span>
         </div>
 
-        {/* Right: freshness + nav */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Freshness */}
-          <span className={`hidden sm:block text-[11px] ${freshnessStale ? "text-amber-400" : "text-slate-400"}`}>
-            {freshnessText}
-          </span>
+        {/* Center: Nav links */}
+        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+          <Link href="/" className="px-3 py-1.5 rounded-md text-sm font-semibold text-white bg-white/10">
+            Dashboard
+          </Link>
+          <Link href="/pipeline" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+            Pipeline
+          </Link>
+          <Link href="/account-attack" className="px-3 py-1.5 rounded-md text-sm font-medium text-gold hover:text-gold-light hover:bg-white/5 transition-colors">
+            Account Attack
+          </Link>
+          <Link href="/my-profile" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+            My Style
+          </Link>
+          {user?.role === "admin" && (
+            <Link href="/admin" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+              Admin
+            </Link>
+          )}
+        </nav>
 
-          {/* Nav links — desktop */}
-          <nav className="hidden lg:flex items-center gap-3 text-[11px]">
-            <Link href="/dashboard" className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors">
-              <BarChart3 className="w-3 h-3" /> Dashboard
-            </Link>
-            <span className="text-slate-700">|</span>
-            <Link href="/pipeline" className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors">
-              <Target className="w-3 h-3" /> Pipeline
-            </Link>
-            <span className="text-slate-700">|</span>
-            <Link href="/account-attack" className="text-gold hover:text-gold-light flex items-center gap-1 transition-colors">
-              <Crosshair className="w-3 h-3" /> Account Attack
-            </Link>
-            <span className="text-slate-700">|</span>
-            <Link href="/my-profile" className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors">
-              <Sparkles className="w-3 h-3" /> My Style
-            </Link>
-            {user?.role === "admin" && (
-              <>
-                <span className="text-slate-700">|</span>
-                <Link href="/admin" className="text-gold hover:text-gold-light flex items-center gap-1 transition-colors">
-                  <Database className="w-3 h-3" /> Admin
-                </Link>
-              </>
-            )}
-            <span className="text-slate-700">|</span>
-            <span className="text-slate-400 text-[11px]">{user?.name || user?.email}</span>
-            <button onClick={() => logout()} className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
-              <LogOut className="w-3 h-3" />
-            </button>
-          </nav>
+        {/* Right: User */}
+        <div className="flex items-center gap-3 shrink-0 ml-auto lg:ml-0">
+          {dataFreshnessWarning && (
+            <span className="hidden sm:flex items-center gap-1 text-[11px] text-amber-400">
+              <AlertTriangle className="w-3 h-3" />
+            </span>
+          )}
+          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-300">
+            <span>{user?.name || user?.email}</span>
+          </div>
+          {(userContext?.territories?.length ?? 0) > 0 && (
+            <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[11px] font-medium">
+              {userContext?.territories?.[0]}
+            </span>
+          )}
+          <button onClick={() => logout()} className="text-slate-400 hover:text-white p-1 transition-colors hidden lg:block">
+            <LogOut className="w-4 h-4" />
+          </button>
 
-          {/* Nav menu — mobile/tablet */}
+          {/* Mobile menu */}
           <div className="lg:hidden relative">
             <button
               onClick={() => setShowNavMenu(v => !v)}
@@ -496,36 +480,25 @@ export default function ThisWeek() {
             </button>
             {showNavMenu && (
               <div className="absolute right-0 top-full mt-2 w-44 bg-navy border border-white/10 rounded-lg shadow-xl z-50 py-1">
-                <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
+                <Link href="/" className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <BarChart3 className="w-4 h-4" /> Dashboard
                 </Link>
-                <Link href="/pipeline" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
+                <Link href="/pipeline" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <Target className="w-4 h-4" /> Pipeline
                 </Link>
-                <Link href="/my-profile" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
-                  <Sparkles className="w-4 h-4" /> My Style
-                </Link>
-                <Link href="/account-attack" className="flex items-center gap-2 px-4 py-2 text-sm text-gold hover:text-gold-light hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
+                <Link href="/account-attack" className="flex items-center gap-2 px-4 py-2 text-sm text-gold hover:text-gold-light hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <Crosshair className="w-4 h-4" /> Account Attack
                 </Link>
-                <Link href="/collateral" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
-                  <Layers className="w-4 h-4" /> Collateral
+                <Link href="/my-profile" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
+                  <Sparkles className="w-4 h-4" /> My Style
                 </Link>
-                {(user?.role === "admin" || (user as any)?.campaignAccess) && (
-                  <Link href="/campaigns" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
-                    <Megaphone className="w-4 h-4" /> Campaigns
-                  </Link>
-                )}
                 {user?.role === "admin" && (
-                  <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-gold hover:text-gold-light hover:bg-white/10 transition-colors" onClick={() => setShowNavMenu(false)}>
+                  <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                     <Database className="w-4 h-4" /> Admin
                   </Link>
                 )}
-                <button onClick={() => navigate("/settings")} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
-                  <Settings className="w-4 h-4" /> Settings
-                </button>
                 <Separator className="my-1 bg-white/10" />
-                <button onClick={() => logout()} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                <button onClick={() => logout()} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/10">
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
               </div>
@@ -534,392 +507,151 @@ export default function ThisWeek() {
         </div>
       </header>
 
-      {/* ── Scope Bar — Part B ── */}
-      <ScopeBar
-        territories={userContext?.territories ?? []}
-        businessLines={userContext?.assignedBusinessLines ?? []}
-        mode={scopeMode}
-        onModeChange={setScopeMode}
-        inScopeCount={scopedProjects.length}
-        totalCount={topProjects.length}
-      />
-
       {/* ── Main Content ── */}
-      <main className="container py-5 sm:py-6 space-y-5">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-        {/* ── Micro-summary strip ── */}
-        <div className="flex items-center gap-3 flex-wrap text-sm">
-          {hotCount > 0 && (
-            <span className="flex items-center gap-1.5 font-bold text-hot">
-              <Flame className="w-4 h-4" /> {hotCount} HOT
-            </span>
-          )}
-          {hotCount > 0 && warmCount > 0 && <span className="text-slate-300">·</span>}
-          {warmCount > 0 && (
-            <span className="flex items-center gap-1.5 font-semibold text-warm">
-              <TrendingUp className="w-4 h-4" /> {warmCount} WARM
-            </span>
-          )}
-          {discoveryCount > 0 && (
-            <>
-              <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1.5 text-amber-600 font-medium">
-                <Search className="w-4 h-4" /> {discoveryCount} need contact discovery
-              </span>
-            </>
-          )}
-          {dataFreshnessWarning && (
-            <>
-              <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1.5 text-amber-500 text-xs">
-                <AlertTriangle className="w-3.5 h-3.5" /> {dataFreshnessWarning}
-              </span>
-            </>
-          )}
-          <span className="ml-auto text-xs text-muted-foreground">
-            {scopedProjects.length} in scope
-            {scopeMode !== "open" && topProjects.length > scopedProjects.length && (
-              <span className="text-slate-400"> · {topProjects.length - scopedProjects.length} adjacent hidden</span>
-            )}
+        {/* ── Page title + week + territory ── */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl font-bold text-navy">This Week</h1>
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+            <Calendar className="w-3.5 h-3.5 mr-1.5" />
+            {weekDisplay}
           </span>
+          {(userContext?.territories?.length ?? 0) > 0 && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+              <MapPin className="w-3.5 h-3.5 mr-1.5" />
+              {userContext?.territories?.join(", ")}
+            </span>
+          )}
         </div>
 
-        {/* ── Top Actions strip (max 3, action-ready only — Part D) ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-navy flex items-center gap-2">
-              <Zap className="w-4 h-4 text-gold" />
-              My Top Actions
-              <span className="text-[10px] font-normal text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded-full">
-                {userContext?.territories?.[0] ?? ""} · {userContext?.assignedBusinessLines?.[0] ?? ""}
-              </span>
-            </h2>
-            <Link href="/dashboard" className="text-xs text-teal hover:text-teal-light font-semibold flex items-center gap-1 transition-colors">
-              View all <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+        {/* ── 5-Pill KPI Strip ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <KPIPill icon={<Flame className="w-5 h-5 text-hot" />} value={hotCount} label="Hot" accent="hot" />
+          <KPIPill icon={<TrendingUp className="w-5 h-5 text-warm" />} value={warmCount} label="Warm" accent="warm" />
+          <KPIPill icon={<Zap className="w-5 h-5 text-emerald-600" />} value={actionReadyProjects.length} label="Action-ready" accent="emerald" />
+          <KPIPill icon={<Users className="w-5 h-5 text-amber-500" />} value={waitingOnDiscovery.length} label="Need contact discovery" accent="amber" />
+          <KPIPill icon={<Clock className="w-5 h-5 text-navy" />} value={closingSoon.length} label="Closing soon" accent="navy" />
+        </div>
 
+        {/* ── Top 3 Actions ── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-gold" />
+            <h2 className="text-lg font-bold text-navy">Top 3 Actions</h2>
+          </div>
           {topActions.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
-              No urgent actions this week.
-              <Link href="/pipeline" className="ml-2 text-teal font-semibold hover:text-teal-light">Browse pipeline →</Link>
+            <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+              No urgent actions this week. All projects are either in progress or waiting on discovery.
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3">
-              {topActions.map((action: any, i: number) => (
-                <TopActionCard key={action.actionKey || i} action={action} navigate={navigate} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {topActions.map(({ action, project }, i) => (
+                <TopActionCard key={action.actionKey || i} action={action} project={project} navigate={navigate} />
               ))}
             </div>
           )}
         </section>
 
-        {/* ── Closing Soon (live tenders) ── */}
-{(() => {
-          // Only show HOT and WARM in the collapsed Closing Soon view
-          const hotWarmClosing = (closingSoonProjects ?? []).filter((p: any) => p.priority === 'hot' || p.priority === 'warm');
-          return hotWarmClosing.length > 0 ? (
-          <CollapsibleSection
-            title="Closing Soon — Live Tenders"
-            count={hotWarmClosing.length}
-            defaultOpen={true}
-            icon={<Clock className="w-4 h-4 text-hot" />}
-            headerRight={
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-hot bg-hot/10 px-2 py-0.5 rounded-full border border-hot/20">
-                  Closing within 14 days
-                </span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); navigate("/dashboard?tab=live-tenders"); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); navigate("/dashboard?tab=live-tenders"); } }}
-                  className="text-[10px] font-semibold text-hot hover:text-hot/70 flex items-center gap-0.5 transition-colors cursor-pointer"
-                >
-                  View all <ChevronRight className="w-3 h-3" />
-                </span>
-              </div>
-            }
-            emptyMessage="No hot or warm live tenders closing within 14 days."
-          >
-            <div>
-              {hotWarmClosing.map((project: any) => {
-                const daysLeft = project.tenderCloseDate
-                  ? Math.ceil((new Date(project.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                  : null;
-                const priorityBadge = project.priority === 'hot'
-                  ? 'bg-hot text-white'
-                  : project.priority === 'warm'
-                  ? 'bg-warm text-navy'
-                  : 'bg-slate-400 text-white';
-                const dateColor = daysLeft !== null && daysLeft <= 7
-                  ? 'text-hot'
-                  : daysLeft !== null && daysLeft <= 14
-                  ? 'text-amber-600'
-                  : 'text-muted-foreground';
-                const rowHover = project.priority === 'hot' ? 'hover:bg-red-50' : 'hover:bg-amber-50';
-                return (
-                  <div
-                    key={project.id}
-                    className={`flex items-center gap-3 px-4 py-2.5 ${rowHover} transition-colors cursor-pointer border-b border-border last:border-0`}
-                    onClick={() => navigate(`/project/${project.id}`)}
-                  >
-                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge}`}>
-                      {project.priority}
-                    </span>
-                    <span className="flex-1 text-sm font-semibold text-navy truncate">{project.name}</span>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
-                      <MapPin className="w-3 h-3" />{project.location}
-                    </span>
-                    {project.tenderCloseDate && (
-                      <span className={`text-[11px] font-bold flex items-center gap-1 shrink-0 ${dateColor}`}>
-                        <Clock className="w-3 h-3" />
-                        Closes {new Date(project.tenderCloseDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                        {daysLeft !== null && (
-                          <span className={`ml-1 px-1 py-0.5 rounded text-[9px] font-bold ${
-                            daysLeft <= 7 ? 'bg-hot/15 text-hot' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {daysLeft <= 0 ? 'today' : `${daysLeft}d`}
-                          </span>
-                        )}
-                      </span>
-                    )}
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  </div>
-                );
-              })}
-            </div>
-          </CollapsibleSection>
-          ) : null;
-        })()}
-
-        {/* ── Waiting on Contact Discovery ── */}
+        {/* ── Collapsible: Action-ready ── */}
         <CollapsibleSection
-          title="Waiting on Contact Discovery"
+          title="Action-ready"
+          count={actionReadyProjects.length}
+          defaultOpen={true}
+          icon={<Zap className="w-4 h-4 text-emerald-600" />}
+          viewAllHref="/pipeline?filter=action_ready"
+          viewAllLabel={`View all action-ready (${actionReadyProjects.length})`}
+          emptyMessage="No action-ready projects this week."
+        >
+          <div>
+            {actionReadyProjects.slice(0, 6).map((project: any) => (
+              <CompactProjectRow
+                key={project.id}
+                project={project}
+                navigate={navigate}
+                statusType="action_ready"
+              />
+            ))}
+          </div>
+        </CollapsibleSection>
+
+        {/* ── Collapsible: Closing Soon ── */}
+        <CollapsibleSection
+          title="Closing soon"
+          count={closingSoon.length}
+          defaultOpen={closingSoon.length > 0}
+          icon={<Clock className="w-4 h-4 text-hot" />}
+          viewAllHref="/dashboard?tab=live-tenders"
+          viewAllLabel={`View all closing soon (${closingSoon.length})`}
+          emptyMessage="No live tenders closing within 14 days."
+        >
+          <div>
+            {closingSoon.slice(0, 6).map((project: any) => {
+              const daysLeft = project.tenderCloseDate
+                ? Math.ceil((new Date(project.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+              return (
+                <CompactProjectRow
+                  key={project.id}
+                  project={project}
+                  navigate={navigate}
+                  statusType="closing_soon"
+                  extraInfo={
+                    daysLeft !== null ? (
+                      <span className={`text-[11px] font-semibold shrink-0 ${daysLeft <= 7 ? "text-hot" : "text-amber-600"}`}>
+                        Closing within {daysLeft} days
+                      </span>
+                    ) : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        </CollapsibleSection>
+
+        {/* ── Collapsible: Waiting on Contact Discovery ── */}
+        <CollapsibleSection
+          title="Waiting on contact discovery"
           count={waitingOnDiscovery.length}
-          defaultOpen={waitingOnDiscovery.length > 0}
-          icon={<Search className="w-4 h-4" />}
-          emptyMessage="All projects in scope have at least one identified contact."
+          defaultOpen={waitingOnDiscovery.length > 0 && waitingOnDiscovery.length <= 10}
+          icon={<Search className="w-4 h-4 text-amber-500" />}
+          viewAllHref="/pipeline?filter=discovery_needed"
+          viewAllLabel={`View all waiting on contact discovery (${waitingOnDiscovery.length})`}
+          emptyMessage="All in-scope projects have at least one identified contact."
         >
           <div>
-            {waitingOnDiscovery.map((project: any) => (
-              <CompactProjectRow key={project.id} project={project} navigate={navigate} />
+            {waitingOnDiscovery.slice(0, 6).map((project: any) => (
+              <CompactProjectRow
+                key={project.id}
+                project={project}
+                navigate={navigate}
+                statusType="discovery_needed"
+              />
             ))}
           </div>
         </CollapsibleSection>
-
-        {/* ── Already Active / Claimed ── */}
-        <CollapsibleSection
-          title="Already Active / Claimed"
-          count={alreadyActive.length}
-          defaultOpen={false}
-          icon={<CheckCircle2 className="w-4 h-4" />}
-          emptyMessage="No projects marked as contacted or claimed this week."
-        >
-          <div>
-            {alreadyActive.map((project: any) => (
-              <CompactProjectRow key={project.id} project={project} navigate={navigate} />
-            ))}
-          </div>
-        </CollapsibleSection>
-
-        {/* ── Warm Monitor ── */}
-        <CollapsibleSection
-          title="Warm Monitor"
-          count={warmMonitor.length}
-          defaultOpen={false}
-          icon={<TrendingUp className="w-4 h-4" />}
-          emptyMessage="No warm projects to monitor this week."
-        >
-          <div>
-            {warmMonitor.map((project: any) => (
-              <CompactProjectRow key={project.id} project={project} navigate={navigate} />
-            ))}
-          </div>
-        </CollapsibleSection>
-
-        {/* ── New Stakeholders — split into in-scope vs other notable (Parts C + D) ── */}
-        {inScopeStakeholders.length > 0 && (
-          <CollapsibleSection
-            title="New Stakeholders for My Scope"
-            count={inScopeStakeholders.length}
-            defaultOpen={true}
-            icon={<UserPlus className="w-4 h-4 text-teal" />}
-          >
-            <div className="divide-y divide-border">
-              {inScopeStakeholders.slice(0, 8).map((contact: any) => (
-                <div key={contact.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-navy truncate">{contact.name}</span>
-                      <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                        contact.roleRelevance === "high" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                      }`}>
-                        {contact.roleRelevance === "high" ? "KEY" : "MED"}
-                      </span>
-                      <ScopeReasonChip reason={contact.scopeReason} laneMatch={contact.laneMatch} />
-                    </div>
-                    <div className="text-[11px] text-muted-foreground truncate">{contact.title} · {contact.company}</div>
-                    <div className="text-[10px] text-teal font-medium truncate">Project: {contact.project}</div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {contact.email && (
-                      <a href={`mailto:${contact.email}`} className="px-2 py-1 rounded text-[10px] font-semibold bg-teal/15 text-teal hover:bg-teal/25 transition-colors">
-                        <Mail className="w-3 h-3 inline mr-0.5" />Email
-                      </a>
-                    )}
-                    {contact.linkedin && (
-                      <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-navy/10 text-navy hover:bg-navy/20 transition-colors">
-                        <Linkedin className="w-3 h-3 inline mr-0.5" />LI
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {inScopeStakeholders.length > 8 && (
-                <div className="px-4 py-2.5">
-                  <Link href="/dashboard?tab=contacts" className="text-xs text-teal hover:text-teal-light font-semibold transition-colors">
-                    View all {inScopeStakeholders.length} in-scope contacts →
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CollapsibleSection>
-        )}
-
-        {/* Other Notable Stakeholders — collapsed by default */}
-        {otherStakeholders.length > 0 && (
-          <CollapsibleSection
-            title="Other Notable Stakeholders"
-            count={otherStakeholders.length}
-            defaultOpen={false}
-            icon={<Users className="w-4 h-4 text-muted-foreground" />}
-            headerRight={
-              <span className="text-[10px] text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                Outside primary scope
-              </span>
-            }
-          >
-            <div className="divide-y divide-border">
-              {otherStakeholders.slice(0, 5).map((contact: any) => (
-                <div key={contact.id} className="flex items-center gap-3 px-4 py-2.5 opacity-80">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-navy truncate">{contact.name}</span>
-                      <ScopeReasonChip reason={contact.scopeReason} laneMatch={contact.laneMatch} />
-                    </div>
-                    <div className="text-[11px] text-muted-foreground truncate">{contact.title} · {contact.company}</div>
-                    <div className="text-[10px] text-slate-400 font-medium truncate">Project: {contact.project}</div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {contact.email && (
-                      <a href={`mailto:${contact.email}`} className="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
-                        <Mail className="w-3 h-3 inline mr-0.5" />Email
-                      </a>
-                    )}
-                    {contact.linkedin && (
-                      <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
-                        <Linkedin className="w-3 h-3 inline mr-0.5" />LI
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CollapsibleSection>
-        )}
-
-        {/* ── Stage Changes (compact card) ── */}
-        {stageChanges.length > 0 && (
-          <CollapsibleSection
-            title="Stage Changes"
-            count={stageChanges.length}
-            defaultOpen={false}
-            icon={<ArrowUpRight className="w-4 h-4" />}
-          >
-            <div className="divide-y divide-border">
-              {stageChanges.slice(0, 8).map((change: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/project/${change.projectId}`)}
-                >
-                  {change.isUpgrade ? (
-                    <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  ) : (
-                    <Clock className="w-3.5 h-3.5 text-gold shrink-0" />
-                  )}
-                  <span className="flex-1 text-sm font-semibold text-navy truncate">{change.projectName}</span>
-                  <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${priorityBadge(change.priority)}`}>
-                    {change.priority}
-                  </span>
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
-                    <span>{change.previousTier}</span>
-                    <ArrowRight className="w-3 h-3" />
-                    <span className="font-semibold text-navy">{change.currentTier}</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                </div>
-              ))}
-            </div>
-          </CollapsibleSection>
-        )}
-
-        {/* ── Coaching Panel — demoted, dismissible ── */}
-        <div>
-          <button
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-navy transition-colors mb-2"
-            onClick={() => setShowCoaching(v => !v)}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Weekly Coaching
-            {showCoaching ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-          {showCoaching && <WeeklyCoachingPanel />}
-        </div>
-
-        {/* ── Manager Rollup — admin only, visually subordinate ── */}
-        {user?.role === "admin" && (
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-navy mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-muted-foreground" />
-              Manager Rollup
-            </h3>
-            <ManagerRollup weekKey={weekKey} />
-          </div>
-        )}
-
-        {/* ── Pipeline Overview (compact, at bottom) ── */}
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-navy flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-muted-foreground" />
-              Pipeline Overview
-            </h3>
-            <Link href="/dashboard" className="text-xs text-teal hover:text-teal-light font-semibold flex items-center gap-1 transition-colors">
-              <Eye className="w-3.5 h-3.5" /> Full Dashboard
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div>
-              <div className="text-xl font-bold text-teal">{stats.totalInScope}</div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">In Scope</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-hot">{stats.tier1Count}</div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Action Now</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-gold">{stats.hotCount}</div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Hot</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-warm">{stats.newProjectsThisWeek}</div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">New This Week</div>
-            </div>
-          </div>
-        </div>
 
       </main>
+    </div>
+  );
+}
+
+// ── KPI Pill Component ──
+function KPIPill({ icon, value, label, accent }: { icon: React.ReactNode; value: number; label: string; accent: string }) {
+  const accentColors: Record<string, string> = {
+    hot: "text-hot",
+    warm: "text-warm",
+    emerald: "text-emerald-600",
+    amber: "text-amber-500",
+    navy: "text-navy",
+  };
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-card">
+      {icon}
+      <div>
+        <div className={`text-xl font-bold ${accentColors[accent] || "text-navy"}`}>{value}</div>
+        <div className="text-[11px] text-muted-foreground font-medium">{label}</div>
+      </div>
     </div>
   );
 }

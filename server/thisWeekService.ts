@@ -124,6 +124,9 @@ export interface ThisWeekSummary {
     highRelevanceContacts: number;
     projectsWithContractors: number;
     projectsMissingContractors: number;
+    actionReadyCount: number; // projects with at least 1 named send-ready contact
+    needDiscoveryCount: number; // hot/warm projects with no usable contacts
+    closingSoonCount: number; // live tenders closing within 14 days
   };
 }
 
@@ -759,6 +762,14 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     highRelevanceContacts,
     projectsWithContractors,
     projectsMissingContractors: scopedProjects.length - projectsWithContractors,
+    actionReadyCount: topProjects.filter(p =>
+      p.bestStakeholder && (p.priority === "hot" || p.priority === "warm")
+    ).length,
+    needDiscoveryCount: topProjects.filter(p =>
+      !p.bestStakeholder && (p.priority === "hot" || p.priority === "warm") &&
+      p.actionTier !== "tier3_monitor"
+    ).length,
+    closingSoonCount: 0, // will be filled from separate query
   };
 
   return {

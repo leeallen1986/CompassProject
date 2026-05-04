@@ -160,12 +160,18 @@ async function logDigestAttempt(
 }
 
 /**
- * Send Monday digest and log the result.
+ * Monday Digest — Admin Review-First Gate
+ *
+ * The scheduler no longer auto-sends the Monday digest. Instead it:
+ * 1. Generates a dry-run preview to confirm content is ready
+ * 2. Notifies the admin that the digest is ready for review
+ * 3. Waits for admin to click "Send Now" in the Admin panel
+ *
+ * This ensures no raw or low-confidence intel reaches sales reps without
+ * admin review. The admin can still force-send at any time.
  *
  * IMPORTANT: When sendWeeklyDigests returns skipped=-1, the freshness gate
- * blocked the send. We must NOT log this as "sent" — otherwise the next
- * catch-up attempt (after a server restart) will think the digest was
- * delivered and skip it permanently for the week.
+ * blocked the send. We must NOT log this as "sent".
  */
 async function sendMondayDigestSafe(): Promise<void> {
   const alreadySent = await wasDigestSentThisWeek("monday");
@@ -174,36 +180,46 @@ async function sendMondayDigestSafe(): Promise<void> {
     return;
   }
   try {
-    console.log("[PersistentScheduler] 📧 Sending Monday digest...");
-    const result = await sendWeeklyDigests();
-
-    // Freshness gate hold: skipped=-1 means the digest was blocked, NOT sent
-    if (result.skipped === -1) {
-      console.warn(
-        "[PersistentScheduler] ⚠ Monday digest HELD by freshness gate — NOT logging as sent"
-      );
-      // Do NOT log as "sent" — leave the slot open for the next catch-up
-      // after the pipeline completes successfully.
-      return;
+    // ── Admin Review Gate: generate preview + notify, do NOT auto-send ──
+    console.log("[PersistentScheduler] 📋 Monday digest window reached — generating preview for admin review...");
+    const dryRunResult = await sendWeeklyDigests(false, true); // dryRun=true
+    const previewCount = dryRunResult.previews?.length ?? 0;
+    console.log(
+      `[PersistentScheduler] ✓ Digest preview generated: ${previewCount} recipient previews ready`
+    );
+    // Notify admin that digest is ready for review
+    try {
+      const { notifyOwner } = await import("./_core/notification");
+      await notifyOwner({
+        title: "📧 Weekly Digest Ready for Review",
+        content: [
+          `The Monday digest is ready for admin review.`,
+          ``,
+          `**Preview summary:** ${previewCount} recipients would receive the digest.`,
+          `**Status:** Awaiting your approval — digest will NOT send automatically.`,
+          ``,
+          `To send: Open Admin → Digest Control Panel → click "Send Now".`,
+          `To preview individual reps: Use "Preview" buttons in the Digest panel.`,
+          ``,
+          `The digest will remain available to send until the end of the week.`,
+        ].join("\n"),
+      });
+      console.log("[PersistentScheduler] ✓ Admin notified — digest awaiting review");
+    } catch (notifyErr) {
+      console.error("[PersistentScheduler] Failed to notify admin of digest readiness:", notifyErr);
     }
-
-    // Only log as "sent" if at least one email was actually delivered
-    if (result.sent > 0) {
-      await logDigestAttempt("monday", "sent");
-      console.log(
-        `[PersistentScheduler] ✓ Monday digest sent: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`
-      );
-    } else {
-      // No emails sent (all skipped/failed) — log but don't mark as "sent"
-      // so catch-up can retry later if needed
-      console.warn(
-        `[PersistentScheduler] ⚠ Monday digest returned 0 sent (${result.failed} failed, ${result.skipped} skipped) — not logging as sent`
-      );
-    }
+    // Do NOT log as "sent" — the admin must manually trigger via sendNow
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    await logDigestAttempt("monday", "failed", errMsg);
-    console.error("[PersistentScheduler] ✗ Monday digest failed:", errMsg);
+    console.error("[PersistentScheduler] ✗ Monday digest preview generation failed:", errMsg);
+    // Notify admin of failure
+    try {
+      const { notifyOwner } = await import("./_core/notification");
+      await notifyOwner({
+        title: "⚠️ Monday Digest Preview Failed",
+        content: `The Monday digest preview generation failed: ${errMsg}\n\nPlease check the Admin panel and retry manually.`,
+      });
+    } catch (_) { /* ignore notification failure */ }
   }
 }
 
@@ -347,7 +363,7 @@ export async function startPersistentScheduler(): Promise<void> {
     if (now.getUTCHours() >= MONDAY_DIGEST_HOUR) {
       const mondayAlreadySent = await wasDigestSentThisWeek("monday");
       if (!mondayAlreadySent) {
-        console.log("[PersistentScheduler] ⚠ Sunday 22:00 UTC passed — sending Monday digest now...");
+        console.log("[PersistentScheduler] ⚠ Sunday 22:00 UTC passed — preparing Monday digest preview for admin review...");
         await sendMondayDigestSafe();
       } else {
         console.log("[PersistentScheduler] ✓ Monday digest already sent this week");
@@ -357,7 +373,7 @@ export async function startPersistentScheduler(): Promise<void> {
     // It's Monday — catch up if digest was missed (server was down Sunday night)
     const mondayAlreadySent = await wasDigestSentThisWeek("monday");
     if (!mondayAlreadySent) {
-      console.log("[PersistentScheduler] ⚠ Monday catch-up: digest not sent — sending now...");
+      console.log("[PersistentScheduler] ⚠ Monday catch-up: digest not sent — preparing preview for admin review...");
       await sendMondayDigestSafe();
     } else {
       console.log("[PersistentScheduler] ✓ Monday digest already sent this week");

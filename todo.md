@@ -1996,3 +1996,13 @@
 - [x] Run targeted contact sweep for hot/warm projects (no send-ready, valid owner/contractor)
 - [x] Refresh weekly dashboards with qualified new contacts
 - [x] Generate digest preview for review
+
+## Weekly Dashboard Refactor
+- [ ] Part A: Quality-gate promotion rules for new intel
+- [ ] Part A: Admin review/send gate workflow
+- [ ] Part B: Header summary strip (Hot/Warm/Action-ready/Need discovery/Closing soon)
+- [ ] Part B: Top 3 Actions cards (project, why-now, contact/gap, next action, badge)
+- [ ] Part B: Collapsible sections (Action-ready, Closing soon, Waiting on discovery)
+- [ ] Part B: Detail view panel (project summary, stakeholders, route-to-buy, collateral)
+- [ ] Part B: Suppress Unknown clutter and raw system detail
+- [ ] Part C: Digest alignment with cleaned logic

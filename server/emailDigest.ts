@@ -578,22 +578,45 @@ function generateMondayDigest(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 2: DISCOVERY NEEDED (max 2)
+  // SECTION 2: CLOSING SOON (tenders closing within 14 days, max 3)
   // ═══════════════════════════════════════════════════════════════
-  if (discoveryItems.length > 0) {
-    content += `---\n\n## 🔍 Find the Contact First (${discoveryItems.length})\n\n`;
-    for (const p of discoveryItems) {
-      content += renderProjectCard(p, weekKey, userId, "discovery_needed");
+  const CLOSING_SOON_CAP = 3;
+  const nowDate = new Date();
+  const twoWeeksOut = new Date(nowDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const closingSoonItems = matchedProjects
+    .filter(p => {
+      const closeDate = (p as any).tenderCloseDate;
+      if (!closeDate) return false;
+      const d = new Date(closeDate);
+      return d >= nowDate && d <= twoWeeksOut;
+    })
+    .sort((a, b) => {
+      const da = new Date((a as any).tenderCloseDate).getTime();
+      const db = new Date((b as any).tenderCloseDate).getTime();
+      return da - db;
+    })
+    .slice(0, CLOSING_SOON_CAP);
+  if (closingSoonItems.length > 0) {
+    content += `---\n\n## ⏰ Closing Soon (${closingSoonItems.length})\n\n`;
+    const siteUrl = getSiteUrl();
+    for (const p of closingSoonItems) {
+      const closeDate = new Date((p as any).tenderCloseDate);
+      const daysLeft = Math.ceil((closeDate.getTime() - nowDate.getTime()) / (24 * 60 * 60 * 1000));
+      content += `**${p.name}** — Closes in ${daysLeft} day${daysLeft !== 1 ? "s" : ""} — [View →](${siteUrl}/project/${p.id})\n`;
+      const factParts: string[] = [];
+      if (p.location && p.location !== "Unknown") factParts.push(p.location);
+      if (p.value && p.value !== "Unknown" && p.value !== "TBC") factParts.push(p.value);
+      if (factParts.length > 0) content += `   ${factParts.join(" • ")}\n`;
+      content += `\n`;
     }
   }
-
   // ═══════════════════════════════════════════════════════════════
-  // SECTION 3: MONITOR (max 3, minimal format)
+  // SECTION 3: WAITING ON CONTACT DISCOVERY (max 3, compact)
   // ═══════════════════════════════════════════════════════════════
-  if (monitorItems.length > 0) {
-    content += `---\n\n## 📌 On Radar (${monitorItems.length})\n\n`;
-    for (const p of monitorItems) {
-      content += renderProjectCard(p, weekKey, userId, "monitor_only");
+  if (discoveryItems.length > 0) {
+    content += `---\n\n## 🔍 Waiting on Contact Discovery (${discoveryItems.length})\n\n`;
+    for (const p of discoveryItems) {
+      content += renderProjectCard(p, weekKey, userId, "discovery_needed");
     }
   }
 
@@ -918,6 +941,7 @@ async function scoreAndFilterProjects(
       actionTier: (p as any).actionTier as ActionTier | null,
       productLane: (p as any).productLane ?? null,
       stageCode: (p as any).stageCode ?? null,
+      tenderCloseDate: (p as any).tenderCloseDate ?? null,
       relevanceScore: scoreProjectForUser(
         {
           id: p.id,
