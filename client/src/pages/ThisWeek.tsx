@@ -13,7 +13,7 @@ import {
   BarChart3, LogOut, Database, Loader2, LogIn,
   AlertTriangle, Search, Clock, X, Zap,
   ChevronDown, ChevronUp, MoreHorizontal, Crosshair,
-  UserCircle, Layers, Megaphone, Settings,
+  UserCircle, Layers, Megaphone, Settings, Shield,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -525,14 +525,14 @@ export default function ThisWeek() {
           )}
         </div>
 
-        {/* ── 5-Pill KPI Strip ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <KPIPill icon={<Flame className="w-5 h-5 text-hot" />} value={hotCount} label="Hot" accent="hot" />
-          <KPIPill icon={<TrendingUp className="w-5 h-5 text-warm" />} value={warmCount} label="Warm" accent="warm" />
-          <KPIPill icon={<Zap className="w-5 h-5 text-emerald-600" />} value={actionReadyProjects.length} label="Action-ready" accent="emerald" />
-          <KPIPill icon={<Users className="w-5 h-5 text-amber-500" />} value={waitingOnDiscovery.length} label="Need contact discovery" accent="amber" />
-          <KPIPill icon={<Clock className="w-5 h-5 text-navy" />} value={closingSoon.length} label="Closing soon" accent="navy" />
-        </div>
+        {/* ── KPI Strip ── */}
+        <ValidateFirstKPIStrip
+          hotCount={hotCount}
+          warmCount={warmCount}
+          actionReadyCount={actionReadyProjects.length}
+          waitingOnDiscoveryCount={waitingOnDiscovery.length}
+          closingSoonCount={closingSoon.length}
+        />
 
         {/* ── Top 3 Actions ── */}
         <section>
@@ -636,17 +636,53 @@ export default function ThisWeek() {
   );
 }
 
+// ── Validate First KPI Strip ──
+// Fetches the named_unverified count and renders the full 6-pill strip.
+// The "Validate First" pill links to /contact-validation (admin only).
+function ValidateFirstKPIStrip({
+  hotCount, warmCount, actionReadyCount, waitingOnDiscoveryCount, closingSoonCount,
+}: {
+  hotCount: number;
+  warmCount: number;
+  actionReadyCount: number;
+  waitingOnDiscoveryCount: number;
+  closingSoonCount: number;
+}) {
+  const validateFirstQuery = trpc.contactValidation.getValidateFirstCount.useQuery(undefined, {
+    staleTime: 120_000,
+  });
+  const validateFirstCount = validateFirstQuery.data?.count ?? 0;
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <KPIPill icon={<Flame className="w-5 h-5 text-hot" />} value={hotCount} label="Hot" accent="hot" />
+      <KPIPill icon={<TrendingUp className="w-5 h-5 text-warm" />} value={warmCount} label="Warm" accent="warm" />
+      <KPIPill icon={<Zap className="w-5 h-5 text-emerald-600" />} value={actionReadyCount} label="Action-ready" accent="emerald" />
+      <KPIPill icon={<Users className="w-5 h-5 text-amber-500" />} value={waitingOnDiscoveryCount} label="Need discovery" accent="amber" />
+      <KPIPill icon={<Clock className="w-5 h-5 text-navy" />} value={closingSoonCount} label="Closing soon" accent="navy" />
+      <KPIPill
+        icon={<Shield className="w-5 h-5 text-purple-600" />}
+        value={validateFirstCount}
+        label="Validate First"
+        accent="purple"
+        href="/contact-validation"
+      />
+    </div>
+  );
+}
+
 // ── KPI Pill Component ──
-function KPIPill({ icon, value, label, accent }: { icon: React.ReactNode; value: number; label: string; accent: string }) {
+function KPIPill({ icon, value, label, accent, href }: { icon: React.ReactNode; value: number; label: string; accent: string; href?: string }) {
   const accentColors: Record<string, string> = {
     hot: "text-hot",
     warm: "text-warm",
     emerald: "text-emerald-600",
     amber: "text-amber-500",
     navy: "text-navy",
+    purple: "text-purple-600",
   };
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-card">
+  const inner = (
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border bg-card transition-colors ${href ? "cursor-pointer hover:bg-muted/40 border-border" : "border-border"}`}>
       {icon}
       <div>
         <div className={`text-xl font-bold ${accentColors[accent] || "text-navy"}`}>{value}</div>
@@ -654,4 +690,6 @@ function KPIPill({ icon, value, label, accent }: { icon: React.ReactNode; value:
       </div>
     </div>
   );
+  if (href) return <Link href={href}>{inner}</Link>;
+  return inner;
 }

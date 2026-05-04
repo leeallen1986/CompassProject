@@ -2034,3 +2034,13 @@
 - [x] Build contactValidation tRPC router: submitAction, hunterVerifyContact, hunterVerifyProject, getSlate, regenerateSlate, getTop20HotSlates, generateTop20Slates, getValidationStats
 - [x] Build Contact Validation admin page (/contact-validation) with 5-slot slate view and rep actions
 - [x] Enforce trust tier in all backend services: digest, thisWeekService, discoveryQueue, apolloEnrichment, contactEnrichment, llmContactFallback
+
+## Validate First KPI
+- [x] Add Validate First count KPI to This Week header strip (named_unverified contacts awaiting rep validation)
+
+## Scoped Slate Rollout & Validation Reporting
+- [x] Scope Contact Validation page to 13 demoted projects first, then top-20 hot/warm — remove global Generate All Slates button
+- [x] Add project-level validation gates: primary acceptable / backup acceptable / digest-safe flags per project
+- [x] Add source-level reporting: candidates / accepted / rejected / promoted / bounce rate by source
+- [x] Wire Validate First KPI pill into This Week header strip
+- [x] Keep digest in review-first mode until validated contacts are confirmed

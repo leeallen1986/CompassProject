@@ -1590,3 +1590,24 @@ export const hunterVerificationLog = mysqlTable("hunterVerificationLog", {
 
 export type HunterVerificationLogRow = typeof hunterVerificationLog.$inferSelect;
 export type InsertHunterVerificationLog = typeof hunterVerificationLog.$inferInsert;
+
+/**
+ * projectValidationGates — per-project validation decisions by admin/rep.
+ * Controls whether a project's primary contact, backup contacts, and digest
+ * inclusion are approved. Set after reviewing the candidate slate.
+ */
+export const projectValidationGates = mysqlTable("projectValidationGates", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().unique(),
+  primaryAcceptable: boolean("primaryAcceptable").default(false).notNull(),
+  backupAcceptable: boolean("backupAcceptable").default(false).notNull(),
+  digestSafe: boolean("digestSafe").default(false).notNull(),
+  gateSetBy: varchar("gateSetBy", { length: 255 }),
+  gateSetAt: timestamp("gateSetAt"),
+  gateNote: text("gateNote"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProjectValidationGate = typeof projectValidationGates.$inferSelect;
+export type InsertProjectValidationGate = typeof projectValidationGates.$inferInsert;

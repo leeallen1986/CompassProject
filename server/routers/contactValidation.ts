@@ -293,6 +293,405 @@ export const contactValidationRouter = router({
       });
     }),
 
+  // ── Get the 13 demoted projects (named_contact_no_email, hot/warm) ──
+
+  getDemotedProjects: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      const demotedProjects = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          priority: projects.priority,
+          sector: projects.sector,
+          owner: projects.owner,
+          location: projects.location,
+          capexGrade: projects.capexGrade,
+          discoveryStatus: projects.discoveryStatus,
+        })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.discoveryStatus, "named_contact_no_email"),
+            inArray(projects.priority, ["hot", "warm"]),
+            eq(projects.suppressed, false)
+          )
+        )
+        .orderBy(desc(projects.priority))
+        .limit(20);
+
+      const projectIds = demotedProjects.map(p => p.id);
+      const slates = projectIds.length > 0
+        ? await db.select().from(contactCandidateSlates).where(inArray(contactCandidateSlates.projectId, projectIds))
+        : [];
+      const slateMap = new Map(slates.map(s => [s.projectId, s]));
+
+      // Also load project-level validation gates
+      const [gateRows] = projectIds.length > 0
+        ? await (db as any).execute(
+            `SELECT projectId, primaryAcceptable, backupAcceptable, digestSafe, gateSetBy, gateSetAt, gateNote
+             FROM projectValidationGates
+             WHERE projectId IN (${projectIds.join(",")})`
+          )
+        : [[], null];
+      const gateMap = new Map(
+        (Array.isArray(gateRows) ? gateRows : []).map((g: any) => [g.projectId, g])
+      );
+
+      return demotedProjects.map(p => {
+        const slate = slateMap.get(p.id);
+        const gate = gateMap.get(p.id);
+        return {
+          projectId: p.id,
+          projectName: p.name,
+          priority: p.priority,
+          sector: p.sector,
+          owner: p.owner,
+          location: p.location,
+          capexGrade: p.capexGrade,
+          discoveryStatus: p.discoveryStatus,
+          isDemoted: true,
+          slate: slate ? {
+            totalSlotsFilled: slate.totalSlotsFilled,
+            sendReadySlots: slate.sendReadySlots,
+            namedUnverifiedSlots: slate.namedUnverifiedSlots,
+            llmSlots: slate.llmSlots,
+            sourcesUsed: slate.sourcesUsed,
+            isStale: slate.isStale,
+            generatedAt: slate.generatedAt,
+            primarySnapshot: slate.primarySnapshot,
+            commercialSnapshot: slate.commercialSnapshot,
+            technicalSnapshot: slate.technicalSnapshot,
+          } : null,
+          hasSlate: !!slate,
+          slateIsStale: slate?.isStale || false,
+          gate: gate ? {
+            primaryAcceptable: Boolean(gate.primaryAcceptable),
+            backupAcceptable: Boolean(gate.backupAcceptable),
+            digestSafe: Boolean(gate.digestSafe),
+            gateSetBy: gate.gateSetBy,
+            gateSetAt: gate.gateSetAt,
+            gateNote: gate.gateNote,
+          } : null,
+        };
+      });
+    }),
+
+  // ── Set project-level validation gates ──
+
+  setProjectValidationGates: adminProcedure
+    .input(z.object({
+      projectId: z.number().int().positive(),
+      primaryAcceptable: z.boolean(),
+      backupAcceptable: z.boolean(),
+      digestSafe: z.boolean(),
+      note: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      await (db as any).execute(
+        `INSERT INTO projectValidationGates
+           (projectId, primaryAcceptable, backupAcceptable, digestSafe, gateSetBy, gateSetAt, gateNote)
+         VALUES (?, ?, ?, ?, ?, NOW(), ?)
+         ON DUPLICATE KEY UPDATE
+           primaryAcceptable = VALUES(primaryAcceptable),
+           backupAcceptable = VALUES(backupAcceptable),
+           digestSafe = VALUES(digestSafe),
+           gateSetBy = VALUES(gateSetBy),
+           gateSetAt = VALUES(gateSetAt),
+           gateNote = VALUES(gateNote)`,
+        [
+          input.projectId,
+          input.primaryAcceptable ? 1 : 0,
+          input.backupAcceptable ? 1 : 0,
+          input.digestSafe ? 1 : 0,
+          ctx.user.name || ctx.user.openId,
+          input.note || null,
+        ]
+      );
+
+      // If digestSafe is true, ensure the project's discoveryStatus can be promoted
+      // (only if it has at least one send_ready contact)
+      if (input.digestSafe) {
+        const [contactRows] = await (db as any).execute(
+          `SELECT COUNT(*) as cnt FROM contacts
+           WHERE projectId = ? AND contactTrustTier = 'send_ready'`,
+          [input.projectId]
+        );
+        const hasVerified = Array.isArray(contactRows) && contactRows[0] && Number(contactRows[0].cnt) > 0;
+        if (hasVerified) {
+          await (db as any).execute(
+            `UPDATE projects SET discoveryStatus = 'send_ready_contact' WHERE id = ?`,
+            [input.projectId]
+          );
+        }
+      }
+
+      return { success: true };
+    }),
+
+  // ── Get top-20 hot/warm (excluding demoted) for second wave ──
+
+  getTop20Scoped: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      const scopedProjects = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          priority: projects.priority,
+          sector: projects.sector,
+          owner: projects.owner,
+          location: projects.location,
+          capexGrade: projects.capexGrade,
+          discoveryStatus: projects.discoveryStatus,
+        })
+        .from(projects)
+        .where(
+          and(
+            inArray(projects.priority, ["hot", "warm"]),
+            eq(projects.suppressed, false)
+            // Excludes demoted — they appear in the Demoted tab
+          )
+        )
+        .orderBy(desc(projects.priority))
+        .limit(20);
+
+      const projectIds = scopedProjects.map(p => p.id);
+      const slates = projectIds.length > 0
+        ? await db.select().from(contactCandidateSlates).where(inArray(contactCandidateSlates.projectId, projectIds))
+        : [];
+      const slateMap = new Map(slates.map(s => [s.projectId, s]));
+
+      const [gateRows] = projectIds.length > 0
+        ? await (db as any).execute(
+            `SELECT projectId, primaryAcceptable, backupAcceptable, digestSafe, gateSetBy, gateSetAt, gateNote
+             FROM projectValidationGates
+             WHERE projectId IN (${projectIds.join(",")})`
+          )
+        : [[], null];
+      const gateMap = new Map(
+        (Array.isArray(gateRows) ? gateRows : []).map((g: any) => [g.projectId, g])
+      );
+
+      return scopedProjects.map(p => {
+        const slate = slateMap.get(p.id);
+        const gate = gateMap.get(p.id);
+        return {
+          projectId: p.id,
+          projectName: p.name,
+          priority: p.priority,
+          sector: p.sector,
+          owner: p.owner,
+          location: p.location,
+          capexGrade: p.capexGrade,
+          discoveryStatus: p.discoveryStatus,
+          isDemoted: false,
+          slate: slate ? {
+            totalSlotsFilled: slate.totalSlotsFilled,
+            sendReadySlots: slate.sendReadySlots,
+            namedUnverifiedSlots: slate.namedUnverifiedSlots,
+            llmSlots: slate.llmSlots,
+            sourcesUsed: slate.sourcesUsed,
+            isStale: slate.isStale,
+            generatedAt: slate.generatedAt,
+            primarySnapshot: slate.primarySnapshot,
+            commercialSnapshot: slate.commercialSnapshot,
+            technicalSnapshot: slate.technicalSnapshot,
+          } : null,
+          hasSlate: !!slate,
+          slateIsStale: slate?.isStale || false,
+          gate: gate ? {
+            primaryAcceptable: Boolean(gate.primaryAcceptable),
+            backupAcceptable: Boolean(gate.backupAcceptable),
+            digestSafe: Boolean(gate.digestSafe),
+            gateSetBy: gate.gateSetBy,
+            gateSetAt: gate.gateSetAt,
+            gateNote: gate.gateNote,
+          } : null,
+        };
+      });
+    }),
+
+  // ── Source-level reporting ──
+
+  getSourceReport: adminProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Candidates by source (all contacts on hot/warm projects)
+      const [candidateRows] = await (db as any).execute(
+        `SELECT c.enrichmentSource as source,
+                COUNT(*) as candidates,
+                SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) as sendReady,
+                SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) as namedUnverified,
+                SUM(CASE WHEN c.contactTrustTier = 'llm_inferred' THEN 1 ELSE 0 END) as llmInferred,
+                SUM(CASE WHEN c.emailVerified = 1 THEN 1 ELSE 0 END) as emailVerified
+         FROM contacts c
+         INNER JOIN projects p ON c.projectId = p.id
+         WHERE p.priority IN ('hot','warm')
+         GROUP BY c.enrichmentSource
+         ORDER BY candidates DESC`
+      );
+
+      // Accepted / rejected by source from validation actions
+      const [actionRows] = await (db as any).execute(
+        `SELECT c.enrichmentSource as source,
+                va.action,
+                COUNT(*) as cnt
+         FROM contactValidationActions va
+         INNER JOIN contacts c ON va.contactId = c.id
+         GROUP BY c.enrichmentSource, va.action
+         ORDER BY c.enrichmentSource, va.action`
+      );
+
+      // Hunter verification outcomes by source
+      const [hunterRows] = await (db as any).execute(
+        `SELECT hvl.outcome,
+                COUNT(*) as cnt,
+                SUM(hvl.tierPromoted) as promoted
+         FROM hunterVerificationLog hvl
+         GROUP BY hvl.outcome`
+      );
+
+      // Build source map
+      const sourceMap: Record<string, {
+        source: string;
+        candidates: number;
+        sendReady: number;
+        namedUnverified: number;
+        llmInferred: number;
+        emailVerified: number;
+        accepted: number;
+        rejected: number;
+        wrongCompany: number;
+        wrongRole: number;
+        backupOnly: number;
+        promotedToSendReady: number;
+      }> = {};
+
+      for (const row of (Array.isArray(candidateRows) ? candidateRows : [])) {
+        const src = row.source || "unknown";
+        sourceMap[src] = {
+          source: src,
+          candidates: Number(row.candidates),
+          sendReady: Number(row.sendReady),
+          namedUnverified: Number(row.namedUnverified),
+          llmInferred: Number(row.llmInferred),
+          emailVerified: Number(row.emailVerified),
+          accepted: 0,
+          rejected: 0,
+          wrongCompany: 0,
+          wrongRole: 0,
+          backupOnly: 0,
+          promotedToSendReady: 0,
+        };
+      }
+
+      for (const row of (Array.isArray(actionRows) ? actionRows : [])) {
+        const src = row.source || "unknown";
+        if (!sourceMap[src]) continue;
+        const cnt = Number(row.cnt);
+        if (row.action === "accept") sourceMap[src].accepted += cnt;
+        else if (row.action === "reject") sourceMap[src].rejected += cnt;
+        else if (row.action === "wrong_company") sourceMap[src].wrongCompany += cnt;
+        else if (row.action === "wrong_role") sourceMap[src].wrongRole += cnt;
+        else if (row.action === "backup_only") sourceMap[src].backupOnly += cnt;
+      }
+
+      // Promoted = contacts that were accepted and now have send_ready tier
+      const [promotedRows] = await (db as any).execute(
+        `SELECT c.enrichmentSource as source, COUNT(*) as cnt
+         FROM contactValidationActions va
+         INNER JOIN contacts c ON va.contactId = c.id
+         WHERE va.action = 'accept' AND c.contactTrustTier = 'send_ready'
+         GROUP BY c.enrichmentSource`
+      );
+      for (const row of (Array.isArray(promotedRows) ? promotedRows : [])) {
+        const src = row.source || "unknown";
+        if (sourceMap[src]) sourceMap[src].promotedToSendReady = Number(row.cnt);
+      }
+
+      const hunterOutcomes = (Array.isArray(hunterRows) ? hunterRows : []).map((r: any) => ({
+        outcome: r.outcome,
+        count: Number(r.cnt),
+        promoted: Number(r.promoted || 0),
+      }));
+
+      return {
+        bySource: Object.values(sourceMap),
+        hunterOutcomes,
+        generatedAt: new Date(),
+      };
+    }),
+
+  // ── Batch generate slates for scoped projects only (demoted first, then top-20) ──
+
+  generateScopedSlates: adminProcedure
+    .input(z.object({
+      scope: z.enum(["demoted", "top20"]),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      let projectRows;
+      if (input.scope === "demoted") {
+        projectRows = await db
+          .select({ id: projects.id, name: projects.name })
+          .from(projects)
+          .where(
+            and(
+              eq(projects.discoveryStatus, "named_contact_no_email"),
+              inArray(projects.priority, ["hot", "warm"]),
+              eq(projects.suppressed, false)
+            )
+          )
+          .limit(20);
+      } else {
+        projectRows = await db
+          .select({ id: projects.id, name: projects.name })
+          .from(projects)
+          .where(
+            and(
+              inArray(projects.priority, ["hot", "warm"]),
+              eq(projects.suppressed, false)
+            )
+          )
+          .orderBy(desc(projects.priority))
+          .limit(20);
+      }
+
+      const projectIds = projectRows.map(p => p.id);
+      const results = await generateSlatesForTopProjects(projectIds);
+
+      const generated = results.filter(r => r.status === "generated").length;
+      const failed = results.filter(r => r.status === "failed").length;
+
+      return {
+        success: true,
+        scope: input.scope,
+        total: results.length,
+        generated,
+        failed,
+        results: results.map(r => ({
+          projectId: r.projectId,
+          projectName: r.projectName,
+          status: r.status,
+          totalSlotsFilled: r.slate.totalSlotsFilled,
+          sendReadySlots: r.slate.sendReadySlots,
+          error: r.error,
+        })),
+      };
+    }),
+
   // ── Batch generate slates for all top-20 hot projects ──
 
   generateTop20Slates: adminProcedure
@@ -351,6 +750,25 @@ export const contactValidationRouter = router({
     }),
 
   // ── Get validation stats for admin dashboard ──
+
+  // ── Lightweight count of named_unverified contacts on hot/warm projects (rep-facing) ──
+  getValidateFirstCount: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) return { count: 0 };
+
+      const [rows] = await (db as any).execute(
+        `SELECT COUNT(DISTINCT c.id) as cnt
+         FROM contacts c
+         INNER JOIN projects p ON c.projectId = p.id
+         WHERE c.contactTrustTier = 'named_unverified'
+           AND p.priority IN ('hot', 'warm')
+           AND c.linkedToProject = 1`
+      );
+
+      const count = Array.isArray(rows) && rows[0] ? Number(rows[0].cnt || 0) : 0;
+      return { count };
+    }),
 
   getValidationStats: adminProcedure
     .query(async () => {
