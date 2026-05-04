@@ -78,13 +78,13 @@ describe("Email Digest Deduplication", () => {
     const source = fs.readFileSync("./server/emailDigest.ts", "utf-8");
 
     // Find the sendWeeklyDigests function and verify it has dedup check
-    // Updated (Email Ops sprint): now uses wasEmailSentToUserThisWeek (week-level dedup)
+    // Refactored: now uses claimDigestSendSlot (atomic INSERT IGNORE dedup)
     const mondaySection = source.slice(
       source.indexOf("export async function sendWeeklyDigests"),
       source.indexOf("export async function sendThursdayReminders")
     );
-    // Accepts either the old wasEmailSentToUser or the new wasEmailSentToUserThisWeek
-    const hasDedup = mondaySection.includes("wasEmailSentToUser") || mondaySection.includes("wasEmailSentToUserThisWeek");
+    // Uses claimDigestSendSlot for atomic per-user dedup
+    const hasDedup = mondaySection.includes("claimDigestSendSlot") || mondaySection.includes("wasEmailSentToUser");
     expect(hasDedup).toBe(true);
     expect(mondaySection).toContain("alreadySent++");
   });
@@ -97,8 +97,8 @@ describe("Email Digest Deduplication", () => {
     const thursdaySection = source.slice(
       source.indexOf("export async function sendThursdayReminders")
     );
-    // Updated: now uses wasEmailSentToUserThisWeek (week-level dedup)
-    const hasDedup = thursdaySection.includes("wasEmailSentToUser") || thursdaySection.includes("wasEmailSentToUserThisWeek");
+    // Refactored: now uses claimDigestSendSlot for atomic per-user dedup
+    const hasDedup = thursdaySection.includes("claimDigestSendSlot") || thursdaySection.includes("wasEmailSentToUser");
     expect(hasDedup).toBe(true);
     expect(thursdaySection).toContain("alreadySent++");
   });

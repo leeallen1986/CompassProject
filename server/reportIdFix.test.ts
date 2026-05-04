@@ -28,6 +28,8 @@ const mockGetManagerRollup = vi.fn();
 const mockWasEmailSentToUserThisWeek = vi.fn().mockResolvedValue(false);
 const mockCheckPipelineFreshness = vi.fn();
 const mockGetAllUsersWithProfiles = vi.fn();
+const mockGetDigestWeekKey = vi.fn().mockReturnValue("2026-W17");
+const mockClaimDigestSendSlot = vi.fn().mockResolvedValue(true);
 
 vi.mock("./db", () => ({
   getActiveProjects: (...args: any[]) => mockGetActiveProjects(...args),
@@ -45,6 +47,8 @@ vi.mock("./db", () => ({
   wasEmailSentToUserThisWeek: (...args: any[]) => mockWasEmailSentToUserThisWeek(...args),
   checkPipelineFreshness: (...args: any[]) => mockCheckPipelineFreshness(...args),
   getAllUsersWithProfiles: (...args: any[]) => mockGetAllUsersWithProfiles(...args),
+  getDigestWeekKey: (...args: any[]) => mockGetDigestWeekKey(...args),
+  claimDigestSendSlot: (...args: any[]) => mockClaimDigestSendSlot(...args),
 }));
 
 vi.mock("./emailSender", () => ({

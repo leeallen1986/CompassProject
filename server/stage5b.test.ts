@@ -13,8 +13,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function daysAgo(n: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
+  const d = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+
   return d;
 }
 

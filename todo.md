@@ -1941,3 +1941,9 @@
 - [x] Updated happy-path tests to expect NDJSON streaming output instead of JSON response
 - [x] Updated runDailyPipeline mock to include steps[] and discoveryQueue fields
 - [x] Full test suite: 2940/2945 pass (5 pre-existing failures, 0 new regressions)
+
+## Test Maintenance Pass — Fix 5 Pre-existing Failures
+- [x] Fix emailDigestDedup.test.ts (2 failures) — updated string-match to use claimDigestSendSlot (atomic dedup replaced wasEmailSentToUser)
+- [x] Fix reportIdFix.test.ts (2 failures) — added missing getDigestWeekKey and claimDigestSendSlot to db mock
+- [x] Fix stage5b.test.ts (1 failure) — replaced daysAgo(setDate) with millisecond arithmetic to fix DST boundary imprecision
+- [x] Full test suite: 2945/2945 pass (0 failures)
