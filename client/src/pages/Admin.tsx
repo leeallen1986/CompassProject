@@ -490,68 +490,23 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`Enrichment failed: ${e.message}`),
   });
   const { data: enrichStats } = trpc.dataPipeline.enrichmentStats.useQuery();
-  // Pipeline trigger uses the streaming endpoint directly (keeps CloudRun connection alive)
-  const [pipelineRunning, setPipelineRunning] = useState(false);
-  const triggerFullPipeline = async () => {
-    setPipelineRunning(true);
-    toast.info("Pipeline launched — streaming progress. This may take 30-60 minutes.");
-    try {
-      const resp = await fetch("/api/scheduled/pipeline", {
-        method: "POST",
-        credentials: "include",
-      });
-      if (resp.status === 401) {
-        toast.error("Unauthorized — admin login required");
-        setPipelineRunning(false);
-        return;
+  // Pipeline freshness — poll every 30s when a run is active to show live progress
+  const { data: pipelineStatus, refetch: refetchPipelineStatus } = trpc.digest.scheduleStatus.useQuery(
+    undefined,
+    { refetchInterval: (query) => {
+        const p = (query.state.data as any)?.pipeline as { status?: string } | undefined;
+        return p?.status === 'running' ? 30_000 : false;
       }
-      if (resp.status === 409) {
-        const data = await resp.json();
-        toast.warning(`Pipeline already running (run ID ${data.runId})`);
-        setPipelineRunning(false);
-        return;
-      }
-      if (resp.status === 200 && resp.headers.get("content-type")?.includes("json")) {
-        const data = await resp.json();
-        toast.info(`Pipeline already completed recently (run ID ${data.runId})`);
-        setPipelineRunning(false);
-        return;
-      }
-      // Streaming NDJSON response — read line by line
-      const reader = resp.body?.getReader();
-      if (!reader) {
-        toast.error("Failed to read pipeline stream");
-        setPipelineRunning(false);
-        return;
-      }
-      const decoder = new TextDecoder();
-      let buffer = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const event = JSON.parse(line);
-            if (event.event === "completed") {
-              toast.success(`Pipeline completed in ${Math.round(event.durationSeconds / 60)} min — ${event.summary?.projectsExtracted ?? 0} projects, ${event.summary?.contactsEnriched ?? 0} contacts enriched`);
-            } else if (event.event === "failed") {
-              toast.error(`Pipeline failed after ${Math.round(event.durationSeconds / 60)} min: ${event.error}`);
-            }
-          } catch { /* ignore parse errors */ }
-        }
-      }
-      refetchStats();
-    } catch (err) {
-      toast.error(`Pipeline connection error: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setPipelineRunning(false);
     }
-  };
-  const fullPipelineMut = { isPending: pipelineRunning, mutate: triggerFullPipeline };
+  );
+  const fullPipelineMut = trpc.dailyPipeline.run.useMutation({
+    onSuccess: (data) => {
+      toast.info(`Pipeline launched by ${data.triggeredBy} — check progress below. This may take 30-60 minutes.`);
+      refetchStats();
+      refetchPipelineStatus();
+    },
+    onError: (e) => toast.error(`Pipeline launch failed: ${e.message}`),
+  });
   const weeklyPipelineMut = trpc.weeklyPipeline.run.useMutation({
     onSuccess: (data) => {
       toast.success(`Weekly mega-scrape complete in ${Math.floor(data.duration / 60)}m ${data.duration % 60}s: ${data.totalNewProjects} new projects, ${data.totalNewContacts} new contacts`);
@@ -721,6 +676,72 @@ function PipelineOpsTab() {
         <StatsCard label="Skipped" value={articleStats.skipped} icon={<Filter className="w-4 h-4" />} color="text-muted-foreground" />
         <StatsCard label="Failed" value={articleStats.failed} icon={<AlertTriangle className="w-4 h-4" />} color="text-hot" />
       </div>
+
+      {/* Pipeline Live Progress Block — shown when a run is active */}
+      {(() => {
+        const p = (pipelineStatus as any)?.pipeline as {
+          status: string; currentStep: string | null; lastProgressAt: string | null;
+          lastActivityNote: string | null; runningState: 'active' | 'stalled' | 'orphaned' | null;
+          liveArticlesIngested: number | null; liveProjectsCreated: number | null; liveContactsEnriched: number | null;
+          lastCompletedAt: string | null; ageHours: number | null;
+        } | undefined;
+        if (!p) return null;
+        const isRunning = p.status === 'running';
+        const isStalled = isRunning && p.runningState === 'stalled';
+        const isOrphaned = isRunning && p.runningState === 'orphaned';
+        const displayStatus = isStalled ? 'STALLED' : isOrphaned ? 'ORPHANED' : p.status.replace('_', ' ').toUpperCase();
+        const statusColor = p.status === 'fresh' ? 'text-teal' : isStalled || isOrphaned ? 'text-hot' : isRunning ? 'text-warm' : 'text-muted-foreground';
+        const statusBg = p.status === 'fresh' ? 'bg-teal/10 border-teal/20' : isStalled || isOrphaned ? 'bg-hot/10 border-hot/20' : isRunning ? 'bg-warm/10 border-warm/20' : 'bg-card border-border';
+        const dotColor = p.status === 'fresh' ? 'bg-teal' : isStalled || isOrphaned ? 'bg-hot' : isRunning ? 'bg-warm animate-pulse' : 'bg-muted-foreground';
+        return (
+          <div className={`rounded-md border px-3 py-2.5 text-xs ${statusBg}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                Pipeline Status
+              </span>
+              <span className={`font-bold uppercase tracking-wide ${statusColor}`}>{displayStatus}</span>
+            </div>
+            {isRunning && (
+              <div className="mb-2 pb-2 border-b border-border/50 space-y-1">
+                {p.currentStep && (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Current step</span>
+                    <span className="font-medium text-foreground">{p.currentStep}</span>
+                  </div>
+                )}
+                {p.lastProgressAt && (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Last progress</span>
+                    <span className={`font-medium ${isStalled ? 'text-hot' : 'text-foreground'}`}>
+                      {new Date(p.lastProgressAt).toUTCString().replace(' GMT', ' UTC')}
+                    </span>
+                  </div>
+                )}
+                {p.lastActivityNote && (
+                  <div className="text-muted-foreground italic mt-0.5">{p.lastActivityNote}</div>
+                )}
+                {(p.liveArticlesIngested !== null || p.liveProjectsCreated !== null || p.liveContactsEnriched !== null) && (
+                  <div className="flex items-center gap-4 mt-1 pt-1 border-t border-border/30">
+                    {p.liveArticlesIngested !== null && <span className="text-muted-foreground">Articles: <span className="font-semibold text-foreground">{p.liveArticlesIngested}</span></span>}
+                    {p.liveProjectsCreated !== null && <span className="text-muted-foreground">Projects: <span className="font-semibold text-foreground">{p.liveProjectsCreated}</span></span>}
+                    {p.liveContactsEnriched !== null && <span className="text-muted-foreground">Contacts: <span className="font-semibold text-foreground">{p.liveContactsEnriched}</span></span>}
+                  </div>
+                )}
+              </div>
+            )}
+            {p.lastCompletedAt && (
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Last successful run</span>
+                <span className="font-medium text-foreground">
+                  {new Date(p.lastCompletedAt).toUTCString().replace(' GMT', ' UTC')}
+                  {p.ageHours !== null ? ` (${p.ageHours}h ago)` : ''}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">

@@ -1974,3 +1974,9 @@
 - [x] Update Admin panel: live progress block (current step, last progress, activity note, live counts)
 - [x] Admin panel shows RUNNING / STALLED / ORPHANED with correct colours and pulsing dot
 - [x] Full test suite: 2969/2969 pass (0 failures)
+
+## Pipeline Trigger Fix — Platform Proxy Restriction on /api/scheduled/*
+- [ ] Add admin.triggerPipeline tRPC procedure (fire-and-forget, admin-only)
+- [ ] Update Admin panel to call trpc.admin.triggerPipeline instead of /api/scheduled/pipeline
+- [ ] Add 30s polling of pipelineFreshness in Admin panel when a run is active (shows live step/progress)
+- [ ] Run tests and save checkpoint
