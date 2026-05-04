@@ -26,7 +26,7 @@ import { eq, and, sql, isNull, or, inArray, desc, asc, lte } from "drizzle-orm";
 import { getDb } from "./db";
 import { projects, contacts, contactProjects } from "../drizzle/schema";
 import { enrichProjectContacts } from "./apolloEnrichment";
-import { enrichContactsForProject } from "./contactEnrichment";
+import { enrichContactsForProject, generateAndEnrichContacts } from "./contactEnrichment";
 import { generateAndSaveLLMContacts } from "./llmContactFallback";
 
 // ── Constants ──
@@ -303,18 +303,43 @@ async function runDiscoveryForProject(
         console.warn(`[Discovery] Apollo failed for project ${project.id}: ${e.message}`);
       }
 
-      // Step 2: Web search discovery (LinkedIn people search)
+      // Step 2: LinkedIn people search (creates contacts AND links them to project)
       try {
-        const webResults = await enrichContactsForProject(project.id);
+        const contractors = Array.isArray(project.contractors) ? project.contractors : [];
+        const webResults = await generateAndEnrichContacts(
+          project.id,
+          reportId,
+          project.name,
+          project.owner || "",
+          contractors,
+          project.sector || "",
+          { skipCacheCheck: false }
+        );
         if (webResults.length > 0) providersUsed.push("web_search");
       } catch (e: any) {
         console.warn(`[Discovery] Web search failed for project ${project.id}: ${e.message}`);
       }
 
-    } else if (ownerType === "government") {
-      // Government fallback: web search + LLM
+      // Step 2b: Also enrich any existing pending contacts for this project
       try {
-        const webResults = await enrichContactsForProject(project.id);
+        await enrichContactsForProject(project.id);
+      } catch (e: any) {
+        // Non-critical — just enriches existing contacts
+      }
+
+    } else if (ownerType === "government") {
+      // Government fallback: LinkedIn search + LLM
+      try {
+        const contractors = Array.isArray(project.contractors) ? project.contractors : [];
+        const webResults = await generateAndEnrichContacts(
+          project.id,
+          reportId,
+          project.name,
+          project.owner || "",
+          contractors,
+          project.sector || "",
+          { skipCacheCheck: false }
+        );
         if (webResults.length > 0) providersUsed.push("web_search");
       } catch (e: any) {
         console.warn(`[Discovery] Gov web search failed for project ${project.id}: ${e.message}`);

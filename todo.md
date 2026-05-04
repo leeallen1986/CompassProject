@@ -1990,3 +1990,9 @@
 - [x] Fix 5: Backfill orphan enriched contacts to projects
 - [x] Fix 6: Clean URL-as-contractor-name data
 - [x] Fix 7: Improve contractor fallback for blocked government-owner projects
+
+## Web Stakeholder Linkage + Contact Sweep Sprint
+- [x] Fix web stakeholder contactProjects linkage bug in discovery queue
+- [ ] Run targeted contact sweep for hot/warm projects (no send-ready, valid owner/contractor)
+- [ ] Refresh weekly dashboards with qualified new contacts
+- [ ] Generate digest preview for review

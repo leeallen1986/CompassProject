@@ -20,7 +20,7 @@
 
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { contacts, projects, type InsertContact } from "../drizzle/schema";
+import { contacts, projects, contactProjects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
 import { classifyRoleRelevance } from "./roleRelevance";
@@ -378,7 +378,31 @@ export async function generateAndSaveLLMContacts(
         continue;
       }
 
-      await db.insert(contacts).values(contactData);
+      const [inserted] = await db.insert(contacts).values(contactData);
+      const newContactId = (inserted as any).insertId;
+
+      // ── Fix: Link LLM-generated contact to project via contactProjects junction ──
+      if (newContactId && projectId) {
+        const existingLink = await db
+          .select({ id: contactProjects.id })
+          .from(contactProjects)
+          .where(
+            and(
+              eq(contactProjects.contactId, newContactId),
+              eq(contactProjects.projectId, projectId)
+            )
+          )
+          .limit(1);
+        if (existingLink.length === 0) {
+          await db.insert(contactProjects).values({
+            contactId: newContactId,
+            projectId,
+            projectName,
+            relevance: "primary",
+          });
+        }
+      }
+
       savedContacts.push(contact);
     } catch (err) {
       console.error(`[LLM Fallback] Failed to save contact ${contact.name}:`, err instanceof Error ? err.message : String(err));

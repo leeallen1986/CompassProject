@@ -13,7 +13,7 @@
  */
 import { eq, and, sql, isNull, or, desc, gte } from "drizzle-orm";
 import { getDb } from "./db";
-import { contacts, projects, userProfiles, projectEnrichmentCache, type InsertContact } from "../drizzle/schema";
+import { contacts, projects, contactProjects, userProfiles, projectEnrichmentCache, type InsertContact } from "../drizzle/schema";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { callDataApi } from "./_core/dataApi";
 
@@ -442,10 +442,34 @@ export async function generateAndEnrichContacts(
             roleRelevance,
           };
 
-          await db.insert(contacts).values(contactData);
+          const [inserted] = await db.insert(contacts).values(contactData);
+          const newContactId = (inserted as any).insertId;
+
+          // ── Fix: Link contact to project via contactProjects junction ──
+          // Without this, the contact is orphaned and invisible to project readiness checks.
+          if (newContactId && projectId) {
+            const existingLink = await db
+              .select({ id: contactProjects.id })
+              .from(contactProjects)
+              .where(
+                and(
+                  eq(contactProjects.contactId, newContactId),
+                  eq(contactProjects.projectId, projectId)
+                )
+              )
+              .limit(1);
+            if (existingLink.length === 0) {
+              await db.insert(contactProjects).values({
+                contactId: newContactId,
+                projectId,
+                projectName,
+                relevance: company === owner ? "primary" : "secondary",
+              });
+            }
+          }
 
           results.push({
-            contactId: 0, // Will be auto-assigned
+            contactId: newContactId || 0,
             name: person.fullName,
             status: "enriched",
             linkedinUrl: linkedinUrl || undefined,
