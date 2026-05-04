@@ -278,8 +278,10 @@ export async function cleanupStaleRuns(): Promise<number> {
   try {
     const db = await getDb();
     if (!db) return 0;
-    // Mark any runs stuck in "running" for more than 1 hour as failed
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    // Mark any runs stuck in "running" for more than 5 hours as failed.
+    // The pipeline can legitimately run for 60-90 minutes, so we use 5h to avoid
+    // falsely marking an in-progress run as failed on a server restart.
+    const oneHourAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
     const staleRuns = await db.select({ id: pipelineRuns.id })
       .from(pipelineRuns)
       .where(and(
