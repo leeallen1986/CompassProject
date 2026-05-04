@@ -366,6 +366,8 @@ export async function generateAndSaveLLMContacts(
         linkedinProfileUrl: linkedinProfileUrl || null,
         roleRelevance,
         emailVerified: false,
+        // Trust tier: LLM contacts are always llm_inferred — never outreach-ready
+        contactTrustTier: "llm_inferred",
       };
 
       // Compute and set verification score

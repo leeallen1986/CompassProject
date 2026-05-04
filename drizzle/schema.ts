@@ -309,6 +309,11 @@ export const contacts = mysqlTable("contacts", {
   // Geographic filtering fields
   regionClassification: mysqlEnum("regionClassification", ["australia", "non_australia", "unknown"]).default("unknown"),
   geoFilterReason: varchar("geoFilterReason", { length: 256 }),
+  // Three-tier contact trust model
+  // send_ready: verified email + project linked + non-LLM source
+  // named_unverified: named person, email missing/unverified, or not yet linked
+  // llm_inferred: source is llm/llm_fallback/llm_contact_fallback/llm_inference
+  contactTrustTier: mysqlEnum("contactTrustTier", ["send_ready", "named_unverified", "llm_inferred"]).default("named_unverified"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

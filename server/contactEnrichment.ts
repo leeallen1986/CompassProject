@@ -440,6 +440,8 @@ export async function generateAndEnrichContacts(
             linkedinLocation: person.location,
             linkedinProfilePic: person.profilePicture,
             roleRelevance,
+            // Trust tier: LinkedIn contacts start as named_unverified until emailVerified=1
+            contactTrustTier: "named_unverified",
           };
 
           const [inserted] = await db.insert(contacts).values(contactData);

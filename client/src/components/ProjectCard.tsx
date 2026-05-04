@@ -140,6 +140,8 @@ export interface ContactData {
   verifiedByUserId?: string | null;
   verifiedAt?: Date | null;
   roleRelevance?: "high" | "medium" | "low" | null;
+  /** Three-tier trust model: send_ready | named_unverified | llm_inferred */
+  contactTrustTier?: "send_ready" | "named_unverified" | "llm_inferred" | null;
 }
 
 // ── Keyword matching helpers ──
@@ -487,17 +489,33 @@ function VerificationScoreBadge({ contact }: { contact: ContactData }) {
 }
 
 function VerificationStatusBadge({ contact }: { contact: ContactData }) {
+  // Trust tier takes precedence over legacy verificationStatus
+  if (contact.contactTrustTier === "send_ready") {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700" title="Verified email + project linked — safe for outreach">
+        <ShieldCheck className="w-3 h-3" /> Send-Ready
+      </span>
+    );
+  }
+  if (contact.contactTrustTier === "llm_inferred" || contact.verificationStatus === "ai_suggested" || contact.enrichmentSource === "llm") {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700" title="AI-generated — NOT safe for outreach. Validate before use.">
+        <Bot className="w-3 h-3" /> AI Only
+      </span>
+    );
+  }
+  if (contact.contactTrustTier === "named_unverified") {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700" title="Named contact — validate email before outreach">
+        Validate First
+      </span>
+    );
+  }
+  // Legacy fallback
   if (contact.verificationStatus === "verified") {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700" title="Verified via LinkedIn API">
         <ShieldCheck className="w-3 h-3" /> Verified
-      </span>
-    );
-  }
-  if (contact.verificationStatus === "ai_suggested" || contact.enrichmentSource === "llm") {
-    return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700" title="AI-generated — verify before outreach">
-        <Bot className="w-3 h-3" /> AI Suggested
       </span>
     );
   }
@@ -724,9 +742,17 @@ export default function ProjectCard({
     return findProjectContacts(project.name, project.owner, allContacts, buyerRoles, 10);
   }, [project.name, project.owner, allContacts, buyerRoles]);
 
-  const primaryContact = projectContacts.length > 0 ? projectContacts[0] : null;
-  const visibleContacts = showAllContacts ? projectContacts : projectContacts.slice(0, 3);
-  const hasMoreContacts = projectContacts.length > 3;
+  // Trust tier segmentation
+  const sendReadyContacts = projectContacts.filter(c => c.contactTrustTier === "send_ready");
+  const llmContacts = projectContacts.filter(c => c.contactTrustTier === "llm_inferred");
+  // Primary contact: prefer send_ready, fall back to named_unverified
+  const primaryContact = sendReadyContacts.length > 0
+    ? sendReadyContacts[0]
+    : projectContacts.find(c => c.contactTrustTier === "named_unverified") ?? projectContacts[0] ?? null;
+  // Show send_ready and named_unverified contacts in main list; LLM contacts in separate section
+  const outreachContacts = projectContacts.filter(c => c.contactTrustTier !== "llm_inferred");
+  const visibleContacts = showAllContacts ? outreachContacts : outreachContacts.slice(0, 3);
+  const hasMoreContacts = outreachContacts.length > 3;
 
   const [feedback, setFeedback] = useState<FeedbackState>({
     vote: existingFeedback?.vote ?? null,
@@ -995,38 +1021,71 @@ export default function ProjectCard({
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" /> Project Contacts
                     <span className="ml-1 px-1.5 py-0.5 rounded-full bg-navy/10 text-navy text-[10px] font-bold">
-                      {projectContacts.length}
+                      {outreachContacts.length}
                     </span>
+                    {sendReadyContacts.length > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold" title="Contacts with verified email">
+                        {sendReadyContacts.length} send-ready
+                      </span>
+                    )}
                   </h4>
                   {hasMoreContacts && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowAllContacts(!showAllContacts); }}
                       className="text-[10px] font-semibold text-teal hover:text-teal-light transition-colors"
                     >
-                      {showAllContacts ? "Show less" : `Show all ${projectContacts.length}`}
+                      {showAllContacts ? "Show less" : `Show all ${outreachContacts.length}`}
                     </button>
                   )}
                 </div>
-                {projectContacts.length > 0 ? (
+                {outreachContacts.length > 0 ? (
                   <div className="space-y-2">
                     {visibleContacts.map((contact, i) => (
                       <ProjectContactCard
                         key={contact.id}
                         contact={contact}
-                        isPrimary={i === 0}
+                        isPrimary={i === 0 && contact.contactTrustTier === "send_ready"}
                         buyerRoles={buyerRoles}
                         onOutreach={handleOutreach}
                       />
                     ))}
-                    {projectContacts.some(c => c.enrichmentSource === "llm" || c.verificationStatus === "ai_suggested") && (
-                      <p className="text-[10px] text-muted-foreground flex items-start gap-1">
-                        <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
-                        AI-suggested contacts and emails are pattern-guessed. Use the Verify button or check LinkedIn before outreach.
-                      </p>
-                    )}
                   </div>
                 ) : (
-                  <div className="text-xs text-muted-foreground italic mb-2">No contacts matched yet.</div>
+                  <div className="text-xs text-muted-foreground italic mb-2">No verified contacts matched yet.</div>
+                )}
+                {/* LLM-inferred contacts: shown in a separate section with clear warning */}
+                {llmContacts.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <h5 className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                        Suggested Stakeholders to Validate ({llmContacts.length})
+                      </h5>
+                    </div>
+                    <p className="text-[10px] text-amber-700 mb-2 leading-relaxed">
+                      AI-inferred roles only — not verified. Confirm via LinkedIn before any outreach.
+                    </p>
+                    <div className="space-y-1.5">
+                      {llmContacts.slice(0, 3).map((contact) => (
+                        <div key={contact.id} className="flex items-center gap-2 text-xs">
+                          <Bot className="w-3 h-3 text-amber-500 shrink-0" />
+                          <span className="font-medium text-amber-800">{contact.name}</span>
+                          <span className="text-amber-600">— {contact.title}</span>
+                          {(contact.linkedin || contact.linkedinProfileUrl) && (
+                            <a
+                              href={contact.linkedin || contact.linkedinProfileUrl || ""}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+                            >
+                              Verify on LI
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 {/* Find Contacts (On-Demand Enrichment) */}
                 <div className="mt-3">

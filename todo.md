@@ -2006,3 +2006,19 @@
 - [ ] Part B: Detail view panel (project summary, stakeholders, route-to-buy, collateral)
 - [ ] Part B: Suppress Unknown clutter and raw system detail
 - [ ] Part C: Digest alignment with cleaned logic
+
+## Contact Trust Model
+- [ ] Query source quality data (bounce rate, verified email rate, send-ready conversion by source)
+- [ ] Add contactTrustTier field to contacts schema (send_ready / named_unverified / llm_inferred)
+- [ ] Add trust tier classification logic to backend (backfill existing contacts)
+- [ ] Enforce trust tier in digest: exclude llm_inferred from Must Act / action cards
+- [ ] Enforce trust tier in weekly dashboard: Top 3 cards show only send_ready contacts
+- [ ] Add Suggested Stakeholders section to project detail view for llm_inferred contacts
+
+## Contact Trust Model
+- [ ] Query source quality data (bounce rate, verified email rate, send-ready conversion by source)
+- [ ] Add contactTrustTier field to contacts schema (send_ready / named_unverified / llm_inferred)
+- [ ] Add trust tier classification logic to backend (backfill existing contacts)
+- [ ] Enforce trust tier in digest: exclude llm_inferred from Must Act / action cards
+- [ ] Enforce trust tier in weekly dashboard: Top 3 cards show only send_ready contacts
+- [ ] Add Suggested Stakeholders section to project detail view for llm_inferred contacts

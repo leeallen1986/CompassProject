@@ -202,6 +202,8 @@ interface DigestContact {
   email: string | null;
   roleRelevance?: string | null;
   linkedin?: string | null;
+  /** Three-tier trust model: only send_ready contacts are outreach-ready */
+  contactTrustTier?: string | null;
 }
 
 /**
@@ -223,9 +225,13 @@ function classifyBriefReadiness(
   if (tier === "tier3_monitor") return { readiness: "monitor_only", bestContact: null };
   if (tier === "tier2_warm" && priority === "cold") return { readiness: "monitor_only", bestContact: null };
 
-  // Find the best send-ready contact: high/medium relevance + has email or LinkedIn
+  // Find the best send-ready contact:
+  // TRUST TIER ENFORCEMENT: only contacts with contactTrustTier = 'send_ready' are outreach-ready.
+  // LLM-inferred contacts (llm_inferred) and unverified contacts (named_unverified) are EXCLUDED.
   const sendReady = projectContacts
     .filter(c =>
+      // Must be send_ready trust tier (verified email + project linked + non-LLM)
+      c.contactTrustTier === "send_ready" &&
       (c.roleRelevance === "high" || c.roleRelevance === "medium") &&
       (c.email || c.linkedin)
     )
@@ -243,15 +249,17 @@ function classifyBriefReadiness(
   }
 
   // Fallback: verified contractor + tier1 = action_ready (route-to-buy path)
+  // Only use contacts with send_ready trust tier for the fallback path too
   const hasVerifiedContractor = !project.hasNoContacts &&
     project.actionTier === "tier1_actionable" &&
     projectContacts.length > 0;
-  // Even without high-rel contacts, if there are ANY contacts with email, it's action_ready
-  const anyContactWithEmail = projectContacts.find(c => c.email);
-  if (hasVerifiedContractor && anyContactWithEmail) {
+  const anyTrustedContactWithEmail = projectContacts.find(
+    c => c.contactTrustTier === "send_ready" && c.email
+  );
+  if (hasVerifiedContractor && anyTrustedContactWithEmail) {
     return {
       readiness: "action_ready",
-      bestContact: { name: anyContactWithEmail.name, title: anyContactWithEmail.title, email: anyContactWithEmail.email, linkedin: anyContactWithEmail.linkedin },
+      bestContact: { name: anyTrustedContactWithEmail.name, title: anyTrustedContactWithEmail.title, email: anyTrustedContactWithEmail.email, linkedin: anyTrustedContactWithEmail.linkedin },
     };
   }
 
@@ -1216,6 +1224,8 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
             ...c,
             roleRelevance: (c as any).roleRelevance ?? null,
             linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+            // Pass trust tier through so classifyBriefReadiness can enforce it
+            contactTrustTier: (c as any).contactTrustTier ?? null,
           }));
         const { readiness, bestContact } = classifyBriefReadiness(
           { ...p, hasNoContacts },
@@ -1857,6 +1867,8 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
         name: c.name, title: c.title, company: c.company, project: c.project, priority: c.priority, email: c.email,
         roleRelevance: (c as any).roleRelevance ?? null,
         linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+        // Pass trust tier through so classifyBriefReadiness can enforce it
+        contactTrustTier: (c as any).contactTrustTier ?? null,
       }));
     const { readiness, bestContact } = classifyBriefReadiness(
       { ...p, hasNoContacts },

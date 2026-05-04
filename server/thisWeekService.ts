@@ -41,6 +41,8 @@ export interface ThisWeekProject {
   bestStakeholder: { name: string; title: string; company: string; relevance: string; email: string | null; linkedin: string | null } | null;
   suggestedAction: string;
   contactDepth: number; // how many high/medium contacts exist for this project
+  /** Named contacts that need validation before outreach (named_unverified tier) */
+  suggestedStakeholders: { name: string; title: string; company: string; relevance: string; linkedin: string | null }[];
   // ── Scope context (why the rep sees this) ──
   scopeReason: string; // e.g. "WA + Portable Air match", "WA cross-sell", "Outside lane — adjacent PT"
   laneMatch: boolean; // true if project matches user's primary selling lane
@@ -380,14 +382,25 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       linkedinHeadline: (c as any).linkedinHeadline,
       linkedinLocation: (c as any).linkedinLocation,
     }));
+    // TRUST TIER ENFORCEMENT: only send_ready contacts are outreach-ready for the weekly dashboard.
+    // LLM-inferred contacts (llm_inferred) are excluded from bestStakeholder.
+    // named_unverified contacts are shown as "Suggested Stakeholders" section only.
     const relevantContacts = auProjectContacts.filter(c =>
-      (c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium"
+      (c as any).contactTrustTier === "send_ready" &&
+      ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium")
     );
     relevantContacts.sort((a, b) => {
       const relOrder: Record<string, number> = { high: 2, medium: 1, low: 0 };
       return (relOrder[(b as any).roleRelevance ?? "low"] ?? 0) - (relOrder[(a as any).roleRelevance ?? "low"] ?? 0);
     });
     const bestContact = relevantContacts[0] ?? null;
+
+    // Suggested stakeholders: named_unverified contacts (not LLM, not send_ready)
+    // These are shown in a separate "Validate Before Outreach" section
+    const suggestedStakeholders = auProjectContacts.filter(c =>
+      (c as any).contactTrustTier === "named_unverified" &&
+      ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium")
+    );
 
     // Generate "Why it matters" summary
     const whyParts: string[] = [];
@@ -445,6 +458,14 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       } : null,
       suggestedAction,
       contactDepth: relevantContacts.length,
+      // Suggested stakeholders: named_unverified contacts to validate before outreach
+      suggestedStakeholders: suggestedStakeholders.slice(0, 3).map(c => ({
+        name: c.name,
+        title: c.title,
+        company: c.company,
+        relevance: (c as any).roleRelevance ?? "medium",
+        linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+      })),
       // ── Scope reason ──
       // Determine why this project is surfaced for the rep
       scopeReason: (() => {
@@ -486,7 +507,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
         );
       })(),
     };
-  });
+  }) as ThisWeekProject[];
 
   // ── 2. New Stakeholders ──
   // Contacts created in the last 7 days with high or medium relevance

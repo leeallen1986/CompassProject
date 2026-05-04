@@ -519,6 +519,13 @@
       "when": 1777895199067,
       "tag": "0073_watery_corsair",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "5",
+      "when": 1777930330449,
+      "tag": "0074_daffy_nemesis",
+      "breakpoints": true
     }
   ]
 }

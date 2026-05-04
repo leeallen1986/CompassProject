@@ -758,6 +758,9 @@ export async function enrichProjectContacts(
               ? 80
               : 50,
         emailVerified: enrichedPerson.emailStatus === "verified",
+        // Trust tier: Apollo contacts with verified email are send_ready;
+        // others start as named_unverified until email is verified
+        contactTrustTier: enrichedPerson.emailStatus === "verified" ? "send_ready" : "named_unverified",
       };
 
       const [inserted] = await db.insert(contacts).values(contactData);

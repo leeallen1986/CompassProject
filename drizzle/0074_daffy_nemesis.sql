@@ -1,0 +1,1 @@
+ALTER TABLE `contacts` ADD `contactTrustTier` enum('send_ready','named_unverified','llm_inferred') DEFAULT 'named_unverified';

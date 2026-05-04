@@ -160,17 +160,18 @@ async function assessContactState(
   db: any,
   projectId: number
 ): Promise<{ total: number; sendReady: number; named: number; roleOnly: number }> {
-  // Count usable contacts (excluding CRM junk) using raw SQL with explicit params
+  // Count usable contacts using contactTrustTier (three-tier trust model)
+  // send_ready tier = verified email + project linked + non-LLM source
+  // named_unverified tier = named person but email missing/unverified
+  // llm_inferred tier = LLM-generated, never counts as sendReady
   const rawSql = `
     SELECT
       COUNT(DISTINCT c.id) as total,
       COUNT(DISTINCT CASE
-        WHEN c.name IS NOT NULL AND c.name != '' AND c.name NOT LIKE '%Manager%' AND c.name NOT LIKE '%Director%'
-          AND c.email IS NOT NULL AND c.email != '' AND c.email NOT LIKE '%@example%'
+        WHEN c.contactTrustTier = 'send_ready'
         THEN c.id END) as sendReady,
       COUNT(DISTINCT CASE
-        WHEN c.name IS NOT NULL AND c.name != '' AND c.name NOT LIKE '%Manager%' AND c.name NOT LIKE '%Director%'
-          AND (c.email IS NULL OR c.email = '' OR c.email LIKE '%@example%')
+        WHEN c.contactTrustTier = 'named_unverified'
         THEN c.id END) as namedNoEmail,
       COUNT(DISTINCT CASE
         WHEN c.name IS NULL OR c.name = '' OR c.name LIKE '%Manager%' OR c.name LIKE '%Director%'
