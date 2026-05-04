@@ -2130,6 +2130,8 @@ export async function getLatestPipelineRun() {
  * (e.g. server restart at 20:05 instead of 20:00 the previous day).
  */
 export type PipelineFreshnessStatus = "fresh" | "stale" | "failed" | "running" | "never_run";
+/** Granular sub-state for a run with status=running */
+export type RunningState = "active" | "stalled" | "orphaned";
 
 export interface PipelineFreshnessResult {
   status: PipelineFreshnessStatus;
@@ -2139,6 +2141,15 @@ export interface PipelineFreshnessResult {
   ageHours: number | null;
   windowHours: number;
   blockedReason: string | null;
+  // Live progress fields (populated when status=running)
+  currentStep: string | null;
+  lastProgressAt: Date | null;
+  lastActivityNote: string | null;
+  runningState: RunningState | null; // null when not running
+  // Live counts from the in-progress run record
+  liveArticlesIngested: number | null;
+  liveProjectsCreated: number | null;
+  liveContactsEnriched: number | null;
 }
 
 export async function checkPipelineFreshness(
@@ -2156,16 +2167,29 @@ export async function checkPipelineFreshness(
       ageHours: null,
       windowHours: windowHoursNum,
       blockedReason: "Database unavailable — cannot verify pipeline freshness",
+      currentStep: null,
+      lastProgressAt: null,
+      lastActivityNote: null,
+      runningState: null,
+      liveArticlesIngested: null,
+      liveProjectsCreated: null,
+      liveContactsEnriched: null,
     };
   }
 
-  // Get the most recent pipeline run (any status)
+  // Get the most recent pipeline run (any status) — include live progress fields
   const [latestRun] = await db
     .select({
       id: pipelineRuns.id,
       status: pipelineRuns.status,
       startedAt: pipelineRuns.startedAt,
       completedAt: pipelineRuns.completedAt,
+      lastProgressAt: pipelineRuns.lastProgressAt,
+      currentStep: pipelineRuns.currentStep,
+      lastActivityNote: pipelineRuns.lastActivityNote,
+      articlesIngested: pipelineRuns.articlesIngested,
+      projectsCreated: pipelineRuns.projectsCreated,
+      contactsEnriched: pipelineRuns.contactsEnriched,
     })
     .from(pipelineRuns)
     .orderBy(desc(pipelineRuns.startedAt))
@@ -2194,6 +2218,13 @@ export async function checkPipelineFreshness(
       ageHours: null,
       windowHours: windowHoursNum,
       blockedReason: "No pipeline runs found — pipeline has never executed",
+      currentStep: null,
+      lastProgressAt: null,
+      lastActivityNote: null,
+      runningState: null,
+      liveArticlesIngested: null,
+      liveProjectsCreated: null,
+      liveContactsEnriched: null,
     };
   }
 
@@ -2203,31 +2234,53 @@ export async function checkPipelineFreshness(
     ? Math.round(((now.getTime() - lastCompletedAt.getTime()) / 3600000) * 10) / 10
     : null;
 
-  // Currently running (started within 4h, not yet completed)
+  // Shared non-running null fields (used by non-running return paths)
+  const noLiveFields = {
+    currentStep: null as string | null,
+    lastProgressAt: null as Date | null,
+    lastActivityNote: null as string | null,
+    runningState: null as RunningState | null,
+    liveArticlesIngested: null as number | null,
+    liveProjectsCreated: null as number | null,
+    liveContactsEnriched: null as number | null,
+  };
+
+  // Currently running — determine sub-state using lastProgressAt
   if (latestRun.status === "running" && lastRunAt) {
-    const runningForHours = (now.getTime() - lastRunAt.getTime()) / 3600000;
-    if (runningForHours < 4) {
-      return {
-        status: "running",
-        lastCompletedAt,
-        lastRunAt,
-        lastRunStatus: "running",
-        ageHours,
-        windowHours: windowHoursNum,
-        blockedReason: null, // running is treated as fresh — will complete before digest
-      };
+    const runningForMs = now.getTime() - lastRunAt.getTime();
+    const runningForHours = runningForMs / 3600000;
+    const lastProgressAt = latestRun.lastProgressAt ? new Date(latestRun.lastProgressAt) : null;
+    const STALL_THRESHOLD_MS = 45 * 60 * 1000; // 45 minutes
+    const ORPHAN_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours with no progress at all
+
+    let runningState: RunningState;
+    if (lastProgressAt) {
+      const progressAgeMs = now.getTime() - lastProgressAt.getTime();
+      runningState = progressAgeMs > STALL_THRESHOLD_MS ? "stalled" : "active";
+    } else {
+      // No progress writes yet — orphaned if running > 4h with no writes
+      runningState = runningForMs > ORPHAN_THRESHOLD_MS ? "orphaned" : "active";
     }
-    // Running for > 4h = phantom/stuck run, treat as failed
+
     return {
-      status: "failed",
+      status: "running",
       lastCompletedAt,
       lastRunAt,
-      lastRunStatus: "running (stuck)",
+      lastRunStatus: "running",
       ageHours,
       windowHours: windowHoursNum,
-      blockedReason: `Pipeline run has been in 'running' state for ${Math.round(runningForHours)}h — likely stuck. Last completed run: ${
-        lastCompletedAt ? lastCompletedAt.toUTCString() : "never"
-      }`,
+      blockedReason: runningState === "stalled"
+        ? `Pipeline appears stalled — no progress in ${Math.round((now.getTime() - (lastProgressAt?.getTime() ?? lastRunAt.getTime())) / 60000)} min (last step: ${latestRun.currentStep ?? "unknown"})`
+        : runningState === "orphaned"
+        ? `Pipeline run has been in 'running' state for ${Math.round(runningForHours)}h with no progress writes — likely orphaned`
+        : null,
+      currentStep: latestRun.currentStep ?? null,
+      lastProgressAt,
+      lastActivityNote: latestRun.lastActivityNote ?? null,
+      runningState,
+      liveArticlesIngested: latestRun.articlesIngested ?? null,
+      liveProjectsCreated: latestRun.projectsCreated ?? null,
+      liveContactsEnriched: latestRun.contactsEnriched ?? null,
     };
   }
 
@@ -2243,6 +2296,7 @@ export async function checkPipelineFreshness(
         ageHours,
         windowHours: windowHoursNum,
         blockedReason: null,
+        ...noLiveFields,
       };
     }
     return {
@@ -2255,6 +2309,7 @@ export async function checkPipelineFreshness(
       blockedReason: `Last pipeline run failed. Last successful run: ${
         lastCompletedAt ? `${ageHours}h ago (${lastCompletedAt.toUTCString()})` : "never"
       }`,
+      ...noLiveFields,
     };
   }
 
@@ -2269,6 +2324,7 @@ export async function checkPipelineFreshness(
         ageHours,
         windowHours: windowHoursNum,
         blockedReason: null,
+        ...noLiveFields,
       };
     }
     // Completed but outside window
@@ -2280,6 +2336,7 @@ export async function checkPipelineFreshness(
       ageHours,
       windowHours: windowHoursNum,
       blockedReason: `Last successful pipeline run was ${ageHours}h ago — outside the ${windowHoursNum}h freshness window`,
+      ...noLiveFields,
     };
   }
 
@@ -2292,6 +2349,7 @@ export async function checkPipelineFreshness(
     ageHours: null,
     windowHours: windowHoursNum,
     blockedReason: "No successful pipeline run found",
+    ...noLiveFields,
   };
 }
 

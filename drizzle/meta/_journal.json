@@ -512,6 +512,13 @@
       "when": 1777374949788,
       "tag": "0072_omniscient_cerise",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "5",
+      "when": 1777895199067,
+      "tag": "0073_watery_corsair",
+      "breakpoints": true
     }
   ]
 }

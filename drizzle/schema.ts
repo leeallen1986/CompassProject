@@ -719,6 +719,16 @@ export const pipelineRuns = mysqlTable("pipelineRuns", {
   // Source-level breakdown
   sourceStats: json("sourceStats").$type<Record<string, { fetched: number; ingested: number; errors: number }>>(),
   triggeredBy: varchar("triggeredBy", { length: 256 }),
+  // Live progress observability — written on every intermediate checkpoint
+  // lastProgressAt: timestamp of the most recent writeProgressCheckpoint call.
+  //   Used for stall detection: if status=running and lastProgressAt > 45 min ago, the run is stalled.
+  lastProgressAt: timestamp("lastProgressAt"),
+  // currentStep: name of the step currently executing (written at step START, not end).
+  //   Cleared to null on run completion.
+  currentStep: varchar("currentStep", { length: 128 }),
+  // lastActivityNote: human-readable summary of the most recent completed action.
+  //   e.g. "Harvest: 14 new articles from 26 sources"
+  lastActivityNote: varchar("lastActivityNote", { length: 512 }),
 });
 
 export type PipelineRun = typeof pipelineRuns.$inferSelect;

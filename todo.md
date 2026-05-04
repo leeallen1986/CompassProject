@@ -1960,3 +1960,17 @@
 - [x] Wired new template into Thursday reminder sendEmail call
 - [x] Added 24 unit tests for emailTemplate.ts (all pass)
 - [x] Full test suite: 2969/2969 pass (0 failures)
+
+## Pipeline Observability — Phase 1 (Intermediate Progress Writes + Admin State)
+- [x] Add lastProgressAt, currentStep, lastActivityNote columns to pipelineRuns schema
+- [x] Push DB migration
+- [x] Add markStepStarted() calls at start of every major step (Steps 1–22)
+- [x] Update writeProgressCheckpoint() to always set lastProgressAt + accept currentStep/lastActivityNote
+- [x] Update checkpoint 4/4 with lastActivityNote for discovery queue summary
+- [x] Clear currentStep to null on pipeline completion
+- [x] Extend PipelineFreshnessResult: currentStep, lastProgressAt, lastActivityNote, runningState, liveArticlesIngested, liveProjectsCreated, liveContactsEnriched
+- [x] RunningState type: active | stalled | orphaned (stall threshold: 45 min, orphan threshold: 4h)
+- [x] Update checkPipelineFreshness() to populate all new fields from DB
+- [x] Update Admin panel: live progress block (current step, last progress, activity note, live counts)
+- [x] Admin panel shows RUNNING / STALLED / ORPHANED with correct colours and pulsing dot
+- [x] Full test suite: 2969/2969 pass (0 failures)

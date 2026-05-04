@@ -404,20 +404,36 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
    * the DB record shows the stats that were completed rather than all-zero.
    * Fire-and-forget: errors are logged but never rethrow.
    */
-  async function writeProgressCheckpoint(partial: Record<string, unknown>): Promise<void> {
+  async function writeProgressCheckpoint(
+    partial: Record<string, unknown>,
+    opts?: { currentStep?: string; lastActivityNote?: string }
+  ): Promise<void> {
     if (!runId) return;
     try {
       const db = await getDb();
       if (!db) return;
       await db.update(pipelineRuns)
-        .set({ ...partial, steps, errors: errors.length > 0 ? errors : null } as any)
+        .set({
+          ...partial,
+          steps,
+          errors: errors.length > 0 ? errors : null,
+          lastProgressAt: new Date(),
+          ...(opts?.currentStep !== undefined ? { currentStep: opts.currentStep } : {}),
+          ...(opts?.lastActivityNote ? { lastActivityNote: opts.lastActivityNote } : {}),
+        } as any)
         .where(eq(pipelineRuns.id, runId));
     } catch (err) {
       console.warn(`[DailyPipeline] Progress checkpoint write failed (non-fatal):`, err instanceof Error ? err.message : String(err));
     }
   }
 
+  /** Fire-and-forget: mark the current step name so Admin shows what's running */
+  function markStepStarted(stepName: string): void {
+    void writeProgressCheckpoint({}, { currentStep: stepName });
+  }
+
   // ── Step 1: RSS Harvest (daily) ──
+  markStepStarted("RSS Harvest");
   const harvestStep = startStep("RSS Harvest");
   console.log("[DailyPipeline] Step 1: Harvesting RSS feeds...");
   let harvestResult;
@@ -445,6 +461,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(harvestStep);
 
   // ── Step 2: AI Extraction (daily) ──
+  markStepStarted("AI Extraction");
   const extractionStep = startStep("AI Extraction");
   console.log("[DailyPipeline] Step 2: Running AI extraction...");
   let extractionResult;
@@ -477,9 +494,12 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     articlesExtracted: extractionResult.extracted,
     projectsCreated: extractionResult.extracted,
     projectsDuplicate: extractionResult.duplicates,
+  }, {
+    lastActivityNote: `Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources. Extraction: ${extractionResult.extracted} projects from ${extractionResult.processed} articles.`,
   });
 
   // ── Step 3: ASX Targeted Monitoring (daily — lightweight) ──
+  markStepStarted("ASX Targeted Monitoring");
   const asxStep = startStep("ASX Targeted Monitoring");
   console.log("[DailyPipeline] Step 3: Running ASX targeted monitoring...");
   let asxResult = { ran: false, companiesChecked: 0, announcementsScanned: 0, projectSignals: 0, newProjects: 0, duplicates: 0, errors: 0, duration: 0 };
@@ -515,6 +535,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(asxStep);
 
   // ── Step 3a: Tenders WA (daily) ──
+  markStepStarted("Tenders WA");
   const tendersWAStep = startStep("Tenders WA");
   console.log("[DailyPipeline] Step 3a: Scraping Tenders WA...");
   let tendersWAResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
@@ -554,6 +575,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(tendersWAStep);
 
   // ── Step 3b: QTOL NT (daily) ──
+  markStepStarted("QTOL NT");
   const qtolNTStep = startStep("QTOL NT");
   console.log("[DailyPipeline] Step 3b: Scraping QTOL NT...");
   let qtolNTResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, priorityIssuerTenders: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
@@ -596,6 +618,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 
   // ── Step 4: AusTender (Thursdays) ──
   const isThursday = dayOfWeek === 4;
+  markStepStarted("AusTender OCDS API");
   const austenderStep = startStep("AusTender OCDS API");
   let austenderResult = { ran: false, totalFetched: 0, totalRelevant: 0, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
   if (isThursday) {
@@ -637,6 +660,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 
   // ── Step 5: DMIRS MINEDEX (Wednesdays) ──
   const isWednesday = dayOfWeek === 3;
+  markStepStarted("DMIRS MINEDEX API");
   const dmirsStep = startStep("DMIRS MINEDEX API");
   let dmirsResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
   if (isWednesday) {
@@ -678,6 +702,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 
   // ── Step 6: Government Major Projects (Tuesdays) ──
   const isTuesday = dayOfWeek === 2;
+  markStepStarted("Gov Major Projects");
   const govStep = startStep("Gov Major Projects");
   let govResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalErrors: 0, duration: 0 };
   if (isTuesday) {
@@ -715,6 +740,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 
   // ── Step 7: AEMO (Fridays) ──
   const isFriday = dayOfWeek === 5;
+  markStepStarted("AEMO Generation Info");
   const aemoStep = startStep("AEMO Generation Info");
   let aemoResult = { ran: false, totalNewProjects: 0, totalDuplicates: 0, totalSkipped: 0, totalErrors: 0, duration: 0 };
   if (isFriday) {
@@ -757,6 +783,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   // ════════════════════════════════════════════════════════════
 
   // ── Step 8: Projectory Enrichment (daily — enriches existing projects) ──
+  markStepStarted("Projectory Enrichment");
   const projectoryEnrichStep = startStep("Projectory Enrichment");
   console.log("[DailyPipeline] Step 8: Running Projectory enrichment on existing projects...");
   let projectoryEnrichResult = { ran: false, enriched: 0, contractorsFound: 0, failed: 0, sessionExpired: false };
@@ -919,6 +946,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   // ════════════════════════════════════════════════════════════
 
   // ── Step 10: Contact Enrichment ──
+  markStepStarted("Contact Enrichment");
   const enrichmentStep = startStep("Contact Enrichment");
   console.log("[DailyPipeline] Step 10: Enriching contacts...");
   let enrichmentResult;
@@ -961,9 +989,12 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     icnProjects: icnResult.totalNewProjects,
     contactsEnriched: enrichmentResult.enriched,
     apolloCreditsUsed: enrichmentResult.dailyUsed,
+  }, {
+    lastActivityNote: `Contact enrichment: ${enrichmentResult.enriched} contacts enriched (${enrichmentResult.dailyUsed} Apollo credits used).`,
   });
 
   // ── Step 11: Web Stakeholder Discovery ──
+  markStepStarted("Web Stakeholder Discovery");
   const webDiscoveryStep = startStep("Web Stakeholder Discovery");
   console.log("[DailyPipeline] Step 11: Running open-web stakeholder discovery...");
   try {
@@ -985,6 +1016,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(webDiscoveryStep);
 
   // ── Step 12: Apollo Selective Gap-Fill ──
+  markStepStarted("Apollo Gap-Fill");
   const apolloStep = startStep("Apollo Gap-Fill");
   console.log("[DailyPipeline] Step 12: Running selective Apollo gap-fill...");
   try {
@@ -1065,6 +1097,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(apolloStep);
 
   // ── Step 13: Business Line Scoring ──
+  markStepStarted("Business Line Scoring");
   const blScoringStep = startStep("Business Line Scoring");
   console.log("[DailyPipeline] Step 13: Scoring projects across 9 business lines...");
   try {
@@ -1090,6 +1123,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(blScoringStep);
 
   // ── Step 14: Tier Classification (daily — classify new/unclassified projects) ──
+  markStepStarted("Tier Classification");
   const tierStep = startStep("Tier Classification");
   console.log("[DailyPipeline] Step 14: Running tier classification on projects...");
   try {
@@ -1232,6 +1266,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   // Batch=3 keeps total pipeline runtime under 35 minutes (safe for CloudRun service).
   // Increase to 5-10 once execution is moved to a CloudRun Job (Phase 2).
   const DISCOVERY_QUEUE_BATCH = 3;
+  markStepStarted("Discovery Queue Processing");
   const discoveryQueueStep = startStep("Discovery Queue Processing");
   console.log(`[DailyPipeline] Step 20: Processing discovery queue (batch ${DISCOVERY_QUEUE_BATCH}, Priority A first)...`);
   let discoveryQueueResult = { processed: 0, priorityA: 0, priorityB: 0, priorityC: 0, newSendReady: 0, newNamedNoEmail: 0, newRoleOnly: 0, blocked: 0, failed: 0, results: [] as any[] };
@@ -1280,6 +1315,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     icnProjects: icnResult.totalNewProjects,
     contactsEnriched: enrichmentResult.enriched,
     apolloCreditsUsed: enrichmentResult.dailyUsed,
+  }, {
+    lastActivityNote: `Discovery queue: ${discoveryQueueResult.processed} projects processed — ${discoveryQueueResult.newSendReady} send-ready, ${discoveryQueueResult.newNamedNoEmail} named-no-email.`,
   });
 
   // ════════════════════════════════════════════════════════════
@@ -1295,6 +1332,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   // ════════════════════════════════════════════════════════════
 
   // ── Step 21: Staleness Check ──
+  markStepStarted("Staleness Check");
   const stalenessStep = startStep("Staleness Check");
   console.log("[DailyPipeline] Step 21: Running project staleness check...");
   try {
@@ -1314,6 +1352,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(stalenessStep);
 
   // ── Step 22: Duplicate Detection Sweep ──
+  markStepStarted("Duplicate Detection Sweep");
   const dupSweepStep = startStep("Duplicate Detection Sweep");
   console.log("[DailyPipeline] Step 22: Running duplicate detection sweep (Stage 5C)...");
   try {
@@ -1381,6 +1420,10 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
         apolloCreditsUsed: enrichmentResult.dailyUsed,
         steps: steps,
         errors: errors.length > 0 ? errors : null,
+        // Clear currentStep on completion so Admin shows no active step
+        currentStep: null,
+        lastProgressAt: new Date(),
+        lastActivityNote: `Pipeline ${coreStatus}: ${extractionResult.extracted} projects extracted, ${enrichmentResult.enriched} contacts enriched in ${Math.round((Date.now() - startTime) / 60000)} min.`,
       }).where(eq(pipelineRuns.id, runId));
       console.log(`[DailyPipeline] Core completion record written (status=${coreStatus}, ${coreStepsFailed.length} critical failures, ${enrichmentStepsFailed.length} enrichment failures tolerated)`);
     } catch (err) {
