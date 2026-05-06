@@ -2140,3 +2140,22 @@
 - [x] Smoke test: QTOL NT subprocess runs and returns structured result (14/14 passed)
 - [x] Forced-timeout test: parent kills child after short timeout, pipeline continues
 - [x] Verify logs and pipelineRuns DB record show step failure cleanly
+
+## Lane-Specific Scoring Architecture (2026-05-06)
+- [ ] Create server/laneScoring.ts: shared base score + 5 lane opportunity scores + selling-motion classifier + per-user final score
+- [ ] Update emailDigest.ts: use laneScoring, add lane suppression, add laneFit/channel/routeToBuy/bestNextMove to card render
+- [ ] Update thisWeekService.ts: use laneScoring instead of mlRanker, add laneFit/channel/routeToBuy to ThisWeekProject
+- [ ] Write vitest tests for laneScoring.ts
+- [ ] Run full test suite (2969+ tests passing)
+
+## Lane Scoring Guardrails (2026-05-06)
+- [ ] laneScoring.ts: add classifyVisibility() returning must_act_candidate | watchlist_candidate | monitor_only | suppress
+- [ ] laneScoring.ts: nuanced suppression — only suppress if primary AND secondary/crosssell weak AND actionability low
+- [ ] laneScoring.ts: mlRanker used only as tie-breaker (+0 to +5 pts), not competing ranker
+- [ ] laneScoring.ts: channel is deterministic enum: direct | rental | crosssell | monitor
+- [ ] laneScoring.ts: reasonCodes[] explainability field on LaneScoredProject
+- [ ] emailDigest.ts: replace scoreAndFilterProjects scoring with computePerUserFinalScore + classifyVisibility
+- [ ] thisWeekService.ts: replace mlRanker main ranking with laneScoring, mlRanker as tie-breaker only
+- [ ] Dashboard project cards: show laneFit, whyNow, routeToBuy, bestNextMove, channel
+- [ ] Vitest tests: all 5 guardrails covered
+- [ ] Before/after comparison: Daniel top 10, Pump rep top 10, Ryan vs Brett, suppressed examples

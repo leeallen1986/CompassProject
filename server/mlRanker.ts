@@ -456,3 +456,39 @@ export async function recomputeAllWeights(userId: number): Promise<{ feedbackCou
 
   return { feedbackCount: allFeedback.length };
 }
+
+// ── Tie-breaker boost export for laneScoring.ts ──
+// Returns a Map<projectId, tieBreaker> where tieBreaker is capped to ±5 pts.
+// This is intentionally narrow — it is a tie-breaker only, not a main ranker.
+// laneScoring.ts adds this AFTER computing the final lane-aware score.
+export async function getFeedbackBoostForProjects(
+  userId: number,
+  projectIds: number[],
+): Promise<Map<number, number>> {
+  const result = new Map<number, number>();
+  if (projectIds.length === 0) return result;
+
+  const db = await getDb();
+  if (!db) return result;
+
+  const weights = await getOrInitWeights(userId);
+  if (!weights || (weights.totalFeedbackCount || 0) < 3) return result;
+
+  // Fetch the minimal project data needed for applyFeedbackWeights
+  const rows = await db.select({
+    id: projects.id,
+    location: projects.location,
+    sector: projects.sector,
+    value: projects.value,
+  }).from(projects).where(inArray(projects.id, projectIds));
+
+  for (const row of rows) {
+    // applyFeedbackWeights expects a full Project but only uses location/sector/value
+    const rawBoost = applyFeedbackWeights(row as Project, weights);
+    // Cap to ±5 pts — tie-breaker only
+    const tieBreaker = Math.max(-5, Math.min(5, Math.round(rawBoost / 10)));
+    result.set(row.id, tieBreaker);
+  }
+
+  return result;
+}

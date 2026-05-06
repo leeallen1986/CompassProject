@@ -31,6 +31,13 @@ import {
 } from "./db";
 import { shouldIncludeInBrief, getTierLabel, type ActionTier } from "./tierClassification";
 import { getProjectScoresBatch, type DimensionScore } from "./businessLineScoring";
+import {
+  computePerUserFinalScore,
+  classifyVisibility,
+  applyTieBreaker,
+  type VisibilityTier,
+} from "./laneScoring";
+import { getFeedbackBoostForProjects } from "./mlRanker";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl } from "../drizzle/schema";
@@ -299,6 +306,20 @@ interface DigestProject {
   bestContact?: { name: string; title: string; email?: string | null; linkedin?: string | null } | null;
   /** Tender close date for actionability scoring */
   tenderCloseDate?: string | null;
+  /** Lane visibility tier from laneScoring.ts — used to gate section assignment */
+  visibilityTier?: VisibilityTier;
+  /** Lane fit label for card display */
+  laneFitLabel?: "High" | "Medium" | "Low" | "Not relevant";
+  /** Selling-motion channel enum */
+  channel?: string;
+  /** Why this project is actionable now */
+  whyNow?: string;
+  /** Route-to-buy description */
+  routeToBuy?: string;
+  /** Best next move for the rep */
+  bestNextMove?: string;
+  /** Reason codes for explainability */
+  reasonCodes?: string[];
 }
 
 interface DigestContact {
@@ -328,6 +349,13 @@ function classifyBriefReadiness(
 ): { readiness: BriefReadiness; bestContact: DigestProject["bestContact"] } {
   const tier = project.actionTier || "tier3_monitor";
   const priority = project.priority as "hot" | "warm" | "cold";
+
+  // ── Lane visibility gate (laneScoring.ts guardrail 2) ──
+  // If the lane scoring engine has classified this project as suppress or monitor_only,
+  // respect that decision regardless of contact state or action tier.
+  if (project.visibilityTier === "suppress" || project.visibilityTier === "monitor_only") {
+    return { readiness: "monitor_only", bestContact: null };
+  }
 
   // Monitor-only: tier3 or cold tier2 — these never lead the brief
   if (tier === "tier3_monitor") return { readiness: "monitor_only", bestContact: null };
@@ -1232,8 +1260,60 @@ async function scoreAndFilterProjects(
     console.warn("[EmailDigest] Failed to fetch BL scores, proceeding without:", err);
   }
 
+  // ── Feedback tie-breaker boosts (mlRanker — guardrail 4) ──
+  // Fetched once for the whole batch; applied per-project after lane scoring.
+  // Capped to ±5 pts so it only breaks ties, not changes ranking order.
+  let feedbackBoostMap = new Map<number, number>();
+  const userId = (profile as any).userId as number | undefined;
+  if (userId) {
+    try {
+      feedbackBoostMap = await getFeedbackBoostForProjects(userId, projectIds);
+    } catch {
+      // Non-fatal: proceed without tie-breaker
+    }
+  }
+
+  const assignedBLs = (profile.assignedBusinessLines || []) as string[];
+
   const scoredProjects = allProjects.map(p => {
     const projectBLScores = blScoresMap.get(p.id) || [];
+
+    // ── Lane-aware scoring (laneScoring.ts — single source of truth) ──
+    const laneResult = computePerUserFinalScore(
+      {
+        id: p.id,
+        name: p.name,
+        location: p.location,
+        value: p.value,
+        owner: p.owner,
+        priority: p.priority,
+        sector: p.sector,
+        opportunityRoute: p.opportunityRoute,
+        isNew: p.isNew,
+        stage: p.stage,
+        overview: p.overview,
+        equipmentSignals: (p as any).equipmentSignals ?? null,
+        contractors: (p as any).contractors ?? null,
+      },
+      {
+        territories: profile.territories,
+        assignedBusinessLines: profile.assignedBusinessLines,
+        sectorFocus: profile.sectorFocus,
+        stageTiming: profile.stageTiming,
+        keyAccounts: profile.keyAccounts,
+        buyerRoles: profile.buyerRoles,
+      },
+      projectBLScores,
+      [], // contacts not available here; contact quality uses project-level signals
+    );
+
+    // Apply mlRanker tie-breaker (±5 pts)
+    const feedbackBoost = feedbackBoostMap.get(p.id) ?? 0;
+    const laneResultWithTieBreaker = applyTieBreaker(laneResult, feedbackBoost);
+
+    // Classify visibility tier (guardrail 2 — separate from scoring)
+    const visibilityTier = classifyVisibility(laneResultWithTieBreaker, assignedBLs.length > 0);
+
     return {
       id: p.id,
       name: p.name,
@@ -1250,35 +1330,30 @@ async function scoreAndFilterProjects(
       productLane: (p as any).productLane ?? null,
       stageCode: (p as any).stageCode ?? null,
       tenderCloseDate: (p as any).tenderCloseDate ?? null,
-      relevanceScore: scoreProjectForUser(
-        {
-          id: p.id,
-          name: p.name,
-          location: p.location,
-          value: p.value,
-          owner: p.owner,
-          priority: p.priority,
-          sector: p.sector,
-          opportunityRoute: p.opportunityRoute,
-          isNew: p.isNew,
-          stage: p.stage,
-          overview: p.overview,
-          actionTier: (p as any).actionTier as ActionTier | null,
-          tenderCloseDate: (p as any).tenderCloseDate ?? null,
-        },
-        profile,
-        projectBLScores,
-        // contacts not available at this stage; actionability uses project-level signals only here
-        [],
-      ),
+      // Lane scoring fields
+      relevanceScore: laneResultWithTieBreaker.finalScoreWithTieBreaker,
+      visibilityTier,
+      laneFitLabel: laneResultWithTieBreaker.laneFitLabel,
+      channel: laneResultWithTieBreaker.channel,
+      whyNow: laneResultWithTieBreaker.whyNow,
+      routeToBuy: laneResultWithTieBreaker.routeToBuy,
+      bestNextMove: laneResultWithTieBreaker.bestNextMove,
+      reasonCodes: laneResultWithTieBreaker.reasonCodes,
     };
   });
 
-  // Sort by relevance
+  // Sort by relevance (finalScoreWithTieBreaker)
   scoredProjects.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-  // Filter to relevant projects (score > 40)
-  const scored = scoredProjects.filter(p => p.relevanceScore > 40);
+  // Filter: suppress projects are excluded entirely; monitor_only projects are kept
+  // (they appear in the monitor section of the digest, not Must Act / Watchlist)
+  const scored = scoredProjects.filter(p => {
+    if (p.visibilityTier === "suppress") return false;
+    // Legacy score threshold: keep projects with score > 25 (lowered from 40 since
+    // lane scoring is more precise — a 30-pt lane-scored project is more relevant
+    // than a 45-pt generic-scored project was under the old model)
+    return p.relevanceScore > 25;
+  });
 
   // ── Hard territory filter (post-scoring) ──
   // For state-coded territories (WA, QLD, NSW, VIC, SA, NT, TAS, ACT), a project must

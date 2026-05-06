@@ -10,7 +10,13 @@ import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring
 import { type ActionTier, getTierLabel, shouldIncludeInBrief } from "./tierClassification";
 import { detectActivities, type DetectedActivity } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
-import { rankProjectsForUser } from "./mlRanker";
+import { rankProjectsForUser, getFeedbackBoostForProjects } from "./mlRanker";
+import {
+  computePerUserFinalScore,
+  classifyVisibility,
+  applyTieBreaker,
+  type VisibilityTier,
+} from "./laneScoring";
 import { getActiveBusinessLines } from "./pipelineDb";
 import { isAustralianRelevant } from "./geoFilter";
 
@@ -46,6 +52,15 @@ export interface ThisWeekProject {
   // ── Scope context (why the rep sees this) ──
   scopeReason: string; // e.g. "WA + Portable Air match", "WA cross-sell", "Outside lane — adjacent PT"
   laneMatch: boolean; // true if project matches user's primary selling lane
+  // ── Lane scoring fields (from laneScoring.ts) ──
+  laneFitLabel: "High" | "Medium" | "Low" | "Not relevant";
+  channel: "direct" | "rental" | "crosssell" | "monitor";
+  whyNow: string;
+  routeToBuy: string;
+  bestNextMove: string;
+  reasonCodes: string[];
+  visibilityTier: VisibilityTier;
+  laneScore: number; // primary lane opportunity score 0-100
 }
 
 export interface ThisWeekStakeholder {
@@ -254,16 +269,75 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     return shouldIncludeInBrief(tier ?? "tier3_monitor", priority);
   });
 
-  // Apply ML ranking if user is provided (now includes BL + sector focus boosting)
+  // ── Lane-aware scoring (laneScoring.ts — single source of truth) ──
+  // Replaces mlRanker as the main ranker. mlRanker is now a ±5 pt tie-breaker only.
   let rankedProjects = actionableProjects;
-  if (userId && db) {
+  const allProjectIds = actionableProjects.map(p => p.id);
+
+  // Fetch BL scores for ALL actionable projects upfront
+  let allBLScoresMap = new Map<number, import('./businessLineScoring').DimensionScore[]>();
+  if (db && allProjectIds.length > 0) {
     try {
-      const rankings = await rankProjectsForUser(userId, actionableProjects);
-      rankedProjects = rankings.map(r => r.project);
-    } catch {
-      // Fall back to default ordering
-    }
+      allBLScoresMap = await getProjectScoresBatch(allProjectIds);
+    } catch { /* fallback to empty */ }
   }
+
+  // Fetch feedback tie-breaker boosts
+  let feedbackBoostMap = new Map<number, number>();
+  if (userId) {
+    try {
+      feedbackBoostMap = await getFeedbackBoostForProjects(userId, allProjectIds);
+    } catch { /* non-fatal */ }
+  }
+
+  // Score every project with laneScoring.ts
+  const laneScoreMap = new Map<number, ReturnType<typeof applyTieBreaker>>();
+  const visibilityMap = new Map<number, VisibilityTier>();
+  const assignedBLs = userContext.assignedBusinessLines;
+
+  for (const p of actionableProjects) {
+    const projectBLScores = allBLScoresMap.get(p.id) || [];
+    const laneResult = computePerUserFinalScore(
+      {
+        id: p.id,
+        name: p.name,
+        location: p.location,
+        value: p.value,
+        owner: p.owner,
+        priority: p.priority,
+        sector: p.sector,
+        opportunityRoute: p.opportunityRoute,
+        isNew: p.isNew,
+        stage: p.stage,
+        overview: p.overview,
+        equipmentSignals: (p as any).equipmentSignals ?? null,
+        contractors: (p as any).contractors ?? null,
+      },
+      {
+        territories: userContext.territories,
+        assignedBusinessLines: assignedBLs,
+        sectorFocus: userContext.sectorFocus,
+        stageTiming: null,
+        keyAccounts: null,
+        buyerRoles: null,
+      },
+      projectBLScores,
+      [], // contacts not available at this stage
+    );
+    const boosted = applyTieBreaker(laneResult, feedbackBoostMap.get(p.id) ?? 0);
+    const visibility = classifyVisibility(boosted, assignedBLs.length > 0);
+    laneScoreMap.set(p.id, boosted);
+    visibilityMap.set(p.id, visibility);
+  }
+
+  // Sort by lane score (finalScoreWithTieBreaker), suppress "suppress" tier projects
+  rankedProjects = actionableProjects
+    .filter(p => visibilityMap.get(p.id) !== "suppress")
+    .sort((a, b) => {
+      const scoreA = laneScoreMap.get(a.id)?.finalScoreWithTieBreaker ?? 0;
+      const scoreB = laneScoreMap.get(b.id)?.finalScoreWithTieBreaker ?? 0;
+      return scoreB - scoreA;
+    });
 
   // ── Hard-filter by user's territory and assigned business lines ──
   // Only apply when user has explicit preferences set
@@ -443,7 +517,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       contractors: p.contractors as any,
       equipmentSignals: p.equipmentSignals as string[] | null,
       detectedActivities: activities.map(a => a.activity),
-      relevanceScore: 0,
+      relevanceScore: laneScoreMap.get(p.id)?.finalScoreWithTieBreaker ?? 0,
       createdAt: p.createdAt,
       // Sales context
       whyItMatters,
@@ -466,46 +540,46 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
         relevance: (c as any).roleRelevance ?? "medium",
         linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
       })),
-      // ── Scope reason ──
-      // Determine why this project is surfaced for the rep
+      // ── Scope reason (derived from laneScoring reasonCodes) ──
       scopeReason: (() => {
+        const ls = laneScoreMap.get(p.id);
+        if (!ls) return "In your pipeline";
+        const codes = ls.reasonCodes;
+        const hasTerritoryMatch = codes.includes("territory_match");
+        const hasHighLane = codes.includes("high_lane_fit");
+        const hasMediumLane = codes.includes("medium_lane_fit");
+        const hasCrossSell = codes.some(c => c.startsWith("crosssell_"));
         const hasTerritory = userContext.territories.length > 0;
         const hasLane = userContext.assignedBusinessLines.length > 0;
-        const territoryMatch = hasTerritory && locationMatchesTerritories(p.location, userContext.territories);
-        const laneMatchCheck = hasLane && topBLs.some(bl =>
-          userContext.assignedBusinessLines.some(ubl =>
-            ubl.toLowerCase() === bl.name.toLowerCase() ||
-            bl.name.toLowerCase().includes(ubl.toLowerCase()) ||
-            ubl.toLowerCase().includes(bl.name.toLowerCase())
-          )
-        );
         if (!hasTerritory && !hasLane) return "In your pipeline";
-        if (territoryMatch && laneMatchCheck) {
+        if (hasTerritoryMatch && (hasHighLane || hasMediumLane)) {
           const lane = userContext.assignedBusinessLines[0] ?? "your lane";
           const terr = userContext.territories[0] ?? "your territory";
           return `${terr} + ${lane} match`;
         }
-        if (territoryMatch && !laneMatchCheck && topBLs.length > 0) {
-          return `${userContext.territories[0]} cross-sell — ${topBLs[0].name}`;
+        if (hasTerritoryMatch && hasCrossSell) {
+          const crossSellCode = codes.find(c => c.startsWith("crosssell_")) ?? "";
+          const crossSellName = crossSellCode.replace("crosssell_", "").replace(/_/g, " ");
+          return `${userContext.territories[0]} cross-sell — ${crossSellName}`;
         }
-        if (territoryMatch) return `Live tender in ${userContext.territories[0]}`;
+        if (hasTerritoryMatch) return `Live tender in ${userContext.territories[0]}`;
         if (tier === "tier1_actionable") return "Active-stage — action now";
         return "Adjacent PT — outside primary lane";
       })(),
       laneMatch: (() => {
-        if (userContext.assignedBusinessLines.length === 0) return true;
-        const blScores = blScoresMap[p.id] ?? {};
-        const topBLsCheck = Object.entries(blScores)
-          .filter(([_, score]) => score >= 40)
-          .map(([name]) => name);
-        return topBLsCheck.some(bl =>
-          userContext.assignedBusinessLines.some(ubl =>
-            ubl.toLowerCase() === bl.toLowerCase() ||
-            bl.toLowerCase().includes(ubl.toLowerCase()) ||
-            ubl.toLowerCase().includes(bl.toLowerCase())
-          )
-        );
+        const ls = laneScoreMap.get(p.id);
+        if (!ls) return userContext.assignedBusinessLines.length === 0;
+        return ls.reasonCodes.includes("high_lane_fit") || ls.reasonCodes.includes("medium_lane_fit");
       })(),
+      // ── Lane scoring fields ──
+      laneFitLabel: laneScoreMap.get(p.id)?.laneFitLabel ?? "Not relevant",
+      channel: laneScoreMap.get(p.id)?.channel ?? "monitor",
+      whyNow: laneScoreMap.get(p.id)?.whyNow ?? whyItMatters,
+      routeToBuy: laneScoreMap.get(p.id)?.routeToBuy ?? "",
+      bestNextMove: laneScoreMap.get(p.id)?.bestNextMove ?? suggestedAction,
+      reasonCodes: laneScoreMap.get(p.id)?.reasonCodes ?? [],
+      visibilityTier: visibilityMap.get(p.id) ?? "watchlist_candidate",
+      laneScore: laneScoreMap.get(p.id)?.primaryLaneScore ?? 0,
     };
   }) as ThisWeekProject[];
 

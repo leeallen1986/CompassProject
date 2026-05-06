@@ -151,26 +151,53 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
     ? <Zap className="w-3 h-3" />
     : <Search className="w-3 h-3" />;
 
-  // Build a short pitch from the project
-  const pitch = project?.whyItMatters
+  // Prefer lane scoring fields when available
+  const pitch = project?.whyNow
+    ? project.whyNow.slice(0, 140)
+    : project?.whyItMatters
     ? project.whyItMatters.slice(0, 140)
     : project?.overview
     ? project.overview.slice(0, 140)
     : action.description?.slice(0, 140) || "";
 
-  // Next action text
-  const nextAction = project?.suggestedAction || action.description || "Review project details.";
+  const nextAction = project?.bestNextMove || project?.suggestedAction || action.description || "Review project details.";
+  const routeToBuy = project?.routeToBuy || "";
+  const laneFitLabel: string = project?.laneFitLabel || "";
+  const channel: string = project?.channel || "";
+
+  const channelColors: Record<string, string> = {
+    direct: "bg-navy/10 text-navy",
+    rental: "bg-teal/10 text-teal",
+    crosssell: "bg-gold/15 text-gold-dark",
+    monitor: "bg-slate-100 text-slate-500",
+  };
+  const laneFitColors: Record<string, string> = {
+    High: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    Medium: "bg-blue-50 text-blue-700 border-blue-200",
+    Low: "bg-slate-50 text-slate-500 border-slate-200",
+    "Not relevant": "bg-slate-50 text-slate-400 border-slate-200",
+  };
 
   return (
     <div
       className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card cursor-pointer hover:shadow-lg hover:border-navy/20 transition-all group"
       onClick={() => project?.id && navigate(`/project/${project.id}`)}
     >
-      {/* Badge */}
-      <div className="flex items-center gap-2">
+      {/* Badge row: action-ready + lane fit + channel */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeColor}`}>
           {badgeIcon} {badgeLabel}
         </span>
+        {laneFitLabel && (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${laneFitColors[laneFitLabel] || "bg-slate-50 text-slate-400 border-slate-200"}`}>
+            {laneFitLabel} fit
+          </span>
+        )}
+        {channel && channel !== "monitor" && (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${channelColors[channel] || "bg-slate-100 text-slate-500"}`}>
+            {channel}
+          </span>
+        )}
         {action.actionKey && (
           <span className="ml-auto">
             <DismissButton actionKey={action.actionKey} />
@@ -209,7 +236,15 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
         </div>
       )}
 
-      {/* Next action */}
+      {/* Route to buy */}
+      {routeToBuy && (
+        <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
+          <span className="shrink-0 font-semibold text-navy/60">Route:</span>
+          <span className="line-clamp-1">{routeToBuy}</span>
+        </div>
+      )}
+
+      {/* Best next move */}
       <div className="flex items-start gap-2 mt-auto pt-1">
         <ArrowRight className="w-3.5 h-3.5 text-gold shrink-0 mt-0.5" />
         <p className="text-xs text-foreground/80 leading-relaxed line-clamp-2">{nextAction}</p>
@@ -257,10 +292,29 @@ function CompactProjectRow({
         <MapPin className="w-3 h-3" />{project.location}
       </span>
 
-      {/* Lane badge */}
-      {project.topBusinessLines?.[0]?.name && (
-        <ScopeReasonChip reason={project.scopeReason} />
-      )}
+      {/* Lane fit + channel chips */}
+      <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+        {project.laneFitLabel && project.laneFitLabel !== "Not relevant" && (
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${
+            project.laneFitLabel === "High" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+            project.laneFitLabel === "Medium" ? "bg-blue-50 text-blue-700 border-blue-200" :
+            "bg-slate-50 text-slate-500 border-slate-200"
+          }`}>
+            {project.laneFitLabel}
+          </span>
+        )}
+        {project.channel && project.channel !== "monitor" && (
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold capitalize ${
+            project.channel === "direct" ? "bg-navy/10 text-navy" :
+            project.channel === "rental" ? "bg-teal/10 text-teal" :
+            project.channel === "crosssell" ? "bg-gold/15 text-gold-dark" :
+            "bg-slate-100 text-slate-500"
+          }`}>
+            {project.channel}
+          </span>
+        )}
+        {project.scopeReason && <ScopeReasonChip reason={project.scopeReason} />}
+      </div>
 
       {/* Extra info (e.g. closing date) */}
       {extraInfo}
