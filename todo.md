@@ -2100,3 +2100,13 @@
 - [x] Eliminate duplicate priority system — single hierarchy: Must Act → Closing Soon → Waiting on Contact Discovery
 - [x] Run corrected WA dry-run v2 — 0 banned sections, 0 NSW contamination, 0 VIC contamination ("vic" false positive confirmed as substring in "services" in Fremantle Prison project name — projectState=WA)
 - [x] Report first-send recommendation — WA digest is clean and ready for first-send approval
+
+## Per-User Digest Scoring Redesign — 2026-05-06
+- [ ] Redesign scoreProjectForUser: hard lane tiers (primary/secondary/cross-sell/penalty), base=0, separated relevance/actionability
+- [ ] Make stage timing a major scoring dimension (up to 15 pts)
+- [ ] Buyer-role boost only when contact is trust-safe and linked
+- [ ] Strategic account boost capped so it cannot overpower weak project fit
+- [ ] Update scoreAndFilterProjects to pass full expanded profile (sectorFocus, stageTiming, buyerRoles, keyAccounts)
+- [ ] Update digest assembly to use relevance score for On Radar / Waiting sections, combined score for Must Act
+- [ ] Run Ryan vs Brett top-10 comparison with per-project score breakdowns
+- [ ] Prove divergence: overlap count, dimension breakdown, explanation of shared projects

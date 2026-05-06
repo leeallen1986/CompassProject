@@ -297,6 +297,8 @@ interface DigestProject {
   briefReadiness?: BriefReadiness;
   /** Best send-ready contact for this project (name + title + contact path) */
   bestContact?: { name: string; title: string; email?: string | null; linkedin?: string | null } | null;
+  /** Tender close date for actionability scoring */
+  tenderCloseDate?: string | null;
 }
 
 interface DigestContact {
@@ -387,8 +389,297 @@ const BL_TO_DIMENSION_MAP: Record<string, string[]> = {
 };
 
 /**
- * Score a project against a user's profile for relevance (0-100).
- * Now includes BL-based scoring when blScores are provided.
+ * Hard lane tier classification for a project against a user's primary business lines.
+ *
+ * Returns:
+ *   "primary"   — project is a strong match for the user's assigned BL(s) (BL score >= 60)
+ *   "secondary" — project is a moderate match (BL score 35–59)
+ *   "crosssell" — project has some BL signal but is not the user's primary lane (score 15–34)
+ *   "poor"      — project has negligible BL relevance (score < 15) — penalised in ranking
+ */
+function classifyLaneTier(
+  assignedBusinessLines: string[] | null | undefined,
+  blScores: DimensionScore[] | undefined,
+): "primary" | "secondary" | "crosssell" | "poor" {
+  if (!assignedBusinessLines || assignedBusinessLines.length === 0 || !blScores || blScores.length === 0) {
+    return "crosssell"; // no BL data — neutral, not penalised
+  }
+  const userDimensions = new Set<string>();
+  for (const bl of assignedBusinessLines) {
+    const dims = BL_TO_DIMENSION_MAP[bl];
+    if (dims) dims.forEach(d => userDimensions.add(d));
+  }
+  if (userDimensions.size === 0) return "crosssell";
+
+  let maxScore = 0;
+  for (const dim of Array.from(userDimensions)) {
+    const s = blScores.find(b => b.dimension === dim)?.score ?? 0;
+    if (s > maxScore) maxScore = s;
+  }
+  if (maxScore >= 60) return "primary";
+  if (maxScore >= 35) return "secondary";
+  if (maxScore >= 15) return "crosssell";
+  return "poor";
+}
+
+/**
+ * Compute a relevance score (0–100) for a project against a user profile.
+ * Separated from actionability — this score reflects how relevant the project
+ * is to the user's lane, sector, stage preference, and strategic accounts.
+ *
+ * WEIGHTS:
+ *   Primary lane fit (hard tier)  — 0/12/22/32 pts  (poor/crosssell/secondary/primary)
+ *   Stage timing fit              — up to 15 pts     (major dimension)
+ *   Sector fit                    — up to 12 pts     (sectorFocus > industries fallback)
+ *   Secondary/cross-sell signal   — up to  8 pts     (Service Potential + Rental Influence)
+ *   Strategic account fit         — up to  6 pts     (capped; cannot rescue poor lane fit)
+ *   Priority signal               — up to  5 pts     (hot/warm/new)
+ *   Territory quality             — up to  5 pts     (quality signal; hard exclusion upstream)
+ *
+ * Base = 0. Capped at 100.
+ */
+function computeRelevanceScore(
+  project: DigestProject,
+  profile: {
+    territories: string[] | null;
+    industries: string[] | null;
+    offerCategories: string[] | null;
+    customerTypes: string[] | null;
+    dealSizeMin: string | null;
+    dealSizeMax: string | null;
+    assignedBusinessLines?: string[] | null;
+    sectorFocus?: string[] | null;
+    stageTiming?: string[] | null;
+    buyerRoles?: string[] | null;
+    keyAccounts?: string[] | null;
+  },
+  blScores?: DimensionScore[],
+): { relevance: number; laneTier: "primary" | "secondary" | "crosssell" | "poor"; breakdown: Record<string, number> } {
+  const breakdown: Record<string, number> = {};
+  let score = 0;
+
+  // ── 1. Primary lane fit via hard tier (+0/+12/+22/+32) ──
+  const laneTier = classifyLaneTier(profile.assignedBusinessLines, blScores);
+  const lanePoints = laneTier === "primary" ? 32 : laneTier === "secondary" ? 22 : laneTier === "crosssell" ? 12 : 0;
+  // Poor lane fit gets a penalty to ensure it ranks below cross-sell projects
+  const lanePenalty = laneTier === "poor" ? -8 : 0;
+  breakdown["lane"] = lanePoints + lanePenalty;
+  score += lanePoints + lanePenalty;
+
+  // ── 2. Stage timing fit (+0 to +15) — major dimension ──
+  if (profile.stageTiming && profile.stageTiming.length > 0) {
+    const stagePref = profile.stageTiming.map(s => s.toLowerCase());
+    const projStage = (project.stage || "").toLowerCase();
+    const stageAliases: Record<string, string[]> = {
+      early_signal:       ["planning", "feasibility", "study", "announcement", "early", "concept", "pre-feasibility", "scoping"],
+      tender_live:        ["tender", "rfq", "rfp", "eoi", "bid", "procurement", "expression of interest"],
+      awarded_mobilizing: ["awarded", "mobilizing", "mobilisation", "construction", "execution", "active", "underway", "commenced"],
+      commissioning:      ["commissioning", "startup", "start-up", "handover", "testing"],
+      operations:         ["operations", "production", "operating", "operational", "mro", "shutdown", "maintenance"],
+    };
+    let stageScore = 0;
+    // Primary preferred stage = full 15 pts; secondary preferred stage = 8 pts
+    const [firstPref, ...restPrefs] = stagePref;
+    const firstAliases = stageAliases[firstPref] || [firstPref];
+    if (firstAliases.some(a => projStage.includes(a))) {
+      stageScore = 15;
+    } else {
+      for (const pref of restPrefs) {
+        const aliases = stageAliases[pref] || [pref];
+        if (aliases.some(a => projStage.includes(a))) { stageScore = 8; break; }
+      }
+    }
+    breakdown["stage"] = stageScore;
+    score += stageScore;
+  }
+
+  // ── 3. Sector fit (+0 to +12) ──
+  const effectiveSectors = (profile.sectorFocus && profile.sectorFocus.length > 0)
+    ? profile.sectorFocus
+    : (profile.industries || []).map(i => i.split("_")[0]);
+  if (effectiveSectors.length > 0) {
+    const projSector = project.sector.toLowerCase();
+    const sectorAliases: Record<string, string[]> = {
+      mining:         ["mining", "exploration", "development", "production", "shutdown", "contractors"],
+      oil_gas:        ["oil_gas", "oil", "gas", "lng", "fpso", "offshore", "energy_oil_gas", "energy_transmission"],
+      infrastructure: ["infrastructure", "rail", "road", "port", "construction", "water"],
+      energy:         ["energy", "renewable", "solar", "wind", "hydrogen", "bess", "energy_renewables"],
+      defence:        ["defence", "defense", "military", "naval"],
+    };
+    const projAliases = sectorAliases[projSector] || [projSector];
+    const matched = effectiveSectors.some(s =>
+      projAliases.some(a => a.includes(s.toLowerCase()) || s.toLowerCase().includes(a))
+    );
+    breakdown["sector"] = matched ? 12 : 0;
+    score += matched ? 12 : 0;
+  }
+
+  // ── 4. Secondary / cross-sell BL signal (+0 to +8) ──
+  // Service Potential and Rental Influence are evaluated for all users.
+  if (blScores && blScores.length > 0) {
+    const serviceScore = blScores.find(s => s.dimension === "Service Potential")?.score ?? 0;
+    const rentalScore  = blScores.find(s => s.dimension === "Rental Influence")?.score ?? 0;
+    const offerCats = (profile.offerCategories || []).map(c => c.toLowerCase());
+    const wantsRental  = offerCats.some(c => c.includes("rental") || c.includes("hire"));
+    const wantsService = offerCats.some(c => c.includes("service") || c.includes("parts") || c.includes("engineering") || c.includes("consumable"));
+    let crossSell = 0;
+    if (wantsRental)  crossSell += Math.round((rentalScore  / 100) * 5);
+    if (wantsService) crossSell += Math.round((serviceScore / 100) * 5);
+    crossSell = Math.min(crossSell, 8); // cap
+    breakdown["crosssell"] = crossSell;
+    score += crossSell;
+  }
+
+  // ── 5. Strategic account fit (+0 to +6, capped) ──
+  // Cannot rescue a poor-lane-fit project — capped at 6 so it is a tiebreaker, not a lifeline.
+  if (profile.keyAccounts && profile.keyAccounts.length > 0) {
+    const accounts = profile.keyAccounts.map(a => a.toLowerCase());
+    const ownerLower = (project.owner || "").toLowerCase();
+    const nameLower  = project.name.toLowerCase();
+    const isStrategic = accounts.some(a => a.length > 3 && (ownerLower.includes(a) || nameLower.includes(a)));
+    const strategicPts = isStrategic ? 6 : 0;
+    breakdown["strategic"] = strategicPts;
+    score += strategicPts;
+  }
+
+  // ── 6. Priority signal (+0 to +5) ──
+  const priorityPts = project.priority === "hot" ? 5 : project.priority === "warm" ? 3 : 0;
+  const newPts = project.isNew ? 2 : 0;
+  breakdown["priority"] = priorityPts + newPts;
+  score += priorityPts + newPts;
+
+  // ── 7. Territory quality (+0 to +5) ──
+  // Hard exclusion is done upstream. Here we give a small quality boost for a
+  // strong location match (e.g. Pilbara vs just "WA").
+  if (profile.territories && profile.territories.length > 0) {
+    const territories = profile.territories;
+    const loc = project.location.toLowerCase();
+    const stateMap: Record<string, string[]> = {
+      WA:  ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland", "newman", "geraldton", "bunbury", "broome", "norseman", "murchison", "kwinana"],
+      NT:  ["northern territory", "nt", "darwin", "alice springs", "tennant creek", "katherine"],
+      QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "rockhampton", "cairns", "bowen basin", "moranbah", "emerald"],
+      NSW: ["new south wales", "nsw", "sydney", "newcastle", "hunter valley", "wollongong", "broken hill", "orange", "dubbo", "mudgee", "goulburn", "wakehurst"],
+      VIC: ["victoria", "vic", "melbourne", "geelong", "ballarat", "bendigo", "latrobe", "euroa"],
+      SA:  ["south australia", "sa", "adelaide", "olympic dam", "whyalla", "port augusta"],
+      TAS: ["tasmania", "tas", "hobart", "launceston"],
+      ACT: ["australian capital territory", "act", "canberra"],
+    };
+    let terrPts = 0;
+    for (const terr of territories) {
+      if (terr === "National" || terr === "NATIONAL") { terrPts = 3; break; }
+      const keywords = stateMap[terr] || [terr.toLowerCase()];
+      const exactMatch = keywords.some(k => {
+        if (k.length <= 3) {
+          const re = new RegExp(`(?:^|[\\s,;/|()\\-])${k}(?:$|[\\s,;/|()\\-])`, "i");
+          return re.test(loc);
+        }
+        return loc.includes(k);
+      });
+      if (exactMatch) { terrPts = 5; break; }
+    }
+    breakdown["territory"] = terrPts;
+    score += terrPts;
+  }
+
+  return { relevance: Math.max(0, Math.min(100, score)), laneTier, breakdown };
+}
+
+/**
+ * Compute an actionability score (0–100) for a project.
+ * Separated from relevance — this score reflects how actionable the project is
+ * right now (contacts available, closing soon, contractor known, etc.).
+ *
+ * WEIGHTS:
+ *   Trust-safe contact present    — up to 30 pts  (send_ready > named_unverified > none)
+ *   Buyer role match on contact   — up to 15 pts  (only when contact is trust-safe)
+ *   Tender closing soon           — up to 20 pts  (within 14 days = full; within 30 = partial)
+ *   Contractor known              — up to 15 pts  (verified contractor on record)
+ *   Action tier                   — up to 20 pts  (tier1_actionable > tier2 > tier3)
+ *
+ * Base = 0. Capped at 100.
+ */
+function computeActionabilityScore(
+  project: DigestProject,
+  projectContacts: DigestContact[],
+  profile: { buyerRoles?: string[] | null },
+): { actionability: number; breakdown: Record<string, number> } {
+  const breakdown: Record<string, number> = {};
+  let score = 0;
+
+  // ── 1. Trust-safe contact present (+0 to +30) ──
+  const sendReadyContacts  = projectContacts.filter(c => c.contactTrustTier === "send_ready" && c.email);
+  const namedContacts      = projectContacts.filter(c => c.contactTrustTier === "named_unverified");
+  let contactPts = 0;
+  if (sendReadyContacts.length > 0)  contactPts = 30;
+  else if (namedContacts.length > 0) contactPts = 12;
+  breakdown["contact"] = contactPts;
+  score += contactPts;
+
+  // ── 2. Buyer role match on trust-safe contact (+0 to +15) ──
+  // Only applied when a send_ready contact exists — prevents inflating score for unverified contacts.
+  if (sendReadyContacts.length > 0 && profile.buyerRoles && profile.buyerRoles.length > 0) {
+    const buyerRoles = profile.buyerRoles.map(r => r.toLowerCase());
+    const roleAliases: Record<string, string[]> = {
+      procurement:        ["procurement", "commercial", "supply chain", "contracts", "purchasing"],
+      fleet_manager:      ["fleet", "equipment manager", "plant manager", "asset"],
+      operations_site:    ["operations", "site manager", "project manager", "construction manager", "site supervisor"],
+      maintenance_shutdown: ["maintenance", "shutdown", "turnaround", "reliability", "mechanical"],
+      project_manager:    ["project manager", "pm", "project director", "project engineer"],
+      engineering:        ["engineer", "technical", "design", "process"],
+      hse_esg:            ["hse", "safety", "esg", "environment", "sustainability"],
+      commercial:         ["commercial", "business development", "bd", "sales"],
+    };
+    const bestContact = sendReadyContacts[0];
+    const titleLower  = (bestContact.title || "").toLowerCase();
+    const roleMatched = buyerRoles.some(role => {
+      const aliases = roleAliases[role] || [role];
+      return aliases.some(a => titleLower.includes(a));
+    });
+    const rolePts = roleMatched ? 15 : 0;
+    breakdown["buyerRole"] = rolePts;
+    score += rolePts;
+  }
+
+  // ── 3. Tender closing soon (+0 to +20) ──
+  if (project.tenderCloseDate) {
+    const daysUntilClose = Math.ceil(
+      (new Date(project.tenderCloseDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+    let closingPts = 0;
+    if (daysUntilClose >= 0 && daysUntilClose <= 7)  closingPts = 20;
+    else if (daysUntilClose <= 14)                   closingPts = 16;
+    else if (daysUntilClose <= 21)                   closingPts = 10;
+    else if (daysUntilClose <= 30)                   closingPts = 6;
+    breakdown["closing"] = closingPts;
+    score += closingPts;
+  }
+
+  // ── 4. Contractor known (+0 to +15) ──
+  const hasContractor = !!(project as any).contractor || !!(project as any).confirmedContractor;
+  const contractorPts = hasContractor ? 15 : 0;
+  breakdown["contractor"] = contractorPts;
+  score += contractorPts;
+
+  // ── 5. Action tier (+0 to +20) ──
+  const tierPts = project.actionTier === "tier1_actionable" ? 20
+    : project.actionTier === "tier2_warm"    ? 10
+    : project.actionTier === "tier3_monitor" ? 4
+    : 0;
+  breakdown["actionTier"] = tierPts;
+  score += tierPts;
+
+  return { actionability: Math.max(0, Math.min(100, score)), breakdown };
+}
+
+/**
+ * Combined per-user project score for digest section placement.
+ *
+ * Must Act  = relevance >= 35 AND actionability >= 50  → combined = 0.5*R + 0.5*A
+ * On Radar  = relevance >= 35 AND actionability < 50   → combined = 0.8*R + 0.2*A
+ * Waiting   = relevance >= 20 AND actionability < 30   → combined = R
+ *
+ * Returned as a flat number (0–100) used for sorting within each section.
+ * The section assignment is done in scoreAndFilterProjects.
  */
 function scoreProjectForUser(
   project: DigestProject,
@@ -400,123 +691,25 @@ function scoreProjectForUser(
     dealSizeMin: string | null;
     dealSizeMax: string | null;
     assignedBusinessLines?: string[] | null;
+    sectorFocus?: string[] | null;
+    stageTiming?: string[] | null;
+    buyerRoles?: string[] | null;
+    keyAccounts?: string[] | null;
   },
   blScores?: DimensionScore[],
+  projectContacts?: DigestContact[],
 ): number {
-  let score = 50; // base score
-
-  // Territory match
-  if (profile.territories && (profile.territories as string[]).length > 0) {
-    const territories = profile.territories as string[];
-    const loc = project.location.toLowerCase();
-    const stateMap: Record<string, string[]> = {
-      WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland"],
-      NT: ["northern territory", "nt", "darwin", "alice springs"],
-      QLD: ["queensland", "qld", "brisbane", "gladstone", "mackay", "bowen"],
-      NSW: ["new south wales", "nsw", "sydney", "hunter valley", "newcastle"],
-      VIC: ["victoria", "vic", "melbourne", "gippsland"],
-      SA: ["south australia", "sa", "adelaide", "olympic dam", "whyalla"],
-      TAS: ["tasmania", "tas", "hobart"],
-      ACT: ["act", "canberra"],
-    };
-
-    let matched = false;
-    for (const terr of territories) {
-      if (terr === "National" || terr === "NATIONAL") { matched = true; break; }
-      const keywords = stateMap[terr] || [terr.toLowerCase()];
-      // Use word-boundary matching to prevent substring false positives
-      // e.g. "SA" must not match "USA", "WA" must not match "water"
-      if (keywords.some(k => {
-        // Short abbreviations (2-3 chars) need strict word-boundary matching
-        if (k.length <= 3) {
-          const re = new RegExp(`(?:^|[\\s,;/|()\\-])${k}(?:$|[\\s,;/|()\\-])`, "i");
-          return re.test(loc);
-        }
-        // Longer keywords (city/state names) are safe with includes
-        return loc.includes(k);
-      })) { matched = true; break; }
-    }
-    score += matched ? 15 : -20;
-  }
-
-  // Industry match
-  if (profile.industries && (profile.industries as string[]).length > 0) {
-    const industries = (profile.industries as string[]).map(i => i.toLowerCase());
-    const sectorMap: Record<string, string[]> = {
-      mining: ["mining", "exploration", "development", "production", "shutdown", "mro", "contractors"],
-      oil_gas: ["oil", "gas", "lng", "fpso", "offshore"],
-      infrastructure: ["infrastructure", "rail", "road", "port", "construction"],
-      energy: ["energy", "renewable", "solar", "wind", "hydrogen"],
-      defence: ["defence", "defense", "military", "naval"],
-    };
-    const sectorKeywords = sectorMap[project.sector] || [];
-    const matched = industries.some(ind =>
-      sectorKeywords.some(sk => ind.includes(sk) || sk.includes(ind))
-    );
-    score += matched ? 15 : -10;
-  }
-
-  // Offer category match
-  if (profile.offerCategories && (profile.offerCategories as string[]).length > 0) {
-    const categories = (profile.offerCategories as string[]).map(c => c.toLowerCase());
-    const route = project.opportunityRoute.toLowerCase();
-    const matched = categories.some(cat => {
-      if (cat.includes("compressor") || cat.includes("portable")) return route.includes("capex") || route.includes("direct");
-      if (cat.includes("rental") || cat.includes("hire")) return route.includes("opex") || route.includes("fleet");
-      if (cat.includes("service") || cat.includes("parts")) return route.includes("opex");
-      return false;
-    });
-    if (matched) score += 10;
-  }
-
-  // ── Business Line scoring boost (major differentiator) ──
-  if (profile.assignedBusinessLines && profile.assignedBusinessLines.length > 0 && blScores && blScores.length > 0) {
-    // Map user's BLs to scoring dimensions
-    const userDimensions = new Set<string>();
-    for (const bl of profile.assignedBusinessLines) {
-      const dims = BL_TO_DIMENSION_MAP[bl];
-      if (dims) dims.forEach(d => userDimensions.add(d));
-    }
-
-    if (userDimensions.size > 0) {
-      // Get the max score across the user's assigned BL dimensions
-      let maxBLScore = 0;
-      let avgBLScore = 0;
-      let matchCount = 0;
-
-      for (const dim of Array.from(userDimensions)) {
-        const dimScore = blScores.find(s => s.dimension === dim);
-        if (dimScore && dimScore.score > 0) {
-          maxBLScore = Math.max(maxBLScore, dimScore.score);
-          avgBLScore += dimScore.score;
-          matchCount++;
-        }
-      }
-
-      if (matchCount > 0) {
-        avgBLScore = avgBLScore / matchCount;
-        // Strong boost for high BL relevance (up to +25 points)
-        // This ensures a Pump guy sees pump projects first, not generic ones
-        score += Math.round((maxBLScore / 100) * 25);
-        // Additional boost if multiple BL dimensions match well
-        if (matchCount > 1 && avgBLScore > 50) {
-          score += 5;
-        }
-      } else {
-        // Penalize projects with zero relevance to user's BLs
-        score -= 15;
-      }
-    }
-  }
-
-  // Priority boost
-  if (project.priority === "hot") score += 10;
-  if (project.priority === "warm") score += 5;
-
-  // New project boost
-  if (project.isNew) score += 5;
-
-  return Math.max(0, Math.min(100, score));
+  // Delegate to the separated relevance + actionability scorers.
+  // For the legacy flat score (used for backward-compat sort), combine:
+  //   Must Act range: 0.5*R + 0.5*A  (both matter)
+  //   Otherwise:      0.8*R + 0.2*A  (relevance dominates)
+  const { relevance } = computeRelevanceScore(project, profile, blScores);
+  const { actionability } = computeActionabilityScore(project, projectContacts || [], { buyerRoles: profile.buyerRoles });
+  const isHighlyActionable = actionability >= 50;
+  const combined = isHighlyActionable
+    ? Math.round(0.5 * relevance + 0.5 * actionability)
+    : Math.round(0.8 * relevance + 0.2 * actionability);
+  return Math.max(0, Math.min(100, combined));
 }
 
 /**
@@ -1024,6 +1217,10 @@ async function scoreAndFilterProjects(
     dealSizeMin: string | null;
     dealSizeMax: string | null;
     assignedBusinessLines?: string[] | null;
+    sectorFocus?: string[] | null;
+    stageTiming?: string[] | null;
+    buyerRoles?: string[] | null;
+    keyAccounts?: string[] | null;
   },
 ): Promise<Array<DigestProject & { relevanceScore: number }>> {
   // Fetch BL scores for all projects in one batch
@@ -1067,9 +1264,12 @@ async function scoreAndFilterProjects(
           stage: p.stage,
           overview: p.overview,
           actionTier: (p as any).actionTier as ActionTier | null,
+          tenderCloseDate: (p as any).tenderCloseDate ?? null,
         },
         profile,
         projectBLScores,
+        // contacts not available at this stage; actionability uses project-level signals only here
+        [],
       ),
     };
   });
@@ -1328,7 +1528,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         thisWeekSection = "";
       }
 
-      // Score projects for this user (with BL-based personalization)
+      // Score projects for this user (with full personalisation profile)
       const matchedProjects = await scoreAndFilterProjects(allProjects, {
         territories: profile.territories as string[] | null,
         industries: profile.industries as string[] | null,
@@ -1337,6 +1537,10 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
         assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+        sectorFocus: (profile as any).sectorFocus as string[] | null,
+        stageTiming: (profile as any).stageTiming as string[] | null,
+        buyerRoles: (profile as any).buyerRoles as string[] | null,
+        keyAccounts: (profile as any).keyAccounts as string[] | null,
       });
 
       if (matchedProjects.length === 0) {
