@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
-import { startDailyScheduler } from "../dailyPipeline";
+import { startDailyScheduler, registerSigtermHandler } from "../dailyPipeline";
 import { storagePut } from "../storage";
 import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
 
@@ -113,6 +113,9 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Start the daily pipeline scheduler (runs at 20:00 UTC — 3h before Monday digest)
     startDailyScheduler();
+    // Register SIGTERM handler so in-flight pipeline runs are marked failed
+    // when CloudRun shuts down the container. Must be called after server starts.
+    registerSigtermHandler();
     // Start the persistent email digest scheduler (recovers from restarts)
     // Must start AFTER startDailyScheduler so pipeline is always wired first.
     startPersistentScheduler();

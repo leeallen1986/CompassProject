@@ -1630,11 +1630,14 @@ export function startDailyScheduler(): void {
 
   // In production, the external Manus scheduled task is the source of truth.
   // Do NOT start the in-process scheduler — it would be unreliable on CloudRun.
-  if (process.env.NODE_ENV === "production") {
+  // Guard checks both NODE_ENV and DISABLE_DEV_SCHEDULER because the platform
+  // may start the app via the dev script (NODE_ENV=development) even in production.
+  const isProduction = process.env.NODE_ENV === "production";
+  const isDisabled = process.env.DISABLE_DEV_SCHEDULER === "true";
+  if (isProduction || isDisabled) {
     console.log(
-      "[DailyPipeline] Production mode: in-process scheduler DISABLED. " +
-      "Daily pipeline is triggered externally via POST /api/scheduled/pipeline " +
-      `(Manus scheduled task, ${PIPELINE_HOUR_UTC}:00 UTC daily).`
+      `[DailyPipeline] In-process scheduler DISABLED (NODE_ENV=${process.env.NODE_ENV}, DISABLE_DEV_SCHEDULER=${process.env.DISABLE_DEV_SCHEDULER}). ` +
+      "Daily pipeline is triggered externally via POST /api/scheduled/run-pipeline."
     );
     return;
   }
@@ -1665,4 +1668,42 @@ export function startDailyScheduler(): void {
   }
 
   scheduleNext();
+}
+
+/**
+ * SIGTERM handler — marks any in-flight pipeline run as failed before the
+ * container exits. CloudRun sends SIGTERM before killing the process, giving
+ * us a short window to update the DB. Without this, runs stay stuck in
+ * "running" status until the next startup cleanup (which can be hours later).
+ *
+ * Note: Node.js timers (setTimeout / withTimeout) are destroyed on SIGTERM,
+ * so they cannot self-report failure. This handler is the only reliable path.
+ */
+let sigtermHandlerRegistered = false;
+export function registerSigtermHandler(): void {
+  if (sigtermHandlerRegistered) return;
+  sigtermHandlerRegistered = true;
+
+  process.on("SIGTERM", async () => {
+    console.log("[DailyPipeline] SIGTERM received — marking running pipeline runs as failed...");
+    try {
+      const db = await getDb();
+      if (db) {
+        const result = await db
+          .update(pipelineRuns)
+          .set({
+            status: "failed",
+            completedAt: new Date(),
+            errors: ["Container shutdown (SIGTERM)"],
+          })
+          .where(eq(pipelineRuns.status, "running"));
+        const affected = (result as unknown as { affectedRows?: number })?.affectedRows ?? 0;
+        console.log(`[DailyPipeline] SIGTERM cleanup: marked ${affected} running run(s) as failed.`);
+      }
+    } catch (err: unknown) {
+      console.error("[DailyPipeline] SIGTERM cleanup error:", err instanceof Error ? err.message : String(err));
+    } finally {
+      process.exit(0);
+    }
+  });
 }

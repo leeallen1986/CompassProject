@@ -2124,3 +2124,11 @@
 - [x] Apollo enrichment: Kwinana Gas (660052) — 2 send_ready contacts (Johan Myburgh GM Construction, Paul Holland GM Procurement) at AGL
 - [x] Apollo enrichment: Walyering West-1 (690069) — 4 send_ready + 1 named_unverified contacts at Strike Energy (Jason Tucker, Andrew Farley, Nathan Vitanza, Tom Luke, Jon Selkirk)
 - [x] Fix enrichment script output display (was misreading ApolloSearchResult fields, showing 0 — actual enrichment ran correctly)
+
+## Scheduler-Dev Production Fix (2026-05-06)
+- [x] Root cause confirmed: platform runs app via dev script (NODE_ENV=development), so NODE_ENV guard never fired
+- [x] Harden `startDailyScheduler()` guard: check both NODE_ENV=production AND DISABLE_DEV_SCHEDULER=true
+- [x] Add `DISABLE_DEV_SCHEDULER=true` as production env var via webdev_request_secrets
+- [x] Add `registerSigtermHandler()` to mark running pipeline runs as failed on SIGTERM (container shutdown)
+- [x] Wire `registerSigtermHandler()` call in `server/_core/index.ts` after server.listen
+- [x] All 2,969 tests passing after changes
