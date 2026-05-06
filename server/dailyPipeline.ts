@@ -55,7 +55,7 @@ import { eq, and, sql } from "drizzle-orm";
 // New source architecture imports
 import { scanTargetCompanies } from "./asxMonitor";
 import { runTendersWAScraper } from "./tendersWAScraper";
-import { runQtolNTScraper } from "./qtolNTScraper";
+import { runQtolNTIsolated, isSubprocessEnabled, getSubprocessTimeoutMs } from "./qtolNTSubprocess";
 import { enrichUnenrichedProjects, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
 import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { recordSourceRun } from "./sourceMonitoring";
@@ -579,44 +579,63 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(tendersWAStep);
 
   // ── Step 3b: QTOL NT (daily) ──
+  // Runs in an isolated child process with a hard wall-clock kill timer.
+  // Feature flags:
+  //   QTOL_NT_SUBPROCESS_ENABLED    = "true" (default) | "false"
+  //   QTOL_NT_SUBPROCESS_TIMEOUT_MS = ms (default: 300000 = 5 min)
+  // If the child hangs, it is killed unconditionally and the step is marked
+  // failed — the pipeline continues to the next step regardless.
   markStepStarted("QTOL NT");
   const qtolNTStep = startStep("QTOL NT");
-  console.log("[DailyPipeline] Step 3b: Scraping QTOL NT...");
+  console.log(
+    `[DailyPipeline] Step 3b: Scraping QTOL NT ` +
+    `(subprocess=${isSubprocessEnabled()}, timeout=${Math.round(getSubprocessTimeoutMs() / 1000)}s)...`
+  );
   let qtolNTResult = { ran: false, tendersFound: 0, tendersRelevant: 0, projectsCreated: 0, projectsUpdated: 0, priorityIssuerTenders: 0, degraded: false, degradedReason: undefined as string | undefined, errors: 0 };
-  try {
+  {
+    // ── Circuit breaker: always continues pipeline regardless of outcome ──
     const stepStart = Date.now();
-    const ntData = await withTimeout(runQtolNTScraper(canonicalReportId || runId || 0), STEP_TIMEOUT_MS, "QTOL NT");
-    qtolNTResult = {
-      ran: true,
-      tendersFound: ntData.tendersFound,
-      tendersRelevant: ntData.tendersRelevant,
-      projectsCreated: ntData.projectsCreated,
-      projectsUpdated: ntData.projectsUpdated,
-      priorityIssuerTenders: ntData.priorityIssuerTenders,
-      degraded: ntData.degraded,
-      degradedReason: ntData.degradedReason,
-      errors: ntData.errors.length,
-    };
-    if (ntData.degraded) {
-      skipStep(qtolNTStep, ntData.degradedReason || "QTOL NT unavailable");
-    } else {
-      completeStep(qtolNTStep, {
+    const isolated = await runQtolNTIsolated(canonicalReportId || runId || 0);
+    const stepDurationSec = Math.round((Date.now() - stepStart) / 1000);
+
+    if (isolated.status === "success" && isolated.data) {
+      const ntData = isolated.data;
+      qtolNTResult = {
+        ran: true,
         tendersFound: ntData.tendersFound,
         tendersRelevant: ntData.tendersRelevant,
         projectsCreated: ntData.projectsCreated,
         projectsUpdated: ntData.projectsUpdated,
         priorityIssuerTenders: ntData.priorityIssuerTenders,
+        degraded: ntData.degraded,
+        degradedReason: ntData.degradedReason,
         errors: ntData.errors.length,
-      });
+      };
+      if (ntData.degraded) {
+        skipStep(qtolNTStep, ntData.degradedReason || "QTOL NT unavailable");
+      } else {
+        completeStep(qtolNTStep, {
+          tendersFound: ntData.tendersFound,
+          tendersRelevant: ntData.tendersRelevant,
+          projectsCreated: ntData.projectsCreated,
+          projectsUpdated: ntData.projectsUpdated,
+          priorityIssuerTenders: ntData.priorityIssuerTenders,
+          errors: ntData.errors.length,
+        });
+      }
+      recordSourceRun("qtol_nt", !ntData.degraded, ntData.projectsCreated, stepDurationSec);
+      console.log(`[DailyPipeline] QTOL NT complete: ${ntData.tendersFound} found, ${ntData.projectsCreated} created`);
+    } else {
+      // failed or timed_out — circuit breaker: log, mark step failed, continue pipeline
+      const errMsg = isolated.errorSummary ?? `QTOL NT ${isolated.status} after ${stepDurationSec}s`;
+      console.error(
+        `[DailyPipeline] QTOL NT step ${isolated.status} — circuit breaker engaged, ` +
+        `pipeline will continue. Reason: ${errMsg}`
+      );
+      errors.push(`QTOL NT: ${errMsg}`);
+      failStep(qtolNTStep, errMsg);
+      recordSourceRun("qtol_nt", false, 0, stepDurationSec, errMsg);
     }
-    recordSourceRun("qtol_nt", !ntData.degraded, ntData.projectsCreated, Math.round((Date.now() - stepStart) / 1000));
-    console.log(`[DailyPipeline] QTOL NT complete: ${ntData.tendersFound} found, ${ntData.projectsCreated} created`);
-  } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.error("[DailyPipeline] QTOL NT failed:", errMsg);
-    errors.push(`QTOL NT: ${errMsg}`);
-    failStep(qtolNTStep, errMsg);
-    recordSourceRun("qtol_nt", false, 0, 0, errMsg);
   }
   steps.push(qtolNTStep);
 

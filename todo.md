@@ -2132,3 +2132,11 @@
 - [x] Add `registerSigtermHandler()` to mark running pipeline runs as failed on SIGTERM (container shutdown)
 - [x] Wire `registerSigtermHandler()` call in `server/_core/index.ts` after server.listen
 - [x] All 2,969 tests passing after changes
+
+## QTOL NT Scraper Hardening (2026-05-06)
+- [x] Process-isolate QTOL NT: run in child_process.fork with hard wall-clock timeout
+- [x] Step-level circuit breaker: QTOL NT failure marks step failed, pipeline continues
+- [x] Feature flags: QTOL_NT_SUBPROCESS_ENABLED and QTOL_NT_SUBPROCESS_TIMEOUT_MS
+- [x] Smoke test: QTOL NT subprocess runs and returns structured result (14/14 passed)
+- [x] Forced-timeout test: parent kills child after short timeout, pipeline continues
+- [x] Verify logs and pipelineRuns DB record show step failure cleanly
