@@ -672,11 +672,10 @@ function generateMondayDigest(
   if (discoveryItems.length > 0) summaryParts.push(`${discoveryItems.length} need contacts`);
   content += `**This week:** ${summaryParts.join(" | ")} — _${freshnessLine}_\n\n`;
 
-  // ── This Week Highlights (injected from thisWeekService if available) ──
-  if (thisWeekSection && thisWeekSection.trim()) {
-    content += thisWeekSection;
-    content += `\n`;
-  }
+  // NOTE: thisWeekSection (Discovery Needed banner, Top 3 Priority Projects, New Stakeholder
+  // Discoveries) intentionally removed from Monday digest to eliminate the duplicate priority
+  // system and prevent cross-state territory contamination. Single hierarchy: Must Act →
+  // Closing Soon → Waiting on Contact Discovery.
 
   // ═══════════════════════════════════════════════════════════════
   // SECTION 1: MUST ACT (action_ready, max 3)
@@ -975,9 +974,7 @@ function generateThursdayReminder(
   // ── Freshness line near top ──
   content += `_${freshnessLine}_\n\n`;
 
-  // ── This Week Highlights (urgent actions + top projects) ──
-  content += thisWeekSection;
-  content += `\n`;
+  // NOTE: thisWeekSection removed from Thursday reminder — same territory contamination risk.
 
   // ── Hot projects only ──
   const actionable = hotProjects.filter(p =>
@@ -1081,7 +1078,47 @@ async function scoreAndFilterProjects(
   scoredProjects.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
   // Filter to relevant projects (score > 40)
-  return scoredProjects.filter(p => p.relevanceScore > 40);
+  const scored = scoredProjects.filter(p => p.relevanceScore > 40);
+
+  // ── Hard territory filter (post-scoring) ──
+  // For state-coded territories (WA, QLD, NSW, VIC, SA, NT, TAS, ACT), a project must
+  // match at least one territory via projectState OR location string. Projects with
+  // projectState set to a different Australian state are hard-excluded even if they
+  // scored above threshold (prevents Stockland National, Snowy Hydro NSW, Goulburn NSW,
+  // Wakehurst Parkway NSW, Inland Rail VIC, etc. appearing in WA digest).
+  const territories = profile.territories || [];
+  if (territories.length === 0 || territories.some(t => t.toUpperCase() === "NATIONAL")) {
+    return scored; // National reps see everything
+  }
+  const AU_STATES = new Set(["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"]);
+  const stateKeywordsMap: Record<string, string[]> = {
+    WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland", "newman", "geraldton", "bunbury", "broome", "norseman", "murchison", "kwinana"],
+    QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "rockhampton", "cairns", "bowen basin", "moranbah", "emerald"],
+    NSW: ["new south wales", "nsw", "sydney", "newcastle", "hunter valley", "wollongong", "broken hill", "orange", "dubbo", "mudgee", "goulburn", "wakehurst"],
+    VIC: ["victoria", "vic", "melbourne", "geelong", "ballarat", "bendigo", "latrobe", "euroa"],
+    SA: ["south australia", "sa", "adelaide", "olympic dam", "whyalla", "port augusta"],
+    NT: ["northern territory", "nt", "darwin", "alice springs", "tennant creek", "katherine"],
+    TAS: ["tasmania", "tas", "hobart", "launceston"],
+    ACT: ["australian capital territory", "act", "canberra"],
+  };
+  return scored.filter(p => {
+    const projectState = ((p as any).projectState || "").toUpperCase();
+    const loc = (p.location || "").toLowerCase();
+    return territories.some(t => {
+      const tUpper = t.toUpperCase();
+      // Hard exclusion: projectState is set to a different AU state
+      if (projectState && AU_STATES.has(projectState) && projectState !== tUpper) return false;
+      // Location string match using word-boundary-aware keywords
+      const keywords = stateKeywordsMap[tUpper] || [t.toLowerCase()];
+      return keywords.some(kw => {
+        if (kw.length <= 3) {
+          const re = new RegExp(`(?:^|[\\s,;/|()\\-])${kw}(?:$|[\\s,;/|()\\-])`, "i");
+          return re.test(loc);
+        }
+        return loc.includes(kw);
+      });
+    });
+  });
 }
 
 /**

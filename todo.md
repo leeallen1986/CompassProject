@@ -2089,3 +2089,14 @@
 
 ## Duplicate Project Merge (May 2026)
 - [x] Merge Nelson Point Car Dumper 6 (ID 450043) into Port Hedland Car Dumper 6 (ID 450042): reassigned 242 contacts, contractor links, enrichment logs; archived source with mergedIntoId=450042
+
+## WA Digest Email Cleanup — Pre First-Send (May 2026)
+- [x] Remove DISCOVERY NEEDED banner section from WA digest template (thisWeekSection removed from generateMondayDigest)
+- [x] Remove "Top 3 Priority Projects This Week" section from WA digest template
+- [x] Remove "New Stakeholder Discoveries" section from WA digest template
+- [x] Enforce hard WA-only territory filter on all visible digest sections (no NSW/VIC projects) — post-scoring hard filter added to scoreAndFilterProjects
+- [x] Enforce WA-only filter on stakeholder discoveries (no cross-state contacts) — resolved by thisWeekSection removal
+- [x] Ensure Must Act section is sourced only from digest-safe WA projects (Port Hedland 450042, Norseman Gold 330015, Murchison Gold 1020027)
+- [x] Eliminate duplicate priority system — single hierarchy: Must Act → Closing Soon → Waiting on Contact Discovery
+- [x] Run corrected WA dry-run v2 — 0 banned sections, 0 NSW contamination, 0 VIC contamination ("vic" false positive confirmed as substring in "services" in Fremantle Prison project name — projectState=WA)
+- [x] Report first-send recommendation — WA digest is clean and ready for first-send approval
