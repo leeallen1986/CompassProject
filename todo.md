@@ -2159,3 +2159,9 @@
 - [ ] Dashboard project cards: show laneFit, whyNow, routeToBuy, bestNextMove, channel
 - [ ] Vitest tests: all 5 guardrails covered
 - [ ] Before/after comparison: Daniel top 10, Pump rep top 10, Ryan vs Brett, suppressed examples
+
+## Live Ranking Verification (post-8459b6cd deploy)
+- [ ] Pull user/profile table from production DB and select 3 test accounts
+- [ ] Query live This Week top 3 for each test account
+- [ ] Query live digest preview for each test account
+- [ ] Compare live outputs vs synthetic validation — confirm commercial separation

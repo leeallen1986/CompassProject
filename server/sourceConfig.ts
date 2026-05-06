@@ -396,6 +396,12 @@ export const ASX_PROJECT_KEYWORDS = [
   // Infrastructure
   "tunnel", "bridge", "road", "rail", "port",
   "water treatment", "desalination", "pipeline",
+  // Cable & underground power (Portable Air opportunity)
+  "underground power", "underground cable", "cable laying", "cable installation",
+  "HV cable", "LV cable", "substation", "trenchless", "HDD", "directional drilling",
+  "cable hauling", "cable jointing", "underground reticulation",
+  "transmission line", "distribution network", "power reticulation",
+  "underground electrical", "feeder upgrade", "cable contractor",
   // Procurement signals
   "tender", "procurement", "awarded", "selected",
   "appointed", "mobilisation", "site works",

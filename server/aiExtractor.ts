@@ -258,7 +258,7 @@ function buildExtractionPrompt(articles: { id: number; title: string; summary: s
   return `You are an Australian market intelligence analyst for Atlas Copco, a global industrial equipment manufacturer.
 
 Analyze the following articles and extract structured project intelligence relevant to Atlas Copco's Power Technique (PT) division. PT has four business lines:
-- Portable Air (portable compressors for mining, construction, drilling, blasting, tunnelling, shotcrete)
+- Portable Air (portable compressors for mining, construction, drilling, blasting, tunnelling, shotcrete, underground power cable installation, cable laying, HDD/directional drilling, trenchless works, substation construction, cable hauling, underground reticulation, HV/LV feeder upgrades, transmission line construction, distribution network construction — cable/underground power contractors are high-priority Portable Air customers)
 - PAL (power generators, lighting towers — QAS/QES generators, HiLight towers)
 - Pump / Flow (dewatering pumps, submersible pumps, wellpoint systems — PAS/WEDA series)
 - BESS (battery energy storage systems, hybrid power, solar hybrid, peak shaving, microgrids — ZenergiZe range)
