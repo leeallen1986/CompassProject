@@ -2110,3 +2110,17 @@
 - [ ] Update digest assembly to use relevance score for On Radar / Waiting sections, combined score for Must Act
 - [ ] Run Ryan vs Brett top-10 comparison with per-project score breakdowns
 - [ ] Prove divergence: overlap count, dimension breakdown, explanation of shared projects
+
+## Final Pre-Send Validation & Apollo Enrichment — 2026-05-06
+
+- [x] Run side-by-side digest preview for Ryan and Brett
+- [x] Validate 4 assembly checks (Must Act, Closing Soon, Waiting, overlap quality)
+- [x] Confirm Must Act convergence is data-pool constraint, not scoring defect
+- [x] Approve WA first send (firstSendApproved=true, autoSendEnabled=false, approved 2026-05-06T10:49:55Z)
+- [x] Populate keyAccounts for Ryan (15 accounts: Monadelphous, Macmahon, Byrnecut, Meeka Metals, Pantoro Gold, BHP, Fortescue, Newmont, Mineral Resources, Perenti, NRW, Thiess, MACA, AGL Energy, Strike Energy)
+- [x] Populate keyAccounts for Brett (15 accounts: Monadelphous, Macmahon, Byrnecut, Meeka Metals, Water Corporation, Chevron, Woodside, Bhagwan Marine, BHP, Fortescue, Newmont, Perenti, Thiess, MACA, Mineral Resources)
+- [x] Add 40+ WA/energy/mining companies to knownDomains map in apolloEnrichment.ts
+- [x] Clear stale enrichment cache for Kwinana Gas (660052) and Walyering West-1 (690069)
+- [x] Apollo enrichment: Kwinana Gas (660052) — 2 send_ready contacts (Johan Myburgh GM Construction, Paul Holland GM Procurement) at AGL
+- [x] Apollo enrichment: Walyering West-1 (690069) — 4 send_ready + 1 named_unverified contacts at Strike Energy (Jason Tucker, Andrew Farley, Nathan Vitanza, Tom Luke, Jon Selkirk)
+- [x] Fix enrichment script output display (was misreading ApolloSearchResult fields, showing 0 — actual enrichment ran correctly)
