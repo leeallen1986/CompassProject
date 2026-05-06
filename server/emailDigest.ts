@@ -867,8 +867,32 @@ function generateMondayDigest(
   const DISCOVERY_CAP = 2;
   const MONITOR_CAP = 3;
 
-  const topActions = actionReady.slice(0, TOP_ACTIONS_CAP);
-  const discoveryItems = discoveryNeeded.slice(0, DISCOVERY_CAP);
+  // Primary Must Act pool: action_ready projects (have verified contacts)
+  let topActions: typeof actionReady = actionReady.slice(0, TOP_ACTIONS_CAP);
+
+  // Fallback Must Act: if fewer than 3 action_ready, fill from warm projects with
+  // high lane fit + high relevance score. These are honest fallbacks — labelled
+  // differently in the render path so the rep knows contacts still need validation.
+  const FALLBACK_MIN_SCORE = 35;
+  const FALLBACK_MIN_LANE_FIT = "High";
+  if (topActions.length < TOP_ACTIONS_CAP) {
+    const fallbackCandidates = matchedProjects
+      .filter(p =>
+        !topActions.some(a => a.id === p.id) &&
+        p.briefReadiness !== "monitor_only" &&
+        p.priority === "warm" &&
+        (p.laneFitLabel === FALLBACK_MIN_LANE_FIT || p.laneFitLabel === "Medium") &&
+        (p.relevanceScore ?? 0) >= FALLBACK_MIN_SCORE
+      )
+      .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
+    const needed = TOP_ACTIONS_CAP - topActions.length;
+    const fallbackItems = fallbackCandidates.slice(0, needed).map(p => ({ ...p, isFallback: true }));
+    topActions = [...topActions, ...fallbackItems];
+  }
+
+  const discoveryItems = discoveryNeeded
+    .filter(p => !topActions.some(a => a.id === p.id))
+    .slice(0, DISCOVERY_CAP);
   const monitorItems = monitorOnly.slice(0, MONITOR_CAP);
 
   const territoryLabel = territories.length > 0
@@ -904,7 +928,8 @@ function generateMondayDigest(
   if (topActions.length > 0) {
     content += `---\n\n## 🟥 Must Act This Week (${topActions.length})\n\n`;
     for (const p of topActions) {
-      content += renderProjectCard(p, weekKey, userId, "action_ready");
+      const isFallback = !!(p as any).isFallback;
+      content += renderProjectCard(p, weekKey, userId, isFallback ? "discovery_needed" : "action_ready", isFallback);
     }
   } else {
     content += `---\n\n## 🟥 Must Act This Week\n\n`;
@@ -986,6 +1011,7 @@ function renderProjectCard(
   weekKey: string,
   userId: number,
   readiness: BriefReadiness,
+  isFallback = false,
 ): string {
   const priorityLabel = p.priority === "hot" ? "🔥 HOT" : p.priority === "warm" ? "🟡 WARM" : "🔵 COLD";
   const newBadge = p.isNew ? " • NEW" : "";
@@ -993,6 +1019,22 @@ function renderProjectCard(
 
   // Line 1: Project name + priority badge + link
   let card = `**${p.name}** — ${priorityLabel}${newBadge} — [View →](${siteUrl}/project/${p.id})\n`;
+
+  // Line 1b: Lane Fit + Channel chip (new — from laneScoring.ts)
+  const laneFitChip = p.laneFitLabel && p.laneFitLabel !== "Not relevant"
+    ? `${p.laneFitLabel === "High" ? "✅" : p.laneFitLabel === "Medium" ? "🟡" : "⬜"} ${p.laneFitLabel} fit`
+    : null;
+  const channelChip = p.channel && p.channel !== "monitor"
+    ? p.channel === "direct" ? "Direct sale"
+    : p.channel === "rental" ? "Rental / hire"
+    : p.channel === "crosssell" ? "Cross-sell"
+    : null
+    : null;
+  const fallbackChip = isFallback ? "⚠️ Contacts need validation" : null;
+  const chipParts = [laneFitChip, channelChip, fallbackChip].filter(Boolean);
+  if (chipParts.length > 0) {
+    card += `   ${chipParts.join(" • ")}\n`;
+  }
 
   // Line 2: Atlas-known facts (skip Unknown/empty fields)
   const factParts: string[] = [];
@@ -1005,21 +1047,24 @@ function renderProjectCard(
     card += `   ${factParts.join(" • ")}\n`;
   }
 
-  // Line 3: Why now (stage + brief context — max 100 chars, no prose)
-  const stageLabel = p.stageCode && p.stageCode !== "unknown" && p.stageCode !== "Unknown"
-    ? p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)
-    : null;
-  const routeLabel = p.opportunityRoute && p.opportunityRoute !== "Unknown" ? p.opportunityRoute : null;
-  const whyNowParts: string[] = [];
-  if (stageLabel) whyNowParts.push(stageLabel);
-  if (routeLabel) whyNowParts.push(routeLabel);
-  // Brief overview snippet — max 80 chars, only if it adds signal
-  if (p.overview && p.overview.length > 20) {
-    const snippet = p.overview.replace(/\s+/g, " ").trim().substring(0, 80);
-    whyNowParts.push(snippet + (p.overview.length > 80 ? "…" : ""));
-  }
-  if (whyNowParts.length > 0) {
-    card += `   ${whyNowParts.join(" • ")}\n`;
+  // Line 3: Why now — prefer lane-scored whyNow, fall back to stage + route + overview snippet
+  if (p.whyNow && p.whyNow.length > 5) {
+    card += `   ${p.whyNow.substring(0, 120)}${p.whyNow.length > 120 ? "…" : ""}\n`;
+  } else {
+    const stageLabel = p.stageCode && p.stageCode !== "unknown" && p.stageCode !== "Unknown"
+      ? p.stageCode.charAt(0).toUpperCase() + p.stageCode.slice(1)
+      : null;
+    const routeLabel = p.opportunityRoute && p.opportunityRoute !== "Unknown" ? p.opportunityRoute : null;
+    const whyNowParts: string[] = [];
+    if (stageLabel) whyNowParts.push(stageLabel);
+    if (routeLabel) whyNowParts.push(routeLabel);
+    if (p.overview && p.overview.length > 20) {
+      const snippet = p.overview.replace(/\s+/g, " ").trim().substring(0, 80);
+      whyNowParts.push(snippet + (p.overview.length > 80 ? "…" : ""));
+    }
+    if (whyNowParts.length > 0) {
+      card += `   ${whyNowParts.join(" • ")}\n`;
+    }
   }
 
   // Line 4 + 5: Readiness-specific action
