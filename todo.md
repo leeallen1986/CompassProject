@@ -2066,3 +2066,12 @@
 - [x] Build WA digest candidate pool from send-ready + digest-safe projects only
 - [x] Add manual preview gate: first digest send requires manual review, not automatic
 - [x] Add digest preview endpoint to admin dashboard (dry-run, shows exact email content)
+
+## Apollo Enrichment — Top-20 Hot/Warm WA Projects
+- [ ] Run Apollo enrichment on Top-20 hot/warm WA projects with contact gaps
+- [ ] Report: contacts recovered, trust tier breakdown, digest-safe candidates gained
+
+## Apollo Enrichment — Top-20 Hot/Warm WA Projects (Phase 2)
+- [ ] Run Apollo enrichment on 8 highest-priority Top-20 WA projects
+- [ ] Report contacts recovered, trust tier, digest-safe candidates
+- [ ] Save checkpoint after enrichment results
