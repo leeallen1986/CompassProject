@@ -2086,3 +2086,6 @@
 - [x] Gate 3 true WA projects as digest-safe (Port Hedland 450042, Norseman Gold 330015, Murchison Gold 1020027)
 - [x] Run WA digest dry-run preview — threshold MET (3/3 WA-confirmed projects), dryRun sent to all 9 reps incl. Ryan Pemberton (WA) and Brett Hansen (WA/NT)
 - [x] Report first-send recommendation — WA digest ready to approve for first live send via Admin > approveFirstSend(territory='WA')
+
+## Duplicate Project Merge (May 2026)
+- [x] Merge Nelson Point Car Dumper 6 (ID 450043) into Port Hedland Car Dumper 6 (ID 450042): reassigned 242 contacts, contractor links, enrichment logs; archived source with mergedIntoId=450042
