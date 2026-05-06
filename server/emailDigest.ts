@@ -94,13 +94,28 @@ export async function checkTerritoryThreshold(
   }
 
   // Step 3: Territory contamination check
-  // A project is territory-clean if it has no territory set (national) or matches the rep's territories
+  // A project is territory-clean if it has no territory set (national) or matches the rep's territories.
+  // Hard guard: for state-coded territories (e.g. WA, QLD, NSW), projectState must match OR
+  // the location string must contain the territory code. Projects with projectState set to a
+  // different Australian state (e.g. NSW, VIC) are hard-excluded even if accidentally gated.
+  // This prevents non-WA projects (Stockland National, Snowy Hydro NSW, Goulburn NSW, Inland Rail VIC)
+  // from satisfying the WA digest threshold.
   const qualifying = actionReadyWithContact.filter(p => {
     if (!digestSafeProjectIds.includes(p.id)) return false;
-    // Territory check: if rep has territories, project location must match at least one
+    // Territory check: if rep has territories, project must match at least one
     if (territories.length === 0) return true; // national rep — no contamination possible
+    const projectState = ((p as any).projectState || "").toUpperCase();
     const loc = ((p as any).location || "").toLowerCase();
-    return territories.some(t => loc.includes(t.toLowerCase()));
+    return territories.some(t => {
+      const tUpper = t.toUpperCase();
+      // Hard projectState exclusion: if projectState is set to a specific Australian state
+      // that does NOT match the territory, reject immediately (prevents cross-state contamination).
+      // Exception: OFFSHORE_AU is treated as territory-neutral (e.g. Barrow Island for WA reps).
+      const AUSTRALIAN_STATES = ["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"];
+      if (projectState && AUSTRALIAN_STATES.includes(projectState) && projectState !== tUpper) return false;
+      // Fallback: location string contains territory code
+      return loc.includes(t.toLowerCase());
+    });
   });
 
   const qualifyingCount = qualifying.length;

@@ -2075,3 +2075,14 @@
 - [ ] Run Apollo enrichment on 8 highest-priority Top-20 WA projects
 - [ ] Report contacts recovered, trust tier, digest-safe candidates
 - [ ] Save checkpoint after enrichment results
+
+## WA Digest Eligibility Enforcement (May 2026)
+- [x] Enforce WA geography guard in digest threshold: exclude Stockland national, Snowy Hydro NSW, Goulburn Solar NSW, Inland Rail VIC from WA threshold count
+- [x] Add projectState-based WA filter to digest threshold gate logic (server-side)
+- [x] Verify Port Hedland Car Dumper 6 (ID 450042) vs Nelson Point Car Dumper 6 (ID 450043) — duplicate/split check (confirmed: separate records, same physical site, different source articles)
+- [x] Review send_ready contacts for Port Hedland Car Dumper 6 (ID 450042) — 6 send_ready (all Apollo-verified, verScore 95, emailVerified)
+- [x] Review send_ready contacts for Norseman Gold Third Underground Mine (ID 330015) — 12 send_ready (all Apollo-verified, verScore 95, emailVerified)
+- [x] Review send_ready contacts for Murchison Gold Project underground (ID 1020027) — 3 send_ready (all Apollo-verified, verScore 95, emailVerified)
+- [x] Gate 3 true WA projects as digest-safe (Port Hedland 450042, Norseman Gold 330015, Murchison Gold 1020027)
+- [x] Run WA digest dry-run preview — threshold MET (3/3 WA-confirmed projects), dryRun sent to all 9 reps incl. Ryan Pemberton (WA) and Brett Hansen (WA/NT)
+- [x] Report first-send recommendation — WA digest ready to approve for first live send via Admin > approveFirstSend(territory='WA')
