@@ -883,10 +883,15 @@ export async function revealContactEmail(
   }
 
   // Enrich via Apollo
-  // Guard: Apollo rejects first names that are only single letters
+  // Guard: Apollo rejects single-letter first names or malformed last names
   const enrichFirstName = contact.name.split(" ")[0];
-  if (enrichFirstName.length <= 1) {
-    console.log(`[Apollo] Skipping enrichment for "${contact.name}" — first name is a single letter`);
+  const nameParts = contact.name.trim().split(/\s+/);
+  const enrichLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+  const hasInvalidName =
+    enrichFirstName.length <= 1 ||
+    (enrichLastName.length > 0 && !/^[a-zA-Z\-'\u00C0-\u024F\s]+$/.test(enrichLastName));
+  if (hasInvalidName) {
+    console.log(`[Apollo] Skipping enrichment for "${contact.name}" — invalid name format (firstName: "${enrichFirstName}", lastName: "${enrichLastName}")`);
     return {
       contactId: contact.id,
       apolloId: "",
