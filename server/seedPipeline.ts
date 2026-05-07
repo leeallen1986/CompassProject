@@ -17,11 +17,32 @@ const DEFAULT_BUSINESS_LINES = [
     name: "Portable Air",
     description: "Portable compressors for mining, construction, drilling, and infrastructure projects. Key products include XAS, XATS, XAHS, and XAVS series.",
     keywords: [
+      // ── Family 1: Core Portable Air ──
       "compressor", "portable air", "compressed air", "drilling", "RC drilling",
       "diamond drilling", "blasting", "pneumatic", "CFM", "air compressor",
       "sandblasting", "shotcrete", "tunnelling", "mining equipment",
       "construction equipment", "atlas copco", "portable compressor",
-      "air receiver", "aftercooler", "drill rig"
+      "air receiver", "aftercooler", "drill rig",
+      // ── Family 2: Air Treatment / Quality ──
+      "air dryer", "refrigerant dryer", "desiccant dryer", "air drying",
+      "line drying", "pipe drying", "pipeline drying", "drying of pipeline",
+      "moisture separator", "moisture trap", "dew point", "dew-point",
+      "instrument air", "instrument-air", "instrument quality air",
+      "control air", "control valve air", "oil-free air", "oil free air",
+      "iso 8573", "moisture-sensitive", "moisture sensitive",
+      // ── Family 3: Specialty Air / Gas ──
+      "nitrogen", "nitrogen gas", "n2 membrane", "nitrogen membrane",
+      "nitrogen generator", "nitrogen purging", "pipeline purging", "purging",
+      "inerting", "inert gas", "inert atmosphere",
+      "pipeline testing", "pipeline pressure test", "pneumatic pressure test",
+      "hydrostatic testing", "hydrostatic pressure test", "pressure testing",
+      "pre-commissioning", "pre commissioning", "precommissioning",
+      "pipeline pre-commissioning", "dry-out", "dryout", "pipeline dry-out",
+      "booster compressor", "pressure booster", "gas booster", "air booster",
+      "high pressure testing", "high-pressure test", "high pressure air",
+      "pipeline commissioning", "pipeline dewatering", "pipeline cleaning",
+      "pipeline gauging", "pigging", "pig launcher", "pig receiver",
+      "subsea pipeline", "export pipeline", "gas export",
     ],
     sectors: ["mining", "oil_gas", "infrastructure", "energy", "defence"],
     equipmentTypes: [

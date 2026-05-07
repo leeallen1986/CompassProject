@@ -2326,3 +2326,11 @@
 - [x] Add vitest tests for portableAirOpportunityGate with specialty air signals
 - [x] Run full test suite: 101 files, 3,066 tests all pass
 - [x] Save checkpoint
+
+## Specialty Air RSS Harvest Keyword Gate Expansion (May 7 2026)
+- [x] Locate PORTABLE_AIR_RELEVANCE_KEYWORDS (or equivalent gate) used to filter raw articles before AI extraction
+- [x] Add Family 2 Air Treatment terms: dryer, air dryer, refrigerant dryer, desiccant dryer, aftercooler, instrument air, oil-free air, moisture separator, dew point
+- [x] Add Family 3 Specialty Air/Gas terms: nitrogen, N2 membrane, pipeline testing, pipeline purging, purging, inerting, inert gas, dry-out, line drying, pre-commissioning air, booster compressor, high-pressure testing, pneumatic testing, hydrostatic testing
+- [x] Update seedPipeline.ts DEFAULT_BUSINESS_LINES to include all three families for future fresh installs
+- [x] Run tests and confirm no regressions (101 files, 3,066 tests pass)
+- [x] Save checkpoint

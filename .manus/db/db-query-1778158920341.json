@@ -1,0 +1,16 @@
+{
+  "query": "SHOW TABLES LIKE '%business%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW TABLES LIKE '%business%';",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%business%)": "businessLines"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%business%)": "projectBusinessLineScores"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%business%)\nbusinessLines\nprojectBusinessLineScores\n",
+  "stderr": "",
+  "execution_time_ms": 1637
+}
