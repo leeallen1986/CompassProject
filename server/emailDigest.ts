@@ -856,6 +856,7 @@ function generateMondayDigest(
   freshnessLine: string,
   weekKey: string,
   userId: number,
+  excludeMustActIds?: Set<number>, // cross-rep dedup: project IDs claimed by a higher-scoring rep
 ): string {
   // ── Brief Readiness Split ──
   const actionReady = matchedProjects.filter(p => p.briefReadiness === "action_ready");
@@ -868,7 +869,11 @@ function generateMondayDigest(
   const MONITOR_CAP = 3;
 
   // Primary Must Act pool: action_ready projects (have verified contacts)
-  let topActions: typeof actionReady = actionReady.slice(0, TOP_ACTIONS_CAP);
+  // Apply cross-rep dedup exclusion: projects claimed by a higher-scoring rep are excluded
+  const dedupFilteredActionReady = excludeMustActIds && excludeMustActIds.size > 0
+    ? actionReady.filter(p => !p.id || !excludeMustActIds.has(p.id))
+    : actionReady;
+  let topActions: typeof actionReady = dedupFilteredActionReady.slice(0, TOP_ACTIONS_CAP);
 
   // Fallback Must Act: if fewer than 3 action_ready, fill from warm projects with
   // high lane fit + high relevance score. These are honest fallbacks — labelled
@@ -1387,8 +1392,18 @@ async function scoreAndFilterProjects(
     };
   });
 
-  // Sort by relevance (finalScoreWithTieBreaker)
-  scoredProjects.sort((a, b) => b.relevanceScore - a.relevanceScore);
+  // Sort by relevance (finalScoreWithTieBreaker), then by tenderCloseDate asc (soonest first)
+  // as a commercially meaningful secondary sort when scores are tied.
+  scoredProjects.sort((a, b) => {
+    const scoreDiff = b.relevanceScore - a.relevanceScore;
+    if (scoreDiff !== 0) return scoreDiff;
+    // Secondary: soonest closing date first (null/undefined sorts to the end)
+    const aClose = (a as any).tenderCloseDate ? new Date((a as any).tenderCloseDate).getTime() : Infinity;
+    const bClose = (b as any).tenderCloseDate ? new Date((b as any).tenderCloseDate).getTime() : Infinity;
+    if (aClose !== bClose) return aClose - bClose;
+    // Tertiary: alphabetical by project name for stable ordering
+    return (a.name || "").localeCompare(b.name || "");
+  });
 
   // Filter: suppress projects are excluded entirely; monitor_only projects are kept
   // (they appear in the monitor section of the digest, not Must Act / Watchlist)
@@ -1613,6 +1628,66 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   const allUsers = allUsersRaw.filter(({ user }) => user.role !== "admin");
   console.log(`[EmailDigest] Monday digest: ${allUsers.length} eligible rep recipients (${allUsersRaw.length - allUsers.length} admin(s) excluded) (dryRun=${dryRun})`);
 
+  // ── Cross-rep Must Act deduplication pre-pass ──
+  // For each project that would appear in multiple reps' Must Act lists,
+  // assign it to the rep with the highest lane score and exclude it from the others.
+  // This prevents two reps calling the same contact on the same project.
+  //
+  // Map: projectId → { userId, score }
+  const mustActClaims = new Map<number, { userId: number; score: number }>();
+  // Map: userId → Set<projectId> that are claimed by a higher-scoring rep
+  const mustActExcludedByRep = new Map<number, Set<number>>();
+
+  try {
+    // Pre-score all reps to find Must Act candidates
+    for (const { user: preUser, profile: preProfile } of allUsers) {
+      if (!preUser || !preProfile) continue;
+      const preProjects = await scoreAndFilterProjects(allProjects, {
+        territories: preProfile.territories as string[] | null,
+        industries: preProfile.industries as string[] | null,
+        offerCategories: preProfile.offerCategories as string[] | null,
+        customerTypes: preProfile.customerTypes as string[] | null,
+        dealSizeMin: preProfile.dealSizeMin,
+        dealSizeMax: preProfile.dealSizeMax,
+        assignedBusinessLines: preProfile.assignedBusinessLines as string[] | null,
+        sectorFocus: (preProfile as any).sectorFocus as string[] | null,
+        stageTiming: (preProfile as any).stageTiming as string[] | null,
+        buyerRoles: (preProfile as any).buyerRoles as string[] | null,
+        keyAccounts: (preProfile as any).keyAccounts as string[] | null,
+      });
+      // Identify this rep's Must Act candidates (action_ready, score > 35, High/Medium lane fit)
+      const preMustAct = preProjects.filter(p =>
+        p.briefReadiness === "action_ready" &&
+        (p.relevanceScore ?? 0) > 35 &&
+        (p.laneFitLabel === "High" || p.laneFitLabel === "Medium")
+      );
+      for (const p of preMustAct) {
+        if (!p.id) continue;
+        const existing = mustActClaims.get(p.id);
+        if (!existing || (p.relevanceScore ?? 0) > existing.score) {
+          // This rep has a higher score — claim the project
+          if (existing) {
+            // Evict the previous claimant
+            const prevExcluded = mustActExcludedByRep.get(existing.userId) || new Set<number>();
+            prevExcluded.add(p.id);
+            mustActExcludedByRep.set(existing.userId, prevExcluded);
+          }
+          mustActClaims.set(p.id, { userId: preUser.id, score: p.relevanceScore ?? 0 });
+        } else {
+          // Another rep has a higher score — exclude from this rep
+          const excluded = mustActExcludedByRep.get(preUser.id) || new Set<number>();
+          excluded.add(p.id);
+          mustActExcludedByRep.set(preUser.id, excluded);
+        }
+      }
+    }
+    const dedupedCount = mustActClaims.size;
+    const conflictCount = Array.from(mustActExcludedByRep.values()).reduce((sum, s) => sum + s.size, 0);
+    console.log(`[EmailDigest] Cross-rep Must Act dedup: ${dedupedCount} unique projects claimed, ${conflictCount} cross-rep conflicts resolved`);
+  } catch (dedupErr) {
+    console.warn(`[EmailDigest] Cross-rep Must Act dedup pre-pass failed (non-fatal — proceeding without dedup):`, dedupErr);
+  }
+
   for (const { user, profile } of allUsers) {
     if (!user || !profile) {
       results.skipped++;
@@ -1802,6 +1877,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         freshnessLine,
         weekKey,
         user.id,
+        mustActExcludedByRep.get(user.id), // cross-rep dedup exclusion set
       );
 
       // ── PT Capital Sales subject line (clean — no BL label in subject) ──
@@ -2441,6 +2517,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     freshnessLine,
     weekKey,
     userId,
+    // Note: single-user preview — no cross-rep dedup applied
   );
 
   const territoryLabel = territories.length > 0 ? territories.join("/") : "National";

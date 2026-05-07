@@ -2165,3 +2165,7 @@
 - [ ] Query live This Week top 3 for each test account
 - [ ] Query live digest preview for each test account
 - [ ] Compare live outputs vs synthetic validation — confirm commercial separation
+
+## Audit Fixes (post-ranking verification, 2026-05-07)
+- [ ] Secondary sort by tenderCloseDate for tied projects in laneScoring.ts applyTieBreaker
+- [ ] Cross-rep Must Act deduplication in emailDigest.ts (assign shared projects to rep with higher lane score)
