@@ -2484,7 +2484,7 @@ export async function finaliseDigestSendSlot(
           AND digestType = ${digestType}
           AND sentDate = ${today}
           AND weekKey = ${weekKey}
-          AND status = 'pending'`
+          AND (status = 'pending' OR status = '')`
     );
   } catch (err) {
     console.error(`[EmailOps] finaliseDigestSendSlot error for user ${userId}:`, err);

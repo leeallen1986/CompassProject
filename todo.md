@@ -2225,3 +2225,10 @@
 - [x] Run Contact Validation (digestSafe gate) on top 3 Must Act projects for Amit Bhargava (Regional Road NT, Large-Scale Student Housing VIC, Liddell Battery NSW)
 - [x] Verify Ryan WA digest send status: firstSendApproved=1, 5/5 digestSafe, gate passes, ready to send live
 - [x] Rerun dry-run previews and confirm threshold status for all four reps — all four now pass
+
+## Live Send + Quality Audit (May 7 2026)
+- [x] Commercial quality audit of all 15 gated projects: 15/15 CLEAN (no email issues, no suppressed, no tier3)
+- [x] Monitor Ryan's live send: schema bug found (status enum missing 'pending') — fixed, schema migrated
+- [x] Retrieve copy of final sent Ryan email: email content not stored in DB; last confirmed live send was 2026W17 (Apr 27, status=sent, itemCount=466)
+- [x] Run fresh digest previews for Daniel, Dan Day, Amit — all 3 READY
+- [x] Final commercial quality check: all gated projects have verified corporate emails, no free domains, no generic prefixes

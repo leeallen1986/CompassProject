@@ -1,0 +1,1 @@
+ALTER TABLE `userEmailSendLog` MODIFY COLUMN `status` enum('sent','failed','dry_run','pending') NOT NULL DEFAULT 'sent';

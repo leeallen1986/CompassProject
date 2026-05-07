@@ -561,6 +561,13 @@
       "when": 1778119384741,
       "tag": "0079_huge_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "5",
+      "when": 1778145017882,
+      "tag": "0080_perpetual_leader",
+      "breakpoints": true
     }
   ]
 }
