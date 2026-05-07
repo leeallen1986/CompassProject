@@ -2169,3 +2169,14 @@
 ## Audit Fixes (post-ranking verification, 2026-05-07)
 - [ ] Secondary sort by tenderCloseDate for tied projects in laneScoring.ts applyTieBreaker
 - [ ] Cross-rep Must Act deduplication in emailDigest.ts (assign shared projects to rep with higher lane score)
+
+- [x] Waterfall audit: map all 7 source paths to exact code modules
+- [x] Source-by-source funnel audit (saved → linked → email → send_ready) for last 14/30 days
+- [x] Fix 1: Apollo verifyContactEmail now promotes contactTrustTier to send_ready when email_status = verified
+- [x] Fix 2: webStakeholderDiscovery now writes contactProjects row atomically at insert time (no more orphans)
+- [x] Fix 3: DB repair script — backfilled 1,408 orphaned contacts with missing contactProjects rows
+- [x] Fix 4: Promoted 9 projects with send_ready contacts but stale discoveryStatus to send_ready_contact
+- [x] Add waterfall.sourceFunnel, projectStatusDistribution, contactCoverage, contactProvenance, digestEligibleProjects, orphanAudit tRPC procedures
+- [x] Build /admin/waterfall Waterfall Health page (source funnel, project status, contact coverage, orphan audit)
+- [x] Add Waterfall Health tab to Admin page navigation
+- [x] Vitest tests for all three waterfall fixes (3,024 tests passing)

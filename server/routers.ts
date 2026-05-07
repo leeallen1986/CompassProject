@@ -4236,5 +4236,239 @@ export const appRouter = router({
   accountAttack: accountAttackRouter,
   accountResearch: accountResearchRouter,
   contactValidation: contactValidationRouter,
+
+  // ── Waterfall Health ──
+  waterfall: router({
+    /**
+     * Source-by-source conversion funnel for the last 14 and 30 days.
+     * Shows exactly where each source's output dies in the pipeline.
+     */
+    sourceFunnel: protectedProcedure
+      .input(z.object({ days: z.number().int().min(1).max(90).default(30) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+        const [rows] = await db.execute(sql`
+          SELECT
+            c.enrichmentSource as source,
+            COUNT(DISTINCT c.id) as contacts_saved,
+            COUNT(DISTINCT cp.contactId) as contacts_linked,
+            COUNT(DISTINCT CASE WHEN c.emailVerified = 1 THEN c.id END) as email_verified,
+            COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN c.id END) as promoted_send_ready,
+            COUNT(DISTINCT CASE WHEN c.email IS NOT NULL THEN c.id END) as has_email,
+            COUNT(DISTINCT CASE WHEN c.linkedin IS NOT NULL OR c.linkedinProfileUrl IS NOT NULL THEN c.id END) as has_linkedin,
+            ROUND(
+              COUNT(DISTINCT cp.contactId) * 100.0 / NULLIF(COUNT(DISTINCT c.id), 0),
+              1
+            ) as link_rate_pct,
+            ROUND(
+              COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN c.id END) * 100.0
+                / NULLIF(COUNT(DISTINCT c.id), 0),
+              1
+            ) as send_ready_rate_pct
+          FROM contacts c
+          LEFT JOIN contactProjects cp ON cp.contactId = c.id
+          WHERE c.createdAt >= ${since}
+          GROUP BY c.enrichmentSource
+          ORDER BY contacts_saved DESC
+        `) as any;
+        return (Array.isArray(rows) ? rows : []) as any[];
+      }),
+
+    /**
+     * Project discoveryStatus distribution — shows how many projects are
+     * at each stage of the waterfall.
+     */
+    projectStatusDistribution: protectedProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const [rows] = await db.execute(sql`
+        SELECT
+          discoveryStatus,
+          priority,
+          COUNT(*) as cnt
+        FROM projects
+        WHERE lifecycleStatus = 'active' OR lifecycleStatus IS NULL
+        GROUP BY discoveryStatus, priority
+        ORDER BY
+          FIELD(priority, 'hot', 'warm', 'cold'),
+          cnt DESC
+      `) as any;
+      return (Array.isArray(rows) ? rows : []) as any[];
+    }),
+
+    /**
+     * Contact coverage by trust tier — per-project view showing source,
+     * trust tier, link status, email verification, and digest safety.
+     * Filters to hot/warm projects only.
+     */
+    contactCoverage: protectedProcedure
+      .input(z.object({
+        priority: z.enum(['hot', 'warm', 'all']).default('hot'),
+        limit: z.number().int().min(1).max(200).default(50),
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const priorityFilter = input.priority === 'all'
+          ? sql`p.priority IN ('hot', 'warm')`
+          : sql`p.priority = ${input.priority}`;
+        const [rows] = await db.execute(sql`
+          SELECT
+            p.id as projectId,
+            p.name as projectName,
+            p.priority,
+            p.discoveryStatus,
+            p.location,
+            p.sector,
+            COUNT(DISTINCT c.id) as total_contacts,
+            COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN c.id END) as send_ready,
+            COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'named_unverified' THEN c.id END) as named_unverified,
+            COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'llm_inferred' THEN c.id END) as llm_inferred,
+            COUNT(DISTINCT CASE WHEN c.enrichmentSource = 'apollo' THEN c.id END) as from_apollo,
+            COUNT(DISTINCT CASE WHEN c.enrichmentSource = 'web_search' THEN c.id END) as from_web,
+            COUNT(DISTINCT CASE WHEN c.enrichmentSource = 'linkedin' THEN c.id END) as from_linkedin,
+            COUNT(DISTINCT CASE WHEN c.enrichmentSource = 'llm' THEN c.id END) as from_llm,
+            COUNT(DISTINCT CASE WHEN c.enrichmentSource = 'manual' THEN c.id END) as from_manual,
+            CASE
+              WHEN p.discoveryStatus = 'send_ready_contact' THEN 'digest_safe'
+              WHEN COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'named_unverified' THEN c.id END) > 0 THEN 'needs_verification'
+              WHEN COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'llm_inferred' THEN c.id END) > 0 THEN 'llm_only'
+              ELSE 'no_contacts'
+            END as digest_readiness
+          FROM projects p
+          LEFT JOIN contactProjects cp ON cp.projectId = p.id
+          LEFT JOIN contacts c ON c.id = cp.contactId
+            AND c.enrichmentSource != 'manual'
+            AND (c.roleBucket IS NULL OR c.roleBucket NOT REGEXP '^[0-9+() -]+$')
+            AND (c.email IS NULL OR (
+              c.email NOT LIKE '%atlascopco.com'
+              AND c.email NOT LIKE '%noreply%'
+              AND c.email NOT LIKE '%portal.invoices%'
+            ))
+          WHERE ${priorityFilter}
+            AND (p.lifecycleStatus = 'active' OR p.lifecycleStatus IS NULL)
+          GROUP BY p.id, p.name, p.priority, p.discoveryStatus, p.location, p.sector
+          ORDER BY
+            FIELD(p.priority, 'hot', 'warm', 'cold'),
+            send_ready DESC,
+            total_contacts DESC
+          LIMIT ${input.limit}
+        `) as any;
+        return (Array.isArray(rows) ? rows : []) as any[];
+      }),
+
+    /**
+     * Per-contact provenance detail for a specific project.
+     * Shows source, trust tier, link status, email verification, and
+     * why each contact is or is not digest-safe.
+     */
+    contactProvenance: protectedProcedure
+      .input(z.object({ projectId: z.number().int() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const [rows] = await db.execute(sql`
+          SELECT
+            c.id,
+            c.name,
+            c.title,
+            c.company,
+            c.enrichmentSource as source,
+            c.contactTrustTier as trustTier,
+            c.email,
+            c.emailVerified,
+            c.linkedin,
+            c.linkedinProfileUrl,
+            c.verificationStatus,
+            c.confidenceScore,
+            c.roleRelevance,
+            c.createdAt,
+            c.enrichedAt,
+            cp.relevance as linkRelevance,
+            CASE
+              WHEN c.contactTrustTier = 'send_ready' THEN 'digest_safe'
+              WHEN c.contactTrustTier = 'named_unverified' AND c.email IS NOT NULL THEN 'needs_email_verification'
+              WHEN c.contactTrustTier = 'named_unverified' AND c.email IS NULL THEN 'needs_email'
+              WHEN c.contactTrustTier = 'llm_inferred' THEN 'ai_suggested_only'
+              ELSE 'unknown'
+            END as digestStatus,
+            CASE
+              WHEN c.contactTrustTier = 'send_ready' THEN 'Verified email + project linked'
+              WHEN c.contactTrustTier = 'named_unverified' AND c.email IS NOT NULL THEN 'Has email but not verified — run Apollo verify'
+              WHEN c.contactTrustTier = 'named_unverified' AND c.email IS NULL THEN 'No email — run Hunter or Apollo finder'
+              WHEN c.contactTrustTier = 'llm_inferred' THEN 'AI-suggested role — not a real verified person'
+              ELSE 'Status unknown'
+            END as digestBlockReason
+          FROM contacts c
+          JOIN contactProjects cp ON cp.contactId = c.id AND cp.projectId = ${input.projectId}
+          ORDER BY
+            FIELD(c.contactTrustTier, 'send_ready', 'named_unverified', 'llm_inferred'),
+            c.enrichedAt DESC
+        `) as any;
+        return (Array.isArray(rows) ? rows : []) as any[];
+      }),
+
+    /**
+     * Digest-eligible projects: only projects with discoveryStatus = send_ready_contact.
+     * This is the ONLY pool the digest should consume.
+     */
+    digestEligibleProjects: protectedProcedure
+      .input(z.object({ territory: z.string().optional() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const territoryFilter = input.territory
+          ? sql`AND p.territory = ${input.territory}`
+          : sql``;
+        const [rows] = await db.execute(sql`
+          SELECT
+            p.id, p.name, p.priority, p.location, p.sector, p.territory,
+            p.discoveryStatus, p.lastDiscoveryAt,
+            COUNT(DISTINCT c.id) as send_ready_count,
+            GROUP_CONCAT(DISTINCT c.enrichmentSource ORDER BY c.enrichmentSource SEPARATOR ', ') as sources
+          FROM projects p
+          JOIN contactProjects cp ON cp.projectId = p.id
+          JOIN contacts c ON c.id = cp.contactId
+            AND c.contactTrustTier = 'send_ready'
+            AND c.enrichmentSource != 'manual'
+          WHERE p.discoveryStatus = 'send_ready_contact'
+            AND (p.lifecycleStatus = 'active' OR p.lifecycleStatus IS NULL)
+            ${territoryFilter}
+          GROUP BY p.id, p.name, p.priority, p.location, p.sector, p.territory,
+            p.discoveryStatus, p.lastDiscoveryAt
+          ORDER BY
+            FIELD(p.priority, 'hot', 'warm', 'cold'),
+            send_ready_count DESC
+        `) as any;
+        return (Array.isArray(rows) ? rows : []) as any[];
+      }),
+
+    /**
+     * Orphan audit: contacts that exist but have no contactProjects row.
+     * These are invisible to all project-level queries.
+     */
+    orphanAudit: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return {};
+      const [rows] = await db.execute(sql`
+        SELECT
+          c.enrichmentSource as source,
+          COUNT(*) as total,
+          SUM(CASE WHEN cp.contactId IS NULL THEN 1 ELSE 0 END) as orphaned,
+          SUM(CASE WHEN cp.contactId IS NOT NULL THEN 1 ELSE 0 END) as linked,
+          ROUND(
+            SUM(CASE WHEN cp.contactId IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+            1
+          ) as link_pct
+        FROM contacts c
+        LEFT JOIN contactProjects cp ON cp.contactId = c.id
+        GROUP BY c.enrichmentSource
+        ORDER BY total DESC
+      `) as any;
+      return { sources: (Array.isArray(rows) ? rows : []) as any[] };
+    }),
+  }),
 });
 export type AppRouter = typeof appRouter;

@@ -3095,6 +3095,9 @@ export default function Admin() {
             <TabsTrigger value="emailpreview" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap">
               <Mail className="w-3.5 h-3.5 mr-1.5" /> Email Preview
             </TabsTrigger>
+            <TabsTrigger value="waterfall" className="text-xs sm:text-sm font-semibold data-[state=active]:bg-navy data-[state=active]:text-white px-3 sm:px-4 whitespace-nowrap" onClick={() => navigate('/admin/waterfall')}>
+              <Shield className="w-3.5 h-3.5 mr-1.5" /> Waterfall Health
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pipeline">
@@ -3131,6 +3134,9 @@ export default function Admin() {
 
           <TabsContent value="emailpreview">
             <EmailPreviewTab />
+          </TabsContent>
+          <TabsContent value="waterfall">
+            {/* Redirect handled by onClick — this tab navigates to /admin/waterfall */}
           </TabsContent>
         </Tabs>
       </main>

@@ -901,11 +901,13 @@ export async function revealContactEmail(
     });
 
     // Update the contact in DB
+    // IMPORTANT: also promote contactTrustTier when email is verified
+    const isVerified = p.email_status === "verified";
     await db
       .update(contacts)
       .set({
         email: p.email || contact.email,
-        emailVerified: p.email_status === "verified",
+        emailVerified: isVerified,
         enrichmentStatus: "enriched",
         enrichmentSource: "apollo",
         enrichedAt: new Date(),
@@ -915,14 +917,15 @@ export async function revealContactEmail(
         linkedinLocation:
           [p.city, p.state, p.country].filter(Boolean).join(", ") ||
           contact.linkedinLocation,
-        verificationStatus:
-          p.email_status === "verified" ? "verified" : "unverified",
+        verificationStatus: isVerified ? "verified" : "unverified",
         verificationScore:
-          p.email_status === "verified"
+          isVerified
             ? 95
             : p.email_status === "likely_to_engage"
               ? 80
               : 50,
+        // Promote trust tier: verified email → send_ready
+        contactTrustTier: isVerified ? "send_ready" : contact.contactTrustTier,
       })
       .where(eq(contacts.id, contactId));
 

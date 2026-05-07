@@ -17,7 +17,7 @@
 import { invokeLLM } from "./_core/llm";
 import { callDataApi } from "./_core/dataApi";
 import { getDb } from "./db";
-import { contacts, projects, type InsertContact } from "../drizzle/schema";
+import { contacts, projects, contactProjects, type InsertContact } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
 import { classifyRoleRelevance } from "./roleRelevance";
@@ -566,7 +566,31 @@ export async function discoverAndSaveStakeholders(project: {
         continue;
       }
 
-      await db.insert(contacts).values(contactData);
+      const [inserted] = await db.insert(contacts).values(contactData);
+      const newContactId = (inserted as any).insertId;
+
+      // ── Guarantee contactProjects linkage — never orphan a web_search contact ──
+      if (newContactId && project.id) {
+        const existingLink = await db
+          .select({ id: contactProjects.id })
+          .from(contactProjects)
+          .where(
+            and(
+              eq(contactProjects.contactId, newContactId),
+              eq(contactProjects.projectId, project.id)
+            )
+          )
+          .limit(1);
+        if (existingLink.length === 0) {
+          await db.insert(contactProjects).values({
+            contactId: newContactId,
+            projectId: project.id,
+            projectName: project.name,
+            relevance: contact.company === project.owner ? "primary" : "secondary",
+          });
+        }
+      }
+
       savedContacts.push(contact);
     } catch (err) {
       console.error(`[WebDiscovery] Failed to save "${contact.name}":`, err instanceof Error ? err.message : String(err));

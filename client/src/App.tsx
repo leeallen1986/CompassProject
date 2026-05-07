@@ -19,6 +19,7 @@ import Campaigns from "./pages/Campaigns";
 import AccountAttack from "./pages/AccountAttack";
 import ProjectDetail from "./pages/ProjectDetail";
 import ContactValidation from "./pages/ContactValidation";
+import WaterfallHealth from "./pages/WaterfallHealth";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -40,6 +41,7 @@ function Router() {
       <Route path={"/campaigns"} component={Campaigns} />
       <Route path={"/account-attack"} component={AccountAttack} />
       <Route path={"/contact-validation"} component={ContactValidation} />
+      <Route path={"/admin/waterfall"} component={WaterfallHealth} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
