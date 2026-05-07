@@ -11,6 +11,7 @@ import { startPersistentScheduler } from "../persistentScheduler";
 import { startDailyScheduler, registerSigtermHandler } from "../dailyPipeline";
 import { storagePut } from "../storage";
 import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
+import { handleScheduledQueueRun } from "../scheduledQueueRun";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -86,6 +87,12 @@ async function startServer() {
   // Auth: app_session_id cookie (Manus scheduled-task JWT) + X-Scheduled-Task header
   // Idempotent: returns 200 already_ran if completed within 4h, 409 if currently running
   app.post("/api/scheduled/pipeline", handleScheduledPipelineTrigger);
+
+  // Nightly discovery queue run — called by Manus scheduled task after midnight UTC
+  // Runs one batch of 10 projects through the contact discovery waterfall
+  // Returns NDJSON stream with before/after stats and batch summary
+  // Auth: scheduled-task cookie (role=user) OR admin session
+  app.post("/api/scheduled/queue-run", handleScheduledQueueRun);
 
   // tRPC API
   app.use(

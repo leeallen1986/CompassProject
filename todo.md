@@ -2203,3 +2203,12 @@
 - [x] Fixed Apollo single-letter first name guard (invalid_first_name 400 error)
 - [x] Fixed Apollo invalid email guard (invalid_email 400 error)
 - [ ] Continue queue run via deployed site Admin panel (211 projects still queued)
+
+## Nightly Queue Automation + Trust-Tier Audit (May 7 2026)
+- [x] Add /api/scheduled/queue-run POST endpoint to site (accepts POST, returns batch summary JSON)
+- [x] Build nightly batch summary: queued start/end, send_ready start/end, send_ready projects start/end, Apollo calls used, retries/blocked/timed-out
+- [ ] Schedule nightly queue run after midnight UTC using Manus scheduled task
+- [ ] Audit 3,400 Apollo-email / named_unverified contacts: stale trust-tier vs truly unverified
+- [ ] Backfill any stale trust-tier contacts found in audit
+- [ ] Report digest-eligible pools for Ryan, Daniel, Dan Day, Amit
+- [ ] Report Must Act quality improvement from larger send_ready pool
