@@ -2341,3 +2341,17 @@
 - [x] Add validated feeds to seedPipeline.ts DEFAULT_RSS_SOURCES
 - [x] Run tests and confirm no regressions (101 files, 3,066 tests pass)
 - [x] Save checkpoint
+
+## Ryan WA Specialty-Air Audit (May 7 2026)
+- [x] Write and run Ryan WA audit script: top 20 candidates with family classification, bestProductAngle, whyNow, routeToBuy, section eligibility
+- [x] Specialty-air candidate audit: ZERO specialty-air candidates in Ryan's WA pool
+- [x] Upstream capture audit: 36/36 specialty-air signals have ZERO matching projects in the WA pool
+- [x] Closing Soon audit: GE Frame 9 passes gate as generic compressor only — not specialty air
+- [x] Root-cause diagnosis: UPSTREAM CAPTURE FAILURE — WA project database contains no LNG/pipeline/N2 projects
+
+## Ryan WA Upstream Capture Fix (May 7 2026)
+- [ ] Reactivate stale WA specialty-air projects: Scarborough, Pluto T2, Barossa, Prelude/FLNG, BW Opal/FPSO, and any pipeline/N2/pre-commissioning projects
+- [ ] Suppress GE Frame 9 Gas Turbine Control System Upgrade (generic inferred signal only, no explicit PA/specialty-air package)
+- [ ] Trigger manual harvest against new oil & gas feeds targeting specialty-air keywords
+- [ ] Re-run Ryan WA dry-run audit after reactivation + harvest
+- [ ] Confirm specialty-air candidates now appear in active pool with correct family/angle classification
