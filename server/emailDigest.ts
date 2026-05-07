@@ -36,6 +36,7 @@ import {
   classifyVisibility,
   applyTieBreaker,
   portableAirOpportunityGate,
+  palBessOpportunityGate,
   type VisibilityTier,
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
@@ -1446,30 +1447,63 @@ async function scoreAndFilterProjects(
     // Classify visibility tier (guardrail 2 — separate from scoring)
     let visibilityTier = classifyVisibility(laneResultWithTieBreaker, assignedBLs.length > 0);
 
-    // ── Portable Air Opportunity Gate (guardrail 3) ──
-    // GLOBAL BUSINESS RULE: This platform is for direct-sale reps only.
-    // Projects that do not have a credible portable air direct-sale path are
-    // demoted to monitor_only or suppressed entirely, regardless of heat/tier.
+    // ── Opportunity Gate (guardrail 3) ──
+    // Gate selection depends on the rep's assigned business lines:
+    //   - PAL/BESS reps: only the PAL/BESS gate runs (PA gate is bypassed)
+    //   - All other reps: the Portable Air gate runs
+    const isPalBessRep = assignedBLs.some(bl => ['PAL', 'BESS', 'pal', 'bess'].includes(bl));
     const portableAirScore = laneResultWithTieBreaker.laneScores?.portableAir ?? 0;
-    const gateResult = portableAirOpportunityGate(
-      {
+
+    // Default gateResult: pass (will be overridden below)
+    let gateResult: ReturnType<typeof portableAirOpportunityGate> = { pass: true };
+    let palBessGateResult: ReturnType<typeof palBessOpportunityGate> | null = null;
+
+    if (isPalBessRep) {
+      // PAL/BESS reps: skip Portable Air gate, run PAL/BESS gate instead
+      palBessGateResult = palBessOpportunityGate({
         name: p.name,
         overview: p.overview,
         sector: p.sector,
-        stage: p.stage,
         opportunityRoute: p.opportunityRoute,
-        owner: p.owner,
         equipmentSignals: (p as any).equipmentSignals ?? null,
-      },
-      portableAirScore,
-    );
-    if (!gateResult.pass) {
-      // Hard suppress: remove from pool entirely
-      if (gateResult.suppressionLevel === 'suppress') {
-        visibilityTier = 'suppress';
-      } else {
-        // Soft suppress: demote to monitor_only (still visible in Waiting section)
-        if (visibilityTier !== 'suppress') visibilityTier = 'monitor_only';
+        stage: (p as any).stage ?? null,
+        priority: (p as any).priority ?? null,
+      });
+      if (!palBessGateResult.pass) {
+        // Demote to monitor_only — not a PAL/BESS opportunity
+        // Hard-suppress only for road/highway/rail projects (never a PAL/BESS path)
+        if (palBessGateResult.suppressionLevel === 'suppress') {
+          visibilityTier = 'suppress';
+        } else if (visibilityTier !== 'suppress') {
+          visibilityTier = 'monitor_only';
+        }
+      }
+      // Mirror palBessGateResult into gateResult for downstream section checks
+      gateResult = palBessGateResult.pass
+        ? { pass: true }
+        : { pass: false, reason: palBessGateResult.reason, suppressionLevel: palBessGateResult.suppressionLevel };
+    } else {
+      // Portable Air reps: run the Portable Air gate
+      gateResult = portableAirOpportunityGate(
+        {
+          name: p.name,
+          overview: p.overview,
+          sector: p.sector,
+          stage: p.stage,
+          opportunityRoute: p.opportunityRoute,
+          owner: p.owner,
+          equipmentSignals: (p as any).equipmentSignals ?? null,
+        },
+        portableAirScore,
+      );
+      if (!gateResult.pass) {
+        // Hard suppress: remove from pool entirely
+        if (gateResult.suppressionLevel === 'suppress') {
+          visibilityTier = 'suppress';
+        } else {
+          // Soft suppress: demote to monitor_only (still visible in Waiting section)
+          if (visibilityTier !== 'suppress') visibilityTier = 'monitor_only';
+        }
       }
     }
 
@@ -1501,6 +1535,7 @@ async function scoreAndFilterProjects(
       bestNextMove: laneResultWithTieBreaker.bestNextMove,
       reasonCodes: laneResultWithTieBreaker.reasonCodes,
       gateResult,
+      palBessGateResult: palBessGateResult ?? undefined,
     };
   });
 

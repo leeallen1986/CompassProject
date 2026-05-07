@@ -2299,3 +2299,14 @@
 - [x] Corrected Ryan digest: 3 Must Act (Norseman Gold, Walyering Gas, Murchison Gold), 1 Closing Soon (GE Gas Turbine), 2 Waiting
 - [x] Contact for Norseman Gold: Troy Morris (Maintenance Manager, WA) instead of Murray Vedel (Eastern States)
 - [x] All 3044 tests passing, TypeScript clean
+
+## PAL/BESS Package-Level Opportunity Gate — Amit (May 7 2026)
+- [x] Audit Amit's current digest — trace every visible project's gate result and PAL/BESS signals
+- [x] Identify which Must Act items lack explicit PAL/BESS package-level evidence (Bruce Highway, Inland Rail Euroa, Olympic Dam)
+- [x] Design palBessOpportunityGate() with explicit positive signals: BESS/storage/hybrid power/microgrid/temporary power, PAL/temporary access/elevated access/shutdown access, remote site power constraint, energisation/commissioning/temporary plant power
+- [x] Hard suppress: broad civils/road/rail/infrastructure without explicit PAL/BESS use case
+- [x] Hard suppress: generic large projects where only reason is size + contact
+- [x] Apply gate to Must Act, Closing Soon, Waiting sections for PAL/BESS-assigned reps
+- [x] Determine whether same package-level gate logic should apply across every lane (Portable Air, Pump, etc.)
+- [x] Run tests after all changes
+- [x] Produce corrected Amit digest with suppression report

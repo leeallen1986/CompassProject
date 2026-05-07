@@ -625,6 +625,157 @@ export function portableAirOpportunityGate(
   };
 }
 
+// ── Part A.2b: PAL / BESS Opportunity Gate ──
+// Used for reps assigned to PAL and/or BESS business lines.
+// A project only enters Must Act / Closing Soon / Waiting for PAL/BESS reps
+// if it has explicit package-level evidence of:
+//   - BESS / battery storage / hybrid power / microgrid / temporary power
+//   - PAL / elevated access / shutdown access / working at height
+//   - Remote site power constraint / off-grid / island mode
+//   - Energisation / commissioning power / construction power
+//   - Lighting towers (explicit site lighting for construction)
+// Broad civils, road, rail, and generic large projects are suppressed unless
+// they contain one of the above explicit signals.
+
+export function palBessOpportunityGate(
+  project: {
+    name: string;
+    overview: string | null;
+    sector: string | null;
+    opportunityRoute: string | null;
+    equipmentSignals?: string[] | null;
+    stage?: string | null;
+    priority?: string | null;
+  },
+): { pass: true; reason: string } | { pass: false; reason: string; suppressionLevel: 'suppress' | 'monitor_only' } {
+  const nameText = (project.name ?? "").toLowerCase();
+  const overviewText = (project.overview ?? "").toLowerCase();
+  const routeText = (project.opportunityRoute ?? "").toLowerCase();
+  const sectorLower = (project.sector ?? "").toLowerCase();
+
+  // ── OPEX/Monitor route suppression ──
+  // Projects with opportunityRoute=OPEX/Monitor are watch items, not actionable.
+  // BUT: hot/warm projects with a strong stage (contract awarded, construction) may have been
+  // miscategorised by the AI scraper — override the suppression for those.
+  const priorityLower = (project.priority ?? "").toLowerCase();
+  const stageLower = (project.stage ?? "").toLowerCase();
+  const isStrongStage = /contract awarded|under construction|construction commenced|construction started|commissioning|operational/.test(stageLower);
+  const isHotOrWarm = priorityLower === 'hot' || priorityLower === 'warm';
+  if (/^opex/i.test(project.opportunityRoute ?? "") && !(isHotOrWarm && isStrongStage)) {
+    return { pass: false, reason: "opex_monitor_route: project is OPEX/Monitor watch item, not actionable", suppressionLevel: 'monitor_only' };
+  }
+
+  // For PAL/BESS: equipment signals are AI-inferred and unreliable for infrastructure.
+  // Only use equipment signals for industrial sectors (energy, mining, oil_gas, defence).
+  const isIndustrialSector = ["energy", "mining", "oil_gas", "defence"].includes(sectorLower);
+  const equipRaw = Array.isArray(project.equipmentSignals)
+    ? (project.equipmentSignals as string[]).join(" ")
+    : String(project.equipmentSignals ?? "");
+  const equipText = isIndustrialSector ? equipRaw.toLowerCase() : "";
+  const combined = `${nameText} ${overviewText} ${routeText} ${equipText}`;
+
+  // ── Hard suppression: broad civils / road / rail / generic infrastructure ──
+  // These project types have no credible PAL/BESS direct-sale path unless they
+  // explicitly mention temporary power, BESS, or elevated access.
+  const hardSuppressPatterns: Array<[RegExp, string]> = [
+    [/\b(highway|motorway|freeway|expressway|arterial road|road upgrade|road widening|road construction|road safety|road improvement)\b/, "road/highway project — no PAL/BESS demand without explicit temporary power"],
+    [/\b(inland rail|rail corridor|rail upgrade|rail duplication|rail extension|rail line|railway|signalling upgrade|level crossing|train station|bus rapid transit)\b/, "rail/transit project — no PAL/BESS demand without explicit temporary power"],
+    [/\b(school|primary school|high school|secondary school|tafe|childcare|kindergarten|early learning)\b/, "education facility — no PAL/BESS demand"],
+    [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility)\b/, "health facility — no PAL/BESS demand"],
+    [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no PAL/BESS demand"],
+    [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre|council building)\b/, "community/civic facility — no PAL/BESS demand"],
+    [/\b(golf course|golf club|bowling green|cricket oval|sports field|playing field|park upgrade|park development|landscaping|irrigation system)\b/, "landscaping/recreation — no PAL/BESS demand"],
+    [/\b(bus depot|bus terminal|fuel tank|diesel tank|petrol station|service station)\b/, "transport/fuel facility — no PAL/BESS demand"],
+    [/\b(office fitout|office refurbishment|office upgrade|fitout|fit-out|tenancy improvement)\b/, "office fitout — no PAL/BESS demand"],
+    [/\b(correctional|prison|detention centre|remand centre|youth justice)\b/, "correctional facility — no PAL/BESS demand"],
+    [/\b(water main|sewer|sewage|stormwater|drainage upgrade|culvert|kerb and gutter)\b/, "civil drainage/water main — no PAL/BESS demand"],
+    [/\b(seismic survey|geophysical survey|geotechnical investigation|hydrogeologist|concept design report|feasibility study only|market study|scoping study)\b/, "survey/study only — no PAL/BESS demand"],
+    [/\b(framework agreement|partnering agreement|standing offer|panel contract|master services agreement|msa|preferred supplier)\b/, "framework/panel contract — not a project"],
+    [/\b(infrastructure priority list|priority list|programme wrapper|program wrapper)\b/, "programme wrapper — not a specific project"],
+    [/\b(energy target|storage target|renewable target|emissions target|climate target|net zero target|policy target|government target|state target|national target)\b/, "policy/target document — not a specific project"],
+    [/\b(energy strategy|storage strategy|renewable strategy|energy plan|storage plan|grid plan|transition plan|roadmap|action plan|discussion paper|consultation paper)\b/, "strategy/plan document — not a specific project"],
+    [/\b(proof of concept|proof-of-concept|poc project|pilot program|demonstration project|research project|innovation hub|innovation centre|innovation precinct)\b/, "proof-of-concept/research — not a commercial project"],
+  ];
+
+  // Check hard suppress against project name only (not overview) to avoid false positives
+  // where a mining project mentions a nearby road or school.
+  for (const [pattern, reason] of hardSuppressPatterns) {
+    if (pattern.test(nameText)) {
+      return { pass: false, reason: `hard_suppress: ${reason}`, suppressionLevel: 'suppress' };
+    }
+  }
+
+  // ── Positive PAL/BESS signals — explicit package-level evidence ──
+  const palBessPositiveSignals: string[] = [
+    // BESS / battery storage / hybrid power
+    "bess", "battery energy storage", "battery storage system", "battery storage",
+    "energy storage system", "grid-scale storage", "grid scale storage",
+    "hybrid power", "hybrid power plant", "hybrid power system",
+    "microgrid", "micro-grid", "virtual power plant", "vpp",
+    "pumped hydro", "pumped storage", "pumped-storage",
+    "grid stabilisation", "frequency regulation", "frequency control",
+    "renewable integration", "solar storage", "wind storage",
+    "behind the meter", "behind-the-meter",
+    // PAL / elevated access / working at height
+    "pal", "portable access", "elevated access", "elevated work platform", "ewp",
+    "boom lift", "scissor lift", "mast lift", "knuckle boom",
+    "temporary access platform", "access platform", "working at height",
+    "shutdown access", "maintenance access platform", "turnaround access",
+    "height access", "aerial work platform", "awp",
+    // Temporary power / remote site power
+    "temporary power", "temp power", "temporary electricity",
+    "standby power", "backup power", "emergency power",
+    "mobile power", "power station", "diesel power station",
+    "remote power", "off-grid power", "off grid power", "island power",
+    "power supply solution", "power as a service", "paas",
+    "generator hire", "generator rental", "diesel generator",
+    "gas generator", "gas genset", "genset",
+    // Energisation / commissioning
+    "energisation", "energize", "energise", "commissioning power",
+    "temporary plant power", "construction power", "site power",
+    "first power", "power-on", "power on date", "pre-commissioning",
+    // Lighting towers
+    "lighting tower", "light tower", "temporary lighting", "site lighting",
+    "construction lighting", "floodlight", "flood light",
+    // Remote / mine site / offshore
+    "remote site", "mine site power", "camp power", "accommodation power",
+    "fly-in fly-out", "fifo", "offshore platform", "offshore power",
+    "island mode", "black start", "black-start",
+    // Shutdown / turnaround / maintenance outage
+    "shutdown", "turnaround", "planned outage", "maintenance outage",
+    "overhaul", "planned maintenance", "major maintenance",
+    // Specific BESS / PAL project types
+    "battery project", "storage project", "energy storage project",
+    "renewable energy storage", "large-scale battery", "large scale battery",
+    "grid battery", "utility-scale battery", "utility scale battery",
+    "standalone power system", "saps", "community battery",
+    "hydrogen storage", "green hydrogen", "hydrogen plant",
+    "hydrogen project", "electrolyser", "electrolysis",
+  ];
+
+  // Check positive signals in combined text
+  const foundSignals: string[] = [];
+  for (const signal of palBessPositiveSignals) {
+    if (combined.includes(signal)) {
+      foundSignals.push(signal);
+    }
+  }
+
+  if (foundSignals.length > 0) {
+    return {
+      pass: true,
+      reason: `positive_signals: ${foundSignals.slice(0, 3).join(", ")}`,
+    };
+  }
+
+  // No positive signals — monitor only
+  return {
+    pass: false,
+    reason: "no_pal_bess_signal: no explicit PAL/BESS package-level evidence in name, overview, or route",
+    suppressionLevel: 'monitor_only',
+  };
+}
+
 // ── Part A.3: Selling-motion / channel classifier ──
 
 export function classifySellingMotion(
