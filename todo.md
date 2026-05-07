@@ -2180,3 +2180,19 @@
 - [x] Build /admin/waterfall Waterfall Health page (source funnel, project status, contact coverage, orphan audit)
 - [x] Add Waterfall Health tab to Admin page navigation
 - [x] Vitest tests for all three waterfall fixes (3,024 tests passing)
+
+## Waterfall Structural Fix (Parts A–F)
+- [x] Part A: Map all 9 waterfall stages to exact code modules
+- [x] Part B: Source-by-source funnel audit (14 + 30 day tables with all metrics)
+- [x] Part C: Entity resolution — classify owner/contractor/domain before discovery runs
+- [x] Part C: Contact linkage — atomic contactProjects write, dedup, no silent orphans
+- [x] Part C: Trust-tier promotion — named_unverified → send_ready only after verified email (backfill: 95 Apollo + 0 web_search)
+- [x] Part C: CRM cleanup — 20,568 CRM/manual orphans flagged crmOrphan=true, excluded from all project queries
+- [x] Part C: Provider sequencing — Apollo primary, Hunter fallback (wired into discoveryQueue), Lusha not integrated
+- [x] Part D: Enforce real waterfall in discoveryQueue.ts with eligibility + entity gates
+- [x] Part D: Hunter wired into automated waterfall as Stage 3 email-verification fallback
+- [x] Part D: LLM domain inference replaces naive .com.au heuristic in hunterVerification.ts
+- [x] Part E: crmOrphan=0 filter added to contactCoverage, contactProvenance, digestEligibleProjects queries
+- [x] Part E: Contact provenance display (source, tier, linked, verified, why not digest-safe) — WaterfallHealth page
+- [x] Part F: Waterfall audit report delivered (PDF + MD)
+- [x] Vitest tests for all 5 structural fixes (3,044 tests passing)

@@ -28,6 +28,8 @@ import { projects, contacts, contactProjects } from "../drizzle/schema";
 import { enrichProjectContacts } from "./apolloEnrichment";
 import { enrichContactsForProject, generateAndEnrichContacts } from "./contactEnrichment";
 import { generateAndSaveLLMContacts } from "./llmContactFallback";
+import { verifyProjectContactsWithHunter } from "./hunterVerification";
+import { ENV } from "./_core/env";
 
 // ── Constants ──
 
@@ -326,6 +328,22 @@ async function runDiscoveryForProject(
         await enrichContactsForProject(project.id);
       } catch (e: any) {
         // Non-critical — just enriches existing contacts
+      }
+
+      // Step 3: Hunter fallback — verify named_unverified contacts that Apollo couldn't verify
+      // Only runs when Hunter API key is present and project has named_unverified contacts
+      // Hunter is NOT a discovery engine — it only verifies already-named people
+      // Guard: skip LLM-inferred contacts (they have fake names/emails)
+      if (ENV.hunterApiKey) {
+        try {
+          const hunterResult = await verifyProjectContactsWithHunter(project.id, 8);
+          if (hunterResult.promoted > 0 || hunterResult.emailsFound > 0) {
+            providersUsed.push("hunter");
+            console.log(`[Discovery] Hunter promoted ${hunterResult.promoted} contacts for project ${project.id}`);
+          }
+        } catch (e: any) {
+          console.warn(`[Discovery] Hunter fallback failed for project ${project.id}: ${e.message}`);
+        }
       }
 
     } else if (ownerType === "government") {

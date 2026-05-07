@@ -4341,6 +4341,7 @@ export const appRouter = router({
           LEFT JOIN contactProjects cp ON cp.projectId = p.id
           LEFT JOIN contacts c ON c.id = cp.contactId
             AND c.enrichmentSource != 'manual'
+            AND c.crmOrphan = 0
             AND (c.roleBucket IS NULL OR c.roleBucket NOT REGEXP '^[0-9+() -]+$')
             AND (c.email IS NULL OR (
               c.email NOT LIKE '%atlascopco.com'
@@ -4403,6 +4404,7 @@ export const appRouter = router({
             END as digestBlockReason
           FROM contacts c
           JOIN contactProjects cp ON cp.contactId = c.id AND cp.projectId = ${input.projectId}
+          WHERE c.crmOrphan = 0
           ORDER BY
             FIELD(c.contactTrustTier, 'send_ready', 'named_unverified', 'llm_inferred'),
             c.enrichedAt DESC
@@ -4433,6 +4435,7 @@ export const appRouter = router({
           JOIN contacts c ON c.id = cp.contactId
             AND c.contactTrustTier = 'send_ready'
             AND c.enrichmentSource != 'manual'
+            AND c.crmOrphan = 0
           WHERE p.discoveryStatus = 'send_ready_contact'
             AND (p.lifecycleStatus = 'active' OR p.lifecycleStatus IS NULL)
             ${territoryFilter}

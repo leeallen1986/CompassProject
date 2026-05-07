@@ -21,6 +21,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { contacts, hunterVerificationLog } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { inferCompanyDomains } from "./domainInference";
 
 
 // ── Configuration ──
@@ -61,16 +62,33 @@ function extractDomain(email: string): string {
   return email.split("@")[1]?.toLowerCase() || "";
 }
 
-function deriveDomainFromCompany(company: string): string | null {
-  // Simple heuristic: clean company name → lowercase domain guess
-  // This is a best-effort — Hunter will reject invalid domains gracefully
-  const cleaned = company
-    .toLowerCase()
-    .replace(/\s+(pty|ltd|limited|inc|corp|group|holdings|australia|au)\b.*$/i, "")
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
-  if (cleaned.length < 2) return null;
-  return `${cleaned}.com.au`;
+/**
+ * Derive a domain from a company name using LLM-based inference.
+ * Falls back to a simple heuristic if LLM is unavailable.
+ * Results are cached in-memory for the lifetime of the process to avoid repeated LLM calls.
+ */
+const _domainCache = new Map<string, string | null>();
+
+async function deriveDomainFromCompany(company: string): Promise<string | null> {
+  if (!company || company.trim().length < 2) return null;
+  const key = company.trim().toLowerCase();
+  if (_domainCache.has(key)) return _domainCache.get(key) ?? null;
+  try {
+    const results = await inferCompanyDomains([company]);
+    const domain = results[0]?.domain ?? null;
+    _domainCache.set(key, domain);
+    return domain;
+  } catch {
+    // Fallback to simple heuristic if LLM fails
+    const cleaned = company
+      .toLowerCase()
+      .replace(/\s+(pty|ltd|limited|inc|corp|group|holdings|australia|au)\b.*$/i, "")
+      .replace(/[^a-z0-9]/g, "")
+      .trim();
+    const fallback = cleaned.length >= 2 ? `${cleaned}.com.au` : null;
+    _domainCache.set(key, fallback);
+    return fallback;
+  }
 }
 
 // ── Hunter API calls ──
@@ -249,12 +267,8 @@ export async function verifyContactWithHunter(
 
       // Derive domain from company name or LinkedIn URL
       let domain: string | null = null;
-      if (contact.linkedin) {
-        // LinkedIn URL doesn't give us domain directly — use company name
-        domain = deriveDomainFromCompany(contact.company || "");
-      } else {
-        domain = deriveDomainFromCompany(contact.company || "");
-      }
+      // Use LLM-based domain inference for accuracy
+      domain = await deriveDomainFromCompany(contact.company || "");
 
       if (!domain) {
         return { contactId, action: "skipped", reason: "cannot_derive_domain" };

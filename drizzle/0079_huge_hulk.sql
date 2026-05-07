@@ -1,0 +1,1 @@
+ALTER TABLE `contacts` ADD `crmOrphan` boolean DEFAULT false;

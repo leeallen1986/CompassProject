@@ -315,6 +315,9 @@ export const contacts = mysqlTable("contacts", {
   // named_unverified: named person, email missing/unverified, or not yet linked
   // llm_inferred: source is llm/llm_fallback/llm_contact_fallback/llm_inference
   contactTrustTier: mysqlEnum("contactTrustTier", ["send_ready", "named_unverified", "llm_inferred"]).default("named_unverified"),
+  // CRM graph cleanup: true = imported from CRM/manual with no project linkage
+  // Excluded from all project-level queries; preserved for CRM review / manual linking
+  crmOrphan: boolean("crmOrphan").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
