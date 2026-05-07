@@ -112,6 +112,13 @@ const DEFAULT_RSS_SOURCES = [
   { name: "Mining Technology", feedUrl: "https://www.mining-technology.com/feed/", category: "industry" },
   { name: "Mining Weekly SA", feedUrl: "https://www.miningweekly.com/page/home/feed", category: "mining" },
   { name: "Rigzone News", feedUrl: "https://www.rigzone.com/news/rss/rigzone_latest.aspx", category: "oil_gas" },
+  { name: "Offshore Technology", feedUrl: "https://www.offshore-technology.com/feed/", category: "oil_gas" },
+  { name: "OilPrice.com", feedUrl: "https://oilprice.com/rss/main", category: "oil_gas" },
+  { name: "LNG Prime", feedUrl: "https://www.lngprime.com/feed/", category: "oil_gas" },
+  { name: "Drilling Contractor", feedUrl: "https://www.drillingcontractor.org/feed", category: "oil_gas" },
+  { name: "NS Energy Business", feedUrl: "https://www.nsenergybusiness.com/feed/", category: "oil_gas" },
+  { name: "Hydrocarbons Technology", feedUrl: "https://www.hydrocarbons-technology.com/feed/", category: "oil_gas" },
+  { name: "Gas Today Australia", feedUrl: "https://www.gastoday.com.au/feed/", category: "oil_gas" },
 
   // ── News Sources ──
   { name: "The Australian - Business", feedUrl: "https://www.theaustralian.com.au/business/rss", category: "news" },

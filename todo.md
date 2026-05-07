@@ -2334,3 +2334,10 @@
 - [x] Update seedPipeline.ts DEFAULT_BUSINESS_LINES to include all three families for future fresh installs
 - [x] Run tests and confirm no regressions (101 files, 3,066 tests pass)
 - [x] Save checkpoint
+
+## Specialty Air RSS Source Expansion (May 7 2026)
+- [x] Research and validate RSS feed URLs for oil & gas, pipeline, LNG, and pre-commissioning industry sources
+- [x] Add validated feeds to live database via script (7 feeds added: Offshore Technology, OilPrice.com, LNG Prime, Drilling Contractor, NS Energy Business, Hydrocarbons Technology, Gas Today Australia)
+- [x] Add validated feeds to seedPipeline.ts DEFAULT_RSS_SOURCES
+- [x] Run tests and confirm no regressions (101 files, 3,066 tests pass)
+- [x] Save checkpoint
