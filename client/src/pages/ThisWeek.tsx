@@ -193,9 +193,9 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
             {laneFitLabel} fit
           </span>
         )}
-        {channel && channel !== "monitor" && (
+        {channel && channel !== "monitor" && channel !== "rental" && (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${channelColors[channel] || "bg-slate-100 text-slate-500"}`}>
-            {channel}
+            {channel === "direct" ? "Direct sale" : channel === "crosssell" ? "Cross-sell" : channel}
           </span>
         )}
         {action.actionKey && (
@@ -303,14 +303,15 @@ function CompactProjectRow({
             {project.laneFitLabel}
           </span>
         )}
-        {project.channel && project.channel !== "monitor" && (
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold capitalize ${
+        {project.channel && project.channel !== "monitor" && project.channel !== "rental" && (
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
             project.channel === "direct" ? "bg-navy/10 text-navy" :
-            project.channel === "rental" ? "bg-teal/10 text-teal" :
             project.channel === "crosssell" ? "bg-gold/15 text-gold-dark" :
             "bg-slate-100 text-slate-500"
           }`}>
-            {project.channel}
+            {project.channel === "direct" ? "Direct sale" :
+             project.channel === "crosssell" ? "Cross-sell" :
+             project.channel}
           </span>
         )}
         {project.scopeReason && <ScopeReasonChip reason={project.scopeReason} />}

@@ -52,9 +52,9 @@ const INDUSTRIES = [
   { id: "defence", label: "Defence", group: "Other" },
 ];
 
+// GLOBAL RULE: This platform is for direct-sale reps only. Rentals / Hire removed.
 const OFFER_CATEGORIES = [
   { id: "equipment", label: "Equipment (purchase)", icon: "🏗️" },
-  { id: "rentals", label: "Rentals / Hire", icon: "🔄" },
   { id: "consumables", label: "Consumables & Parts", icon: "🔧" },
   { id: "services", label: "Services & Maintenance", icon: "⚙️" },
   { id: "engineering", label: "Engineering & Design", icon: "📐" },
@@ -67,7 +67,7 @@ const CUSTOMER_TYPES = [
   { id: "principal_contractor", label: "Principal Contractor" },
   { id: "specialist_contractor", label: "Specialist Contractor" },
   { id: "government", label: "Government" },
-  { id: "rental_company", label: "Rental Company" },
+  // rental_company removed — direct-sale platform only
   { id: "oem", label: "OEM" },
 ];
 

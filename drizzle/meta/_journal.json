@@ -575,6 +575,13 @@
       "when": 1778147482221,
       "tag": "0081_melted_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "5",
+      "when": 1778149199202,
+      "tag": "0082_ambiguous_zuras",
+      "breakpoints": true
     }
   ]
 }

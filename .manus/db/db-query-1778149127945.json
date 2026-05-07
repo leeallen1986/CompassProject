@@ -1,0 +1,100 @@
+{
+  "query": "UPDATE userProfiles SET salesMotion = 'direct_only' WHERE salesMotion IS NULL OR salesMotion != 'direct_only';\nSELECT id, userId, salesMotion FROM userProfiles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE userProfiles SET salesMotion = 'direct_only' WHERE salesMotion IS NULL OR salesMotion != 'direct_only';\nSELECT id, userId, salesMotion FROM userProfiles;",
+  "rows": [
+    {
+      "id": "1",
+      "userId": "1",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "30001",
+      "userId": "120057",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "60002",
+      "userId": "390229",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "90001",
+      "userId": "510060",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "120001",
+      "userId": "840008",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "150001",
+      "userId": "2340043",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "180001",
+      "userId": "2400013",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "210001",
+      "userId": "2550006",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "240001",
+      "userId": "2820019",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "270001",
+      "userId": "2820073",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "300001",
+      "userId": "2340050",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "330001",
+      "userId": "3630009",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "360001",
+      "userId": "3870014",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "420001",
+      "userId": "4590008",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "480001",
+      "userId": "3360134",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "480002",
+      "userId": "3360129",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "510001",
+      "userId": "11580001",
+      "salesMotion": "direct_only"
+    },
+    {
+      "id": "540001",
+      "userId": "13020010",
+      "salesMotion": "direct_only"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tsalesMotion\n1\t1\tdirect_only\n30001\t120057\tdirect_only\n60002\t390229\tdirect_only\n90001\t510060\tdirect_only\n120001\t840008\tdirect_only\n150001\t2340043\tdirect_only\n180001\t2400013\tdirect_only\n210001\t2550006\tdirect_only\n240001\t2820019\tdirect_only\n270001\t2820073\tdirect_only\n300001\t2340050\tdirect_only\n330001\t3630009\tdirect_only\n360001\t3870014\tdirect_only\n420001\t4590008\tdirect_only\n480001\t3360134\tdirect_only\n480002\t3360129\tdirect_only\n510001\t11580001\tdirect_only\n540001\t13020010\tdirect_only\n",
+  "stderr": "",
+  "execution_time_ms": 1772
+}

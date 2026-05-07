@@ -58,7 +58,7 @@ const roleLabels: Record<string, string> = {
   subcontractor: "Subcontractor",
   consultant: "Consultant",
   supplier: "Supplier",
-  rental: "Rental / Equipment",
+  rental: "Equipment Supplier",
   government: "Government",
   unknown: "Unknown",
 };

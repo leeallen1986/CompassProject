@@ -35,6 +35,7 @@ import {
   computePerUserFinalScore,
   classifyVisibility,
   applyTieBreaker,
+  portableAirOpportunityGate,
   type VisibilityTier,
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
@@ -320,6 +321,8 @@ interface DigestProject {
   bestNextMove?: string;
   /** Reason codes for explainability */
   reasonCodes?: string[];
+  /** Portable Air Opportunity Gate result — projects that fail are demoted to monitor_only or suppressed */
+  gateResult?: { pass: true } | { pass: false; reason: string; suppressionLevel: 'suppress' | 'monitor_only' };
 }
 
 interface DigestContact {
@@ -1037,10 +1040,11 @@ function renderProjectCard(
   const laneFitChip = p.laneFitLabel && p.laneFitLabel !== "Not relevant"
     ? `${p.laneFitLabel === "High" ? "✅" : p.laneFitLabel === "Medium" ? "🟡" : "⬜"} ${p.laneFitLabel} fit`
     : null;
-  const channelChip = p.channel && p.channel !== "monitor"
+  // 'rental' channel is suppressed by the Portable Air Opportunity Gate before display.
+  // It should never appear in a rep-facing digest card.
+  const channelChip = p.channel && p.channel !== "monitor" && p.channel !== "rental"
     ? p.channel === "direct" ? "Direct sale"
-    : p.channel === "rental" ? "Rental / hire"
-    : p.channel === "crosssell" ? "Cross-sell"
+    : p.channel === "crosssell" ? "Cross-sell / Adjacent"
     : null
     : null;
   const fallbackChip = isFallback ? "⚠️ Contacts need validation" : null;
@@ -1307,7 +1311,7 @@ async function scoreAndFilterProjects(
     stageTiming?: string[] | null;
     buyerRoles?: string[] | null;
     keyAccounts?: string[] | null;
-    salesMotion?: "direct_only" | "rental_led" | "mixed" | null;
+    salesMotion?: "direct_only" | "mixed" | null;
   },
 ): Promise<Array<DigestProject & { relevanceScore: number }>> {
   // Fetch BL scores for all projects in one batch
@@ -1372,7 +1376,34 @@ async function scoreAndFilterProjects(
     const laneResultWithTieBreaker = applyTieBreaker(laneResult, feedbackBoost);
 
     // Classify visibility tier (guardrail 2 — separate from scoring)
-    const visibilityTier = classifyVisibility(laneResultWithTieBreaker, assignedBLs.length > 0);
+    let visibilityTier = classifyVisibility(laneResultWithTieBreaker, assignedBLs.length > 0);
+
+    // ── Portable Air Opportunity Gate (guardrail 3) ──
+    // GLOBAL BUSINESS RULE: This platform is for direct-sale reps only.
+    // Projects that do not have a credible portable air direct-sale path are
+    // demoted to monitor_only or suppressed entirely, regardless of heat/tier.
+    const portableAirScore = laneResultWithTieBreaker.laneScores?.portableAir ?? 0;
+    const gateResult = portableAirOpportunityGate(
+      {
+        name: p.name,
+        overview: p.overview,
+        sector: p.sector,
+        stage: p.stage,
+        opportunityRoute: p.opportunityRoute,
+        owner: p.owner,
+        equipmentSignals: (p as any).equipmentSignals ?? null,
+      },
+      portableAirScore,
+    );
+    if (!gateResult.pass) {
+      // Hard suppress: remove from pool entirely
+      if (gateResult.suppressionLevel === 'suppress') {
+        visibilityTier = 'suppress';
+      } else {
+        // Soft suppress: demote to monitor_only (still visible in Waiting section)
+        if (visibilityTier !== 'suppress') visibilityTier = 'monitor_only';
+      }
+    }
 
     return {
       id: p.id,
@@ -1399,6 +1430,7 @@ async function scoreAndFilterProjects(
       routeToBuy: laneResultWithTieBreaker.routeToBuy,
       bestNextMove: laneResultWithTieBreaker.bestNextMove,
       reasonCodes: laneResultWithTieBreaker.reasonCodes,
+      gateResult,
     };
   });
 
@@ -1664,7 +1696,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         stageTiming: (preProfile as any).stageTiming as string[] | null,
         buyerRoles: (preProfile as any).buyerRoles as string[] | null,
         keyAccounts: (preProfile as any).keyAccounts as string[] | null,
-        salesMotion: (preProfile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
+        salesMotion: (preProfile as any).salesMotion as "direct_only" | "mixed" | null,
       });
       // Identify this rep's Must Act candidates (action_ready, score > 35, High/Medium lane fit)
       const preMustAct = preProjects.filter(p =>
@@ -1747,7 +1779,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         stageTiming: (profile as any).stageTiming as string[] | null,
         buyerRoles: (profile as any).buyerRoles as string[] | null,
         keyAccounts: (profile as any).keyAccounts as string[] | null,
-        salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
+        salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
       });
 
       if (matchedProjects.length === 0) {
@@ -2061,7 +2093,7 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
         assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
-        salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
+        salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
       });
 
       const hotProjects = matchedProjects.filter(p =>
@@ -2483,7 +2515,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     dealSizeMin: profile.dealSizeMin,
     dealSizeMax: profile.dealSizeMax,
     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
-    salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
+    salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
   });
 
   const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
@@ -2579,7 +2611,7 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     dealSizeMin: profile.dealSizeMin,
     dealSizeMax: profile.dealSizeMax,
     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
-    salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
+    salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
   });
 
   const territories = (profile.territories as string[]) || [];

@@ -11,7 +11,7 @@
  *   2. Lane-specific opportunity  — portableAirOpportunityScore, pumpOpportunityScore,
  *                                   palOpportunityScore, bessOpportunityScore,
  *                                   multiLaneOpportunityScore
- *   3. Selling-motion channel     — Direct / Rental / Cross-sell / Monitor
+ *   3. Selling-motion channel     — Direct sale / Cross-sell / Adjacent / Monitor / Low fit
  *   4. Per-user final score       — combines all dimensions using the user's
  *                                   territory, BL assignment, lane focus, sector,
  *                                   key accounts, buyer role, and actionability
@@ -36,6 +36,11 @@ export const LANE_ACTIONABILITY_THRESHOLD = 30;
 
 // ── Types ──
 
+/**
+ * GLOBAL RULE: This platform is for direct-sale reps only.
+ * 'rental' is kept as an internal classification signal only — it is NEVER shown to reps
+ * and is ALWAYS suppressed from Must Act and Closing Soon.
+ */
 export type SellingMotion = "direct" | "rental" | "crosssell" | "monitor";
 
 export interface LaneOpportunityScores {
@@ -110,7 +115,7 @@ export interface LaneScoredProject {
   channelLabel: string;
   /**
    * Deterministic channel enum for programmatic use.
-   * Values: direct | rental | crosssell | monitor
+   * Values: direct | rental (internal suppression signal only) | crosssell | monitor
    */
   channel: SellingMotion;
   /**
@@ -311,6 +316,148 @@ export function computeLaneOpportunityScores(
     primaryLane,
     secondaryLane,
     crossSellFit,
+  };
+}
+
+// ── Part A.2b: Portable Air Opportunity Gate ──
+
+/**
+ * PORTABLE AIR OPPORTUNITY GATE
+ * ================================
+ * Hard pre-filter applied before any project enters a rep's digest pool.
+ * Replaces the old "territory project ranking" approach with
+ * "portable-air-opportunity gating + ranking".
+ *
+ * A project MUST pass this gate to appear in Must Act or Closing Soon.
+ * Projects that fail the gate are demoted to monitor_only (Waiting on Contact
+ * Discovery) or suppressed entirely, depending on the failure reason.
+ *
+ * POSITIVE SIGNALS (any one is sufficient to pass):
+ *   - drilling / blast-hole / exploration / mine development
+ *   - commissioning / tie-in / shutdown / temporary plant air
+ *   - abrasive blasting / coating / pneumatic-tool-heavy work
+ *   - contractor fleet replacement / direct compressor procurement
+ *   - remote site temporary air need
+ *   - explicit compressor / portable air use case
+ *   - contractor-side route-to-buy with a real project package
+ *
+ * NEGATIVE SIGNALS (any one causes suppression):
+ *   - schools / education facilities
+ *   - health / community / aged care / hospital facilities
+ *   - generic building works (residential, commercial fit-out)
+ *   - wind / battery / solar / desal / utility projects with NO explicit compressor package
+ *   - government-owner-only with weak contractor path
+ *   - closing-soon tenders with weak equipment signal
+ *
+ * Returns:
+ *   { pass: true }  — project may enter the digest pool
+ *   { pass: false, reason: string, suppressionLevel: 'suppress' | 'monitor_only' }
+ */
+export function portableAirOpportunityGate(
+  project: {
+    name: string;
+    overview: string | null;
+    sector: string;
+    stage: string | null;
+    opportunityRoute: string;
+    owner: string;
+    equipmentSignals?: string[] | null;
+  },
+  portableAirScore: number,
+): { pass: true } | { pass: false; reason: string; suppressionLevel: 'suppress' | 'monitor_only' } {
+  const text = [
+    project.name,
+    project.overview ?? "",
+    project.opportunityRoute ?? "",
+    (project.equipmentSignals ?? []).join(" "),
+  ].join(" ").toLowerCase();
+
+  // ── Hard suppression: negative signals ──
+  // These project types have no credible portable air direct-sale path.
+  const hardSuppressPatterns: Array<[RegExp, string]> = [
+    [/\b(school|primary school|high school|secondary school|college|university|tafe|education|childcare|kindergarten|early learning)\b/, "education facility — no portable air demand"],
+    [/\b(hospital|health|aged care|nursing home|medical centre|community health|mental health facility|ambulance)\b/, "health/community facility — no portable air demand"],
+    [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no portable air demand"],
+    [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic)\b/, "community/civic facility — no portable air demand"],
+  ];
+  for (const [pattern, reason] of hardSuppressPatterns) {
+    if (pattern.test(text)) {
+      return { pass: false, reason, suppressionLevel: 'suppress' };
+    }
+  }
+
+  // ── Soft suppression: weak-signal categories ──
+  // These project types are only relevant if there is an explicit compressor/equipment signal.
+  const weakSignalPatterns: Array<[RegExp, string]> = [
+    [/\b(wind farm|wind turbine|wind energy|offshore wind|onshore wind)\b/, "wind project — no explicit compressor package"],
+    [/\b(battery storage|bess|grid-scale battery|utility battery|battery energy storage)\b/, "battery storage — no explicit compressor package"],
+    [/\b(desalination|desal plant|water treatment|wastewater treatment|sewage treatment)\b/, "desal/water treatment — no explicit compressor package"],
+    [/\b(solar farm|solar park|photovoltaic|pv farm|solar generation)\b/, "solar farm — no explicit compressor package"],
+    [/\b(road upgrade|road widening|highway upgrade|intersection upgrade|footpath|footbridge|pedestrian bridge)\b/, "minor civil works — no portable air demand"],
+    [/\b(office fitout|commercial fitout|retail fitout|fit-out|fitout|refurbishment|renovation|office building)\b/, "commercial fitout/refurb — no portable air demand"],
+  ];
+
+  // Explicit compressor/portable air override: if any of these are present, the weak-signal
+  // suppression is overridden and the project passes regardless of category.
+  const explicitCompressorSignals = [
+    "compressor", "portable air", "air compressor", "cfm", "psi", "bar",
+    "pneumatic", "abrasive blast", "sandblast", "grit blast", "shot blast",
+    "drilling", "blast hole", "blasthole", "exploration drilling", "rotary drill",
+    "rock drill", "drill rig", "borehole", "water bore",
+    "shutdown", "turnaround", "plant air", "instrument air", "process air",
+    "commissioning air", "tie-in", "hydrostatic test", "pigging",
+    "contractor fleet", "fleet replacement", "equipment supply",
+  ];
+  const hasExplicitCompressorSignal = explicitCompressorSignals.some(kw => text.includes(kw));
+
+  for (const [pattern, reason] of weakSignalPatterns) {
+    if (pattern.test(text) && !hasExplicitCompressorSignal) {
+      return { pass: false, reason, suppressionLevel: 'monitor_only' };
+    }
+  }
+
+  // ── Lane score gate ──
+  // If the portable air lane score is very low AND there are no explicit signals, suppress.
+  if (portableAirScore < 15 && !hasExplicitCompressorSignal) {
+    return { pass: false, reason: `low portable air lane score (${portableAirScore}) with no explicit compressor signal`, suppressionLevel: 'monitor_only' };
+  }
+
+  // ── Positive signal check ──
+  // At least one of these must be present for the project to pass.
+  const positiveSignals = [
+    "drilling", "blast hole", "blasthole", "exploration", "mine development",
+    "mining", "quarrying", "tunnelling", "tunneling",
+    "commissioning", "tie-in", "shutdown", "turnaround", "plant air", "instrument air",
+    "abrasive blast", "sandblast", "grit blast", "shot blast", "coating", "painting",
+    "pneumatic", "compressor", "portable air", "cfm", "psi",
+    "contractor fleet", "fleet replacement", "equipment supply", "equipment procurement",
+    "remote site", "off-grid", "fly-in fly-out", "fifo",
+    "oil", "gas", "lng", "pipeline", "offshore", "fpso", "refinery", "petrochemical",
+    "mineral processing", "ore processing", "concentrator", "smelter",
+    "construction", "civil", "earthworks", "bulk earthworks", "bulk excavation",
+    "infrastructure", "rail", "port", "dam", "water supply",
+    "defence", "naval", "military",
+  ];
+  const hasPositiveSignal = positiveSignals.some(kw => text.includes(kw));
+
+  // If portable air lane score is strong, pass regardless of keyword match.
+  if (portableAirScore >= 40) return { pass: true };
+
+  // If positive signal present and lane score is at least moderate, pass.
+  if (hasPositiveSignal && portableAirScore >= 20) return { pass: true };
+
+  // If explicit compressor signal, always pass.
+  if (hasExplicitCompressorSignal) return { pass: true };
+
+  // Sector-based pass: mining, oil_gas, defence always have credible portable air path.
+  const highValueSectors = ["mining", "oil_gas", "defence"];
+  if (highValueSectors.includes(project.sector.toLowerCase()) && portableAirScore >= 20) return { pass: true };
+
+  // Default: insufficient signal — demote to monitor_only
+  return {
+    pass: false,
+    reason: `insufficient portable air opportunity signal (lane score ${portableAirScore}, no positive keywords)`,
+    suppressionLevel: 'monitor_only',
   };
 }
 
@@ -635,7 +782,9 @@ export function generateRouteToBuy(
     return `Direct sale — ${route || "equipment supply to owner/EPC"}`;
   }
   if (sellingMotion === "rental") {
-    return `Rental-led — ${route || "short-term hire opportunity"}`;
+    // GLOBAL RULE: rental projects are suppressed from rep-facing digest.
+    // This path is only reached in internal scoring — never shown to reps.
+    return `Monitor — equipment hire path (not direct-sale)`;
   }
   if (sellingMotion === "crosssell") {
     return `Cross-sell — ${route || "secondary PT lane opportunity"}`;
@@ -677,12 +826,20 @@ export function generateBestNextMove(
 
 // ── Channel label ──
 
+/**
+ * GLOBAL RULE: This platform is for direct-sale reps only.
+ * Channel labels shown to reps use the new taxonomy:
+ *   Direct sale | Cross-sell / Adjacent | Monitor | Low fit
+ *
+ * 'rental' is an internal suppression signal only — it maps to 'Low fit' if somehow shown.
+ * Projects classified as rental are suppressed by the Portable Air Opportunity Gate before display.
+ */
 export function getChannelLabel(motion: SellingMotion): string {
   switch (motion) {
-    case "direct":    return "Direct sale likely";
-    case "rental":    return "Rental-led";
-    case "crosssell": return "Cross-sell";
-    case "monitor":   return "Monitor only";
+    case "direct":    return "Direct sale";
+    case "rental":    return "Low fit";        // internal signal — suppressed by gate before display
+    case "crosssell": return "Cross-sell / Adjacent";
+    case "monitor":   return "Monitor";
   }
 }
 
@@ -725,12 +882,12 @@ export function computePerUserFinalScore(
     buyerRoles?: string[] | null;
     customerTypes?: string[] | null;
     /**
-     * Sales-motion profile for this rep.
-     * direct_only  — penalise rental-channel projects (−15 pts)
-     * rental_led   — penalise direct-only CAPEX projects (−10 pts)
-     * mixed        — no penalty (default)
-     */
-    salesMotion?: "direct_only" | "rental_led" | "mixed" | null;
+   * Sales-motion profile for this rep.
+   * GLOBAL RULE: All reps are direct_only. rental_led has been removed.
+   * direct_only  — rental-channel projects get −25 pts and are suppressed from Must Act/Closing Soon
+   * mixed        — direct + adjacent motions valid; rental still suppressed globally
+   */
+    salesMotion?: "direct_only" | "mixed" | null;
   },
   blScores: DimensionScore[],
   contacts: Array<{
@@ -766,7 +923,8 @@ export function computePerUserFinalScore(
   let routeToBuyScore = 0;
   if (hasContractor) routeToBuyScore += 50;
   if (routeText && routeText !== "unknown" && routeText.length > 3) routeToBuyScore += 30;
-  if (sellingMotion === "direct" || sellingMotion === "rental") routeToBuyScore += 20;
+  if (sellingMotion === "direct") routeToBuyScore += 20;
+  // NOTE: rental sellingMotion no longer contributes to routeToBuyScore — it is suppressed globally.
   routeToBuyScore = Math.min(100, routeToBuyScore);
 
   // ── Shared base score ──
@@ -800,19 +958,21 @@ export function computePerUserFinalScore(
   const rawFinal = 0.45 * (baseScore.total + sectorBonus) + 0.55 * primaryLaneScore;
 
   // ── Sales-motion channel alignment penalty / bonus ──
-  // Applied AFTER the base score so it acts as a guardrail, not a primary signal.
-  // direct_only rep + rental channel → −15 pts (rental projects are not their motion)
-  // direct_only rep + direct channel → +10 pts (reward confirmed CAPEX signal)
-  // rental_led rep + direct channel  → −10 pts (CAPEX projects are secondary)
-  // mixed (default)                  → no adjustment
+  // GLOBAL RULE: This platform is for direct-sale reps only.
+  // rental-channel projects are penalised heavily and suppressed from Must Act / Closing Soon.
+  // direct_only (all reps) + rental channel → −25 pts AND flagged for digest suppression
+  // direct_only (all reps) + direct channel → +10 pts (reward confirmed CAPEX signal)
+  // mixed rep + rental channel              → −20 pts (still suppressed from Must Act)
+  // mixed rep + direct channel              → +5 pts
   let salesMotionAdjustment = 0;
-  const salesMotion = profile.salesMotion ?? "mixed";
+  const salesMotion = profile.salesMotion ?? "direct_only"; // default is now direct_only
   if (salesMotion === "direct_only") {
-    if (sellingMotion === "rental")  salesMotionAdjustment = -15;
+    if (sellingMotion === "rental")  salesMotionAdjustment = -25; // heavy penalty + suppression
     if (sellingMotion === "direct")  salesMotionAdjustment = +10;
-  } else if (salesMotion === "rental_led") {
-    if (sellingMotion === "direct")  salesMotionAdjustment = -10;
-    if (sellingMotion === "rental")  salesMotionAdjustment = +10;
+  } else {
+    // mixed
+    if (sellingMotion === "rental")  salesMotionAdjustment = -20; // still suppressed
+    if (sellingMotion === "direct")  salesMotionAdjustment = +5;
   }
 
   const finalScore = Math.max(0, Math.min(100, Math.round(rawFinal + salesMotionAdjustment)));

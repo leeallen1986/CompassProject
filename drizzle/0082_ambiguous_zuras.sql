@@ -1,0 +1,1 @@
+ALTER TABLE `userProfiles` MODIFY COLUMN `salesMotion` enum('direct_only','mixed') DEFAULT 'direct_only';

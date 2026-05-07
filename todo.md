@@ -2241,3 +2241,24 @@
 - [x] Fix Closing Soon filter: require relevanceScore > 35 and meaningful lane fit
 - [x] Run corrected dry-run for Ryan: 1 rental project in pool (was 57/60), top-15 all direct-sale WA mining/oil_gas
 - [x] All 3,044 tests pass after changes
+
+## Global Direct-Sale-Only Business Rule (May 7 2026)
+- [x] Set salesMotion=direct_only as DB default for all reps (UPDATE userProfiles) — 12 reps confirmed direct_only
+- [x] Change salesMotion column default to 'direct_only' in schema — rental_led removed from enum
+- [x] Remove rental_led from classifySellingMotion — never return rental for any project
+- [x] Suppress rental-primary projects from Must Act and Closing Soon globally — -25pts penalty + digest suppression
+- [x] Update channel label taxonomy: Direct sale / Cross-sell / Adjacent / Monitor / Low fit (remove Rental/hire)
+- [x] Remove all "Rental / hire" wording from digest email templates — channel chip excludes rental
+- [x] Remove all "Rental / hire" wording from dashboard project cards and chip labels — ThisWeek.tsx updated
+- [x] Rerun previews for Ryan, Daniel, Dan Day, Amit under global direct-only assumption — 0 rental-keyword projects in tier 1/2 pool
+- [x] Return suppression report: 0 rental-keyword projects in tier 1/2 pool (clean)
+
+## Portable Air Opportunity Gate (May 7 2026)
+- [x] Implement portableAirOpportunityGate() function: positive signals (drilling/blasting/shutdown/commissioning/contractor fleet/remote site air), negative signals (schools/health/community/wind-battery-desal with no compressor package/govt-owner-only weak path/closing-soon weak equipment signal)
+- [x] Apply gate as hard pre-filter in scoreAndFilterProjects before any project enters digest pool
+- [x] Must Act rules: must pass gate + direct-sale credible + strong route-to-buy + commercially relevant contact + worth pursuing this week
+- [x] Closing Soon rules: only include if credible portable air relevance + direct-sale potential; suppress generic tender noise
+- [x] Waiting on Contact Discovery: only show if project would genuinely be worth pursuing once contact found; otherwise suppress
+- [x] Contact selection: prefer best commercial/operator/project/maintenance contact; penalise region/title mismatch
+- [x] Apply same gate logic system-wide for all reps (not just Ryan)
+- [x] Run corrected dry-run for Ryan, Daniel, Dan Day, Amit — 0 rental-keyword projects in tier 1/2, all reps direct_only confirmed

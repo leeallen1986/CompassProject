@@ -61,9 +61,9 @@ const sectorToIndustries: Record<string, string[]> = {
 };
 
 // ── Route to offer category mapping ──
+// GLOBAL RULE: Direct-sale platform only. Fleet CAPEX / rental routes removed.
 const routeToOfferCategories: Record<string, string[]> = {
   "Direct CAPEX": ["equipment", "capital_equipment", "compressors", "generators"],
-  "Fleet CAPEX": ["rentals", "hire", "fleet", "rental_equipment"],
   "OPEX/Monitor": ["services", "maintenance", "parts", "aftermarket"],
 };
 
