@@ -2207,8 +2207,21 @@
 ## Nightly Queue Automation + Trust-Tier Audit (May 7 2026)
 - [x] Add /api/scheduled/queue-run POST endpoint to site (accepts POST, returns batch summary JSON)
 - [x] Build nightly batch summary: queued start/end, send_ready start/end, send_ready projects start/end, Apollo calls used, retries/blocked/timed-out
-- [ ] Schedule nightly queue run after midnight UTC using Manus scheduled task
-- [ ] Audit 3,400 Apollo-email / named_unverified contacts: stale trust-tier vs truly unverified
-- [ ] Backfill any stale trust-tier contacts found in audit
-- [ ] Report digest-eligible pools for Ryan, Daniel, Dan Day, Amit
-- [ ] Report Must Act quality improvement from larger send_ready pool
+- [x] Schedule nightly queue run after midnight UTC using Manus scheduled task (00:30 UTC daily)
+- [x] Audit 3,400 Apollo-email / named_unverified contacts: stale trust-tier vs truly unverified
+- [x] Backfill any stale trust-tier contacts found in audit (827 promoted via verificationStatus=verified; 99 projects promoted to send_ready_contact) (827 promoted via verificationStatus=verified, +99 projects to send_ready_contact)
+- [x] Report digest-eligible pools for Ryan, Daniel, Dan Day, Amit
+- [x] Report Must Act quality improvement from larger send_ready pool
+
+## ActionTier + Territory Fix (May 7 2026)
+- [x] Fix actionTier mapping: tier1_actionable/tier2_warm values correct throughout — root cause was digestSafe gate backlog, not string mismatch
+- [x] Audit territory leakage: confirmed no real leakage — earlier audit artifact from raw SQL OR projectState IS NULL without location-string fallback
+- [x] Rerun dry-run digest previews for Ryan, Daniel, Dan Day, Amit with correct tiers + territory
+- [x] Verify Must Act populates correctly and rep pools are territory-clean
+
+## Contact Validation Gate Backfill (May 7 2026)
+- [x] Run Contact Validation (digestSafe gate) on top 3 Must Act projects for Daniel Zec (Bass Strait VIC, Inland Rail Euroa VIC, Olympic Dam SA)
+- [x] Run Contact Validation (digestSafe gate) on top 3 Must Act projects for Dan Day (Mount Carlton QLD, NEXTDC S4 NSW, Bruce Highway QLD)
+- [x] Run Contact Validation (digestSafe gate) on top 3 Must Act projects for Amit Bhargava (Regional Road NT, Large-Scale Student Housing VIC, Liddell Battery NSW)
+- [x] Verify Ryan WA digest send status: firstSendApproved=1, 5/5 digestSafe, gate passes, ready to send live
+- [x] Rerun dry-run previews and confirm threshold status for all four reps — all four now pass
