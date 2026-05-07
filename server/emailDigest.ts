@@ -324,6 +324,12 @@ interface DigestProject {
   reasonCodes?: string[];
   /** Portable Air Opportunity Gate result — projects that fail are demoted to monitor_only or suppressed */
   gateResult?: { pass: true } | { pass: false; reason: string; suppressionLevel: 'suppress' | 'monitor_only' };
+  /** Three-family air opportunity classification */
+  airFit?: "High" | "Medium" | "Low" | "None";
+  /** Primary air opportunity type */
+  opportunityType?: string;
+  /** Best product angle for this project */
+  bestProductAngle?: string;
 }
 
 interface DigestContact {
@@ -1116,8 +1122,12 @@ function renderProjectCard(
     : p.channel === "crosssell" ? "Cross-sell / Adjacent"
     : null
     : null;
+  // Three-family air opportunity chip: only show for PA reps when there's a clear product angle
+  const productAngleChip = (p.bestProductAngle && p.bestProductAngle !== "Monitor" && p.airFit && p.airFit !== "None")
+    ? `🛠️ ${p.bestProductAngle}`
+    : null;
   const fallbackChip = isFallback ? "⚠️ Contacts need validation" : null;
-  const chipParts = [laneFitChip, channelChip, fallbackChip].filter(Boolean);
+  const chipParts = [laneFitChip, channelChip, productAngleChip, fallbackChip].filter(Boolean);
   if (chipParts.length > 0) {
     card += `   ${chipParts.join(" • ")}\n`;
   }
@@ -1536,6 +1546,10 @@ async function scoreAndFilterProjects(
       reasonCodes: laneResultWithTieBreaker.reasonCodes,
       gateResult,
       palBessGateResult: palBessGateResult ?? undefined,
+      // Three-family air opportunity classification
+      airFit: laneResultWithTieBreaker.airFit,
+      opportunityType: laneResultWithTieBreaker.opportunityType,
+      bestProductAngle: laneResultWithTieBreaker.bestProductAngle,
     };
   });
 

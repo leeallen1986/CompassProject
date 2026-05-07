@@ -2310,3 +2310,19 @@
 - [x] Determine whether same package-level gate logic should apply across every lane (Portable Air, Pump, etc.)
 - [x] Run tests after all changes
 - [x] Produce corrected Amit digest with suppression report
+
+## Three-Family PA Opportunity Model — Compressed Air + Specialty Air (May 7 2026)
+- [x] Expand PORTABLE_AIR_BOOST_KEYWORDS to cover all three application families: Core PA (drilling/blasting/piling/waterwell/pneumatic civils/temporary plant air), Air Treatment/Quality (dryers/aftercoolers/instrument air/moisture-sensitive commissioning), Specialty Air/Gas (N2 membrane/pipeline testing/purging/inerting/dry-out/pre-commissioning/booster/high-pressure testing)
+- [x] Add AIR_TREATMENT_BOOST_KEYWORDS and SPECIALTY_AIR_BOOST_KEYWORDS keyword lists
+- [x] Refactor portableAirOpportunityGate positive signals to include specialty air signals (pipeline testing, line drying, commissioning, inerting, purge, shutdown support, high-pressure testing, temporary instrument/process air)
+- [x] Add classifyAirOpportunity() function returning { airFit, opportunityType, bestProductAngle }
+- [x] Add airFit, opportunityType, bestProductAngle fields to LaneScoredProject interface
+- [x] Update computePerUserFinalScore() to compute and return the three new fields
+- [x] Update emailDigest.ts project card to display Air fit / Opportunity type / Best product angle
+- [x] Update ThisWeek.tsx project card to display the three new fields
+- [x] Update emailDigest.ts DigestProject interface to include the three new fields
+- [x] Update thisWeekService.ts ThisWeekProject interface to include the three new fields
+- [x] Add vitest tests for classifyAirOpportunity() covering all three families (22 tests)
+- [x] Add vitest tests for portableAirOpportunityGate with specialty air signals
+- [x] Run full test suite: 101 files, 3,066 tests all pass
+- [x] Save checkpoint

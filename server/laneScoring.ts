@@ -85,6 +85,42 @@ export type VisibilityTier =
   | "monitor_only"
   | "suppress";
 
+/**
+ * Three-family compressed air + specialty air opportunity classification.
+ * Covers all Atlas Copco PT portable air products:
+ *   Family 1 — Core Portable Air: drilling, blasting, piling, waterwell, pneumatic civils, temporary plant air
+ *   Family 2 — Air Treatment / Quality: dryers, aftercoolers, instrument air, moisture-sensitive commissioning
+ *   Family 3 — Specialty Air / Gas: N2 membrane, pipeline testing, purging, inerting, dry-out, booster, high-pressure testing
+ */
+export type AirFitLevel = "High" | "Medium" | "Low" | "None";
+export type AirOpportunityType =
+  | "drilling_blasting"          // DTH, RC, core, blast-hole, waterwell
+  | "piling_civils"              // piling, pneumatic-tool-heavy civils
+  | "shutdown_commissioning"     // shutdown, turnaround, plant commissioning
+  | "abrasive_blasting"          // surface prep, coating, painting
+  | "temporary_plant_air"        // temporary process/instrument air supply
+  | "air_treatment"              // dryers, aftercoolers, instrument air quality
+  | "pipeline_testing"           // hydrotest, pressure test, leak test, line drying
+  | "purging_inerting"           // N2 purge, inerting, dry-out, pre-commissioning
+  | "high_pressure_booster"      // booster compressor, high-pressure testing
+  | "specialty_air_package"      // combined specialty air / N2 membrane package
+  | "generic_construction"       // construction with likely but unconfirmed air demand
+  | "none";                      // no credible air opportunity
+export type BestProductAngle =
+  | "Compressor"                 // Core portable air compressor (XAS, XATS, XAVS)
+  | "Dryer"                      // Refrigerant or desiccant dryer
+  | "N2 Membrane"                // Nitrogen membrane system
+  | "Booster"                    // High-pressure booster compressor
+  | "Package"                    // Combined compressor + dryer / N2 / booster package
+  | "Monitor";                   // No clear product angle yet
+export interface AirOpportunityClassification {
+  /** Overall air fit level for this project */
+  airFit: AirFitLevel;
+  /** Primary opportunity type */
+  opportunityType: AirOpportunityType;
+  /** Best product angle for this project */
+  bestProductAngle: BestProductAngle;
+}
 export interface LaneScoredProject {
   /** Combined final score 0-100 used for sorting */
   finalScore: number;
@@ -105,6 +141,12 @@ export interface LaneScoredProject {
   laneSuppressed: boolean;
   /** Human-readable lane fit label for card display */
   laneFitLabel: "High" | "Medium" | "Low" | "Not relevant";
+  /** Three-family air opportunity classification */
+  airFit: AirFitLevel;
+  /** Primary air opportunity type */
+  opportunityType: AirOpportunityType;
+  /** Best product angle for this project */
+  bestProductAngle: BestProductAngle;
   /** Why this project is actionable now (1-2 sentences) */
   whyNow: string;
   /** Route-to-buy description */
@@ -127,14 +169,102 @@ export interface LaneScoredProject {
 
 // ── Keyword lists for lane opportunity scoring (Part B) ──
 
+// ── Family 1: Core Portable Air ──
 const PORTABLE_AIR_BOOST_KEYWORDS = [
+  // Drilling / exploration — strongest signal
   "mining", "drill", "drilling", "blast", "blasting", "tunnell", "tunnel",
-  "shutdown", "turnaround", "pipeline commissioning", "gas commissioning",
-  "temporary plant air", "pneumatic", "shotcrete", "underground",
   "rock drill", "percussion", "quarry", "quarrying", "exploration drilling",
-  "contractor fleet", "fleet replacement", "fleet displacement",
+  "rotary drill", "drill rig", "borehole", "water bore", "aircore", "air core",
+  "dth", "down-the-hole", "down the hole", "rc drill", "reverse circulation",
+  "core drill", "core drilling", "waterwell", "water well", "groundwater bore",
+  "blast hole", "blasthole", "open pit", "open cut", "underground mine",
+  "mine development", "shaft sinking", "raise bore", "raise boring",
+  // Piling / civils with pneumatic demand
+  "piling", "pile driving", "driven pile", "bored pile", "cfa pile",
+  "micropile", "micro-pile", "sheet pile", "sheet piling",
+  "pneumatic-tool", "pneumatic tool", "jackhammer", "rock breaking",
+  "shotcrete", "concrete spraying",
+  // Abrasive blasting / surface prep
+  "abrasive blast", "sandblast", "grit blast", "shot blast",
+  "abrasive blasting", "surface preparation", "coating", "painting",
+  // Shutdown / plant operations / temporary plant air
+  "shutdown", "turnaround", "plant air", "instrument air",
+  "process air", "commissioning air", "temporary plant air",
+  "tie-in", "hydrostatic test", "pigging",
+  // Compressor / equipment procurement
   "compressed air", "compressor", "xas", "xats", "xavs", "xrhs",
+  "contractor fleet", "fleet replacement", "fleet displacement",
+  "equipment supply", "equipment procurement",
+  // Boring / HDD
   "bore", "boring", "horizontal directional", "hdd",
+  // Remote / FIFO sites
+  "remote site", "off-grid", "fly-in fly-out", "fifo", "camp",
+  // Oil & gas — strong portable air demand
+  "oil field", "gas field", "lng", "lng plant", "pipeline", "offshore",
+  "fpso", "refinery", "petrochemical", "gas processing", "lng terminal",
+  "gas plant",
+  // Mining / mineral processing
+  "mineral processing", "ore processing", "concentrator", "smelter",
+  "gold mine", "gold project", "iron ore", "copper mine", "nickel mine",
+  "coal mine", "bauxite", "lithium mine",
+  // Naval / defence
+  "naval", "frigate", "destroyer", "submarine", "naval vessel", "warship",
+  "military base", "defence facility", "shipyard",
+  // Port / heavy industrial
+  "port development", "berth", "jetty", "wharf", "bulk terminal",
+  "power station", "power plant", "gas turbine", "diesel generation",
+  "decommissioning", "demolition",
+];
+
+// ── Family 2: Air Treatment / Quality ──
+const AIR_TREATMENT_BOOST_KEYWORDS = [
+  // Dryers / aftercoolers / moisture control
+  "dryer", "air dryer", "refrigerant dryer", "desiccant dryer",
+  "aftercooler", "after-cooler", "moisture separator", "moisture trap",
+  "line drying", "line dry", "pipe drying", "pipeline drying",
+  "dry air", "clean air", "clean dry air", "dry compressed air",
+  // Instrument air / process air quality
+  "instrument air", "instrument-air", "instrument quality air",
+  "process air quality", "instrument air backup", "instrument air system",
+  "control air", "control valve air", "pneumatic control",
+  // Moisture-sensitive commissioning / testing
+  "moisture-sensitive", "moisture sensitive", "dew point",
+  "dew-point testing", "dew point specification", "low dew point",
+  "oil-free air", "oil free air", "class 1 air", "iso 8573",
+  // Filtration / air quality
+  "coalescing filter", "particulate filter", "air filtration",
+  "compressed air quality", "air purity",
+];
+
+// ── Family 3: Specialty Air / Gas ──
+const SPECIALTY_AIR_BOOST_KEYWORDS = [
+  // Nitrogen membrane / N2 systems
+  "nitrogen", "n2 membrane", "nitrogen membrane", "nitrogen generator",
+  "nitrogen purge", "nitrogen blanket", "nitrogen inerting",
+  "inert gas", "inert atmosphere",
+  // Pipeline pressure testing / leak testing
+  "pipeline testing", "pipeline pressure test", "pipeline commissioning",
+  "hydrostatic testing", "hydrotest", "hydro-test", "pressure testing",
+  "leak testing", "leak test", "pressure test", "pneumatic test",
+  "line testing", "pipeline integrity", "pipeline inspection",
+  // Purging / inerting
+  "purging", "purge", "inerting", "inert", "gas purge",
+  "pipeline purge", "vessel purge", "tank purge", "line purge",
+  // Dry-out / pre-commissioning
+  "dry-out", "dryout", "dry out", "pre-commissioning", "pre commissioning",
+  "dewatering pipeline", "pipeline dewatering", "pipeline dry-out",
+  "vessel dry-out", "tank dry-out", "equipment dry-out",
+  // High-pressure testing / booster
+  "high pressure", "high-pressure", "booster compressor", "booster pump",
+  "pressure booster", "gas booster", "air booster",
+  "high pressure testing", "high-pressure test",
+  // Shutdown / commissioning packages
+  "commissioning", "pre-commissioning", "gas commissioning",
+  "shutdown package", "turnaround package", "maintenance package",
+  "plant commissioning", "facility commissioning",
+  // Temporary instrument / process air
+  "temporary instrument air", "temporary process air",
+  "process air supply", "instrument air supply",
 ];
 
 const PORTABLE_AIR_PENALTY_KEYWORDS = [
@@ -317,6 +447,116 @@ export function computeLaneOpportunityScores(
     secondaryLane,
     crossSellFit,
   };
+}
+
+// ── Part B.2: Three-family air opportunity classification ──
+
+/**
+ * Classify a project into the three-family portable air opportunity model.
+ * Returns airFit, opportunityType, and bestProductAngle for display in digest cards and UI.
+ *
+ * Family 1 — Core Portable Air: drilling, blasting, piling, waterwell, pneumatic civils, temporary plant air
+ * Family 2 — Air Treatment / Quality: dryers, aftercoolers, instrument air, moisture-sensitive commissioning
+ * Family 3 — Specialty Air / Gas: N2 membrane, pipeline testing, purging, inerting, dry-out, booster
+ */
+export function classifyAirOpportunity(
+  project: {
+    name: string;
+    overview: string | null;
+    sector: string;
+    stage: string | null;
+    opportunityRoute: string;
+    equipmentSignals?: string[] | null;
+  },
+): AirOpportunityClassification {
+  const text = projectText(project).toLowerCase();
+
+  // ── Family 3 signals (Specialty Air / Gas) — check first as most specific ──
+  const specialtyMatches = SPECIALTY_AIR_BOOST_KEYWORDS.filter(kw => text.includes(kw));
+  const hasNitrogen = ["nitrogen", "n2 membrane", "nitrogen membrane", "nitrogen generator", "nitrogen purge", "nitrogen blanket", "nitrogen inerting", "inert gas"].some(kw => text.includes(kw));
+  const hasPipelineTest = ["pipeline testing", "pipeline pressure test", "hydrostatic testing", "hydrotest", "hydro-test", "pressure testing", "leak testing", "leak test", "pressure test", "pneumatic test", "line testing"].some(kw => text.includes(kw));
+  const hasPurging = ["purging", "purge", "inerting", "inert", "gas purge", "pipeline purge", "vessel purge", "tank purge", "line purge"].some(kw => text.includes(kw));
+  const hasDryOut = ["dry-out", "dryout", "dry out", "pre-commissioning", "pre commissioning", "dewatering pipeline", "pipeline dewatering", "pipeline dry-out", "vessel dry-out", "tank dry-out"].some(kw => text.includes(kw));
+  const hasBooster = ["booster compressor", "booster pump", "pressure booster", "gas booster", "air booster", "high pressure testing", "high-pressure test"].some(kw => text.includes(kw));
+
+  // ── Family 2 signals (Air Treatment / Quality) ──
+  const airTreatmentMatches = AIR_TREATMENT_BOOST_KEYWORDS.filter(kw => text.includes(kw));
+  const hasDryer = ["dryer", "air dryer", "refrigerant dryer", "desiccant dryer", "aftercooler", "after-cooler", "moisture separator", "moisture trap", "line drying", "pipe drying", "pipeline drying", "air drying", "drying of pipeline", "drying of pipe"].some(kw => text.includes(kw));
+  const hasInstrumentAir = ["instrument air", "instrument-air", "instrument quality air", "control air", "control valve air"].some(kw => text.includes(kw));
+  const hasMoistureSensitive = ["moisture-sensitive", "moisture sensitive", "dew point", "dew-point testing", "oil-free air", "oil free air", "iso 8573"].some(kw => text.includes(kw));
+
+  // ── Family 1 signals (Core Portable Air) ──
+  const hasDrilling = ["drilling", "blast hole", "blasthole", "exploration drilling", "rotary drill", "rock drill", "drill rig", "borehole", "water bore", "aircore", "air core", "dth", "down-the-hole", "rc drill", "waterwell", "water well", "groundwater bore", "shaft sinking", "raise bore"].some(kw => text.includes(kw));
+  const hasPiling = ["piling", "pile driving", "driven pile", "bored pile", "cfa pile", "micropile", "sheet pile", "sheet piling", "pneumatic-tool", "pneumatic tool", "jackhammer", "rock breaking"].some(kw => text.includes(kw));
+  const hasShutdown = ["shutdown", "turnaround", "plant air", "commissioning air", "temporary plant air", "tie-in", "pigging"].some(kw => text.includes(kw));
+  const hasBlasting = ["abrasive blast", "sandblast", "grit blast", "shot blast", "abrasive blasting", "surface preparation"].some(kw => text.includes(kw));
+  const hasCompressor = ["compressed air", "compressor", "xas", "xats", "xavs", "xrhs", "contractor fleet", "fleet replacement"].some(kw => text.includes(kw));
+  const hasIndustrialSite = ["mining", "oil field", "gas field", "lng", "fpso", "refinery", "petrochemical", "offshore", "naval", "shipyard", "military base"].some(kw => text.includes(kw));
+
+  // ── Determine opportunity type and product angle ──
+
+  // Priority order: most specific / highest-value first
+
+  // Family 3: Specialty Air — multiple signals = package
+  const specialtyCount = [hasNitrogen, hasPipelineTest, hasPurging, hasDryOut, hasBooster].filter(Boolean).length;
+  if (specialtyCount >= 2) {
+    return { airFit: "High", opportunityType: "specialty_air_package", bestProductAngle: "Package" };
+  }
+  if (hasBooster) {
+    return { airFit: "High", opportunityType: "high_pressure_booster", bestProductAngle: "Booster" };
+  }
+  if (hasNitrogen && (hasPurging || hasDryOut)) {
+    return { airFit: "High", opportunityType: "purging_inerting", bestProductAngle: "N2 Membrane" };
+  }
+  if (hasPipelineTest && (hasDryOut || hasDryer)) {
+    return { airFit: "High", opportunityType: "pipeline_testing", bestProductAngle: "Package" };
+  }
+  if (hasPipelineTest) {
+    return { airFit: "High", opportunityType: "pipeline_testing", bestProductAngle: "Compressor" };
+  }
+  if (hasPurging || hasDryOut) {
+    return { airFit: "High", opportunityType: "purging_inerting", bestProductAngle: hasNitrogen ? "N2 Membrane" : "Compressor" };
+  }
+  if (hasNitrogen) {
+    return { airFit: "High", opportunityType: "purging_inerting", bestProductAngle: "N2 Membrane" };
+  }
+
+  // Family 2: Air Treatment — dryer / instrument air / moisture-sensitive
+  if (hasDryer && hasInstrumentAir) {
+    return { airFit: "High", opportunityType: "air_treatment", bestProductAngle: "Package" };
+  }
+  if (hasDryer) {
+    return { airFit: "High", opportunityType: "air_treatment", bestProductAngle: "Dryer" };
+  }
+  if (hasInstrumentAir || hasMoistureSensitive) {
+    return { airFit: "Medium", opportunityType: "air_treatment", bestProductAngle: "Dryer" };
+  }
+
+  // Family 1: Core Portable Air
+  if (hasDrilling) {
+    return { airFit: "High", opportunityType: "drilling_blasting", bestProductAngle: "Compressor" };
+  }
+  if (hasBlasting) {
+    return { airFit: "High", opportunityType: "abrasive_blasting", bestProductAngle: "Compressor" };
+  }
+  if (hasShutdown && hasCompressor) {
+    return { airFit: "High", opportunityType: "shutdown_commissioning", bestProductAngle: "Compressor" };
+  }
+  if (hasShutdown) {
+    return { airFit: "Medium", opportunityType: "shutdown_commissioning", bestProductAngle: "Compressor" };
+  }
+  if (hasPiling) {
+    return { airFit: "Medium", opportunityType: "piling_civils", bestProductAngle: "Compressor" };
+  }
+  if (hasCompressor) {
+    return { airFit: "Medium", opportunityType: "temporary_plant_air", bestProductAngle: "Compressor" };
+  }
+  if (hasIndustrialSite) {
+    return { airFit: "Low", opportunityType: "generic_construction", bestProductAngle: "Monitor" };
+  }
+
+  // No credible air signal
+  return { airFit: "None", opportunityType: "none", bestProductAngle: "Monitor" };
 }
 
 // ── Part A.2b: Portable Air Opportunity Gate ──
@@ -1323,6 +1563,9 @@ export function computePerUserFinalScore(
   const bestContact = sendReadyContacts[0] ?? namedContacts[0] ?? null;
   const hasContact = bestContact !== null;
 
+  // ── Three-family air opportunity classification ──
+  const airClassification = classifyAirOpportunity(project);
+
   // ── Narrative fields ──
   const whyNow = generateWhyNow(project, laneScores, assignedBLs);
   const routeToBuy = generateRouteToBuy(project, sellingMotion, hasContractor);
@@ -1368,6 +1611,9 @@ export function computePerUserFinalScore(
     channel: sellingMotion, // deterministic enum alias (guardrail 5)
     laneSuppressed,
     laneFitLabel,
+    airFit: airClassification.airFit,
+    opportunityType: airClassification.opportunityType,
+    bestProductAngle: airClassification.bestProductAngle,
     whyNow,
     routeToBuy,
     bestNextMove,

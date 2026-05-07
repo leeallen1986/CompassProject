@@ -164,6 +164,8 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
   const routeToBuy = project?.routeToBuy || "";
   const laneFitLabel: string = project?.laneFitLabel || "";
   const channel: string = project?.channel || "";
+  const bestProductAngle: string = project?.bestProductAngle || "";
+  const airFit: string = project?.airFit || "None";
 
   const channelColors: Record<string, string> = {
     direct: "bg-navy/10 text-navy",
@@ -196,6 +198,11 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
         {channel && channel !== "monitor" && channel !== "rental" && (
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${channelColors[channel] || "bg-slate-100 text-slate-500"}`}>
             {channel === "direct" ? "Direct sale" : channel === "crosssell" ? "Cross-sell" : channel}
+          </span>
+        )}
+        {bestProductAngle && bestProductAngle !== "Monitor" && airFit !== "None" && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200">
+            🛠️ {bestProductAngle}
           </span>
         )}
         {action.actionKey && (
@@ -312,6 +319,11 @@ function CompactProjectRow({
             {project.channel === "direct" ? "Direct sale" :
              project.channel === "crosssell" ? "Cross-sell" :
              project.channel}
+          </span>
+        )}
+        {project.bestProductAngle && project.bestProductAngle !== "Monitor" && project.airFit && project.airFit !== "None" && (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200">
+            🛠️ {project.bestProductAngle}
           </span>
         )}
         {project.scopeReason && <ScopeReasonChip reason={project.scopeReason} />}

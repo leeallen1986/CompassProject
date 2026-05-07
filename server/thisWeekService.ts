@@ -61,6 +61,10 @@ export interface ThisWeekProject {
   reasonCodes: string[];
   visibilityTier: VisibilityTier;
   laneScore: number; // primary lane opportunity score 0-100
+  // ── Three-family air opportunity classification ──
+  airFit: "High" | "Medium" | "Low" | "None";
+  opportunityType: string;
+  bestProductAngle: string;
 }
 
 export interface ThisWeekStakeholder {
@@ -580,6 +584,10 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       reasonCodes: laneScoreMap.get(p.id)?.reasonCodes ?? [],
       visibilityTier: visibilityMap.get(p.id) ?? "watchlist_candidate",
       laneScore: laneScoreMap.get(p.id)?.primaryLaneScore ?? 0,
+      // ── Three-family air opportunity classification ──
+      airFit: laneScoreMap.get(p.id)?.airFit ?? "None",
+      opportunityType: laneScoreMap.get(p.id)?.opportunityType ?? "none",
+      bestProductAngle: laneScoreMap.get(p.id)?.bestProductAngle ?? "Monitor",
     };
   }) as ThisWeekProject[];
 
