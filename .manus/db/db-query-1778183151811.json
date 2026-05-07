@@ -1,0 +1,45 @@
+{
+  "query": "\n-- Fix Barossa projects: NT → OFFSHORE_AU (offshore WA waters, not NT onshore)\nUPDATE projects SET projectState = 'OFFSHORE_AU' WHERE id IN ('120230', '510034', '4');\n\n-- Reactivate Woodside Scarborough (was suppressed/stale)\nUPDATE projects SET lifecycleStatus = 'active', suppressed = 0 WHERE id = '7';\n\n-- Reactivate Scarborough Gas Project (was stale)\nUPDATE projects SET lifecycleStatus = 'active' WHERE id = '120229';\n\n-- Verify all changes\nSELECT id, name, projectState, lifecycleStatus, suppressed FROM projects\nWHERE id IN ('120230', '510034', '4', '7', '120229')\nORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Fix Barossa projects: NT → OFFSHORE_AU (offshore WA waters, not NT onshore)\nUPDATE projects SET projectState = 'OFFSHORE_AU' WHERE id IN ('120230', '510034', '4');\n\n-- Reactivate Woodside Scarborough (was suppressed/stale)\nUPDATE projects SET lifecycleStatus = 'active', suppressed = 0 WHERE id = '7';\n\n-- Reactivate Scarborough Gas Project (was stale)\nUPDATE projects SET lifecycleStatus = 'active' WHERE id = '120229';\n\n-- Verify all changes\nSELECT id, name, projectState, lifecycleStatus, suppressed FROM projects\nWHERE id IN ('120230', '510034', '4', '7', '120229')\nORDER BY id;\n",
+  "rows": [
+    {
+      "id": "4",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning",
+      "projectState": "OFFSHORE_AU",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "7",
+      "name": "Woodside Scarborough Energy Project",
+      "projectState": "WA",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "120229",
+      "name": "Scarborough Gas Project",
+      "projectState": "WA",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "120230",
+      "name": "Barossa Gas Project",
+      "projectState": "OFFSHORE_AU",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "510034",
+      "name": "Barossa LNG Project",
+      "projectState": "OFFSHORE_AU",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tlifecycleStatus\tsuppressed\n4\tBW Opal FPSO / Barossa LNG Commissioning\tOFFSHORE_AU\tactive\t0\n7\tWoodside Scarborough Energy Project\tWA\tactive\t0\n120229\tScarborough Gas Project\tWA\tactive\t0\n120230\tBarossa Gas Project\tOFFSHORE_AU\tactive\t0\n510034\tBarossa LNG Project\tOFFSHORE_AU\tactive\t0\n",
+  "stderr": "",
+  "execution_time_ms": 2481
+}

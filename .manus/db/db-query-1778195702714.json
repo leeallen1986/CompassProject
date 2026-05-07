@@ -1,0 +1,30 @@
+{
+  "query": "SELECT up.assignedBusinessLines, up.territories, u.name\nFROM userProfiles up\nJOIN users u ON u.id = up.userId\nWHERE u.name IN ('Ryan Pemberton', 'Amit Bhargava', 'Daniel Zec', 'Dan Day')\nLIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT up.assignedBusinessLines, up.territories, u.name\nFROM userProfiles up\nJOIN users u ON u.id = up.userId\nWHERE u.name IN ('Ryan Pemberton', 'Amit Bhargava', 'Daniel Zec', 'Dan Day')\nLIMIT 10;",
+  "rows": [
+    {
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\"]",
+      "territories": "[\"WA\"]",
+      "name": "Ryan Pemberton"
+    },
+    {
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "name": "Daniel Zec"
+    },
+    {
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "name": "Dan Day"
+    },
+    {
+      "assignedBusinessLines": "[\"PAL\", \"BESS\"]",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "name": "Amit Bhargava"
+    }
+  ],
+  "messages": [],
+  "stdout": "assignedBusinessLines\tterritories\tname\n[\"Portable Air\", \"PT Capital Sales\"]\t[\"WA\"]\tRyan Pemberton\n[\"Portable Air\"]\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\tDaniel Zec\n[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\tDan Day\n[\"PAL\", \"BESS\"]\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\tAmit Bhargava\n",
+  "stderr": "",
+  "execution_time_ms": 1753
+}

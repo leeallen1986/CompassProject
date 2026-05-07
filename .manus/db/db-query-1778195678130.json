@@ -1,0 +1,28 @@
+{
+  "query": "SHOW TABLES LIKE '%profile%';\nSELECT id, name FROM users WHERE name LIKE '%Ryan%' OR name LIKE '%Amit%' OR name LIKE '%Dan%' LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW TABLES LIKE '%profile%';\nSELECT id, name FROM users WHERE name LIKE '%Ryan%' OR name LIKE '%Amit%' OR name LIKE '%Dan%' LIMIT 10;",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)": "userProfiles"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)": "id\tname"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)": "2340043\tRyan Pemberton"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)": "2820073\tDaniel Zec"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)": "3630009\tDan Day"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)": "3870014\tAmit Bhargava"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%profile%)\nuserProfiles\nid\tname\n2340043\tRyan Pemberton\n2820073\tDaniel Zec\n3630009\tDan Day\n3870014\tAmit Bhargava\n",
+  "stderr": "",
+  "execution_time_ms": 1941
+}

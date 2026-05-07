@@ -11,12 +11,15 @@ import { computePerUserFinalScore, classifyAirOpportunity } from "../server/lane
 import { getProjectScoresBatch } from "../server/businessLineScoring";
 
 const RYAN_PROFILE = {
-  id: 999,
-  name: "Ryan",
+  // Exact values from DB (userProfiles table for Ryan Pemberton)
   territories: ["WA", "OFFSHORE_AU"],
-  businessLines: ["portable_air"],
-  primaryBusinessLine: "portable_air" as const,
+  assignedBusinessLines: ["Portable Air", "PT Capital Sales"],
   sectorFocus: [] as string[],
+  stageTiming: [] as string[],
+  keyAccounts: [] as string[],
+  buyerRoles: [] as string[],
+  customerTypes: [] as string[],
+  salesMotion: "direct_only" as const,
 };
 
 async function main() {
@@ -45,7 +48,27 @@ async function main() {
   const blScoresMap = await getProjectScoresBatch(projectIds);
 
   // Score each project
-  const scored = rows.map((project: any) => {
+  const scored = rows.map((rawProject: any) => {
+    // MySQL returns JSON columns as pre-parsed objects OR strings depending on driver version
+    // Normalise to arrays/objects to ensure classifyAirOpportunity and projectText work correctly
+    const project = {
+      ...rawProject,
+      equipmentSignals: Array.isArray(rawProject.equipmentSignals)
+        ? rawProject.equipmentSignals
+        : typeof rawProject.equipmentSignals === 'string'
+          ? (() => { try { return JSON.parse(rawProject.equipmentSignals); } catch { return []; } })()
+          : [],
+      matchedBusinessLines: Array.isArray(rawProject.matchedBusinessLines)
+        ? rawProject.matchedBusinessLines
+        : typeof rawProject.matchedBusinessLines === 'string'
+          ? (() => { try { return JSON.parse(rawProject.matchedBusinessLines); } catch { return []; } })()
+          : [],
+      contractors: Array.isArray(rawProject.contractors)
+        ? rawProject.contractors
+        : typeof rawProject.contractors === 'string'
+          ? (() => { try { return JSON.parse(rawProject.contractors); } catch { return []; } })()
+          : [],
+    };
     const blScores = blScoresMap.get(project.id) || [];
     const contacts: any[] = [];
     const result = computePerUserFinalScore(project, RYAN_PROFILE, blScores, contacts);

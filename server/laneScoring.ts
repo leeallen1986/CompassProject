@@ -1566,6 +1566,19 @@ export function computePerUserFinalScore(
   // ── Three-family air opportunity classification ──
   const airClassification = classifyAirOpportunity(project);
 
+  // ── Specialty-air signal score boost ──
+  // Projects with explicit Package / N2 Membrane / Booster angles are high-value specialty
+  // opportunities that are often under-scored because they lack contacts or have warm priority.
+  // Apply a +15 pt boost so they compete with generic hot mining/civils projects.
+  // Only applies for PA-assigned reps; capped at 100.
+  const isSpecialtyAirAngle =
+    airClassification.bestProductAngle === 'Package' ||
+    airClassification.bestProductAngle === 'N2 Membrane' ||
+    airClassification.bestProductAngle === 'Booster';
+  const isPortableAirRep = assignedBLs.some(bl => BL_TO_LANE_KEY[bl] === 'portableAir');
+  const specialtyAirBoost = isSpecialtyAirAngle && isPortableAirRep ? 15 : 0;
+  const finalScoreWithBoost = Math.max(0, Math.min(100, finalScore + specialtyAirBoost));
+
   // ── Narrative fields ──
   const whyNow = generateWhyNow(project, laneScores, assignedBLs);
   const routeToBuy = generateRouteToBuy(project, sellingMotion, hasContractor);
@@ -1601,9 +1614,13 @@ export function computePerUserFinalScore(
   if (laneSuppressed) reasonCodes.push("suppressed_all_lanes_weak");
   else if (primaryWeak && !laneSuppressed) reasonCodes.push("monitor_primary_lane_weak");
 
+  if (isSpecialtyAirAngle && isPortableAirRep && specialtyAirBoost > 0) {
+    reasonCodes.push(`specialty_air_boost_${specialtyAirBoost}`);
+  }
+
   return {
-    finalScore,
-    finalScoreWithTieBreaker: finalScore, // caller applies tie-breaker via applyTieBreaker()
+    finalScore: finalScoreWithBoost,
+    finalScoreWithTieBreaker: finalScoreWithBoost, // caller applies tie-breaker via applyTieBreaker()
     baseScore,
     laneScores,
     primaryLaneScore,

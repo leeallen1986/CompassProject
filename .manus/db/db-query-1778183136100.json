@@ -1,0 +1,136 @@
+{
+  "query": "\n-- Find all projects with LNG/offshore/FLNG/pipeline keywords that are tagged NT or other non-WA states\nSELECT id, name, projectState, sector, priority, lifecycleStatus, suppressed\nFROM projects\nWHERE (\n  LOWER(name) LIKE '%barossa%'\n  OR LOWER(name) LIKE '%flng%'\n  OR LOWER(name) LIKE '%prelude%'\n  OR LOWER(name) LIKE '%scarborough%'\n  OR LOWER(name) LIKE '%pluto%'\n  OR LOWER(name) LIKE '%gorgon%'\n  OR LOWER(name) LIKE '%ichthys%'\n  OR LOWER(name) LIKE '%inpex%'\n  OR LOWER(name) LIKE '%north west shelf%'\n  OR LOWER(name) LIKE '%nws%'\n  OR LOWER(name) LIKE '%crux%'\n  OR LOWER(name) LIKE '%jansz%'\n  OR LOWER(name) LIKE '%wheatstone%'\n  OR LOWER(name) LIKE '%bw opal%'\n  OR LOWER(name) LIKE '%fpso%'\n)\nORDER BY priority DESC, name ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Find all projects with LNG/offshore/FLNG/pipeline keywords that are tagged NT or other non-WA states\nSELECT id, name, projectState, sector, priority, lifecycleStatus, suppressed\nFROM projects\nWHERE (\n  LOWER(name) LIKE '%barossa%'\n  OR LOWER(name) LIKE '%flng%'\n  OR LOWER(name) LIKE '%prelude%'\n  OR LOWER(name) LIKE '%scarborough%'\n  OR LOWER(name) LIKE '%pluto%'\n  OR LOWER(name) LIKE '%gorgon%'\n  OR LOWER(name) LIKE '%ichthys%'\n  OR LOWER(name) LIKE '%inpex%'\n  OR LOWER(name) LIKE '%north west shelf%'\n  OR LOWER(name) LIKE '%nws%'\n  OR LOWER(name) LIKE '%crux%'\n  OR LOWER(name) LIKE '%jansz%'\n  OR LOWER(name) LIKE '%wheatstone%'\n  OR LOWER(name) LIKE '%bw opal%'\n  OR LOWER(name) LIKE '%fpso%'\n)\nORDER BY priority DESC, name ASC;\n",
+  "rows": [
+    {
+      "id": "120007",
+      "name": "Chevron Australia Operations — NWS & Gorgon",
+      "projectState": "OFFSHORE_AU",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "120234",
+      "name": "Crux Gas Field Development",
+      "projectState": "OFFSHORE_AU",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "990051",
+      "name": "Gorgon Backfill Fields Development",
+      "projectState": "OFFSHORE_AU",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "120232",
+      "name": "North West Shelf Extension Project",
+      "projectState": "WA",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "660054",
+      "name": "Pluto LNG Flaring Technology Upgrade",
+      "projectState": "WA",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "570023",
+      "name": "Pluto Seismic Survey",
+      "projectState": "WA",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "8",
+      "name": "Shell Prelude FLNG Turnaround 2026",
+      "projectState": "OFFSHORE_AU",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "120008",
+      "name": "Woodside NWS Subsea Tieback Program",
+      "projectState": "OFFSHORE_AU",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "7",
+      "name": "Woodside Scarborough Energy Project",
+      "projectState": "WA",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "lifecycleStatus": "stale",
+      "suppressed": "1"
+    },
+    {
+      "id": "120230",
+      "name": "Barossa Gas Project",
+      "projectState": "NT",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "510034",
+      "name": "Barossa LNG Project",
+      "projectState": "NT",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "4",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning",
+      "projectState": "NT",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "570024",
+      "name": "Gorgon and Jansz feed gas pipeline system and wells commissioning",
+      "projectState": "OFFSHORE_AU",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "lifecycleStatus": "active",
+      "suppressed": "0"
+    },
+    {
+      "id": "120229",
+      "name": "Scarborough Gas Project",
+      "projectState": "WA",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "lifecycleStatus": "stale",
+      "suppressed": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tsector\tpriority\tlifecycleStatus\tsuppressed\n120007\tChevron Australia Operations — NWS & Gorgon\tOFFSHORE_AU\toil_gas\twarm\tactive\t0\n120234\tCrux Gas Field Development\tOFFSHORE_AU\toil_gas\twarm\tactive\t0\n990051\tGorgon Backfill Fields Development\tOFFSHORE_AU\toil_gas\twarm\tactive\t0\n120232\tNorth West Shelf Extension Project\tWA\toil_gas\twarm\tactive\t0\n660054\tPluto LNG Flaring Technology Upgrade\tWA\toil_gas\twarm\tactive\t0\n570023\tPluto Seismic Survey\tWA\toil_gas\twarm\tactive\t0\n8\tShell Prelude FLNG Turnaround 2026\tOFFSHORE_AU\toil_gas\twarm\tactive\t0\n120008\tWoodside NWS Subsea Tieback Program\tOFFSHORE_AU\toil_gas\twarm\tactive\t0\n7\tWoodside Scarborough Energy Project\tWA\toil_gas\twarm\tstale\t1\n120230\tBarossa Gas Project\tNT\toil_gas\thot\tactive\t0\n510034\tBarossa LNG Project\tNT\toil_gas\thot\tactive\t0\n4\tBW Opal FPSO / Barossa LNG Commissioning\tNT\toil_gas\thot\tactive\t0\n570024\tGorgon and Jansz feed gas pipeline system and wells commissioning\tOFFSHORE_AU\toil_gas\thot\tactive\t0\n120229\tScarborough Gas Project\tWA\toil_gas\thot\tstale\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1825
+}

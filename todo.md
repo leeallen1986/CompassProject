@@ -2350,8 +2350,21 @@
 - [x] Root-cause diagnosis: UPSTREAM CAPTURE FAILURE — WA project database contains no LNG/pipeline/N2 projects
 
 ## Ryan WA Upstream Capture Fix (May 7 2026)
-- [ ] Reactivate stale WA specialty-air projects: Scarborough, Pluto T2, Barossa, Prelude/FLNG, BW Opal/FPSO, and any pipeline/N2/pre-commissioning projects
-- [ ] Suppress GE Frame 9 Gas Turbine Control System Upgrade (generic inferred signal only, no explicit PA/specialty-air package)
-- [ ] Trigger manual harvest against new oil & gas feeds targeting specialty-air keywords
-- [ ] Re-run Ryan WA dry-run audit after reactivation + harvest
-- [ ] Confirm specialty-air candidates now appear in active pool with correct family/angle classification
+- [x] Reactivate stale WA specialty-air projects: 7 reactivated (BW Opal FPSO, Barossa LNG, Pluto T2, Shell Prelude FLNG, Chevron Gorgon/Jansz, NWS, Woodside NWS Tieback)
+- [x] Suppress GE Frame 9 Gas Turbine Control System Upgrade
+- [x] Trigger manual harvest against new oil & gas feeds (535 articles fetched, 40 ENB specialty-air articles re-queued)
+- [x] Re-run Ryan WA dry-run audit — specialty-air projects now in pool (Shell Prelude rank 39, Chevron NWS rank 3)
+- [x] Root cause: Shell Prelude correctly classified as Package but scores 45 — too low due to warm priority + zero contacts
+
+## Ryan WA Score Boost + Barossa Fix + Extraction Pipeline (May 8 2026)
+- [x] Add specialty-air signal score boost (+15 pts) in computePerUserFinalScore when bestProductAngle is Package, N2 Membrane, or Booster
+- [x] Fix Barossa Gas Project (id 120230) and BW Opal FPSO (id 4) projectState from NT to OFFSHORE_AU
+- [x] Reactivate Woodside Scarborough Energy Project (id 7) and Scarborough Gas Project (id 120229)
+- [x] Fixed audit script profile: assignedBusinessLines=["Portable Air","PT Capital Sales"] matching DB exactly
+- [x] Fixed JSON parsing of equipmentSignals in audit script
+- [x] BW Opal FPSO / Barossa LNG Commissioning now ranks #1 (score 93, Family: specialty_air_package, Angle: Package)
+- [x] Woodside Scarborough Energy Project now ranks #10 (score 88, Angle: Package)
+- [x] 50 specialty-air candidates now in Ryan's WA pool (up from 0)
+- [x] 11 LNG projects, 3 nitrogen projects, 2 purging projects, 2 FPSO projects confirmed in pool
+- [x] Run full test suite: 101 files, 3,066 tests all pass
+- [x] Save checkpoint
