@@ -2196,3 +2196,10 @@
 - [x] Part E: Contact provenance display (source, tier, linked, verified, why not digest-safe) — WaterfallHealth page
 - [x] Part F: Waterfall audit report delivered (PDF + MD)
 - [x] Vitest tests for all 5 structural fixes (3,044 tests passing)
+
+## Discovery Queue Run (May 2026)
+- [x] Run discovery queue: 5 batches completed, 385 send_ready contacts (+150 from 235), 43 send_ready projects (+21 from 22), 211 still queued
+- [x] Fixed Apollo AbortController 30s timeout to prevent hung connections
+- [x] Fixed Apollo single-letter first name guard (invalid_first_name 400 error)
+- [x] Fixed Apollo invalid email guard (invalid_email 400 error)
+- [ ] Continue queue run via deployed site Admin panel (211 projects still queued)

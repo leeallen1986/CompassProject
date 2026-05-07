@@ -330,15 +330,23 @@ export async function apolloPeopleSearch(params: {
     body.q_keywords = params.keywords;
   }
 
-  const res = await fetch(`${APOLLO_BASE_URL}/mixed_people/api_search`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-cache",
-      "X-Api-Key": apiKey,
-    },
-    body: JSON.stringify(body),
-  });
+  const searchAbort = new AbortController();
+  const searchTimer = setTimeout(() => searchAbort.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(`${APOLLO_BASE_URL}/mixed_people/api_search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        "X-Api-Key": apiKey,
+      },
+      body: JSON.stringify(body),
+      signal: searchAbort.signal,
+    });
+  } finally {
+    clearTimeout(searchTimer);
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "Unknown error");
@@ -375,19 +383,27 @@ export async function apolloPeopleEnrich(params: {
   if (params.domain) body.domain = params.domain;
   if (params.linkedinUrl) body.linkedin_url = params.linkedinUrl;
 
-  const res = await fetch(
-    `${APOLLO_BASE_URL}/people/match`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache",
-        "X-Api-Key": apiKey,
-        accept: "application/json",
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const enrichAbort = new AbortController();
+  const enrichTimer = setTimeout(() => enrichAbort.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(
+      `${APOLLO_BASE_URL}/people/match`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          "X-Api-Key": apiKey,
+          accept: "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: enrichAbort.signal,
+      }
+    );
+  } finally {
+    clearTimeout(enrichTimer);
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "Unknown error");
@@ -867,9 +883,32 @@ export async function revealContactEmail(
   }
 
   // Enrich via Apollo
+  // Guard: Apollo rejects first names that are only single letters
+  const enrichFirstName = contact.name.split(" ")[0];
+  if (enrichFirstName.length <= 1) {
+    console.log(`[Apollo] Skipping enrichment for "${contact.name}" — first name is a single letter`);
+    return {
+      contactId: contact.id,
+      apolloId: "",
+      name: contact.name,
+      firstName: enrichFirstName,
+      title: contact.title,
+      company: contact.company,
+      email: null,
+      emailStatus: null,
+      linkedinUrl: contact.linkedin,
+      photoUrl: null,
+      city: null,
+      state: null,
+      country: null,
+      seniority: null,
+      hasEmail: false,
+      status: "not_found",
+    };
+  }
   try {
     const enrichResult = await apolloPeopleEnrich({
-      firstName: contact.name.split(" ")[0],
+      firstName: enrichFirstName,
       lastName: contact.name.split(" ").slice(1).join(" "),
       organizationName: contact.company,
       linkedinUrl: contact.linkedin ?? undefined,

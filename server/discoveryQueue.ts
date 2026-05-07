@@ -521,8 +521,33 @@ export async function processDiscoveryQueue(options?: {
   let priorityA = 0, priorityB = 0, priorityC = 0;
   let newSendReady = 0, newNamedNoEmail = 0, newRoleOnly = 0, blocked = 0, failed = 0;
 
+  const PROJECT_TIMEOUT_MS = 90_000; // 90s per project max — prevents hung API calls
   for (const project of eligibleProjects) {
-    const result = await runDiscoveryForProject(db, project, reportId);
+    const result = await Promise.race([
+      runDiscoveryForProject(db, project, reportId),
+      new Promise<DiscoveryResult>((resolve) =>
+        setTimeout(() => {
+          console.warn(`[Discovery] Project ${project.id} timed out after ${PROJECT_TIMEOUT_MS}ms — resetting to discovery_queued`);
+          // Reset the project status so it can be retried
+          db.execute(`UPDATE projects SET discoveryStatus='discovery_queued', lastDiscoveryAt=NULL WHERE id=${project.id}`).catch(() => {});
+          resolve({
+            projectId: project.id,
+            projectName: project.name || String(project.id),
+            previousStatus: project.discoveryStatus,
+            newStatus: 'discovery_queued',
+            priority: classifyDiscoveryPriority(project),
+            ownerType: classifyOwnerType(project.owner || ''),
+            contactsFound: 0,
+            sendReadyContacts: 0,
+            namedContacts: 0,
+            roleOnlyContacts: 0,
+            providersUsed: [],
+            durationMs: PROJECT_TIMEOUT_MS,
+            error: 'timeout',
+          });
+        }, PROJECT_TIMEOUT_MS)
+      ),
+    ]);
     results.push(result);
 
     // Count by priority
