@@ -365,14 +365,36 @@ export function portableAirOpportunityGate(
   },
   portableAirScore: number,
 ): { pass: true } | { pass: false; reason: string; suppressionLevel: 'suppress' | 'monitor_only' } {
-  const text = [
+  // IMPORTANT: equipmentSignals are AI-inferred and often contain generic guesses
+  // (e.g. "portable air compressors" for a wind farm). For the gate, we use a
+  // RESTRICTED text that excludes equipmentSignals for renewable-energy projects.
+  // This prevents AI equipment guesses from rescuing fundamentally irrelevant projects.
+  const textWithEquipment = [
     project.name,
     project.overview ?? "",
     project.opportunityRoute ?? "",
     (project.equipmentSignals ?? []).join(" "),
   ].join(" ").toLowerCase();
+  const textWithoutEquipment = [
+    project.name,
+    project.overview ?? "",
+    project.opportunityRoute ?? "",
+  ].join(" ").toLowerCase();
   const nameText = (project.name ?? "").toLowerCase();
   const ownerText = (project.owner ?? "").toLowerCase();
+  const sectorLower = (project.sector ?? "").toLowerCase();
+
+  // Detect renewable-energy project types where AI equipment signals are unreliable
+  const isRenewableEnergyProject = [
+    /\b(wind farm|wind turbine|wind energy|offshore wind|onshore wind)\b/i,
+    /\b(solar farm|solar park|photovoltaic|pv farm|solar generation)\b/i,
+    /\b(battery storage|bess|grid.?scale battery|utility battery|battery energy storage)\b/i,
+    /\b(green hydrogen|hydrogen facility|hydrogen plant|green steel|renewable energy project)\b/i,
+  ].some(re => re.test(textWithoutEquipment));
+
+  // For renewable-energy projects: use text WITHOUT equipment signals for override checks
+  // For all other projects: use full text including equipment signals
+  const text = isRenewableEnergyProject ? textWithoutEquipment : textWithEquipment;
 
   // ── Hard suppression: negative signals ──
   // These project types have no credible portable air direct-sale path.
@@ -387,6 +409,34 @@ export function portableAirOpportunityGate(
     [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility|ambulance station)\b/, "health/community facility — no portable air demand"],
     [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no portable air demand"],
     [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre)\b/, "community/civic facility — no portable air demand"],
+    // Sports / recreation venues — lighting upgrades, pool pumps, HVAC, fitout have no portable air path
+    [/\b(arena|stadium|velodrome|aquatic centre|swimming pool|sports complex|oval upgrade|grandstand)\b/, "sports/recreation venue — no portable air demand"],
+    // Pool pump / HVAC / electrical upgrades at non-industrial sites
+    [/\b(pool pump|pump upgrade|lighting upgrade|hvac upgrade|electrical upgrade|control system upgrade)\b.*\b(centre|arena|stadium|pool|oval|school|hospital|council|government)\b/, "non-industrial facility upgrade — no portable air demand"],
+    [/\b(centre|arena|stadium|pool|oval|school|hospital|council|government)\b.*\b(pool pump|pump upgrade|lighting upgrade|hvac upgrade|electrical upgrade)\b/, "non-industrial facility upgrade — no portable air demand"],
+    // Landscaping, golf courses, parks, irrigation — no portable air demand
+    [/\b(golf course|golf club|bowling green|cricket oval|sports field|playing field|park upgrade|park development|landscaping|irrigation system|irrigation upgrade)\b/, "landscaping/recreation facility — no portable air demand"],
+    // Bus depots, fuel tanks, small civil works — no direct portable air path
+    [/\b(bus depot|bus terminal|bus interchange|fuel tank|diesel tank|petrol station|service station)\b/, "transport/fuel facility — no portable air demand"],
+    // Council/government minor works — footpaths, kerbs, drains, parks, playgrounds
+    [/\b(footpath|kerb|kerbing|drainage upgrade|stormwater|playground|dog park|skate park)\b/, "minor council works — no portable air demand"],
+    // Correctional / justice facilities — prison cell replacement, court fitout, etc.
+    [/\b(prison|correctional|gaol|jail|remand centre|detention centre|court house|courthouse|police station)\b/, "correctional/justice facility — no direct portable air path"],
+    // Professional services / consulting tenders — hydrogeologist, engineer, consultant, auditor
+    [/^(hydrogeologist|geologist|engineer|consultant|auditor|inspector|surveyor|planner|architect)\b/i, "professional services tender — no equipment demand"],
+    [/\b(provision of (hydrogeological|geological|engineering|consulting|professional) services|professional services for|consulting services for|engineering services for)\b/i, "professional services tender — no equipment demand"],
+    // Office fitouts, refurbishments, alterations — government and commercial building works
+    // These are never direct-sale portable air opportunities; AI scraper adds generic equipment signals
+    [/\b(office (refurbishment|fitout|fit.?out|alteration|renovation|upgrade|fit out)s?)\b/i, "office fitout/refurbishment — no portable air demand"],
+    [/\b(fit.?out (alteration|upgrade|renovation|works?))\b/i, "fitout works — no portable air demand"],
+    [/\b(building (refurbishment|fitout|fit.?out|alteration|renovation))\b/i, "building refurbishment — no portable air demand"],
+    // School / education HVAC, cooling, mechanical services — no portable air demand
+    [/\b(cooling schools|school cooling|school hvac|school mechanical|school air conditioning|school maintenance)\b/i, "school HVAC/maintenance — no portable air demand"],
+    [/\b(mechanical services.{0,30}school|school.{0,30}mechanical services)\b/i, "school mechanical services — no portable air demand"],
+    // Residential demolition — small residential lot demolition is not a portable air opportunity
+    // (Industrial/mine demolition is handled by the positive signal list)
+    [/\b(demolition.{0,50}(lot|deposited plan|dp \d|residential|house|dwelling|property))\b/i, "residential lot demolition — no portable air demand"],
+    [/\b((lot|deposited plan|dp \d|residential|house|dwelling).{0,50}demolition)\b/i, "residential lot demolition — no portable air demand"],
   ];
   for (const [pattern, reason] of hardSuppressPatterns) {
     if (pattern.test(text)) {
@@ -420,6 +470,26 @@ export function portableAirOpportunityGate(
     }
   }
 
+  // ── Hard suppression: anonymous / generic scraper artefacts ──
+  // Projects with generic names and no real identifying information are scraper artefacts.
+  // The AI fills their overviews with generic equipment guesses that game the keyword gate.
+  // Pattern: name is a generic category label with no company, location, or project name.
+  const genericNamePatterns = [
+    /^(commercial development|residential development|industrial development|mixed.?use development)$/i,
+    /^(infrastructure project|construction project|development project|building project)$/i,
+    /^(iron ore project \(unnamed\)|unnamed project|project \(unnamed\)|tbc|unknown project)$/i,
+    /^(road project|rail project|port project|pipeline project|energy project)$/i,
+  ];
+  // Also suppress internal quote reference codes (QR1, QR2, QR3, WK QR4, etc.)
+  // These are facilities management tender portal artefacts, not real projects.
+  const internalRefCodePattern = /^(qr\d+|wk\s+qr\d+|quote request|qr\s+\d+)\b/i;
+  if (internalRefCodePattern.test(nameText.trim())) {
+    return { pass: false, reason: 'internal quote reference code — facilities management artefact, not a real project', suppressionLevel: 'suppress' };
+  }
+  if (genericNamePatterns.some(re => re.test(nameText.trim()))) {
+    return { pass: false, reason: 'anonymous/generic scraper artefact — no real project identity', suppressionLevel: 'suppress' };
+  }
+
   // ── Hard suppression: programme / framework wrappers ──
   // These are not real projects — they are policy lists, framework agreements, or
   // partnering arrangements with no specific construction activity.
@@ -450,8 +520,17 @@ export function portableAirOpportunityGate(
     [/\b(green steel|hydrogen plant|hydrogen facility|green hydrogen|renewable energy project)\b/, "green energy project — no explicit compressor package"],
   ];
 
-  // Explicit compressor/portable air override: if any of these are present, the weak-signal
-  // suppression is overridden and the project passes regardless of category.
+  // Explicit compressor/portable air override: if any of these are present in the project
+  // name/overview/opportunityRoute, the weak-signal suppression is overridden.
+  //
+  // CRITICAL ARCHITECTURE NOTE:
+  // The AI scraper adds "portable air compressors" to equipmentSignals for EVERY construction
+  // project (schools, golf courses, office fitouts, etc.) because it infers that construction
+  // uses compressed air. This makes equipmentSignals an unreliable override signal for
+  // infrastructure sector projects.
+  //
+  // Rule: for infrastructure sector projects, the override ONLY fires on name/overview text.
+  //       For industrial sectors (mining, oil_gas, energy, defence), equipment signals can override.
   const explicitCompressorSignals = [
     "compressor", "portable air", "air compressor", "cfm", "psi",
     "pneumatic", "abrasive blast", "sandblast", "grit blast", "shot blast",
@@ -461,7 +540,12 @@ export function portableAirOpportunityGate(
     "commissioning air", "tie-in", "hydrostatic test", "pigging",
     "contractor fleet", "fleet replacement", "equipment supply",
   ];
-  const hasExplicitCompressorSignal = explicitCompressorSignals.some(kw => text.includes(kw));
+  const industrialSectors = ["mining", "oil_gas", "energy", "defence"];
+  const isInfrastructureSector = project.sector.toLowerCase() === "infrastructure";
+  // For infrastructure projects: only check name/overview/opportunityRoute (not equipment signals)
+  // For industrial projects: check full text including equipment signals
+  const textForCompressorCheck = isInfrastructureSector ? textWithoutEquipment : text;
+  const hasExplicitCompressorSignal = explicitCompressorSignals.some(kw => textForCompressorCheck.includes(kw));
 
   for (const [pattern, reason] of weakSignalPatterns) {
     if (pattern.test(text) && !hasExplicitCompressorSignal) {
@@ -512,10 +596,15 @@ export function portableAirOpportunityGate(
     "power station", "power plant", "gas turbine", "diesel generation",
     "decommissioning", "demolition",
   ];
-  const hasPositiveSignal = positiveSignals.some(kw => text.includes(kw));
+  // For infrastructure projects: positive signals must appear in name/overview, not just equipment signals
+  const textForPositiveCheck = isInfrastructureSector ? textWithoutEquipment : text;
+  const hasPositiveSignal = positiveSignals.some(kw => textForPositiveCheck.includes(kw));
 
-  // If portable air lane score is strong, pass regardless of keyword match.
-  if (portableAirScore >= 40) return { pass: true };
+  // If portable air lane score is strong, pass — BUT NOT for renewable energy projects.
+  // Wind farms, solar farms, BESS, and green hydrogen projects can have high AI-scored
+  // Portable Air scores because the AI sees "construction" and infers compressor demand.
+  // These must still pass the keyword gate to prevent false positives.
+  if (portableAirScore >= 40 && !isRenewableEnergyProject) return { pass: true };
 
   // If explicit compressor signal, always pass.
   if (hasExplicitCompressorSignal) return { pass: true };

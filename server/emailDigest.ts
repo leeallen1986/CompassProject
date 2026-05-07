@@ -394,11 +394,14 @@ function classifyBriefReadiness(
         "construction manager", "site manager", "engineering manager",
       ];
       if (commercialTitles.some(t => titleLower.includes(t))) score += 10;
-      // Penalise region/title mismatch: "Eastern States" or "National" for a state-specific project
+      // Penalise region/title mismatch: "Eastern States" or "National" for a state-specific project.
+      // Penalty is -25 (larger than the +20 high roleRelevance bonus) so a WA-based medium contact
+      // always beats an Eastern States high-relevance contact.
       const AU_STATES = ["WA", "QLD", "NSW", "VIC", "SA", "NT", "TAS", "ACT"];
       if (projectStateUpper && AU_STATES.includes(projectStateUpper)) {
-        const mismatchPhrases = ["eastern states", "east coast", "national", "australia wide", "all states"];
-        if (mismatchPhrases.some(m => titleLower.includes(m))) score -= 15;
+        const mismatchPhrases = ["eastern states", "east coast", "national", "australia wide", "all states",
+          "eastern australia", "east australia"];
+        if (mismatchPhrases.some(m => titleLower.includes(m))) score -= 25;
         // Also penalise if contact's company location is in a different state
         const companyLower = (c.company ?? "").toLowerCase();
         const otherStateKeywords: Record<string, string[]> = {
@@ -1007,12 +1010,23 @@ function generateMondayDigest(
       // tenders in this section regardless of score.
       const gate = (p as any).gateResult;
       if (gate && !gate.pass) return false;
-      // Quality gate: only show Closing Soon if the project is genuinely relevant
-      // (score > 35 AND lane fit is not "Not relevant"). Prevents low-signal
-      // wind/solar/desal/utility tenders from cluttering the Closing Soon section.
+      // Quality gate: only show Closing Soon if the project is genuinely relevant.
+      // Thresholds are sector-dependent:
+      //   - infrastructure: score >= 55 AND priority=hot|warm (prevents school/council/govt
+      //     building tenders from appearing — AI scraper inflates their scores via equipment signals)
+      //   - industrial (mining/oil_gas/energy/defence): score >= 35 (standard threshold)
       const score = (p as any).relevanceScore ?? 0;
       const laneFit = (p as any).laneFitLabel ?? "";
-      if (score <= 35) return false;
+      const sector = (p as any).sector ?? "";
+      const priority = (p as any).priority ?? "";
+      const isInfrastructure = sector.toLowerCase() === "infrastructure";
+      if (isInfrastructure) {
+        // Infrastructure projects need a higher bar: score >= 55 AND hot or warm priority
+        if (score < 55) return false;
+        if (priority === "cold") return false;
+      } else {
+        if (score <= 35) return false;
+      }
       if (laneFit === "Not relevant") return false;
       // Must have direct-sale credible channel (not monitor/low fit)
       const channel = (p as any).channel ?? "";
@@ -1475,6 +1489,8 @@ async function scoreAndFilterProjects(
       productLane: (p as any).productLane ?? null,
       stageCode: (p as any).stageCode ?? null,
       tenderCloseDate: (p as any).tenderCloseDate ?? null,
+      projectState: (p as any).projectState ?? null,
+      hasNoContacts: (p as any).hasNoContacts ?? false,
       // Lane scoring fields
       relevanceScore: laneResultWithTieBreaker.finalScoreWithTieBreaker,
       visibilityTier,

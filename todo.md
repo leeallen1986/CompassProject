@@ -2283,3 +2283,19 @@
 - [x] Waiting on Contact Discovery: only show if gateResult.pass=true (suppress gate-failed discovery-needed projects)
 - [x] Run corrected dry-run for Ryan: 30 pass / 3 hard-suppress / 17 monitor_only (50 WA tier1/tier2 projects)
 - [x] Run tests: all 3,044 tests passing, TypeScript clean
+
+## Digest Assembly Hard Audit — Ryan (May 7 2026)
+- [x] Trace exact digest assembly path for Ryan — get score components for every visible project
+- [x] Identify why "WA's Largest Wind Farm Construction" passed into Must Act — root cause: AI scraper adds 'portable air compressors' to equipmentSignals for ALL construction projects; gate's hasExplicitCompressorSignal check rescued it unconditionally
+- [x] Identify whether digest is using stale/cached preview data or live logic — LIVE logic confirmed; wind farm appeared in May 6 dry-run (before fix), not in live sent email
+- [x] Fix: sector-gate hasExplicitCompressorSignal — infrastructure projects cannot use equipmentSignals as override
+- [x] Fix: sector-gate positive signal check — infrastructure projects use textWithoutEquipment
+- [x] Fix: Closing Soon score threshold raised to 55 for infrastructure sector + cold priority excluded
+- [x] Fix: sports arena, pool/aquatic centre, golf course, bus depot, fuel tank added to hard suppress
+- [x] Fix: office fitout/refurbishment, correctional facility, professional services added to hard suppress
+- [x] Fix: QR internal quote reference codes added to generic name suppression
+- [x] Fix: projectState missing from scored project object — added to scoreAndFilterProjects return
+- [x] Fix: Eastern States contact mismatch penalty raised from -15 to -25 (now beats high roleRelevance)
+- [x] Corrected Ryan digest: 3 Must Act (Norseman Gold, Walyering Gas, Murchison Gold), 1 Closing Soon (GE Gas Turbine), 2 Waiting
+- [x] Contact for Norseman Gold: Troy Morris (Maintenance Manager, WA) instead of Murray Vedel (Eastern States)
+- [x] All 3044 tests passing, TypeScript clean
