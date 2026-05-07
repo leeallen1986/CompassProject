@@ -588,9 +588,6 @@ export default function ThisWeek() {
           closingSoonCount={closingSoon.length}
         />
 
-        {/* ── Gate Summary Banner ── */}
-        <GateSummaryBanner />
-
         {/* ── Top 3 Actions ── */}
         <section>
           <div className="flex items-center gap-2 mb-4">
