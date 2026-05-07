@@ -2232,3 +2232,12 @@
 - [x] Retrieve copy of final sent Ryan email: email content not stored in DB; last confirmed live send was 2026W17 (Apr 27, status=sent, itemCount=466)
 - [x] Run fresh digest previews for Daniel, Dan Day, Amit — all 3 READY
 - [x] Final commercial quality check: all gated projects have verified corporate emails, no free domains, no generic prefixes
+
+## Digest Scoring Refine — Sales Motion Fit (May 7 2026)
+- [x] Audit current channel/scoring weights: found Rental Influence BL scores inflated (55-95 for 84% of WA projects)
+- [x] Restructure classifySellingMotion: keywords are primary driver, BL score is tiebreaker at threshold 80 (was 55)
+- [x] Add salesMotion column to userProfiles (direct_only | rental_led | mixed); set Ryan to direct_only
+- [x] Apply sales-motion channel weight: direct_only + direct → +10; direct_only + rental → -15
+- [x] Fix Closing Soon filter: require relevanceScore > 35 and meaningful lane fit
+- [x] Run corrected dry-run for Ryan: 1 rental project in pool (was 57/60), top-15 all direct-sale WA mining/oil_gas
+- [x] All 3,044 tests pass after changes

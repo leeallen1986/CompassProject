@@ -338,22 +338,34 @@ export function classifySellingMotion(
   const maxLaneScore = Math.max(laneScores.portableAir, laneScores.pump, laneScores.pal, laneScores.bess);
   if (maxLaneScore < 20) return "monitor";
 
-  // Rental-led: high rental influence score OR short-duration / shutdown / hire signals
-  const rentalSignals = ["shutdown", "turnaround", "short-term", "hire", "rental", "opex", "temporary", "mobilisation", "mobilization", "contract mining"];
-  const hasRentalSignal = rentalSignals.some(kw => text.includes(kw));
-  if (rentalScore >= 55 || (rentalScore >= 35 && hasRentalSignal)) return "rental";
+  // ── Selling motion classification ──
+  // ARCHITECTURE NOTE: The `Rental Influence` BL score is used as a SECONDARY signal only.
+  // Analysis shows the AI scoring engine assigns high rental influence (55–95) to almost every
+  // project regardless of actual rental signal, making it an unreliable primary classifier.
+  // Keyword signals and project type are the primary drivers; BL score is a tiebreaker.
 
-  // Cross-sell: secondary lane signal is strong but primary lane is moderate
+  // Strong rental keywords: explicit short-duration / shutdown / hire signals
+  const strongRentalSignals = ["shutdown", "turnaround", "short-term", "hire", "rental", "temporary", "wet hire", "dry hire"];
+  // CAPEX / direct-sale keywords: explicit procurement / purchase / award signals
+  const capexSignals = ["capex", "purchase", "procurement", "supply", "contract award", "awarded", "epc", "lump sum", "fixed price", "design and construct", "d&c"];
+  const hasStrongRentalSignal = strongRentalSignals.some(kw => text.includes(kw));
+  const hasCapexSignal = capexSignals.some(kw => text.includes(kw));
+
+  // 1. Strong CAPEX signal + strong lane → direct (overrides rental BL score)
+  if (hasCapexSignal && maxLaneScore >= 55) return "direct";
+
+  // 2. Explicit rental keyword + no CAPEX signal → rental
+  if (hasStrongRentalSignal && !hasCapexSignal) return "rental";
+
+  // 3. BL rental score is very high (≥80) AND no CAPEX signal → rental
+  //    Threshold raised from 55 to 80 because the BL scorer inflates rental scores globally.
+  if (rentalScore >= 80 && !hasCapexSignal) return "rental";
+
+  // 4. Cross-sell: secondary lane signal is strong but primary lane is moderate
   if (laneScores.secondaryLane && laneScores.multiLane >= 40 && maxLaneScore < 55) return "crosssell";
 
-  // Direct sale: strong primary lane signal, CAPEX indicators
-  const capexSignals = ["capex", "purchase", "procurement", "supply", "contract award", "awarded", "epc", "lump sum", "fixed price"];
-  const hasCapexSignal = capexSignals.some(kw => text.includes(kw));
-  if (maxLaneScore >= 55 && hasCapexSignal) return "direct";
-
-  // Default: direct if strong lane signal, rental if moderate with rental context
+  // 5. Default: direct if strong lane signal, crosssell if moderate
   if (maxLaneScore >= 55) return "direct";
-  if (hasRentalSignal) return "rental";
   return "crosssell";
 }
 
@@ -712,6 +724,13 @@ export function computePerUserFinalScore(
     keyAccounts?: string[] | null;
     buyerRoles?: string[] | null;
     customerTypes?: string[] | null;
+    /**
+     * Sales-motion profile for this rep.
+     * direct_only  — penalise rental-channel projects (−15 pts)
+     * rental_led   — penalise direct-only CAPEX projects (−10 pts)
+     * mixed        — no penalty (default)
+     */
+    salesMotion?: "direct_only" | "rental_led" | "mixed" | null;
   },
   blScores: DimensionScore[],
   contacts: Array<{
@@ -779,7 +798,24 @@ export function computePerUserFinalScore(
 
   // ── Final score ──
   const rawFinal = 0.45 * (baseScore.total + sectorBonus) + 0.55 * primaryLaneScore;
-  const finalScore = Math.max(0, Math.min(100, Math.round(rawFinal)));
+
+  // ── Sales-motion channel alignment penalty / bonus ──
+  // Applied AFTER the base score so it acts as a guardrail, not a primary signal.
+  // direct_only rep + rental channel → −15 pts (rental projects are not their motion)
+  // direct_only rep + direct channel → +10 pts (reward confirmed CAPEX signal)
+  // rental_led rep + direct channel  → −10 pts (CAPEX projects are secondary)
+  // mixed (default)                  → no adjustment
+  let salesMotionAdjustment = 0;
+  const salesMotion = profile.salesMotion ?? "mixed";
+  if (salesMotion === "direct_only") {
+    if (sellingMotion === "rental")  salesMotionAdjustment = -15;
+    if (sellingMotion === "direct")  salesMotionAdjustment = +10;
+  } else if (salesMotion === "rental_led") {
+    if (sellingMotion === "direct")  salesMotionAdjustment = -10;
+    if (sellingMotion === "rental")  salesMotionAdjustment = +10;
+  }
+
+  const finalScore = Math.max(0, Math.min(100, Math.round(rawFinal + salesMotionAdjustment)));
 
   // ── Suppression (nuanced — guardrail 3) ──
   // Only suppress if primary AND secondary/crosssell are both weak AND actionability is low.
@@ -837,6 +873,8 @@ export function computePerUserFinalScore(
   if (laneScores.secondaryLane) reasonCodes.push(`crosssell_${(laneScores.secondaryLane ?? "").toLowerCase().replace(/[^a-z]/g, "_")}`);
   if (sellingMotion === "rental") reasonCodes.push("rental_signal");
   if (sellingMotion === "direct") reasonCodes.push("direct_capex_signal");
+  if (salesMotionAdjustment < 0) reasonCodes.push(`sales_motion_penalty_${Math.abs(salesMotionAdjustment)}`);
+  if (salesMotionAdjustment > 0) reasonCodes.push(`sales_motion_bonus_${salesMotionAdjustment}`);
   if (baseScore.breakdown.strategicAccountFit > 0) reasonCodes.push("strategic_account");
   if (sendReadyContacts.length > 0) reasonCodes.push("send_ready_contact");
   else if (namedContacts.length > 0) reasonCodes.push("named_contact_only");

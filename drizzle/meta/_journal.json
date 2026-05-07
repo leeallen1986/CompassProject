@@ -568,6 +568,13 @@
       "when": 1778145017882,
       "tag": "0080_perpetual_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "5",
+      "when": 1778147482221,
+      "tag": "0081_melted_power_man",
+      "breakpoints": true
     }
   ]
 }

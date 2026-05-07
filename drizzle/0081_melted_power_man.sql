@@ -1,0 +1,1 @@
+ALTER TABLE `userProfiles` ADD `salesMotion` enum('direct_only','rental_led','mixed') DEFAULT 'mixed';

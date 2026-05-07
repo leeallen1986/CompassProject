@@ -61,6 +61,13 @@ export const userProfiles = mysqlTable("userProfiles", {
   assignedBusinessLines: json("assignedBusinessLines").$type<string[]>(),
   // Optional sector focus — overrides industries for ranking (e.g. ["mining", "oil_gas"])
   sectorFocus: json("sectorFocus").$type<string[]>(),
+  /**
+   * Sales-motion profile for this rep.
+   * direct_only  — direct CAPEX sale only; rental projects are penalised
+   * rental_led   — rental/hire is the primary motion; direct CAPEX is secondary
+   * mixed        — both motions are valid (default when not set)
+   */
+  salesMotion: mysqlEnum("salesMotion", ["direct_only", "rental_led", "mixed"]).default("mixed"),
   // AI-generated segments (Screen 6)
   aiSegments: json("aiSegments").$type<{ name: string; description: string; expectedLeads: number }[]>(),
 

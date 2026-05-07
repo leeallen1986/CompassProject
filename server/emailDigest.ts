@@ -952,7 +952,15 @@ function generateMondayDigest(
       const closeDate = (p as any).tenderCloseDate;
       if (!closeDate) return false;
       const d = new Date(closeDate);
-      return d >= nowDate && d <= twoWeeksOut;
+      if (!(d >= nowDate && d <= twoWeeksOut)) return false;
+      // Quality gate: only show Closing Soon if the project is genuinely relevant
+      // (score > 35 AND lane fit is not "Not relevant"). Prevents low-signal
+      // wind/solar/desal/utility tenders from cluttering the Closing Soon section.
+      const score = (p as any).relevanceScore ?? 0;
+      const laneFit = (p as any).laneFitLabel ?? "";
+      if (score <= 35) return false;
+      if (laneFit === "Not relevant") return false;
+      return true;
     })
     .sort((a, b) => {
       const da = new Date((a as any).tenderCloseDate).getTime();
@@ -1299,6 +1307,7 @@ async function scoreAndFilterProjects(
     stageTiming?: string[] | null;
     buyerRoles?: string[] | null;
     keyAccounts?: string[] | null;
+    salesMotion?: "direct_only" | "rental_led" | "mixed" | null;
   },
 ): Promise<Array<DigestProject & { relevanceScore: number }>> {
   // Fetch BL scores for all projects in one batch
@@ -1352,6 +1361,7 @@ async function scoreAndFilterProjects(
         stageTiming: profile.stageTiming,
         keyAccounts: profile.keyAccounts,
         buyerRoles: profile.buyerRoles,
+        salesMotion: profile.salesMotion,
       },
       projectBLScores,
       [], // contacts not available here; contact quality uses project-level signals
@@ -1654,6 +1664,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         stageTiming: (preProfile as any).stageTiming as string[] | null,
         buyerRoles: (preProfile as any).buyerRoles as string[] | null,
         keyAccounts: (preProfile as any).keyAccounts as string[] | null,
+        salesMotion: (preProfile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
       });
       // Identify this rep's Must Act candidates (action_ready, score > 35, High/Medium lane fit)
       const preMustAct = preProjects.filter(p =>
@@ -1736,6 +1747,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         stageTiming: (profile as any).stageTiming as string[] | null,
         buyerRoles: (profile as any).buyerRoles as string[] | null,
         keyAccounts: (profile as any).keyAccounts as string[] | null,
+        salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
       });
 
       if (matchedProjects.length === 0) {
@@ -2049,6 +2061,7 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
         assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+        salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
       });
 
       const hotProjects = matchedProjects.filter(p =>
@@ -2470,6 +2483,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     dealSizeMin: profile.dealSizeMin,
     dealSizeMax: profile.dealSizeMax,
     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+    salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
   });
 
   const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
@@ -2565,6 +2579,7 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     dealSizeMin: profile.dealSizeMin,
     dealSizeMax: profile.dealSizeMax,
     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+    salesMotion: (profile as any).salesMotion as "direct_only" | "rental_led" | "mixed" | null,
   });
 
   const territories = (profile.territories as string[]) || [];
