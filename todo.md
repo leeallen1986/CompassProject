@@ -2262,3 +2262,24 @@
 - [x] Contact selection: prefer best commercial/operator/project/maintenance contact; penalise region/title mismatch
 - [x] Apply same gate logic system-wide for all reps (not just Ryan)
 - [x] Run corrected dry-run for Ryan, Daniel, Dan Day, Amit — 0 rental-keyword projects in tier 1/2, all reps direct_only confirmed
+
+## Portable Air Gate Strengthening — Real Opportunity Gate (May 7 2026)
+- [x] Audit gap: gate exists but MONITOR projects still enter Must Act because gate only sets visibilityTier, not briefReadiness
+- [x] Fix: MONITOR gate result must force briefReadiness=monitor_only in classifyBriefReadiness (not just visibilityTier) — confirmed working via classifyBriefReadiness visibilityTier check
+- [x] Fix false-positive: "Dormant Gold Operation Restart" flagged as FITOUT — removed "refurbishment" from fitout pattern; now passes correctly
+- [x] Fix false-negative: SEA 3000 Frigate, Gorilla Gold Mines, Rama Open Pit — added naval/frigate/gold mine/open pit to positive signal list
+- [x] Strengthen gate: "Long-term partnering agreement for Stockland" — Stockland=property developer, hard suppressed
+- [x] Strengthen gate: "WA Energy Research Facility" — research facility pattern added to programme wrapper suppression
+- [x] Strengthen gate: "Infrastructure Priority List (IPL) Rail Projects" — programme wrapper suppression added
+- [x] Strengthen gate: "Four New Wind Projects and Green Steel Plant" — wind farm soft-suppressed (already caught)
+- [x] Strengthen gate: "Pluto Seismic Survey" — seismic survey hard-suppressed
+- [x] Strengthen gate: "Rare Earth Metal Production Partnership" — framework agreement hard-suppressed
+- [x] Add hard suppress: property developer owners (Stockland, Mirvac, Lendlease, Scentre, Vicinity, Dexus) with no construction contractor
+- [x] Add hard suppress: programme/framework wrappers (IPL, priority list, partnering agreement, framework agreement) with no specific project
+- [x] Add hard suppress: seismic survey / geophysical survey with no drilling follow-up signal
+- [x] Contact selection: penalise region/title mismatch (Eastern States contact for WA project) — −15 pts for mismatch phrases
+- [x] Must Act gate: require gateResult.pass=true AND briefReadiness=action_ready AND relevanceScore>=35
+- [x] Closing Soon gate: require gateResult.pass=true AND credible portable air relevance AND direct-sale potential
+- [x] Waiting on Contact Discovery: only show if gateResult.pass=true (suppress gate-failed discovery-needed projects)
+- [x] Run corrected dry-run for Ryan: 30 pass / 3 hard-suppress / 17 monitor_only (50 WA tier1/tier2 projects)
+- [x] Run tests: all 3,044 tests passing, TypeScript clean

@@ -367,6 +367,11 @@ function classifyBriefReadiness(
   // Find the best send-ready contact:
   // TRUST TIER ENFORCEMENT: only contacts with contactTrustTier = 'send_ready' are outreach-ready.
   // LLM-inferred contacts (llm_inferred) and unverified contacts (named_unverified) are EXCLUDED.
+  //
+  // CONTACT QUALITY SCORING:
+  // Prefer commercial/project/procurement/operations contacts over admin/finance/HR.
+  // Penalise region/title mismatch (e.g. "Eastern States" contact for a WA project).
+  const projectStateUpper = ((project as any).projectState ?? "").toUpperCase();
   const sendReady = projectContacts
     .filter(c =>
       // Must be send_ready trust tier (verified email + project linked + non-LLM)
@@ -374,10 +379,39 @@ function classifyBriefReadiness(
       (c.roleRelevance === "high" || c.roleRelevance === "medium") &&
       (c.email || c.linkedin)
     )
-    .sort((a, b) => {
-      const relOrder: Record<string, number> = { high: 2, medium: 1, low: 0 };
-      return (relOrder[b.roleRelevance ?? "low"] ?? 0) - (relOrder[a.roleRelevance ?? "low"] ?? 0);
-    });
+    .map(c => {
+      // Score contact quality: higher = better
+      let score = 0;
+      const relOrder: Record<string, number> = { high: 20, medium: 10, low: 0 };
+      score += relOrder[c.roleRelevance ?? "low"] ?? 0;
+      // Prefer commercial/project/procurement/operations/maintenance titles
+      const titleLower = (c.title ?? "").toLowerCase();
+      const commercialTitles = [
+        "project manager", "project director", "procurement", "contracts manager",
+        "operations manager", "maintenance manager", "plant manager",
+        "general manager", "managing director", "ceo", "chief executive",
+        "business development", "commercial manager", "asset manager",
+        "construction manager", "site manager", "engineering manager",
+      ];
+      if (commercialTitles.some(t => titleLower.includes(t))) score += 10;
+      // Penalise region/title mismatch: "Eastern States" or "National" for a state-specific project
+      const AU_STATES = ["WA", "QLD", "NSW", "VIC", "SA", "NT", "TAS", "ACT"];
+      if (projectStateUpper && AU_STATES.includes(projectStateUpper)) {
+        const mismatchPhrases = ["eastern states", "east coast", "national", "australia wide", "all states"];
+        if (mismatchPhrases.some(m => titleLower.includes(m))) score -= 15;
+        // Also penalise if contact's company location is in a different state
+        const companyLower = (c.company ?? "").toLowerCase();
+        const otherStateKeywords: Record<string, string[]> = {
+          WA: ["nsw", "victoria", "queensland", "south australia", "sydney", "melbourne", "brisbane", "adelaide"],
+          QLD: ["wa", "victoria", "nsw", "south australia", "perth", "melbourne", "sydney", "adelaide"],
+          NSW: ["wa", "victoria", "queensland", "south australia", "perth", "melbourne", "brisbane", "adelaide"],
+        };
+        const penaltyKws = otherStateKeywords[projectStateUpper] ?? [];
+        if (penaltyKws.some(kw => companyLower.includes(kw) || titleLower.includes(kw))) score -= 5;
+      }
+      return { ...c, _qualityScore: score };
+    })
+    .sort((a, b) => b._qualityScore - a._qualityScore);
 
   if (sendReady.length > 0) {
     const best = sendReady[0];
@@ -885,13 +919,17 @@ function generateMondayDigest(
   const FALLBACK_MIN_LANE_FIT = "High";
   if (topActions.length < TOP_ACTIONS_CAP) {
     const fallbackCandidates = matchedProjects
-      .filter(p =>
-        !topActions.some(a => a.id === p.id) &&
-        p.briefReadiness !== "monitor_only" &&
-        p.priority === "warm" &&
-        (p.laneFitLabel === FALLBACK_MIN_LANE_FIT || p.laneFitLabel === "Medium") &&
-        (p.relevanceScore ?? 0) >= FALLBACK_MIN_SCORE
-      )
+      .filter(p => {
+        if (topActions.some(a => a.id === p.id)) return false;
+        if (p.briefReadiness === "monitor_only") return false;
+        if (p.priority !== "warm") return false;
+        if (p.laneFitLabel !== FALLBACK_MIN_LANE_FIT && p.laneFitLabel !== "Medium") return false;
+        if ((p.relevanceScore ?? 0) < FALLBACK_MIN_SCORE) return false;
+        // Portable Air Gate: fallback Must Act must also pass the gate
+        const gate = (p as any).gateResult;
+        if (gate && !gate.pass) return false;
+        return true;
+      })
       .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
     const needed = TOP_ACTIONS_CAP - topActions.length;
     const fallbackItems = fallbackCandidates.slice(0, needed).map(p => ({ ...p, isFallback: true }));
@@ -899,7 +937,16 @@ function generateMondayDigest(
   }
 
   const discoveryItems = discoveryNeeded
-    .filter(p => !topActions.some(a => a.id === p.id))
+    .filter(p => {
+      if (topActions.some(a => a.id === p.id)) return false;
+      // Portable Air Gate: only show Waiting on Contact Discovery if the project
+      // would genuinely be worth pursuing once a contact is found.
+      // Gate-failed projects (suppress or monitor_only) are excluded — no point
+      // asking Ryan to find a contact for a school or a seismic survey.
+      const gate = (p as any).gateResult;
+      if (gate && !gate.pass) return false;
+      return true;
+    })
     .slice(0, DISCOVERY_CAP);
   const monitorItems = monitorOnly.slice(0, MONITOR_CAP);
 
@@ -956,6 +1003,10 @@ function generateMondayDigest(
       if (!closeDate) return false;
       const d = new Date(closeDate);
       if (!(d >= nowDate && d <= twoWeeksOut)) return false;
+      // Portable Air Gate: Closing Soon must pass the gate — no school/health/wind/BESS
+      // tenders in this section regardless of score.
+      const gate = (p as any).gateResult;
+      if (gate && !gate.pass) return false;
       // Quality gate: only show Closing Soon if the project is genuinely relevant
       // (score > 35 AND lane fit is not "Not relevant"). Prevents low-signal
       // wind/solar/desal/utility tenders from cluttering the Closing Soon section.
@@ -963,6 +1014,9 @@ function generateMondayDigest(
       const laneFit = (p as any).laneFitLabel ?? "";
       if (score <= 35) return false;
       if (laneFit === "Not relevant") return false;
+      // Must have direct-sale credible channel (not monitor/low fit)
+      const channel = (p as any).channel ?? "";
+      if (channel === "monitor" || channel === "low_fit") return false;
       return true;
     })
     .sort((a, b) => {

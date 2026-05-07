@@ -371,16 +371,66 @@ export function portableAirOpportunityGate(
     project.opportunityRoute ?? "",
     (project.equipmentSignals ?? []).join(" "),
   ].join(" ").toLowerCase();
+  const nameText = (project.name ?? "").toLowerCase();
+  const ownerText = (project.owner ?? "").toLowerCase();
 
   // ── Hard suppression: negative signals ──
   // These project types have no credible portable air direct-sale path.
+  // IMPORTANT: Education/health patterns only fire if the project NAME contains the keyword,
+  // not just the overview (avoids false positives where a university is a research partner
+  // on a mining project, or a hospital is mentioned as a nearby landmark).
   const hardSuppressPatterns: Array<[RegExp, string]> = [
-    [/\b(school|primary school|high school|secondary school|college|university|tafe|education|childcare|kindergarten|early learning)\b/, "education facility — no portable air demand"],
-    [/\b(hospital|health|aged care|nursing home|medical centre|community health|mental health facility|ambulance)\b/, "health/community facility — no portable air demand"],
+    // Education: check name only — a mining project can mention Curtin University as a partner
+    [/\b(school|primary school|high school|secondary school|tafe|childcare|kindergarten|early learning centre)\b/, "education facility — no portable air demand"],
+    // University/college: only suppress if name contains it (not just overview)
+    // We check nameText separately below
+    [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility|ambulance station)\b/, "health/community facility — no portable air demand"],
     [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no portable air demand"],
-    [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic)\b/, "community/civic facility — no portable air demand"],
+    [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre)\b/, "community/civic facility — no portable air demand"],
   ];
   for (const [pattern, reason] of hardSuppressPatterns) {
+    if (pattern.test(text)) {
+      return { pass: false, reason, suppressionLevel: 'suppress' };
+    }
+  }
+  // University/college: only suppress if the project NAME itself is a university/college project
+  // (not just because a university is mentioned as a partner in the overview)
+  if (/\b(university|college)\b/.test(nameText)) {
+    return { pass: false, reason: 'university/college project — no portable air demand', suppressionLevel: 'suppress' };
+  }
+  // Health facility: also check name for 'health' to catch 'Osborne Park Health Campus' etc.
+  if (/\b(health campus|health precinct|health hub|health facility|medical campus)\b/.test(nameText)) {
+    return { pass: false, reason: 'health campus/precinct — no portable air demand', suppressionLevel: 'suppress' };
+  }
+
+  // ── Hard suppression: property developer owners with no construction contractor ──
+  // These owners build residential/retail/commercial assets — no portable air path.
+  const propertyDeveloperOwners = [
+    "stockland", "mirvac", "lendlease", "scentre", "vicinity", "dexus",
+    "charter hall", "goodman group", "frasers property", "cromwell",
+  ];
+  if (propertyDeveloperOwners.some(dev => ownerText.includes(dev))) {
+    // Allow if there is an explicit compressor or mining/industrial signal
+    const hasIndustrialOverride = [
+      "compressor", "portable air", "drilling", "mining", "oil", "gas",
+      "pipeline", "commissioning", "shutdown", "blast", "pneumatic",
+    ].some(kw => text.includes(kw));
+    if (!hasIndustrialOverride) {
+      return { pass: false, reason: `property developer owner (${project.owner}) — no industrial portable air path`, suppressionLevel: 'suppress' };
+    }
+  }
+
+  // ── Hard suppression: programme / framework wrappers ──
+  // These are not real projects — they are policy lists, framework agreements, or
+  // partnering arrangements with no specific construction activity.
+  const programmeWrapperPatterns: Array<[RegExp, string]> = [
+    [/\b(infrastructure priority list|priority list|ipl)\b/, "programme/priority list wrapper — not a real project"],
+    [/\b(long.?term partner(ing)? agreement|partnering agreement|framework agreement|master services agreement|msa)\b/, "framework/partnering agreement — not a project with equipment demand"],
+    [/\b(seismic survey|geophysical survey|aeromagnetic survey|gravity survey)\b/, "seismic/geophysical survey — no drilling or compressor demand"],
+    [/\b(research facility|research centre|innovation hub|technology hub|energy research)\b/, "research/innovation facility — no portable air demand"],
+    [/\b(rare earth.{0,30}(partnership|agreement|framework)|partnership.{0,30}rare earth)\b/, "rare earth partnership/framework — not a project with equipment demand"],
+  ];
+  for (const [pattern, reason] of programmeWrapperPatterns) {
     if (pattern.test(text)) {
       return { pass: false, reason, suppressionLevel: 'suppress' };
     }
@@ -394,16 +444,19 @@ export function portableAirOpportunityGate(
     [/\b(desalination|desal plant|water treatment|wastewater treatment|sewage treatment)\b/, "desal/water treatment — no explicit compressor package"],
     [/\b(solar farm|solar park|photovoltaic|pv farm|solar generation)\b/, "solar farm — no explicit compressor package"],
     [/\b(road upgrade|road widening|highway upgrade|intersection upgrade|footpath|footbridge|pedestrian bridge)\b/, "minor civil works — no portable air demand"],
-    [/\b(office fitout|commercial fitout|retail fitout|fit-out|fitout|refurbishment|renovation|office building)\b/, "commercial fitout/refurb — no portable air demand"],
+    // Fitout/refurb: only suppress if NOT a mine or industrial site
+    [/\b(office fitout|commercial fitout|retail fitout|fit-out|fitout)\b/, "commercial fitout — no portable air demand"],
+    // Green steel / hydrogen / renewable energy projects without explicit compressor
+    [/\b(green steel|hydrogen plant|hydrogen facility|green hydrogen|renewable energy project)\b/, "green energy project — no explicit compressor package"],
   ];
 
   // Explicit compressor/portable air override: if any of these are present, the weak-signal
   // suppression is overridden and the project passes regardless of category.
   const explicitCompressorSignals = [
-    "compressor", "portable air", "air compressor", "cfm", "psi", "bar",
+    "compressor", "portable air", "air compressor", "cfm", "psi",
     "pneumatic", "abrasive blast", "sandblast", "grit blast", "shot blast",
     "drilling", "blast hole", "blasthole", "exploration drilling", "rotary drill",
-    "rock drill", "drill rig", "borehole", "water bore",
+    "rock drill", "drill rig", "borehole", "water bore", "aircore", "air core",
     "shutdown", "turnaround", "plant air", "instrument air", "process air",
     "commissioning air", "tie-in", "hydrostatic test", "pigging",
     "contractor fleet", "fleet replacement", "equipment supply",
@@ -423,35 +476,57 @@ export function portableAirOpportunityGate(
   }
 
   // ── Positive signal check ──
-  // At least one of these must be present for the project to pass.
+  // IMPORTANT: "construction", "civil", "infrastructure", "rail", "port" are intentionally
+  // NOT in this list — they are too generic and let property/civic projects through.
+  // Only include signals that indicate a real portable air use case.
   const positiveSignals = [
-    "drilling", "blast hole", "blasthole", "exploration", "mine development",
-    "mining", "quarrying", "tunnelling", "tunneling",
+    // Drilling / exploration — strongest signal
+    "drilling", "blast hole", "blasthole", "exploration drilling", "rotary drill",
+    "rock drill", "drill rig", "borehole", "water bore", "aircore", "air core",
+    "exploration", "mine development", "underground mine", "open pit", "open cut",
+    "quarrying", "tunnelling", "tunneling", "shaft sinking",
+    // Commissioning / shutdown / plant operations
     "commissioning", "tie-in", "shutdown", "turnaround", "plant air", "instrument air",
+    "process air", "commissioning air", "hydrostatic test", "pigging",
+    // Abrasive blasting / surface prep
     "abrasive blast", "sandblast", "grit blast", "shot blast", "coating", "painting",
-    "pneumatic", "compressor", "portable air", "cfm", "psi",
+    // Explicit equipment
+    "pneumatic", "compressor", "portable air", "air compressor", "cfm", "psi",
+    // Contractor fleet / procurement
     "contractor fleet", "fleet replacement", "equipment supply", "equipment procurement",
-    "remote site", "off-grid", "fly-in fly-out", "fifo",
-    "oil", "gas", "lng", "pipeline", "offshore", "fpso", "refinery", "petrochemical",
-    "mineral processing", "ore processing", "concentrator", "smelter",
-    "construction", "civil", "earthworks", "bulk earthworks", "bulk excavation",
-    "infrastructure", "rail", "port", "dam", "water supply",
-    "defence", "naval", "military",
+    // Remote / FIFO sites
+    "remote site", "off-grid", "fly-in fly-out", "fifo", "camp",
+    // Oil & gas — strong portable air demand
+    "oil field", "gas field", "lng", "lng plant", "pipeline", "offshore",
+    "fpso", "refinery", "petrochemical", "gas processing", "lng terminal",
+    "gas power", "gas generation", "gas plant",
+    // Mining / mineral processing
+    "mining", "mineral processing", "ore processing", "concentrator", "smelter",
+    "gold mine", "gold project", "iron ore", "copper mine", "nickel mine",
+    "coal mine", "bauxite", "lithium mine",
+    // Naval / defence — direct equipment procurement
+    "naval", "frigate", "destroyer", "submarine", "naval vessel", "warship",
+    "military base", "defence facility", "shipyard",
+    // Port / heavy industrial — only where equipment is needed
+    "port development", "berth", "jetty", "wharf", "bulk terminal",
+    "power station", "power plant", "gas turbine", "diesel generation",
+    "decommissioning", "demolition",
   ];
   const hasPositiveSignal = positiveSignals.some(kw => text.includes(kw));
 
   // If portable air lane score is strong, pass regardless of keyword match.
   if (portableAirScore >= 40) return { pass: true };
 
-  // If positive signal present and lane score is at least moderate, pass.
-  if (hasPositiveSignal && portableAirScore >= 20) return { pass: true };
-
   // If explicit compressor signal, always pass.
   if (hasExplicitCompressorSignal) return { pass: true };
 
-  // Sector-based pass: mining, oil_gas, defence always have credible portable air path.
+  // If positive signal present and lane score is at least moderate, pass.
+  if (hasPositiveSignal && portableAirScore >= 20) return { pass: true };
+
+  // Sector-based pass: mining, oil_gas, defence always have credible portable air path
+  // BUT only if there is at least one positive signal (sector alone is not enough).
   const highValueSectors = ["mining", "oil_gas", "defence"];
-  if (highValueSectors.includes(project.sector.toLowerCase()) && portableAirScore >= 20) return { pass: true };
+  if (highValueSectors.includes(project.sector.toLowerCase()) && hasPositiveSignal) return { pass: true };
 
   // Default: insufficient signal — demote to monitor_only
   return {
