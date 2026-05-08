@@ -2115,6 +2115,26 @@ export const appRouter = router({
       });
       return { launched: true, triggeredBy, launchedAt: new Date().toISOString() };
     }),
+    runScheduled: adminProcedure.mutation(async ({ ctx }) => {
+      // Trigger the scheduled pipeline endpoint
+      // This is the same as what the Manus scheduled task would call
+      const triggeredBy = "scheduled-task";
+      console.log(`[DailyPipeline] Scheduled trigger initiated by ${ctx.user.name || "admin"}`);
+      runDailyPipeline(triggeredBy).then(result => {
+        console.log(
+          `[DailyPipeline] ✓ Scheduled run completed: ` +
+          `${result.extraction?.extracted ?? 0} extracted, ` +
+          `${result.enrichment?.enriched ?? 0} enriched, ` +
+          `duration=${Math.round((result.duration || 0) / 1000)}s`
+        );
+      }).catch(err => {
+        console.error(
+          `[DailyPipeline] ✗ Scheduled run failed:`,
+          err instanceof Error ? err.message : String(err)
+        );
+      });
+      return { launched: true, triggeredBy, launchedAt: new Date().toISOString() };
+    }),
     history: adminProcedure
       .input(z.object({ limit: z.number().min(1).max(100).optional() }).optional())
       .query(async ({ input }) => {

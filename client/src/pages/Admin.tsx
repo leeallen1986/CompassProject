@@ -507,6 +507,14 @@ function PipelineOpsTab() {
     },
     onError: (e) => toast.error(`Pipeline launch failed: ${e.message}`),
   });
+  const scheduledPipelineMut = trpc.dailyPipeline.runScheduled.useMutation({
+    onSuccess: (data) => {
+      toast.info(`Pipeline launched as scheduled-task — check progress below. This may take 30-60 minutes.`);
+      refetchStats();
+      refetchPipelineStatus();
+    },
+    onError: (e) => toast.error(`Scheduled pipeline launch failed: ${e.message}`),
+  });
   const weeklyPipelineMut = trpc.weeklyPipeline.run.useMutation({
     onSuccess: (data) => {
       toast.success(`Weekly mega-scrape complete in ${Math.floor(data.duration / 60)}m ${data.duration % 60}s: ${data.totalNewProjects} new projects, ${data.totalNewContacts} new contacts`);
@@ -768,6 +776,15 @@ function PipelineOpsTab() {
         >
           {fullPipelineMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
           Run Full Pipeline
+        </Button>
+        <Button
+          onClick={() => scheduledPipelineMut.mutate()}
+          disabled={scheduledPipelineMut.isPending}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+          title="Trigger pipeline as if it was called by the scheduled task (triggeredBy=scheduled-task)"
+        >
+          {scheduledPipelineMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          Run Pipeline Now (Scheduled)
         </Button>
         <Button
           onClick={() => weeklyPipelineMut.mutate()}
