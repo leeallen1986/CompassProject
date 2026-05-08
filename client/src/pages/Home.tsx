@@ -924,11 +924,20 @@ export default function Home() {
 
   // ── Territory hard-filter: hide projects outside user's preferred territories ──
   const userTerritories = profileData?.territories ?? [];
+  const AUSTRALIAN_STATES = ["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"];
   const territoryFiltered = (showAllTerritories || userTerritories.length === 0)
     ? actionTierFiltered
-    : actionTierFiltered.filter((p: ProjectData) =>
-        locationMatchesTerritory(p.location, userTerritories)
-      );
+    : actionTierFiltered.filter((p: ProjectData) => {
+        // Hard projectState exclusion (mirrors email digest logic):
+        // If projectState is set to a specific Australian state that does NOT match
+        // the user's territory, reject immediately. OFFSHORE_AU is territory-neutral.
+        const projectState = (p.projectState || "").toUpperCase();
+        const userTerrUpper = userTerritories.map(t => t.toUpperCase());
+        if (projectState && AUSTRALIAN_STATES.includes(projectState) && !userTerrUpper.includes(projectState)) {
+          return false;
+        }
+        return locationMatchesTerritory(p.location, userTerritories);
+      });
 
   // Also filter contacts, awarded projects, and drilling campaigns by territory
   const territoryFilteredContacts = (showAllTerritories || userTerritories.length === 0)

@@ -97,6 +97,14 @@ Ask: "What activities are happening on this site?" then map activities to equipm
 If no clear compressed-air activity is present, Portable Air should NOT automatically score high.
 If groundwater/excavation/drainage signals are present, Pump/Dewatering should score HIGH.
 
+AUTOMATIC LOW-SCORE PROJECTS (score ALL lines 0-15):
+- Hospital/health facility construction, medical centre fitouts, health campus expansions
+- School/college/university building works (unless involving deep excavation or tunnelling)
+- Parking bays, fire alarm upgrades, playground construction, landscaping
+- Software procurement, consulting services, training programs
+- Minor roadworks, fencing, shade structures, amenities blocks
+These projects have NO compressed-air, pumping, or power-generation needs.
+
 SCORING GUIDE:
 - 80-100: Direct, strong relevance — confirmed site activities explicitly need this product/service
 - 50-79: Moderate relevance — likely activities suggest this need, or clear indirect opportunity

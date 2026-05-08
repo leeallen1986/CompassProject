@@ -363,7 +363,15 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     return territories.some(t => {
       if (t.toUpperCase() === "NATIONAL") return true; // NATIONAL users see everything
       const keywords = stateKeywords[t.toUpperCase()] || [t.toLowerCase()];
-      return keywords.some(kw => loc.includes(kw));
+      return keywords.some(kw => {
+        // Short keywords (<=3 chars) need word-boundary matching to avoid
+        // substring false positives (e.g. 'Orara Way' matching 'wa')
+        if (kw.length <= 3) {
+          const re = new RegExp(`\\b${kw}\\b`, "i");
+          return re.test(loc);
+        }
+        return loc.includes(kw);
+      });
     });
   };
 

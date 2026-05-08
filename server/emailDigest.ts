@@ -122,8 +122,13 @@ export async function checkTerritoryThreshold(
       // Exception: OFFSHORE_AU is treated as territory-neutral (e.g. Barrow Island for WA reps).
       const AUSTRALIAN_STATES = ["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"];
       if (projectState && AUSTRALIAN_STATES.includes(projectState) && projectState !== tUpper) return false;
-      // Fallback: location string contains territory code
-      return loc.includes(t.toLowerCase());
+      // Fallback: location string contains territory code (word-boundary for short codes)
+      const tLower = t.toLowerCase();
+      if (tLower.length <= 3) {
+        const re = new RegExp(`\\b${tLower}\\b`, "i");
+        return re.test(loc);
+      }
+      return loc.includes(tLower);
     });
   });
 

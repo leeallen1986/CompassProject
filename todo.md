@@ -2368,3 +2368,16 @@
 - [x] 11 LNG projects, 3 nitrogen projects, 2 purging projects, 2 FPSO projects confirmed in pool
 - [x] Run full test suite: 101 files, 3,066 tests all pass
 - [x] Save checkpoint
+- [x] BUG: Ryan digest showing NSW projects and hospital/health projects — must enforce strict WA-only territory filter
+- [x] FIX: Tender false positives entering Ryan's pool (school fire upgrades, disabled parking bays, generic roadworks) — tighten pre-filter
+- [x] FIX: Top-10 reporting query includes projects with 0 verified contacts despite label saying "has verified email contacts"
+- [x] Raise Apollo daily cap from 50 to 100 for next 3 days
+- [x] Schedule targeted O&G re-pass for Scarborough, Gorgon Backfill, Goodwyn A after dedup window expires
+- [ ] Do NOT promote llm_inferred contacts — keep quarantined
+- [x] Tighten tender pre-filter: added college, parking, minor roadworks, fire upgrade patterns
+- [x] Fix territory filter word-boundary bug (Wagga Wagga / Orara Way no longer match WA)
+- [x] Add projectState hard-exclusion to frontend territory filter
+- [x] Add AUTOMATIC LOW-SCORE section to PA scoring prompt for hospitals/schools/civic
+- [x] Raise Apollo daily cap from 50 to 100 for backlog processing
+- [x] Schedule O&G re-pass for Scarborough/Gorgon/Goodwyn (May 15 02:30 UTC)
+- [x] Suppress remaining false positives (Belmont City College, hospitals, NSW leaks)

@@ -67,11 +67,23 @@ const routeToOfferCategories: Record<string, string[]> = {
   "OPEX/Monitor": ["services", "maintenance", "parts", "aftermarket"],
 };
 
+/**
+ * Word-boundary-aware territory matching.
+ * Short keywords (2-3 chars like 'wa', 'nsw', 'sa') use regex word boundaries
+ * to prevent false positives like 'Orara Way' matching 'wa' or 'Wagga Wagga' matching 'wa'.
+ */
 export function locationMatchesTerritory(location: string, territories: string[]): boolean {
   const loc = location.toLowerCase();
   for (const territory of territories) {
     const keywords = stateAbbreviations[territory.toUpperCase()] || [territory.toLowerCase()];
-    if (keywords.some(kw => loc.includes(kw))) return true;
+    if (keywords.some(kw => {
+      // Short keywords (<=3 chars) need word-boundary matching to avoid substring false positives
+      if (kw.length <= 3) {
+        const re = new RegExp(`\\b${kw}\\b`, "i");
+        return re.test(loc);
+      }
+      return loc.includes(kw);
+    })) return true;
   }
   return false;
 }

@@ -55,7 +55,9 @@ const SEARCH_KEYWORDS = [
 
 // Tender title patterns that indicate irrelevant false positives
 const FALSE_POSITIVE_TITLE_PATTERNS: RegExp[] = [
-  /\bschool\b/i, /\bhospital\b/i, /\bprison\b/i, /\bjail\b/i,
+  /\bschool\b/i, /\bcollege\b/i, /\buniversity\b/i, /\btafe\b/i,
+  /\bhospital\b/i, /\bhealth service\b/i, /\bclinic\b/i, /\bmedical centre\b/i,
+  /\bprison\b/i, /\bjail\b/i, /\bcorrectional\b/i,
   /\bairport\b/i, /\bplayground\b/i, /\bzoo\b/i, /\baquarium\b/i,
   /\blibrary\b/i, /\bmuseum\b/i, /\btheatre\b/i, /\btheater\b/i,
   /\bfitout\b/i, /\bfit.out\b/i, /\brefurbishment\b/i, /\brenovation\b/i,
@@ -63,6 +65,17 @@ const FALSE_POSITIVE_TITLE_PATTERNS: RegExp[] = [
   /\bcatering\b/i, /\bcleaning services\b/i, /\bsecurity services\b/i,
   /\bsoftware\b/i, /\bconsulting services\b/i,
   /\btraining\b/i, /\bauditing\b/i, /\baccounting\b/i,
+  // Stage 6: additional civic/minor works suppressions
+  /\bparking\b/i, /\bparking bay\b/i, /\bcar park\b/i,
+  /\bfire upgrade/i, /\bfire alarm/i, /\bfire detection/i, /\bsprinkler/i,
+  /\bminor roadworks\b/i, /\bminor works\b/i, /\bminor maintenance\b/i,
+  /\bfencing\b.*\bpanel\b/i, /\bshade\s*(structure|sail)/i,
+  /\btoilet\b/i, /\bamenities\b/i, /\bcourtyard\b/i,
+  /\bdisabled\b/i, /\baccessibility\b/i,
+  /\bcooling\b.*\bschool/i, /\bcooling for schools\b/i,
+  /\bsports court/i, /\bbasketball court/i, /\btennis court/i,
+  /\bplaying surface\b/i, /\bsensory\b/i,
+  /\bchaplain/i, /\bchild care\b/i, /\bkindergarten\b/i,
 ];
 
 // Categories to include (Tenders WA UNSPSC category names — partial match)

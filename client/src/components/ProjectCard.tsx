@@ -54,6 +54,7 @@ export interface ProjectData {
   // PT Capital Sales Sprint fields
   productLane?: "portable_air" | "pumps" | "pal" | "bess" | "multi_lane_pt" | null;
   stageCode?: string | null;
+  projectState?: string | null;
 }
 
 // ── Priority config ──

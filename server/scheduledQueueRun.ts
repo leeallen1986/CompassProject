@@ -300,8 +300,13 @@ export async function handleScheduledQueueRun(req: Request, res: Response): Prom
     }
 
     // ── Run one batch ──
-    console.log(`${logPrefix} Running discovery queue batch (size=${NIGHTLY_BATCH_SIZE}, triggered by: ${triggeredBy})...`);
-    const batchResult = await processDiscoveryQueue({ maxBatch: NIGHTLY_BATCH_SIZE });
+    // Support targeted project IDs from request body (for O&G re-pass etc.)
+    const targetProjectIds: number[] | undefined = Array.isArray(req.body?.projectIds)
+      ? req.body.projectIds.filter((id: any) => typeof id === "number")
+      : undefined;
+    const batchSize = targetProjectIds?.length ? Math.max(targetProjectIds.length, NIGHTLY_BATCH_SIZE) : NIGHTLY_BATCH_SIZE;
+    console.log(`${logPrefix} Running discovery queue batch (size=${batchSize}, targeted=${targetProjectIds?.length ?? 0}, triggered by: ${triggeredBy})...`);
+    const batchResult = await processDiscoveryQueue({ maxBatch: batchSize, projectIds: targetProjectIds });
 
     // ── After stats ──
     const after = await getQueueStats();
