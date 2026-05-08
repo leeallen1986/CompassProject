@@ -1,0 +1,8 @@
+{
+  "query": "SELECT location, territory, COUNT(*) as cnt FROM projects WHERE location LIKE '%WA%' OR location LIKE '%Western Australia%' OR territory LIKE '%WA%' GROUP BY location, territory ORDER BY cnt DESC LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT location, territory, COUNT(*) as cnt FROM projects WHERE location LIKE '%WA%' OR location LIKE '%Western Australia%' OR territory LIKE '%WA%' GROUP BY location, territory ORDER BY cnt DESC LIMIT 15;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'territory' in 'group statement'"
+  ]
+}

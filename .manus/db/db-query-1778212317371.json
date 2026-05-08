@@ -1,0 +1,18 @@
+{
+  "query": "SHOW COLUMNS FROM projects WHERE Field LIKE '%geo%' OR Field LIKE '%state%' OR Field LIKE '%region%' OR Field LIKE '%terr%' OR Field LIKE '%title%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW COLUMNS FROM projects WHERE Field LIKE '%geo%' OR Field LIKE '%state%' OR Field LIKE '%region%' OR Field LIKE '%terr%' OR Field LIKE '%title%';",
+  "rows": [
+    {
+      "Field": "geoBlockedReason",
+      "Type": "enum('blocked_non_australian_project','blocked_location_unclear','blocked_cross_border_signal')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\ngeoBlockedReason\tenum('blocked_non_australian_project','blocked_location_unclear','blocked_cross_border_signal')\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 1817
+}
