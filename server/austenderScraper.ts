@@ -137,43 +137,54 @@ const RELEVANT_UNSPSC_PREFIXES = [
 
 // Keywords that indicate relevance to PT equipment (significantly broadened)
 const RELEVANCE_KEYWORDS = [
-  // Portable Air
+  // Portable Air — core
   "compressor", "compressed air", "drilling", "tunnelling", "tunnel",
   "blasting", "excavation", "concrete", "construction", "civil works",
   "road construction", "bridge", "earthworks", "foundation",
-  "demolition", "piling", "grouting", "shotcrete", "formwork",
+  "piling", "driven pile", "bored pile", "CFA pile", "sheet pile",
+  "pile driving", "grouting", "shotcrete", "formwork",
   "quarry", "aggregate", "crusher", "screening",
+  // Waterwell / Bore drilling
+  "water well", "waterwell", "water bore", "bore drilling",
+  "borehole", "groundwater bore", "dewatering bore",
+  // Shutdown / Turnaround
+  "shutdown", "turnaround", "plant turnaround", "planned outage",
+  "maintenance shutdown", "refinery shutdown", "facility shutdown",
+  // Abrasive Blasting / Surface Prep
+  "abrasive blasting", "grit blasting", "surface preparation",
+  "blast and paint", "corrosion protection", "protective coating",
+  // Specialty Air / Gas
+  "nitrogen", "purging", "inerting", "commissioning air",
+  "pipeline testing", "pressure testing", "leak testing",
+  "pre-commissioning", "precommissioning", "nitrogen purge",
+  "pipeline purge", "pipeline commissioning",
+  // Temporary Plant Air
+  "site air", "construction air", "temporary air supply",
+  "plant air", "hire compressor", "rental compressor",
   // PAL (Power and Light)
   "generator", "power supply", "temporary power", "lighting",
-  "electrical", "substation", "transmission", "powerline",
-  "switchgear", "transformer", "high voltage", "hv ", "cable",
-  "power station", "turbine",
+  "substation", "transmission", "powerline",
+  "switchgear", "transformer", "high voltage", "power station", "turbine",
   // BESS
   "battery", "energy storage", "bess", "solar farm", "wind farm",
   "renewable energy", "grid", "inverter", "solar", "wind",
   "photovoltaic", "hydrogen", "electrolysis",
   // Pump
   "pump", "dewatering", "water treatment", "pipeline", "sewage",
-  "stormwater", "irrigation", "dam", "weir", "desalination",
+  "irrigation", "dam", "weir", "desalination",
   "water supply", "flood", "drainage", "wastewater", "bore",
   "groundwater", "aquifer", "reservoir", "water main",
   "water infrastructure", "sewer", "catchment",
-  // General construction & infrastructure
+  // General construction & infrastructure (tightened — removed generic false positives)
   "mining", "mine site", "rail", "railway", "port", "wharf",
   "defence", "military", "base", "facility", "infrastructure",
-  "maintenance", "upgrade", "expansion", "remediation",
-  "building", "hospital", "school", "prison", "airport",
-  "highway", "freeway", "motorway", "interchange",
-  "depot", "warehouse", "terminal", "precinct",
-  "refurbishment", "fitout", "fit-out", "landscaping",
+  "maintenance", "upgrade", "expansion",
+  "highway", "depot", "warehouse", "terminal",
   "site preparation", "site works", "bulk earth",
   // Resource sector
   "ore", "mineral", "coal", "iron", "gold", "copper", "lithium",
   "nickel", "zinc", "bauxite", "alumina", "rare earth",
   "oil", "gas", "petroleum", "lng", "refinery", "petrochemical",
-  // Environmental / remediation
-  "contamination", "asbestos", "remediation", "rehabilitation",
-  "landfill", "waste management", "recycling",
 ];
 
 // ── Business Line Matching ──

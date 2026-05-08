@@ -1,0 +1,52 @@
+{
+  "query": "SELECT id, name, isActive, JSON_LENGTH(keywords) as keyword_count FROM businessLines ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, isActive, JSON_LENGTH(keywords) as keyword_count FROM businessLines ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Portable Air",
+      "isActive": "1",
+      "keyword_count": "260"
+    },
+    {
+      "id": "2",
+      "name": "Industrial Compressors",
+      "isActive": "0",
+      "keyword_count": "17"
+    },
+    {
+      "id": "3",
+      "name": "PAL",
+      "isActive": "1",
+      "keyword_count": "54"
+    },
+    {
+      "id": "4",
+      "name": "Vacuum Solutions",
+      "isActive": "0",
+      "keyword_count": "11"
+    },
+    {
+      "id": "30001",
+      "name": "Pump (Flow)",
+      "isActive": "1",
+      "keyword_count": "39"
+    },
+    {
+      "id": "30002",
+      "name": "BESS",
+      "isActive": "1",
+      "keyword_count": "48"
+    },
+    {
+      "id": "90001",
+      "name": "PT All Capital Sales",
+      "isActive": "1",
+      "keyword_count": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tisActive\tkeyword_count\n1\tPortable Air\t1\t260\n2\tIndustrial Compressors\t0\t17\n3\tPAL\t1\t54\n4\tVacuum Solutions\t0\t11\n30001\tPump (Flow)\t1\t39\n30002\tBESS\t1\t48\n90001\tPT All Capital Sales\t1\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1781
+}

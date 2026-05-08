@@ -1,0 +1,46 @@
+{
+  "query": "SELECT DISTINCT scoringDimension, COUNT(*) as cnt FROM projectBusinessLineScores GROUP BY scoringDimension ORDER BY cnt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT DISTINCT scoringDimension, COUNT(*) as cnt FROM projectBusinessLineScores GROUP BY scoringDimension ORDER BY cnt DESC LIMIT 10;",
+  "rows": [
+    {
+      "scoringDimension": "Booster",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "Portable Air",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "Rental Influence",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "Service Potential",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "Pump/Dewatering",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "BESS",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "Generators",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "Nitrogen",
+      "cnt": "1487"
+    },
+    {
+      "scoringDimension": "PAL",
+      "cnt": "1487"
+    }
+  ],
+  "messages": [],
+  "stdout": "scoringDimension\tcnt\nBooster\t1487\nPortable Air\t1487\nRental Influence\t1487\nService Potential\t1487\nPump/Dewatering\t1487\nBESS\t1487\nGenerators\t1487\nNitrogen\t1487\nPAL\t1487\n",
+  "stderr": "",
+  "execution_time_ms": 1782
+}

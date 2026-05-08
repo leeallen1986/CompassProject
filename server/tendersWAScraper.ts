@@ -33,20 +33,36 @@ const SEARCH_URL = `${BASE_URL}/tender/search/tender-search.action`;
 
 // PT-relevant keywords for local filtering
 const SEARCH_KEYWORDS = [
-  "mining",
-  "oil gas",
-  "compressor",
-  "drilling",
-  "construction",
-  "infrastructure",
-  "energy",
-  "pipeline",
-  "processing plant",
-  "water treatment",
-  "pump",
-  "generator",
-  "power station",
-  "desalination",
+  // Core PT equipment signals
+  "compressor", "compressed air", "drilling", "drill rig",
+  "mining", "mine site", "mineral", "exploration",
+  "oil gas", "oil and gas", "petroleum", "lng", "refinery",
+  "construction", "civil works", "earthworks",
+  "infrastructure", "pipeline", "processing plant",
+  "water treatment", "pump", "dewatering",
+  "generator", "power station", "desalination",
+  "energy", "turbine",
+  // Application-family additions
+  "water well", "waterwell", "bore drilling", "borehole",
+  "piling", "pile driving", "foundation",
+  "shutdown", "turnaround", "plant maintenance",
+  "abrasive blasting", "grit blasting", "surface preparation",
+  "nitrogen", "purging", "inerting", "pre-commissioning",
+  "pipeline testing", "pressure testing", "commissioning air",
+  "site air", "temporary air", "hire compressor",
+  "quarry", "aggregate", "crusher", "shotcrete", "tunnelling",
+];
+
+// Tender title patterns that indicate irrelevant false positives
+const FALSE_POSITIVE_TITLE_PATTERNS: RegExp[] = [
+  /\bschool\b/i, /\bhospital\b/i, /\bprison\b/i, /\bjail\b/i,
+  /\bairport\b/i, /\bplayground\b/i, /\bzoo\b/i, /\baquarium\b/i,
+  /\blibrary\b/i, /\bmuseum\b/i, /\btheatre\b/i, /\btheater\b/i,
+  /\bfitout\b/i, /\bfit.out\b/i, /\brefurbishment\b/i, /\brenovation\b/i,
+  /\blandscaping\b/i, /\bgarden\b/i,
+  /\bcatering\b/i, /\bcleaning services\b/i, /\bsecurity services\b/i,
+  /\bsoftware\b/i, /\bconsulting services\b/i,
+  /\btraining\b/i, /\bauditing\b/i, /\baccounting\b/i,
 ];
 
 // Categories to include (Tenders WA UNSPSC category names — partial match)
@@ -241,6 +257,9 @@ function parseTenderResults(html: string): TendersWATender[] {
     if (!title || title.length < 5) return;
 
     const tenderUrl = href.startsWith("http") ? href : `https://www.tenders.wa.gov.au${href}`;
+
+    // Suppress obvious false positives by title pattern before keyword matching
+    if (FALSE_POSITIVE_TITLE_PATTERNS.some(re => re.test(title))) return;
 
     // Local keyword + category filter
     const titleLower = title.toLowerCase();
