@@ -236,11 +236,63 @@ export function resolveBusinessLines(
 /**
  * Get the primary scoring dimension for a user profile.
  * Used for single-dimension ranking (e.g., "sort by PA score").
+ *
+ * Priority rules:
+ * 1. If raw labels include explicit pump/flow/dewatering terms AND Portable Air,
+ *    the primary is Pump/Dewatering (specialist lane takes priority over generalist).
+ * 2. If raw labels include "PT Capital Sales" or "PT All Capital Sales" alongside
+ *    an explicit single-BL label, the explicit label wins as primary.
+ * 3. Otherwise, first resolved dimension wins.
  */
 export function getPrimaryDimension(
   rawBusinessLines: string | string[] | null | undefined
 ): ScoringDimension {
   const resolved = resolveBusinessLines(rawBusinessLines);
+  if (resolved.length <= 1) return resolved[0];
+
+  // Parse raw labels for priority detection
+  let labels: string[] = [];
+  if (rawBusinessLines) {
+    if (typeof rawBusinessLines === "string") {
+      try {
+        const parsed = JSON.parse(rawBusinessLines);
+        labels = Array.isArray(parsed) ? parsed : rawBusinessLines.split(",").map(s => s.trim());
+      } catch {
+        labels = rawBusinessLines.split(",").map(s => s.trim());
+      }
+    } else {
+      labels = rawBusinessLines;
+    }
+  }
+
+  const lowerLabels = labels.map(l => l.toLowerCase().trim());
+
+  // Rule 1: Explicit pump/flow/dewatering terms take priority over Portable Air
+  const hasPumpLabel = lowerLabels.some(l =>
+    l.includes("pump") || l.includes("flow") || l.includes("dewatering")
+  );
+  if (hasPumpLabel && resolved.includes("Pump/Dewatering")) {
+    return "Pump/Dewatering";
+  }
+
+  // Rule 2: Explicit PAL/BESS label takes priority over Capital Sales expansion
+  const hasCapitalSalesLabel = lowerLabels.some(l =>
+    l.includes("capital sales") || l.includes("pt all")
+  );
+  if (hasCapitalSalesLabel) {
+    // Find the first explicit non-capital-sales label
+    const explicitLabels = labels.filter(l => {
+      const lower = l.toLowerCase().trim();
+      return !lower.includes("capital sales") && !lower.includes("pt all");
+    });
+    if (explicitLabels.length > 0) {
+      // Resolve the first explicit label to get its primary dimension
+      const explicitDims = resolveBusinessLines(explicitLabels);
+      if (explicitDims.length > 0) return explicitDims[0];
+    }
+  }
+
+  // Rule 3: Default — first resolved dimension
   return resolved[0];
 }
 

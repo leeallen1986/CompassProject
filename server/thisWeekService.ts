@@ -15,12 +15,13 @@ import {
   computePerUserFinalScore,
   classifyVisibility,
   applyTieBreaker,
+  laneOpportunityGate,
   type VisibilityTier,
 } from "./laneScoring";
 import { getActiveBusinessLines } from "./pipelineDb";
 import { isAustralianRelevant } from "./geoFilter";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
-import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
+import { resolveTerritories, resolveBusinessLines, getPrimaryDimension } from "./canonicalMappings";
 
 // ── Types ──
 
@@ -380,6 +381,15 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   const visibilityMap = new Map<number, VisibilityTier>();
   const assignedBLs = userContext.assignedBusinessLines;
 
+  // For scoring, use the PRIMARY dimension only — this ensures specialist reps
+  // (e.g., Brett Hansen with ["Portable Air", "Pump/Dewatering"]) are ranked
+  // by their specialist lane, not by max(all lanes).
+  // Cross-sell detection inside computePerUserFinalScore handles secondary lanes.
+  const primaryDimForScoring = userProfile
+    ? getPrimaryDimension(userProfile.assignedBusinessLines as string[] | string | null)
+    : assignedBLs[0] || "Portable Air";
+  const scoringBLs = [primaryDimForScoring];
+
   for (const p of actionableProjects) {
     const projectBLScores = allBLScoresMap.get(p.id) || [];
     const laneResult = computePerUserFinalScore(
@@ -400,7 +410,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       },
       {
         territories: userContext.territories,
-        assignedBusinessLines: assignedBLs,
+        assignedBusinessLines: scoringBLs,
         sectorFocus: userContext.sectorFocus,
         stageTiming: null,
         keyAccounts: null,
@@ -415,8 +425,27 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     visibilityMap.set(p.id, visibility);
   }
 
+  // Apply lane opportunity gate — hard-suppress noise (schools, hospitals, prisons, etc.)
+  // before any ranking. Uses the user's primary dimension to pick the correct gate.
+  const gateFilteredProjects = actionableProjects.filter(p => {
+    const gateResult = laneOpportunityGate(
+      {
+        name: p.name,
+        sector: p.sector || '',
+        overview: p.overview,
+        stage: p.stage,
+        opportunityRoute: p.opportunityRoute || '',
+        owner: p.owner || '',
+        equipmentSignals: (p as any).equipmentSignals ?? null,
+        priority: p.priority,
+      },
+      primaryDimForScoring,
+    );
+    return gateResult.pass;
+  });
+
   // Sort by lane score (finalScoreWithTieBreaker), suppress "suppress" tier projects
-  rankedProjects = actionableProjects
+  rankedProjects = gateFilteredProjects
     .filter(p => visibilityMap.get(p.id) !== "suppress")
     .sort((a, b) => {
       const scoreA = laneScoreMap.get(a.id)?.finalScoreWithTieBreaker ?? 0;
