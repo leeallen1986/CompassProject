@@ -2393,3 +2393,9 @@
 - [ ] PART D: Canonical model shared across dashboard, digest, detail page, QA scripts
 - [ ] PART E: Acceptance criteria — all reps have non-empty scored universe
 - [x] Clean up mislinked Ibasi Ohide contact on Scarborough Gas Project (fixed keyword overlap false positive in contactSelector + linked real Worley contacts)
+- [x] PART A: Rebuild Closing Soon section with lane-specific commercial relevance filter + hard-suppress list
+- [x] PART B: Replace passive 'Waiting on contact discovery' with actionable CTA states (Find/Refresh/View/Why)
+- [x] PART C: Tighten project filtering for contact CTA section (only commercially relevant projects)
+- [x] PART D: Fix card/detail contact mismatch — ensure shared contact selector source of truth
+- [x] PART E: Run whole-team QA audit across all active reps
+- [x] PART F: Validate all acceptance criteria pass

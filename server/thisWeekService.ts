@@ -67,7 +67,15 @@ export interface ThisWeekProject {
   airFit: "High" | "Medium" | "Low" | "None";
   opportunityType: string;
   bestProductAngle: string;
+  // ── Contact CTA state (Part B) ──
+  contactCTA: ContactCTAState;
 }
+
+export type ContactCTAState =
+  | { action: "view_best"; label: string; contactName: string; trustTier: string }
+  | { action: "find_contacts"; label: string; reason: string }
+  | { action: "refresh_contacts"; label: string; lastAttempt: string | null }
+  | { action: "why_no_contacts"; label: string; blockedReason: string };
 
 export interface ThisWeekStakeholder {
   id: number;
@@ -167,6 +175,70 @@ function isRecent(date: Date | string | null, windowMs = SEVEN_DAYS_MS): boolean
 /** Generate a stable key for an action so we can track dismissals */
 function makeActionKey(type: string, projectId?: number, contactId?: number): string {
   return `${type}:${projectId ?? 0}:${contactId ?? 0}`;
+}
+
+/** Derive the contact CTA state for a project based on discovery status and contact selection */
+function deriveContactCTA(
+  project: any,
+  contactSelection: import('./contactSelector').ContactSelectionResult,
+  bestContact: any,
+): ContactCTAState {
+  const discoveryStatus = project.discoveryStatus as string | null;
+  const lastDiscoveryAt = project.lastDiscoveryAt as Date | string | null;
+
+  // If we have a send-ready contact, show "View Best Contacts"
+  if (bestContact && contactSelection.salesReadiness === "send_ready") {
+    return {
+      action: "view_best",
+      label: "View Best Contacts",
+      contactName: bestContact.name,
+      trustTier: (bestContact as any).contactTrustTier ?? "named_unverified",
+    };
+  }
+
+  // If blocked (government, dirty owner, no usable domain), show "Why no contacts?"
+  if (discoveryStatus === "blocked_government_owner" ||
+      discoveryStatus === "blocked_dirty_owner" ||
+      discoveryStatus === "blocked_no_usable_domain" ||
+      discoveryStatus === "watchlist_monitor") {
+    const reasons: Record<string, string> = {
+      blocked_government_owner: "Government owner — Apollo blocked, needs gov fallback",
+      blocked_dirty_owner: "Owner field is garbage data — cannot infer domain",
+      blocked_no_usable_domain: "Private owner but no domain could be inferred",
+      watchlist_monitor: "Structurally weak for current digest — monitoring",
+    };
+    return {
+      action: "why_no_contacts",
+      label: "Why no contacts?",
+      blockedReason: reasons[discoveryStatus!] ?? "Unknown block reason",
+    };
+  }
+
+  // If a recent discovery attempt exists but no send-ready result, show "Refresh Contacts"
+  if (lastDiscoveryAt && (discoveryStatus === "role_only" ||
+      discoveryStatus === "named_contact_no_email" ||
+      discoveryStatus === "discovery_queued" ||
+      discoveryStatus === "discovery_running")) {
+    const lastAttemptStr = typeof lastDiscoveryAt === "string"
+      ? lastDiscoveryAt
+      : lastDiscoveryAt.toISOString();
+    return {
+      action: "refresh_contacts",
+      label: discoveryStatus === "discovery_running" ? "Searching..." :
+             discoveryStatus === "discovery_queued" ? "Queued" :
+             "Refresh Contacts",
+      lastAttempt: lastAttemptStr,
+    };
+  }
+
+  // Default: no contacts, needs discovery
+  return {
+    action: "find_contacts",
+    label: "Find Contacts",
+    reason: discoveryStatus === "no_contacts" ? "No contacts discovered yet" :
+            contactSelection.totalContactsFound === 0 ? "No contacts in database" :
+            "No high-relevance contacts found",
+  };
 }
 
 /** Get the last successful pipeline run date */
@@ -591,6 +663,8 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       airFit: laneScoreMap.get(p.id)?.airFit ?? "None",
       opportunityType: laneScoreMap.get(p.id)?.opportunityType ?? "none",
       bestProductAngle: laneScoreMap.get(p.id)?.bestProductAngle ?? "Monitor",
+      // ── Contact CTA state (Part B) ──
+      contactCTA: deriveContactCTA(p, contactSelection, bestContact),
     };
   }) as ThisWeekProject[];
 

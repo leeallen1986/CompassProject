@@ -69,6 +69,65 @@ function StatusBadge({ type }: { type: "action_ready" | "closing_soon" | "discov
   );
 }
 
+// ── Contact CTA Badge (Part B) ──
+function ContactCTABadge({ project }: { project: any }) {
+  const cta = project?.contactCTA;
+  if (!cta) return <StatusBadge type="discovery_needed" />;
+
+  const queueMutation = trpc.thisWeek.triggerDiscovery.useMutation();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (cta.action === "find_contacts" || cta.action === "refresh_contacts") {
+      queueMutation.mutate({ projectId: project.id });
+    }
+  };
+
+  if (cta.action === "view_best") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+        <UserCircle className="w-3 h-3" />
+        {cta.contactName?.split(" ")[0] ?? "Contact"}
+        <span className="opacity-60">· {cta.trustTier?.replace(/_/g, " ")}</span>
+      </span>
+    );
+  }
+
+  if (cta.action === "why_no_contacts") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-slate-50 text-slate-500 border-slate-200" title={cta.blockedReason}>
+        <AlertTriangle className="w-3 h-3" />
+        Blocked
+      </span>
+    );
+  }
+
+  if (cta.action === "refresh_contacts") {
+    return (
+      <button
+        onClick={handleClick}
+        disabled={queueMutation.isPending}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
+      >
+        {queueMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
+        {queueMutation.isSuccess ? "Queued" : cta.label}
+      </button>
+    );
+  }
+
+  // find_contacts
+  return (
+    <button
+      onClick={handleClick}
+      disabled={queueMutation.isPending}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors"
+    >
+      {queueMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+      {queueMutation.isSuccess ? "Queued ✓" : "Find Contacts"}
+    </button>
+  );
+}
+
 // ── Scope Reason Chip ──
 function ScopeReasonChip({ reason }: { reason?: string }) {
   if (!reason) return null;
@@ -140,15 +199,19 @@ function CollapsibleSection({
 
 // ── Top 3 Action Card ──
 function TopActionCard({ action, project, navigate }: { action: any; project: any; navigate: (path: string) => void }) {
-  // Determine card badge
-  const hasContact = project?.bestStakeholder;
-  const badgeType = hasContact ? "action_ready" : "discovery_needed";
-  const badgeLabel = hasContact ? "Action-ready" : "Find contacts";
+  // Determine card badge from contactCTA state
+  const cta = project?.contactCTA;
+  const hasContact = cta?.action === "view_best";
+  const badgeLabel = hasContact ? "Action-ready" : cta?.label ?? "Find contacts";
   const badgeColor = hasContact
     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : cta?.action === "why_no_contacts" ? "bg-slate-50 text-slate-500 border-slate-200"
+    : cta?.action === "refresh_contacts" ? "bg-blue-50 text-blue-700 border-blue-200"
     : "bg-amber-50 text-amber-700 border-amber-200";
   const badgeIcon = hasContact
     ? <Zap className="w-3 h-3" />
+    : cta?.action === "why_no_contacts" ? <AlertTriangle className="w-3 h-3" />
+    : cta?.action === "refresh_contacts" ? <Clock className="w-3 h-3" />
     : <Search className="w-3 h-3" />;
 
   // Prefer lane scoring fields when available
@@ -435,9 +498,18 @@ export default function ThisWeek() {
   }, [scopedProjects]);
 
   const waitingOnDiscovery = useMemo(() => {
-    return scopedProjects.filter((p: any) =>
-      !p.bestStakeholder && (p.priority === "hot" || p.priority === "warm")
-    );
+    return scopedProjects.filter((p: any) => {
+      // Part C: Only show commercially relevant projects in the contact CTA section
+      // Must be hot/warm, no send-ready contact, AND have decent lane fit + route-to-buy
+      if (p.bestStakeholder) return false;
+      if (p.priority !== "hot" && p.priority !== "warm") return false;
+      // Suppress weak projects: must have at least Medium lane fit or be a direct/crosssell channel
+      const laneFit = p.laneFitLabel ?? "Not relevant";
+      const channel = p.channel ?? "monitor";
+      if (laneFit === "Not relevant" && channel === "monitor") return false;
+      if (laneFit === "Low" && channel === "monitor") return false;
+      return true;
+    });
   }, [scopedProjects]);
 
   const closingSoon = useMemo(() => {
@@ -676,24 +748,38 @@ export default function ThisWeek() {
           </div>
         </CollapsibleSection>
 
-        {/* ── Collapsible: Find Contacts ── */}
+        {/* ── Collapsible: Contact Actions ── */}
         <CollapsibleSection
-          title="Find contacts — expand card to search"
+          title="Contact actions"
           count={waitingOnDiscovery.length}
           defaultOpen={waitingOnDiscovery.length > 0 && waitingOnDiscovery.length <= 10}
-          icon={<Search className="w-4 h-4 text-amber-500" />}
+          icon={<Users className="w-4 h-4 text-amber-500" />}
           viewAllHref="/pipeline?filter=discovery_needed"
-          viewAllLabel={`View all needing contacts (${waitingOnDiscovery.length})`}
-          emptyMessage="All in-scope projects have at least one identified contact."
+          viewAllLabel={`View all (${waitingOnDiscovery.length})`}
+          emptyMessage="All commercially relevant projects have identified contacts."
         >
           <div>
-            {waitingOnDiscovery.slice(0, 6).map((project: any) => (
-              <CompactProjectRow
+            {waitingOnDiscovery.slice(0, 8).map((project: any) => (
+              <div
                 key={project.id}
-                project={project}
-                navigate={navigate}
-                statusType="discovery_needed"
-              />
+                className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/50 transition-colors cursor-pointer border-b border-border last:border-0"
+                onClick={() => navigate(`/project/${project.id}`)}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-navy truncate">{project.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    {project.laneFitLabel && project.laneFitLabel !== "Not relevant" && (
+                      <span className="mr-2">{project.laneFitLabel} fit</span>
+                    )}
+                    {project.channel && project.channel !== "monitor" && (
+                      <span className="mr-2">· {project.channel === "direct" ? "Direct sale" : project.channel === "crosssell" ? "Cross-sell" : project.channel}</span>
+                    )}
+                    {project.location}
+                  </div>
+                </div>
+                <ContactCTABadge project={project} />
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              </div>
             ))}
           </div>
         </CollapsibleSection>

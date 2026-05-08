@@ -1194,14 +1194,17 @@ export const appRouter = router({
         return rows;
       }),
 
-    /** Live tenders closing within N days — surfaces urgency in This Week page */
+    /** Live tenders closing within N days — surfaces urgency in This Week page.
+     *  Now applies lane-specific opportunity gate + territory filter to suppress noise. */
     closingSoon: protectedProcedure
       .input(z.object({ daysAhead: z.number().optional().default(14) }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
         const { projects: projectsTable } = await import("../drizzle/schema");
-        const { and, eq, isNotNull, lte, gte, sql: drizzleSql } = await import("drizzle-orm");
+        const { and, eq, isNotNull, lte, gte } = await import("drizzle-orm");
+        const { laneOpportunityGate } = await import("./laneScoring");
+        const { resolveUserProfile } = await import("./canonicalMappings");
         const cutoff = new Date(Date.now() + input.daysAhead * 24 * 60 * 60 * 1000);
         const now = new Date();
         const rows = await db
@@ -1217,8 +1220,70 @@ export const appRouter = router({
             )
           )
           .orderBy(projectsTable.tenderCloseDate)
-          .limit(20);
-        return rows;
+          .limit(50); // fetch more, then filter
+
+        // Load user profile for lane gate + territory filter
+        let profile: any = null;
+        try {
+          profile = await getProfileByUserId(ctx.user.id);
+        } catch { /* continue without profile */ }
+
+        if (!profile) return rows.slice(0, 10); // no profile = return raw top 10
+
+        const resolved = resolveUserProfile({
+          territories: profile.territories,
+          assignedBusinessLines: profile.assignedBusinessLines,
+          sectorFocus: profile.sectorFocus,
+        });
+
+        // Territory filter helper
+        const stateKeywords: Record<string, string[]> = {
+          WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland", "newman", "geraldton"],
+          QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "rockhampton", "cairns", "bowen basin", "moranbah"],
+          NSW: ["new south wales", "nsw", "sydney", "newcastle", "hunter valley", "wollongong", "broken hill"],
+          VIC: ["victoria", "vic", "melbourne", "geelong", "ballarat", "latrobe valley"],
+          SA: ["south australia", "sa", "adelaide", "olympic dam", "whyalla", "port augusta"],
+          NT: ["northern territory", "nt", "darwin", "alice springs", "tennant creek"],
+          TAS: ["tasmania", "tas", "hobart", "launceston"],
+          ACT: ["australian capital territory", "act", "canberra"],
+          OFFSHORE_AU: ["offshore", "fpso", "nwshelf", "north west shelf", "browse", "timor sea", "bass strait"],
+        };
+        const locationMatchesTerritories = (location: string, territories: string[]): boolean => {
+          if (territories.length >= 8) return true; // national
+          const loc = location.toLowerCase();
+          return territories.some(t => {
+            const keywords = stateKeywords[t.toUpperCase()] || [t.toLowerCase()];
+            return keywords.some(kw => {
+              if (kw.length <= 3) return new RegExp(`\\b${kw}\\b`, "i").test(loc);
+              return loc.includes(kw);
+            });
+          });
+        };
+
+        // Apply territory + lane gate
+        const filtered = rows.filter(p => {
+          // Territory filter (skip if national)
+          if (resolved.territories.length > 0 && resolved.territories.length < 8) {
+            if (!locationMatchesTerritories(p.location, resolved.territories)) return false;
+          }
+          // Lane opportunity gate
+          const gateResult = laneOpportunityGate(
+            {
+              name: p.name,
+              overview: p.overview,
+              sector: p.sector,
+              stage: p.stage,
+              opportunityRoute: p.opportunityRoute,
+              owner: p.owner,
+              equipmentSignals: p.equipmentSignals as string[] | null,
+              priority: p.priority,
+            },
+            resolved.primaryDimension,
+          );
+          return gateResult.pass;
+        });
+
+        return filtered.slice(0, 10); // max 10 commercially relevant items
       }),
   }),
 
@@ -2980,6 +3045,23 @@ export const appRouter = router({
           weekLabel,
         });
         return { success: true };
+      }),
+    /** Trigger contact discovery for a project (queues it for the next pipeline run) */
+    triggerDiscovery: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { projects } = await import("../drizzle/schema");
+        const db = await (await import("./db")).getDb();
+        if (!db) throw new Error("Database not available");
+        const { eq } = await import("drizzle-orm");
+        // Set discovery status to queued and bump priority to A
+        await db.update(projects)
+          .set({
+            discoveryStatus: "discovery_queued",
+            discoveryPriority: "A",
+          })
+          .where(eq(projects.id, input.projectId));
+        return { success: true, status: "queued" };
       }),
   }),
   // ── User Activity Tracking ──

@@ -349,11 +349,11 @@ function projectText(project: {
   equipmentSignals?: string[] | null;
 }): string {
   return [
-    project.name,
+    project.name ?? "",
     project.overview ?? "",
-    project.sector,
+    project.sector ?? "",
     project.stage ?? "",
-    project.opportunityRoute,
+    project.opportunityRoute ?? "",
     (project.equipmentSignals ?? []).join(" "),
   ].join(" ");
 }
@@ -781,7 +781,7 @@ export function portableAirOpportunityGate(
     "contractor fleet", "fleet replacement", "equipment supply",
   ];
   const industrialSectors = ["mining", "oil_gas", "energy", "defence"];
-  const isInfrastructureSector = project.sector.toLowerCase() === "infrastructure";
+  const isInfrastructureSector = (project.sector || "").toLowerCase() === "infrastructure";
   // For infrastructure projects: only check name/overview/opportunityRoute (not equipment signals)
   // For industrial projects: check full text including equipment signals
   const textForCompressorCheck = isInfrastructureSector ? textWithoutEquipment : text;
@@ -855,7 +855,7 @@ export function portableAirOpportunityGate(
   // Sector-based pass: mining, oil_gas, defence always have credible portable air path
   // BUT only if there is at least one positive signal (sector alone is not enough).
   const highValueSectors = ["mining", "oil_gas", "defence"];
-  if (highValueSectors.includes(project.sector.toLowerCase()) && hasPositiveSignal) return { pass: true };
+  if (highValueSectors.includes((project.sector || "").toLowerCase()) && hasPositiveSignal) return { pass: true };
 
   // Default: insufficient signal — demote to monitor_only
   return {
@@ -1014,6 +1014,137 @@ export function palBessOpportunityGate(
     reason: "no_pal_bess_signal: no explicit PAL/BESS package-level evidence in name, overview, or route",
     suppressionLevel: 'monitor_only',
   };
+}
+
+// ── Part A.2c: Pump / Dewatering Opportunity Gate ──
+// Used for reps assigned to Pump/Dewatering business line.
+// A project only enters Must Act / Closing Soon for pump reps if it has
+// explicit water/dewatering/pumping signal.
+
+export function pumpOpportunityGate(
+  project: {
+    name: string;
+    overview: string | null;
+    sector: string | null;
+    opportunityRoute: string | null;
+    equipmentSignals?: string[] | null;
+    stage?: string | null;
+    priority?: string | null;
+  },
+): { pass: true; reason: string } | { pass: false; reason: string; suppressionLevel: 'suppress' | 'monitor_only' } {
+  const nameText = (project.name ?? "").toLowerCase();
+  const overviewText = (project.overview ?? "").toLowerCase();
+  const routeText = (project.opportunityRoute ?? "").toLowerCase();
+  const sectorLower = (project.sector ?? "").toLowerCase();
+
+  // For pump: equipment signals are AI-inferred and unreliable for infrastructure.
+  const isIndustrialSector = ["energy", "mining", "oil_gas", "defence"].includes(sectorLower);
+  const equipRaw = Array.isArray(project.equipmentSignals)
+    ? (project.equipmentSignals as string[]).join(" ")
+    : String(project.equipmentSignals ?? "");
+  const equipText = isIndustrialSector ? equipRaw.toLowerCase() : "";
+  const combined = `${nameText} ${overviewText} ${routeText} ${equipText}`;
+
+  // ── Hard suppression: same noise categories as PA gate ──
+  const hardSuppressPatterns: Array<[RegExp, string]> = [
+    [/\b(school|primary school|high school|secondary school|tafe|childcare|kindergarten|early learning)\b/, "education facility — no pump demand"],
+    [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility)\b/, "health facility — no pump demand"],
+    [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no pump demand"],
+    [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre|council building)\b/, "community/civic facility — no pump demand"],
+    [/\b(golf course|golf club|bowling green|cricket oval|sports field|playing field|park upgrade|park development|landscaping)\b/, "recreation — no pump demand"],
+    [/\b(office fitout|office refurbishment|office upgrade|fitout|fit-out|tenancy improvement)\b/, "office fitout — no pump demand"],
+    [/\b(correctional|prison|detention centre|remand centre|youth justice|police station)\b/, "correctional/justice — no pump demand"],
+    [/\b(seismic survey|geophysical survey|geotechnical investigation|feasibility study only|market study|scoping study)\b/, "survey/study only — no pump demand"],
+    [/\b(framework agreement|partnering agreement|standing offer|panel contract|master services agreement|msa)\b/, "framework/panel contract — not a project"],
+    [/\b(bus depot|bus terminal|fuel tank|diesel tank|petrol station|service station)\b/, "transport/fuel facility — no pump demand"],
+    [/\b(footpath|kerb|kerbing|playground|dog park|skate park)\b/, "minor council works — no pump demand"],
+  ];
+
+  for (const [pattern, reason] of hardSuppressPatterns) {
+    if (pattern.test(nameText)) {
+      return { pass: false, reason: `hard_suppress: ${reason}`, suppressionLevel: 'suppress' };
+    }
+  }
+
+  // ── Positive pump/dewatering signals ──
+  const pumpPositiveSignals: string[] = [
+    "dewater", "dewatering", "mine dewatering", "groundwater",
+    "water management", "water handling", "water infrastructure", "water treatment",
+    "process water", "slurry", "tailings", "tailings dam", "tailing storage",
+    "flood", "dam", "reservoir", "irrigation", "drainage", "site drainage",
+    "submersible", "wellpoint", "borehole", "sump", "pump", "pumping",
+    "water table", "seepage", "cofferdam", "dredg", "dredging",
+    "offshore pipeline", "water main", "sewer", "wastewater",
+    "desalin", "desalination", "trench", "trenching", "wet works",
+    "marine", "excavat", "excavation", "open cut", "open pit",
+    "underground mine", "mine development", "mining",
+    "weda", "pas ", "sludge", "effluent", "bore field",
+    "aquifer", "water bore", "water supply", "raw water",
+    "settling pond", "evaporation pond", "leach pad",
+  ];
+
+  const foundSignals: string[] = [];
+  for (const signal of pumpPositiveSignals) {
+    if (combined.includes(signal)) {
+      foundSignals.push(signal);
+    }
+  }
+
+  if (foundSignals.length > 0) {
+    return {
+      pass: true,
+      reason: `positive_signals: ${foundSignals.slice(0, 3).join(", ")}`,
+    };
+  }
+
+  // No positive signals — monitor only
+  return {
+    pass: false,
+    reason: "no_pump_signal: no explicit water/dewatering/pumping evidence in name, overview, or route",
+    suppressionLevel: 'monitor_only',
+  };
+}
+
+/**
+ * Universal lane opportunity gate — dispatches to the correct gate based on user's primary dimension.
+ * Returns true if the project passes the gate for the user's lane.
+ * Used by Closing Soon and Find Contacts sections to suppress noise.
+ */
+export function laneOpportunityGate(
+  project: {
+    name: string;
+    overview: string | null;
+    sector: string;
+    stage: string | null;
+    opportunityRoute: string;
+    owner: string;
+    equipmentSignals?: string[] | null;
+    priority?: string | null;
+  },
+  primaryDimension: string,
+  portableAirScore?: number,
+): { pass: boolean; reason: string } {
+  const dim = primaryDimension.toLowerCase();
+
+  if (dim.includes("portable air")) {
+    const result = portableAirOpportunityGate(project, portableAirScore ?? 0);
+    return { pass: result.pass, reason: result.pass ? "PA gate passed" : (result as any).reason };
+  }
+
+  if (dim.includes("pump") || dim.includes("dewatering") || dim.includes("flow")) {
+    const result = pumpOpportunityGate(project);
+    return { pass: result.pass, reason: result.pass ? (result as any).reason : (result as any).reason };
+  }
+
+  if (dim.includes("pal") || dim.includes("bess") || dim.includes("generator")) {
+    const result = palBessOpportunityGate(project);
+    return { pass: result.pass, reason: result.pass ? (result as any).reason : (result as any).reason };
+  }
+
+  // For other dimensions (Nitrogen, Booster, Service Potential, Rental Influence, etc.)
+  // Use the PA gate as a general industrial relevance filter
+  const result = portableAirOpportunityGate(project, portableAirScore ?? 0);
+  return { pass: result.pass, reason: result.pass ? "general industrial gate passed" : (result as any).reason };
 }
 
 // ── Part A.3: Selling-motion / channel classifier ──
@@ -1494,7 +1625,7 @@ export function computePerUserFinalScore(
     ? profile.sectorFocus
     : [];
   if (effectiveSectors.length > 0) {
-    const projSector = project.sector.toLowerCase();
+    const projSector = (project.sector || "").toLowerCase();
     const sectorAliases: Record<string, string[]> = {
       mining:         ["mining", "exploration", "development", "production", "shutdown"],
       oil_gas:        ["oil_gas", "oil", "gas", "lng", "fpso", "offshore"],
