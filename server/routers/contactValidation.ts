@@ -535,8 +535,10 @@ export const contactValidationRouter = router({
                 SUM(CASE WHEN c.contactTrustTier = 'llm_inferred' THEN 1 ELSE 0 END) as llmInferred,
                 SUM(CASE WHEN c.emailVerified = 1 THEN 1 ELSE 0 END) as emailVerified
          FROM contacts c
-         INNER JOIN projects p ON c.projectId = p.id
+         INNER JOIN contactProjects cp ON cp.contactId = c.id
+         INNER JOIN projects p ON p.id = cp.projectId
          WHERE p.priority IN ('hot','warm')
+           AND p.lifecycleStatus = 'active'
          GROUP BY c.enrichmentSource
          ORDER BY candidates DESC`
       );
@@ -760,10 +762,12 @@ export const contactValidationRouter = router({
       const [rows] = await (db as any).execute(
         `SELECT COUNT(DISTINCT c.id) as cnt
          FROM contacts c
-         INNER JOIN projects p ON c.projectId = p.id
+         INNER JOIN contactProjects cp ON cp.contactId = c.id
+         INNER JOIN projects p ON p.id = cp.projectId
          WHERE c.contactTrustTier = 'named_unverified'
            AND p.priority IN ('hot', 'warm')
-           AND c.linkedToProject = 1`
+           AND p.lifecycleStatus = 'active'
+           AND p.suppressed = 0`
       );
 
       const count = Array.isArray(rows) && rows[0] ? Number(rows[0].cnt || 0) : 0;
