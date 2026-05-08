@@ -325,15 +325,29 @@ function buildSelectedContact(scored: ScoredContact, trustTier: "send_ready" | "
 
 const STOP_WORDS = new Set(["the", "a", "an", "of", "in", "for", "and", "or", "to", "at", "by", "on", "is", "—", "-", "/"]);
 
+/** Generic words that should not count as meaningful keyword overlap */
+const GENERIC_PROJECT_WORDS = new Set([
+  "project", "projects", "program", "programme", "works", "construction",
+  "development", "upgrade", "expansion", "stage", "phase", "new", "major",
+  "facility", "operations", "services", "management", "australia", "australian",
+]);
+
 function extractKeywords(text: string): string[] {
   return text.toLowerCase().split(/[\s/—\-–,()]+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
 }
 
 function hasKeywordOverlap(a: string, b: string): boolean {
-  const kwA = extractKeywords(a);
-  const kwB = extractKeywords(b);
+  const kwA = Array.from(new Set(extractKeywords(a))); // deduplicate
+  const kwB = Array.from(new Set(extractKeywords(b))); // deduplicate
   if (kwA.length === 0 || kwB.length === 0) return false;
-  const shared = kwA.filter(w => kwB.some(bw => bw.includes(w) || w.includes(bw)));
+  // Find shared keywords, excluding generic project words
+  const shared = kwA.filter(w => {
+    if (GENERIC_PROJECT_WORDS.has(w)) return false;
+    return kwB.some(bw => {
+      if (GENERIC_PROJECT_WORDS.has(bw)) return false;
+      return bw.includes(w) || w.includes(bw);
+    });
+  });
   return shared.length >= 2 || (shared.length >= 1 && kwA.length <= 2);
 }
 

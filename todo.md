@@ -2392,3 +2392,4 @@
 - [ ] PART C: Fix broken reps — Dan Day, Egor, Kevin, Alexandre, Brett Hansen
 - [ ] PART D: Canonical model shared across dashboard, digest, detail page, QA scripts
 - [ ] PART E: Acceptance criteria — all reps have non-empty scored universe
+- [x] Clean up mislinked Ibasi Ohide contact on Scarborough Gas Project (fixed keyword overlap false positive in contactSelector + linked real Worley contacts)
