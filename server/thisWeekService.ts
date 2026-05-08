@@ -20,6 +20,7 @@ import {
 import { getActiveBusinessLines } from "./pipelineDb";
 import { isAustralianRelevant } from "./geoFilter";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
+import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
 
 // ── Types ──
 
@@ -254,13 +255,20 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     try {
       userProfile = await getProfileByUserId(userId);
       if (userProfile) {
+        // Use canonical resolver for territories and BLs
+        const resolvedTerritories = resolveTerritories(
+          userProfile.territories as string[] | string | null,
+          userProfile.sectorFocus as string[] | string | null
+        );
+        const resolvedBLs = resolveBusinessLines(
+          userProfile.assignedBusinessLines as string[] | string | null
+        );
         userContext = {
-          territories: (userProfile.territories as string[]) || [],
-          assignedBusinessLines: (userProfile.assignedBusinessLines as string[]) || [],
+          territories: resolvedTerritories,
+          assignedBusinessLines: resolvedBLs,
           sectorFocus: (userProfile.sectorFocus as string[]) || [],
           hasPreferences:
-            ((userProfile.territories as string[]) || []).length > 0 ||
-            ((userProfile.assignedBusinessLines as string[]) || []).length > 0,
+            resolvedTerritories.length > 0 || resolvedBLs.length > 0,
         };
       }
     } catch { /* continue without preferences */ }
@@ -393,10 +401,10 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     );
 
     rankedProjects = rankedProjects.filter(p => {
-      // Territory check: if user has territories set, project must match one
-      if (userContext.territories.length > 0) {
-        const isNational = userContext.territories.some(t => t.toUpperCase() === "NATIONAL");
-        if (!isNational && !locationMatchesTerritories(p.location, userContext.territories)) {
+      // Territory check: resolved territories already expanded NATIONAL to all states
+      if (userContext.territories.length > 0 && userContext.territories.length < 9) {
+        // Only filter if not effectively national (< 9 states = not all of AU)
+        if (!locationMatchesTerritories(p.location, userContext.territories)) {
           return false;
         }
       }

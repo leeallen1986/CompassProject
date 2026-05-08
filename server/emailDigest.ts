@@ -41,6 +41,7 @@ import {
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
+import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl } from "../drizzle/schema";
@@ -416,8 +417,19 @@ const BL_TO_DIMENSION_MAP: Record<string, string[]> = {
   "PAL": ["PAL", "Generators"],
   "BESS": ["BESS"],
   "Pump (Flow)": ["Pump/Dewatering"],
+  "Pump/Flow": ["Pump/Dewatering"],
+  "Pump": ["Pump/Dewatering"],
+  "Flow": ["Pump/Dewatering"],
+  "Dewatering": ["Pump/Dewatering"],
+  "Dewatering Pumps": ["Pump/Dewatering"],
+  "Pump/Dewatering": ["Pump/Dewatering"],
   "Nitrogen": ["Nitrogen"],
   "Booster": ["Booster"],
+  "Generators": ["Generators"],
+  "PT Capital Sales": ["Portable Air", "PAL", "BESS", "Pump/Dewatering", "Generators", "Nitrogen", "Booster"],
+  "PT All Capital Sales": ["Portable Air", "PAL", "BESS", "Pump/Dewatering", "Generators", "Nitrogen", "Booster"],
+  "Capital Sales": ["Portable Air", "PAL", "BESS", "Pump/Dewatering", "Generators", "Nitrogen", "Booster"],
+  "All Capital Sales": ["Portable Air", "PAL", "BESS", "Pump/Dewatering", "Generators", "Nitrogen", "Booster"],
 };
 
 /**
@@ -1539,9 +1551,9 @@ async function scoreAndFilterProjects(
   // projectState set to a different Australian state are hard-excluded even if they
   // scored above threshold (prevents Stockland National, Snowy Hydro NSW, Goulburn NSW,
   // Wakehurst Parkway NSW, Inland Rail VIC, etc. appearing in WA digest).
-  const territories = profile.territories || [];
-  if (territories.length === 0 || territories.some(t => t.toUpperCase() === "NATIONAL")) {
-    return scored; // National reps see everything
+  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
+  if (territories.length === 0 || territories.length >= 8) {
+    return scored; // National reps (resolved to all 8+ states) see everything
   }
   const AU_STATES = new Set(["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"]);
   const stateKeywordsMap: Record<string, string[]> = {
@@ -1901,7 +1913,9 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         };
       });
 
-      const territories = (profile.territories as string[]) || [];
+      const rawTerritories = (profile.territories as string[]) || [];
+      // Resolve NATIONAL → all states via canonical model
+      const territories = resolveTerritories(rawTerritories, profile.sectorFocus as string[] | null);
 
       // ── Territory-Level Send Threshold ──
       // Block the digest for this rep if the territory quality threshold is not met.
@@ -2179,7 +2193,7 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
       // Get pipeline count
       const pipeline = await getPipelineClaimsByUser(user.id);
 
-      const territories = (profile.territories as string[]) || [];
+      const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
 
       // Generate the personalized Thursday reminder
       const contentWithFreshness = generateThursdayReminder(
@@ -2617,7 +2631,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     return { ...p, hasNoContacts, briefReadiness: readiness, bestContact };
   });
 
-  const territories = (profile.territories as string[]) || [];
+  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
   const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const pipeline = await getPipelineClaimsByUser(userId);
 
@@ -2690,7 +2704,7 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
   });
 
-  const territories = (profile.territories as string[]) || [];
+  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
   const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const pipeline = await getPipelineClaimsByUser(userId);
 

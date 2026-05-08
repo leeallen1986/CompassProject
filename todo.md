@@ -2387,3 +2387,8 @@
 - [x] PART D: Ryan reproduction — fix card/detail mismatch for his top projects
 - [x] PART E: Full sales-team QA matrix across all active reps
 - [x] PART F: All acceptance criteria passing (no mismatch, no fake contacts, truthful waterfall)
+- [ ] PART A: Territory normalization — NATIONAL must resolve to all AU state codes
+- [ ] PART B: Business-line normalization — map Pump (Flow), BESS, PT All Capital Sales to scoring dimensions
+- [ ] PART C: Fix broken reps — Dan Day, Egor, Kevin, Alexandre, Brett Hansen
+- [ ] PART D: Canonical model shared across dashboard, digest, detail page, QA scripts
+- [ ] PART E: Acceptance criteria — all reps have non-empty scored universe

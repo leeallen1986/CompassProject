@@ -15,6 +15,7 @@ import {
   projectBusinessLineScores,
   type FeedbackWeight, type Project, type UserProfile,
 } from "../drizzle/schema";
+import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
 
 // ── Configuration ──
 
@@ -113,11 +114,16 @@ function scoreByProfile(project: Project, profile: UserProfile): {
   let sector = 0;
   let dealSize = 0;
 
-  // Territory match
+  // Territory match (uses canonical resolver)
   const projectTerritories = extractTerritory(project.location);
-  const userTerritories = (profile.territories as string[]) || [];
-  if (userTerritories.length > 0) {
-    const overlap = projectTerritories.filter(t => userTerritories.includes(t));
+  const resolvedTerritories = resolveTerritories(
+    profile.territories as string[] | string | null,
+    profile.sectorFocus as string[] | string | null
+  );
+  if (resolvedTerritories.length > 0) {
+    const overlap = projectTerritories.filter(t =>
+      resolvedTerritories.some(rt => rt.toUpperCase() === t.toUpperCase())
+    );
     territory = overlap.length > 0 ? 25 : 5;
   } else {
     territory = 15; // No preference = moderate match
@@ -328,10 +334,13 @@ async function computeBLBoosts(
       byProject.set(r.projectId, arr);
     }
 
+    // Resolve user BL labels to canonical scoring dimensions
+    const resolvedDimensions = resolveBusinessLines(userBLs);
+
     for (const pid of projectIds) {
       const scores = byProject.get(pid) || [];
-      // Find max score among user's assigned BLs
-      const matchingScores = scores.filter(s => userBLs.includes(s.dimension));
+      // Find max score among user's resolved scoring dimensions
+      const matchingScores = scores.filter(s => resolvedDimensions.includes(s.dimension as any));
       if (matchingScores.length === 0) {
         result.set(pid, { blBoost: 0, blScore: 0 });
         continue;
