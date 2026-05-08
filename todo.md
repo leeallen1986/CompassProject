@@ -2381,3 +2381,9 @@
 - [x] Raise Apollo daily cap from 50 to 100 for backlog processing
 - [x] Schedule O&G re-pass for Scarborough/Gorgon/Goodwyn (May 15 02:30 UTC)
 - [x] Suppress remaining false positives (Belmont City College, hospitals, NSW leaks)
+- [x] PART A: Build shared contact selector function (single source of truth for all views)
+- [x] PART B: Replace passive 'Waiting on Contact Discovery' with actionable 'Find Contacts' waterfall UX
+- [x] PART C: Enforce contact trust integrity (no llm_inferred/hallucinated as primary, clear labeling)
+- [x] PART D: Ryan reproduction — fix card/detail mismatch for his top projects
+- [x] PART E: Full sales-team QA matrix across all active reps
+- [x] PART F: All acceptance criteria passing (no mismatch, no fake contacts, truthful waterfall)

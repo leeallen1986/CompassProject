@@ -19,6 +19,7 @@ import {
 } from "./laneScoring";
 import { getActiveBusinessLines } from "./pipelineDb";
 import { isAustralianRelevant } from "./geoFilter";
+import { selectProjectContact, type ContactInput } from "./contactSelector";
 
 // ── Types ──
 
@@ -457,36 +458,22 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       .slice(0, 3)
       .map(([name, score]) => ({ name, score }));
 
-    // Find best stakeholder for this project
-    const projectContacts = allContacts.filter(c =>
-      c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-      p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
-    );
-    // Geographic filter: exclude non-Australian contacts from project displays
-    const auProjectContacts = projectContacts.filter(c => isAustralianRelevant({
+    // ── SHARED CONTACT SELECTOR (single source of truth) ──
+    // Geographic filter: exclude non-Australian contacts before selection
+    const auContacts = allContacts.filter(c => isAustralianRelevant({
       title: c.title,
       linkedinHeadline: (c as any).linkedinHeadline,
       linkedinLocation: (c as any).linkedinLocation,
-    }));
-    // TRUST TIER ENFORCEMENT: only send_ready contacts are outreach-ready for the weekly dashboard.
-    // LLM-inferred contacts (llm_inferred) are excluded from bestStakeholder.
-    // named_unverified contacts are shown as "Suggested Stakeholders" section only.
-    const relevantContacts = auProjectContacts.filter(c =>
-      (c as any).contactTrustTier === "send_ready" &&
-      ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium")
-    );
-    relevantContacts.sort((a, b) => {
-      const relOrder: Record<string, number> = { high: 2, medium: 1, low: 0 };
-      return (relOrder[(b as any).roleRelevance ?? "low"] ?? 0) - (relOrder[(a as any).roleRelevance ?? "low"] ?? 0);
+    })) as ContactInput[];
+    const contactSelection = selectProjectContact(auContacts, {
+      projectName: p.name,
+      projectOwner: p.owner,
+      projectState: (p as any).projectState ?? null,
+      buyerRoles: userProfile?.buyerRoles as string[] | undefined,
     });
-    const bestContact = relevantContacts[0] ?? null;
-
-    // Suggested stakeholders: named_unverified contacts (not LLM, not send_ready)
-    // These are shown in a separate "Validate Before Outreach" section
-    const suggestedStakeholders = auProjectContacts.filter(c =>
-      (c as any).contactTrustTier === "named_unverified" &&
-      ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium")
-    );
+    const bestContact = contactSelection.selectedContact;
+    const relevantContacts = contactSelection.salesReadiness === "send_ready" ? [bestContact] : [];
+    const suggestedStakeholders = contactSelection.fallbackContacts;
 
     // Generate "Why it matters" summary
     const whyParts: string[] = [];
@@ -504,7 +491,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     let suggestedAction = "Review project details and assess opportunity";
     if (bestContact && (bestContact as any).roleRelevance === "high") {
       suggestedAction = `Reach out to ${bestContact.name} (${bestContact.title}) — high-relevance contact`;
-    } else if (relevantContacts.length === 0 && auProjectContacts.length === 0) {
+    } else if (relevantContacts.length === 0 && contactSelection.totalContactsFound === 0) {
       suggestedAction = "Run stakeholder discovery — no contacts found yet";
     } else if (relevantContacts.length === 0) {
       suggestedAction = "Run second-pass contact search — no high-relevance contacts";
@@ -538,19 +525,19 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
         name: bestContact.name,
         title: bestContact.title,
         company: bestContact.company,
-        relevance: (bestContact as any).roleRelevance ?? "medium",
+        relevance: bestContact.roleRelevance ?? "medium",
         email: bestContact.email,
-        linkedin: (bestContact as any).linkedinProfileUrl ?? (bestContact as any).linkedin ?? null,
+        linkedin: bestContact.linkedin,
       } : null,
       suggestedAction,
-      contactDepth: relevantContacts.length,
+      contactDepth: contactSelection.totalContactsFound,
       // Suggested stakeholders: named_unverified contacts to validate before outreach
       suggestedStakeholders: suggestedStakeholders.slice(0, 3).map(c => ({
         name: c.name,
         title: c.title,
         company: c.company,
-        relevance: (c as any).roleRelevance ?? "medium",
-        linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+        relevance: c.roleRelevance ?? "medium",
+        linkedin: null as string | null,
       })),
       // ── Scope reason (derived from laneScoring reasonCodes) ──
       scopeReason: (() => {

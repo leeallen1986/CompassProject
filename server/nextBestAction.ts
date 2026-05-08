@@ -18,6 +18,7 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import { detectActivities } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { isAustralianRelevant } from "./geoFilter";
+import { selectProjectContact, type ContactInput } from "./contactSelector";
 
 // ── Types ──
 
@@ -155,19 +156,18 @@ export async function generateNBA(projectId: number, userBLs?: string[]): Promis
     project.sector
   );
 
-  // Classify contact relevance and filter to Australian-relevant contacts
-  const rankedContacts = projectContacts
-    .filter(c => isAustralianRelevant({
-      title: c.title,
-      linkedinHeadline: c.linkedinHeadline,
-      linkedinLocation: c.linkedinLocation,
-    }))
-    .map(c => ({
-      ...c,
-      relevance: classifyRoleRelevance(c.title, c.roleBucket),
-    }));
-  const highContacts = rankedContacts.filter(c => c.relevance === "high");
-  const bestContact = highContacts[0] || rankedContacts[0] || null;
+  // ── SHARED CONTACT SELECTOR (single source of truth) ──
+  const auContacts = projectContacts.filter(c => isAustralianRelevant({
+    title: c.title,
+    linkedinHeadline: c.linkedinHeadline,
+    linkedinLocation: c.linkedinLocation,
+  })) as ContactInput[];
+  const contactSelection = selectProjectContact(auContacts, {
+    projectName: project.name,
+    projectOwner: project.owner ?? "",
+    projectState: (project as any).projectState ?? null,
+  });
+  const bestContact = contactSelection.selectedContact;
 
   // Top business lines
   const topBLs = blScores
@@ -359,7 +359,7 @@ function buildNBAPrompt(
 ): string {
   const activityNames = activities.map(a => a.activity);
   const contactInfo = bestContact
-    ? `Best available contact: ${bestContact.name}, ${bestContact.title} at ${bestContact.company} (role: ${bestContact.roleBucket})`
+    ? `Best available contact: ${bestContact.name}, ${bestContact.title} at ${bestContact.company} (route: ${bestContact.routeToBuy})`
     : "No contacts found yet — stakeholder discovery needed.";
 
   return `Generate a Next Best Action for this project:

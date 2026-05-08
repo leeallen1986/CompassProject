@@ -40,6 +40,7 @@ import {
   type VisibilityTier,
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
+import { selectProjectContact, type ContactInput } from "./contactSelector";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl } from "../drizzle/schema";
@@ -376,60 +377,16 @@ function classifyBriefReadiness(
   if (tier === "tier3_monitor") return { readiness: "monitor_only", bestContact: null };
   if (tier === "tier2_warm" && priority === "cold") return { readiness: "monitor_only", bestContact: null };
 
-  // Find the best send-ready contact:
-  // TRUST TIER ENFORCEMENT: only contacts with contactTrustTier = 'send_ready' are outreach-ready.
-  // LLM-inferred contacts (llm_inferred) and unverified contacts (named_unverified) are EXCLUDED.
-  //
-  // CONTACT QUALITY SCORING:
-  // Prefer commercial/project/procurement/operations contacts over admin/finance/HR.
-  // Penalise region/title mismatch (e.g. "Eastern States" contact for a WA project).
-  const projectStateUpper = ((project as any).projectState ?? "").toUpperCase();
-  const sendReady = projectContacts
-    .filter(c =>
-      // Must be send_ready trust tier (verified email + project linked + non-LLM)
-      c.contactTrustTier === "send_ready" &&
-      (c.roleRelevance === "high" || c.roleRelevance === "medium") &&
-      (c.email || c.linkedin)
-    )
-    .map(c => {
-      // Score contact quality: higher = better
-      let score = 0;
-      const relOrder: Record<string, number> = { high: 20, medium: 10, low: 0 };
-      score += relOrder[c.roleRelevance ?? "low"] ?? 0;
-      // Prefer commercial/project/procurement/operations/maintenance titles
-      const titleLower = (c.title ?? "").toLowerCase();
-      const commercialTitles = [
-        "project manager", "project director", "procurement", "contracts manager",
-        "operations manager", "maintenance manager", "plant manager",
-        "general manager", "managing director", "ceo", "chief executive",
-        "business development", "commercial manager", "asset manager",
-        "construction manager", "site manager", "engineering manager",
-      ];
-      if (commercialTitles.some(t => titleLower.includes(t))) score += 10;
-      // Penalise region/title mismatch: "Eastern States" or "National" for a state-specific project.
-      // Penalty is -25 (larger than the +20 high roleRelevance bonus) so a WA-based medium contact
-      // always beats an Eastern States high-relevance contact.
-      const AU_STATES = ["WA", "QLD", "NSW", "VIC", "SA", "NT", "TAS", "ACT"];
-      if (projectStateUpper && AU_STATES.includes(projectStateUpper)) {
-        const mismatchPhrases = ["eastern states", "east coast", "national", "australia wide", "all states",
-          "eastern australia", "east australia"];
-        if (mismatchPhrases.some(m => titleLower.includes(m))) score -= 25;
-        // Also penalise if contact's company location is in a different state
-        const companyLower = (c.company ?? "").toLowerCase();
-        const otherStateKeywords: Record<string, string[]> = {
-          WA: ["nsw", "victoria", "queensland", "south australia", "sydney", "melbourne", "brisbane", "adelaide"],
-          QLD: ["wa", "victoria", "nsw", "south australia", "perth", "melbourne", "sydney", "adelaide"],
-          NSW: ["wa", "victoria", "queensland", "south australia", "perth", "melbourne", "brisbane", "adelaide"],
-        };
-        const penaltyKws = otherStateKeywords[projectStateUpper] ?? [];
-        if (penaltyKws.some(kw => companyLower.includes(kw) || titleLower.includes(kw))) score -= 5;
-      }
-      return { ...c, _qualityScore: score };
-    })
-    .sort((a, b) => b._qualityScore - a._qualityScore);
+  // ── SHARED CONTACT SELECTOR (single source of truth) ──
+  // Uses the same scoring logic as thisWeekService and nextBestAction.
+  const contactSelection = selectProjectContact(projectContacts as unknown as ContactInput[], {
+    projectName: project.name,
+    projectOwner: (project as any).owner ?? "",
+    projectState: (project as any).projectState ?? null,
+  });
 
-  if (sendReady.length > 0) {
-    const best = sendReady[0];
+  if (contactSelection.salesReadiness === "send_ready" && contactSelection.selectedContact) {
+    const best = contactSelection.selectedContact;
     return {
       readiness: "action_ready",
       bestContact: { name: best.name, title: best.title, email: best.email, linkedin: best.linkedin },
@@ -437,17 +394,12 @@ function classifyBriefReadiness(
   }
 
   // Fallback: verified contractor + tier1 = action_ready (route-to-buy path)
-  // Only use contacts with send_ready trust tier for the fallback path too
-  const hasVerifiedContractor = !project.hasNoContacts &&
-    project.actionTier === "tier1_actionable" &&
-    projectContacts.length > 0;
-  const anyTrustedContactWithEmail = projectContacts.find(
-    c => c.contactTrustTier === "send_ready" && c.email
-  );
-  if (hasVerifiedContractor && anyTrustedContactWithEmail) {
+  if (!project.hasNoContacts && project.actionTier === "tier1_actionable" &&
+      contactSelection.selectedContact && contactSelection.selectedContact.email) {
+    const best = contactSelection.selectedContact;
     return {
       readiness: "action_ready",
-      bestContact: { name: anyTrustedContactWithEmail.name, title: anyTrustedContactWithEmail.title, email: anyTrustedContactWithEmail.email, linkedin: anyTrustedContactWithEmail.linkedin },
+      bestContact: { name: best.name, title: best.title, email: best.email, linkedin: best.linkedin },
     };
   }
 

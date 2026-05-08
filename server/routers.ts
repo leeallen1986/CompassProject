@@ -151,6 +151,7 @@ import {
   getDefaultTemplate, getSampleContext, renderFullEmail, MERGE_FIELDS,
 } from "./templateService";
 import { storagePut } from "./storage";
+import { selectProjectContact, type ContactInput, type ContactSelectionResult } from "./contactSelector";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
 import { queueDiscoveryForProject, processDiscoveryQueue, enforceHotProjectSLA, backfillDiscoveryStatus } from "./discoveryQueue";
 import {
@@ -512,6 +513,23 @@ export const appRouter = router({
         // Get the user's claim if any
         const userClaim = claims.find(c => c.userId === ctx.user.id) ?? null;
         return { project, contacts: projectContacts, claims, userClaim, businessLineNames, scopeFlags };
+      }),
+
+    /** Get the primary contact selection for a project using the shared selector */
+    contactSelection: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const [project, projectContacts] = await Promise.all([
+          getProjectById(input.projectId),
+          getContactsForProject(input.projectId),
+        ]);
+        if (!project) return null;
+        const result = selectProjectContact(projectContacts as unknown as ContactInput[], {
+          projectName: project.name,
+          projectOwner: project.owner ?? "",
+          projectState: (project as any).projectState ?? null,
+        });
+        return result;
       }),
 
     /** Update a single project's lifecycle status */

@@ -737,19 +737,34 @@ export default function ProjectCard({
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [showMoreDetail, setShowMoreDetail] = useState(false);
 
-  // Find all matching contacts for this project (up to 10)
+  // Find all matching contacts for this project (up to 10) — local list for display
   const projectContacts = useMemo(() => {
     if (!allContacts || allContacts.length === 0) return [];
     return findProjectContacts(project.name, project.owner, allContacts, buyerRoles, 10);
   }, [project.name, project.owner, allContacts, buyerRoles]);
 
+  // ── SHARED CONTACT SELECTOR (single source of truth via tRPC) ──
+  // Only fetch when card is expanded to avoid N+1 queries
+  const contactSelectionQuery = trpc.projectLifecycle.contactSelection.useQuery(
+    { projectId: project.id },
+    { enabled: open, staleTime: 60_000 }
+  );
+
   // Trust tier segmentation
   const sendReadyContacts = projectContacts.filter(c => c.contactTrustTier === "send_ready");
   const llmContacts = projectContacts.filter(c => c.contactTrustTier === "llm_inferred");
-  // Primary contact: prefer send_ready, fall back to named_unverified
-  const primaryContact = sendReadyContacts.length > 0
-    ? sendReadyContacts[0]
-    : projectContacts.find(c => c.contactTrustTier === "named_unverified") ?? projectContacts[0] ?? null;
+  // Primary contact: use shared selector result when available, otherwise fall back to local scoring
+  const primaryContact = useMemo(() => {
+    // If shared selector returned a result, use it to find the matching local contact
+    if (contactSelectionQuery.data?.selectedContact) {
+      const selectedId = contactSelectionQuery.data.selectedContact.id;
+      const match = projectContacts.find(c => c.id === selectedId);
+      if (match) return match;
+    }
+    // Fallback: local scoring (same order as before)
+    if (sendReadyContacts.length > 0) return sendReadyContacts[0];
+    return projectContacts.find(c => c.contactTrustTier === "named_unverified") ?? projectContacts[0] ?? null;
+  }, [contactSelectionQuery.data, projectContacts, sendReadyContacts]);
   // Show send_ready and named_unverified contacts in main list; LLM contacts in separate section
   const outreachContacts = projectContacts.filter(c => c.contactTrustTier !== "llm_inferred");
   const visibleContacts = showAllContacts ? outreachContacts : outreachContacts.slice(0, 3);
@@ -943,10 +958,13 @@ export default function ProjectCard({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs text-amber-600">
-              <CircleDashed className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-medium">Discovery needed</span>
-            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+              className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 py-1 rounded-md transition-colors"
+            >
+              <Search className="w-3.5 h-3.5 shrink-0" />
+              <span className="font-semibold">Find Contacts</span>
+            </button>
           )}
         </div>
 

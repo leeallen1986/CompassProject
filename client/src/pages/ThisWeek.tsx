@@ -59,7 +59,7 @@ function StatusBadge({ type }: { type: "action_ready" | "closing_soon" | "discov
   const config = {
     action_ready: { label: "Action-ready", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     closing_soon: { label: "Closing within 14 days", bg: "bg-hot/10 text-hot border-hot/20" },
-    discovery_needed: { label: "Discovery needed", bg: "bg-amber-50 text-amber-700 border-amber-200" },
+    discovery_needed: { label: "Find contacts", bg: "bg-amber-50 text-amber-700 border-amber-200" },
   };
   const c = config[type];
   return (
@@ -143,7 +143,7 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
   // Determine card badge
   const hasContact = project?.bestStakeholder;
   const badgeType = hasContact ? "action_ready" : "discovery_needed";
-  const badgeLabel = hasContact ? "Action-ready" : "Discovery needed";
+  const badgeLabel = hasContact ? "Action-ready" : "Find contacts";
   const badgeColor = hasContact
     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
     : "bg-amber-50 text-amber-700 border-amber-200";
@@ -676,14 +676,14 @@ export default function ThisWeek() {
           </div>
         </CollapsibleSection>
 
-        {/* ── Collapsible: Waiting on Contact Discovery ── */}
+        {/* ── Collapsible: Find Contacts ── */}
         <CollapsibleSection
-          title="Waiting on contact discovery"
+          title="Find contacts — expand card to search"
           count={waitingOnDiscovery.length}
           defaultOpen={waitingOnDiscovery.length > 0 && waitingOnDiscovery.length <= 10}
           icon={<Search className="w-4 h-4 text-amber-500" />}
           viewAllHref="/pipeline?filter=discovery_needed"
-          viewAllLabel={`View all waiting on contact discovery (${waitingOnDiscovery.length})`}
+          viewAllLabel={`View all needing contacts (${waitingOnDiscovery.length})`}
           emptyMessage="All in-scope projects have at least one identified contact."
         >
           <div>
