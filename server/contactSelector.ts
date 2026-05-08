@@ -357,8 +357,8 @@ function matchContactsToProject(contacts: ContactInput[], projectName: string, p
   const ownerParts = ownerLower.split(/[/&,]+/).map(s => s.trim()).filter(Boolean);
 
   return contacts.filter(c => {
-    const cProject = c.project.toLowerCase();
-    const cCompany = c.company.toLowerCase();
+    const cProject = (c.project || '').toLowerCase();
+    const cCompany = (c.company || '').toLowerCase();
     // Direct project name match
     if (cProject.includes(projectNameLower) || projectNameLower.includes(cProject)) return true;
     // Keyword overlap

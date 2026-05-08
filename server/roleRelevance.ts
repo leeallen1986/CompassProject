@@ -179,6 +179,34 @@ const LOW_RELEVANCE_KEYWORDS = [
   "esg manager",
   "community relations",
   "stakeholder engagement",
+  // Non-industrial sector roles — false positive prevention
+  "medicare",
+  "health insurance",
+  "pharmaceutical",
+  "clinical",
+  "nursing",
+  "aged care manager",
+  "teacher",
+  "principal",
+  "school",
+  "enrollment",
+  "enrolment",
+  "real estate",
+  "property manager",
+  "retail manager",
+  "store manager",
+  "hospitality",
+  "hotel manager",
+  "restaurant",
+  "insurance",
+  "underwriter",
+  "claims manager",
+  "actuary",
+  "financial planner",
+  "financial adviser",
+  "mortgage",
+  "banking",
+  "wealth management",
 ];
 
 /**
@@ -248,6 +276,22 @@ export function classifyRoleRelevance(
 ): RoleRelevance {
   const titleLower = (title || "").toLowerCase().trim();
   const bucketLower = (roleBucket || "").toLowerCase().trim();
+
+  // Step 0: Pre-filter — if title contains non-industrial sector indicators,
+  // short-circuit to "low" regardless of operational keywords.
+  // This prevents false positives like "Hotel Operations Manager" or
+  // "Medicare Sales Operations Leader" from being classified as high.
+  const NON_INDUSTRIAL_INDICATORS = [
+    "medicare", "health insurance", "pharmaceutical", "clinical", "nursing",
+    "aged care", "teacher", "school", "enrollment", "enrolment",
+    "real estate", "retail", "hospitality", "hotel", "restaurant",
+    "insurance", "underwriter", "actuary", "financial planner",
+    "financial adviser", "mortgage", "banking", "wealth management",
+    "childcare", "kindergarten", "university", "academic",
+  ];
+  if (titleLower && NON_INDUSTRIAL_INDICATORS.some(ind => titleLower.includes(ind))) {
+    return "low";
+  }
 
   // Step 1: Check HIGH keywords first (most specific operational roles)
   if (titleLower) {

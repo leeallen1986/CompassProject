@@ -2399,3 +2399,13 @@
 - [x] PART D: Fix card/detail contact mismatch — ensure shared contact selector source of truth
 - [x] PART E: Run whole-team QA audit across all active reps
 - [x] PART F: Validate all acceptance criteria pass
+- [ ] BLOCKER A: Bulk-seed digest preferences for all 12 active reps (not just 2)
+- [ ] BLOCKER B: Fix emailType undefined in userEmailSendLog + audit 4 pending sends
+- [ ] BLOCKER C: Re-score Pump/Dewatering dimension with strict criteria (dewatering/pumping/slurry/tailings required)
+- [ ] BLOCKER D: Rep-facing contact integrity audit (confirm no llm_inferred shown as primary)
+- [ ] BLOCKER E: Whole-team commercial sniff test with honest verdicts
+- [x] CRITICAL FIX: Pass portableAirScore (BL score) to laneOpportunityGate in thisWeekService.ts (Daniel Zec 0/20 → 18/20)
+- [x] Fix qa_sniff_test.ts to pass laneScore and owner/stage/equipmentSignals to gate function
+- [x] Fix Charlene Howard false-positive: downgrade roleRelevance to low, contactTrustTier to named_unverified (Medicare Sales Ops at wrong "Red Sky")
+- [x] Add non-industrial sector pre-filter to classifyRoleRelevance (medicare, insurance, hotel, school, retail, university, etc.)
+- [x] Bulk-fix 18 existing false-positive contacts with non-industrial titles incorrectly marked as high relevance

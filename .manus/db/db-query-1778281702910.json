@@ -1,0 +1,170 @@
+{
+  "query": "SELECT p.id, p.name, p.sector, p.priority, p.projectState, COALESCE(bl.score, 0) as pa_score FROM projects p LEFT JOIN projectBusinessLineScores bl ON bl.projectId = p.id AND bl.scoringDimension = 'Portable Air' WHERE p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') AND p.priority IN ('hot', 'warm') AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0) AND p.sector IN ('mining', 'oil_gas', 'defence') ORDER BY COALESCE(bl.score, 0) DESC LIMIT 20",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.sector, p.priority, p.projectState, COALESCE(bl.score, 0) as pa_score FROM projects p LEFT JOIN projectBusinessLineScores bl ON bl.projectId = p.id AND bl.scoringDimension = 'Portable Air' WHERE p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') AND p.priority IN ('hot', 'warm') AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0) AND p.sector IN ('mining', 'oil_gas', 'defence') ORDER BY COALESCE(bl.score, 0) DESC LIMIT 20",
+  "rows": [
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "projectState": "VIC",
+      "pa_score": "100"
+    },
+    {
+      "id": "450027",
+      "name": "Tunkillia Gold Project",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "SA",
+      "pa_score": "99"
+    },
+    {
+      "id": "960006",
+      "name": "Olympic Dam Expansion — BHP",
+      "sector": "mining",
+      "priority": "hot",
+      "projectState": "SA",
+      "pa_score": "99"
+    },
+    {
+      "id": "870018",
+      "name": "Samphire Uranium Extraction Trial and BFS",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "SA",
+      "pa_score": "94"
+    },
+    {
+      "id": "510018",
+      "name": "London-Victoria Gold Mine Expansion",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "VIC",
+      "pa_score": "89"
+    },
+    {
+      "id": "1020013",
+      "name": "Spur Gold Project - Consols Prospect",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "NSW",
+      "pa_score": "89"
+    },
+    {
+      "id": "450019",
+      "name": "Bygoo Tin Project",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "NSW",
+      "pa_score": "79"
+    },
+    {
+      "id": "690040",
+      "name": "Highway Project exploration",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "SA",
+      "pa_score": "79"
+    },
+    {
+      "id": "840001",
+      "name": "Switzerland Quarry Sale",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "VIC",
+      "pa_score": "79"
+    },
+    {
+      "id": "480037",
+      "name": "Bulloo Creek Copper-Cobalt Prospect",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "SA",
+      "pa_score": "76"
+    },
+    {
+      "id": "480042",
+      "name": "Queen of the Hills and Sheards Reef Gold Project",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "VIC",
+      "pa_score": "71"
+    },
+    {
+      "id": "1200060",
+      "name": "White Dam Gold Project",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "SA",
+      "pa_score": "70"
+    },
+    {
+      "id": "870015",
+      "name": "Omeo Gold Project revival",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "VIC",
+      "pa_score": "69"
+    },
+    {
+      "id": "1020023",
+      "name": "Offshore Gas Exploration NSW",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "projectState": "NSW",
+      "pa_score": "69"
+    },
+    {
+      "id": "480038",
+      "name": "Firetower Gold-Tungsten Project",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "TAS",
+      "pa_score": "56"
+    },
+    {
+      "id": "660053",
+      "name": "White Dam Gold Project",
+      "sector": "mining",
+      "priority": "hot",
+      "projectState": "NSW",
+      "pa_score": "40"
+    },
+    {
+      "id": "450046",
+      "name": "Kingfisher Mining and Broken Hill Mines Copper Partnership",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "NSW",
+      "pa_score": "40"
+    },
+    {
+      "id": "510008",
+      "name": "Sydney Defence Infrastructure Project",
+      "sector": "defence",
+      "priority": "warm",
+      "projectState": "NSW",
+      "pa_score": "40"
+    },
+    {
+      "id": "480044",
+      "name": "Samphire Uranium Project - Field Recovery Trial (FRT)",
+      "sector": "mining",
+      "priority": "warm",
+      "projectState": "SA",
+      "pa_score": "35"
+    },
+    {
+      "id": "450034",
+      "name": "Narrabri to Newcastle Gas Pipeline",
+      "sector": "oil_gas",
+      "priority": "warm",
+      "projectState": "NSW",
+      "pa_score": "33"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsector\tpriority\tprojectState\tpa_score\n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\toil_gas\thot\tVIC\t100\n450027\tTunkillia Gold Project\tmining\twarm\tSA\t99\n960006\tOlympic Dam Expansion — BHP\tmining\thot\tSA\t99\n870018\tSamphire Uranium Extraction Trial and BFS\tmining\twarm\tSA\t94\n510018\tLondon-Victoria Gold Mine Expansion\tmining\twarm\tVIC\t89\n1020013\tSpur Gold Project - Consols Prospect\tmining\twarm\tNSW\t89\n450019\tBygoo Tin Project\tmining\twarm\tNSW\t79\n690040\tHighway Project exploration\tmining\twarm\tSA\t79\n840001\tSwitzerland Quarry Sale\tmining\twarm\tVIC\t79\n480037\tBulloo Creek Copper-Cobalt Prospect\tmining\twarm\tSA\t76\n480042\tQueen of the Hills and Sheards Reef Gold Project\tmining\twarm\tVIC\t71\n1200060\tWhite Dam Gold Project\tmining\twarm\tSA\t70\n870015\tOmeo Gold Project revival\tmining\twarm\tVIC\t69\n1020023\tOffshore Gas Exploration NSW\toil_gas\twarm\tNSW\t69\n480038\tFiretower Gold-Tungsten Project\tmining\twarm\tTAS\t56\n660053\tWhite Dam Gold Project\tmining\thot\tNSW\t40\n450046\tKingfisher Mining and Broken Hill Mines Copper Partnership\tmining\twarm\tNSW\t40\n510008\tSydney Defence Infrastructure Project\tdefence\twarm\tNSW\t40\n480044\tSamphire Uranium Project - Field Recovery Trial (FRT)\tmining\twarm\tSA\t35\n450034\tNarrabri to Newcastle Gas Pipeline\toil_gas\twarm\tNSW\t33\n",
+  "stderr": "",
+  "execution_time_ms": 1843
+}

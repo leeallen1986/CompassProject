@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE contacts SET roleRelevance = 'low' WHERE roleRelevance = 'high' AND (title LIKE '%medicare%' OR title LIKE '%insurance%' OR title LIKE '%hotel%' OR title LIKE '%school%' OR title LIKE '%retail%' OR title LIKE '%pharmaceutical%' OR title LIKE '%university%' OR title LIKE '%real estate%' OR title LIKE '%banking%' OR title LIKE '%hospitality%' OR title LIKE '%enrollment%' OR title LIKE '%enrolment%')",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE contacts SET roleRelevance = 'low' WHERE roleRelevance = 'high' AND (title LIKE '%medicare%' OR title LIKE '%insurance%' OR title LIKE '%hotel%' OR title LIKE '%school%' OR title LIKE '%retail%' OR title LIKE '%pharmaceutical%' OR title LIKE '%university%' OR title LIKE '%real estate%' OR title LIKE '%banking%' OR title LIKE '%hospitality%' OR title LIKE '%enrollment%' OR title LIKE '%enrolment%')",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1821
+}

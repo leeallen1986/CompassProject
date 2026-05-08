@@ -1048,7 +1048,7 @@ export function pumpOpportunityGate(
   // ── Hard suppression: same noise categories as PA gate ──
   const hardSuppressPatterns: Array<[RegExp, string]> = [
     [/\b(school|primary school|high school|secondary school|tafe|childcare|kindergarten|early learning)\b/, "education facility — no pump demand"],
-    [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility)\b/, "health facility — no pump demand"],
+    [/\b(hospital|health campus|renal unit|aged care|nursing home|medical centre|community health|mental health facility)\b/, "health facility — no pump demand"],
     [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no pump demand"],
     [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre|council building)\b/, "community/civic facility — no pump demand"],
     [/\b(golf course|golf club|bowling green|cricket oval|sports field|playing field|park upgrade|park development|landscaping)\b/, "recreation — no pump demand"],

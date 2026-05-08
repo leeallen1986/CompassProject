@@ -1,0 +1,250 @@
+{
+  "query": "SELECT p.id, p.name, p.sector, p.priority, p.projectState, SUBSTRING(p.overview, 1, 100) as overview_snippet FROM projects p WHERE p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') AND p.priority IN ('hot', 'warm') AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0) ORDER BY FIELD(p.priority, 'hot', 'warm'), p.name LIMIT 30",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.sector, p.priority, p.projectState, SUBSTRING(p.overview, 1, 100) as overview_snippet FROM projects p WHERE p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') AND p.priority IN ('hot', 'warm') AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0) ORDER BY FIELD(p.priority, 'hot', 'warm'), p.name LIMIT 30",
+  "rows": [
+    {
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Snowy Hydro has secured a $1.9 billion deal to provide 100% renewable power for New South Wales' tra"
+    },
+    {
+      "id": "720005",
+      "name": "Alinta Energy 500 MW / 2,000 MWh Battery Energy Storage System (Stage 1)",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "SA",
+      "overview_snippet": "Alinta Energy has commenced main construction works on the first 1,000 MWh stage of a 500 MW / 2,000"
+    },
+    {
+      "id": "870023",
+      "name": "All Ash Asphalt Infrastructure Projects",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "All Ash Asphalt is a family operation actively securing and delivering works on Victoria’s largest i"
+    },
+    {
+      "id": "480014",
+      "name": "Bank Street Park Construction",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Construction is underway on the 1.1-hectare Bank Street Park in Sydney’s Blackwattle Bay, the first "
+    },
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "Barry Beach is undergoing a facelift to prepare for the safe return, dismantling, and recycling of o"
+    },
+    {
+      "id": "480005",
+      "name": "Bellambi Heights Battery Energy Storage System - Stage 2",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Vena Energy has secured a $200 million long-term revenue agreement for the second stage of its 408 M"
+    },
+    {
+      "id": "480028",
+      "name": "Bellambi Heights BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Vena Energy has signed a long-term revenue share agreement with InCommodities for its 204MW/510MWh B"
+    },
+    {
+      "id": "1200051",
+      "name": "Beni Creek Rail Bridge Restoration",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "The Australian Rail Track Corporation (ARTC) is preparing to reopen the Beni Creek rail bridge near "
+    },
+    {
+      "id": "1110002",
+      "name": "Black Spot Program - Road Safety Works",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "The Federal Government has committed $48 million under the 2026-27 Black Spot Program to fund safety"
+    },
+    {
+      "id": "480068",
+      "name": "Blind Creek Solar and Battery Project",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Octopus Australia has commenced construction of its Blind Creek solar and battery project in souther"
+    },
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "sector": "mining",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Newmont's processing operations at Cadia are steadily ramping up after a magnitude-4.5 earthquake. I"
+    },
+    {
+      "id": "690008",
+      "name": "Cricket Albury Wodonga Indoor Stadium Community Battery",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "A 482 kWh community battery with a 100 kW inverter has been launched at the Cricket Albury Wodonga I"
+    },
+    {
+      "id": "1020007",
+      "name": "Dubbo Regional Council Pump Station Upgrades",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "A series of targeted upgrades have been rolled out across 36 of Dubbo Regional Council’s (DRC) pump "
+    },
+    {
+      "id": "1200045",
+      "name": "EnergyConnect Transmission Project (Southern Superhighway)",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Australia's largest transmission project, EnergyConnect, is nearing completion. High-voltage conduct"
+    },
+    {
+      "id": "720037",
+      "name": "Euroa Station Upgrade (Inland Rail)",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "Train services through Euroa have been switched to new rail lines in front of Euroa Station, marking"
+    },
+    {
+      "id": "480010",
+      "name": "Goulburn Community Solar Farm and Battery Project",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "The Goulburn Community Solar Farm and battery project has been commissioned, highlighting a single-s"
+    },
+    {
+      "id": "510027",
+      "name": "Great Western Highway Detour Route Improvements",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "The NSW Government has announced a $50 million investment to improve key detour routes for sections "
+    },
+    {
+      "id": "990016",
+      "name": "Grid-scale South Australian Energy Storage Project",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "SA",
+      "overview_snippet": "Delivery is progressing on a major grid-scale energy storage development in regional South Australia"
+    },
+    {
+      "id": "690002",
+      "name": "Hornsby Park Quarry Rehabilitation (Crusher Plant Precinct)",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "The first stage of Hornsby Park, the Crusher Plant Precinct, has opened. This marks a significant st"
+    },
+    {
+      "id": "570002",
+      "name": "Inland Rail Narrabri to North Star (N2NS) Phase 1 Solar Level Crossings",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Inland Rail has upgraded two level crossings to operate on fully solar-powered systems as part of fi"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "Major works are set to begin at Euroa railway precinct, with trains temporarily unable to stop at th"
+    },
+    {
+      "id": "840004",
+      "name": "Janus Electric Heavy Vehicle Electrification Conversion Centre",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "SA",
+      "overview_snippet": "Janus Electric has launched its first dealer-led heavy vehicle electrification conversion centre in "
+    },
+    {
+      "id": "870019",
+      "name": "Koolunga Battery Energy Storage System (BESS)",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "SA",
+      "overview_snippet": "GenusPlus has been awarded the Engineering, Procurement, and Construction (EPC) contract for the A$1"
+    },
+    {
+      "id": "990006",
+      "name": "Koolunga BESS (Battery Energy Storage System)",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "SA",
+      "overview_snippet": "Construction of an 800 MWh Battery Energy Storage System. GenusPlus has been appointed as the EPC co"
+    },
+    {
+      "id": "570010",
+      "name": "Large-Scale Student Housing Project",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "Construction has commenced on a large-scale student housing project in Victoria, signalling continue"
+    },
+    {
+      "id": "840007",
+      "name": "Latrobe Valley 50ML Basin Construction",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "VIC",
+      "overview_snippet": "Gippsland Water has completed civil works for a new 50ML basin to service five towns in the Latrobe "
+    },
+    {
+      "id": "480008",
+      "name": "Liddell Battery at Hunter Energy Hub",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "AGL has begun commissioning of the first 250 MW of the 1,000 MWh Liddell Battery at the Hunter Energ"
+    },
+    {
+      "id": "480020",
+      "name": "Liddell Battery Energy Storage System",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "AGL has begun commissioning its 500MW, two-hour grid-scale Liddell Battery, marking a major step in "
+    },
+    {
+      "id": "480030",
+      "name": "Liddell Grid-Forming BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "Australian utility AGL has started commissioning its 500MW/1,000MWh Liddell battery energy storage s"
+    },
+    {
+      "id": "660041",
+      "name": "M1 Pacific Motorway extension to Raymond Terrace",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "projectState": "NSW",
+      "overview_snippet": "The M1 Pacific Motorway extension to Raymond Terrace in New South Wales is expected to open to traff"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsector\tpriority\tprojectState\toverview_snippet\n690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tenergy\thot\tNSW\tSnowy Hydro has secured a $1.9 billion deal to provide 100% renewable power for New South Wales' tra\n720005\tAlinta Energy 500 MW / 2,000 MWh Battery Energy Storage System (Stage 1)\tenergy\thot\tSA\tAlinta Energy has commenced main construction works on the first 1,000 MWh stage of a 500 MW / 2,000\n870023\tAll Ash Asphalt Infrastructure Projects\tinfrastructure\thot\tVIC\tAll Ash Asphalt is a family operation actively securing and delivering works on Victoria’s largest i\n480014\tBank Street Park Construction\tinfrastructure\thot\tNSW\tConstruction is underway on the 1.1-hectare Bank Street Park in Sydney’s Blackwattle Bay, the first \n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\toil_gas\thot\tVIC\tBarry Beach is undergoing a facelift to prepare for the safe return, dismantling, and recycling of o\n480005\tBellambi Heights Battery Energy Storage System - Stage 2\tenergy\thot\tNSW\tVena Energy has secured a $200 million long-term revenue agreement for the second stage of its 408 M\n480028\tBellambi Heights BESS\tenergy\thot\tNSW\tVena Energy has signed a long-term revenue share agreement with InCommodities for its 204MW/510MWh B\n1200051\tBeni Creek Rail Bridge Restoration\tinfrastructure\thot\tNSW\tThe Australian Rail Track Corporation (ARTC) is preparing to reopen the Beni Creek rail bridge near \n1110002\tBlack Spot Program - Road Safety Works\tinfrastructure\thot\tVIC\tThe Federal Government has committed $48 million under the 2026-27 Black Spot Program to fund safety\n480068\tBlind Creek Solar and Battery Project\tenergy\thot\tNSW\tOctopus Australia has commenced construction of its Blind Creek solar and battery project in souther\n690089\tCadia Gold Mine Operations\tmining\thot\tNSW\tNewmont's processing operations at Cadia are steadily ramping up after a magnitude-4.5 earthquake. I\n690008\tCricket Albury Wodonga Indoor Stadium Community Battery\tenergy\thot\tVIC\tA 482 kWh community battery with a 100 kW inverter has been launched at the Cricket Albury Wodonga I\n1020007\tDubbo Regional Council Pump Station Upgrades\tinfrastructure\thot\tNSW\tA series of targeted upgrades have been rolled out across 36 of Dubbo Regional Council’s (DRC) pump \n1200045\tEnergyConnect Transmission Project (Southern Superhighway)\tenergy\thot\tNSW\tAustralia's largest transmission project, EnergyConnect, is nearing completion. High-voltage conduct\n720037\tEuroa Station Upgrade (Inland Rail)\tinfrastructure\thot\tVIC\tTrain services through Euroa have been switched to new rail lines in front of Euroa Station, marking\n480010\tGoulburn Community Solar Farm and Battery Project\tenergy\thot\tNSW\tThe Goulburn Community Solar Farm and battery project has been commissioned, highlighting a single-s\n510027\tGreat Western Highway Detour Route Improvements\tinfrastructure\thot\tNSW\tThe NSW Government has announced a $50 million investment to improve key detour routes for sections \n990016\tGrid-scale South Australian Energy Storage Project\tenergy\thot\tSA\tDelivery is progressing on a major grid-scale energy storage development in regional South Australia\n690002\tHornsby Park Quarry Rehabilitation (Crusher Plant Precinct)\tinfrastructure\thot\tNSW\tThe first stage of Hornsby Park, the Crusher Plant Precinct, has opened. This marks a significant st\n570002\tInland Rail Narrabri to North Star (N2NS) Phase 1 Solar Level Crossings\tinfrastructure\thot\tNSW\tInland Rail has upgraded two level crossings to operate on fully solar-powered systems as part of fi\n570022\tInland Rail Station Upgrades (Euroa)\tinfrastructure\thot\tVIC\tMajor works are set to begin at Euroa railway precinct, with trains temporarily unable to stop at th\n840004\tJanus Electric Heavy Vehicle Electrification Conversion Centre\tinfrastructure\thot\tSA\tJanus Electric has launched its first dealer-led heavy vehicle electrification conversion centre in \n870019\tKoolunga Battery Energy Storage System (BESS)\tenergy\thot\tSA\tGenusPlus has been awarded the Engineering, Procurement, and Construction (EPC) contract for the A$1\n990006\tKoolunga BESS (Battery Energy Storage System)\tenergy\thot\tSA\tConstruction of an 800 MWh Battery Energy Storage System. GenusPlus has been appointed as the EPC co\n570010\tLarge-Scale Student Housing Project\tinfrastructure\thot\tVIC\tConstruction has commenced on a large-scale student housing project in Victoria, signalling continue\n840007\tLatrobe Valley 50ML Basin Construction\tinfrastructure\thot\tVIC\tGippsland Water has completed civil works for a new 50ML basin to service five towns in the Latrobe \n480008\tLiddell Battery at Hunter Energy Hub\tenergy\thot\tNSW\tAGL has begun commissioning of the first 250 MW of the 1,000 MWh Liddell Battery at the Hunter Energ\n480020\tLiddell Battery Energy Storage System\tenergy\thot\tNSW\tAGL has begun commissioning its 500MW, two-hour grid-scale Liddell Battery, marking a major step in \n480030\tLiddell Grid-Forming BESS\tenergy\thot\tNSW\tAustralian utility AGL has started commissioning its 500MW/1,000MWh Liddell battery energy storage s\n660041\tM1 Pacific Motorway extension to Raymond Terrace\tinfrastructure\thot\tNSW\tThe M1 Pacific Motorway extension to Raymond Terrace in New South Wales is expected to open to traff\n",
+  "stderr": "",
+  "execution_time_ms": 1961
+}

@@ -428,6 +428,10 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   // Apply lane opportunity gate — hard-suppress noise (schools, hospitals, prisons, etc.)
   // before any ranking. Uses the user's primary dimension to pick the correct gate.
   const gateFilteredProjects = actionableProjects.filter(p => {
+    // Extract the raw BL score for the primary dimension to pass to the gate.
+    // The gate uses this as its primary pass/fail criterion (portableAirScore >= 40 → pass).
+    const projectBLScores = allBLScoresMap.get(p.id) || [];
+    const rawBLScore = projectBLScores.find(s => s.dimension === primaryDimForScoring)?.score ?? 0;
     const gateResult = laneOpportunityGate(
       {
         name: p.name,
@@ -440,6 +444,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
         priority: p.priority,
       },
       primaryDimForScoring,
+      rawBLScore,
     );
     return gateResult.pass;
   });

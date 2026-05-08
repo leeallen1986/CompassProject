@@ -1,0 +1,65 @@
+{
+  "query": "SELECT id, name, title, company, project, priority, contactTrustTier, roleRelevance, email FROM contacts WHERE name LIKE '%Charlene%' OR name LIKE '%Howard%' LIMIT 20",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, title, company, project, priority, contactTrustTier, roleRelevance, email FROM contacts WHERE name LIKE '%Charlene%' OR name LIKE '%Howard%' LIMIT 20",
+  "rows": [
+    {
+      "id": "750056",
+      "name": "Jeffery Howard",
+      "title": "Commissioning Manager - Project Managment",
+      "company": "Chevron",
+      "project": "Gorgon and Jansz feed gas pipeline system and wells commissioning",
+      "priority": "hot",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "medium",
+      "email": "jeffery.howard@chevron.com.au"
+    },
+    {
+      "id": "780197",
+      "name": "Howard C.",
+      "title": "Project Director at Worley; BEng(Hons) MB(AppFin)",
+      "company": "Worley",
+      "project": "Burroway Solar-plus-Storage Project",
+      "priority": "hot",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "medium",
+      "email": "howard.c@worley.com.au"
+    },
+    {
+      "id": "780301",
+      "name": "Howard Eban",
+      "title": "Lead Mechanical Engineer at a Lycopodium",
+      "company": "Lycopodium",
+      "project": "Kookynie Gold Project BFS",
+      "priority": "hot",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "email": "howard.eban@lycopodium.com.au"
+    },
+    {
+      "id": "1140004",
+      "name": "Harry Howard",
+      "title": "Fleet Manager",
+      "company": "HEXhire",
+      "project": "HEXhire fleet expansion for infrastructure and civil projects",
+      "priority": "hot",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "medium",
+      "email": "harry@hexhire.com.au"
+    },
+    {
+      "id": "1290018",
+      "name": "Charlene Howard",
+      "title": "Medicare Sales Operations Leader | Agent Enablement, Training & Enrollment Excellence",
+      "company": "Red Sky",
+      "project": "Yarrow Gas Project",
+      "priority": "warm",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "email": "charlene.howard@redsky.com.au"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tproject\tpriority\tcontactTrustTier\troleRelevance\temail\n750056\tJeffery Howard\tCommissioning Manager - Project Managment\tChevron\tGorgon and Jansz feed gas pipeline system and wells commissioning\thot\tnamed_unverified\tmedium\tjeffery.howard@chevron.com.au\n780197\tHoward C.\tProject Director at Worley; BEng(Hons) MB(AppFin)\tWorley\tBurroway Solar-plus-Storage Project\thot\tsend_ready\tmedium\thoward.c@worley.com.au\n780301\tHoward Eban\tLead Mechanical Engineer at a Lycopodium\tLycopodium\tKookynie Gold Project BFS\thot\tsend_ready\thigh\thoward.eban@lycopodium.com.au\n1140004\tHarry Howard\tFleet Manager\tHEXhire\tHEXhire fleet expansion for infrastructure and civil projects\thot\tsend_ready\tmedium\tharry@hexhire.com.au\n1290018\tCharlene Howard\tMedicare Sales Operations Leader | Agent Enablement, Training & Enrollment Excellence\tRed Sky\tYarrow Gas Project\twarm\tsend_ready\thigh\tcharlene.howard@redsky.com.au\n",
+  "stderr": "",
+  "execution_time_ms": 1910
+}

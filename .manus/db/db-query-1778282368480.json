@@ -1,0 +1,32 @@
+{
+  "query": "SELECT id, name, title, company, contactTrustTier, roleRelevance, email, source, enrichmentSource FROM contacts WHERE project = 'Yarrow Gas Project' ORDER BY contactTrustTier, roleRelevance",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, title, company, contactTrustTier, roleRelevance, email, source, enrichmentSource FROM contacts WHERE project = 'Yarrow Gas Project' ORDER BY contactTrustTier, roleRelevance",
+  "rows": [
+    {
+      "id": "1290018",
+      "name": "Charlene Howard",
+      "title": "Medicare Sales Operations Leader | Agent Enablement, Training & Enrollment Excellence",
+      "company": "Red Sky",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "email": "charlene.howard@redsky.com.au",
+      "source": "scraper",
+      "enrichmentSource": "web_search"
+    },
+    {
+      "id": "1290017",
+      "name": "Fabio Vianna Mendes",
+      "title": "Mr.",
+      "company": "Santos",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "low",
+      "email": "fabio.mendes@santos.com.au",
+      "source": "scraper",
+      "enrichmentSource": "web_search"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\troleRelevance\temail\tsource\tenrichmentSource\n1290018\tCharlene Howard\tMedicare Sales Operations Leader | Agent Enablement, Training & Enrollment Excellence\tRed Sky\tsend_ready\thigh\tcharlene.howard@redsky.com.au\tscraper\tweb_search\n1290017\tFabio Vianna Mendes\tMr.\tSantos\tsend_ready\tlow\tfabio.mendes@santos.com.au\tscraper\tweb_search\n",
+  "stderr": "",
+  "execution_time_ms": 1952
+}
