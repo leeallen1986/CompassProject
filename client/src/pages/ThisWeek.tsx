@@ -368,7 +368,7 @@ function LoginPage() {
         <div className="text-3xl font-bold text-navy tracking-wider">ATLAS COPCO</div>
         <p className="text-muted-foreground">Sign in to view your weekly intelligence summary</p>
         <a
-          href={getLoginUrl()}
+          href="/login"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-navy text-white font-semibold hover:bg-navy-light transition-colors"
         >
           <LogIn className="w-4 h-4" /> Sign In

@@ -1,0 +1,100 @@
+{
+  "query": "SELECT id, name, email, role, authMethod, openId, CASE WHEN passwordHash IS NOT NULL THEN 'has_password' ELSE 'no_password' END as pwStatus FROM users WHERE authMethod = 'email' OR openId LIKE 'email_%' LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, email, role, authMethod, openId, CASE WHEN passwordHash IS NOT NULL THEN 'has_password' ELSE 'no_password' END as pwStatus FROM users WHERE authMethod = 'email' OR openId LIKE 'email_%' LIMIT 20;",
+  "rows": [
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_88ff1ea00058a36576a97df06629aa85",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_8c4039bbe65fd6fe9d6bd250bafb0853",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor",
+      "authMethod": "email",
+      "openId": "email_b068081ea2a5052af08a700a3de239ec",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_6baa95e84572471fa2ab1b1417633fa0",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "3360129",
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "role": "admin",
+      "authMethod": "email",
+      "openId": "email_8ee5fe2bdfd173f7165cb9e2943224fe",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "3360134",
+      "name": "Ray Clinch",
+      "email": "ray.clinch@atlascopco.com",
+      "role": "admin",
+      "authMethod": "email",
+      "openId": "email_3a4ccfe824aa85ef8d70ba90e3cfeb0a",
+      "pwStatus": "no_password"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_76d06323189d81bc561dcbecc6c64a72",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_faf16ba0368ea195453e368257020038",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_1a7fc66e7ed08327ffe52b398c23e548",
+      "pwStatus": "has_password"
+    },
+    {
+      "id": "13020010",
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_fdc5241a073c5a4a7ba58eb5fcccde42",
+      "pwStatus": "has_password"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tauthMethod\topenId\tpwStatus\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\temail\temail_88ff1ea00058a36576a97df06629aa85\thas_password\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\temail\temail_8c4039bbe65fd6fe9d6bd250bafb0853\thas_password\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\temail\temail_b068081ea2a5052af08a700a3de239ec\thas_password\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\temail\temail_6baa95e84572471fa2ab1b1417633fa0\thas_password\n3360129\tTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\tadmin\temail\temail_8ee5fe2bdfd173f7165cb9e2943224fe\thas_password\n3360134\tRay Clinch\tray.clinch@atlascopco.com\tadmin\temail\temail_3a4ccfe824aa85ef8d70ba90e3cfeb0a\tno_password\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\temail\temail_76d06323189d81bc561dcbecc6c64a72\thas_password\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\temail\temail_faf16ba0368ea195453e368257020038\thas_password\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\temail\temail_1a7fc66e7ed08327ffe52b398c23e548\thas_password\n13020010\tAlexandre Leite\talexandre.leite@atlascopco.com\tuser\temail\temail_fdc5241a073c5a4a7ba58eb5fcccde42\thas_password\n",
+  "stderr": "",
+  "execution_time_ms": 1853
+}

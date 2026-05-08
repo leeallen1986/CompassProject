@@ -837,7 +837,7 @@ export default function ContactValidation() {
   }
 
   if (!user) {
-    window.location.href = getLoginUrl();
+    window.location.href = "/login";
     return null;
   }
 

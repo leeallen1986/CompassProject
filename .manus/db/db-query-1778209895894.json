@@ -1,0 +1,20 @@
+{
+  "query": "SELECT id, name, email, role, authMethod, openId, CASE WHEN passwordHash IS NOT NULL THEN 'has_password' ELSE 'no_password' END as pwStatus, lastSignedIn FROM users WHERE name LIKE '%Ryan%' OR email LIKE '%ryan%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, email, role, authMethod, openId, CASE WHEN passwordHash IS NOT NULL THEN 'has_password' ELSE 'no_password' END as pwStatus, lastSignedIn FROM users WHERE name LIKE '%Ryan%' OR email LIKE '%ryan%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "openId": "email_8c4039bbe65fd6fe9d6bd250bafb0853",
+      "pwStatus": "has_password",
+      "lastSignedIn": "2026-05-05 10:13:34"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tauthMethod\topenId\tpwStatus\tlastSignedIn\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\temail\temail_8c4039bbe65fd6fe9d6bd250bafb0853\thas_password\t2026-05-05 10:13:34\n",
+  "stderr": "",
+  "execution_time_ms": 1930
+}

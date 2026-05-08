@@ -604,7 +604,7 @@ export default function CollateralLibrary() {
             <Layers className="w-12 h-12 text-gold mx-auto mb-4" />
             <h2 className="text-xl font-bold text-navy mb-2">Sign In Required</h2>
             <p className="text-sm text-muted-foreground mb-4">Please sign in to access the Collateral Library.</p>
-            <a href={getLoginUrl("/collateral")} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold text-navy font-semibold hover:bg-gold-light transition-colors">
+            <a href="/login" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gold text-navy font-semibold hover:bg-gold-light transition-colors">
               <LogIn className="w-4 h-4" /> Sign In
             </a>
           </CardContent>

@@ -751,7 +751,7 @@ export default function AccountAttack() {
         <div className="text-center space-y-4">
           <div className="text-3xl font-bold text-navy tracking-wider">ATLAS COPCO</div>
           <p className="text-muted-foreground">Sign in to access Account Attack</p>
-          <a href={getLoginUrl()} className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-navy text-white font-semibold hover:bg-navy-light transition-colors">
+          <a href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-navy text-white font-semibold hover:bg-navy-light transition-colors">
             <LogIn className="w-4 h-4" /> Sign In
           </a>
         </div>
