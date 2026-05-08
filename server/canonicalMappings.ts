@@ -237,12 +237,28 @@ export function resolveBusinessLines(
  * Get the primary scoring dimension for a user profile.
  * Used for single-dimension ranking (e.g., "sort by PA score").
  *
- * Priority rules:
- * 1. If raw labels include explicit pump/flow/dewatering terms AND Portable Air,
- *    the primary is Pump/Dewatering (specialist lane takes priority over generalist).
- * 2. If raw labels include "PT Capital Sales" or "PT All Capital Sales" alongside
- *    an explicit single-BL label, the explicit label wins as primary.
- * 3. Otherwise, first resolved dimension wins.
+ * Classification logic (based on definitive lane assignments):
+ *
+ * - "Flow-only" reps: profile has ONLY pump/flow/dewatering labels
+ *   (possibly with PA as secondary). If pump labels are the MAJORITY
+ *   of non-PA, non-Capital-Sales labels → primary = Pump/Dewatering.
+ *
+ * - "PAL/BESS-only" reps: profile has ONLY PAL and/or BESS labels
+ *   → primary = first of PAL or BESS.
+ *
+ * - "PA-only" reps: profile has only "Portable Air" (possibly with
+ *   "PT Capital Sales" expansion) → primary = Portable Air.
+ *
+ * - "All-BL" reps: profile has 3+ distinct BL categories (PA + PAL/BESS + Pump)
+ *   or "PT All Capital Sales" alone → multi-lane, no single primary.
+ *   Returns first resolved dimension (Portable Air by convention).
+ *
+ * The key distinction:
+ * - Brett [PA, Pump (Flow), Dewatering Pumps] → 2 pump labels vs 1 PA = Flow rep
+ * - Egor [BESS, PA, PAL, Pump (Flow)] → 4 distinct categories = All-BL rep
+ * - Tim [PA, PAL, BESS, Pump (Flow)] → 4 distinct categories = All-BL rep
+ * - Ray [PAL, BESS, Pump (Flow)] → only PAL/BESS/Pump, no PA = Flow rep
+ *   (Ray is "just flow" per user — pump takes priority when mixed with PAL/BESS)
  */
 export function getPrimaryDimension(
   rawBusinessLines: string | string[] | null | undefined
@@ -250,7 +266,7 @@ export function getPrimaryDimension(
   const resolved = resolveBusinessLines(rawBusinessLines);
   if (resolved.length <= 1) return resolved[0];
 
-  // Parse raw labels for priority detection
+  // Parse raw labels
   let labels: string[] = [];
   if (rawBusinessLines) {
     if (typeof rawBusinessLines === "string") {
@@ -267,32 +283,74 @@ export function getPrimaryDimension(
 
   const lowerLabels = labels.map(l => l.toLowerCase().trim());
 
-  // Rule 1: Explicit pump/flow/dewatering terms take priority over Portable Air
+  // Classify each raw label into a category
   const hasPumpLabel = lowerLabels.some(l =>
-    l.includes("pump") || l.includes("flow") || l.includes("dewatering")
+    l.includes("pump") || l === "flow" || l.includes("dewatering")
   );
-  if (hasPumpLabel && resolved.includes("Pump/Dewatering")) {
-    return "Pump/Dewatering";
-  }
-
-  // Rule 2: Explicit PAL/BESS label takes priority over Capital Sales expansion
+  const hasPALabel = lowerLabels.some(l =>
+    l === "portable air"
+  );
+  const hasPALLabel = lowerLabels.some(l => l === "pal");
+  const hasBESSLabel = lowerLabels.some(l => l === "bess");
   const hasCapitalSalesLabel = lowerLabels.some(l =>
     l.includes("capital sales") || l.includes("pt all")
   );
-  if (hasCapitalSalesLabel) {
-    // Find the first explicit non-capital-sales label
-    const explicitLabels = labels.filter(l => {
-      const lower = l.toLowerCase().trim();
-      return !lower.includes("capital sales") && !lower.includes("pt all");
-    });
-    if (explicitLabels.length > 0) {
-      // Resolve the first explicit label to get its primary dimension
-      const explicitDims = resolveBusinessLines(explicitLabels);
-      if (explicitDims.length > 0) return explicitDims[0];
+
+  // Count distinct BL categories (excluding Capital Sales which is an expansion)
+  const categories = new Set<string>();
+  if (hasPALabel) categories.add("PA");
+  if (hasPALLabel) categories.add("PAL");
+  if (hasBESSLabel) categories.add("BESS");
+  if (hasPumpLabel) categories.add("Pump");
+
+  // Rule 1: "All-BL" reps — 3+ distinct categories INCLUDING PA = multi-lane
+  // These reps (Egor, Tim, Alexandre) get no single primary preference;
+  // they see the best project regardless of lane.
+  // Note: PAL+BESS+Pump WITHOUT PA is NOT multi-lane (Ray = Flow rep)
+  const isMultiLane = (categories.size >= 3 && hasPALabel) ||
+    (hasCapitalSalesLabel && categories.size === 0);
+  if (isMultiLane) {
+    // Multi-lane: return first resolved (Portable Air by convention)
+    return resolved[0];
+  }
+
+  // Rule 2: Flow-only reps — pump labels dominate
+  // Brett: [PA, Pump (Flow), Dewatering Pumps] → categories = {PA, Pump} but pump count > PA count
+  // Ray: [PAL, BESS, Pump (Flow)] → categories = {PAL, BESS, Pump} — but wait, that's 3.
+  // Actually Ray is "just flow" per user. Special case: PAL+BESS+Pump without PA = Flow rep.
+  if (hasPumpLabel && resolved.includes("Pump/Dewatering")) {
+    // Count pump-related labels vs other labels
+    const pumpLabelCount = lowerLabels.filter(l =>
+      l.includes("pump") || l === "flow" || l.includes("dewatering")
+    ).length;
+    const nonPumpNonCapitalLabels = lowerLabels.filter(l =>
+      !l.includes("pump") && l !== "flow" && !l.includes("dewatering") &&
+      !l.includes("capital sales") && !l.includes("pt all")
+    ).length;
+
+    // If pump labels are majority of non-Capital-Sales labels → Flow rep
+    // Brett: 2 pump labels, 1 PA label → pump majority
+    if (pumpLabelCount > nonPumpNonCapitalLabels) {
+      return "Pump/Dewatering";
+    }
+
+    // Special case: PAL/BESS + Pump without PA → Flow rep (Ray's case)
+    if (!hasPALabel && hasPumpLabel) {
+      return "Pump/Dewatering";
     }
   }
 
-  // Rule 3: Default — first resolved dimension
+  // Rule 3: PAL/BESS-only reps (Amit: [PAL, BESS])
+  if ((hasPALLabel || hasBESSLabel) && !hasPALabel && !hasPumpLabel) {
+    return hasPALLabel ? "PAL" : "BESS";
+  }
+
+  // Rule 4: PA-only reps with Capital Sales expansion (Ryan: [PA, PT Capital Sales])
+  if (hasPALabel && hasCapitalSalesLabel && !hasPumpLabel && !hasPALLabel && !hasBESSLabel) {
+    return "Portable Air";
+  }
+
+  // Rule 5: Default — first resolved dimension
   return resolved[0];
 }
 
@@ -314,11 +372,13 @@ export interface ResolvedProfile {
 export function resolveUserProfile(profile: {
   territories?: string | string[] | null;
   assignedBusinessLines?: string | string[] | null;
+  businessLines?: string | string[] | null; // alias for assignedBusinessLines
   sectorFocus?: string | string[] | null;
 }): ResolvedProfile {
+  const rawBLs = profile.assignedBusinessLines || profile.businessLines;
   const territories = resolveTerritories(profile.territories, profile.sectorFocus);
-  const scoringDimensions = resolveBusinessLines(profile.assignedBusinessLines);
-  const primaryDimension = scoringDimensions[0];
+  const scoringDimensions = resolveBusinessLines(rawBLs);
+  const primaryDimension = getPrimaryDimension(rawBLs);
   const isNational = territories.length >= ALL_AU_STATES.length - 1; // 8+ states = national
 
   return {
