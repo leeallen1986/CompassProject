@@ -265,6 +265,19 @@ export async function handleScheduledPipelineTrigger(
       `duration=${durationSec}s`
     );
 
+    // ── Post-Pipeline Delta Gate ──
+    // After pipeline completes, snapshot the current top 3 per rep for delta comparison.
+    // This allows the Monday digest hardening gate to detect regressions.
+    let deltaSnapshotCount = 0;
+    try {
+      const { snapshotPostPipelineState } = await import("./digestHardeningGates");
+      const deltaResult = await snapshotPostPipelineState();
+      deltaSnapshotCount = deltaResult.repsSnapshotted;
+      console.log(`${logPrefix} \u2713 Post-pipeline delta snapshot stored for ${deltaSnapshotCount} reps`);
+    } catch (deltaErr) {
+      console.warn(`${logPrefix} \u26A0 Post-pipeline delta snapshot failed (non-fatal):`, deltaErr);
+    }
+
     writeLine(res, {
       event: "completed",
       durationSeconds: durationSec,
@@ -273,6 +286,7 @@ export async function handleScheduledPipelineTrigger(
         contactsEnriched: result.enrichment.enriched,
         discoveryQueued: result.discoveryQueue?.slaQueued ?? 0,
         errorCount: result.steps.filter(s => s.status === 'failed').length,
+        deltaSnapshotReps: deltaSnapshotCount,
       },
     });
   } catch (err) {

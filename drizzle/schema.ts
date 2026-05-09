@@ -1655,3 +1655,30 @@ export const digestSendControl = mysqlTable("digestSendControl", {
 });
 export type DigestSendControl = typeof digestSendControl.$inferSelect;
 export type InsertDigestSendControl = typeof digestSendControl.$inferInsert;
+
+/**
+ * repDigestGateResults — per-rep, per-week gate decision log.
+ * Stores the SEND/HOLD decision with full evidence for operator visibility.
+ * Written by digestHardeningGates.ts after each pipeline run and before each digest send.
+ */
+export const repDigestGateResults = mysqlTable("repDigestGateResults", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  weekKey: varchar("weekKey", { length: 16 }).notNull(), // e.g. "2026-W19"
+  decision: varchar("decision", { length: 8 }).notNull(), // "SEND" | "HOLD"
+  /** JSON array of RepGateBlocker objects */
+  blockers: json("blockers"),
+  /** JSON array of top 3 project snapshot */
+  top3Snapshot: json("top3Snapshot"),
+  /** Whether a rescue pass was attempted for this rep this week */
+  rescueAttempted: boolean("rescueAttempted").notNull().default(false),
+  /** JSON of RescueTriggerResult if rescue was attempted */
+  rescueResult: json("rescueResult"),
+  /** JSON of DeltaComparison if delta gate ran */
+  deltaComparison: json("deltaComparison"),
+  /** Phase: "post_pipeline" | "pre_digest" | "manual" */
+  phase: varchar("phase", { length: 16 }).notNull().default("pre_digest"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type RepDigestGateResult = typeof repDigestGateResults.$inferSelect;
+export type InsertRepDigestGateResult = typeof repDigestGateResults.$inferInsert;

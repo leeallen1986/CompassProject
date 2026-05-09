@@ -1997,6 +1997,107 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         }
       }
 
+      // ── Rep-Level Hardening Gate (automated SEND/HOLD) ──
+      // Runs after territory threshold + manual preview gate, before email generation.
+      // Checks: contact defensibility, junk suppression, pool depth, lane fit.
+      // HOLD = skip this rep with evidence logged; SEND = proceed to email generation.
+      if (!force && !dryRun) {
+        try {
+          const { runAllGates, checkJunkSuppression, storeGateResult } = await import("./digestHardeningGates");
+          const { repDigestGateResults } = await import("../drizzle/schema");
+          // Determine rep's primary lane from business lines
+          const repBLs = (profile.assignedBusinessLines as string[] | null) || [];
+          const repLane = repBLs.includes("Pump") || repBLs.includes("Pump (Flow)") || repBLs.includes("Pump (Dewatering)")
+            ? "pumps"
+            : repBLs.includes("PAL") || repBLs.includes("BESS")
+              ? "pal_bess"
+              : "portable_air";
+          // Extract top 3 Must Act projects (action_ready, sorted by relevanceScore)
+          const mustActCandidates = annotatedProjects
+            .filter(p => p.briefReadiness === "action_ready" && (p.laneFitLabel === "High" || p.laneFitLabel === "Medium"))
+            .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0))
+            .slice(0, 3);
+          // Run junk suppression on top 3 (non-mutating check)
+          let junkCount = 0;
+          for (const p of mustActCandidates) {
+            const junk = checkJunkSuppression(
+              { name: p.name, overview: (p as any).overview, sector: (p as any).sector, owner: (p as any).owner },
+              repLane,
+            );
+            if (junk.isJunk) junkCount++;
+          }
+          if (junkCount > 0) {
+            console.log(`[EmailDigest] \uD83E\uDDF9 Junk detected: ${junkCount} of top 3 for ${user.name}`);
+          }
+          // Build gate input with bestContact data
+          const gateTop3 = mustActCandidates.map(p => ({
+            id: p.id,
+            name: p.name,
+            overview: (p as any).overview as string | undefined,
+            sector: (p as any).sector as string | undefined,
+            owner: (p as any).owner as string | undefined,
+            laneFitLabel: p.laneFitLabel || "Low",
+            relevanceScore: p.relevanceScore,
+            contractors: (p as any).contractors as string[] | null,
+            bestContact: p.bestContact ? {
+              name: p.bestContact.name || "",
+              email: p.bestContact.email || null,
+              title: (p.bestContact as any).title || null,
+              company: (p.bestContact as any).company || null,
+              trustTier: (p.bestContact as any).trustTier || null,
+              source: (p.bestContact as any).source || null,
+              verificationScore: (p.bestContact as any).verificationScore || null,
+              isDowngraded: (p.bestContact as any).isDowngraded || false,
+              isLlmInferred: (p.bestContact as any).isLlmInferred || false,
+            } : null,
+          }));
+          // Run the full gate
+          const gateResult = runAllGates({
+            userId: user.id,
+            userName: user.name || "Unknown",
+            repLane,
+            weekKey,
+            top3Projects: gateTop3,
+          });
+          // Store the gate result for operator visibility
+          const gateDb = await getDb();
+          if (gateDb) {
+            await storeGateResult(
+              {
+                userId: user.id,
+                userName: user.name || "Unknown",
+                weekKey,
+                decision: gateResult.decision,
+                blockers: gateResult.blockers,
+                top3Snapshot: gateTop3.map(p => ({ id: p.id, name: p.name, score: p.relevanceScore || 0, contactName: p.bestContact?.name })),
+                rescueAttempted: false,
+                createdAt: new Date().toISOString(),
+              },
+              gateDb,
+              repDigestGateResults,
+            );
+          }
+          if (gateResult.decision === "HOLD") {
+            results.skipped++;
+            console.warn(
+              `[EmailDigest] \uD83D\uDEAB REP HARDENING GATE: ${user.name} HELD. Blockers: ${gateResult.blockers.map(b => b.criterion).join(", ")}`
+            );
+            await logEmailSendExtended({
+              userId: user.id, digestType: "monday", status: "failed",
+              weekKey, itemCount: 0, dryRun: false,
+              error: `REP_HARDENING_GATE_HELD: ${gateResult.blockers.map(b => `${b.criterion}: ${b.detail}`).join("; ")}`,
+            });
+            await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", {
+              error: `REP_HARDENING_GATE: ${gateResult.blockers.map(b => b.criterion).join(", ")}`,
+            });
+            continue;
+          }
+          console.log(`[EmailDigest] \u2713 Rep hardening gate PASSED for ${user.name} (decision=SEND)`);
+        } catch (gateErr) {
+          // Gate failure is non-fatal — proceed with send but log the error
+          console.warn(`[EmailDigest] \u26A0 Rep hardening gate error for ${user.name} (non-fatal, proceeding):`, gateErr);
+        }
+      }
       // Generate the personalized Monday digest
       const content = generateMondayDigest(
         user.name || "Team Member",

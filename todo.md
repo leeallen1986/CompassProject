@@ -2448,3 +2448,12 @@
 - [x] OPS-RUNBOOK: PART 4 — Visible output cleanup (remove junk/weak contacts from Must Act / Closing Soon)
 - [x] OPS-RUNBOOK: PART 5 — Contact defensibility gate (strong/acceptable/weak verdict on final top 3)
 - [x] OPS-RUNBOOK: PART 6 — Final SEND/HOLD decision table with evidence
+- [x] HARDENING: PART A — Rep-level SEND/HOLD gate (7 criteria, runs post-pipeline pre-digest)
+- [x] HARDENING: PART B — Pre-send contact defensibility gate (7 checks per visible project)
+- [x] HARDENING: PART C — Post-pipeline visible delta gate (before/after top 3, flag regressions)
+- [x] HARDENING: PART D — Automated junk suppression gate (lane-aware, 9 categories)
+- [x] HARDENING: PART E — Automation-safe contact rescue trigger (narrow, budget-aware)
+- [x] HARDENING: PART F — HOLD state storage + operator visibility
+- [x] HARDENING: PART G — Test replay of 7 known failure patterns
+- [x] HARDENING: PART H — All 7 acceptance criteria validated
+- [x] HARDENING: PART I — Final output report
