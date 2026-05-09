@@ -2464,3 +2464,6 @@
 - [ ] ADDENDUM: Rep differentiation check
 - [ ] ADDENDUM: Credit safety validation
 - [ ] ADDENDUM: Write and deliver addendum report
+- [x] Wire identifyRescueCandidates() into Monday pipeline (after HOLD, rerun gates)
+- [ ] Investigate and fix card/detail contact inconsistency (simulation vs selectProjectContact)
+- [ ] Prove live contact consistency across card, digest, detail for Monday-visible projects

@@ -2034,7 +2034,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       // HOLD = skip this rep with evidence logged; SEND = proceed to email generation.
       if (!force && !dryRun) {
         try {
-          const { runAllGates, checkJunkSuppression, storeGateResult } = await import("./digestHardeningGates");
+          const { runAllGates, checkJunkSuppression, storeGateResult, identifyRescueCandidates } = await import("./digestHardeningGates");
           const { repDigestGateResults } = await import("../drizzle/schema");
           // Determine rep's primary lane from business lines
           const repBLs = (profile.assignedBusinessLines as string[] | null) || [];
@@ -2108,22 +2108,207 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
               repDigestGateResults,
             );
           }
+          let rescueSucceeded = false;
           if (gateResult.decision === "HOLD") {
-            results.skipped++;
-            console.warn(
-              `[EmailDigest] \uD83D\uDEAB REP HARDENING GATE: ${user.name} HELD. Blockers: ${gateResult.blockers.map(b => b.criterion).join(", ")}`
+            // ── AUTOMATIC RESCUE TRIGGER ──
+            // Only fires on contact-related blockers for visible-top projects.
+            // Respects cooldown (7 days), budget (daily cap - 5 reserve), and max 3 projects per run.
+            const hasContactBlockers = gateResult.blockers.some(b =>
+              b.criterion === "trust_tier_not_send_ready" ||
+              b.criterion === "card_detail_inconsistent" ||
+              b.criterion === "no_contact"
             );
-            await logEmailSendExtended({
-              userId: user.id, digestType: "monday", status: "failed",
-              weekKey, itemCount: 0, dryRun: false,
-              error: `REP_HARDENING_GATE_HELD: ${gateResult.blockers.map(b => `${b.criterion}: ${b.detail}`).join("; ")}`,
-            });
-            await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", {
-              error: `REP_HARDENING_GATE: ${gateResult.blockers.map(b => b.criterion).join(", ")}`,
-            });
-            continue;
+            let rescueResult: any = null;
+            if (hasContactBlockers) {
+              try {
+                console.log(`[EmailDigest] 🚑 Rescue trigger: attempting contact rescue for ${user.name}...`);
+                const { enrichProjectContacts } = await import("./apolloEnrichment");
+                const { projectEnrichmentCache, apolloCreditLog } = await import("../drizzle/schema");
+                const { sql: sqlFn, gte: gteFn, desc: descFn, eq: eqFn } = await import("drizzle-orm");
+                const rescueDb = await getDb();
+                if (!rescueDb) throw new Error("No DB for rescue");
+                // Get Apollo daily usage
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const [usageRow] = await rescueDb
+                  .select({ total: sqlFn<number>`COALESCE(SUM(${apolloCreditLog.creditsUsed}), 0)` })
+                  .from(apolloCreditLog)
+                  .where(gteFn(apolloCreditLog.createdAt, todayStart));
+                const apolloDailyUsed = usageRow?.total ?? 0;
+                const APOLLO_DAILY_CAP = 200; // Rescue-specific cap (conservative)
+                // Build rescue candidate data from top 5 visible projects
+                const top5Visible = annotatedProjects
+                  .filter(p => p.briefReadiness === "action_ready" && (p.laneFitLabel === "High" || p.laneFitLabel === "Medium"))
+                  .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0))
+                  .slice(0, 5);
+                // Get lastEnrichedAt for each project from projectEnrichmentCache
+                const rescueCandidateData = await Promise.all(top5Visible.map(async (p) => {
+                  const [cacheEntry] = await rescueDb
+                    .select({ enrichedAt: projectEnrichmentCache.enrichedAt })
+                    .from(projectEnrichmentCache)
+                    .where(eqFn(projectEnrichmentCache.projectId, p.id))
+                    .orderBy(descFn(projectEnrichmentCache.enrichedAt))
+                    .limit(1);
+                  // Count send_ready contacts for this project
+                  const projectContacts = matchedContacts.filter(c =>
+                    c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
+                    p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+                  );
+                  const sendReadyCount = projectContacts.filter(c => (c as any).contactTrustTier === "send_ready").length;
+                  return {
+                    id: p.id,
+                    name: p.name,
+                    relevanceScore: p.relevanceScore ?? 0,
+                    laneFitLabel: p.laneFitLabel || "Low",
+                    bestContactTrustTier: p.bestContact?.trustTier ?? null,
+                    lastEnrichedAt: cacheEntry?.enrichedAt ?? null,
+                    contactCount: sendReadyCount,
+                  };
+                }));
+                rescueResult = identifyRescueCandidates(rescueCandidateData, apolloDailyUsed, APOLLO_DAILY_CAP);
+                if (rescueResult.triggered && rescueResult.candidates.length > 0) {
+                  console.log(`[EmailDigest] 🚑 Rescue: enriching ${rescueResult.candidates.length} projects for ${user.name} (budget remaining: ${rescueResult.budgetRemaining})`);
+                  for (const candidate of rescueResult.candidates) {
+                    try {
+                      await enrichProjectContacts(candidate.projectId, report.id, { enrichEmails: true, maxPerCompany: 3 });
+                      console.log(`[EmailDigest] 🚑 Rescue enriched: ${candidate.projectName} (id=${candidate.projectId})`);
+                    } catch (enrichErr) {
+                      console.warn(`[EmailDigest] 🚑 Rescue enrichment failed for ${candidate.projectName}:`, enrichErr);
+                    }
+                  }
+                  // Re-fetch contacts after rescue enrichment
+                  allContacts = await getAllContacts();
+                  // Re-annotate projects with fresh contact data
+                  const freshMatchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
+                  const freshContactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
+                  const freshAnnotatedProjects = matchedProjects.map(p => {
+                    const hasNoContacts = !freshContactProjectNames.has(p.name);
+                    const projectContacts: DigestContact[] = freshMatchedContacts
+                      .filter(c =>
+                        c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
+                        p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+                      )
+                      .map(c => ({
+                        ...c,
+                        roleRelevance: (c as any).roleRelevance ?? null,
+                        linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+                        contactTrustTier: (c as any).contactTrustTier ?? null,
+                        source: (c as any).source ?? null,
+                        verificationScore: (c as any).verificationScore ?? null,
+                      }));
+                    const { readiness, bestContact: freshBestContact } = classifyBriefReadiness(
+                      { ...p, hasNoContacts },
+                      projectContacts,
+                    );
+                    return { ...p, hasNoContacts, briefReadiness: readiness, bestContact: freshBestContact };
+                  });
+                  // Re-build gate top 3 with fresh data
+                  const freshMustAct = freshAnnotatedProjects
+                    .filter(p => p.briefReadiness === "action_ready" && (p.laneFitLabel === "High" || p.laneFitLabel === "Medium"))
+                    .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0))
+                    .slice(0, 3);
+                  const freshGateTop3 = freshMustAct.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    overview: (p as any).overview as string | undefined,
+                    sector: (p as any).sector as string | undefined,
+                    owner: (p as any).owner as string | undefined,
+                    laneFitLabel: p.laneFitLabel || "Low",
+                    relevanceScore: p.relevanceScore,
+                    contractors: (p as any).contractors as string[] | null,
+                    bestContact: p.bestContact ? {
+                      name: p.bestContact.name || "",
+                      email: p.bestContact.email || null,
+                      title: (p.bestContact as any).title || null,
+                      company: (p.bestContact as any).company || null,
+                      trustTier: (p.bestContact as any).trustTier || null,
+                      source: (p.bestContact as any).source || null,
+                      verificationScore: (p.bestContact as any).verificationScore || null,
+                      isDowngraded: (p.bestContact as any).isDowngraded || false,
+                      isLlmInferred: (p.bestContact as any).isLlmInferred || false,
+                    } : null,
+                  }));
+                  // Re-run the gate with fresh data
+                  const retryGateResult = runAllGates({
+                    userId: user.id,
+                    userName: user.name || "Unknown",
+                    repLane,
+                    weekKey,
+                    top3Projects: freshGateTop3,
+                  });
+                  // Store the rescue result
+                  if (gateDb) {
+                    await storeGateResult(
+                      {
+                        userId: user.id,
+                        userName: user.name || "Unknown",
+                        weekKey,
+                        decision: retryGateResult.decision,
+                        blockers: retryGateResult.blockers,
+                        top3Snapshot: freshGateTop3.map(p => ({ id: p.id, name: p.name, score: p.relevanceScore || 0, contactName: p.bestContact?.name })),
+                        rescueAttempted: true,
+                        rescueResult,
+                        createdAt: new Date().toISOString(),
+                      },
+                      gateDb,
+                      repDigestGateResults,
+                    );
+                  }
+                  if (retryGateResult.decision === "SEND") {
+                    rescueSucceeded = true;
+                    // Update annotatedProjects in the outer scope for email generation
+                    // Replace with fresh data so the email uses rescued contacts
+                    annotatedProjects.length = 0;
+                    freshAnnotatedProjects.forEach(p => annotatedProjects.push(p as any));
+                    console.log(`[EmailDigest] 🚑 Rescue SUCCESS: ${user.name} upgraded from HOLD → SEND after enriching ${rescueResult.candidates.length} projects`);
+                  } else {
+                    console.warn(`[EmailDigest] 🚑 Rescue FAILED: ${user.name} still HELD after rescue. Remaining blockers: ${retryGateResult.blockers.map(b => b.criterion).join(", ")}`);
+                  }
+                } else {
+                  console.log(`[EmailDigest] 🚑 Rescue not triggered for ${user.name}: ${rescueResult.candidates.length} candidates, budget=${rescueResult.budgetRemaining}, cooldown=${rescueResult.cooldownBlocked}`);
+                  // Store the non-triggered rescue attempt
+                  if (gateDb) {
+                    await storeGateResult(
+                      {
+                        userId: user.id,
+                        userName: user.name || "Unknown",
+                        weekKey,
+                        decision: "HOLD",
+                        blockers: gateResult.blockers,
+                        top3Snapshot: gateTop3.map(p => ({ id: p.id, name: p.name, score: p.relevanceScore || 0, contactName: p.bestContact?.name })),
+                        rescueAttempted: true,
+                        rescueResult,
+                        createdAt: new Date().toISOString(),
+                      },
+                      gateDb,
+                      repDigestGateResults,
+                    );
+                  }
+                }
+              } catch (rescueErr) {
+                console.warn(`[EmailDigest] 🚑 Rescue error for ${user.name} (non-fatal):`, rescueErr);
+              }
+            }
+            // If rescue didn't succeed, hold the digest
+            if (!rescueSucceeded) {
+              results.skipped++;
+              console.warn(
+                `[EmailDigest] \uD83D\uDEAB REP HARDENING GATE: ${user.name} HELD${hasContactBlockers ? " (rescue attempted)" : ""}. Blockers: ${gateResult.blockers.map(b => b.criterion).join(", ")}`
+              );
+              await logEmailSendExtended({
+                userId: user.id, digestType: "monday", status: "failed",
+                weekKey, itemCount: 0, dryRun: false,
+                error: `REP_HARDENING_GATE_HELD: ${gateResult.blockers.map(b => `${b.criterion}: ${b.detail}`).join("; ")}${rescueResult ? ` | rescue: ${rescueResult.candidates.length} candidates, triggered=${rescueResult.triggered}` : ""}`,
+              });
+              await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", {
+                error: `REP_HARDENING_GATE: ${gateResult.blockers.map(b => b.criterion).join(", ")}`,
+              });
+              continue;
+            }
           }
-          console.log(`[EmailDigest] \u2713 Rep hardening gate PASSED for ${user.name} (decision=SEND)`);
+          console.log(`[EmailDigest] \u2713 Rep hardening gate PASSED for ${user.name} (decision=SEND${rescueSucceeded ? ", after rescue" : ""})`);
+          // If rescue succeeded, we already stored the gate result above
+          // The annotatedProjects have been updated with fresh contact data
         } catch (gateErr) {
           // Gate failure is non-fatal — proceed with send but log the error
           console.warn(`[EmailDigest] \u26A0 Rep hardening gate error for ${user.name} (non-fatal, proceeding):`, gateErr);
