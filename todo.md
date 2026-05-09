@@ -2442,3 +2442,9 @@
 - [x] MONDAY-FINAL: PART D — Remove remaining Monday junk from visible outputs
 - [x] MONDAY-FINAL: PART E — Contact integrity on final visible set (no mismatches, no llm_inferred, no hallucinated)
 - [x] MONDAY-FINAL: PART G — Final output with buckets, before/after, digest preview, recommendation
+- [x] OPS-RUNBOOK: PART 1 — Pre-Sunday baseline snapshot (5 reps: buckets, top 5 Must Act, top 3 contacts, trust tiers, weak items)
+- [x] OPS-RUNBOOK: PART 2 — Sunday pipeline monitoring and post-Sunday delta comparison (DEFERRED — will run post-pipeline)
+- [x] OPS-RUNBOOK: PART 3 — Targeted contact rescue pass (Apollo > Hunter > Lusha surgical) on Monday-visible only
+- [x] OPS-RUNBOOK: PART 4 — Visible output cleanup (remove junk/weak contacts from Must Act / Closing Soon)
+- [x] OPS-RUNBOOK: PART 5 — Contact defensibility gate (strong/acceptable/weak verdict on final top 3)
+- [x] OPS-RUNBOOK: PART 6 — Final SEND/HOLD decision table with evidence
