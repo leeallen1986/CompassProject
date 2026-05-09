@@ -2430,3 +2430,9 @@
 - [x] PART E: Contact truth enforcement — no llm_inferred primary, no non-industrial, no ambiguous company matches, consistency check
 - [x] PART F: All 9 acceptance criteria validated
 - [x] PART G: Final comprehensive report with all evidence tables and honest verdict
+- [x] MONDAY: PART A — Monday send strategy by rep (SEND / PREVIEW ONLY / HOLD) with real criteria
+- [x] MONDAY: PART B — Targeted Apollo enrichment on top visible projects for Ryan, Daniel, Brett, Dan Day, Amit
+- [x] MONDAY: PART C — Remove junk from Must Act / Closing Soon (schools, prisons, hospitals, generic)
+- [x] MONDAY: PART D — Contact integrity on Monday-visible projects (selector consistency, trust tiers)
+- [x] MONDAY: PART E — Hard review packs for Ryan, Daniel, Brett, Dan Day, Amit
+- [x] MONDAY: PART G — Final Monday readiness output with all evidence
