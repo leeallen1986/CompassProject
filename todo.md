@@ -2420,3 +2420,13 @@
 - [x] PART D: Enforce contact consistency across dashboard cards, digest cards, and detail pages (single selectProjectContact() used everywhere)
 - [x] PART E: All acceptance criteria validated and passing (controlled rollout ready)
 - [x] PART F: Deliver comprehensive report with all evidence
+- [x] PART A1: Identify top 3 projects per rep and return contact status (send_ready / named_unverified / none)
+- [x] PART A1: Run enrichment on all zero-contact top projects (priority: Leo, Alexandre, Tim, any rep with NONE AVAILABLE)
+- [x] PART A2: Automate company-name disambiguation in secondPassContactSearch (sector cross-validation, owner alignment, title plausibility)
+- [x] PART A3: PAL/BESS gate decision — keep strict vs relax, business consequence, before/after top 5
+- [x] PART B: Full 12-member hard QA table with real outputs, contact status, commercial verdict, rollout verdict
+- [x] PART C: National rep fixes — Leo, Alexandre, Tim, Egor, Kevin — prove territory + lane + enrich top 5
+- [x] PART D: Pump/Dewatering validation — Brett, Dan Day, Ray, Tim, Egor — top 10 before/after with commercial believability
+- [x] PART E: Contact truth enforcement — no llm_inferred primary, no non-industrial, no ambiguous company matches, consistency check
+- [x] PART F: All 9 acceptance criteria validated
+- [x] PART G: Final comprehensive report with all evidence tables and honest verdict

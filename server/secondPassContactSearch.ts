@@ -135,6 +135,41 @@ function normalizeRoleBucket(role: string): string {
   return "other";
 }
 
+// ── Cross-Industry Mismatch Detection ──
+
+/**
+ * Detect when a LinkedIn contact's headline indicates they work in a completely
+ * different industry from the project's sector. This prevents false positives
+ * from company-name collisions (e.g., "Red Sky" insurance vs "Red Sky Energy" oil&gas).
+ */
+const NON_INDUSTRIAL_HEADLINE_SIGNALS = [
+  "medicare", "medicaid", "healthcare", "health care", "hospital", "clinical",
+  "pharmaceutical", "pharma", "biotech", "medical device",
+  "insurance", "underwriting", "actuarial", "claims",
+  "retail", "fashion", "apparel", "e-commerce", "ecommerce",
+  "real estate agent", "property management", "mortgage",
+  "education", "teacher", "professor", "academic", "university", "school",
+  "restaurant", "hospitality", "hotel", "catering", "food service",
+  "marketing agency", "digital marketing", "social media manager",
+  "fitness", "personal trainer", "wellness", "yoga",
+  "legal counsel", "attorney", "law firm", "barrister", "solicitor",
+  "accounting firm", "tax advisor", "bookkeeper",
+  "recruitment", "staffing agency", "talent acquisition",
+  "church", "ministry", "pastor", "nonprofit", "charity",
+];
+
+function isCrossIndustryMismatch(headline: string, projectSector: string): boolean {
+  const h = headline.toLowerCase();
+  // If headline contains any non-industrial signal, it's a mismatch
+  // UNLESS the project sector itself is in that industry (unlikely for Atlas Copco)
+  for (const signal of NON_INDUSTRIAL_HEADLINE_SIGNALS) {
+    if (h.includes(signal)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // ── LinkedIn Search ──
 
 async function searchLinkedIn(
@@ -302,6 +337,15 @@ export async function runSecondPassForProject(
 
           // Only save high/medium relevance contacts
           if (roleRelevance === "low") continue;
+
+          // Sector-relevance validation: reject contacts whose headline indicates
+          // a completely different industry from the project sector.
+          // This prevents false positives like "Medicare Sales Ops" at "Red Sky" (insurance)
+          // being matched to "Red Sky Energy" (oil & gas) projects.
+          if (person.headline && isCrossIndustryMismatch(person.headline, sector)) {
+            console.log(`[SecondPass] Skipping cross-industry mismatch: "${person.fullName}" (headline: "${person.headline}") for ${sector} project "${projectName}"`);
+            continue;
+          }
 
           const linkedinUrl = person.profileURL ||
             (person.username ? `https://www.linkedin.com/in/${person.username}` : null);

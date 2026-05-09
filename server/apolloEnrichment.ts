@@ -607,34 +607,39 @@ export async function enrichProjectContacts(
   const companies: { name: string; domain: string }[] = [];
 
   // Add owner — with owner-type routing and blocked-reason recording
-  const ownerType = classifyOwnerType(project.owner || "");
-  const ownerDomain = inferDomain(project.owner || "");
-
-  if (ownerType === "government") {
-    // Block Apollo; record reason so dashboard can surface it
+  // Split comma-separated owners (e.g., "Foresight, Banpu") into individual companies
+  const ownerParts = (project.owner || "").split(/[,&\/]+/).map((s: string) => s.trim()).filter(Boolean);
+  let ownerBlocked = true;
+  for (const ownerPart of ownerParts) {
+    const ownerType = classifyOwnerType(ownerPart);
+    const ownerDomain = inferDomain(ownerPart);
+    if (ownerType === "government") {
+      console.log(`[Apollo] Project "${project.name}": owner part "${ownerPart}" blocked — government`);
+    } else if (ownerType === "unknown") {
+      console.log(`[Apollo] Project "${project.name}": owner part "${ownerPart}" blocked — unknown`);
+    } else if (ownerType === "contractor_desc") {
+      console.log(`[Apollo] Project "${project.name}": owner part "${ownerPart}" blocked — dirty string`);
+    } else if (!ownerDomain) {
+      console.log(`[Apollo] Project "${project.name}": owner part "${ownerPart}" — no usable domain`);
+    } else {
+      // Private owner with usable domain — proceed
+      if (!companies.find((co) => co.domain === ownerDomain)) {
+        companies.push({ name: ownerPart, domain: ownerDomain });
+      }
+      ownerBlocked = false;
+    }
+  }
+  // Only record blocked reason if ALL owner parts were blocked
+  if (ownerBlocked && ownerParts.length > 0) {
+    const firstType = classifyOwnerType(ownerParts[0]);
+    const reason = firstType === "government" ? "blocked_government_owner_manual_discovery"
+      : firstType === "unknown" ? "blocked_unknown_owner"
+      : firstType === "contractor_desc" ? "blocked_dirty_owner_string"
+      : "blocked_no_usable_domain";
     await db.update(projects)
-      .set({ enrichmentBlockedReason: "blocked_government_owner_manual_discovery" })
+      .set({ enrichmentBlockedReason: reason })
       .where(eq(projects.id, projectId));
-    console.log(`[Apollo] Project "${project.name}": blocked — government owner (manual discovery needed)`);
-  } else if (ownerType === "unknown") {
-    await db.update(projects)
-      .set({ enrichmentBlockedReason: "blocked_unknown_owner" })
-      .where(eq(projects.id, projectId));
-    console.log(`[Apollo] Project "${project.name}": blocked — unknown/missing owner`);
-  } else if (ownerType === "contractor_desc") {
-    await db.update(projects)
-      .set({ enrichmentBlockedReason: "blocked_dirty_owner_string" })
-      .where(eq(projects.id, projectId));
-    console.log(`[Apollo] Project "${project.name}": blocked — owner field is a contractor description`);
-  } else if (!ownerDomain) {
-    // Private owner but domain inference failed
-    await db.update(projects)
-      .set({ enrichmentBlockedReason: "blocked_no_usable_domain" })
-      .where(eq(projects.id, projectId));
-    console.log(`[Apollo] Project "${project.name}": blocked — no usable domain for private owner "${project.owner}"`);
-  } else {
-    // Private owner with usable domain — proceed
-    companies.push({ name: project.owner, domain: ownerDomain });
+    console.log(`[Apollo] Project "${project.name}": blocked — ${reason}`);
   }
 
   // Add contractors (always attempted regardless of owner type)
@@ -1073,11 +1078,13 @@ export function classifyOwnerType(ownerName: string): OwnerType {
 
 export function inferDomain(companyName: string): string | null {
   if (!companyName) return null;
-
+  // Strip parenthetical qualifiers like "(advocating)", "(operator)", "(implied)"
+  const stripped = companyName.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+  if (!stripped) return null;
   // Pre-flight: block non-private owners
-  const ownerType = classifyOwnerType(companyName);
+  const ownerType = classifyOwnerType(stripped);
   if (ownerType === "unknown" || ownerType === "contractor_desc") {
-    console.log(`[Apollo] Blocked domain inference for "${companyName.slice(0, 60)}" (type=${ownerType})`);
+    console.log(`[Apollo] Blocked domain inference for "${stripped.slice(0, 60)}" (type=${ownerType})`);
     return null;
   }
   // Government bodies: block naive domain inference (they have unusual domains)
@@ -1157,6 +1164,22 @@ export function inferDomain(companyName: string): string | null {
     "horizon power": "horizonpower.com.au",
     "development wa": "developmentwa.com.au",
     // Energy companies
+    "alinta energy": "alintaenergy.com.au",
+    "alinta": "alintaenergy.com.au",
+    "suncable": "suncable.energy",
+    "sun cable": "suncable.energy",
+    "neoen": "neoen.com",
+    "genex power": "genexpower.com.au",
+    "genex": "genexpower.com.au",
+    "foresight": "foresight-group.com",
+    "foresight group": "foresight-group.com",
+    "banpu": "banpu.com",
+    "eora energy": "eoraenergy.com.au",
+    "cleanpeak energy": "cleanpeakenergy.com.au",
+    "quinbrook": "quinbrook.com",
+    "quinbrook infrastructure partners": "quinbrook.com",
+    "european energy": "europeanenergy.com",
+    "iberdrola": "iberdrola.com",
     "agl": "agl.com.au",
     "agl energy": "agl.com.au",
     "origin energy": "originenergy.com.au",
@@ -1199,7 +1222,7 @@ export function inferDomain(companyName: string): string | null {
     "bgc": "bgccontracting.com.au",
   };
 
-  const normalised = companyName.toLowerCase().trim();
+  const normalised = stripped.toLowerCase().trim();
   if (knownDomains[normalised]) return knownDomains[normalised];
 
   // Government bodies not in knownDomains: block naive inference
@@ -1214,7 +1237,9 @@ export function inferDomain(companyName: string): string | null {
   const cleaned = normalised
     .replace(/\s*(pty\.?\s*ltd\.?|ltd\.?|limited|inc\.?|corp\.?|corporation|group|australia|holdings|resources|mining|energy)\s*/gi, " ")
     .trim()
-    .replace(/[^a-z0-9]/g, ""); // Only alphanumeric — prevents garbage domains
+    .replace(/[^a-z0-9\s]/g, "") // Remove non-alphanumeric except spaces
+    .replace(/\s+/g, "") // Then collapse spaces
+    .trim();
 
   // Require at least 3 chars to avoid single-letter or empty domains
   if (!cleaned || cleaned.length < 3) return null;

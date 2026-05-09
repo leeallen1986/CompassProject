@@ -1037,12 +1037,17 @@ export function pumpOpportunityGate(
   const routeText = (project.opportunityRoute ?? "").toLowerCase();
   const sectorLower = (project.sector ?? "").toLowerCase();
 
-  // For pump: equipment signals are AI-inferred and unreliable for infrastructure.
-  const isIndustrialSector = ["energy", "mining", "oil_gas", "defence"].includes(sectorLower);
+  // For pump: equipment signals are AI-inferred and can be noisy for generic infrastructure.
+  // Trust equipment signals when: (a) sector is industrial, OR (b) project text has water/excavation context.
+  // This prevents generic road/transit/data-centre projects from passing just because AI tagged "Dewatering Pumps".
   const equipRaw = Array.isArray(project.equipmentSignals)
     ? (project.equipmentSignals as string[]).join(" ")
     : String(project.equipmentSignals ?? "");
-  const equipText = isIndustrialSector ? equipRaw.toLowerCase() : "";
+  const equipLower = equipRaw.toLowerCase();
+  const isIndustrialSector = ["energy", "mining", "oil_gas", "defence"].includes(sectorLower);
+  const textForContext = `${nameText} ${overviewText} ${routeText}`;
+  const hasWaterContext = /water|basin|dam|sewer|marine|flood|underground|excavat|tunnel|dredg|bore|aquifer|dewater|pump station|wet works|cofferdam|trench/.test(textForContext);
+  const equipText = (isIndustrialSector || hasWaterContext) ? equipLower : "";
   const combined = `${nameText} ${overviewText} ${routeText} ${equipText}`;
 
   // ── Hard suppression: same noise categories as PA gate ──
