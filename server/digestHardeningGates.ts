@@ -339,8 +339,8 @@ export function checkContactDefensibility(
   if (!notDowngraded) failedChecks.push("contact_downgraded");
 
   // 7. Card and detail page must resolve to same contact (structural check)
-  // This is validated by ensuring the contact has a consistent source + email
-  const cardDetailConsistent = !!(contact.email && contact.name && contact.source);
+  // Validated by ensuring the contact has email + name + trustTier (source is optional metadata)
+  const cardDetailConsistent = !!(contact.email && contact.name && contact.trustTier);
   if (!cardDetailConsistent) failedChecks.push("card_detail_inconsistent");
 
   const passes = failedChecks.length === 0;

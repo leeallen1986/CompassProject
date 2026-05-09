@@ -1373,7 +1373,7 @@ function generateThursdayReminder(
 /**
  * Core function: score and filter projects for a specific user profile.
  */
-async function scoreAndFilterProjects(
+export async function scoreAndFilterProjects(
   allProjects: any[],
   profile: {
     territories: string[] | null;
@@ -2114,8 +2114,8 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
             // Only fires on contact-related blockers for visible-top projects.
             // Respects cooldown (7 days), budget (daily cap - 5 reserve), and max 3 projects per run.
             const hasContactBlockers = gateResult.blockers.some(b =>
-              b.criterion === "trust_tier_not_send_ready" ||
-              b.criterion === "card_detail_inconsistent" ||
+              b.criterion === "trust_tier_not_send_ready" || b.criterion === "contact_not_defensible" ||
+              b.criterion === "card_detail_inconsistent" || b.criterion === "card_detail_mismatch" ||
               b.criterion === "no_contact"
             );
             let rescueResult: any = null;
