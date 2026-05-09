@@ -2436,3 +2436,9 @@
 - [x] MONDAY: PART D — Contact integrity on Monday-visible projects (selector consistency, trust tiers)
 - [x] MONDAY: PART E — Hard review packs for Ryan, Daniel, Brett, Dan Day, Amit
 - [x] MONDAY: PART G — Final Monday readiness output with all evidence
+- [x] MONDAY-FINAL: PART A — Rebuild Monday buckets for Ryan/Brett/Amit/Daniel/Dan Day using visible digest output
+- [x] MONDAY-FINAL: PART B — Weekend targeted enrichment (Ryan > Brett > Amit > Daniel) on Monday-critical projects only
+- [x] MONDAY-FINAL: PART C — Rerank visible top projects to promote contact-rich opportunities
+- [x] MONDAY-FINAL: PART D — Remove remaining Monday junk from visible outputs
+- [x] MONDAY-FINAL: PART E — Contact integrity on final visible set (no mismatches, no llm_inferred, no hallucinated)
+- [x] MONDAY-FINAL: PART G — Final output with buckets, before/after, digest preview, recommendation
