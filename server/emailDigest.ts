@@ -312,7 +312,7 @@ interface DigestProject {
   /** Brief readiness classification */
   briefReadiness?: BriefReadiness;
   /** Best send-ready contact for this project (name + title + contact path) */
-  bestContact?: { name: string; title: string; email?: string | null; linkedin?: string | null } | null;
+  bestContact?: { name: string; title: string; email?: string | null; linkedin?: string | null; trustTier?: string | null; source?: string | null; company?: string | null; verificationScore?: number | null; isDowngraded?: boolean; isLlmInferred?: boolean } | null;
   /** Tender close date for actionability scoring */
   tenderCloseDate?: string | null;
   /** Lane visibility tier from laneScoring.ts — used to gate section assignment */
@@ -350,6 +350,10 @@ interface DigestContact {
   linkedin?: string | null;
   /** Three-tier trust model: only send_ready contacts are outreach-ready */
   contactTrustTier?: string | null;
+  /** Contact data source (scraper, crm, apollo, manual) — required by defensibility gate */
+  source?: string | null;
+  /** Verification score 0-100 */
+  verificationScore?: number | null;
 }
 
 /**
@@ -388,9 +392,21 @@ function classifyBriefReadiness(
 
   if (contactSelection.salesReadiness === "send_ready" && contactSelection.selectedContact) {
     const best = contactSelection.selectedContact;
+    const rawContact = (projectContacts as any[]).find(c => c.name === best.name);
     return {
       readiness: "action_ready",
-      bestContact: { name: best.name, title: best.title, email: best.email, linkedin: best.linkedin },
+      bestContact: {
+        name: best.name,
+        title: best.title,
+        email: best.email,
+        linkedin: best.linkedin,
+        trustTier: best.trustTier,
+        source: rawContact?.source ?? rawContact?.enrichmentSource ?? "scraper",
+        company: best.company,
+        verificationScore: rawContact?.verificationScore ?? null,
+        isDowngraded: false,
+        isLlmInferred: false,
+      },
     };
   }
 
@@ -398,9 +414,21 @@ function classifyBriefReadiness(
   if (!project.hasNoContacts && project.actionTier === "tier1_actionable" &&
       contactSelection.selectedContact && contactSelection.selectedContact.email) {
     const best = contactSelection.selectedContact;
+    const rawContact = (projectContacts as any[]).find(c => c.name === best.name);
     return {
       readiness: "action_ready",
-      bestContact: { name: best.name, title: best.title, email: best.email, linkedin: best.linkedin },
+      bestContact: {
+        name: best.name,
+        title: best.title,
+        email: best.email,
+        linkedin: best.linkedin,
+        trustTier: best.trustTier,
+        source: rawContact?.source ?? rawContact?.enrichmentSource ?? "scraper",
+        company: best.company,
+        verificationScore: rawContact?.verificationScore ?? null,
+        isDowngraded: false,
+        isLlmInferred: false,
+      },
     };
   }
 
@@ -1901,6 +1929,9 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
             linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
             // Pass trust tier through so classifyBriefReadiness can enforce it
             contactTrustTier: (c as any).contactTrustTier ?? null,
+            // Pass source + verificationScore for gate defensibility check
+            source: (c as any).source ?? null,
+            verificationScore: (c as any).verificationScore ?? null,
           }));
         const { readiness, bestContact } = classifyBriefReadiness(
           { ...p, hasNoContacts },
@@ -2731,6 +2762,9 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
         linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
         // Pass trust tier through so classifyBriefReadiness can enforce it
         contactTrustTier: (c as any).contactTrustTier ?? null,
+        // Pass source + verificationScore for gate defensibility check
+        source: (c as any).source ?? null,
+        verificationScore: (c as any).verificationScore ?? null,
       }));
     const { readiness, bestContact } = classifyBriefReadiness(
       { ...p, hasNoContacts },
@@ -2738,8 +2772,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     );
     return { ...p, hasNoContacts, briefReadiness: readiness, bestContact };
   });
-
-  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
+  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);;
   const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const pipeline = await getPipelineClaimsByUser(userId);
 

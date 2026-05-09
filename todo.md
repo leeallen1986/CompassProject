@@ -2457,3 +2457,10 @@
 - [x] HARDENING: PART G — Test replay of 7 known failure patterns
 - [x] HARDENING: PART H — All 7 acceptance criteria validated
 - [x] HARDENING: PART I — Final output report
+- [ ] ADDENDUM: Live gate replay on real data for 5 reps (before/after)
+- [ ] ADDENDUM: Card/detail contact consistency check
+- [ ] ADDENDUM: Operator review path evidence (real DB rows)
+- [ ] ADDENDUM: Rescue trigger proof with guardrails
+- [ ] ADDENDUM: Rep differentiation check
+- [ ] ADDENDUM: Credit safety validation
+- [ ] ADDENDUM: Write and deliver addendum report
