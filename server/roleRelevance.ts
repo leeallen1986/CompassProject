@@ -187,7 +187,7 @@ const LOW_RELEVANCE_KEYWORDS = [
   "nursing",
   "aged care manager",
   "teacher",
-  "principal",
+  "school principal",
   "school",
   "enrollment",
   "enrolment",
@@ -288,6 +288,14 @@ export function classifyRoleRelevance(
     "insurance", "underwriter", "actuary", "financial planner",
     "financial adviser", "mortgage", "banking", "wealth management",
     "childcare", "kindergarten", "university", "academic",
+    // Speakers, coaches, facilitators
+    "motivational speaker", "keynote speaker", "executive coach",
+    "executive facilitator", "life coach", "leadership coach",
+    // Software/IT specializations mismatched to industrial projects
+    "salesforce", "crm ", "sap consultant", "erp consultant",
+    // Marketing/acquisition (not procurement)
+    "marketing & acquisition", "digital marketing", "content marketing",
+    "social media manager", "brand manager",
   ];
   if (titleLower && NON_INDUSTRIAL_INDICATORS.some(ind => titleLower.includes(ind))) {
     return "low";

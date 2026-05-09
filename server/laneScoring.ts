@@ -1067,26 +1067,48 @@ export function pumpOpportunityGate(
   }
 
   // ── Positive pump/dewatering signals ──
-  const pumpPositiveSignals: string[] = [
+  // Tier 1: Strong signals — substring match is safe (multi-word or unambiguous)
+  const strongPumpSignals: string[] = [
     "dewater", "dewatering", "mine dewatering", "groundwater",
-    "water management", "water handling", "water infrastructure", "water treatment",
+    "water management", "water handling", "water treatment",
     "process water", "slurry", "tailings", "tailings dam", "tailing storage",
-    "flood", "dam", "reservoir", "irrigation", "drainage", "site drainage",
-    "submersible", "wellpoint", "borehole", "sump", "pump", "pumping",
+    "submersible", "wellpoint", "sump pump", "pumping station",
     "water table", "seepage", "cofferdam", "dredg", "dredging",
-    "offshore pipeline", "water main", "sewer", "wastewater",
-    "desalin", "desalination", "trench", "trenching", "wet works",
-    "marine", "excavat", "excavation", "open cut", "open pit",
-    "underground mine", "mine development", "mining",
-    "weda", "pas ", "sludge", "effluent", "bore field",
+    "water main", "sewer", "wastewater",
+    "desalin", "desalination", "wet works",
+    "weda", "sludge", "effluent", "bore field",
     "aquifer", "water bore", "water supply", "raw water",
     "settling pond", "evaporation pond", "leach pad",
+    "site drainage", "mine drainage", "acid mine drainage",
+    "water infrastructure", "offshore pipeline",
+  ];
+  // Tier 2: Moderate signals — use regex word boundaries to avoid false positives
+  const moderatePumpPatterns: Array<[RegExp, string]> = [
+    [/\b(pump|pumps|pumping)\b/, "pump"],
+    [/\b(dam|dams)\b(?!ag)/, "dam"],  // 'dam' but not 'damage'
+    [/\bflood(ing|plain|water)?\b/, "flood"],
+    [/\breservoir\b/, "reservoir"],
+    [/\birrigation\b/, "irrigation"],
+    [/\bdrainage\b/, "drainage"],
+    [/\btrench(ing)?\b/, "trench"],
+    [/\bborehole\b/, "borehole"],
+    [/\bsump\b/, "sump"],
+    [/\bmarine (construct|piling|dredg|works|install)/, "marine works"],
+    [/\bopen (cut|pit) min/, "open cut/pit mine"],
+    [/\bunderground min(e|ing)\b/, "underground mine"],
+    [/\bmine develop/, "mine development"],
+    [/\bexcavat(e|ion|ing)\b.{0,40}\b(water|wet|ground|below|deep)/, "excavation+water"],
   ];
 
   const foundSignals: string[] = [];
-  for (const signal of pumpPositiveSignals) {
+  for (const signal of strongPumpSignals) {
     if (combined.includes(signal)) {
       foundSignals.push(signal);
+    }
+  }
+  for (const [pattern, label] of moderatePumpPatterns) {
+    if (pattern.test(combined)) {
+      foundSignals.push(label);
     }
   }
 

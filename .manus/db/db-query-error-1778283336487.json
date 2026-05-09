@@ -1,0 +1,8 @@
+{
+  "query": "SELECT u.id, u.name, u.email, u.role, up.territories, up.primaryBusinessLine FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE u.role IN ('user', 'admin') ORDER BY u.name",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.id, u.name, u.email, u.role, up.territories, up.primaryBusinessLine FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE u.role IN ('user', 'admin') ORDER BY u.name",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'up.primarybusinessline' in 'field list'"
+  ]
+}

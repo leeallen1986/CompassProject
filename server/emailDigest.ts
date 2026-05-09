@@ -1873,6 +1873,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       if (matchedProjects.length === 0) {
         results.skipped++;
         console.log(`[EmailDigest] Skipping ${user.name} — no matching projects`);
+        if (!force && !dryRun) await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: "No matching projects after scoring" });
         continue;
       }
 
@@ -1934,6 +1935,8 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
             weekKey, itemCount: 0, dryRun: false,
             error: `TERRITORY_THRESHOLD_HELD: ${threshold.reason}`,
           });
+          // Finalise the pending slot so it doesn't stay orphaned
+          await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: `TERRITORY_THRESHOLD_HELD: ${threshold.reason}` });
           continue;
         }
         console.log(
@@ -1970,6 +1973,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
               weekKey, itemCount: 0, dryRun: false,
               error: `MANUAL_PREVIEW_GATE: First send for territory "${primaryTerritory}" requires manual preview approval via the admin digest preview endpoint.`,
             });
+            await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: `MANUAL_PREVIEW_GATE: ${primaryTerritory}` });
             continue;
           }
 
@@ -1983,6 +1987,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
               weekKey, itemCount: 0, dryRun: false,
               error: `MANUAL_PREVIEW_GATE: Territory "${primaryTerritory}" awaiting first-send approval. Preview the digest and approve it in the admin dashboard.`,
             });
+            await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: `MANUAL_PREVIEW_GATE: ${primaryTerritory} awaiting approval` });
             continue;
           }
 
@@ -2037,6 +2042,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       if (!userEmail) {
         console.warn(`[EmailDigest] No email for user ${user.name}, skipping`);
         results.skipped++;
+        if (!force && !dryRun) await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: "No email address configured" });
         continue;
       }
 
@@ -2213,6 +2219,7 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
       if (!userEmail) {
         console.warn(`[EmailDigest] No email for user ${user.name}, skipping Thursday reminder`);
         results.skipped++;
+        if (!force && !dryRun) await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: "No email address configured" });
         continue;
       }
 
