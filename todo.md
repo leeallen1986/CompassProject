@@ -2467,3 +2467,7 @@
 - [x] Wire identifyRescueCandidates() into Monday pipeline (after HOLD, rerun gates)
 - [ ] Investigate and fix card/detail contact inconsistency (simulation vs selectProjectContact)
 - [ ] Prove live contact consistency across card, digest, detail for Monday-visible projects
+- [x] Investigate Blind Creek Solar / Octopus domain relationship (prove or disprove)
+- [ ] Apply fix: owner-alias mapping OR replace Blind Creek with defensible backup
+- [ ] Run targeted contact rescue for Amit's visible top projects only
+- [ ] Rebuild Amit's final gated top-3 and confirm SEND or HOLD
