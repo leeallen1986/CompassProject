@@ -2471,3 +2471,13 @@
 - [ ] Apply fix: owner-alias mapping OR replace Blind Creek with defensible backup
 - [ ] Run targeted contact rescue for Amit's visible top projects only
 - [ ] Rebuild Amit's final gated top-3 and confirm SEND or HOLD
+
+## Email Quality Fixes (pre-Monday)
+- [ ] Fix manual send path: sendWeeklyDigestToUser must pass htmlContent + textContent (not markdown fallback)
+- [ ] Replace rental CTA language with lane-appropriate direct-sale copy (Portable Air, Pump, PAL/BESS)
+- [ ] Map product slugs to human labels (portable_air → Portable Air, multi_lane_pt → Multi-Line PT, bess → BESS, OPEXMonitor → OPEX / Monitor)
+- [ ] Make sector labels human-readable (oil_gas → Oil & Gas, etc.)
+- [ ] Fix pitch truncation to snap to word boundary (no mid-word cuts)
+- [ ] Sanitise contact titles: strip LinkedIn pipe-separated fragments, keep first credible title, max length guard
+- [ ] Show contact name + title in CTA (not title alone)
+- [ ] Re-render and proof all 5 rep emails post-fix

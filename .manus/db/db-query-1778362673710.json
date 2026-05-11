@@ -1,0 +1,15 @@
+{
+  "query": "SELECT name, title, email FROM contacts WHERE name LIKE '%Ubayeda%' LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT name, title, email FROM contacts WHERE name LIKE '%Ubayeda%' LIMIT 3;",
+  "rows": [
+    {
+      "name": "Ubayeda Shaqer",
+      "title": "Senior Project Manager | Project Development | Engineering Management | Utilities | Renewable Energy | Infrastructure | Data Centers",
+      "email": "ubayeda.shaqer@octopus.com.au"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\ttitle\temail\nUbayeda Shaqer\tSenior Project Manager | Project Development | Engineering Management | Utilities | Renewable Energy | Infrastructure | Data Centers\tubayeda.shaqer@octopus.com.au\n",
+  "stderr": "",
+  "execution_time_ms": 1991
+}

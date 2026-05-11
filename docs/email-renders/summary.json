@@ -1,0 +1,182 @@
+[
+  {
+    "rep": "Ryan_Pemberton",
+    "subject": "PT Capital Sales — Weekly Intelligence Brief | WA/OFFSHORE_AU — 2026-05-08",
+    "territory": "WA/OFFSHORE_AU",
+    "actionReadyCount": 3,
+    "discoveryCount": 2,
+    "top3": [
+      {
+        "rank": 1,
+        "badge": "action_ready",
+        "title": "Walyering West-1 Gas Development — Portable Air",
+        "company": "Strike Energy (operator)",
+        "pitch": "Strike Energy has spudded the Walyering West-1 well in the L23 permit area of the Perth Basin. Pilot Energy is involved, securing a loan from Triangle for its share of the costs.",
+        "ctaAction": "Contact Diego Linares, Construction Site Manager to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Portable Air for Oil & Gas"
+      },
+      {
+        "rank": 2,
+        "badge": "action_ready",
+        "title": "Norseman Gold Project - Third Underground Mine Development — Multi-Line PT",
+        "company": "Pantoro Gold",
+        "pitch": "Pantoro Gold will begin developing the third underground mine at its Norseman gold project later this year.",
+        "ctaAction": "Contact Troy Morris, Maintenance Manager to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Multi-Line PT for Mining"
+      },
+      {
+        "rank": 3,
+        "badge": "action_ready",
+        "title": "Murchison Gold Project underground development — Direct CAPEX",
+        "company": "Meeka Metals",
+        "pitch": "Meeka Metals is gaining traction at its Murchison gold project with a decisive shift towards higher-grade underground mining. This indicates active development and potential for new equipment for...",
+        "ctaAction": "Contact John Sinagra, Procurement Superintendent to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Direct CAPEX for Mining"
+      }
+    ]
+  },
+  {
+    "rep": "Brett_Hansen",
+    "subject": "PT Capital Sales — Weekly Intelligence Brief | WA/NT/OFFSHORE_AU — 2026-05-08",
+    "territory": "WA/NT/OFFSHORE_AU",
+    "actionReadyCount": 3,
+    "discoveryCount": 2,
+    "top3": [
+      {
+        "rank": 1,
+        "badge": "action_ready",
+        "title": "Kwinana Gas Power Generation 2 Project — Pumps",
+        "company": "AGL",
+        "pitch": "AGL has taken Final Investment Decision (FID) on the Kwinana Gas Power Generation 2 Project. Construction on the 220 MW open-cycle, dual-fuel gas turbine power station is set to start soon.",
+        "ctaAction": "Contact Paul Holland, General Manager Procurement & Property to discuss dewatering scope, pump package, and site requirements.",
+        "productTag": "Pumps for Energy"
+      },
+      {
+        "rank": 2,
+        "badge": "action_ready",
+        "title": "Walyering West-1 Gas Development — Portable Air",
+        "company": "Strike Energy (operator)",
+        "pitch": "Strike Energy has spudded the Walyering West-1 well in the L23 permit area of the Perth Basin. Pilot Energy is involved, securing a loan from Triangle for its share of the costs.",
+        "ctaAction": "Contact Diego Linares, Construction Site Manager to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Portable Air for Oil & Gas"
+      },
+      {
+        "rank": 3,
+        "badge": "action_ready",
+        "title": "Norseman Gold Project - Third Underground Mine Development — Multi-Line PT",
+        "company": "Pantoro Gold",
+        "pitch": "Pantoro Gold will begin developing the third underground mine at its Norseman gold project later this year.",
+        "ctaAction": "Contact Troy Morris, Maintenance Manager to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Multi-Line PT for Mining"
+      }
+    ]
+  },
+  {
+    "rep": "Daniel_Zec",
+    "subject": "PT Capital Sales — Weekly Intelligence Brief | NSW/VIC/SA/TAS/OFFSHORE_AU — 2026-05-08",
+    "territory": "NSW/VIC/SA/TAS/OFFSHORE_AU",
+    "actionReadyCount": 3,
+    "discoveryCount": 2,
+    "top3": [
+      {
+        "rank": 1,
+        "badge": "action_ready",
+        "title": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach) — Fleet CAPEX",
+        "company": "Unknown (related to Bass Strait operators like ExxonMobil)",
+        "pitch": "Barry Beach is undergoing a facelift to prepare for the safe return, dismantling, and recycling of offshore structures from the Bass Strait. Qube has been awarded the contract to begin these upgrades.",
+        "ctaAction": "Contact Sam Leszczynski, General Manager - Mining Services to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Fleet CAPEX for Oil & Gas"
+      },
+      {
+        "rank": 2,
+        "badge": "action_ready",
+        "title": "Olympic Dam Expansion — BHP — Direct CAPEX",
+        "company": "BHP Olympic Dam",
+        "pitch": "Ongoing expansion and optimisation of BHP's Olympic Dam copper-uranium mine in South Australia. Includes underground mine development, processing plant upgrades, and tailings management.",
+        "ctaAction": "Contact Olga Machrone, Head of Projects Commercial, Major Projects and New Developments to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Direct CAPEX for Mining"
+      },
+      {
+        "rank": 3,
+        "badge": "action_ready",
+        "title": "Snowy 2.0 Hydroelectric Project — Multi-Line PT",
+        "company": "Snowy Hydro",
+        "pitch": "The Snowy 2.0 pumped-hydro expansion project is facing budget exhaustion, delays, and cost overruns. It involves significant underground tunnelling and infrastructure development.",
+        "ctaAction": "Contact Giuseppe Gulisano, Deputy Construction Manager to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Multi-Line PT for Energy"
+      }
+    ]
+  },
+  {
+    "rep": "Dan_Day",
+    "subject": "PT Capital Sales — Weekly Intelligence Brief | SA/QLD/VIC/NSW/TAS — 2026-05-08",
+    "territory": "SA/QLD/VIC/NSW/TAS",
+    "actionReadyCount": 3,
+    "discoveryCount": 2,
+    "top3": [
+      {
+        "rank": 1,
+        "badge": "action_ready",
+        "title": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach) — Fleet CAPEX",
+        "company": "Unknown (related to Bass Strait operators like ExxonMobil)",
+        "pitch": "Barry Beach is undergoing a facelift to prepare for the safe return, dismantling, and recycling of offshore structures from the Bass Strait. Qube has been awarded the contract to begin these upgrades.",
+        "ctaAction": "Contact Sam Leszczynski, General Manager - Mining Services to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Fleet CAPEX for Oil & Gas"
+      },
+      {
+        "rank": 2,
+        "badge": "action_ready",
+        "title": "Bruce Highway Safety Upgrades Program — Multi-Line PT",
+        "company": "Queensland Government (implied)",
+        "pitch": "The Bruce Highway safety upgrades program is accelerating with 22 new contracts released for works along Queensland's east coast. This indicates significant ongoing infrastructure development.",
+        "ctaAction": "Contact Abe Ninan, Manager (Procurement Analysis) to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Multi-Line PT for Infrastructure"
+      },
+      {
+        "rank": 3,
+        "badge": "action_ready",
+        "title": "Bruce Highway Targeted Safety Program (BHTSP) — Pumps",
+        "company": "Federal and Queensland governments",
+        "pitch": "A $9 billion program for safety upgrades to priority stretches of the Bruce Highway in Queensland. 22 new contracts (5 construction, 17 design) have been released to market.",
+        "ctaAction": "Contact Mark Nicholl, Construction Manager to discuss dewatering scope, pump package, and site requirements.",
+        "productTag": "Pumps for Infrastructure"
+      }
+    ]
+  },
+  {
+    "rep": "Amit_Bhargava",
+    "subject": "PT Capital Sales — Weekly Intelligence Brief | WA/NSW/QLD/VIC/SA/TAS/NT/ACT/OFFSHORE_AU — 2026-05-08",
+    "territory": "WA/NSW/QLD/VIC/SA/TAS/NT/ACT/OFFSHORE_AU",
+    "actionReadyCount": 3,
+    "discoveryCount": 2,
+    "top3": [
+      {
+        "rank": 1,
+        "badge": "action_ready",
+        "title": "Bellambi Heights Battery Energy Storage System - Stage 2 — BESS",
+        "company": "Vena Energy",
+        "pitch": "Vena Energy has secured a $200 million long-term revenue agreement for the second stage of its 408 MW Bellambi Heights battery energy storage system in central-western New South Wales, expected...",
+        "ctaAction": "Contact Choi JungIn, Engineering Manager, Offshore Wind to discuss project package, deployment timing, and site delivery path.",
+        "productTag": "BESS for Energy"
+      },
+      {
+        "rank": 2,
+        "badge": "action_ready",
+        "title": "Blind Creek Solar and Battery Project — Multi-Line PT",
+        "company": "Octopus Australia",
+        "pitch": "Octopus Australia has commenced construction of its Blind Creek solar and battery project in southern New South Wales and has inked an offtake agreement with Flow Power.",
+        "ctaAction": "Contact Ubayeda Shaqer, Senior Project Manager to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Multi-Line PT for Energy"
+      },
+      {
+        "rank": 3,
+        "badge": "action_ready",
+        "title": "Koolunga BESS (Battery Energy Storage System) — Direct CAPEX",
+        "company": "Equis",
+        "pitch": "Construction of an 800 MWh Battery Energy Storage System. GenusPlus has been appointed as the EPC contractor.",
+        "ctaAction": "Contact Vincenzo Gennaro, General Manager BESS & Solar Development to discuss application, timing, equipment package, and contractor route-to-buy.",
+        "productTag": "Direct CAPEX for Energy"
+      }
+    ]
+  }
+]
