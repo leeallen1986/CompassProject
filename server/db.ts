@@ -2408,16 +2408,22 @@ export async function logEmailSendExtended(params: {
     const db = await getDb();
     if (!db) return;
     const today = new Date().toISOString().slice(0, 10);
-    await db.insert(userEmailSendLog).values({
-      userId: params.userId,
-      digestType: params.digestType,
-      sentDate: today,
-      weekKey: params.weekKey ?? null,
-      status: params.status,
-      itemCount: params.itemCount ?? 0,
-      dryRun: params.dryRun ?? false,
-      error: params.error ?? null,
-    });
+    // Use UPSERT: if a row already exists for (userId, digestType, sentDate),
+    // update it rather than crashing on duplicate key.
+    await db.execute(
+      sql`INSERT INTO userEmailSendLog
+        (userId, digestType, sentDate, weekKey, status, itemCount, dryRun, error)
+        VALUES
+        (${params.userId}, ${params.digestType}, ${today}, ${params.weekKey ?? null},
+         ${params.status}, ${params.itemCount ?? 0}, ${params.dryRun ? 1 : 0}, ${params.error ?? null})
+        ON DUPLICATE KEY UPDATE
+          weekKey = VALUES(weekKey),
+          status = VALUES(status),
+          itemCount = VALUES(itemCount),
+          dryRun = VALUES(dryRun),
+          error = VALUES(error),
+          sentAt = CURRENT_TIMESTAMP`
+    );
   } catch (err) {
     console.error("[EmailOps] Error logging email send:", err);
   }
@@ -2461,8 +2467,16 @@ export async function claimDigestSendSlot(
 }
 
 /**
- * Update an existing send-log row from 'pending' to 'sent' or 'failed'.
+ * Update an existing send-log row from 'pending'/'dry_run' to 'sent' or 'failed'.
  * Called after the email is dispatched to finalise the claim.
+ *
+ * The unique key is (userId, digestType, sentDate) — weekKey is NOT part of the
+ * unique constraint. We match on the 3 unique columns + non-terminal status,
+ * then SET weekKey to the provided value (handles weekKey drift between dry-run
+ * and force-override calls).
+ *
+ * If no matching row exists (e.g., force-override with no prior claim), we
+ * INSERT one directly so the audit trail is never missing.
  */
 export async function finaliseDigestSendSlot(
   userId: number,
@@ -2475,17 +2489,44 @@ export async function finaliseDigestSendSlot(
     const db = await getDb();
     if (!db) return;
     const today = new Date().toISOString().slice(0, 10);
-    await db.execute(
+    // Try UPDATE first — match on unique key columns + non-terminal status
+    const result = await db.execute(
       sql`UPDATE userEmailSendLog
         SET status = ${status},
+            weekKey = ${weekKey},
             itemCount = ${opts?.itemCount ?? 0},
-            error = ${opts?.error ?? null}
+            error = ${opts?.error ?? null},
+            dryRun = 0,
+            sentAt = CURRENT_TIMESTAMP
         WHERE userId = ${userId}
           AND digestType = ${digestType}
           AND sentDate = ${today}
-          AND weekKey = ${weekKey}
-          AND (status = 'pending' OR status = '' OR status = 'dry_run')`
+          AND status IN ('pending', 'dry_run', '')`
     );
+    const affectedRows = (result[0] as any).affectedRows ?? 0;
+    if (affectedRows === 0) {
+      // No matching row found — either it was already finalised (idempotent)
+      // or it never existed (force-override without prior claim).
+      // Check if a 'sent' row already exists (idempotent case):
+      const existing = await db.execute(
+        sql`SELECT id, status FROM userEmailSendLog
+          WHERE userId = ${userId}
+            AND digestType = ${digestType}
+            AND sentDate = ${today}
+          LIMIT 1`
+      );
+      const rows = existing[0] as unknown as any[];
+      if (rows.length === 0) {
+        // No row at all — insert one (force-override path)
+        await db.execute(
+          sql`INSERT INTO userEmailSendLog
+            (userId, digestType, sentDate, weekKey, status, itemCount, dryRun, error)
+            VALUES
+            (${userId}, ${digestType}, ${today}, ${weekKey}, ${status}, ${opts?.itemCount ?? 0}, 0, ${opts?.error ?? null})`
+        );
+      }
+      // If rows[0].status === 'sent' → already finalised, idempotent no-op
+    }
   } catch (err) {
     console.error(`[EmailOps] finaliseDigestSendSlot error for user ${userId}:`, err);
   }

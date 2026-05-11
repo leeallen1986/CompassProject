@@ -1,0 +1,100 @@
+{
+  "query": "SELECT id, userId, digestType, sentDate, weekKey, status, itemCount, dryRun FROM userEmailSendLog WHERE sentDate = '2026-05-11' ORDER BY userId;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, userId, digestType, sentDate, weekKey, status, itemCount, dryRun FROM userEmailSendLog WHERE sentDate = '2026-05-11' ORDER BY userId;",
+  "rows": [
+    {
+      "id": "930001",
+      "userId": "840008",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "478",
+      "dryRun": "1"
+    },
+    {
+      "id": "930002",
+      "userId": "2340043",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "sent",
+      "itemCount": "142",
+      "dryRun": "0"
+    },
+    {
+      "id": "930003",
+      "userId": "2550006",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "sent",
+      "itemCount": "174",
+      "dryRun": "0"
+    },
+    {
+      "id": "930007",
+      "userId": "2820073",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "sent",
+      "itemCount": "182",
+      "dryRun": "0"
+    },
+    {
+      "id": "930008",
+      "userId": "3630009",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "sent",
+      "itemCount": "268",
+      "dryRun": "0"
+    },
+    {
+      "id": "930009",
+      "userId": "3870014",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "sent",
+      "itemCount": "526",
+      "dryRun": "0"
+    },
+    {
+      "id": "930010",
+      "userId": "4590008",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "531",
+      "dryRun": "1"
+    },
+    {
+      "id": "930011",
+      "userId": "11580001",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "520",
+      "dryRun": "1"
+    },
+    {
+      "id": "930012",
+      "userId": "13020010",
+      "digestType": "monday",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "370",
+      "dryRun": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tdigestType\tsentDate\tweekKey\tstatus\titemCount\tdryRun\n930001\t840008\tmonday\t2026-05-11\t2026W20\tdry_run\t478\t1\n930002\t2340043\tmonday\t2026-05-11\t2026W20\tsent\t142\t0\n930003\t2550006\tmonday\t2026-05-11\t2026W20\tsent\t174\t0\n930007\t2820073\tmonday\t2026-05-11\t2026W20\tsent\t182\t0\n930008\t3630009\tmonday\t2026-05-11\t2026W20\tsent\t268\t0\n930009\t3870014\tmonday\t2026-05-11\t2026W20\tsent\t526\t0\n930010\t4590008\tmonday\t2026-05-11\t2026W20\tdry_run\t531\t1\n930011\t11580001\tmonday\t2026-05-11\t2026W20\tdry_run\t520\t1\n930012\t13020010\tmonday\t2026-05-11\t2026W20\tdry_run\t370\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1761
+}

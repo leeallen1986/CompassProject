@@ -2540,3 +2540,9 @@
 - [x] Part C: All 5 render proofs verified (Ryan, Brett, Daniel, Dan Day, Amit) — no rental language, clean labels, correct CTAs
 - [x] Part D: finaliseDigestSendSlot WHERE clause bug fixed (now matches dry_run rows)
 - [x] Part E: Deliver final output
+
+## Session: 2026-05-11 — Operational Hardening (Priority)
+
+- [x] Fix 1: finaliseDigestSendSlot — force-override path must update/upsert without manual SQL cleanup
+- [x] Fix 2: Configure warm-up scheduled task — documented exact spec (cannot create from this session; requires separate task or platform UI)
+- [x] Fix 3: Verify schedule timing from platform — documented exact timings from code analysis, warm-up fire time
