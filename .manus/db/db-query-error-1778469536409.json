@@ -1,0 +1,8 @@
+{
+  "query": "SELECT c.id, c.name, c.title, c.email, c.contactTrustTier, c.projectId, p.name as projectName FROM contacts c JOIN projects p ON c.projectId = p.id WHERE c.name IN ('Diego Linares', 'Troy Morris', 'John Sinagra', 'Paul Holland', 'Sam Leszczynski', 'Olga Machrone', 'Giuseppe Gulisano', 'Abe Ninan', 'Grant Hudson', 'Choi JungIn', 'Seth Strumph') LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT c.id, c.name, c.title, c.email, c.contactTrustTier, c.projectId, p.name as projectName FROM contacts c JOIN projects p ON c.projectId = p.id WHERE c.name IN ('Diego Linares', 'Troy Morris', 'John Sinagra', 'Paul Holland', 'Sam Leszczynski', 'Olga Machrone', 'Giuseppe Gulisano', 'Abe Ninan', 'Grant Hudson', 'Choi JungIn', 'Seth Strumph') LIMIT 15;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'c.projectid' in 'on clause'"
+  ]
+}

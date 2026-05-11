@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, runType, status, triggeredBy, startedAt, completedAt, durationMs, currentStep, lastActivityNote, feedsFetched, articlesIngested, articlesExtracted, projectsCreated, contactsEnriched, errors, steps FROM pipelineRuns WHERE id = 1020001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, runType, status, triggeredBy, startedAt, completedAt, durationMs, currentStep, lastActivityNote, feedsFetched, articlesIngested, articlesExtracted, projectsCreated, contactsEnriched, errors, steps FROM pipelineRuns WHERE id = 1020001;",
+  "rows": [
+    {
+      "id": "1020001",
+      "runType": "daily",
+      "status": "failed",
+      "triggeredBy": "Lee",
+      "startedAt": "2026-05-11 02:08:11",
+      "completedAt": "2026-05-11 02:09:40",
+      "durationMs": "NULL",
+      "currentStep": "RSS Harvest",
+      "lastActivityNote": "NULL",
+      "feedsFetched": "0",
+      "articlesIngested": "0",
+      "articlesExtracted": "0",
+      "projectsCreated": "0",
+      "contactsEnriched": "0",
+      "errors": "[\"Container shutdown (SIGTERM)\"]",
+      "steps": "[]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunType\tstatus\ttriggeredBy\tstartedAt\tcompletedAt\tdurationMs\tcurrentStep\tlastActivityNote\tfeedsFetched\tarticlesIngested\tarticlesExtracted\tprojectsCreated\tcontactsEnriched\terrors\tsteps\n1020001\tdaily\tfailed\tLee\t2026-05-11 02:08:11\t2026-05-11 02:09:40\tNULL\tRSS Harvest\tNULL\t0\t0\t0\t0\t0\t[\"Container shutdown (SIGTERM)\"]\t[]\n",
+  "stderr": "",
+  "execution_time_ms": 1857
+}

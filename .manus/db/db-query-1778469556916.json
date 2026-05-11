@@ -1,0 +1,109 @@
+{
+  "query": "SELECT id, name, title, email, contactTrustTier, company, enrichmentStatus FROM contacts WHERE name IN ('Diego Linares', 'Troy Morris', 'John Sinagra', 'Paul Holland', 'Sam Leszczynski', 'Olga Machrone', 'Giuseppe Gulisano', 'Abe Ninan', 'Grant Hudson', 'Choi JungIn', 'Seth Strumph') LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, title, email, contactTrustTier, company, enrichmentStatus FROM contacts WHERE name IN ('Diego Linares', 'Troy Morris', 'John Sinagra', 'Paul Holland', 'Sam Leszczynski', 'Olga Machrone', 'Giuseppe Gulisano', 'Abe Ninan', 'Grant Hudson', 'Choi JungIn', 'Seth Strumph') LIMIT 15;",
+  "rows": [
+    {
+      "id": "630012",
+      "name": "Choi JungIn",
+      "title": "Engineering Manager, Offshore Wind",
+      "email": "choi.jungin@venaenergy.com.au",
+      "contactTrustTier": "named_unverified",
+      "company": "Vena Energy",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1020006",
+      "name": "Grant Hudson",
+      "title": "Operations Manager and leader with Power Plant Engineering background - Renewables, Coal, Gas",
+      "email": "grant.hudson@territorygeneration.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "Territory Generation",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1080028",
+      "name": "Abe Ninan",
+      "title": "Manager (Procurement Analysis) at QDTMR",
+      "email": "abe.ninan@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "Queensland Department of Transport and Main Roads",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1380040",
+      "name": "Sam Leszczynski",
+      "title": "General Manager - Mining Services",
+      "email": "sam.leszczynski@qube.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "Qube",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1410001",
+      "name": "Olga Machrone",
+      "title": "Head of Projects Commercial, Major Projects and New Developments",
+      "email": "olga.machrone@bhp.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "BHP",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1440002",
+      "name": "John Sinagra",
+      "title": "Procurement Superintendent",
+      "email": "jsinagra@meekametals.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "Meeka Metals",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1530018",
+      "name": "Troy Morris",
+      "title": "Maintenance Manager",
+      "email": "troy.morris@byrnecut.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "Byrnecut",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1560002",
+      "name": "Paul Holland",
+      "title": "General Manager Procurement & Property",
+      "email": "pholland@agl.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "AGL",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1620177",
+      "name": "Seth Strumph",
+      "title": "Senior Engineering Manager",
+      "email": "seth.strumph@octopus.com",
+      "contactTrustTier": "llm_inferred",
+      "company": "Octopus Australia",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1650336",
+      "name": "Giuseppe Gulisano",
+      "title": "Deputy Construction Manager",
+      "email": "g.gulisano@futuregenerationjv.com.au",
+      "contactTrustTier": "send_ready",
+      "company": "Future Generation JV",
+      "enrichmentStatus": "enriched"
+    },
+    {
+      "id": "1710008",
+      "name": "Diego Linares",
+      "title": "Construction Site Manager",
+      "email": "diego.linares@worley.com",
+      "contactTrustTier": "send_ready",
+      "company": "Worley",
+      "enrichmentStatus": "enriched"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\temail\tcontactTrustTier\tcompany\tenrichmentStatus\n630012\tChoi JungIn\tEngineering Manager, Offshore Wind\tchoi.jungin@venaenergy.com.au\tnamed_unverified\tVena Energy\tenriched\n1020006\tGrant Hudson\tOperations Manager and leader with Power Plant Engineering background - Renewables, Coal, Gas\tgrant.hudson@territorygeneration.com.au\tsend_ready\tTerritory Generation\tenriched\n1080028\tAbe Ninan\tManager (Procurement Analysis) at QDTMR\tabe.ninan@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\tQueensland Department of Transport and Main Roads\tenriched\n1380040\tSam Leszczynski\tGeneral Manager - Mining Services\tsam.leszczynski@qube.com.au\tsend_ready\tQube\tenriched\n1410001\tOlga Machrone\tHead of Projects Commercial, Major Projects and New Developments\tolga.machrone@bhp.com.au\tsend_ready\tBHP\tenriched\n1440002\tJohn Sinagra\tProcurement Superintendent\tjsinagra@meekametals.com.au\tsend_ready\tMeeka Metals\tenriched\n1530018\tTroy Morris\tMaintenance Manager\ttroy.morris@byrnecut.com.au\tsend_ready\tByrnecut\tenriched\n1560002\tPaul Holland\tGeneral Manager Procurement & Property\tpholland@agl.com.au\tsend_ready\tAGL\tenriched\n1620177\tSeth Strumph\tSenior Engineering Manager\tseth.strumph@octopus.com\tllm_inferred\tOctopus Australia\tenriched\n1650336\tGiuseppe Gulisano\tDeputy Construction Manager\tg.gulisano@futuregenerationjv.com.au\tsend_ready\tFuture Generation JV\tenriched\n1710008\tDiego Linares\tConstruction Site Manager\tdiego.linares@worley.com\tsend_ready\tWorley\tenriched\n",
+  "stderr": "",
+  "execution_time_ms": 1856
+}

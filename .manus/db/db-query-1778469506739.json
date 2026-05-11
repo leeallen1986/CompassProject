@@ -1,0 +1,45 @@
+{
+  "query": "SELECT userId, weekKey, decision, phase, createdAt FROM repDigestGateResults WHERE userId IN (2340043, 2550006, 2820073, 3630009, 3870014) ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT userId, weekKey, decision, phase, createdAt FROM repDigestGateResults WHERE userId IN (2340043, 2550006, 2820073, 3630009, 3870014) ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "userId": "3870014",
+      "weekKey": "2026W19",
+      "decision": "HOLD",
+      "phase": "pre_digest",
+      "createdAt": "2026-05-09 03:39:18"
+    },
+    {
+      "userId": "3630009",
+      "weekKey": "2026W19",
+      "decision": "HOLD",
+      "phase": "pre_digest",
+      "createdAt": "2026-05-09 03:39:15"
+    },
+    {
+      "userId": "2820073",
+      "weekKey": "2026W19",
+      "decision": "HOLD",
+      "phase": "pre_digest",
+      "createdAt": "2026-05-09 03:39:12"
+    },
+    {
+      "userId": "2550006",
+      "weekKey": "2026W19",
+      "decision": "HOLD",
+      "phase": "pre_digest",
+      "createdAt": "2026-05-09 03:39:09"
+    },
+    {
+      "userId": "2340043",
+      "weekKey": "2026W19",
+      "decision": "HOLD",
+      "phase": "pre_digest",
+      "createdAt": "2026-05-09 03:39:07"
+    }
+  ],
+  "messages": [],
+  "stdout": "userId\tweekKey\tdecision\tphase\tcreatedAt\n3870014\t2026W19\tHOLD\tpre_digest\t2026-05-09 03:39:18\n3630009\t2026W19\tHOLD\tpre_digest\t2026-05-09 03:39:15\n2820073\t2026W19\tHOLD\tpre_digest\t2026-05-09 03:39:12\n2550006\t2026W19\tHOLD\tpre_digest\t2026-05-09 03:39:09\n2340043\t2026W19\tHOLD\tpre_digest\t2026-05-09 03:39:07\n",
+  "stderr": "",
+  "execution_time_ms": 1795
+}
