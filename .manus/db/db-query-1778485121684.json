@@ -1,0 +1,172 @@
+{
+  "query": "SELECT c.name, c.email, c.project, c.contactTrustTier, c.enrichmentSource, c.verificationScore, c.title FROM contacts c WHERE c.project IN ('Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)', 'Bruce Highway Safety Upgrades Program', 'Olympic Dam Expansion — BHP') ORDER BY c.project, c.contactTrustTier DESC",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT c.name, c.email, c.project, c.contactTrustTier, c.enrichmentSource, c.verificationScore, c.title FROM contacts c WHERE c.project IN ('Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)', 'Bruce Highway Safety Upgrades Program', 'Olympic Dam Expansion — BHP') ORDER BY c.project, c.contactTrustTier DESC",
+  "rows": [
+    {
+      "name": "Liam O'Connell",
+      "email": "liam.oconnell@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "verificationScore": "61",
+      "title": "Project Director, Bass Strait Decommissioning"
+    },
+    {
+      "name": "Isabelle Dubois",
+      "email": "isabelle.dubois@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "verificationScore": "61",
+      "title": "Site Superintendent, Barry Beach Logistics Hub"
+    },
+    {
+      "name": "Vijay Singh",
+      "email": "vijay.singh@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "verificationScore": "61",
+      "title": "Operations Manager, Offshore Decommissioning"
+    },
+    {
+      "name": "Dr. Chen Li",
+      "email": "dr.li@unknownrelatedtobassstraitoperatorslikeexxonmobil.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "verificationScore": "61",
+      "title": "Decommissioning Engineering Lead"
+    },
+    {
+      "name": "Prakash Bakrania",
+      "email": "prakash.bakrania@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "linkedin",
+      "verificationScore": "0",
+      "title": "Film Distribution (Email - bakraniamedia@gmail.com)"
+    },
+    {
+      "name": "Karthick Anbazagan",
+      "email": "karthick.anbazagan@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "linkedin",
+      "verificationScore": "0",
+      "title": "Facilities Manager at Qube Cinema"
+    },
+    {
+      "name": "Reece Lockett",
+      "email": "reece.lockett@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "linkedin",
+      "verificationScore": "0",
+      "title": "EMEA Facilities Manager"
+    },
+    {
+      "name": "Darren Whyte",
+      "email": "darren.whyte@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "verificationScore": "95",
+      "title": "Fleet Manager"
+    },
+    {
+      "name": "Sam Leszczynski",
+      "email": "sam.leszczynski@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "verificationScore": "95",
+      "title": "General Manager - Mining Services"
+    },
+    {
+      "name": "John Allen",
+      "email": "john.allen@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "verificationScore": "95",
+      "title": "Fleet Manager"
+    },
+    {
+      "name": "David 'Davo' Thompson",
+      "email": "david.thompson@cpbcontractorscontractor.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "verificationScore": "61",
+      "title": "Site Operations Superintendent, Northern Section"
+    },
+    {
+      "name": "Maria Rossi",
+      "email": "maria.rossi@accionacontractor.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "verificationScore": "61",
+      "title": "Plant & Equipment Manager"
+    },
+    {
+      "name": "Sandie West",
+      "email": "sandie.west@seymourwhyte.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "verificationScore": "92",
+      "title": "Contracts Administrator/Procurement Lead"
+    },
+    {
+      "name": "Robyn Allen",
+      "email": "robyn.allen@queenslanddepartmentoftransportandmainroads.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "verificationScore": "97",
+      "title": "Manager Procurement and Contracts at TAFE Queensland"
+    },
+    {
+      "name": "Abe Ninan",
+      "email": "abe.ninan@queenslanddepartmentoftransportandmainroads.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "verificationScore": "97",
+      "title": "Manager (Procurement Analysis) at QDTMR"
+    },
+    {
+      "name": "Rick McConnon",
+      "email": "rick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "verificationScore": "97",
+      "title": "Manager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -"
+    },
+    {
+      "name": "Olga Machrone",
+      "email": "olga.machrone@bhp.com.au",
+      "project": "Olympic Dam Expansion — BHP",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "verificationScore": "97",
+      "title": "Head of Projects Commercial, Major Projects and New Developments"
+    },
+    {
+      "name": "Quinton Brand",
+      "email": "quinton.brand@bhp.com.au",
+      "project": "Olympic Dam Expansion — BHP",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "verificationScore": "97",
+      "title": "Head of Major Projects | Senior Project Executive"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tproject\tcontactTrustTier\tenrichmentSource\tverificationScore\ttitle\nLiam O'Connell\tliam.oconnell@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tllm_inferred\tllm\t61\tProject Director, Bass Strait Decommissioning\nIsabelle Dubois\tisabelle.dubois@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tllm_inferred\tllm\t61\tSite Superintendent, Barry Beach Logistics Hub\nVijay Singh\tvijay.singh@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tllm_inferred\tllm\t61\tOperations Manager, Offshore Decommissioning\nDr. Chen Li\tdr.li@unknownrelatedtobassstraitoperatorslikeexxonmobil.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tllm_inferred\tllm\t61\tDecommissioning Engineering Lead\nPrakash Bakrania\tprakash.bakrania@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tnamed_unverified\tlinkedin\t0\tFilm Distribution (Email - bakraniamedia@gmail.com)\nKarthick Anbazagan\tkarthick.anbazagan@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tnamed_unverified\tlinkedin\t0\tFacilities Manager at Qube Cinema\nReece Lockett\treece.lockett@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tnamed_unverified\tlinkedin\t0\tEMEA Facilities Manager\nDarren Whyte\tdarren.whyte@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tsend_ready\tapollo\t95\tFleet Manager\nSam Leszczynski\tsam.leszczynski@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tsend_ready\tapollo\t95\tGeneral Manager - Mining Services\nJohn Allen\tjohn.allen@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tsend_ready\tapollo\t95\tFleet Manager\nDavid 'Davo' Thompson\tdavid.thompson@cpbcontractorscontractor.com.au\tBruce Highway Safety Upgrades Program\tllm_inferred\tllm\t61\tSite Operations Superintendent, Northern Section\nMaria Rossi\tmaria.rossi@accionacontractor.com.au\tBruce Highway Safety Upgrades Program\tllm_inferred\tllm\t61\tPlant & Equipment Manager\nSandie West\tsandie.west@seymourwhyte.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\t92\tContracts Administrator/Procurement Lead\nRobyn Allen\trobyn.allen@queenslanddepartmentoftransportandmainroads.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\t97\tManager Procurement and Contracts at TAFE Queensland\nAbe Ninan\tabe.ninan@queenslanddepartmentoftransportandmainroads.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\t97\tManager (Procurement Analysis) at QDTMR\nRick McConnon\trick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\t97\tManager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -\nOlga Machrone\tolga.machrone@bhp.com.au\tOlympic Dam Expansion — BHP\tsend_ready\tweb_search\t97\tHead of Projects Commercial, Major Projects and New Developments\nQuinton Brand\tquinton.brand@bhp.com.au\tOlympic Dam Expansion — BHP\tsend_ready\tweb_search\t97\tHead of Major Projects | Senior Project Executive\n",
+  "stderr": "",
+  "execution_time_ms": 1820
+}

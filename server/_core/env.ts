@@ -14,4 +14,5 @@ export const ENV = {
   /** Absolute base URL for the published app — used for email deep-links. E.g. https://compasspt.manus.space */
   appSiteUrl: (process.env.APP_SITE_URL ?? "").replace(/\/$/, ""),
   hunterApiKey: process.env.HUNTER_API_KEY ?? "",
+  lushaApiKey: process.env.LUSHA_API_KEY ?? "",
 };

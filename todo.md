@@ -2546,3 +2546,13 @@
 - [x] Fix 1: finaliseDigestSendSlot — force-override path must update/upsert without manual SQL cleanup
 - [x] Fix 2: Configure warm-up scheduled task — documented exact spec (cannot create from this session; requires separate task or platform UI)
 - [x] Fix 3: Verify schedule timing from platform — documented exact timings from code analysis, warm-up fire time
+
+## Session: 2026-05-11 — Auto-Rescue + Lusha Stage 4
+
+- [x] Implement Lusha API integration as Stage 4 fallback (after Apollo + Hunter)
+- [x] Add budget/cooldown/dedup guardrails for Lusha (top visible projects only, high lane fit, commercially sensible)
+- [x] Implement auto-rescue logic: identify HOLD reps with contact gaps on visible projects → enrich → regate
+- [x] Build Leo next-cycle candidate set from commercially sensible national PA projects
+- [x] Auto-regate after enrichment: if rep reaches threshold → SEND, else keep HOLD with explicit blocker
+- [x] Write tests for auto-rescue pipeline
+- [x] Verify Leo can move to automatic SEND without manual review next cycle

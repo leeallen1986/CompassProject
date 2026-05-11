@@ -288,7 +288,7 @@ export const contacts = mysqlTable("contacts", {
   linkedin: varchar("linkedin", { length: 512 }),
   phone: varchar("phone", { length: 64 }),
   enrichmentStatus: mysqlEnum("enrichmentStatus", ["pending", "enriched", "not_found", "failed"]).default("pending"),
-  enrichmentSource: mysqlEnum("enrichmentSource", ["linkedin", "llm", "manual", "apollo", "web_search"]).default("linkedin"),
+  enrichmentSource: mysqlEnum("enrichmentSource", ["linkedin", "llm", "manual", "apollo", "web_search", "lusha"]).default("linkedin"),
   sourceUrl: varchar("sourceUrl", { length: 1024 }),
   enrichedAt: timestamp("enrichedAt"),
   linkedinHeadline: varchar("linkedinHeadline", { length: 512 }),
@@ -1604,6 +1604,28 @@ export const hunterVerificationLog = mysqlTable("hunterVerificationLog", {
 
 export type HunterVerificationLogRow = typeof hunterVerificationLog.$inferSelect;
 export type InsertHunterVerificationLog = typeof hunterVerificationLog.$inferInsert;
+
+/**
+ * lushaEnrichmentLog — tracks every Lusha API call (Stage 4 fallback).
+ * Lusha is the last-resort enrichment for HOLD reps with contact gaps on
+ * top visible, commercially sensible, high-fit projects.
+ * Budget: 10 credits/day. Cooldown: 14 days per project.
+ */
+export const lushaEnrichmentLog = mysqlTable("lushaEnrichmentLog", {
+  id: int("id").autoincrement().primaryKey(),
+  contactId: int("contactId").notNull(),
+  projectId: int("projectId").notNull(),
+  queryInput: json("queryInput").$type<Record<string, string>>(),
+  emailFound: varchar("emailFound", { length: 320 }),
+  phoneFound: varchar("phoneFound", { length: 64 }),
+  titleFound: varchar("titleFound", { length: 256 }),
+  status: mysqlEnum("lushaStatus", ["enriched", "not_found", "failed"]).notNull(),
+  contactPromoted: boolean("contactPromoted").notNull().default(false),
+  creditsUsed: int("creditsUsed").notNull().default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type LushaEnrichmentLogRow = typeof lushaEnrichmentLog.$inferSelect;
+export type InsertLushaEnrichmentLog = typeof lushaEnrichmentLog.$inferInsert;
 
 /**
  * projectValidationGates — per-project validation decisions by admin/rep.

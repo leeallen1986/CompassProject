@@ -2227,7 +2227,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
             const hasContactBlockers = gateResult.blockers.some(b =>
               b.criterion === "trust_tier_not_send_ready" || b.criterion === "contact_not_defensible" ||
               b.criterion === "card_detail_inconsistent" || b.criterion === "card_detail_mismatch" ||
-              b.criterion === "no_contact"
+              b.criterion === "no_contact" || b.criterion === "insufficient_defensible_contacts"
             );
             let rescueResult: any = null;
             if (hasContactBlockers) {
@@ -2373,7 +2373,110 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
                     freshAnnotatedProjects.forEach(p => annotatedProjects.push(p as any));
                     console.log(`[EmailDigest] 🚑 Rescue SUCCESS: ${user.name} upgraded from HOLD → SEND after enriching ${rescueResult.candidates.length} projects`);
                   } else {
-                    console.warn(`[EmailDigest] 🚑 Rescue FAILED: ${user.name} still HELD after rescue. Remaining blockers: ${retryGateResult.blockers.map(b => b.criterion).join(", ")}`);
+                    // ── LUSHA STAGE 4 FALLBACK ──
+                    // Apollo rescue failed. Try Lusha for top visible, high-fit, commercially sensible projects.
+                    // Only fires if remaining blockers are contact-related (not lane-fit/junk).
+                    const retryContactBlockers = retryGateResult.blockers.some(b =>
+                      b.criterion === "trust_tier_not_send_ready" || b.criterion === "contact_not_defensible" ||
+                      b.criterion === "insufficient_defensible_contacts" || b.criterion === "no_contact"
+                    );
+                    if (retryContactBlockers) {
+                      try {
+                        const { lushaRescueForRep } = await import("./lushaEnrichment");
+                        // Only pass commercially sensible projects (High/Medium fit)
+                        const lushaCandidates = freshGateTop3
+                          .filter(p => p.laneFitLabel === "High" || p.laneFitLabel === "Medium")
+                          .map(p => ({
+                            projectId: p.id,
+                            projectName: p.name,
+                            laneFitLabel: p.laneFitLabel,
+                            relevanceScore: p.relevanceScore ?? 0,
+                          }));
+                        if (lushaCandidates.length > 0) {
+                          console.log(`[EmailDigest] 🔮 Lusha Stage 4: attempting for ${user.name} (${lushaCandidates.length} candidates)`);
+                          const lushaResult = await lushaRescueForRep(lushaCandidates);
+                          if (lushaResult.totalPromoted > 0) {
+                            // Re-fetch and re-gate one more time
+                            allContacts = await getAllContacts();
+                            const lushaFreshMatched = allContacts.filter(c => matchedProjectNames.has(c.project));
+                            const lushaFreshContactNames = new Set(allContacts.map(c => c.project).filter(Boolean));
+                            const lushaFreshAnnotated = matchedProjects.map(p => {
+                              const hasNoContacts = !lushaFreshContactNames.has(p.name);
+                              const pContacts: DigestContact[] = lushaFreshMatched
+                                .filter(c =>
+                                  c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
+                                  p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+                                )
+                                .map(c => ({
+                                  ...c,
+                                  roleRelevance: (c as any).roleRelevance ?? null,
+                                  linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+                                  contactTrustTier: (c as any).contactTrustTier ?? null,
+                                  source: (c as any).source ?? null,
+                                  verificationScore: (c as any).verificationScore ?? null,
+                                }));
+                              const { readiness, bestContact: bc } = classifyBriefReadiness({ ...p, hasNoContacts }, pContacts);
+                              return { ...p, hasNoContacts, briefReadiness: readiness, bestContact: bc };
+                            });
+                            const lushaTop3 = lushaFreshAnnotated
+                              .filter(p => p.briefReadiness === "action_ready" && (p.laneFitLabel === "High" || p.laneFitLabel === "Medium"))
+                              .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0))
+                              .slice(0, 3)
+                              .map(p => ({
+                                id: p.id, name: p.name,
+                                overview: (p as any).overview as string | undefined,
+                                sector: (p as any).sector as string | undefined,
+                                owner: (p as any).owner as string | undefined,
+                                laneFitLabel: p.laneFitLabel || "Low",
+                                relevanceScore: p.relevanceScore,
+                                contractors: (p as any).contractors as string[] | null,
+                                bestContact: p.bestContact ? {
+                                  name: p.bestContact.name || "",
+                                  email: p.bestContact.email || null,
+                                  title: (p.bestContact as any).title || null,
+                                  company: (p.bestContact as any).company || null,
+                                  trustTier: (p.bestContact as any).trustTier || null,
+                                  source: (p.bestContact as any).source || null,
+                                  verificationScore: (p.bestContact as any).verificationScore || null,
+                                  isDowngraded: (p.bestContact as any).isDowngraded || false,
+                                  isLlmInferred: (p.bestContact as any).isLlmInferred || false,
+                                } : null,
+                              }));
+                            const lushaGateResult = runAllGates({
+                              userId: user.id, userName: user.name || "Unknown",
+                              repLane, weekKey, top3Projects: lushaTop3,
+                            });
+                            if (lushaGateResult.decision === "SEND") {
+                              rescueSucceeded = true;
+                              annotatedProjects.length = 0;
+                              lushaFreshAnnotated.forEach(p => annotatedProjects.push(p as any));
+                              console.log(`[EmailDigest] 🔮 Lusha Stage 4 SUCCESS: ${user.name} upgraded HOLD → SEND (${lushaResult.totalPromoted} contacts promoted)`);
+                            } else {
+                              console.warn(`[EmailDigest] 🔮 Lusha Stage 4 FAILED: ${user.name} still HELD. Blockers: ${lushaGateResult.blockers.map(b => b.criterion).join(", ")}`);
+                            }
+                            // Store Lusha gate result
+                            if (gateDb) {
+                              await storeGateResult({
+                                userId: user.id, userName: user.name || "Unknown", weekKey,
+                                decision: lushaGateResult.decision,
+                                blockers: lushaGateResult.blockers,
+                                top3Snapshot: lushaTop3.map(p => ({ id: p.id, name: p.name, score: p.relevanceScore || 0, contactName: p.bestContact?.name })),
+                                rescueAttempted: true,
+                                rescueResult: { ...rescueResult, lushaStage4: lushaResult },
+                                createdAt: new Date().toISOString(),
+                              }, gateDb, repDigestGateResults);
+                            }
+                          } else {
+                            console.log(`[EmailDigest] 🔮 Lusha Stage 4: no contacts promoted for ${user.name}`);
+                          }
+                        }
+                      } catch (lushaErr) {
+                        console.warn(`[EmailDigest] 🔮 Lusha Stage 4 error for ${user.name} (non-fatal):`, lushaErr);
+                      }
+                    }
+                    if (!rescueSucceeded) {
+                      console.warn(`[EmailDigest] 🚑 Rescue FAILED: ${user.name} still HELD after Apollo+Lusha. Remaining blockers: ${retryGateResult.blockers.map(b => b.criterion).join(", ")}`);
+                    }
                   }
                 } else {
                   console.log(`[EmailDigest] 🚑 Rescue not triggered for ${user.name}: ${rescueResult.candidates.length} candidates, budget=${rescueResult.budgetRemaining}, cooldown=${rescueResult.cooldownBlocked}`);

@@ -1,0 +1,82 @@
+{
+  "query": "SELECT c.name, c.email, c.project, c.contactTrustTier, c.enrichmentSource, c.title FROM contacts c WHERE c.project IN ('Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)', 'Bruce Highway Safety Upgrades Program', 'Olympic Dam Expansion — BHP') AND c.contactTrustTier = 'send_ready' ORDER BY c.project",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT c.name, c.email, c.project, c.contactTrustTier, c.enrichmentSource, c.title FROM contacts c WHERE c.project IN ('Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)', 'Bruce Highway Safety Upgrades Program', 'Olympic Dam Expansion — BHP') AND c.contactTrustTier = 'send_ready' ORDER BY c.project",
+  "rows": [
+    {
+      "name": "John Allen",
+      "email": "john.allen@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "title": "Fleet Manager"
+    },
+    {
+      "name": "Darren Whyte",
+      "email": "darren.whyte@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "title": "Fleet Manager"
+    },
+    {
+      "name": "Sam Leszczynski",
+      "email": "sam.leszczynski@qube.com.au",
+      "project": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "title": "General Manager - Mining Services"
+    },
+    {
+      "name": "Rick McConnon",
+      "email": "rick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "title": "Manager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -"
+    },
+    {
+      "name": "Robyn Allen",
+      "email": "robyn.allen@queenslanddepartmentoftransportandmainroads.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "title": "Manager Procurement and Contracts at TAFE Queensland"
+    },
+    {
+      "name": "Abe Ninan",
+      "email": "abe.ninan@queenslanddepartmentoftransportandmainroads.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "title": "Manager (Procurement Analysis) at QDTMR"
+    },
+    {
+      "name": "Sandie West",
+      "email": "sandie.west@seymourwhyte.com.au",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "title": "Contracts Administrator/Procurement Lead"
+    },
+    {
+      "name": "Olga Machrone",
+      "email": "olga.machrone@bhp.com.au",
+      "project": "Olympic Dam Expansion — BHP",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "title": "Head of Projects Commercial, Major Projects and New Developments"
+    },
+    {
+      "name": "Quinton Brand",
+      "email": "quinton.brand@bhp.com.au",
+      "project": "Olympic Dam Expansion — BHP",
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "title": "Head of Major Projects | Senior Project Executive"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tproject\tcontactTrustTier\tenrichmentSource\ttitle\nJohn Allen\tjohn.allen@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tsend_ready\tapollo\tFleet Manager\nDarren Whyte\tdarren.whyte@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tsend_ready\tapollo\tFleet Manager\nSam Leszczynski\tsam.leszczynski@qube.com.au\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tsend_ready\tapollo\tGeneral Manager - Mining Services\nRick McConnon\trick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\tManager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -\nRobyn Allen\trobyn.allen@queenslanddepartmentoftransportandmainroads.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\tManager Procurement and Contracts at TAFE Queensland\nAbe Ninan\tabe.ninan@queenslanddepartmentoftransportandmainroads.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\tManager (Procurement Analysis) at QDTMR\nSandie West\tsandie.west@seymourwhyte.com.au\tBruce Highway Safety Upgrades Program\tsend_ready\tweb_search\tContracts Administrator/Procurement Lead\nOlga Machrone\tolga.machrone@bhp.com.au\tOlympic Dam Expansion — BHP\tsend_ready\tweb_search\tHead of Projects Commercial, Major Projects and New Developments\nQuinton Brand\tquinton.brand@bhp.com.au\tOlympic Dam Expansion — BHP\tsend_ready\tweb_search\tHead of Major Projects | Senior Project Executive\n",
+  "stderr": "",
+  "execution_time_ms": 1819
+}

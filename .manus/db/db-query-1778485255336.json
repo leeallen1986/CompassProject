@@ -1,0 +1,460 @@
+{
+  "query": "SELECT p.id, p.name, p.sector, p.priority, p.location, p.owner, p.value FROM projects p WHERE p.priority IN ('hot', 'warm') ORDER BY p.priority ASC, p.id LIMIT 50",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.sector, p.priority, p.location, p.owner, p.value FROM projects p WHERE p.priority IN ('hot', 'warm') ORDER BY p.priority ASC, p.id LIMIT 50",
+  "rows": [
+    {
+      "id": "1",
+      "name": "West Angelas Sustaining Project (WASP) — Bulk Earthworks",
+      "sector": "mining",
+      "priority": "hot",
+      "location": "Pilbara, WA",
+      "owner": "Rio Tinto",
+      "value": "$295M"
+    },
+    {
+      "id": "2",
+      "name": "Monadelphous Rio Tinto Pilbara Maintenance Services",
+      "sector": "mining",
+      "priority": "hot",
+      "location": "Pilbara, WA",
+      "owner": "Rio Tinto",
+      "value": "$300M"
+    },
+    {
+      "id": "3",
+      "name": "Golding Meandu Coal Mine MSA",
+      "sector": "mining",
+      "priority": "hot",
+      "location": "South Burnett, QLD",
+      "owner": "TEC Coal / Stanwell",
+      "value": "$750M"
+    },
+    {
+      "id": "4",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "location": "Darwin, NT",
+      "owner": "Santos / BW Offshore",
+      "value": "$4.7B"
+    },
+    {
+      "id": "5",
+      "name": "Thiess Mount Pleasant Operation Expansion",
+      "sector": "mining",
+      "priority": "hot",
+      "location": "Hunter Valley, NSW",
+      "owner": "MACH Energy",
+      "value": "$900M+"
+    },
+    {
+      "id": "30008",
+      "name": "Armidale Battery Energy Storage System (BESS)",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Armidale, NSW",
+      "owner": "Valent Energy",
+      "value": "Unknown"
+    },
+    {
+      "id": "30023",
+      "name": "Sydney's New Road Harbour Crossing (Tunnelling)",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "Birchgrove, Sydney, NSW",
+      "owner": "NSW Government (implied)",
+      "value": "Unknown"
+    },
+    {
+      "id": "30024",
+      "name": "Sydney Metro West Project (Tunnelling)",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "Darling Harbour to Hunter Street, Sydney, NSW",
+      "owner": "New South Wales Government",
+      "value": "Unknown"
+    },
+    {
+      "id": "30025",
+      "name": "Suburban Rail Loop (SRL)",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "Melbourne, VIC",
+      "owner": "Victorian Government",
+      "value": "Unknown"
+    },
+    {
+      "id": "30026",
+      "name": "North East Link",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "Melbourne, VIC",
+      "owner": "Victorian Government",
+      "value": "Unknown"
+    },
+    {
+      "id": "60004",
+      "name": "Waratah Super Battery",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Munmorah, NSW",
+      "owner": "Akaysha Energy / Blackrock",
+      "value": "850 MW / 1680 MWh"
+    },
+    {
+      "id": "60005",
+      "name": "Torrens Island BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Torrens Island, SA",
+      "owner": "AGL Energy",
+      "value": "250 MW / 1000 MWh"
+    },
+    {
+      "id": "60008",
+      "name": "Snowy 2.0",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Snowy Mountains, NSW",
+      "owner": "Snowy Hydro",
+      "value": "2200 MW"
+    },
+    {
+      "id": "60009",
+      "name": "Kurri Kurri Gas Peaker",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Kurri Kurri, NSW",
+      "owner": "Snowy Hydro",
+      "value": "660 MW"
+    },
+    {
+      "id": "60010",
+      "name": "Kidston Pumped Hydro",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Kidston, QLD",
+      "owner": "Genex Power",
+      "value": "250 MW"
+    },
+    {
+      "id": "60013",
+      "name": "Eraring BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Lake Macquarie, NSW",
+      "owner": "Origin Energy",
+      "value": "460 MW / 1840 MWh"
+    },
+    {
+      "id": "60014",
+      "name": "Kwinana BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Kwinana, WA",
+      "owner": "Synergy",
+      "value": "200 MW / 800 MWh"
+    },
+    {
+      "id": "60016",
+      "name": "Darlington Point BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Darlington Point, NSW",
+      "owner": "Edify Energy",
+      "value": "100 MW / 200 MWh"
+    },
+    {
+      "id": "60017",
+      "name": "Wooreen BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Latrobe Valley, VIC",
+      "owner": "EnergyAustralia",
+      "value": "350 MW / 1400 MWh"
+    },
+    {
+      "id": "60018",
+      "name": "Jeeralang BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Jeeralang, VIC",
+      "owner": "EnergyAustralia",
+      "value": "210 MW / 420 MWh"
+    },
+    {
+      "id": "60024",
+      "name": "Marinus Link BESS",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "Burnie, TAS",
+      "owner": "TasNetworks",
+      "value": "300 MW / 1200 MWh"
+    },
+    {
+      "id": "90001",
+      "name": "Inland Rail — Melbourne to Brisbane",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NSW/QLD/VIC",
+      "owner": "Australian Rail Track Corporation (ARTC)",
+      "value": "$31.4 billion"
+    },
+    {
+      "id": "90002",
+      "name": "Snowy 2.0 Pumped Hydro",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "Snowy Hydro Limited",
+      "value": "$12 billion"
+    },
+    {
+      "id": "90003",
+      "name": "Melbourne Metro Tunnel",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "VIC",
+      "owner": "Rail Projects Victoria",
+      "value": "$14.3 billion"
+    },
+    {
+      "id": "90004",
+      "name": "Cross River Rail",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "QLD",
+      "owner": "Cross River Rail Delivery Authority",
+      "value": "$6.9 billion"
+    },
+    {
+      "id": "90005",
+      "name": "WestConnex M12 Motorway",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "Transport for NSW",
+      "value": "$2.6 billion"
+    },
+    {
+      "id": "90006",
+      "name": "Warragamba Dam Wall Raising",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "WaterNSW",
+      "value": "$1.6 billion"
+    },
+    {
+      "id": "90008",
+      "name": "AUKUS Submarine Base — Stirling",
+      "sector": "defence",
+      "priority": "hot",
+      "location": "WA",
+      "owner": "Department of Defence",
+      "value": "$8 billion+"
+    },
+    {
+      "id": "90009",
+      "name": "Osborne Naval Shipyard Expansion",
+      "sector": "defence",
+      "priority": "hot",
+      "location": "SA",
+      "owner": "ASC / BAE Systems",
+      "value": "$4.5 billion"
+    },
+    {
+      "id": "90029",
+      "name": "HumeLink Transmission",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "Transgrid",
+      "value": "$4.9 billion (500 kV, 360 km)"
+    },
+    {
+      "id": "90030",
+      "name": "VNI West Transmission",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "VIC/NSW",
+      "owner": "AEMO / Transgrid / AusNet",
+      "value": "$3.3 billion (500 kV)"
+    },
+    {
+      "id": "90031",
+      "name": "Central West Orana REZ Transmission",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "EnergyCo NSW",
+      "value": "$4.4 billion (500 kV, 460 km)"
+    },
+    {
+      "id": "90032",
+      "name": "Project EnergyConnect",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "SA/NSW",
+      "owner": "ElectraNet / Transgrid",
+      "value": "$2.4 billion (330 kV, 900 km)"
+    },
+    {
+      "id": "90033",
+      "name": "Western Renewables Link",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "VIC",
+      "owner": "AusNet Services",
+      "value": "$2.8 billion (500 kV, 190 km)"
+    },
+    {
+      "id": "90034",
+      "name": "Wyangala Dam Wall Raising",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "WaterNSW",
+      "value": "$2.1 billion"
+    },
+    {
+      "id": "90035",
+      "name": "Dungowan Dam",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "WaterNSW",
+      "value": "$1.3 billion"
+    },
+    {
+      "id": "90036",
+      "name": "Rookwood Weir",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "QLD",
+      "owner": "Sunwater",
+      "value": "$567 million"
+    },
+    {
+      "id": "90037",
+      "name": "Onslow Water Supply Scheme",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "WA",
+      "owner": "Water Corporation WA",
+      "value": "$275 million"
+    },
+    {
+      "id": "120001",
+      "name": "BAE Systems Hunter Class Frigate Program",
+      "sector": "defence",
+      "priority": "hot",
+      "location": "SA",
+      "owner": "BAE Systems Australia Limited",
+      "value": "$45 billion"
+    },
+    {
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "sector": "defence",
+      "priority": "hot",
+      "location": "SA",
+      "owner": "ASC Pty Ltd",
+      "value": "$10+ billion (AUKUS program)"
+    },
+    {
+      "id": "120004",
+      "name": "Australian Submarine Agency — AUKUS Pillar 1",
+      "sector": "defence",
+      "priority": "hot",
+      "location": "SA",
+      "owner": "Australian Submarine Agency",
+      "value": "$368 billion (lifecycle)"
+    },
+    {
+      "id": "120005",
+      "name": "Level Crossing Removal Project",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "VIC",
+      "owner": "Department of Transport and Planning (VIC)",
+      "value": "$28.7 billion"
+    },
+    {
+      "id": "120006",
+      "name": "Arrow Energy — Surat Gas Project",
+      "sector": "oil_gas",
+      "priority": "hot",
+      "location": "QLD",
+      "owner": "Arrow Energy Pty Ltd",
+      "value": "$10+ billion"
+    },
+    {
+      "id": "120009",
+      "name": "Nolans Rare Earths Project",
+      "sector": "mining",
+      "priority": "hot",
+      "location": "NT",
+      "owner": "Arafura Rare Earths Pty Ltd",
+      "value": "$1.6 billion"
+    },
+    {
+      "id": "120010",
+      "name": "VicGrid — Victorian Renewable Energy Zones",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "VIC",
+      "owner": "VicGrid (Victorian Government)",
+      "value": "$20+ billion (total REZ investment)"
+    },
+    {
+      "id": "120011",
+      "name": "Transmission Infrastructure — Hunter Valley REZ",
+      "sector": "energy",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "EnergyCo NSW",
+      "value": "$5+ billion"
+    },
+    {
+      "id": "120012",
+      "name": "Gippsland Project Opportunities",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "VIC",
+      "owner": "Regional Development Victoria",
+      "value": "$2+ billion (regional portfolio)"
+    },
+    {
+      "id": "120013",
+      "name": "Snowy Mountains Special Activation Precinct",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NSW",
+      "owner": "NSW Government",
+      "value": "$2+ billion"
+    },
+    {
+      "id": "120014",
+      "name": "Port of Darwin — Defence and Commercial Expansion",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "location": "NT",
+      "owner": "Darwin Port Operations",
+      "value": "$1.5+ billion"
+    },
+    {
+      "id": "120015",
+      "name": "Carmichael Mine and Rail — Bravus Mining",
+      "sector": "mining",
+      "priority": "hot",
+      "location": "QLD",
+      "owner": "Bravus Mining & Resources",
+      "value": "$3.5 billion"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsector\tpriority\tlocation\towner\tvalue\n1\tWest Angelas Sustaining Project (WASP) — Bulk Earthworks\tmining\thot\tPilbara, WA\tRio Tinto\t$295M\n2\tMonadelphous Rio Tinto Pilbara Maintenance Services\tmining\thot\tPilbara, WA\tRio Tinto\t$300M\n3\tGolding Meandu Coal Mine MSA\tmining\thot\tSouth Burnett, QLD\tTEC Coal / Stanwell\t$750M\n4\tBW Opal FPSO / Barossa LNG Commissioning\toil_gas\thot\tDarwin, NT\tSantos / BW Offshore\t$4.7B\n5\tThiess Mount Pleasant Operation Expansion\tmining\thot\tHunter Valley, NSW\tMACH Energy\t$900M+\n30008\tArmidale Battery Energy Storage System (BESS)\tenergy\thot\tArmidale, NSW\tValent Energy\tUnknown\n30023\tSydney's New Road Harbour Crossing (Tunnelling)\tinfrastructure\thot\tBirchgrove, Sydney, NSW\tNSW Government (implied)\tUnknown\n30024\tSydney Metro West Project (Tunnelling)\tinfrastructure\thot\tDarling Harbour to Hunter Street, Sydney, NSW\tNew South Wales Government\tUnknown\n30025\tSuburban Rail Loop (SRL)\tinfrastructure\thot\tMelbourne, VIC\tVictorian Government\tUnknown\n30026\tNorth East Link\tinfrastructure\thot\tMelbourne, VIC\tVictorian Government\tUnknown\n60004\tWaratah Super Battery\tenergy\thot\tMunmorah, NSW\tAkaysha Energy / Blackrock\t850 MW / 1680 MWh\n60005\tTorrens Island BESS\tenergy\thot\tTorrens Island, SA\tAGL Energy\t250 MW / 1000 MWh\n60008\tSnowy 2.0\tenergy\thot\tSnowy Mountains, NSW\tSnowy Hydro\t2200 MW\n60009\tKurri Kurri Gas Peaker\tenergy\thot\tKurri Kurri, NSW\tSnowy Hydro\t660 MW\n60010\tKidston Pumped Hydro\tenergy\thot\tKidston, QLD\tGenex Power\t250 MW\n60013\tEraring BESS\tenergy\thot\tLake Macquarie, NSW\tOrigin Energy\t460 MW / 1840 MWh\n60014\tKwinana BESS\tenergy\thot\tKwinana, WA\tSynergy\t200 MW / 800 MWh\n60016\tDarlington Point BESS\tenergy\thot\tDarlington Point, NSW\tEdify Energy\t100 MW / 200 MWh\n60017\tWooreen BESS\tenergy\thot\tLatrobe Valley, VIC\tEnergyAustralia\t350 MW / 1400 MWh\n60018\tJeeralang BESS\tenergy\thot\tJeeralang, VIC\tEnergyAustralia\t210 MW / 420 MWh\n60024\tMarinus Link BESS\tenergy\thot\tBurnie, TAS\tTasNetworks\t300 MW / 1200 MWh\n90001\tInland Rail — Melbourne to Brisbane\tinfrastructure\thot\tNSW/QLD/VIC\tAustralian Rail Track Corporation (ARTC)\t$31.4 billion\n90002\tSnowy 2.0 Pumped Hydro\tenergy\thot\tNSW\tSnowy Hydro Limited\t$12 billion\n90003\tMelbourne Metro Tunnel\tinfrastructure\thot\tVIC\tRail Projects Victoria\t$14.3 billion\n90004\tCross River Rail\tinfrastructure\thot\tQLD\tCross River Rail Delivery Authority\t$6.9 billion\n90005\tWestConnex M12 Motorway\tinfrastructure\thot\tNSW\tTransport for NSW\t$2.6 billion\n90006\tWarragamba Dam Wall Raising\tinfrastructure\thot\tNSW\tWaterNSW\t$1.6 billion\n90008\tAUKUS Submarine Base — Stirling\tdefence\thot\tWA\tDepartment of Defence\t$8 billion+\n90009\tOsborne Naval Shipyard Expansion\tdefence\thot\tSA\tASC / BAE Systems\t$4.5 billion\n90029\tHumeLink Transmission\tenergy\thot\tNSW\tTransgrid\t$4.9 billion (500 kV, 360 km)\n90030\tVNI West Transmission\tenergy\thot\tVIC/NSW\tAEMO / Transgrid / AusNet\t$3.3 billion (500 kV)\n90031\tCentral West Orana REZ Transmission\tenergy\thot\tNSW\tEnergyCo NSW\t$4.4 billion (500 kV, 460 km)\n90032\tProject EnergyConnect\tenergy\thot\tSA/NSW\tElectraNet / Transgrid\t$2.4 billion (330 kV, 900 km)\n90033\tWestern Renewables Link\tenergy\thot\tVIC\tAusNet Services\t$2.8 billion (500 kV, 190 km)\n90034\tWyangala Dam Wall Raising\tinfrastructure\thot\tNSW\tWaterNSW\t$2.1 billion\n90035\tDungowan Dam\tinfrastructure\thot\tNSW\tWaterNSW\t$1.3 billion\n90036\tRookwood Weir\tinfrastructure\thot\tQLD\tSunwater\t$567 million\n90037\tOnslow Water Supply Scheme\tinfrastructure\thot\tWA\tWater Corporation WA\t$275 million\n120001\tBAE Systems Hunter Class Frigate Program\tdefence\thot\tSA\tBAE Systems Australia Limited\t$45 billion\n120002\tASC Submarine Maintenance and Capability\tdefence\thot\tSA\tASC Pty Ltd\t$10+ billion (AUKUS program)\n120004\tAustralian Submarine Agency — AUKUS Pillar 1\tdefence\thot\tSA\tAustralian Submarine Agency\t$368 billion (lifecycle)\n120005\tLevel Crossing Removal Project\tinfrastructure\thot\tVIC\tDepartment of Transport and Planning (VIC)\t$28.7 billion\n120006\tArrow Energy — Surat Gas Project\toil_gas\thot\tQLD\tArrow Energy Pty Ltd\t$10+ billion\n120009\tNolans Rare Earths Project\tmining\thot\tNT\tArafura Rare Earths Pty Ltd\t$1.6 billion\n120010\tVicGrid — Victorian Renewable Energy Zones\tenergy\thot\tVIC\tVicGrid (Victorian Government)\t$20+ billion (total REZ investment)\n120011\tTransmission Infrastructure — Hunter Valley REZ\tenergy\thot\tNSW\tEnergyCo NSW\t$5+ billion\n120012\tGippsland Project Opportunities\tinfrastructure\thot\tVIC\tRegional Development Victoria\t$2+ billion (regional portfolio)\n120013\tSnowy Mountains Special Activation Precinct\tinfrastructure\thot\tNSW\tNSW Government\t$2+ billion\n120014\tPort of Darwin — Defence and Commercial Expansion\tinfrastructure\thot\tNT\tDarwin Port Operations\t$1.5+ billion\n120015\tCarmichael Mine and Rail — Bravus Mining\tmining\thot\tQLD\tBravus Mining & Resources\t$3.5 billion\n",
+  "stderr": "",
+  "execution_time_ms": 1758
+}

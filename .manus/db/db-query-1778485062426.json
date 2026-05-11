@@ -1,0 +1,18 @@
+{
+  "query": "SELECT up.userId, u.name, up.territories, up.assignedBusinessLines, up.sectorFocus, up.salesMotion FROM userProfiles up JOIN users u ON u.id = up.userId WHERE u.name LIKE '%Leo%'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT up.userId, u.name, up.territories, up.assignedBusinessLines, up.sectorFocus, up.salesMotion FROM userProfiles up JOIN users u ON u.id = up.userId WHERE u.name LIKE '%Leo%'",
+  "rows": [
+    {
+      "userId": "840008",
+      "name": "Leo Williams ",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]",
+      "salesMotion": "direct_only"
+    }
+  ],
+  "messages": [],
+  "stdout": "userId\tname\tterritories\tassignedBusinessLines\tsectorFocus\tsalesMotion\n840008\tLeo Williams \t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]\tdirect_only\n",
+  "stderr": "",
+  "execution_time_ms": 2046
+}
