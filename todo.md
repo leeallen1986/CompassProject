@@ -2497,3 +2497,17 @@
 - [x] Part C: Amit final status — 2/3 top projects now send_ready, gate should pass
 - [x] Part D: Design and document weekly operating model (docs/WEEKLY-OPERATING-MODEL.md)
 - [x] Part E: Final output report
+
+## Session: 2026-05-11 — Operating Layer Stabilisation (scope-locked)
+
+- [x] Part A: Platform scheduling — manus-config 1.1 lacks schedule cmd; documented config for when 1.2+ available
+- [x] Part A: In-app warm-up endpoint (GET /api/warmup) + self-healing retry + missed-run alerting covers the gap
+- [x] Part A: Documented exact cron config needed: warm-up at 19:57 UTC, primary at 20:00 UTC, retry at 20:15 UTC
+- [x] Part B: 'Run Full Pipeline' → 'Debug Pipeline (Unsafe)' with confirmation dialog + dashed border
+- [x] Part B: Safe path = 'Run Pipeline Now (Scheduled)' button (NDJSON streaming, no timeout risk)
+- [x] Part C: Fresh gate evaluation triggered with fixed isTruncatedDomain + GOV_DOMAIN_ALLOWLIST
+- [x] Part C: Results written to repDigestGateResults (phase: manual_refresh, weekKey: 2026W19)
+- [x] Part C: All 5 SEND — Ryan ✓, Brett ✓, Daniel ✓, Dan Day ✓, Amit ✓ (1 non-blocking warning)
+- [x] Part D: Operator Status panel added to Admin UI — pipeline status, last success, next run, self-healing, missed-run alert
+- [x] Part E: Operator Monday Runbook written (docs/OPERATOR-MONDAY-RUNBOOK.md)
+- [x] Part E: Decision tree, escalation path, what NOT to do, <5 min target time

@@ -490,6 +490,11 @@ function PipelineOpsTab() {
     onError: (e) => toast.error(`Enrichment failed: ${e.message}`),
   });
   const { data: enrichStats } = trpc.dataPipeline.enrichmentStats.useQuery();
+  // Operator Status — comprehensive operations view
+  const { data: operatorStatus, refetch: refetchOperatorStatus } = trpc.dailyPipeline.operatorStatus.useQuery(
+    undefined,
+    { refetchInterval: 60_000 } // Refresh every 60s
+  );
   // Pipeline freshness — poll every 30s when a run is active to show live progress
   const { data: pipelineStatus, refetch: refetchPipelineStatus } = trpc.digest.scheduleStatus.useQuery(
     undefined,
@@ -685,6 +690,82 @@ function PipelineOpsTab() {
         <StatsCard label="Failed" value={articleStats.failed} icon={<AlertTriangle className="w-4 h-4" />} color="text-hot" />
       </div>
 
+      {/* ═══ OPERATOR STATUS PANEL ═══ */}
+      {operatorStatus && (
+        <div className="rounded-lg border-2 border-navy/30 bg-navy/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-navy flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{
+                backgroundColor: operatorStatus.isMissedRun ? '#ef4444' :
+                  operatorStatus.isRunning ? '#f59e0b' :
+                  operatorStatus.isFresh ? '#10b981' : '#6b7280'
+              }} />
+              Weekly Operations Status
+            </h3>
+            <button onClick={() => refetchOperatorStatus()} className="text-xs text-muted-foreground hover:text-foreground">↻ Refresh</button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-card rounded-md border border-border p-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Pipeline</div>
+              <div className={`text-sm font-bold mt-0.5 ${
+                operatorStatus.pipelineStatus === 'fresh' ? 'text-teal' :
+                operatorStatus.pipelineStatus === 'running' ? 'text-warm' :
+                'text-hot'
+              }`}>
+                {operatorStatus.pipelineStatus.toUpperCase()}
+              </div>
+            </div>
+            <div className="bg-card rounded-md border border-border p-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Last Success</div>
+              <div className="text-sm font-bold mt-0.5 text-foreground">
+                {operatorStatus.lastSuccessfulRun.completedAt
+                  ? `${operatorStatus.lastSuccessfulRun.ageHours}h ago`
+                  : 'Never'}
+              </div>
+              {operatorStatus.lastSuccessfulRun.completedAt && (
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(operatorStatus.lastSuccessfulRun.completedAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+            <div className="bg-card rounded-md border border-border p-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next Run</div>
+              <div className="text-sm font-bold mt-0.5 text-foreground">
+                {operatorStatus.nextScheduledRun.hoursUntil}h
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {new Date(operatorStatus.nextScheduledRun.expectedAt).toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-card rounded-md border border-border p-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Self-Healing</div>
+              <div className="text-sm font-bold mt-0.5 text-foreground">
+                {operatorStatus.selfHealing.attemptCount} retries
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {operatorStatus.selfHealing.active ? '✓ Active' : '✗ Inactive'}
+              </div>
+            </div>
+          </div>
+          {operatorStatus.isMissedRun && (
+            <div className="bg-hot/10 border border-hot/30 rounded-md px-3 py-2 text-xs text-hot font-medium">
+              ⚠️ MISSED RUN — Pipeline has not completed within the expected 26-hour window. Self-healing will attempt a retry.
+            </div>
+          )}
+          {operatorStatus.lastAttempt.startedAt && (
+            <div className="text-xs text-muted-foreground flex items-center gap-4 flex-wrap">
+              <span>Last attempt: <span className="font-medium text-foreground">{new Date(operatorStatus.lastAttempt.startedAt).toLocaleString()}</span></span>
+              <span>Status: <span className={`font-medium ${operatorStatus.lastAttempt.status === 'completed' ? 'text-teal' : operatorStatus.lastAttempt.status === 'failed' ? 'text-hot' : 'text-foreground'}`}>{operatorStatus.lastAttempt.status || 'unknown'}</span></span>
+              <span>Triggered by: <span className="font-medium text-foreground">{operatorStatus.lastAttempt.triggeredBy || 'unknown'}</span></span>
+            </div>
+          )}
+          <div className="text-[10px] text-muted-foreground border-t border-border/50 pt-2 mt-2">
+            Server uptime: {Math.round(operatorStatus.serverUptimeSeconds / 3600)}h {Math.round((operatorStatus.serverUptimeSeconds % 3600) / 60)}m
+            {operatorStatus.missedRunChecker.active ? ' • Missed-run checker: active' : ''}
+          </div>
+        </div>
+      )}
+
       {/* Pipeline Live Progress Block — shown when a run is active */}
       {(() => {
         const p = (pipelineStatus as any)?.pipeline as {
@@ -770,12 +851,23 @@ function PipelineOpsTab() {
           Run AI Extraction
         </Button>
         <Button
-          onClick={() => fullPipelineMut.mutate()}
+          onClick={() => {
+            if (window.confirm(
+              "⚠️ UNSAFE FOR WEEKLY OPS\n\n" +
+              "This button is fire-and-forget. The container can be recycled mid-run.\n\n" +
+              "For weekly pipeline runs, use the scheduled endpoint (POST /api/scheduled/pipeline) " +
+              "or the \"Run Pipeline Now (Scheduled)\" button below which uses NDJSON streaming.\n\n" +
+              "Only use this for debugging individual steps. Continue?"
+            )) {
+              fullPipelineMut.mutate();
+            }
+          }}
           disabled={fullPipelineMut.isPending}
-          className="bg-hot hover:bg-hot/90 text-white gap-1.5"
+          className="bg-muted-foreground/30 hover:bg-hot/90 text-muted-foreground hover:text-white gap-1.5 border border-dashed border-muted-foreground/50"
+          title="⚠️ UNSAFE for weekly ops — fire-and-forget, container may recycle mid-run. Use 'Run Pipeline Now (Scheduled)' instead."
         >
           {fullPipelineMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          Run Full Pipeline
+          ⚠️ Debug Pipeline (Unsafe)
         </Button>
         <Button
           onClick={() => scheduledPipelineMut.mutate()}
