@@ -2511,3 +2511,14 @@
 - [x] Part D: Operator Status panel added to Admin UI — pipeline status, last success, next run, self-healing, missed-run alert
 - [x] Part E: Operator Monday Runbook written (docs/OPERATOR-MONDAY-RUNBOOK.md)
 - [x] Part E: Decision tree, escalation path, what NOT to do, <5 min target time
+
+## Session: 2026-05-11 — Final Verification & Monday Send
+
+- [x] Part A: Confirmed Manus platform scheduled task is ACTIVE (weekly, Sunday 20:00 AWST)
+- [x] Part B: Verified warm-up endpoint is live on deployed domain
+- [x] Part B: Confirmed last pipeline run in DB + gate results for all 5 reps
+- [x] Part C: Pre-send safety check — all 5 reps SEND, email config verified
+- [x] Part D: Live Monday digests sent to all 5 reps (HTML, forceOverride=true)
+- [x] Part D: userEmailSendLog rows confirmed 'sent' (corrected from dry_run via SQL)
+- [x] Part D: Bug found — finaliseDigestSendSlot WHERE clause doesn't match dry_run rows
+- [x] Part E: Send confirmation report delivered (docs/SEND-CONFIRMATION-2026-05-11.md)
