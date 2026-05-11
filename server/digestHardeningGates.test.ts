@@ -347,3 +347,108 @@ describe("Delta Regression Detection", () => {
     expect(result.changes).toHaveLength(0);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX VALIDATION — isTruncatedDomain false positives (2026-05-11)
+// These test cases validate the fix for ICN-registered legal names causing
+// legitimate corporate domains to be falsely flagged as truncated.
+// ═══════════════════════════════════════════════════════════════════════════════
+describe("isTruncatedDomain fix — ICN legal name false positives", () => {
+  it("passes fortescuemetals.com.au with ICN owner 'Fortescue Metals Group Ltd'", () => {
+    const contact = { ...VALID_CONTACT, email: "john.smith@fortescuemetals.com.au", company: "Fortescue Metals Group" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Iron Bridge Magnetite", owner: "Fortescue Metals Group Ltd", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("domain_not_defensible");
+  });
+
+  it("passes chevron.com.au with ICN owner 'Chevron Australia Pty Limited'", () => {
+    const contact = { ...VALID_CONTACT, email: "jane.doe@chevron.com.au", company: "Chevron Australia" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Gorgon Stage 2", owner: "Chevron Australia Pty Limited", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("domain_not_defensible");
+  });
+
+  it("passes woodsideenergy.com with ICN owner 'Woodside Energy Ltd'", () => {
+    const contact = { ...VALID_CONTACT, email: "ops@woodsideenergy.com", company: "Woodside Energy" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Scarborough Gas", owner: "Woodside Energy Ltd", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("domain_not_defensible");
+  });
+
+  it("passes baesystems.com.au with ICN owner 'BAE Systems Australia Limited'", () => {
+    const contact = { ...VALID_CONTACT, email: "procurement@baesystems.com.au", company: "BAE Systems" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Hunter Class Frigate", owner: "BAE Systems Australia Limited", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("domain_not_defensible");
+  });
+
+  it("still catches genuine truncation (wateroration.com.au)", () => {
+    const contact = { ...VALID_CONTACT, email: "john.smith@wateroration.com.au", company: "Water Corporation" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Regional WA Water Pipeline", owner: "Water Corporation", contractors: null },
+      "portable_air",
+    );
+    expect(result.passes).toBe(false);
+    expect(result.failedChecks).toContain("domain_not_defensible");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX VALIDATION — Government domain allowlist (2026-05-11)
+// These test cases validate that verified government procurement domains
+// are no longer blanket-blocked by the .gov.au exclusion.
+// ═══════════════════════════════════════════════════════════════════════════════
+describe("Government domain allowlist", () => {
+  it("passes cyber.qld.gov.au (allowlisted)", () => {
+    const contact = { ...VALID_CONTACT, email: "procurement@cyber.qld.gov.au", company: "QLD Cyber Infrastructure" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "QLD Cyber Security Centre", owner: "Queensland Government", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("non_defensible_domain");
+  });
+
+  it("passes defence.gov.au (allowlisted)", () => {
+    const contact = { ...VALID_CONTACT, email: "ops@defence.gov.au", company: "Department of Defence" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "LAND 400 Phase 3", owner: "Australian Defence", contractors: ["Rheinmetall"] },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("non_defensible_domain");
+  });
+
+  it("still blocks random .gov.au domains not in allowlist", () => {
+    const contact = { ...VALID_CONTACT, email: "info@treasury.gov.au", company: "Treasury" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Budget Office Renovation", owner: "Commonwealth Treasury", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).toContain("non_defensible_domain");
+  });
+
+  it("still blocks .edu.au domains", () => {
+    const contact = { ...VALID_CONTACT, email: "prof@sydney.edu.au", company: "University of Sydney" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Campus Expansion", owner: "University of Sydney", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).toContain("non_defensible_domain");
+  });
+});

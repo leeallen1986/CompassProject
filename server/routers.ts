@@ -42,6 +42,7 @@ import { rankProjectsForUser, updateWeightsFromFeedback, recomputeAllWeights } f
 import { seedDefaultPipelineData } from "./seedPipeline";
 import { runEnrichmentPipeline, getEnrichmentStats, generateAndEnrichContacts, getProjectEnrichmentCache, getUserPreferredRoles } from "./contactEnrichment";
 import { runDailyPipeline } from "./dailyPipeline";
+import { getOperatorStatus } from "./operationsReliability";
 import { runWeeklyPipeline } from "./weeklyPipeline";
 import { runProjectoryScraper, setProjectoryCookies, getProjectoryCookies } from "./projectoryScraper";
 import { ingestProjectoryArticles, proxyFetchUrl } from "./projectoryIngest";
@@ -2227,6 +2228,10 @@ export const appRouter = router({
         const rows = await db.select().from(pipelineRunsTable).orderBy(desc(pipelineRunsTable.startedAt)).limit(limit);
         return rows;
       }),
+    /** Comprehensive operator status view for the admin dashboard */
+    operatorStatus: adminProcedure.query(async () => {
+      return getOperatorStatus();
+    }),
   }),
 
   // ── Weekly mega-scrape pipeline (admin only) ──

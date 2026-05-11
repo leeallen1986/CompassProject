@@ -2481,3 +2481,19 @@
 - [ ] Sanitise contact titles: strip LinkedIn pipe-separated fragments, keep first credible title, max length guard
 - [ ] Show contact name + title in CTA (not title alone)
 - [ ] Re-render and proof all 5 rep emails post-fix
+
+## Session: 2026-05-11 — Stabilise Weekly Operating Model
+
+- [x] Part A: Operations reliability — warm-up endpoint, self-healing retry, missed-run alerts, operator status
+- [x] Part A: Anti-hibernation / warm-up strategy before pipeline run
+- [x] Part A: Retry logic if no pipelineRuns row created
+- [x] Part A: Missed-run alert / visible admin warning
+- [x] Part A: Operator status view (last success, last attempt, next scheduled, missed state)
+- [x] Part B: Fix isTruncatedDomain() false positives (startsWith fix)
+- [x] Part B: Fix government domain policy (GOV_DOMAIN_ALLOWLIST)
+- [x] Part B: Re-run gate — Ryan/Brett/Daniel now pass; Dan Day passes with cyber.qld.gov.au allowlisted
+- [x] Part C: Choi JungIn — email corrected to jungin.choi@venaenergy.com (Hunter verified, score 91)
+- [x] Part C: Ubayeda Shaqer — unverifiable (Octopus AU has no public email data)
+- [x] Part C: Amit final status — 2/3 top projects now send_ready, gate should pass
+- [x] Part D: Design and document weekly operating model (docs/WEEKLY-OPERATING-MODEL.md)
+- [x] Part E: Final output report

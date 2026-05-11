@@ -226,14 +226,13 @@ function isTruncatedDomain(domain: string, projectOwner: string | null | undefin
   const domainPrefix = domain.split(".")[0].toLowerCase();
   // Exact match is fine
   if (domainPrefix === ownerNorm) return false;
-  // If domain prefix is a substring of owner but shorter (missing characters), it's truncated
-  if (ownerNorm.includes(domainPrefix) && domainPrefix.length < ownerNorm.length && domainPrefix.length > 5) {
-    return true;
-  }
-  // Also check if owner contains the domain prefix but with extra chars (e.g., "wateroration" in "watercorporation")
-  // Use edit distance heuristic: if removing 1-4 chars from owner produces the domain prefix
+  // If domain prefix is a clean prefix of the owner name, it's a legitimate shorter brand domain.
+  // e.g., "fortescuemetals" is a prefix of "fortescuemetalsgroupltd" - NOT truncated.
+  // This handles ICN-registered full legal names (Fortescue Metals Group Ltd, Chevron Australia Pty Limited, etc.)
+  if (ownerNorm.startsWith(domainPrefix)) return false;
+  // Genuine truncation: domain prefix is a subsequence of ownerNorm with 1-4 internal chars missing.
+  // e.g., "wateroration" from "watercorporation" (missing "corp" chars)
   if (domainPrefix.length >= ownerNorm.length - 4 && domainPrefix.length < ownerNorm.length) {
-    // Check if domainPrefix is a subsequence of ownerNorm with small gaps
     let oi = 0, di = 0;
     while (oi < ownerNorm.length && di < domainPrefix.length) {
       if (ownerNorm[oi] === domainPrefix[di]) di++;
@@ -241,9 +240,30 @@ function isTruncatedDomain(domain: string, projectOwner: string | null | undefin
     }
     if (di === domainPrefix.length) return true;
   }
+  // Also check: domain prefix is a non-prefix substring of owner with 1-4 char difference.
+  // This catches cases where the domain is a garbled middle section of the owner name.
+  if (ownerNorm.includes(domainPrefix) && domainPrefix.length > 5 && !ownerNorm.startsWith(domainPrefix)) {
+    const diff = ownerNorm.length - domainPrefix.length;
+    if (diff >= 1 && diff <= 4) {
+      return true;
+    }
+  }
   return false;
 }
 
+/**
+ * Government/institutional domains that ARE defensible for outreach.
+ * These are verified procurement-facing departments where contacts are legitimate buyers.
+ * Add domains here when a government entity is a confirmed project owner with procurement authority.
+ */
+const GOV_DOMAIN_ALLOWLIST: string[] = [
+  "cyber.qld.gov.au",        // Queensland Cyber Infrastructure — Dan Day territory
+  "defence.gov.au",          // Australian Defence — confirmed procurement contacts
+  "infrastructure.gov.au",   // Dept of Infrastructure — major project owners
+  "wa.gov.au",               // WA Government — mining/resources procurement
+  "nt.gov.au",               // NT Government — infrastructure projects
+  "qld.gov.au",              // QLD Government — state infrastructure
+];
 /** Domains that are known non-industrial (government, education, etc.) */
 const NON_DEFENSIBLE_DOMAINS = [
   /\.gov\.au$/i,
@@ -293,7 +313,7 @@ export function checkContactDefensibility(
   if (!email || !domain) {
     domainDefensible = false;
     failedChecks.push("no_email_or_domain");
-  } else if (NON_DEFENSIBLE_DOMAINS.some(re => re.test(domain))) {
+  } else if (NON_DEFENSIBLE_DOMAINS.some(re => re.test(domain)) && !GOV_DOMAIN_ALLOWLIST.some(allowed => domain.endsWith(allowed))) {
     domainDefensible = false;
     failedChecks.push("non_defensible_domain");
   } else if (isTruncatedDomain(domain, project.owner)) {

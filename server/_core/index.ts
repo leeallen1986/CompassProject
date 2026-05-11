@@ -12,6 +12,7 @@ import { startDailyScheduler, registerSigtermHandler } from "../dailyPipeline";
 import { storagePut } from "../storage";
 import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
 import { handleScheduledQueueRun } from "../scheduledQueueRun";
+import { handleWarmup, startOperationsReliability } from "../operationsReliability";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -82,6 +83,9 @@ async function startServer() {
 
   // Lightweight health ping — used by pipeline keepalive to prevent CloudRun container recycling
   app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+  // Warm-up endpoint — called by scheduled task 2-3 min before pipeline trigger
+  // Wakes the container from hibernation and returns readiness state
+  app.get("/api/warmup", handleWarmup);
 
   // External scheduled pipeline trigger — called by Manus scheduled task daily at 20:00 UTC
   // Auth: app_session_id cookie (Manus scheduled-task JWT) + X-Scheduled-Task header
@@ -126,6 +130,8 @@ async function startServer() {
     // Start the persistent email digest scheduler (recovers from restarts)
     // Must start AFTER startDailyScheduler so pipeline is always wired first.
     startPersistentScheduler();
+    // Start operations reliability systems (self-healing retry, missed-run alerts)
+    startOperationsReliability();
   });
 }
 
