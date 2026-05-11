@@ -2565,3 +2565,9 @@
 - [x] Fix: systemKv schema table added, migration pushed (0085_fast_korvac.sql)
 - [x] Fix: operationsReliability.ts now reads cooldown from DB on every check, writes back on notify
 - [x] All tests pass (5 pre-existing failures: apolloEligibility timeout + projectory.auth)
+
+## Session: 2026-05-11 — UX Fix: Top 3 Actions back-navigation
+
+- [ ] When Detail is clicked from Top 3 Actions cards, pass from=top3 in the URL
+- [ ] On project detail page, show "← Back to Top 3 Actions" button when from=top3 is present
+- [ ] Back button scrolls/navigates to the Top 3 Actions section on the home page

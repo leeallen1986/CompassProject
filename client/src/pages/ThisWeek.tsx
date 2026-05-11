@@ -3,7 +3,7 @@
  * Clean, low-noise, action-focused weekly dashboard for sales reps.
  * Structure: Header → 5-pill KPI strip → Top 3 Action cards → Collapsible sections
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
@@ -246,7 +246,7 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
   return (
     <div
       className="flex flex-col gap-3 p-5 rounded-xl border border-border bg-card cursor-pointer hover:shadow-lg hover:border-navy/20 transition-all group"
-      onClick={() => project?.id && navigate(`/project/${project.id}`)}
+      onClick={() => project?.id && navigate(`/project/${project.id}?from=top3`)}
     >
       {/* Badge row: action-ready + lane fit + channel */}
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -447,6 +447,19 @@ export default function ThisWeek() {
   const [, navigate] = useLocation();
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [scopeMode, setScopeMode] = useState<ScopeMode>("strict");
+  const top3Ref = useRef<HTMLElement | null>(null);
+
+  // Scroll to Top 3 Actions section when ?section=top3 is in the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("section") === "top3" && top3Ref.current) {
+      // Small delay to allow layout to settle after navigation
+      const timer = setTimeout(() => {
+        top3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, []);  // Run once on mount
 
   const { data: summary, isLoading } = trpc.thisWeek.summary.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -674,7 +687,7 @@ export default function ThisWeek() {
         />
 
         {/* ── Top 3 Actions ── */}
-        <section>
+        <section id="top3" ref={top3Ref}>
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-gold" />
             <h2 className="text-lg font-bold text-navy">Top 3 Actions</h2>

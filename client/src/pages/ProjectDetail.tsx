@@ -49,8 +49,15 @@ const lifecycleLabels: Record<string, { label: string; color: string; icon: Reac
 
 export default function ProjectDetail({ params }: { params: { id: string } }) {
   const { user, loading: authLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const projectId = parseInt(params.id, 10);
+
+  // Detect if user arrived from Top 3 Actions section
+  const fromTop3 = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("from") === "top3"
+    : false;
+  const backLabel = fromTop3 ? "Back to Top 3 Actions" : "Back to Dashboard";
+  const backPath = fromTop3 ? "/?section=top3" : "/dashboard";
 
   // Fetch project by ID — independent of dashboard filters
   const { data, isLoading, error } = trpc.projectLifecycle.byId.useQuery(
@@ -167,8 +174,8 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <ProjectDetailHeader
-        onBack={() => navigate("/dashboard")}
+        <ProjectDetailHeader
+        onBack={() => navigate(backPath)}
         projectName={project.name}
         sector={project.sector}
         priority={project.priority}
@@ -252,9 +259,9 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-navy"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(backPath)}
           >
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Dashboard
+            <ArrowLeft className="w-4 h-4 mr-1" /> {backLabel}
           </Button>
           <div className="flex items-center gap-2">
             <Button
