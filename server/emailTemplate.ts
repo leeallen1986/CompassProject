@@ -23,9 +23,9 @@ export interface EmailSignal {
   company: string;
   /** Short pitch paragraph explaining the opportunity and Atlas Copco's fit */
   pitch: string;
-  /** Italic CTA action (e.g., "Contact the Maintenance Operations Manager to discuss rental terms") */
+  /** Italic CTA action (e.g., "Contact the Maintenance Operations Manager to discuss equipment scope and timing") */
   ctaAction: string;
-  /** Product tag pill (e.g., "Advanced compressor hire for maintenance") */
+  /** Product tag pill (e.g., "Portable Air for Mining") */
   productTag: string;
 }
 
@@ -55,37 +55,39 @@ function getBadgeHtml(badge: EmailSignal["badge"]): string {
 
 // ── Signal Card ──
 
-function renderSignalCard(signal: EmailSignal, dashboardUrl: string): string {
+function renderSignalCard(signal: EmailSignal, dashboardUrl: string, index: number): string {
   const badge = getBadgeHtml(signal.badge);
   const projectUrl = `${dashboardUrl}/project/${signal.projectId}`;
+  // First card has no top border; subsequent cards have a separator
+  const topBorder = index === 0 ? "" : "border-top:1px solid #e2e8f0;padding-top:20px;";
 
   return `
-    <div style="padding:24px 0;border-bottom:1px solid #f1f5f9;">
+    <div style="padding:16px 0;margin-bottom:4px;${topBorder}">
       <!-- Badge -->
-      <div style="margin-bottom:12px;">
+      <div style="margin-bottom:10px;">
         ${badge}
       </div>
       <!-- Title -->
-      <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#1e293b;line-height:1.3;">
+      <h3 style="margin:0 0 6px;font-size:16px;font-weight:700;color:#1e293b;line-height:1.35;">
         <a href="${projectUrl}" style="color:#1e293b;text-decoration:none;">${escapeHtml(signal.title)}</a>
       </h3>
       <!-- Company -->
-      <p style="margin:0 0 12px;font-size:13px;color:#64748b;">${escapeHtml(signal.company)}</p>
+      ${signal.company ? `<p style="margin:0 0 10px;font-size:13px;color:#64748b;font-weight:500;">${escapeHtml(signal.company)}</p>` : ""}
       <!-- Pitch -->
-      <p style="margin:0 0 12px;font-size:14px;color:#334155;line-height:1.5;">${escapeHtml(signal.pitch)}</p>
-      <!-- CTA Action (italic with arrow) -->
-      <p style="margin:0 0 12px;font-size:13px;color:#0d9488;font-style:italic;">
-        → <a href="${projectUrl}" style="color:#0d9488;text-decoration:underline;font-style:italic;">${escapeHtml(signal.ctaAction)}</a>
+      <p style="margin:0 0 14px;font-size:14px;color:#334155;line-height:1.55;">${escapeHtml(signal.pitch)}</p>
+      <!-- CTA Action -->
+      <p style="margin:0 0 12px;font-size:13px;color:#0d9488;font-weight:500;">
+        → <a href="${projectUrl}" style="color:#0d9488;text-decoration:none;">${escapeHtml(signal.ctaAction)}</a>
       </p>
       <!-- Product Tag Pill -->
-      <span style="display:inline-block;background:#f1f5f9;color:#475569;font-size:12px;padding:4px 12px;border-radius:14px;border:1px solid #e2e8f0;">${escapeHtml(signal.productTag)}</span>
+      <span style="display:inline-block;background:#f1f5f9;color:#475569;font-size:11px;font-weight:500;padding:4px 10px;border-radius:12px;border:1px solid #e2e8f0;">${escapeHtml(signal.productTag)}</span>
     </div>`;
 }
 
 // ── Full Email HTML ──
 
 export function buildDigestEmailHtml(data: DigestEmailData): string {
-  const signalCards = data.signals.map(s => renderSignalCard(s, data.dashboardUrl)).join("");
+  const signalCards = data.signals.map((s, i) => renderSignalCard(s, data.dashboardUrl, i)).join("");
 
   return `<!DOCTYPE html>
 <html>

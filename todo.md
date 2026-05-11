@@ -2473,14 +2473,14 @@
 - [ ] Rebuild Amit's final gated top-3 and confirm SEND or HOLD
 
 ## Email Quality Fixes (pre-Monday)
-- [ ] Fix manual send path: sendWeeklyDigestToUser must pass htmlContent + textContent (not markdown fallback)
-- [ ] Replace rental CTA language with lane-appropriate direct-sale copy (Portable Air, Pump, PAL/BESS)
-- [ ] Map product slugs to human labels (portable_air → Portable Air, multi_lane_pt → Multi-Line PT, bess → BESS, OPEXMonitor → OPEX / Monitor)
-- [ ] Make sector labels human-readable (oil_gas → Oil & Gas, etc.)
-- [ ] Fix pitch truncation to snap to word boundary (no mid-word cuts)
-- [ ] Sanitise contact titles: strip LinkedIn pipe-separated fragments, keep first credible title, max length guard
-- [ ] Show contact name + title in CTA (not title alone)
-- [ ] Re-render and proof all 5 rep emails post-fix
+- [x] Fix manual send path: sendWeeklyDigestToUser must pass htmlContent + textContent (not markdown fallback)
+- [x] Replace rental CTA language with lane-appropriate direct-sale copy (Portable Air, Pump, PAL/BESS)
+- [x] Map product slugs to human labels (portable_air → Portable Air, multi_lane_pt → Multi-Line PT, bess → BESS, OPEXMonitor → OPEX / Monitor)
+- [x] Make sector labels human-readable (oil_gas → Oil & Gas, etc.)
+- [x] Fix pitch truncation to snap to word boundary (no mid-word cuts)
+- [x] Sanitise contact titles: strip LinkedIn pipe-separated fragments, keep first credible title, max length guard
+- [x] Show contact name + title in CTA (not title alone)
+- [x] Re-render and proof all 5 rep emails post-fix
 
 ## Session: 2026-05-11 — Stabilise Weekly Operating Model
 
@@ -2522,3 +2522,21 @@
 - [x] Part D: userEmailSendLog rows confirmed 'sent' (corrected from dry_run via SQL)
 - [x] Part D: Bug found — finaliseDigestSendSlot WHERE clause doesn't match dry_run rows
 - [x] Part E: Send confirmation report delivered (docs/SEND-CONFIRMATION-2026-05-11.md)
+
+## Session: 2026-05-11 — Digest Email Quality + Leo Williams
+
+- [x] Fix 1: Rental CTA language — remove rental-style wording, replace with lane-appropriate direct-sale CTAs
+- [x] Fix 2: Product slug labels — map internal slugs to clean human labels
+- [x] Fix 3: Pitch truncation — snap to word boundary, no mid-word cuts
+- [x] Fix 4: Contact title sanitisation — strip LinkedIn pipe-separated headlines, keep first credible title, max length
+- [x] Fix 5: Contact display in CTA — show name + title cleanly, not title alone
+- [x] Fix 6: Manual send path consistency — same HTML + text as scheduled send
+- [x] Fix 7: Final polish pass — spacing, card hierarchy, badges, CTA readability, line wrapping
+- [x] Part B: Leo Williams gate = HOLD (9 blockers: not_commercially_sensible + no defensible contacts)
+- [x] Part B: Build Leo's next-cycle candidate pool (PA-fit filtered, top 10 national projects)
+- [x] Part B: Identify which contacts need enrichment for Leo's PA-relevant projects
+- [x] Part B: Document ranking adjustment needed for national PA rep
+- [x] Part C: Generate real outgoing email render proof for 5 confirmed SEND reps
+- [x] Part C: All 5 render proofs verified (Ryan, Brett, Daniel, Dan Day, Amit) — no rental language, clean labels, correct CTAs
+- [x] Part D: finaliseDigestSendSlot WHERE clause bug fixed (now matches dry_run rows)
+- [x] Part E: Deliver final output

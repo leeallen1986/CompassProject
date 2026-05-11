@@ -1207,26 +1207,30 @@ function renderProjectCard(
 // ── Product lane slug → human label map ──
 const PRODUCT_LANE_LABELS: Record<string, string> = {
   portable_air: "Portable Air",
-  multi_lane_pt: "Multi-Line PT",
-  bess: "BESS",
-  pal: "PAL",
+  multi_lane_pt: "Power Technique",
+  bess: "Battery Energy Storage",
+  pal: "Power & Light",
   generators: "Generators",
-  lighting: "Lighting",
-  pump: "Pump",
-  pumps: "Pumps",
+  lighting: "Lighting Towers",
+  pump: "Dewatering Pumps",
+  pumps: "Dewatering Pumps",
   dewatering: "Dewatering",
-  nitrogen: "Nitrogen",
-  opexmonitor: "OPEX / Monitor",
-  opex_monitor: "OPEX / Monitor",
-  fleet_capex: "Fleet CAPEX",
-  direct_capex: "Direct CAPEX",
-  rental: "Rental",
+  nitrogen: "Nitrogen Generation",
+  opexmonitor: "Monitoring & Service",
+  opex_monitor: "Monitoring & Service",
+  opex: "Monitoring & Service",
+  fleet_capex: "Fleet Equipment",
+  direct_capex: "Direct Equipment",
+  rental: "Equipment Solutions",
 };
 
 function humaniseProductLabel(raw: string | null | undefined): string | null {
-  if (!raw || raw === "Unknown") return null;
+  if (!raw || raw === "Unknown" || raw === "unknown") return null;
   const key = raw.toLowerCase().replace(/[\s/]+/g, "_");
-  return PRODUCT_LANE_LABELS[key] ?? raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const mapped = PRODUCT_LANE_LABELS[key];
+  if (mapped !== undefined) return mapped;
+  // Fallback: title-case the slug for display
+  return raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
 // ── Sector slug → human label map ──
@@ -1250,19 +1254,47 @@ function humaniseSectorLabel(raw: string | null | undefined): string {
   return SECTOR_LABELS[key] ?? raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ── Truncate pitch at word boundary ──
+// ── Truncate pitch at word boundary (never mid-word) ──
 function truncatePitch(text: string, maxLen = 200): string {
   if (text.length <= maxLen) return text;
-  const cut = text.lastIndexOf(" ", maxLen - 3);
-  return (cut > 80 ? text.slice(0, cut) : text.slice(0, maxLen - 3)) + "...";
+  // Try to break at sentence boundary first (period followed by space)
+  const sentenceCut = text.lastIndexOf(". ", maxLen - 3);
+  if (sentenceCut > 60) return text.slice(0, sentenceCut + 1);
+  // Fall back to word boundary — use a lower threshold (40) to avoid mid-word cuts
+  const wordCut = text.lastIndexOf(" ", maxLen - 3);
+  if (wordCut > 40) return text.slice(0, wordCut) + "...";
+  // Last resort: hard cut at maxLen (extremely rare — only if no spaces in first 40 chars)
+  return text.slice(0, maxLen - 3) + "...";
 }
 
-// ── Sanitise contact title (strip LinkedIn pipe-fragments, enforce max length) ──
+// ── Sanitise contact title (extract credible job title from LinkedIn headlines) ──
 function sanitiseContactTitle(raw: string | null | undefined): string | null {
-  if (!raw || raw === "Unknown") return null;
+  if (!raw || raw === "Unknown" || raw === "unknown") return null;
+  // Step 1: Take first pipe-separated segment
   const first = raw.split("|")[0].trim();
-  const clean = first.replace(/\s+at\s+[A-Z].*/i, "").replace(/[,;]+$/, "").trim();
-  if (clean.length > 80) return clean.slice(0, 77) + "...";
+  // Step 2: Strip "at Company" suffix
+  const noCompany = first.replace(/\s+at\s+[A-Z].*/i, "").replace(/[,;]+$/, "").trim();
+  // Step 3: If the result looks like a LinkedIn headline (starts with adjective/descriptor),
+  // try to extract a real job title by finding known role keywords
+  const ROLE_KEYWORDS = /(?:Manager|Director|Engineer|Superintendent|Coordinator|Lead|Head|Officer|VP|President|Chief|Specialist|Advisor|Consultant|Analyst|Supervisor|Foreman|Controller|Planner|Buyer|Procurement)/i;
+  let clean = noCompany;
+  if (clean.length > 50 && !ROLE_KEYWORDS.test(clean.slice(0, 30))) {
+    // The first 30 chars don't contain a role keyword — try to find one later in the string
+    const match = clean.match(ROLE_KEYWORDS);
+    if (match && match.index !== undefined) {
+      // Extract from 2 words before the keyword to end of that phrase
+      const before = clean.slice(0, match.index);
+      const lastSpace = before.lastIndexOf(" ", before.length - 1);
+      const secondLastSpace = lastSpace > 0 ? before.lastIndexOf(" ", lastSpace - 1) : -1;
+      const startIdx = secondLastSpace > 0 ? secondLastSpace + 1 : (lastSpace > 0 ? lastSpace + 1 : match.index);
+      // Take from startIdx to next comma/pipe/end
+      const remainder = clean.slice(startIdx);
+      const endMatch = remainder.match(/[|,;]/);
+      clean = endMatch ? remainder.slice(0, endMatch.index).trim() : remainder.trim();
+    }
+  }
+  // Step 4: Enforce max length
+  if (clean.length > 60) clean = clean.slice(0, 57) + "...";
   return clean || null;
 }
 

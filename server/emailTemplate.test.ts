@@ -105,13 +105,14 @@ describe("buildDigestEmailHtml", () => {
     expect(html).toContain("extensive night work");
   });
 
-  it("renders italic CTA actions with arrows", () => {
+  it("renders CTA actions with arrows and teal styling", () => {
     const html = buildDigestEmailHtml(mockData);
     expect(html).toContain("Contact the Maintenance Operations Manager");
     expect(html).toContain("Schedule a consultation");
     expect(html).toContain("Engage with the Project Engineer");
-    // Should have italic styling
-    expect(html).toContain("font-style:italic");
+    // Should have teal color and medium weight styling
+    expect(html).toContain("color:#0d9488");
+    expect(html).toContain("font-weight:500");
   });
 
   it("renders product tag pills", () => {
