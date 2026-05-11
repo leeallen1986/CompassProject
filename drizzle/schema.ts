@@ -1704,3 +1704,15 @@ export const repDigestGateResults = mysqlTable("repDigestGateResults", {
 });
 export type RepDigestGateResult = typeof repDigestGateResults.$inferSelect;
 export type InsertRepDigestGateResult = typeof repDigestGateResults.$inferInsert;
+
+// ─── System Key-Value Store ───────────────────────────────────────────────────
+/**
+ * Lightweight persistent key-value store for system state that must survive
+ * server restarts (e.g., notification cooldown timestamps, ops flags).
+ */
+export const systemKv = mysqlTable("systemKv", {
+  key: varchar("key", { length: 128 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type SystemKv = typeof systemKv.$inferSelect;

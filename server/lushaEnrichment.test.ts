@@ -12,9 +12,12 @@ vi.mock("drizzle-orm/mysql2", () => ({
   drizzle: vi.fn(() => ({
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
+    // where() is the terminal call in most queries — must return a resolved array
+    where: vi.fn().mockResolvedValue([]),
+    limit: vi.fn().mockResolvedValue([]),
     insert: vi.fn().mockReturnThis(),
     values: vi.fn().mockReturnThis(),
+    onDuplicateKeyUpdate: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
     execute: vi.fn().mockResolvedValue([]),

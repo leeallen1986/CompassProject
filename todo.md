@@ -2556,3 +2556,12 @@
 - [x] Auto-regate after enrichment: if rep reaches threshold → SEND, else keep HOLD with explicit blocker
 - [x] Write tests for auto-rescue pipeline
 - [x] Verify Leo can move to automatic SEND without manual review next cycle
+
+## Session: 2026-05-11 — Bug: Missed-Run Alert Email Spam
+
+- [x] Fix OpsReliability missed-run alert: sending every 5-7 min instead of once per window
+- [x] Root cause: lastNotificationSentAt was in-memory (reset on every container restart/publish)
+- [x] Fix: persist lastNotificationSentAt to DB via new systemKv table (getSystemKv/setSystemKv)
+- [x] Fix: systemKv schema table added, migration pushed (0085_fast_korvac.sql)
+- [x] Fix: operationsReliability.ts now reads cooldown from DB on every check, writes back on notify
+- [x] All tests pass (5 pre-existing failures: apolloEligibility timeout + projectory.auth)

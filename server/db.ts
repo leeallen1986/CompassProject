@@ -17,6 +17,7 @@ import {
   pipelineRuns,
   userEmailSendLog,
   contactProjects,
+  systemKv,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -2724,4 +2725,33 @@ export async function getPilotShortlist(reportId?: number): Promise<PilotShortli
 export async function getPilotShortlistCount(reportId?: number): Promise<number> {
   const items = await getPilotShortlist(reportId);
   return items.length;
+}
+
+// ─── System KV helpers ────────────────────────────────────────────────────────
+
+/**
+ * Read a value from the persistent system key-value store.
+ * Returns null if the key does not exist.
+ */
+export async function getSystemKv(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({ value: systemKv.value })
+    .from(systemKv)
+    .where(eq(systemKv.key, key))
+    .limit(1);
+  return row?.value ?? null;
+}
+
+/**
+ * Write (upsert) a value to the persistent system key-value store.
+ */
+export async function setSystemKv(key: string, value: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .insert(systemKv)
+    .values({ key, value })
+    .onDuplicateKeyUpdate({ set: { value, updatedAt: new Date() } });
 }

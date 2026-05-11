@@ -24,12 +24,11 @@
  * - Observable: all actions are logged with [OpsReliability] prefix
  */
 
-import { getDb } from "./db";
+import { getDb, getSystemKv, setSystemKv, checkPipelineFreshness } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { desc, eq, gte, and } from "drizzle-orm";
 import { notifyOwner } from "./_core/notification";
 import { runDailyPipeline } from "./dailyPipeline";
-import { checkPipelineFreshness } from "./db";
 
 const LOG_PREFIX = "[OpsReliability]";
 
@@ -54,7 +53,10 @@ const NOTIFICATION_COOLDOWN_HOURS = 12;
 
 let selfHealingTimerActive = false;
 let missedRunCheckerActive = false;
-let lastNotificationSentAt: Date | null = null;
+// NOTE: lastNotificationSentAt is intentionally NOT stored in memory.
+// It is persisted to the DB via systemKv so it survives container restarts.
+// In-memory caching of the last-checked value is used only to reduce DB reads.
+let _cachedLastNotificationAt: Date | null = null;
 let selfHealingAttemptCount = 0;
 let lastSelfHealingAttemptAt: Date | null = null;
 
@@ -206,11 +208,13 @@ async function checkForMissedRun(): Promise<void> {
       return;
     }
 
-    // Check notification cooldown
-    if (lastNotificationSentAt) {
-      const hoursSinceNotification = (Date.now() - lastNotificationSentAt.getTime()) / 3600000;
+    // Check notification cooldown — read from DB so restarts don't reset the cooldown
+    const storedTs = await getSystemKv("ops.lastMissedRunNotificationAt");
+    const persistedAt = storedTs ? new Date(storedTs) : _cachedLastNotificationAt;
+    if (persistedAt) {
+      const hoursSinceNotification = (Date.now() - persistedAt.getTime()) / 3600000;
       if (hoursSinceNotification < NOTIFICATION_COOLDOWN_HOURS) {
-        return; // Already notified recently
+        return; // Already notified recently — cooldown active
       }
     }
 
@@ -233,7 +237,9 @@ async function checkForMissedRun(): Promise<void> {
           "The self-healing retry will attempt to run the pipeline. If this alert persists, manual intervention is required.",
         ].filter(Boolean).join("\n"),
       });
-      lastNotificationSentAt = new Date();
+      const now = new Date();
+      _cachedLastNotificationAt = now;
+      await setSystemKv("ops.lastMissedRunNotificationAt", now.toISOString());
       console.log(`${LOG_PREFIX} Missed-run notification sent`);
     } catch (notifyErr) {
       console.error(`${LOG_PREFIX} Failed to send missed-run notification:`, notifyErr);
@@ -379,7 +385,7 @@ export async function getOperatorStatus(): Promise<OperatorStatus> {
     },
     missedRunChecker: {
       active: missedRunCheckerActive,
-      lastNotificationAt: lastNotificationSentAt?.toISOString() ?? null,
+      lastNotificationAt: _cachedLastNotificationAt?.toISOString() ?? null,
     },
     serverUptimeSeconds: Math.round(process.uptime()),
   };
