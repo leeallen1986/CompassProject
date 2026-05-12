@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE contacts \nSET linkedinHeadline = 'Procurement Manager at Acciona (title may be stale — references Pattullo Bridge project in Canada, but email domain is acciona.com.au and company match to Alkimos Desalination is valid)'\nWHERE id = 930070 AND rejectionReason IS NULL",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE contacts \nSET linkedinHeadline = 'Procurement Manager at Acciona (title may be stale — references Pattullo Bridge project in Canada, but email domain is acciona.com.au and company match to Alkimos Desalination is valid)'\nWHERE id = 930070 AND rejectionReason IS NULL",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1931
+}

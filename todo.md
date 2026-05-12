@@ -2599,3 +2599,8 @@
 - [x] Part B: Dan Day targeted contact rescue — Cairns Water + Bass Strait + next best 3-5 east-coast pump projects
 - [x] Part C: Port of Newcastle action mode review — already direct_pursue in production (proof_pack.mjs was using stale heuristic)
 - [x] Part D: Updated live proof for Brett Hansen and Dan Day post-fixes
+
+## Next Steps (2026-05-12 Session 3)
+- [x] Step 1: Apollo enrichment pass — Cairns Water (720008): 7 send_ready contacts added; Bass Strait (690073): 2 contacts added (1 send_ready, 1 named_unverified)
+- [x] Step 2: Trust-tier promotion pass — 2 contacts promoted on Womalilla/Prairie Solar (450005); backlog was small (3 total eligible), most named_unverified lack emails
+- [x] Step 3: Rob Gordon (Alkimos) title artefact review — stale LinkedIn headline (Pattullo Bridge, Canada); email domain acciona.com.au is valid; company match to Alkimos correct; NOT quarantined, flagged with note in linkedinHeadline
