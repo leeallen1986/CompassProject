@@ -1,4 +1,4 @@
-import { int, float, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { int, float, decimal, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -1716,3 +1716,44 @@ export const systemKv = mysqlTable("systemKv", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type SystemKv = typeof systemKv.$inferSelect;
+
+// ─── Account Priors (Pump/Flow Lane) ──────────────────────────────────────────
+/**
+ * Priority account library for account-first selling motions.
+ * Imported from the WA Pump / Portable Flow Top 100 target list.
+ * Used to boost lane scoring when a project's owner/contractor matches a priority account.
+ */
+export const accountPriors = mysqlTable("accountPriors", {
+  id: int("id").autoincrement().primaryKey(),
+  rank: int("rank"),
+  canonicalName: varchar("canonicalName", { length: 256 }).notNull(),
+  aliases: json("aliases").$type<string[]>(),
+  state: varchar("state", { length: 256 }),
+  segment: varchar("segment", { length: 256 }),
+  scoreOutOf100: float("scoreOutOf100"),
+  priorityLevel: varchar("priorityLevel", { length: 32 }),
+  productFit: text("productFit"),
+  likelyApplication: text("likelyApplication"),
+  whyTarget: text("whyTarget"),
+  firstSalesAction: text("firstSalesAction"),
+  suggestedOpeningAngle: text("suggestedOpeningAngle"),
+  confidenceLevel: varchar("confidenceLevel", { length: 16 }),
+  existingHistory: text("existingHistory"),
+  salesNotes: text("salesNotes"),
+  pumpSalesLC: decimal("pumpSalesLC", { precision: 14, scale: 2 }),
+  pumpQtySince2021: int("pumpQtySince2021"),
+  latestPumpSaleYear: int("latestPumpSaleYear"),
+  crmRecordsGrouped: int("crmRecordsGrouped"),
+  crmRoles: varchar("crmRoles", { length: 256 }),
+  crmTypes: varchar("crmTypes", { length: 256 }),
+  phone: varchar("phone", { length: 64 }),
+  email: varchar("email", { length: 320 }),
+  lane: varchar("lane", { length: 32 }).notNull().default("pump"),
+  status: varchar("status", { length: 32 }).notNull().default("not_started"),
+  owner: varchar("owner", { length: 256 }),
+  nextActionDate: timestamp("nextActionDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type AccountPrior = typeof accountPriors.$inferSelect;
+export type InsertAccountPrior = typeof accountPriors.$inferInsert;

@@ -1,0 +1,22 @@
+{
+  "query": "SELECT SUBSTRING_INDEX(projectKey, '-', 1) as source_prefix, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' GROUP BY source_prefix ORDER BY cnt DESC LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT SUBSTRING_INDEX(projectKey, '-', 1) as source_prefix, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' GROUP BY source_prefix ORDER BY cnt DESC LIMIT 15;",
+  "rows": [
+    {
+      "source_prefix": "rss",
+      "cnt": "108"
+    },
+    {
+      "source_prefix": "seed",
+      "cnt": "54"
+    },
+    {
+      "source_prefix": "icn",
+      "cnt": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "source_prefix\tcnt\nrss\t108\nseed\t54\nicn\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1947
+}

@@ -1,0 +1,66 @@
+{
+  "query": "SELECT actionTier, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' AND lifecycleStatus = 'active' GROUP BY actionTier ORDER BY cnt DESC;\nSELECT stageCode, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' AND lifecycleStatus = 'active' GROUP BY stageCode ORDER BY cnt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT actionTier, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' AND lifecycleStatus = 'active' GROUP BY actionTier ORDER BY cnt DESC;\nSELECT stageCode, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' AND lifecycleStatus = 'active' GROUP BY stageCode ORDER BY cnt DESC LIMIT 10;",
+  "rows": [
+    {
+      "actionTier": "tier2_warm",
+      "cnt": "40"
+    },
+    {
+      "actionTier": "tier1_actionable",
+      "cnt": "30"
+    },
+    {
+      "actionTier": "tier3_monitor",
+      "cnt": "14"
+    },
+    {
+      "actionTier": "stageCode",
+      "cnt": "cnt"
+    },
+    {
+      "actionTier": "unknown",
+      "cnt": "21"
+    },
+    {
+      "actionTier": "construction",
+      "cnt": "19"
+    },
+    {
+      "actionTier": "planning",
+      "cnt": "12"
+    },
+    {
+      "actionTier": "completed",
+      "cnt": "11"
+    },
+    {
+      "actionTier": "procurement",
+      "cnt": "5"
+    },
+    {
+      "actionTier": "feasibility",
+      "cnt": "4"
+    },
+    {
+      "actionTier": "operational",
+      "cnt": "3"
+    },
+    {
+      "actionTier": "design",
+      "cnt": "3"
+    },
+    {
+      "actionTier": "awarded",
+      "cnt": "3"
+    },
+    {
+      "actionTier": "exploration",
+      "cnt": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "actionTier\tcnt\ntier2_warm\t40\ntier1_actionable\t30\ntier3_monitor\t14\nstageCode\tcnt\nunknown\t21\nconstruction\t19\nplanning\t12\ncompleted\t11\nprocurement\t5\nfeasibility\t4\noperational\t3\ndesign\t3\nawarded\t3\nexploration\t2\n",
+  "stderr": "",
+  "execution_time_ms": 2081
+}

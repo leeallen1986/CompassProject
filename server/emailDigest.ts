@@ -44,7 +44,7 @@ import { selectProjectContact, type ContactInput } from "./contactSelector";
 import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
-import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl } from "../drizzle/schema";
+import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl, accountPriors } from "../drizzle/schema";
 import { eq, and, gte, inArray } from "drizzle-orm";
 
 // ── Territory-Level Digest Send Threshold ──
@@ -1315,7 +1315,8 @@ function buildCtaAction(
   const lane = (productLane ?? "").toLowerCase();
   let action: string;
   if (lane.includes("pump") || lane.includes("dewater")) {
-    action = "discuss dewatering scope, pump package, and site requirements";
+    // Intelligence-first: lead with project insight, not cold outreach
+    action = "review project scope and dewatering requirements on the dashboard before reaching out";
   } else if (lane.includes("bess") || lane.includes("pal") || lane.includes("generator") || lane.includes("lighting")) {
     action = "discuss project package, deployment timing, and site delivery path";
   } else {
@@ -1525,6 +1526,38 @@ export async function scoreAndFilterProjects(
 
   const assignedBLs = (profile.assignedBusinessLines || []) as string[];
 
+  // ── Load account priors for pump-lane matching (digest) ──
+  let digestAccountPriors: { canonicalName: string; aliases: string[] | null; priorityLevel: string | null }[] = [];
+  try {
+    const db = await getDb();
+    if (db) {
+      digestAccountPriors = await db.select({
+        canonicalName: accountPriors.canonicalName,
+        aliases: accountPriors.aliases,
+        priorityLevel: accountPriors.priorityLevel,
+      }).from(accountPriors);
+    }
+  } catch { /* non-fatal */ }
+  function matchAccountPriorDigest(projectOwner: string, projectName: string) {
+    const ownerLower = (projectOwner || '').toLowerCase();
+    const nameLower = (projectName || '').toLowerCase();
+    for (const prior of digestAccountPriors) {
+      const canonical = prior.canonicalName.toLowerCase();
+      if (canonical.length > 3 && (ownerLower.includes(canonical) || nameLower.includes(canonical))) {
+        return { canonicalName: prior.canonicalName, priorityLevel: prior.priorityLevel || 'B' };
+      }
+      if (prior.aliases) {
+        for (const alias of prior.aliases) {
+          const aliasLower = alias.toLowerCase();
+          if (aliasLower.length > 3 && (ownerLower.includes(aliasLower) || nameLower.includes(aliasLower))) {
+            return { canonicalName: prior.canonicalName, priorityLevel: prior.priorityLevel || 'B' };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   const scoredProjects = allProjects.map(p => {
     const projectBLScores = blScoresMap.get(p.id) || [];
 
@@ -1556,6 +1589,7 @@ export async function scoreAndFilterProjects(
       },
       projectBLScores,
       [], // contacts not available here; contact quality uses project-level signals
+      matchAccountPriorDigest(p.owner, p.name),
     );
 
     // Apply mlRanker tie-breaker (±5 pts)

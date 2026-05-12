@@ -122,10 +122,10 @@ describe("buildDigestEmailHtml", () => {
     expect(html).toContain("High-capacity pump rental for expansion project");
   });
 
-  it("includes the dashboard CTA button", () => {
+  it("includes the dashboard CTA button linking to Must Act section", () => {
     const html = buildDigestEmailHtml(mockData);
-    expect(html).toContain("Open your dashboard");
-    expect(html).toContain("https://compasspt.manus.space/");
+    expect(html).toContain("View your Must Act projects");
+    expect(html).toContain("https://compasspt.manus.space/this-week?section=must_act");
   });
 
   it("includes project links to individual project pages", () => {
@@ -164,7 +164,7 @@ describe("buildDigestEmailHtml", () => {
     };
     const html = buildDigestEmailHtml(emptyData);
     expect(html).toContain("<!DOCTYPE html>");
-    expect(html).toContain("Open your dashboard");
+    expect(html).toContain("View your Must Act projects");
     expect(html).toContain("Here is your weekly intelligence update.");
     // Should still render without errors
     expect(html.length).toBeGreaterThan(500);

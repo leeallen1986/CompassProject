@@ -1,0 +1,39 @@
+{
+  "query": "SELECT productLane, COUNT(*) as cnt FROM projects WHERE productLane IS NOT NULL GROUP BY productLane ORDER BY cnt DESC;\nSELECT productLane, priority, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' GROUP BY productLane, priority;\nSELECT COUNT(*) as total_pump_projects FROM projects WHERE productLane = 'pumps';\nSELECT COUNT(*) as pump_contacts FROM contacts c JOIN contactProjects cp ON c.id = cp.contactId JOIN projects p ON cp.projectId = p.id WHERE p.productLane = 'pumps';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT productLane, COUNT(*) as cnt FROM projects WHERE productLane IS NOT NULL GROUP BY productLane ORDER BY cnt DESC;\nSELECT productLane, priority, COUNT(*) as cnt FROM projects WHERE productLane = 'pumps' GROUP BY productLane, priority;\nSELECT COUNT(*) as total_pump_projects FROM projects WHERE productLane = 'pumps';\nSELECT COUNT(*) as pump_contacts FROM contacts c JOIN contactProjects cp ON c.id = cp.contactId JOIN projects p ON cp.projectId = p.id WHERE p.productLane = 'pumps';",
+  "rows": [
+    {
+      "productLane": "multi_lane_pt",
+      "cnt": "478"
+    },
+    {
+      "productLane": "bess",
+      "cnt": "278"
+    },
+    {
+      "productLane": "pumps",
+      "cnt": "163"
+    },
+    {
+      "productLane": "portable_air",
+      "cnt": "119"
+    },
+    {
+      "productLane": "pal",
+      "cnt": "43"
+    }
+  ],
+  "messages": [
+    "productLane\tpriority\tcnt",
+    "pumps\twarm\t96",
+    "pumps\thot\t48",
+    "pumps\tcold\t19",
+    "total_pump_projects",
+    "163",
+    "pump_contacts",
+    "5743"
+  ],
+  "stdout": "productLane\tcnt\nmulti_lane_pt\t478\nbess\t278\npumps\t163\nportable_air\t119\npal\t43\nproductLane\tpriority\tcnt\npumps\twarm\t96\npumps\thot\t48\npumps\tcold\t19\ntotal_pump_projects\n163\npump_contacts\n5743\n",
+  "stderr": "",
+  "execution_time_ms": 2586
+}

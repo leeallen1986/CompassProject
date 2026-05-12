@@ -136,8 +136,8 @@ export function buildDigestEmailHtml(data: DigestEmailData): string {
         <p style="margin:0 0 16px;font-size:14px;color:#475569;">
           See full details, reveal contacts, and act on these opportunities.
         </p>
-        <a href="${data.dashboardUrl}/" style="display:inline-block;background:#0d2137;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:6px;text-decoration:none;letter-spacing:0.3px;">
-          Open your dashboard →
+        <a href="${data.dashboardUrl}/this-week?section=must_act" style="display:inline-block;background:#0d2137;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:6px;text-decoration:none;letter-spacing:0.3px;">
+          View your Must Act projects →
         </a>
       </div>
     </div>
@@ -176,7 +176,7 @@ export function buildDigestEmailText(data: DigestEmailData): string {
   }
 
   text += `See full details, reveal contacts, and act on these opportunities.\n`;
-  text += `Open your dashboard: ${data.dashboardUrl}/\n`;
+  text += `View your Must Act projects: ${data.dashboardUrl}/this-week?section=must_act\n`;
   return text;
 }
 

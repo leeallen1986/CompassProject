@@ -603,6 +603,13 @@
       "when": 1778487707929,
       "tag": "0085_fast_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "5",
+      "when": 1778576834231,
+      "tag": "0086_wide_warhawk",
+      "breakpoints": true
     }
   ]
 }

@@ -165,6 +165,21 @@ export interface LaneScoredProject {
    * Used for explainability in digest and dashboard.
    */
   reasonCodes: string[];
+  /**
+   * Account-prior scoring boost applied for pump-lane projects
+   * when the project's owner/contractor matches a priority account.
+   * 0 if no match or non-pump lane.
+   */
+  accountPriorBoost?: number;
+  /**
+   * Pump-specific action mode. Only populated for pump-lane projects.
+   * Determines what the rep should do next and what card layout to show.
+   */
+  pumpActionMode?: 'direct_pursue' | 'map_package' | 'find_site_contact' | 'watch_incumbent' | 'account_nurture' | 'reference_only';
+  /**
+   * Matched account-prior canonical name, if any.
+   */
+  matchedAccountPrior?: string | null;
 }
 
 // ── Keyword lists for lane opportunity scoring (Part B) ──
@@ -1611,6 +1626,8 @@ export function computePerUserFinalScore(
     email?: string | null;
     linkedin?: string | null;
   }>,
+  /** Optional account-prior match for pump-lane scoring boost */
+  accountPriorMatch?: { canonicalName: string; priorityLevel: string; } | null,
 ): LaneScoredProject {
   const assignedBLs = (profile.assignedBusinessLines || []);
 
@@ -1735,7 +1752,18 @@ export function computePerUserFinalScore(
     airClassification.bestProductAngle === 'Booster';
   const isPortableAirRep = assignedBLs.some(bl => BL_TO_LANE_KEY[bl] === 'portableAir');
   const specialtyAirBoost = isSpecialtyAirAngle && isPortableAirRep ? 15 : 0;
-  const finalScoreWithBoost = Math.max(0, Math.min(100, finalScore + specialtyAirBoost));
+  // ── Account-prior boost (Pump/Flow lane) ──
+  // When a project's owner/contractor matches a priority account in the account-prior library,
+  // apply a scoring boost. A-priority: +20, B-priority: +12, C-priority: +5.
+  const isPumpRep = assignedBLs.some(bl => BL_TO_LANE_KEY[bl] === 'pump');
+  let accountPriorBoostVal = 0;
+  if (isPumpRep && accountPriorMatch) {
+    const pl = (accountPriorMatch.priorityLevel || '').toLowerCase();
+    if (pl.startsWith('a')) accountPriorBoostVal = 20;
+    else if (pl.startsWith('b')) accountPriorBoostVal = 12;
+    else if (pl.startsWith('c')) accountPriorBoostVal = 5;
+  }
+  const finalScoreWithBoost = Math.max(0, Math.min(100, finalScore + specialtyAirBoost + accountPriorBoostVal));
 
   // ── Narrative fields ──
   const whyNow = generateWhyNow(project, laneScores, assignedBLs);
@@ -1775,6 +1803,39 @@ export function computePerUserFinalScore(
   if (isSpecialtyAirAngle && isPortableAirRep && specialtyAirBoost > 0) {
     reasonCodes.push(`specialty_air_boost_${specialtyAirBoost}`);
   }
+  if (accountPriorBoostVal > 0) {
+    reasonCodes.push(`account_prior_boost_${accountPriorBoostVal}`);
+  }
+
+  // ── Pump action mode (Part B of Pump/Flow redesign) ──
+  // Only computed for pump-lane reps. Determines the card layout and CTA.
+  let pumpActionMode: LaneScoredProject['pumpActionMode'] = undefined;
+  if (isPumpRep) {
+    const projStage = (project.stage || '').toLowerCase();
+    const hasPumpContact = contacts.some(c =>
+      c.contactTrustTier === 'send_ready' &&
+      (c.roleRelevance === 'high' || c.roleRelevance === 'medium')
+    );
+    const isAwarded = ['awarded', 'construction'].some(s => projStage.includes(s));
+    const hasContractorInfo = !!(project.contractors && (project.contractors as unknown[]).length > 0);
+    const overviewLower = (project.overview || '').toLowerCase();
+    const isEarlyStage = ['feasibility', 'exploration', 'scoping', 'concept'].some(s => projStage.includes(s));
+    const hasPumpWaterContext = /water|dewater|pump|excavat|tunnel|marine|dredg|flood|sewer|dam|bore|wellpoint|cofferdam|trench|slurry/.test(overviewLower);
+
+    if (laneScores.pump >= 60 && hasPumpContact && !isEarlyStage) {
+      pumpActionMode = 'direct_pursue';
+    } else if (isAwarded && hasContractorInfo && hasPumpWaterContext) {
+      pumpActionMode = 'map_package';
+    } else if (laneScores.pump >= 40 && !hasPumpContact && !isEarlyStage) {
+      pumpActionMode = 'find_site_contact';
+    } else if (accountPriorMatch && !hasPumpContact && !isAwarded) {
+      pumpActionMode = 'account_nurture';
+    } else if (isEarlyStage || laneScores.pump < 30) {
+      pumpActionMode = 'reference_only';
+    } else {
+      pumpActionMode = 'find_site_contact'; // default fallback for pump
+    }
+  }
 
   return {
     finalScore: finalScoreWithBoost,
@@ -1794,6 +1855,9 @@ export function computePerUserFinalScore(
     bestNextMove,
     channelLabel,
     reasonCodes,
+    accountPriorBoost: accountPriorBoostVal,
+    pumpActionMode,
+    matchedAccountPrior: accountPriorMatch?.canonicalName ?? null,
   };
 }
 

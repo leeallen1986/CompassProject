@@ -4,7 +4,7 @@
  * for the weekly landing page. Designed to surface the most actionable intelligence.
  */
 import { getDb, getAllProjects, getAllContacts, getProfileByUserId } from "./db";
-import { projects, contacts, projectBusinessLineScores, pipelineRuns, dismissedActions, pipelineClaims, outreachEmails } from "../drizzle/schema";
+import { projects, contacts, projectBusinessLineScores, pipelineRuns, dismissedActions, pipelineClaims, outreachEmails, accountPriors } from "../drizzle/schema";
 import { eq, desc, gte, and, sql, inArray } from "drizzle-orm";
 import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring";
 import { type ActionTier, getTierLabel, shouldIncludeInBrief } from "./tierClassification";
@@ -376,6 +376,43 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     } catch { /* non-fatal */ }
   }
 
+  // ── Load account priors for pump-lane matching ──
+  let accountPriorsList: { canonicalName: string; aliases: string[] | null; priorityLevel: string | null }[] = [];
+  if (db) {
+    try {
+      const rows = await db.select({
+        canonicalName: accountPriors.canonicalName,
+        aliases: accountPriors.aliases,
+        priorityLevel: accountPriors.priorityLevel,
+      }).from(accountPriors);
+      accountPriorsList = rows;
+    } catch { /* non-fatal */ }
+  }
+  /**
+   * Match a project owner/name against the account-prior library.
+   * Returns the first matching prior or null.
+   */
+  function matchAccountPrior(projectOwner: string, projectName: string) {
+    const ownerLower = (projectOwner || '').toLowerCase();
+    const nameLower = (projectName || '').toLowerCase();
+    for (const prior of accountPriorsList) {
+      const canonical = prior.canonicalName.toLowerCase();
+      if (canonical.length > 3 && (ownerLower.includes(canonical) || nameLower.includes(canonical))) {
+        return { canonicalName: prior.canonicalName, priorityLevel: prior.priorityLevel || 'B' };
+      }
+      // Check aliases
+      if (prior.aliases) {
+        for (const alias of prior.aliases) {
+          const aliasLower = alias.toLowerCase();
+          if (aliasLower.length > 3 && (ownerLower.includes(aliasLower) || nameLower.includes(aliasLower))) {
+            return { canonicalName: prior.canonicalName, priorityLevel: prior.priorityLevel || 'B' };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   // Score every project with laneScoring.ts
   const laneScoreMap = new Map<number, ReturnType<typeof applyTieBreaker>>();
   const visibilityMap = new Map<number, VisibilityTier>();
@@ -418,6 +455,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       },
       projectBLScores,
       [], // contacts not available at this stage
+      matchAccountPrior(p.owner, p.name),
     );
     const boosted = applyTieBreaker(laneResult, feedbackBoostMap.get(p.id) ?? 0);
     const visibility = classifyVisibility(boosted, assignedBLs.length > 0);

@@ -2568,6 +2568,16 @@
 
 ## Session: 2026-05-11 — UX Fix: Top 3 Actions back-navigation
 
-- [ ] When Detail is clicked from Top 3 Actions cards, pass from=top3 in the URL
-- [ ] On project detail page, show "← Back to Top 3 Actions" button when from=top3 is present
-- [ ] Back button scrolls/navigates to the Top 3 Actions section on the home page
+- [x] When Detail is clicked from Top 3 Actions cards, pass from=top3 in the URL
+- [x] On project detail page, show "← Back to Top 3 Actions" button when from=top3 is present
+- [x] Back button scrolls/navigates to the Top 3 Actions section on the home page
+
+- [x] Pump/Flow Lane Redesign: accountPriors schema table in drizzle
+- [x] Pump/Flow Lane Redesign: import Top 100 WA targets into accountPriors table
+- [x] Pump/Flow Lane Redesign: account-prior scoring boost in laneScoring.ts
+- [x] Pump/Flow Lane Redesign: pump action mode computation (pumpActionMode)
+- [x] Pump/Flow Lane Redesign: pump-specific contact role ranking in contactSelector.ts
+- [x] Pump/Flow Lane Redesign: digest email links to /this-week?section=must_act
+- [x] Pump/Flow Lane Redesign: Pipeline page reads ?filter= param and pre-applies filter (changed to /dashboard?tab=projects)
+- [x] Pump/Flow Lane Redesign: pump digest card uses intelligence-first layout (not outreach-first)
+- [x] Pump/Flow Lane Redesign: write vitest tests for new logic (15 tests passing in pumpFlowLane.test.ts)

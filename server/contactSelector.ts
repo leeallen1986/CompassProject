@@ -120,6 +120,8 @@ export function selectProjectContact(
     projectOwner?: string;
     projectState?: string | null;
     buyerRoles?: string[];
+    /** When true, uses pump-specific role ranking (site ops, maintenance, dewatering, package engineer) */
+    isPumpLane?: boolean;
   }
 ): ContactSelectionResult {
   const { projectName, projectOwner, projectState, buyerRoles } = options;
@@ -152,13 +154,16 @@ export function selectProjectContact(
   const namedUnverified = projectContacts.filter(c => c.contactTrustTier === "named_unverified");
   // llm_inferred contacts are NEVER shown as primary
 
-  // Step 3: Score send_ready contacts
-  const scoredSendReady = sendReady.map(c => scoreContact(c, { projectState, buyerRoles }));
+  // Step 3: Score send_ready contacts (pump-lane uses different scoring)
+  const isPump = options.isPumpLane ?? false;
+  const scoredSendReady = sendReady.map(c =>
+    isPump ? scorePumpContact(c, { projectState, buyerRoles }) : scoreContact(c, { projectState, buyerRoles })
+  );
   scoredSendReady.sort((a, b) => b.score - a.score);
 
   // Step 4: Build fallback list from named_unverified
   const scoredFallback = namedUnverified
-    .map(c => scoreContact(c, { projectState, buyerRoles }))
+    .map(c => isPump ? scorePumpContact(c, { projectState, buyerRoles }) : scoreContact(c, { projectState, buyerRoles }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
 
@@ -368,4 +373,148 @@ function matchContactsToProject(contacts: ContactInput[], projectName: string, p
     if (projectNameLower.includes(cCompany) && cCompany.length > 3) return true;
     return false;
   });
+}
+
+// ── Pump/Flow Lane: Contact Role Ranking ──
+// For Pump/Flow, prefer site operations, maintenance, dewatering/pump supervisors,
+// package engineers, contractor PMs, and service/branch managers over generic procurement.
+
+const PUMP_PREFERRED_TITLES = [
+  // Tier 1 — highest value for pump (site ops, dewatering, pump-specific)
+  "dewatering", "pump supervisor", "pump manager", "water manager",
+  "dewatering supervisor", "dewatering manager", "site operations",
+  "operations superintendent", "mine operations", "maintenance superintendent",
+  "maintenance manager", "plant maintenance", "fixed plant",
+  "package engineer", "mechanical engineer", "site engineer",
+  // Tier 2 — project delivery / contractor PM
+  "project manager", "project director", "construction manager",
+  "site manager", "works manager", "contracts manager",
+  "superintendent", "mine manager", "production manager",
+  // Tier 3 — service / branch (at supplier or contractor)
+  "service manager", "branch manager", "fleet manager",
+  "asset manager", "workshop manager", "hire manager",
+  "rental manager", "equipment manager",
+];
+
+const PUMP_TIER1_TITLES = [
+  "dewatering", "pump", "water manager", "site operations",
+  "operations superintendent", "mine operations",
+  "maintenance superintendent", "maintenance manager",
+  "plant maintenance", "fixed plant", "package engineer",
+  "mechanical engineer", "site engineer",
+];
+
+const PUMP_TIER2_TITLES = [
+  "project manager", "project director", "construction manager",
+  "site manager", "works manager", "contracts manager",
+  "superintendent", "mine manager", "production manager",
+];
+
+const PUMP_TIER3_TITLES = [
+  "service manager", "branch manager", "fleet manager",
+  "asset manager", "workshop manager", "hire manager",
+  "rental manager", "equipment manager",
+];
+
+/**
+ * Pump-specific contact scoring function.
+ * Replaces the generic scoreContact for pump-lane projects.
+ * Prioritises site operations, maintenance, and dewatering roles
+ * over generic procurement unless justified.
+ */
+function scorePumpContact(
+  contact: ContactInput,
+  options: { projectState?: string | null; buyerRoles?: string[] }
+): ScoredContact {
+  const { projectState, buyerRoles } = options;
+  let score = 0;
+  const reasons: string[] = [];
+
+  // Role relevance (0-20)
+  const relOrder: Record<string, number> = { high: 20, medium: 10, low: 0 };
+  const relScore = relOrder[contact.roleRelevance ?? "low"] ?? 0;
+  score += relScore;
+  if (contact.roleRelevance === "high") reasons.push("High role relevance");
+  else if (contact.roleRelevance === "medium") reasons.push("Medium role relevance");
+
+  // Pump-specific title match (0-25) — higher weight than generic commercial
+  const titleLower = (contact.title ?? "").toLowerCase();
+  if (PUMP_TIER1_TITLES.some(t => titleLower.includes(t))) {
+    score += 25;
+    reasons.push("Pump-priority role (site ops/maintenance/dewatering)");
+  } else if (PUMP_TIER2_TITLES.some(t => titleLower.includes(t))) {
+    score += 18;
+    reasons.push("Project delivery/contractor PM role");
+  } else if (PUMP_TIER3_TITLES.some(t => titleLower.includes(t))) {
+    score += 14;
+    reasons.push("Service/branch/fleet manager role");
+  } else if (COMMERCIAL_TITLES.some(t => titleLower.includes(t))) {
+    // Generic procurement — lower priority for pump lane
+    score += 8;
+    reasons.push("Generic commercial role (lower priority for pump)");
+  }
+
+  // Non-commercial penalty (same as generic)
+  if (NON_COMMERCIAL_TITLES.some(t => titleLower.includes(t))) {
+    score -= 20;
+  }
+
+  // Buyer role match (0-12)
+  if (buyerRoles && buyerRoles.length > 0) {
+    const roleLower = contact.roleBucket.toLowerCase();
+    if (buyerRoles.some(r => roleLower.includes(r.toLowerCase()))) {
+      score += 12;
+      reasons.push("Matches target buyer role");
+    }
+  }
+
+  // Email availability (0-8)
+  if (contact.email) {
+    score += 8;
+    reasons.push("Has verified email");
+  } else if (contact.linkedinProfileUrl || contact.linkedin) {
+    score += 3;
+    reasons.push("LinkedIn available");
+  }
+
+  // Verification score bonus (0-5)
+  if (contact.verificationScore && contact.verificationScore > 80) {
+    score += 5;
+  }
+
+  // Territory fit penalty (-25 to 0) — same as generic
+  const projectStateUpper = (projectState ?? "").toUpperCase();
+  if (projectStateUpper && AU_STATES.includes(projectStateUpper)) {
+    const mismatchPhrases = STATE_MISMATCH_PHRASES[projectStateUpper] ?? [];
+    const companyLower = (contact.company ?? "").toLowerCase();
+    if (mismatchPhrases.some(m => titleLower.includes(m) || companyLower.includes(m))) {
+      score -= 25;
+      reasons.push("Territory mismatch (penalised)");
+    } else {
+      reasons.push("Territory aligned");
+    }
+  }
+
+  // Route-to-buy inference (pump-specific)
+  let routeToBuy = "Unknown";
+  if (PUMP_TIER1_TITLES.some(t => titleLower.includes(t))) {
+    routeToBuy = "Site operations / maintenance — direct pump user or specifier";
+  } else if (titleLower.includes("project manager") || titleLower.includes("project director") || titleLower.includes("construction manager")) {
+    routeToBuy = "Project delivery — equipment package decision maker";
+  } else if (titleLower.includes("service") || titleLower.includes("branch") || titleLower.includes("fleet")) {
+    routeToBuy = "Service/fleet channel — fleet refresh or service agreement path";
+  } else if (titleLower.includes("procurement") || titleLower.includes("purchasing") || titleLower.includes("buyer")) {
+    routeToBuy = "Procurement — transactional purchase path";
+  } else if (titleLower.includes("general manager") || titleLower.includes("managing director") || titleLower.includes("ceo")) {
+    routeToBuy = "Executive sponsor / budget holder";
+  } else {
+    routeToBuy = "Technical/specialist influencer";
+  }
+
+  return {
+    contact,
+    score,
+    whySelected: reasons.length > 0 ? reasons.join("; ") : "Default selection",
+    routeToBuy,
+  };
 }

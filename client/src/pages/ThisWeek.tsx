@@ -449,13 +449,20 @@ export default function ThisWeek() {
   const [scopeMode, setScopeMode] = useState<ScopeMode>("strict");
   const top3Ref = useRef<HTMLElement | null>(null);
 
-  // Scroll to Top 3 Actions section when ?section=top3 is in the URL
+  // Scroll to section when ?section= is in the URL
+  const mustActRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("section") === "top3" && top3Ref.current) {
-      // Small delay to allow layout to settle after navigation
+    const section = params.get("section");
+    if (section === "top3" && top3Ref.current) {
       const timer = setTimeout(() => {
         top3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+    if (section === "must_act" && mustActRef.current) {
+      const timer = setTimeout(() => {
+        mustActRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 150);
       return () => clearTimeout(timer);
     }
@@ -705,13 +712,14 @@ export default function ThisWeek() {
           )}
         </section>
 
-        {/* ── Collapsible: Action-ready ── */}
+        {/* ── Collapsible: Action-ready (Must Act) ── */}
+        <div id="must_act" ref={mustActRef} />
         <CollapsibleSection
           title="Action-ready"
           count={actionReadyProjects.length}
           defaultOpen={true}
           icon={<Zap className="w-4 h-4 text-emerald-600" />}
-          viewAllHref="/pipeline?filter=action_ready"
+          viewAllHref="/dashboard?tab=projects"
           viewAllLabel={`View all action-ready (${actionReadyProjects.length})`}
           emptyMessage="No action-ready projects this week."
         >
