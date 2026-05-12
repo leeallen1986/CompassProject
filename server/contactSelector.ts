@@ -444,13 +444,20 @@ function scorePumpContact(
 
   // Pump-specific title match (0-25) — higher weight than generic commercial
   const titleLower = (contact.title ?? "").toLowerCase();
+
+  // Procurement demotion: if the title contains a procurement/purchasing/buyer keyword,
+  // it is treated as generic commercial (score +8) even if it also contains a Tier 2 keyword
+  // (e.g. "General Manager Procurement" should NOT beat "General Manager Construction").
+  const PROCUREMENT_KEYWORDS = ["procurement", "purchasing", "buyer", "supply chain", "contracts manager"];
+  const isProcurementTitle = PROCUREMENT_KEYWORDS.some(k => titleLower.includes(k));
+
   if (PUMP_TIER1_TITLES.some(t => titleLower.includes(t))) {
     score += 25;
     reasons.push("Pump-priority role (site ops/maintenance/dewatering)");
-  } else if (PUMP_TIER2_TITLES.some(t => titleLower.includes(t))) {
+  } else if (!isProcurementTitle && PUMP_TIER2_TITLES.some(t => titleLower.includes(t))) {
     score += 18;
     reasons.push("Project delivery/contractor PM role");
-  } else if (PUMP_TIER3_TITLES.some(t => titleLower.includes(t))) {
+  } else if (!isProcurementTitle && PUMP_TIER3_TITLES.some(t => titleLower.includes(t))) {
     score += 14;
     reasons.push("Service/branch/fleet manager role");
   } else if (COMMERCIAL_TITLES.some(t => titleLower.includes(t))) {

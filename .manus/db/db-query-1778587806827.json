@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, up.assignedBusinessLines, up.territories, up.industries\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Dan%'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, up.assignedBusinessLines, up.territories, up.industries\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Dan%'\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "territories": "[\"WA\", \"NT\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"water\", \"civils\", \"infrastructure\"]"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"infrastructure\", \"construction\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tassignedBusinessLines\tterritories\tindustries\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"WA\", \"NT\"]\t[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]\n3630009\tDan Day\tdan.day@atlascopco.com\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"mining_exploration\", \"mining_production\", \"water\", \"civils\", \"infrastructure\"]\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\t[\"Portable Air\"]\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"mining_exploration\", \"mining_production\", \"infrastructure\", \"construction\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1760
+}

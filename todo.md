@@ -2587,3 +2587,9 @@
 - [x] Part C: Surface pumpActionMode badge on project detail card and Top 3 / This Week cards
 - [x] Part D: Account Priors admin page (searchable table, filters, edit panel, nav link)
 - [x] Part E: Final Pump/Flow validation (13 new tests passing in accountPriors.test.ts, 15 in pumpFlowLane.test.ts)
+
+## Trust Gap Closure — Parts A-D (2026-05-12)
+- [x] Part A: Same-tier pump contact ordering — procurement demotion rule added to scorePumpContact
+- [ ] Part B: Dan Day east-coast contact rescue — audit top 3 + next 5-10 candidates, remove bad contacts
+- [ ] Part C: Action-ready filter handoff — /dashboard?tab=projects&filter=action_ready reads filter on mount
+- [ ] Part D: Re-run live commercial proof for Brett and Dan

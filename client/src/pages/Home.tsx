@@ -758,12 +758,24 @@ export default function Home() {
   });
 
   // On mount: read tab param and set to projects tab if collateral filter is active
+  // Also read ?filter=action_ready to pre-apply the action tier filter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
+    const filter = params.get("filter");
     if (tab) setActiveTab(tab);
     if (pendingProjectId && !tab) setActiveTab("projects");
     if (collateralFilterId && !tab) setActiveTab("projects");
+    // ?filter=action_ready → switch to projects tab and apply tier1_actionable filter
+    if (filter === "action_ready") {
+      setActiveTab("projects");
+      setActionTierFilter("tier1_actionable");
+      // Scroll to the projects section after a brief layout settle
+      setTimeout(() => {
+        const el = document.getElementById("projects-tab-content");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch matched project IDs when filtering by collateral
@@ -1531,7 +1543,7 @@ export default function Home() {
           </TabsContent>
 
           {/* ===== ALL PROJECTS TAB ===== */}
-          <TabsContent value="projects" className="space-y-5">
+          <TabsContent value="projects" id="projects-tab-content" className="space-y-5">
             {/* Collateral filter banner */}
             {collateralFilterId && (
               <div className="flex items-center gap-3 bg-teal/10 border border-teal/30 rounded-lg px-4 py-3">

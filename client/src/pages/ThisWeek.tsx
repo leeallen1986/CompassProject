@@ -761,7 +761,7 @@ export default function ThisWeek() {
           count={actionReadyProjects.length}
           defaultOpen={true}
           icon={<Zap className="w-4 h-4 text-emerald-600" />}
-          viewAllHref="/dashboard?tab=projects"
+          viewAllHref="/dashboard?tab=projects&filter=action_ready"
           viewAllLabel={`View all action-ready (${actionReadyProjects.length})`}
           emptyMessage="No action-ready projects this week."
         >
