@@ -230,11 +230,17 @@ export async function getContactsForProject(projectId: number) {
     .where(eq(contactProjects.projectId, projectId));
   const ids = linkedContactIds.map(r => r.contactId);
   if (ids.length > 0) {
-    return db.select().from(contacts).where(inArray(contacts.id, ids));
+    // Exclude quarantined contacts (rejectionReason set)
+    return db.select().from(contacts).where(
+      and(inArray(contacts.id, ids), isNull(contacts.rejectionReason))
+    );
   }
-  // Fallback: match by project name substring
+  // Fallback: match by project name substring (also exclude quarantined)
   return db.select().from(contacts).where(
-    sql`LOWER(${contacts.project}) LIKE LOWER(${'%' + proj.name.slice(0, 40) + '%'})`
+    and(
+      sql`LOWER(${contacts.project}) LIKE LOWER(${'%' + proj.name.slice(0, 40) + '%'})`,
+      isNull(contacts.rejectionReason)
+    )
   ).limit(20);
 }
 
@@ -521,9 +527,10 @@ export async function getAllContacts(includeAll = false) {
 
   // Quality filter: only return contacts with score >= 60 or LinkedIn-verified
   // PLUS CRM junk exclusion to remove bulk-imported billing/phone contacts
+  // PLUS quarantine exclusion: contacts with rejectionReason set are NEVER surfaced to reps
   return db.select().from(contacts)
     .where(
-      sql`(${contacts.verificationScore} >= 60 OR ${contacts.enrichmentSource} = 'linkedin' OR ${contacts.verificationStatus} = 'verified') AND ${CRM_JUNK_EXCLUSION}`
+      sql`(${contacts.verificationScore} >= 60 OR ${contacts.enrichmentSource} = 'linkedin' OR ${contacts.verificationStatus} = 'verified') AND ${CRM_JUNK_EXCLUSION} AND ${contacts.rejectionReason} IS NULL`
     )
     .orderBy(desc(contacts.id));
 }

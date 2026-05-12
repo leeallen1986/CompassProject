@@ -46,6 +46,8 @@ export interface ContactInput {
   enrichmentSource?: string | null;
   linkedinHeadline?: string | null;
   linkedinLocation?: string | null;
+  /** Set when contact has been quarantined — excluded from all selection paths */
+  rejectionReason?: string | null;
 }
 
 export interface SelectedContact {
@@ -136,8 +138,11 @@ export function selectProjectContact(
     };
   }
 
+  // Pre-filter: remove quarantined contacts (rejectionReason set) before any selection logic
+  const activeContacts = contacts.filter(c => !c.rejectionReason);
+
   // Step 1: Match contacts to this project (fuzzy name/company match)
-  const projectContacts = matchContactsToProject(contacts, projectName, projectOwner ?? "");
+  const projectContacts = matchContactsToProject(activeContacts, projectName, projectOwner ?? "");
 
   if (projectContacts.length === 0) {
     return {

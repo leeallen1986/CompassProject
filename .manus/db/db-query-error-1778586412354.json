@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  u.id as userId, u.name, u.email,\n  up.assignedBusinessLines, up.assignedStates, up.assignedSectors\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Dan%' OR u.name LIKE '%Hansen%' OR u.name LIKE '%Day%'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.id as userId, u.name, u.email,\n  up.assignedBusinessLines, up.assignedStates, up.assignedSectors\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Dan%' OR u.name LIKE '%Hansen%' OR u.name LIKE '%Day%'\nORDER BY u.name;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'up.assignedstates' in 'field list'"
+  ]
+}

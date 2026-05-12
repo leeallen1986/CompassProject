@@ -1,0 +1,43 @@
+{
+  "query": "\nSELECT \n  c.id,\n  c.name,\n  c.title,\n  c.company,\n  c.email,\n  c.contactTrustTier,\n  c.roleRelevance,\n  c.rejectionReason,\n  GROUP_CONCAT(cp.projectId) as linkedProjectIds\nFROM contacts c\nLEFT JOIN contactProjects cp ON cp.contactId = c.id\nWHERE c.id IN (1080026, 1080027, 1080028)\nGROUP BY c.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  c.id,\n  c.name,\n  c.title,\n  c.company,\n  c.email,\n  c.contactTrustTier,\n  c.roleRelevance,\n  c.rejectionReason,\n  GROUP_CONCAT(cp.projectId) as linkedProjectIds\nFROM contacts c\nLEFT JOIN contactProjects cp ON cp.contactId = c.id\nWHERE c.id IN (1080026, 1080027, 1080028)\nGROUP BY c.id;\n",
+  "rows": [
+    {
+      "id": "1080028",
+      "name": "Abe Ninan",
+      "title": "Manager (Procurement Analysis) at QDTMR",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "high",
+      "rejectionReason": "quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)",
+      "linkedProjectIds": "630011"
+    },
+    {
+      "id": "1080027",
+      "name": "Robyn Allen",
+      "title": "Manager Procurement and Contracts at TAFE Queensland",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "high",
+      "rejectionReason": "quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)",
+      "linkedProjectIds": "630011"
+    },
+    {
+      "id": "1080026",
+      "name": "Rick McConnon",
+      "title": "Manager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "high",
+      "rejectionReason": "quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)",
+      "linkedProjectIds": "630011"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\temail\tcontactTrustTier\troleRelevance\trejectionReason\tlinkedProjectIds\n1080028\tAbe Ninan\tManager (Procurement Analysis) at QDTMR\tQueensland Department of Transport and Main Roads\tNULL\tnamed_unverified\thigh\tquarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)\t630011\n1080027\tRobyn Allen\tManager Procurement and Contracts at TAFE Queensland\tQueensland Department of Transport and Main Roads\tNULL\tnamed_unverified\thigh\tquarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)\t630011\n1080026\tRick McConnon\tManager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -\tQueensland Department of Transport and Main Roads\tNULL\tnamed_unverified\thigh\tquarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)\t630011\n",
+  "stderr": "",
+  "execution_time_ms": 1779
+}

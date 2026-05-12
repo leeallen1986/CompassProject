@@ -144,9 +144,30 @@ const filterOptions = protectedProcedure
     };
   });
 
+// ── Global stats (unfiltered, for KPI cards) ──
+const stats = protectedProcedure
+  .query(async () => {
+    const db = await getDb();
+    if (!db) return { total: 0, priorityA: 0, priorityB: 0, contacted: 0, notStarted: 0 };
+
+    const all = await db.select({
+      priorityLevel: accountPriors.priorityLevel,
+      status: accountPriors.status,
+    }).from(accountPriors);
+
+    return {
+      total: all.length,
+      priorityA: all.filter(a => a.priorityLevel?.startsWith("A")).length,
+      priorityB: all.filter(a => a.priorityLevel?.startsWith("B")).length,
+      contacted: all.filter(a => ["contacted", "qualified", "won"].includes(a.status ?? "")).length,
+      notStarted: all.filter(a => a.status === "not_started" || !a.status).length,
+    };
+  });
+
 export const accountPriorsRouter = router({
   list,
   getById,
   update,
   filterOptions,
+  stats,
 });

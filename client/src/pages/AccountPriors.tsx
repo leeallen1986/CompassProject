@@ -32,6 +32,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  "A - High priority": { label: "Priority A", color: "bg-hot text-white" },
+  "B - Medium priority": { label: "Priority B", color: "bg-warm text-navy" },
+  "C - Low priority": { label: "Priority C", color: "bg-cold text-white" },
+  // legacy short keys
   A: { label: "Priority A", color: "bg-hot text-white" },
   B: { label: "Priority B", color: "bg-warm text-navy" },
   C: { label: "Priority C", color: "bg-cold text-white" },
@@ -275,6 +279,7 @@ export default function AccountPriors() {
   }, { enabled: !!user });
 
   const { data: filterOptions } = trpc.accountPriors.filterOptions.useQuery(undefined, { enabled: !!user });
+  const { data: globalStats } = trpc.accountPriors.stats.useQuery(undefined, { enabled: !!user });
   const { data: selectedAccount } = trpc.accountPriors.getById.useQuery(
     { id: selectedId! },
     { enabled: !!selectedId }
@@ -304,17 +309,14 @@ export default function AccountPriors() {
 
   const accounts = data?.accounts ?? [];
 
-  // Stats
-  const stats = useMemo(() => {
-    const all = accounts;
-    return {
-      total: all.length,
-      priorityA: all.filter((a: any) => a.priorityLevel === "A").length,
-      priorityB: all.filter((a: any) => a.priorityLevel === "B").length,
-      contacted: all.filter((a: any) => ["contacted", "qualified", "won"].includes(a.status)).length,
-      notStarted: all.filter((a: any) => a.status === "not_started").length,
-    };
-  }, [accounts]);
+  // Stats — use dedicated unfiltered backend query for KPI cards
+  const stats = {
+    total: globalStats?.total ?? 0,
+    priorityA: globalStats?.priorityA ?? 0,
+    priorityB: globalStats?.priorityB ?? 0,
+    contacted: globalStats?.contacted ?? 0,
+    notStarted: globalStats?.notStarted ?? 0,
+  };
 
   // ── Auth guard ──
   if (authLoading) {

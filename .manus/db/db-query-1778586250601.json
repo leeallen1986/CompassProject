@@ -1,0 +1,64 @@
+{
+  "query": "\nSELECT \n  c.id, c.name, c.title, c.company, c.contactTrustTier, c.roleRelevance, c.email\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 630011\nORDER BY \n  CASE c.contactTrustTier \n    WHEN 'send_ready' THEN 1 \n    WHEN 'named_unverified' THEN 2 \n    WHEN 'needs_verification' THEN 3 \n    ELSE 4 \n  END,\n  CASE c.roleRelevance \n    WHEN 'high' THEN 1 \n    WHEN 'medium' THEN 2 \n    WHEN 'low' THEN 3 \n    ELSE 4 \n  END;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  c.id, c.name, c.title, c.company, c.contactTrustTier, c.roleRelevance, c.email\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 630011\nORDER BY \n  CASE c.contactTrustTier \n    WHEN 'send_ready' THEN 1 \n    WHEN 'named_unverified' THEN 2 \n    WHEN 'needs_verification' THEN 3 \n    ELSE 4 \n  END,\n  CASE c.roleRelevance \n    WHEN 'high' THEN 1 \n    WHEN 'medium' THEN 2 \n    WHEN 'low' THEN 3 \n    ELSE 4 \n  END;\n",
+  "rows": [
+    {
+      "id": "1080029",
+      "name": "Sandie West",
+      "title": "Contracts Administrator/Procurement Lead",
+      "company": "Seymour Whyte",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "email": "sandie.west@seymourwhyte.com.au"
+    },
+    {
+      "id": "1080026",
+      "name": "Rick McConnon",
+      "title": "Manager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -",
+      "company": "Queensland Department of Transport and Main Roads",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "high",
+      "email": "NULL"
+    },
+    {
+      "id": "1080027",
+      "name": "Robyn Allen",
+      "title": "Manager Procurement and Contracts at TAFE Queensland",
+      "company": "Queensland Department of Transport and Main Roads",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "high",
+      "email": "NULL"
+    },
+    {
+      "id": "1080028",
+      "name": "Abe Ninan",
+      "title": "Manager (Procurement Analysis) at QDTMR",
+      "company": "Queensland Department of Transport and Main Roads",
+      "contactTrustTier": "named_unverified",
+      "roleRelevance": "high",
+      "email": "NULL"
+    },
+    {
+      "id": "1620078",
+      "name": "Maria Rossi",
+      "title": "Plant & Equipment Manager",
+      "company": "Queensland Government (implied)",
+      "contactTrustTier": "llm_inferred",
+      "roleRelevance": "medium",
+      "email": "maria.rossi@accionacontractor.com.au"
+    },
+    {
+      "id": "1620079",
+      "name": "David 'Davo' Thompson",
+      "title": "Site Operations Superintendent, Northern Section",
+      "company": "Queensland Government (implied)",
+      "contactTrustTier": "llm_inferred",
+      "roleRelevance": "medium",
+      "email": "david.thompson@cpbcontractorscontractor.com.au"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\troleRelevance\temail\n1080029\tSandie West\tContracts Administrator/Procurement Lead\tSeymour Whyte\tsend_ready\thigh\tsandie.west@seymourwhyte.com.au\n1080026\tRick McConnon\tManager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -\tQueensland Department of Transport and Main Roads\tnamed_unverified\thigh\tNULL\n1080027\tRobyn Allen\tManager Procurement and Contracts at TAFE Queensland\tQueensland Department of Transport and Main Roads\tnamed_unverified\thigh\tNULL\n1080028\tAbe Ninan\tManager (Procurement Analysis) at QDTMR\tQueensland Department of Transport and Main Roads\tnamed_unverified\thigh\tNULL\n1620078\tMaria Rossi\tPlant & Equipment Manager\tQueensland Government (implied)\tllm_inferred\tmedium\tmaria.rossi@accionacontractor.com.au\n1620079\tDavid 'Davo' Thompson\tSite Operations Superintendent, Northern Section\tQueensland Government (implied)\tllm_inferred\tmedium\tdavid.thompson@cpbcontractorscontractor.com.au\n",
+  "stderr": "",
+  "execution_time_ms": 1733
+}
