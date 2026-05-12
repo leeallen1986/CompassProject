@@ -2593,3 +2593,9 @@
 - [ ] Part B: Dan Day east-coast contact rescue — audit top 3 + next 5-10 candidates, remove bad contacts
 - [ ] Part C: Action-ready filter handoff — /dashboard?tab=projects&filter=action_ready reads filter on mount
 - [ ] Part D: Re-run live commercial proof for Brett and Dan
+
+## Final Pump/Flow Quality Gaps (2026-05-12 Session 2)
+- [ ] Part A: Quarantine Julie Chavez (Bass Strait, "Woodside Pizzeria") and Dmitry Kharchenko (Pilbara, wrong person)
+- [ ] Part B: Dan Day targeted contact rescue — Cairns Water + Bass Strait + next best 3-5 east-coast pump projects
+- [ ] Part C: Port of Newcastle action mode review — check if direct_pursue is justified with 3 send_ready contacts + active construction
+- [ ] Part D: Updated live proof for Brett Hansen and Dan Day post-fixes

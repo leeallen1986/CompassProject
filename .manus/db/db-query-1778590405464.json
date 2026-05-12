@@ -1,0 +1,22 @@
+{
+  "query": "UPDATE contacts \nSET rejectionReason = 'quarantined: LinkedIn contamination — title is \"General Manager @ Woodside Pizzeria\" (restaurant, not Woodside Energy). Fabricated email domain woodside.com.au inferred incorrectly.'\nWHERE id = 960067;\n\nUPDATE contacts\nSET rejectionReason = 'quarantined: LinkedIn contamination — title is \"Game Designer / games for sale\". Wrong person matched to Large-Scale Iron Ore Processing Development project.'\nWHERE id = 960029;\n\nSELECT id, name, title, rejectionReason FROM contacts WHERE id IN (960067, 960029);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE contacts \nSET rejectionReason = 'quarantined: LinkedIn contamination — title is \"General Manager @ Woodside Pizzeria\" (restaurant, not Woodside Energy). Fabricated email domain woodside.com.au inferred incorrectly.'\nWHERE id = 960067;\n\nUPDATE contacts\nSET rejectionReason = 'quarantined: LinkedIn contamination — title is \"Game Designer / games for sale\". Wrong person matched to Large-Scale Iron Ore Processing Development project.'\nWHERE id = 960029;\n\nSELECT id, name, title, rejectionReason FROM contacts WHERE id IN (960067, 960029);",
+  "rows": [
+    {
+      "id": "960067",
+      "name": "Julie Chavez",
+      "title": "General Manager @ Woodside Pizzeria | Compensation, Timekeeping",
+      "rejectionReason": "quarantined: LinkedIn contamination — title is \"General Manager @ Woodside Pizzeria\" (restaurant, not Woodside Energy). Fabricated email domain woodside.com.au inferred incorrectly."
+    },
+    {
+      "id": "960029",
+      "name": "Dmitry Kharchenko",
+      "title": "Game Designer/ games for sale",
+      "rejectionReason": "quarantined: LinkedIn contamination — title is \"Game Designer / games for sale\". Wrong person matched to Large-Scale Iron Ore Processing Development project."
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\trejectionReason\n960067\tJulie Chavez\tGeneral Manager @ Woodside Pizzeria | Compensation, Timekeeping\tquarantined: LinkedIn contamination — title is \"General Manager @ Woodside Pizzeria\" (restaurant, not Woodside Energy). Fabricated email domain woodside.com.au inferred incorrectly.\n960029\tDmitry Kharchenko\tGame Designer/ games for sale\tquarantined: LinkedIn contamination — title is \"Game Designer / games for sale\". Wrong person matched to Large-Scale Iron Ore Processing Development project.\n",
+  "stderr": "",
+  "execution_time_ms": 2226
+}
