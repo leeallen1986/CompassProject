@@ -37,6 +37,7 @@ import {
   applyTieBreaker,
   portableAirOpportunityGate,
   palBessOpportunityGate,
+  isPumpLaneRep,
   type VisibilityTier,
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
@@ -367,6 +368,7 @@ interface DigestContact {
 export function classifyBriefReadiness(
   project: DigestProject,
   projectContacts: DigestContact[],
+  options?: { isPumpLane?: boolean },
 ): { readiness: BriefReadiness; bestContact: DigestProject["bestContact"] } {
   const tier = project.actionTier || "tier3_monitor";
   const priority = project.priority as "hot" | "warm" | "cold";
@@ -388,6 +390,7 @@ export function classifyBriefReadiness(
     projectName: project.name,
     projectOwner: (project as any).owner ?? "",
     projectState: (project as any).projectState ?? null,
+    isPumpLane: options?.isPumpLane,
   });
 
   if (contactSelection.salesReadiness === "send_ready" && contactSelection.selectedContact) {
@@ -2078,9 +2081,10 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
             source: (c as any).source ?? null,
             verificationScore: (c as any).verificationScore ?? null,
           }));
-        const { readiness, bestContact } = classifyBriefReadiness(
+         const { readiness, bestContact } = classifyBriefReadiness(
           { ...p, hasNoContacts },
           projectContacts,
+          { isPumpLane: isPumpLaneRep((profile.assignedBusinessLines as string[] | null) || []) },
         );
         return {
           ...p,
@@ -2089,7 +2093,6 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
           bestContact,
         };
       });
-
       const rawTerritories = (profile.territories as string[]) || [];
       // Resolve NATIONAL → all states via canonical model
       const territories = resolveTerritories(rawTerritories, profile.sectorFocus as string[] | null);
@@ -2344,6 +2347,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
                     const { readiness, bestContact: freshBestContact } = classifyBriefReadiness(
                       { ...p, hasNoContacts },
                       projectContacts,
+                      { isPumpLane: isPumpLaneRep((profile.assignedBusinessLines as string[] | null) || []) },
                     );
                     return { ...p, hasNoContacts, briefReadiness: readiness, bestContact: freshBestContact };
                   });
@@ -2449,7 +2453,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
                                   source: (c as any).source ?? null,
                                   verificationScore: (c as any).verificationScore ?? null,
                                 }));
-                              const { readiness, bestContact: bc } = classifyBriefReadiness({ ...p, hasNoContacts }, pContacts);
+                              const { readiness, bestContact: bc } = classifyBriefReadiness({ ...p, hasNoContacts }, pContacts, { isPumpLane: isPumpLaneRep((profile.assignedBusinessLines as string[] | null) || []) });
                               return { ...p, hasNoContacts, briefReadiness: readiness, bestContact: bc };
                             });
                             const lushaTop3 = lushaFreshAnnotated
@@ -3288,10 +3292,11 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     const { readiness, bestContact } = classifyBriefReadiness(
       { ...p, hasNoContacts },
       projectContacts,
+      { isPumpLane: isPumpLaneRep((profile.assignedBusinessLines as string[] | null) || []) },
     );
     return { ...p, hasNoContacts, briefReadiness: readiness, bestContact };
   });
-  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);;
+  const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
   const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const pipeline = await getPipelineClaimsByUser(userId);
 

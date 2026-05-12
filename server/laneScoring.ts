@@ -1868,6 +1868,14 @@ export function computePerUserFinalScore(
  * Capped to ±5 pts — does not change ranking order unless scores are within 5 pts.
  * Call this AFTER computePerUserFinalScore(), using getFeedbackBoostForProjects() from mlRanker.
  */
+/**
+ * Check if the given business lines include a pump/dewatering lane.
+ * Use this to pass isPumpLane to selectProjectContact.
+ */
+export function isPumpLaneRep(assignedBusinessLines: string[]): boolean {
+  return assignedBusinessLines.some(bl => BL_TO_LANE_KEY[bl] === 'pump');
+}
+
 export function applyTieBreaker(
   scored: LaneScoredProject,
   feedbackBoost: number, // ±5 from getFeedbackBoostForProjects()
@@ -1923,4 +1931,34 @@ export function classifyVisibility(
 
   // Watchlist: everything else that is not suppressed or monitor
   return "watchlist_candidate";
+}
+
+/**
+ * Compute pumpActionMode for a single project without the full lane scoring pipeline.
+ * Used by projectLifecycle.byId to show the badge on the detail page.
+ * Mirrors the logic in computePerUserFinalScore but only needs the project + contacts + BL scores.
+ */
+export function computePumpActionMode(
+  project: { stage: string | null; overview: string | null; contractors: unknown },
+  contacts: { contactTrustTier: string | null; roleRelevance: string | null }[],
+  pumpBLScore: number,
+  accountPriorMatch: string | null,
+): LaneScoredProject['pumpActionMode'] {
+  const projStage = (project.stage || '').toLowerCase();
+  const hasPumpContact = contacts.some(c =>
+    c.contactTrustTier === 'send_ready' &&
+    (c.roleRelevance === 'high' || c.roleRelevance === 'medium')
+  );
+  const isAwarded = ['awarded', 'construction'].some(s => projStage.includes(s));
+  const hasContractorInfo = !!(project.contractors && (project.contractors as unknown[]).length > 0);
+  const overviewLower = (project.overview || '').toLowerCase();
+  const isEarlyStage = ['feasibility', 'exploration', 'scoping', 'concept'].some(s => projStage.includes(s));
+  const hasPumpWaterContext = /water|dewater|pump|excavat|tunnel|marine|dredg|flood|sewer|dam|bore|wellpoint|cofferdam|trench|slurry/.test(overviewLower);
+
+  if (pumpBLScore >= 60 && hasPumpContact && !isEarlyStage) return 'direct_pursue';
+  if (isAwarded && hasContractorInfo && hasPumpWaterContext) return 'map_package';
+  if (pumpBLScore >= 40 && !hasPumpContact && !isEarlyStage) return 'find_site_contact';
+  if (accountPriorMatch && !hasPumpContact && !isAwarded) return 'account_nurture';
+  if (isEarlyStage || pumpBLScore < 30) return 'reference_only';
+  return 'find_site_contact'; // default fallback for pump
 }

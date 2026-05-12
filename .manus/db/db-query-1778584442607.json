@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE contacts SET contactTrustTier = 'named_unverified', email = NULL, emailVerified = false, rejectionReason = 'quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)', rejectedAt = NOW() WHERE id IN (1080026, 1080027, 1080028);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute UPDATE contacts SET contactTrustTier = 'named_unverified', email = NULL, emailVerified = false, rejectionReason = 'quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)', rejectedAt = NOW() WHERE id IN (1080026, 1080027, 1080028);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1757
+}

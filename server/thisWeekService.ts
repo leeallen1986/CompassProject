@@ -16,6 +16,7 @@ import {
   classifyVisibility,
   applyTieBreaker,
   laneOpportunityGate,
+  isPumpLaneRep,
   type VisibilityTier,
 } from "./laneScoring";
 import { getActiveBusinessLines } from "./pipelineDb";
@@ -68,6 +69,9 @@ export interface ThisWeekProject {
   airFit: "High" | "Medium" | "Low" | "None";
   opportunityType: string;
   bestProductAngle: string;
+  // ── Pump lane action mode (from laneScoring.ts) ──
+  pumpActionMode?: 'direct_pursue' | 'map_package' | 'find_site_contact' | 'watch_incumbent' | 'account_nurture' | 'reference_only';
+  matchedAccountPrior?: string | null;
   // ── Contact CTA state (Part B) ──
   contactCTA: ContactCTAState;
 }
@@ -622,6 +626,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       projectOwner: p.owner,
       projectState: (p as any).projectState ?? null,
       buyerRoles: userProfile?.buyerRoles as string[] | undefined,
+      isPumpLane: isPumpLaneRep(assignedBLs),
     });
     const bestContact = contactSelection.selectedContact;
     const relevantContacts = contactSelection.salesReadiness === "send_ready" ? [bestContact] : [];
@@ -735,6 +740,9 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       airFit: laneScoreMap.get(p.id)?.airFit ?? "None",
       opportunityType: laneScoreMap.get(p.id)?.opportunityType ?? "none",
       bestProductAngle: laneScoreMap.get(p.id)?.bestProductAngle ?? "Monitor",
+      // ── Pump lane action mode ──
+      pumpActionMode: laneScoreMap.get(p.id)?.pumpActionMode,
+      matchedAccountPrior: laneScoreMap.get(p.id)?.matchedAccountPrior ?? null,
       // ── Contact CTA state (Part B) ──
       contactCTA: deriveContactCTA(p, contactSelection, bestContact),
     };

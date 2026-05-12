@@ -1,0 +1,17 @@
+{
+  "query": "SELECT COUNT(*) as total_rows, COUNT(DISTINCT priorityLevel) as priority_levels, SUM(CASE WHEN priorityLevel LIKE 'A%' THEN 1 ELSE 0 END) as priority_A, SUM(CASE WHEN priorityLevel LIKE 'B%' THEN 1 ELSE 0 END) as priority_B, SUM(CASE WHEN priorityLevel LIKE 'C%' THEN 1 ELSE 0 END) as priority_C FROM accountPriors;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COUNT(*) as total_rows, COUNT(DISTINCT priorityLevel) as priority_levels, SUM(CASE WHEN priorityLevel LIKE 'A%' THEN 1 ELSE 0 END) as priority_A, SUM(CASE WHEN priorityLevel LIKE 'B%' THEN 1 ELSE 0 END) as priority_B, SUM(CASE WHEN priorityLevel LIKE 'C%' THEN 1 ELSE 0 END) as priority_C FROM accountPriors;",
+  "rows": [
+    {
+      "total_rows": "100",
+      "priority_levels": "2",
+      "priority_A": "23",
+      "priority_B": "77",
+      "priority_C": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_rows\tpriority_levels\tpriority_A\tpriority_B\tpriority_C\n100\t2\t23\t77\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1905
+}

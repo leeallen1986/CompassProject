@@ -68,6 +68,7 @@ import { discoverAndSaveStakeholders, runBulkWebDiscovery } from "./webStakehold
 import { searchProjects } from "./aiProjectMatcher";
 import { projectActionsRouter } from "./routers/projectActions";
 import { accountAttackRouter } from "./routers/accountAttack";
+import { accountPriorsRouter } from "./routers/accountPriors";
 import { accountResearchRouter } from "./routers/accountResearch";
 import { pilotEnrichmentRouter } from "./routers/pilotEnrichment";
 import {
@@ -153,6 +154,7 @@ import {
 } from "./templateService";
 import { storagePut } from "./storage";
 import { selectProjectContact, type ContactInput, type ContactSelectionResult } from "./contactSelector";
+import { isPumpLaneRep, computePumpActionMode } from "./laneScoring";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
 import { queueDiscoveryForProject, processDiscoveryQueue, enforceHotProjectSLA, backfillDiscoveryStatus } from "./discoveryQueue";
 import {
@@ -513,7 +515,38 @@ export const appRouter = router({
         };
         // Get the user's claim if any
         const userClaim = claims.find(c => c.userId === ctx.user.id) ?? null;
-        return { project, contacts: projectContacts, claims, userClaim, businessLineNames, scopeFlags };
+        // Compute pump action mode if user is a pump rep
+        const profile = await getProfileByUserId(ctx.user.id);
+        const userBLs = (profile?.assignedBusinessLines as string[] | null) || [];
+        let pumpActionMode: string | null = null;
+        let matchedAccountPrior: string | null = null;
+        if (isPumpLaneRep(userBLs)) {
+          // Get pump BL score for this project
+          const { projectBusinessLineScores, accountPriors } = await import("../drizzle/schema");
+          const db = (await import("./db")).getDb;
+          const dbConn = await db();
+          if (dbConn) {
+            const { eq } = await import("drizzle-orm");
+            const blScores = await dbConn.select().from(projectBusinessLineScores).where(eq(projectBusinessLineScores.projectId, input.id));
+            const pumpScore = blScores.find((s: any) => s.scoringDimension?.toLowerCase().includes('pump'))?.score ?? 0;
+            // Check account prior match
+            const priors = await dbConn.select().from(accountPriors);
+            const ownerLower = (project.owner || '').toLowerCase();
+            const contractorNames = ((project.contractors as any[]) || []).map((c: any) => (c.name || '').toLowerCase());
+            const match = priors.find((ap: any) => {
+              const canonical = (ap.canonicalName || '').toLowerCase();
+              return ownerLower.includes(canonical) || contractorNames.some((cn: string) => cn.includes(canonical));
+            });
+            pumpActionMode = computePumpActionMode(
+              project,
+              projectContacts.map(c => ({ contactTrustTier: (c as any).contactTrustTier, roleRelevance: (c as any).roleRelevance })),
+              pumpScore,
+              match?.canonicalName ?? null,
+            ) ?? null;
+            matchedAccountPrior = match?.canonicalName ?? null;
+          }
+        }
+        return { project, contacts: projectContacts, claims, userClaim, businessLineNames, scopeFlags, pumpActionMode, matchedAccountPrior };
       }),
 
     /** Get the primary contact selection for a project using the shared selector */
@@ -525,10 +558,13 @@ export const appRouter = router({
           getContactsForProject(input.projectId),
         ]);
         if (!project) return null;
+        const profile = await getProfileByUserId(ctx.user.id);
+        const userBLs = (profile?.assignedBusinessLines as string[] | null) || [];
         const result = selectProjectContact(projectContacts as unknown as ContactInput[], {
           projectName: project.name,
           projectOwner: project.owner ?? "",
           projectState: (project as any).projectState ?? null,
+          isPumpLane: isPumpLaneRep(userBLs),
         });
         return result;
       }),
@@ -4359,6 +4395,7 @@ export const appRouter = router({
   projectActions: projectActionsRouter,
   pilotEnrichment: pilotEnrichmentRouter,
   accountAttack: accountAttackRouter,
+  accountPriors: accountPriorsRouter,
   accountResearch: accountResearchRouter,
   contactValidation: contactValidationRouter,
 

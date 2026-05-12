@@ -11,7 +11,7 @@ import {
   ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2,
   Users, ShieldCheck, Bot, CheckCircle2, AlertTriangle, Linkedin,
   Archive, Clock, Award, KeyRound, FileText, Download, Pin, PinOff,
-  ChevronRight, CircleDot, CircleDashed,
+  ChevronRight, CircleDot, CircleDashed, Crosshair,
 } from "lucide-react";
 import ActionTracker from "@/components/ActionTracker";
 import OutreachEmailModal from "@/components/OutreachEmailModal";
@@ -55,6 +55,9 @@ export interface ProjectData {
   productLane?: "portable_air" | "pumps" | "pal" | "bess" | "multi_lane_pt" | null;
   stageCode?: string | null;
   projectState?: string | null;
+  // Pump lane action mode (from laneScoring.ts)
+  pumpActionMode?: 'direct_pursue' | 'map_package' | 'find_site_contact' | 'watch_incumbent' | 'account_nurture' | 'reference_only';
+  matchedAccountPrior?: string | null;
 }
 
 // ── Priority config ──
@@ -926,6 +929,32 @@ export default function ProjectCard({
             <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
           </div>
         </div>
+
+        {/* Pump Action Mode row */}
+        {project.pumpActionMode && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${
+              project.pumpActionMode === 'direct_pursue' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+              project.pumpActionMode === 'map_package' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+              project.pumpActionMode === 'find_site_contact' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+              project.pumpActionMode === 'watch_incumbent' ? 'bg-slate-50 text-slate-600 border-slate-200' :
+              project.pumpActionMode === 'account_nurture' ? 'bg-violet-50 text-violet-700 border-violet-200' :
+              'bg-slate-50 text-slate-400 border-slate-200'
+            }`}>
+              <Crosshair className="w-3 h-3" />
+              {project.pumpActionMode === 'direct_pursue' ? 'Direct Pursue' :
+               project.pumpActionMode === 'map_package' ? 'Map Package' :
+               project.pumpActionMode === 'find_site_contact' ? 'Find Site Contact' :
+               project.pumpActionMode === 'watch_incumbent' ? 'Watch Incumbent' :
+               project.pumpActionMode === 'account_nurture' ? 'Account Nurture' : 'Reference Only'}
+            </span>
+            {project.matchedAccountPrior && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-gold/10 text-gold-dark border border-gold/25">
+                <Target className="w-3 h-3" /> {project.matchedAccountPrior}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Row 2: Project name */}
         <h3 className="text-sm sm:text-base font-semibold text-navy leading-snug line-clamp-2 mb-1">

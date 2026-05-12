@@ -1,0 +1,64 @@
+{
+  "query": "SELECT c.id, c.name, c.title, c.company, c.email, c.contactTrustTier, c.roleRelevance FROM contacts c JOIN contactProjects cp ON c.id = cp.contactId WHERE cp.projectId = 630011 ORDER BY c.contactTrustTier, c.roleRelevance;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT c.id, c.name, c.title, c.company, c.email, c.contactTrustTier, c.roleRelevance FROM contacts c JOIN contactProjects cp ON c.id = cp.contactId WHERE cp.projectId = 630011 ORDER BY c.contactTrustTier, c.roleRelevance;",
+  "rows": [
+    {
+      "id": "1080026",
+      "name": "Rick McConnon",
+      "title": "Manager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "rick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high"
+    },
+    {
+      "id": "1080027",
+      "name": "Robyn Allen",
+      "title": "Manager Procurement and Contracts at TAFE Queensland",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "robyn.allen@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high"
+    },
+    {
+      "id": "1080028",
+      "name": "Abe Ninan",
+      "title": "Manager (Procurement Analysis) at QDTMR",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "abe.ninan@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high"
+    },
+    {
+      "id": "1080029",
+      "name": "Sandie West",
+      "title": "Contracts Administrator/Procurement Lead",
+      "company": "Seymour Whyte",
+      "email": "sandie.west@seymourwhyte.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high"
+    },
+    {
+      "id": "1620078",
+      "name": "Maria Rossi",
+      "title": "Plant & Equipment Manager",
+      "company": "Queensland Government (implied)",
+      "email": "maria.rossi@accionacontractor.com.au",
+      "contactTrustTier": "llm_inferred",
+      "roleRelevance": "medium"
+    },
+    {
+      "id": "1620079",
+      "name": "David 'Davo' Thompson",
+      "title": "Site Operations Superintendent, Northern Section",
+      "company": "Queensland Government (implied)",
+      "email": "david.thompson@cpbcontractorscontractor.com.au",
+      "contactTrustTier": "llm_inferred",
+      "roleRelevance": "medium"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\temail\tcontactTrustTier\troleRelevance\n1080026\tRick McConnon\tManager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -\tQueensland Department of Transport and Main Roads\trick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\thigh\n1080027\tRobyn Allen\tManager Procurement and Contracts at TAFE Queensland\tQueensland Department of Transport and Main Roads\trobyn.allen@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\thigh\n1080028\tAbe Ninan\tManager (Procurement Analysis) at QDTMR\tQueensland Department of Transport and Main Roads\tabe.ninan@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\thigh\n1080029\tSandie West\tContracts Administrator/Procurement Lead\tSeymour Whyte\tsandie.west@seymourwhyte.com.au\tsend_ready\thigh\n1620078\tMaria Rossi\tPlant & Equipment Manager\tQueensland Government (implied)\tmaria.rossi@accionacontractor.com.au\tllm_inferred\tmedium\n1620079\tDavid 'Davo' Thompson\tSite Operations Superintendent, Northern Section\tQueensland Government (implied)\tdavid.thompson@cpbcontractorscontractor.com.au\tllm_inferred\tmedium\n",
+  "stderr": "",
+  "execution_time_ms": 1764
+}

@@ -2581,3 +2581,9 @@
 - [x] Pump/Flow Lane Redesign: Pipeline page reads ?filter= param and pre-applies filter (changed to /dashboard?tab=projects)
 - [x] Pump/Flow Lane Redesign: pump digest card uses intelligence-first layout (not outreach-first)
 - [x] Pump/Flow Lane Redesign: write vitest tests for new logic (15 tests passing in pumpFlowLane.test.ts)
+
+- [x] Part A: Quarantine fabricated TMR contacts (3 contacts quarantined: IDs 1080026, 1080027, 1080028)
+- [x] Part B: Fix pump-aware contact selection on Top 3 Action cards (isPumpLane wired into all 4 callers)
+- [x] Part C: Surface pumpActionMode badge on project detail card and Top 3 / This Week cards
+- [x] Part D: Account Priors admin page (searchable table, filters, edit panel, nav link)
+- [x] Part E: Final Pump/Flow validation (13 new tests passing in accountPriors.test.ts, 15 in pumpFlowLane.test.ts)

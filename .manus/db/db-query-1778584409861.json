@@ -1,0 +1,43 @@
+{
+  "query": "SELECT id, name, title, company, email, contactTrustTier, roleRelevance, project, priority FROM contacts WHERE email LIKE '%queenslanddepartmentoftransportandmainroads%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, title, company, email, contactTrustTier, roleRelevance, project, priority FROM contacts WHERE email LIKE '%queenslanddepartmentoftransportandmainroads%';",
+  "rows": [
+    {
+      "id": "1080026",
+      "name": "Rick McConnon",
+      "title": "Manager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "rick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "priority": "warm"
+    },
+    {
+      "id": "1080027",
+      "name": "Robyn Allen",
+      "title": "Manager Procurement and Contracts at TAFE Queensland",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "robyn.allen@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "priority": "warm"
+    },
+    {
+      "id": "1080028",
+      "name": "Abe Ninan",
+      "title": "Manager (Procurement Analysis) at QDTMR",
+      "company": "Queensland Department of Transport and Main Roads",
+      "email": "abe.ninan@queenslanddepartmentoftransportandmainroads.com.au",
+      "contactTrustTier": "send_ready",
+      "roleRelevance": "high",
+      "project": "Bruce Highway Safety Upgrades Program",
+      "priority": "warm"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\temail\tcontactTrustTier\troleRelevance\tproject\tpriority\n1080026\tRick McConnon\tManager Business - Procurement Services Infrastructure - Continuous Improvement Analysis - Project Management -\tQueensland Department of Transport and Main Roads\trick.mcconnon@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\thigh\tBruce Highway Safety Upgrades Program\twarm\n1080027\tRobyn Allen\tManager Procurement and Contracts at TAFE Queensland\tQueensland Department of Transport and Main Roads\trobyn.allen@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\thigh\tBruce Highway Safety Upgrades Program\twarm\n1080028\tAbe Ninan\tManager (Procurement Analysis) at QDTMR\tQueensland Department of Transport and Main Roads\tabe.ninan@queenslanddepartmentoftransportandmainroads.com.au\tsend_ready\thigh\tBruce Highway Safety Upgrades Program\twarm\n",
+  "stderr": "",
+  "execution_time_ms": 1746
+}

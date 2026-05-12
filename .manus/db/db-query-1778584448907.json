@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, name, email, contactTrustTier, rejectionReason, rejectedAt FROM contacts WHERE id IN (1080026, 1080027, 1080028);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, email, contactTrustTier, rejectionReason, rejectedAt FROM contacts WHERE id IN (1080026, 1080027, 1080028);",
+  "rows": [
+    {
+      "id": "1080026",
+      "name": "Rick McConnon",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified",
+      "rejectionReason": "quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)",
+      "rejectedAt": "2026-05-12 11:14:02"
+    },
+    {
+      "id": "1080027",
+      "name": "Robyn Allen",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified",
+      "rejectionReason": "quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)",
+      "rejectedAt": "2026-05-12 11:14:02"
+    },
+    {
+      "id": "1080028",
+      "name": "Abe Ninan",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified",
+      "rejectionReason": "quarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)",
+      "rejectedAt": "2026-05-12 11:14:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tcontactTrustTier\trejectionReason\trejectedAt\n1080026\tRick McConnon\tNULL\tnamed_unverified\tquarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)\t2026-05-12 11:14:02\n1080027\tRobyn Allen\tNULL\tnamed_unverified\tquarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)\t2026-05-12 11:14:02\n1080028\tAbe Ninan\tNULL\tnamed_unverified\tquarantined: fabricated domain queenslanddepartmentoftransportandmainroads.com.au (real domain is tmr.qld.gov.au)\t2026-05-12 11:14:02\n",
+  "stderr": "",
+  "execution_time_ms": 1794
+}

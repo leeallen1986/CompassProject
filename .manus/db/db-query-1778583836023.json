@@ -1,0 +1,100 @@
+{
+  "query": "SELECT `rank`, canonicalName, state, segment, priorityLevel, scoreOutOf100, likelyApplication FROM accountPriors ORDER BY `rank` ASC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT `rank`, canonicalName, state, segment, priorityLevel, scoreOutOf100, likelyApplication FROM accountPriors ORDER BY `rank` ASC LIMIT 10;",
+  "rows": [
+    {
+      "rank": "1",
+      "canonicalName": "National Pump & Energy",
+      "state": "WA: HAZELMERE, Hazelmere, PERTH, PORT HEDLAND, WEDGEFIELD, WELSHPOOL",
+      "segment": "Pump / Dewatering Specialist",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "100",
+      "likelyApplication": "Rental or project dewatering, mine water, bypass and pump fleet replacement"
+    },
+    {
+      "rank": "2",
+      "canonicalName": "Welltech Total Water Management",
+      "state": "WA: CANNING VALE",
+      "segment": "Pump / Dewatering Specialist",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "97.4",
+      "likelyApplication": "Rental or project dewatering, mine water, bypass and pump fleet replacement"
+    },
+    {
+      "rank": "3",
+      "canonicalName": "Pinnacle Hire WA",
+      "state": "WA: CANNING VALE, Canning Vale",
+      "segment": "Rental / Hire Fleet",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "93",
+      "likelyApplication": "Fleet refresh, branch stocking, site/project pump rental demand"
+    },
+    {
+      "rank": "4",
+      "canonicalName": "Brooks Equipment Hire",
+      "state": "WA: CANNING VALE, KEWDALE, WELSHPOOL",
+      "segment": "Rental / Hire Fleet",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "92.9",
+      "likelyApplication": "Fleet refresh, branch stocking, site/project pump rental demand"
+    },
+    {
+      "rank": "5",
+      "canonicalName": "PR Water",
+      "state": "WA: GNANGARA, WANGARA",
+      "segment": "Pump / Dewatering Specialist",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "90",
+      "likelyApplication": "Rental or project dewatering, mine water, bypass and pump fleet replacement"
+    },
+    {
+      "rank": "6",
+      "canonicalName": "Dewatering Solutions",
+      "state": "WA: WELSHPOOL, Welshpool",
+      "segment": "Pump / Dewatering Specialist",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "89",
+      "likelyApplication": "Rental or project dewatering, mine water, bypass and pump fleet replacement"
+    },
+    {
+      "rank": "7",
+      "canonicalName": "Liquimech",
+      "state": "WA: CANNING VALE, WEST HIGH WYCOMBE",
+      "segment": "Pump / Dewatering Specialist",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "88.2",
+      "likelyApplication": "Rental or project dewatering, mine water, bypass and pump fleet replacement"
+    },
+    {
+      "rank": "8",
+      "canonicalName": "Murray Engineering",
+      "state": "WA: PINJARRA, Perth Airport",
+      "segment": "Rental / Hire Fleet",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "86.6",
+      "likelyApplication": "Fleet refresh, branch stocking, site/project pump rental demand"
+    },
+    {
+      "rank": "9",
+      "canonicalName": "Flow Water Services",
+      "state": "WA: BIBRA LAKE, BROOME, CANNING VALE",
+      "segment": "Pump / Dewatering Specialist",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "85.5",
+      "likelyApplication": "Rental or project dewatering, mine water, bypass and pump fleet replacement"
+    },
+    {
+      "rank": "10",
+      "canonicalName": "Brooks Equipment Sales",
+      "state": "WA: CANNING VALE, DAVENPORT, NEWMAN, WELSHPOOL",
+      "segment": "Rental / Hire Fleet",
+      "priorityLevel": "A - High priority",
+      "scoreOutOf100": "85",
+      "likelyApplication": "Fleet refresh, branch stocking, site/project pump rental demand"
+    }
+  ],
+  "messages": [],
+  "stdout": "rank\tcanonicalName\tstate\tsegment\tpriorityLevel\tscoreOutOf100\tlikelyApplication\n1\tNational Pump & Energy\tWA: HAZELMERE, Hazelmere, PERTH, PORT HEDLAND, WEDGEFIELD, WELSHPOOL\tPump / Dewatering Specialist\tA - High priority\t100\tRental or project dewatering, mine water, bypass and pump fleet replacement\n2\tWelltech Total Water Management\tWA: CANNING VALE\tPump / Dewatering Specialist\tA - High priority\t97.4\tRental or project dewatering, mine water, bypass and pump fleet replacement\n3\tPinnacle Hire WA\tWA: CANNING VALE, Canning Vale\tRental / Hire Fleet\tA - High priority\t93\tFleet refresh, branch stocking, site/project pump rental demand\n4\tBrooks Equipment Hire\tWA: CANNING VALE, KEWDALE, WELSHPOOL\tRental / Hire Fleet\tA - High priority\t92.9\tFleet refresh, branch stocking, site/project pump rental demand\n5\tPR Water\tWA: GNANGARA, WANGARA\tPump / Dewatering Specialist\tA - High priority\t90\tRental or project dewatering, mine water, bypass and pump fleet replacement\n6\tDewatering Solutions\tWA: WELSHPOOL, Welshpool\tPump / Dewatering Specialist\tA - High priority\t89\tRental or project dewatering, mine water, bypass and pump fleet replacement\n7\tLiquimech\tWA: CANNING VALE, WEST HIGH WYCOMBE\tPump / Dewatering Specialist\tA - High priority\t88.2\tRental or project dewatering, mine water, bypass and pump fleet replacement\n8\tMurray Engineering\tWA: PINJARRA, Perth Airport\tRental / Hire Fleet\tA - High priority\t86.6\tFleet refresh, branch stocking, site/project pump rental demand\n9\tFlow Water Services\tWA: BIBRA LAKE, BROOME, CANNING VALE\tPump / Dewatering Specialist\tA - High priority\t85.5\tRental or project dewatering, mine water, bypass and pump fleet replacement\n10\tBrooks Equipment Sales\tWA: CANNING VALE, DAVENPORT, NEWMAN, WELSHPOOL\tRental / Hire Fleet\tA - High priority\t85\tFleet refresh, branch stocking, site/project pump rental demand\n",
+  "stderr": "",
+  "execution_time_ms": 1864
+}

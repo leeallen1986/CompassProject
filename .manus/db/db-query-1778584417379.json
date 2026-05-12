@@ -1,0 +1,28 @@
+{
+  "query": "SELECT cp.contactId, cp.projectId, p.name as projectName, p.priority as projectPriority FROM contactProjects cp JOIN projects p ON cp.projectId = p.id WHERE cp.contactId IN (1080026, 1080027, 1080028);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT cp.contactId, cp.projectId, p.name as projectName, p.priority as projectPriority FROM contactProjects cp JOIN projects p ON cp.projectId = p.id WHERE cp.contactId IN (1080026, 1080027, 1080028);",
+  "rows": [
+    {
+      "contactId": "1080028",
+      "projectId": "630011",
+      "projectName": "Bruce Highway Safety Upgrades Program",
+      "projectPriority": "hot"
+    },
+    {
+      "contactId": "1080026",
+      "projectId": "630011",
+      "projectName": "Bruce Highway Safety Upgrades Program",
+      "projectPriority": "hot"
+    },
+    {
+      "contactId": "1080027",
+      "projectId": "630011",
+      "projectName": "Bruce Highway Safety Upgrades Program",
+      "projectPriority": "hot"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactId\tprojectId\tprojectName\tprojectPriority\n1080028\t630011\tBruce Highway Safety Upgrades Program\thot\n1080026\t630011\tBruce Highway Safety Upgrades Program\thot\n1080027\t630011\tBruce Highway Safety Upgrades Program\thot\n",
+  "stderr": "",
+  "execution_time_ms": 1755
+}

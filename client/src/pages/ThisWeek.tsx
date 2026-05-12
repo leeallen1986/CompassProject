@@ -197,6 +197,37 @@ function CollapsibleSection({
   );
 }
 
+// ── Pump Action Mode Badge ──
+const PUMP_ACTION_CONFIG: Record<string, { label: string; color: string; description: string }> = {
+  direct_pursue: { label: "Direct Pursue", color: "bg-emerald-50 text-emerald-700 border-emerald-200", description: "Known account, active site — go direct" },
+  map_package: { label: "Map Package", color: "bg-blue-50 text-blue-700 border-blue-200", description: "Multiple pump needs — build a package" },
+  find_site_contact: { label: "Find Site Contact", color: "bg-amber-50 text-amber-700 border-amber-200", description: "Good project, need the right person on-site" },
+  watch_incumbent: { label: "Watch Incumbent", color: "bg-slate-50 text-slate-600 border-slate-200", description: "Competitor entrenched — monitor for openings" },
+  account_nurture: { label: "Account Nurture", color: "bg-violet-50 text-violet-700 border-violet-200", description: "Priority account — build relationship" },
+  reference_only: { label: "Reference Only", color: "bg-slate-50 text-slate-400 border-slate-200", description: "Low fit — track for context" },
+};
+
+function PumpActionBadge({ mode, matchedAccount, compact }: { mode: string; matchedAccount?: string | null; compact?: boolean }) {
+  const config = PUMP_ACTION_CONFIG[mode];
+  if (!config) return null;
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${config.color}`}>
+        <Crosshair className="w-3 h-3" />
+        {config.label}
+      </span>
+      {matchedAccount && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-gold/10 text-gold-dark border border-gold/25">
+          <Target className="w-3 h-3" /> {matchedAccount}
+        </span>
+      )}
+      {!compact && (
+        <span className="text-[10px] text-muted-foreground italic">{config.description}</span>
+      )}
+    </div>
+  );
+}
+
 // ── Top 3 Action Card ──
 function TopActionCard({ action, project, navigate }: { action: any; project: any; navigate: (path: string) => void }) {
   // Determine card badge from contactCTA state
@@ -274,6 +305,11 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
           </span>
         )}
       </div>
+
+      {/* Pump Action Mode badge */}
+      {project?.pumpActionMode && (
+        <PumpActionBadge mode={project.pumpActionMode} matchedAccount={project.matchedAccountPrior} compact />
+      )}
 
       {/* Project title */}
       <h3 className="text-sm font-bold text-navy leading-snug line-clamp-2">
@@ -600,6 +636,9 @@ export default function ThisWeek() {
           <Link href="/account-attack" className="px-3 py-1.5 rounded-md text-sm font-medium text-gold hover:text-gold-light hover:bg-white/5 transition-colors">
             Account Attack
           </Link>
+          <Link href="/account-priors" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+            WA Targets
+          </Link>
           <Link href="/my-profile" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
             My Style
           </Link>
@@ -647,6 +686,9 @@ export default function ThisWeek() {
                 </Link>
                 <Link href="/account-attack" className="flex items-center gap-2 px-4 py-2 text-sm text-gold hover:text-gold-light hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <Crosshair className="w-4 h-4" /> Account Attack
+                </Link>
+                <Link href="/account-priors" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
+                  <Target className="w-4 h-4" /> WA Targets
                 </Link>
                 <Link href="/my-profile" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <Sparkles className="w-4 h-4" /> My Style

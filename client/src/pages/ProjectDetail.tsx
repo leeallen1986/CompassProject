@@ -166,7 +166,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
     );
   }
 
-  const { project, contacts, userClaim, businessLineNames, scopeFlags } = data;
+  const { project, contacts, userClaim, businessLineNames, scopeFlags, pumpActionMode, matchedAccountPrior } = data;
 
   // Determine if project is outside normal active scope
   const isOutOfScope = scopeFlags && (!scopeFlags.isActive || scopeFlags.isSuppressed);
@@ -245,7 +245,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
 
         {/* ── Project Card (expanded) ── */}
         <ProjectCard
-          project={project as ProjectData}
+          project={{ ...(project as ProjectData), pumpActionMode: pumpActionMode as ProjectData['pumpActionMode'], matchedAccountPrior: matchedAccountPrior ?? null }}
           existingFeedback={existingFeedback}
           pipelineClaim={userClaim ? { id: userClaim.id, status: userClaim.status } : null}
           businessLineNames={businessLineNames ?? {}}

@@ -19,6 +19,7 @@ import { detectActivities } from "./activitySignalLayer";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { isAustralianRelevant } from "./geoFilter";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
+import { isPumpLaneRep } from "./laneScoring";
 
 // ── Types ──
 
@@ -166,6 +167,7 @@ export async function generateNBA(projectId: number, userBLs?: string[]): Promis
     projectName: project.name,
     projectOwner: project.owner ?? "",
     projectState: (project as any).projectState ?? null,
+    isPumpLane: isPumpLaneRep(userBLs ?? []),
   });
   const bestContact = contactSelection.selectedContact;
 
