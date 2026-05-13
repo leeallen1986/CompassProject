@@ -3,7 +3,7 @@
  * Aggregates top priorities, new stakeholders, stage changes, and suggested actions
  * for the weekly landing page. Designed to surface the most actionable intelligence.
  */
-import { getDb, getAllProjects, getAllContacts, getProfileByUserId } from "./db";
+import { getDb, getAllProjects, getAllContacts, getProfileByUserId, getUserById } from "./db";
 import { projects, contacts, projectBusinessLineScores, pipelineRuns, dismissedActions, pipelineClaims, outreachEmails, accountPriors } from "../drizzle/schema";
 import { eq, desc, gte, and, sql, inArray } from "drizzle-orm";
 import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring";
@@ -128,6 +128,8 @@ export interface UserContext {
   assignedBusinessLines: string[];
   sectorFocus: string[];
   hasPreferences: boolean;
+  /** Rep name for rep-gated signal logic (e.g. portable_air_blasting_signal) */
+  repName?: string | null;
 }
 
 export interface ThisWeekSummary {
@@ -328,9 +330,13 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     hasPreferences: false,
   };
   let userProfile: any = null;
+  let userRepName: string | null = null;
   if (userId && db) {
     try {
       userProfile = await getProfileByUserId(userId);
+      // Fetch user name for rep-gated signal logic
+      const userRow = await getUserById(userId);
+      userRepName = userRow?.name || null;
       if (userProfile) {
         // Use canonical resolver for territories and BLs
         const resolvedTerritories = resolveTerritories(
@@ -346,6 +352,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
           sectorFocus: (userProfile.sectorFocus as string[]) || [],
           hasPreferences:
             resolvedTerritories.length > 0 || resolvedBLs.length > 0,
+          repName: userRepName,
         };
       }
     } catch { /* continue without preferences */ }
@@ -456,6 +463,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
         stageTiming: null,
         keyAccounts: null,
         buyerRoles: null,
+        repName: userContext.repName,
       },
       projectBLScores,
       [], // contacts not available at this stage

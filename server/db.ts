@@ -109,6 +109,14 @@ export async function getUserByOpenId(openId: string) {
 
 // ── All Users helpers (for admin campaign access management) ──
 
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select({ id: users.id, name: users.name, email: users.email, role: users.role })
+    .from(users).where(eq(users.id, userId)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];

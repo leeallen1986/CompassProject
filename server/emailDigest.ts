@@ -1503,6 +1503,8 @@ export async function scoreAndFilterProjects(
     buyerRoles?: string[] | null;
     keyAccounts?: string[] | null;
     salesMotion?: "direct_only" | "mixed" | null;
+    /** Rep name for rep-gated signal logic (e.g. portable_air_blasting_signal) */
+    repName?: string | null;
   },
 ): Promise<Array<DigestProject & { relevanceScore: number }>> {
   // Fetch BL scores for all projects in one batch
@@ -1589,6 +1591,7 @@ export async function scoreAndFilterProjects(
         keyAccounts: profile.keyAccounts,
         buyerRoles: profile.buyerRoles,
         salesMotion: profile.salesMotion,
+        repName: profile.repName,
       },
       projectBLScores,
       [], // contacts not available here; contact quality uses project-level signals
@@ -1961,6 +1964,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         buyerRoles: (preProfile as any).buyerRoles as string[] | null,
         keyAccounts: (preProfile as any).keyAccounts as string[] | null,
         salesMotion: (preProfile as any).salesMotion as "direct_only" | "mixed" | null,
+        repName: preUser.name || null,
       });
       // Identify this rep's Must Act candidates (action_ready, score > 35, High/Medium lane fit)
       const preMustAct = preProjects.filter(p =>
@@ -2038,14 +2042,14 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         customerTypes: profile.customerTypes as string[] | null,
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
-        assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+         assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
         sectorFocus: (profile as any).sectorFocus as string[] | null,
         stageTiming: (profile as any).stageTiming as string[] | null,
         buyerRoles: (profile as any).buyerRoles as string[] | null,
         keyAccounts: (profile as any).keyAccounts as string[] | null,
         salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
+        repName: user.name || null,
       });
-
       if (matchedProjects.length === 0) {
         results.skipped++;
         console.log(`[EmailDigest] Skipping ${user.name} — no matching projects`);
@@ -2757,10 +2761,10 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
         customerTypes: profile.customerTypes as string[] | null,
         dealSizeMin: profile.dealSizeMin,
         dealSizeMax: profile.dealSizeMax,
-        assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+         assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
         salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
+        repName: user.name || null,
       });
-
       const hotProjects = matchedProjects.filter(p =>
         p.priority === "hot" || p.actionTier === "tier1_actionable"
       );
@@ -3266,10 +3270,10 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     customerTypes: profile.customerTypes as string[] | null,
     dealSizeMin: profile.dealSizeMin,
     dealSizeMax: profile.dealSizeMax,
-    assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
     salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
+    repName: (profile as any).repName || null,
   });
-
   const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
   const matchedContacts2 = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const annotatedProjects = matchedProjects.map(p => {
@@ -3367,11 +3371,11 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     dealSizeMax: profile.dealSizeMax,
     assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
     salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
+    repName: user.name || null,
   });
-
   const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
   const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
-  const pipeline = await getPipelineClaimsByUser(userId);
+  const pipeline = await getPipelineClaimsByUser(userId);;
 
   let thisWeekSection = "";
   try {

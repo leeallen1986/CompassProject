@@ -1616,6 +1616,12 @@ export function computePerUserFinalScore(
    * mixed        — direct + adjacent motions valid; rental still suppressed globally
    */
     salesMotion?: "direct_only" | "mixed" | null;
+    /**
+     * Optional rep name for rep-gated signal logic.
+     * Used by portable_air_blasting_signal — only activates for Ryan Pemberton, Daniel Zec, Leo Williams.
+     * Must be passed as user.name from the caller; never inferred from assignedBusinessLines.
+     */
+    repName?: string | null;
   },
   blScores: DimensionScore[],
   contacts: Array<{
@@ -1752,6 +1758,76 @@ export function computePerUserFinalScore(
     airClassification.bestProductAngle === 'Booster';
   const isPortableAirRep = assignedBLs.some(bl => BL_TO_LANE_KEY[bl] === 'portableAir');
   const specialtyAirBoost = isSpecialtyAirAngle && isPortableAirRep ? 15 : 0;
+
+  // ── Portable Air blasting/coatings application signal ──
+  // STRICTLY gated: only Ryan Pemberton, Daniel Zec, Leo Williams in the Portable Air lane.
+  // No other rep, no other lane, no global blasting watchlist.
+  // Context rules: blasting/coatings language MUST be paired with asset/site or work-package context.
+  // Boost is moderate (+10 direct, +5 related+context) — cannot rescue bad projects or override suppression.
+  const BLASTING_REP_NAMES = new Set(['ryan pemberton', 'daniel zec', 'leo williams']);
+  const repNameLower = (profile.repName || '').toLowerCase().trim();
+  const isBlastingRep = isPortableAirRep && BLASTING_REP_NAMES.has(repNameLower);
+  let blastingSignalBoost = 0;
+  let blastingSignalActive = false;
+  if (isBlastingRep) {
+    const searchText = [
+      project.name,
+      project.overview || '',
+      (project.equipmentSignals || []).join(' '),
+    ].join(' ').toLowerCase();
+    // Direct blasting/coatings signals (strong — boost applies on their own with context)
+    const DIRECT_BLASTING_PHRASES = [
+      'abrasive blasting', 'sandblasting', 'grit blasting', 'blast and paint',
+      'blasting and painting', 'industrial blasting', 'surface preparation',
+      'protective coating removal', 'coating remediation', 'coating replacement',
+      'steel blasting', 'tank blasting', 'blast/coat package',
+      'abrasive blast and coat', 'industrial painting and blasting',
+    ];
+    // Related but weaker signals — require context bucket to qualify
+    const RELATED_BLASTING_PHRASES = [
+      'protective coatings', 'corrosion remediation', 'corrosion maintenance',
+      'asset integrity works', 'shutdown maintenance', 'turnaround maintenance',
+      'steelwork remediation', 'tank refurbishment', 'reservoir refurbishment',
+      'pipeline remediation', 'jetty remediation', 'berth remediation',
+      'structural steel remediation', 'paint removal', 'industrial coating works',
+    ];
+    // Context bucket A: asset / site context
+    const CONTEXT_ASSET = [
+      'tank', 'vessel', 'reservoir', 'pipeline', 'jetty', 'berth',
+      'structural steel', 'refinery', 'lng', 'gas plant', 'mine plant',
+      'processing plant', 'port', 'marine infrastructure', 'industrial facility',
+      'shutdown plant',
+    ];
+    // Context bucket B: work package / industrial context
+    const CONTEXT_WORK_PACKAGE = [
+      'shutdown', 'turnaround', 'maintenance package', 'remediation package',
+      'corrosion package', 'asset integrity package', 'industrial maintenance',
+      'marine maintenance', 'decommissioning', 'site services', 'contractor package',
+    ];
+    // Context bucket C: portable-air likelihood context
+    const CONTEXT_PORTABLE_AIR = [
+      'compressor', 'air package', 'portable air', 'site air',
+      'blasting package', 'blast/coat contractor',
+      'industrial services contractor', 'shutdown contractor',
+    ];
+    const hasDirectSignal = DIRECT_BLASTING_PHRASES.some(p => searchText.includes(p));
+    const hasRelatedSignal = RELATED_BLASTING_PHRASES.some(p => searchText.includes(p));
+    const hasContextA = CONTEXT_ASSET.some(p => searchText.includes(p));
+    const hasContextB = CONTEXT_WORK_PACKAGE.some(p => searchText.includes(p));
+    const hasContextC = CONTEXT_PORTABLE_AIR.some(p => searchText.includes(p));
+    const hasAnyContext = hasContextA || hasContextB || hasContextC;
+    if (hasDirectSignal && hasAnyContext) {
+      // Strong signal + context: moderate boost
+      blastingSignalBoost = 10;
+      blastingSignalActive = true;
+    } else if (hasRelatedSignal && hasAnyContext) {
+      // Weaker signal + context: smaller boost
+      blastingSignalBoost = 5;
+      blastingSignalActive = true;
+    }
+    // No boost if: no blasting/coatings language, or blasting without context (e.g. decorative painting)
+  }
+
   // ── Account-prior boost (Pump/Flow lane) ──
   // When a project's owner/contractor matches a priority account in the account-prior library,
   // apply a scoring boost. A-priority: +20, B-priority: +12, C-priority: +5.
@@ -1763,7 +1839,7 @@ export function computePerUserFinalScore(
     else if (pl.startsWith('b')) accountPriorBoostVal = 12;
     else if (pl.startsWith('c')) accountPriorBoostVal = 5;
   }
-  const finalScoreWithBoost = Math.max(0, Math.min(100, finalScore + specialtyAirBoost + accountPriorBoostVal));
+  const finalScoreWithBoost = Math.max(0, Math.min(100, finalScore + specialtyAirBoost + accountPriorBoostVal + blastingSignalBoost));
 
   // ── Narrative fields ──
   const whyNow = generateWhyNow(project, laneScores, assignedBLs);
@@ -1805,6 +1881,9 @@ export function computePerUserFinalScore(
   }
   if (accountPriorBoostVal > 0) {
     reasonCodes.push(`account_prior_boost_${accountPriorBoostVal}`);
+  }
+  if (blastingSignalActive && blastingSignalBoost > 0) {
+    reasonCodes.push(`portable_air_blasting_signal_${blastingSignalBoost}`);
   }
 
   // ── Pump action mode (Part B of Pump/Flow redesign) ──

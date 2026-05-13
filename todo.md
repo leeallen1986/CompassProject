@@ -2604,3 +2604,7 @@
 - [x] Step 1: Apollo enrichment pass — Cairns Water (720008): 7 send_ready contacts added; Bass Strait (690073): 2 contacts added (1 send_ready, 1 named_unverified)
 - [x] Step 2: Trust-tier promotion pass — 2 contacts promoted on Womalilla/Prairie Solar (450005); backlog was small (3 total eligible), most named_unverified lack emails
 - [x] Step 3: Rob Gordon (Alkimos) title artefact review — stale LinkedIn headline (Pattullo Bridge, Canada); email domain acciona.com.au is valid; company match to Alkimos correct; NOT quarantined, flagged with note in linkedinHeadline
+
+## Portable Air Blasting Signal — Ryan/Daniel/Leo only (2026-05-13)
+- [x] Implement portable_air_blasting_signal in laneScoring.ts (Portable Air lane only, rep-gated)
+- [x] Write vitest tests confirming rep gate, context gate, and non-impact on other reps/lanes — 51/51 passing
