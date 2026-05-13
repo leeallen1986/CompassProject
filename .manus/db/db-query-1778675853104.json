@@ -1,0 +1,28 @@
+{
+  "query": "\nSELECT u.name AS rep, u.email, up.territories, up.assignedBusinessLines\nFROM users u JOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Leo Williams ', 'Brett Hansen', 'Ryan Pemberton');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name AS rep, u.email, up.territories, up.assignedBusinessLines\nFROM users u JOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Leo Williams ', 'Brett Hansen', 'Ryan Pemberton');\n",
+  "rows": [
+    {
+      "rep": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "rep": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\"]"
+    },
+    {
+      "rep": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\temail\tterritories\tassignedBusinessLines\nLeo Williams \tleo.williams@atlascopco.com\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\nRyan Pemberton\tryan.pemberton@atlascopco.com\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\nBrett Hansen\tbrett.hansen@sykesgroup.com\t[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1829
+}

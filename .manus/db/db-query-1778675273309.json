@@ -1,0 +1,18 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Hansen%'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Hansen%'\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tterritories\tassignedBusinessLines\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\t[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1797
+}

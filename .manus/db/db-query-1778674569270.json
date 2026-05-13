@@ -1,0 +1,230 @@
+{
+  "query": "\nSELECT u.name, u.email, uesl.digestType, uesl.status, uesl.sentDate, uesl.weekKey, uesl.itemCount, uesl.dryRun, uesl.sentAt\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.userId\nWHERE uesl.digestType = 'thursday'\nORDER BY uesl.sentAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, u.email, uesl.digestType, uesl.status, uesl.sentDate, uesl.weekKey, uesl.itemCount, uesl.dryRun, uesl.sentAt\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.userId\nWHERE uesl.digestType = 'thursday'\nORDER BY uesl.sentAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:18:25"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:18:17"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:18:08"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:18:01"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:17:53"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:17:46"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:15:58"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:15:32"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-05-07 00:11:37"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:57:15"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:56:38"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:56:12"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:54:29"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:52:34"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:50:51"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:49:59"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "sentAt": "2026-04-30 00:49:58"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "digestType": "thursday",
+      "status": "dry_run",
+      "sentDate": "2026-04-21",
+      "weekKey": "2026W17",
+      "itemCount": "26",
+      "dryRun": "1",
+      "sentAt": "2026-04-21 22:59:24"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "digestType": "thursday",
+      "status": "dry_run",
+      "sentDate": "2026-04-21",
+      "weekKey": "2026W17",
+      "itemCount": "26",
+      "dryRun": "1",
+      "sentAt": "2026-04-21 22:59:20"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "digestType": "thursday",
+      "status": "dry_run",
+      "sentDate": "2026-04-21",
+      "weekKey": "2026W17",
+      "itemCount": "26",
+      "dryRun": "1",
+      "sentAt": "2026-04-21 22:59:17"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tdigestType\tstatus\tsentDate\tweekKey\titemCount\tdryRun\tsentAt\nAlexandre Leite\talexandre.leite@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:18:25\nKevin Arnandes\tkevinarnandes@gmail.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:18:17\nEgor Ivanov\tegor.ivanov@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:18:08\nAmit Bhargava\tamit.bhargava@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:18:01\nDan Day\tdan.day@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:17:53\nDaniel Zec\tdaniel.zec@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:17:46\nBrett Hansen\tbrett.hansen@sykesgroup.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:15:58\nRyan Pemberton\tryan.pemberton@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:15:32\nLeo Williams \tleo.williams@atlascopco.com\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\t2026-05-07 00:11:37\nKevin Arnandes\tkevinarnandes@gmail.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:57:15\nEgor Ivanov\tegor.ivanov@atlascopco.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:56:38\nAmit Bhargava\tamit.bhargava@atlascopco.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:56:12\nDan Day\tdan.day@atlascopco.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:54:29\nDaniel Zec\tdaniel.zec@atlascopco.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:52:34\nBrett Hansen\tbrett.hansen@sykesgroup.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:50:51\nRyan Pemberton\tryan.pemberton@atlascopco.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:49:59\nLeo Williams \tleo.williams@atlascopco.com\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\t2026-04-30 00:49:58\nAmit Bhargava\tamit.bhargava@atlascopco.com\tthursday\tdry_run\t2026-04-21\t2026W17\t26\t1\t2026-04-21 22:59:24\nRyan Pemberton\tryan.pemberton@atlascopco.com\tthursday\tdry_run\t2026-04-21\t2026W17\t26\t1\t2026-04-21 22:59:20\nLeo Williams \tleo.williams@atlascopco.com\tthursday\tdry_run\t2026-04-21\t2026W17\t26\t1\t2026-04-21 22:59:17\n",
+  "stderr": "",
+  "execution_time_ms": 1725
+}

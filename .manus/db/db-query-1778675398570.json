@@ -1,0 +1,40 @@
+{
+  "query": "\nSELECT u.name, sl.digestType, sl.weekKey, sl.status, sl.sentDate, sl.sentAt, sl.itemCount, sl.error\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.digestType = 'thursday'\n  AND sl.weekKey = '2026W19'\n  AND u.name IN ('Ryan Pemberton', 'Brett Hansen', 'Leo Williams ')\nORDER BY sl.sentAt;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, sl.digestType, sl.weekKey, sl.status, sl.sentDate, sl.sentAt, sl.itemCount, sl.error\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.digestType = 'thursday'\n  AND sl.weekKey = '2026W19'\n  AND u.name IN ('Ryan Pemberton', 'Brett Hansen', 'Leo Williams ')\nORDER BY sl.sentAt;\n",
+  "rows": [
+    {
+      "name": "Leo Williams ",
+      "digestType": "thursday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:11:37",
+      "itemCount": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:15:32",
+      "itemCount": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "thursday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:15:58",
+      "itemCount": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tweekKey\tstatus\tsentDate\tsentAt\titemCount\terror\nLeo Williams \tthursday\t2026W19\tfailed\t2026-05-07\t2026-05-07 00:11:37\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nRyan Pemberton\tthursday\t2026W19\tfailed\t2026-05-07\t2026-05-07 00:15:32\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nBrett Hansen\tthursday\t2026W19\tfailed\t2026-05-07\t2026-05-07 00:15:58\t0\tSTALE: status was empty (pre-claim/finalise pattern)\n",
+  "stderr": "",
+  "execution_time_ms": 1781
+}

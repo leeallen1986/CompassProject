@@ -1,0 +1,60 @@
+{
+  "query": "\nSELECT 'Amit' AS rep, p.id, p.name, p.location, p.actionTier, p.discoveryStatus, p.productLane,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND (p.productLane = 'pal' OR p.productLane = 'bess' OR p.productLane = 'multi_lane_pt')\nORDER BY\n  CASE p.actionTier WHEN 'tier1_actionable' THEN 1 WHEN 'tier2_watch' THEN 2 ELSE 3 END,\n  CASE p.discoveryStatus WHEN 'send_ready_contact' THEN 1 ELSE 2 END\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT 'Amit' AS rep, p.id, p.name, p.location, p.actionTier, p.discoveryStatus, p.productLane,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND (p.productLane = 'pal' OR p.productLane = 'bess' OR p.productLane = 'multi_lane_pt')\nORDER BY\n  CASE p.actionTier WHEN 'tier1_actionable' THEN 1 WHEN 'tier2_watch' THEN 2 ELSE 3 END,\n  CASE p.discoveryStatus WHEN 'send_ready_contact' THEN 1 ELSE 2 END\nLIMIT 5;\n",
+  "rows": [
+    {
+      "rep": "Amit",
+      "id": "120015",
+      "name": "Carmichael Mine and Rail — Bravus Mining",
+      "location": "QLD",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "send_ready": "4"
+    },
+    {
+      "rep": "Amit",
+      "id": "120011",
+      "name": "Transmission Infrastructure — Hunter Valley REZ",
+      "location": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "send_ready": "1"
+    },
+    {
+      "rep": "Amit",
+      "id": "120012",
+      "name": "Gippsland Project Opportunities",
+      "location": "VIC",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "send_ready": "1"
+    },
+    {
+      "rep": "Amit",
+      "id": "120013",
+      "name": "Snowy Mountains Special Activation Precinct",
+      "location": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "send_ready": "2"
+    },
+    {
+      "rep": "Amit",
+      "id": "120001",
+      "name": "BAE Systems Hunter Class Frigate Program",
+      "location": "SA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "send_ready": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tlocation\tactionTier\tdiscoveryStatus\tproductLane\tsend_ready\nAmit\t120015\tCarmichael Mine and Rail — Bravus Mining\tQLD\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\t4\nAmit\t120011\tTransmission Infrastructure — Hunter Valley REZ\tNSW\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\t1\nAmit\t120012\tGippsland Project Opportunities\tVIC\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\t1\nAmit\t120013\tSnowy Mountains Special Activation Precinct\tNSW\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\t2\nAmit\t120001\tBAE Systems Hunter Class Frigate Program\tSA\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1785
+}

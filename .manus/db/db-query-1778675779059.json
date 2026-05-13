@@ -1,0 +1,50 @@
+{
+  "query": "\nSELECT p.id, p.name, p.location, p.actionTier, p.discoveryStatus,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND (p.projectState LIKE '%WA%' OR p.projectState IS NULL OR p.projectState = '' OR p.location LIKE '%WA%' OR p.location LIKE '%National%' OR p.location LIKE '%national%')\nORDER BY\n  CASE p.actionTier WHEN 'tier1_actionable' THEN 1 WHEN 'tier2_watch' THEN 2 ELSE 3 END,\n  CASE p.discoveryStatus WHEN 'send_ready_contact' THEN 1 ELSE 2 END\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.location, p.actionTier, p.discoveryStatus,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND (p.projectState LIKE '%WA%' OR p.projectState IS NULL OR p.projectState = '' OR p.location LIKE '%WA%' OR p.location LIKE '%National%' OR p.location LIKE '%national%')\nORDER BY\n  CASE p.actionTier WHEN 'tier1_actionable' THEN 1 WHEN 'tier2_watch' THEN 2 ELSE 3 END,\n  CASE p.discoveryStatus WHEN 'send_ready_contact' THEN 1 ELSE 2 END\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "480023",
+      "name": "Alkimos Desalination Plant",
+      "location": "Alkimos, WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "4"
+    },
+    {
+      "id": "120017",
+      "name": "Fortescue Iron Bridge Magnetite Project",
+      "location": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "2"
+    },
+    {
+      "id": "480012",
+      "name": "Warrnambool Floating Solar System",
+      "location": "Warrnambool, VIC",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "1"
+    },
+    {
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "location": "Port Hedland, WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "10"
+    },
+    {
+      "id": "120016",
+      "name": "Pilbara Iron Ore Expansion — Rio Tinto",
+      "location": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tactionTier\tdiscoveryStatus\tsend_ready\n480023\tAlkimos Desalination Plant\tAlkimos, WA\ttier1_actionable\tsend_ready_contact\t4\n120017\tFortescue Iron Bridge Magnetite Project\tWA\ttier1_actionable\tsend_ready_contact\t2\n480012\tWarrnambool Floating Solar System\tWarrnambool, VIC\ttier1_actionable\tsend_ready_contact\t1\n450042\tPort Hedland Car Dumper 6 Project\tPort Hedland, WA\ttier1_actionable\tsend_ready_contact\t10\n120016\tPilbara Iron Ore Expansion — Rio Tinto\tWA\ttier1_actionable\tsend_ready_contact\t2\n",
+  "stderr": "",
+  "execution_time_ms": 2034
+}

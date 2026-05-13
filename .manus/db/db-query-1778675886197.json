@@ -1,0 +1,45 @@
+{
+  "query": "\nSELECT digestType, status, scheduledFor, sentAt, error\nFROM digestScheduleLog\nWHERE digestType = 'thursday'\nORDER BY createdAt DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT digestType, status, scheduledFor, sentAt, error\nFROM digestScheduleLog\nWHERE digestType = 'thursday'\nORDER BY createdAt DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "digestType": "thursday",
+      "status": "sent",
+      "scheduledFor": "2026-05-07 00:19:34",
+      "sentAt": "2026-05-07 00:19:34",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "status": "sent",
+      "scheduledFor": "2026-05-07 00:18:33",
+      "sentAt": "2026-05-07 00:18:33",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "status": "pending",
+      "scheduledFor": "2026-05-07 00:17:43",
+      "sentAt": "NULL",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "status": "pending",
+      "scheduledFor": "2026-05-07 00:11:37",
+      "sentAt": "NULL",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "status": "sent",
+      "scheduledFor": "2026-04-30 00:57:41",
+      "sentAt": "2026-04-30 00:57:41",
+      "error": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "digestType\tstatus\tscheduledFor\tsentAt\terror\nthursday\tsent\t2026-05-07 00:19:34\t2026-05-07 00:19:34\tNULL\nthursday\tsent\t2026-05-07 00:18:33\t2026-05-07 00:18:33\tNULL\nthursday\tpending\t2026-05-07 00:17:43\tNULL\tNULL\nthursday\tpending\t2026-05-07 00:11:37\tNULL\tNULL\nthursday\tsent\t2026-04-30 00:57:41\t2026-04-30 00:57:41\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1724
+}

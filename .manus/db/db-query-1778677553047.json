@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  COUNT(DISTINCT p.id) AS hot_tier1_projects,\n  COUNT(DISTINCT CASE WHEN p.discoveryStatus = 'send_ready_contact' THEN p.id END) AS tier1_send_ready_projects,\n  COUNT(DISTINCT c.id) AS total_send_ready_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.actionTier = 'tier1_actionable';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(DISTINCT p.id) AS hot_tier1_projects,\n  COUNT(DISTINCT CASE WHEN p.discoveryStatus = 'send_ready_contact' THEN p.id END) AS tier1_send_ready_projects,\n  COUNT(DISTINCT c.id) AS total_send_ready_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.actionTier = 'tier1_actionable';\n",
+  "rows": [
+    {
+      "hot_tier1_projects": "113",
+      "tier1_send_ready_projects": "50",
+      "total_send_ready_contacts": "204"
+    }
+  ],
+  "messages": [],
+  "stdout": "hot_tier1_projects\ttier1_send_ready_projects\ttotal_send_ready_contacts\n113\t50\t204\n",
+  "stderr": "",
+  "execution_time_ms": 1807
+}

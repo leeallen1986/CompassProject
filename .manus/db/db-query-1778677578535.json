@@ -1,0 +1,82 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, p.actionTier, p.productLane, p.owner,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.projectState IN ('QLD')\n  AND p.actionTier = 'tier1_actionable'\n  AND p.discoveryStatus = 'send_ready_contact'\nORDER BY send_ready DESC\nLIMIT 8;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, p.actionTier, p.productLane, p.owner,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.projectState IN ('QLD')\n  AND p.actionTier = 'tier1_actionable'\n  AND p.discoveryStatus = 'send_ready_contact'\nORDER BY send_ready DESC\nLIMIT 8;\n",
+  "rows": [
+    {
+      "id": "570013",
+      "name": "Broadsound Battery Energy Storage System (BESS)",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "bess",
+      "owner": "Iberdrola Australia",
+      "send_ready": "13"
+    },
+    {
+      "id": "570020",
+      "name": "Bruce Highway Targeted Safety Program (BHTSP)",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "pumps",
+      "owner": "Federal and Queensland governments",
+      "send_ready": "10"
+    },
+    {
+      "id": "510032",
+      "name": "Kogan Creek Power Station Stator Replacement",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "pal",
+      "owner": "CS Energy",
+      "send_ready": "10"
+    },
+    {
+      "id": "1200018",
+      "name": "Burpengary East Wastewater Treatment Plant Upgrade",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "NULL",
+      "owner": "Unitywater",
+      "send_ready": "5"
+    },
+    {
+      "id": "450007",
+      "name": "Two massive solar and battery energy storage projects (1.8 GW)",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "bess",
+      "owner": "Edify Energy",
+      "send_ready": "4"
+    },
+    {
+      "id": "120015",
+      "name": "Carmichael Mine and Rail — Bravus Mining",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "multi_lane_pt",
+      "owner": "Bravus Mining & Resources",
+      "send_ready": "4"
+    },
+    {
+      "id": "480060",
+      "name": "Mount Carlton gold mine restart",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "portable_air",
+      "owner": "Evolution Mining (previous owner), new owner not specified for restart",
+      "send_ready": "4"
+    },
+    {
+      "id": "450005",
+      "name": "1.8 GW Solar-plus-Storage Projects (Womalilla and Prairie)",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "productLane": "pumps",
+      "owner": "Edify Energy",
+      "send_ready": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tactionTier\tproductLane\towner\tsend_ready\n570013\tBroadsound Battery Energy Storage System (BESS)\tQLD\ttier1_actionable\tbess\tIberdrola Australia\t13\n570020\tBruce Highway Targeted Safety Program (BHTSP)\tQLD\ttier1_actionable\tpumps\tFederal and Queensland governments\t10\n510032\tKogan Creek Power Station Stator Replacement\tQLD\ttier1_actionable\tpal\tCS Energy\t10\n1200018\tBurpengary East Wastewater Treatment Plant Upgrade\tQLD\ttier1_actionable\tNULL\tUnitywater\t5\n450007\tTwo massive solar and battery energy storage projects (1.8 GW)\tQLD\ttier1_actionable\tbess\tEdify Energy\t4\n120015\tCarmichael Mine and Rail — Bravus Mining\tQLD\ttier1_actionable\tmulti_lane_pt\tBravus Mining & Resources\t4\n480060\tMount Carlton gold mine restart\tQLD\ttier1_actionable\tportable_air\tEvolution Mining (previous owner), new owner not specified for restart\t4\n450005\t1.8 GW Solar-plus-Storage Projects (Womalilla and Prairie)\tQLD\ttier1_actionable\tpumps\tEdify Energy\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1826
+}

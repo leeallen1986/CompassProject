@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT u.name, u.email, uesl.digest_type, uesl.status, uesl.sent_date, uesl.week_key, uesl.item_count, uesl.dry_run\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.user_id\nWHERE uesl.digest_type = 'thursday'\nORDER BY uesl.sent_at DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, u.email, uesl.digest_type, uesl.status, uesl.sent_date, uesl.week_key, uesl.item_count, uesl.dry_run\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.user_id\nWHERE uesl.digest_type = 'thursday'\nORDER BY uesl.sent_at DESC\nLIMIT 20;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'uesl.user_id' in 'on clause'"
+  ]
+}

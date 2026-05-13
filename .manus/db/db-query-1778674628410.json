@@ -1,0 +1,64 @@
+{
+  "query": "\nSELECT * FROM digestScheduleLog \nWHERE digestType = 'thursday' \nORDER BY createdAt DESC \nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT * FROM digestScheduleLog \nWHERE digestType = 'thursday' \nORDER BY createdAt DESC \nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "240004",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-07 00:19:34",
+      "sentAt": "2026-05-07 00:19:34",
+      "status": "sent",
+      "error": "NULL",
+      "createdAt": "2026-05-07 00:19:34"
+    },
+    {
+      "id": "240003",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-07 00:18:33",
+      "sentAt": "2026-05-07 00:18:33",
+      "status": "sent",
+      "error": "NULL",
+      "createdAt": "2026-05-07 00:18:32"
+    },
+    {
+      "id": "240002",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-07 00:17:43",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL",
+      "createdAt": "2026-05-07 00:17:43"
+    },
+    {
+      "id": "240001",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-07 00:11:37",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL",
+      "createdAt": "2026-05-07 00:11:37"
+    },
+    {
+      "id": "150002",
+      "digestType": "thursday",
+      "scheduledFor": "2026-04-30 00:57:41",
+      "sentAt": "2026-04-30 00:57:41",
+      "status": "sent",
+      "error": "NULL",
+      "createdAt": "2026-04-30 00:57:41"
+    },
+    {
+      "id": "150001",
+      "digestType": "thursday",
+      "scheduledFor": "2026-04-30 00:49:58",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL",
+      "createdAt": "2026-04-30 00:49:57"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdigestType\tscheduledFor\tsentAt\tstatus\terror\tcreatedAt\n240004\tthursday\t2026-05-07 00:19:34\t2026-05-07 00:19:34\tsent\tNULL\t2026-05-07 00:19:34\n240003\tthursday\t2026-05-07 00:18:33\t2026-05-07 00:18:33\tsent\tNULL\t2026-05-07 00:18:32\n240002\tthursday\t2026-05-07 00:17:43\tNULL\tpending\tNULL\t2026-05-07 00:17:43\n240001\tthursday\t2026-05-07 00:11:37\tNULL\tpending\tNULL\t2026-05-07 00:11:37\n150002\tthursday\t2026-04-30 00:57:41\t2026-04-30 00:57:41\tsent\tNULL\t2026-04-30 00:57:41\n150001\tthursday\t2026-04-30 00:49:58\tNULL\tpending\tNULL\t2026-04-30 00:49:57\n",
+  "stderr": "",
+  "execution_time_ms": 1833
+}

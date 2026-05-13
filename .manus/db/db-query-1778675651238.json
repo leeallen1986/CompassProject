@@ -1,0 +1,110 @@
+{
+  "query": "\nSELECT p.id, p.name, p.location, p.value, p.discoveryAttempts,\n  DATE(p.lastDiscoveryAt) AS last_discovery,\n  (SELECT COUNT(DISTINCT c.id) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n  (SELECT GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR '; ') FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'named_unverified' LIMIT 3) AS sample_named_contacts\nFROM projects p\nWHERE p.priority = 'hot'\n  AND p.suppressed = 0\n  AND p.discoveryStatus = 'named_contact_no_email'\nORDER BY p.actionTier ASC, p.discoveryAttempts ASC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.location, p.value, p.discoveryAttempts,\n  DATE(p.lastDiscoveryAt) AS last_discovery,\n  (SELECT COUNT(DISTINCT c.id) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n  (SELECT GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR '; ') FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'named_unverified' LIMIT 3) AS sample_named_contacts\nFROM projects p\nWHERE p.priority = 'hot'\n  AND p.suppressed = 0\n  AND p.discoveryStatus = 'named_contact_no_email'\nORDER BY p.actionTier ASC, p.discoveryAttempts ASC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "720004",
+      "name": "NSW Public Transport Renewable Energy Supply",
+      "location": "NSW",
+      "value": "$1.9 billion",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "3",
+      "sample_named_contacts": "Vikram Sahota"
+    },
+    {
+      "id": "900001",
+      "name": "Brisbane Stadium Redevelopment",
+      "location": "Brisbane, QLD",
+      "value": "Unknown",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "2",
+      "sample_named_contacts": "Carolyn Bannister"
+    },
+    {
+      "id": "720006",
+      "name": "NT Government Large Scale Battery Energy Storage Systems",
+      "location": "Alice Springs, NT; Katherine, NT",
+      "value": "Unknown",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "4",
+      "sample_named_contacts": "Kat Sitwat"
+    },
+    {
+      "id": "660008",
+      "name": "Queensland Copper Mine Off-grid Renewable Hybrid Power Plant",
+      "location": "QLD",
+      "value": "Unknown",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "6",
+      "sample_named_contacts": "Amna Bihery; Gavin Gautreau; Jason Yeh; Michael Apreku ,MMP; Ousmane Bousso; Scott Johnson Aggreko"
+    },
+    {
+      "id": "510030",
+      "name": "Maroona to Portland Re-sleepering Project",
+      "location": "Western VIC, VIC",
+      "value": "$150 million",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "80",
+      "sample_named_contacts": "Acciona Infrastructure Projects Australia P/L; Acciona M&E P/L; ATOM Broome Fuel Terminal; Atom Kwinana Fuel Terminal; BP Kwinana Refinery; Coombabah WWTP C/O Acciona Infrastructure Projects; Cushman & Wakefield C/- Royal Womens Hospital-Dtz; EDI Rail - Alstom Transport (Maintenance) P/L; Faiveley Transport Aust Ltd; Floridia Cheese P/L; Impala Terminals Aust P/L; Levanta; Minera Panama SA C/O First Quantum Minerals (AUS) P/L; Nicole Smith; Omya Australia P/L; Orica Australia P/L; Pfm; Pilbara Iron Company (Serv) P/L; PJL Group P/L; RAAF BASE DARWIN Attn Daniel Goldoni 0499771553; RAAF Tindal; Siemens Ltd Vic; Sunny Queen P/L; Tim Gavaghan MBA. MSc, PMP; Total Tools Wingfield Rousseau Tools P/L; UGL Engineering P/L; UGL Infrastructure P/L; UGL Infrastructure P/L Nsw; UGL Operations & Maintenance; UGL Rail Services Ltd; UGL Rail Services Ltd Newcastle Accounts Payable; UGL Solutions P/L; UGL Unipart Rail Services P/L; Wayne Salas"
+    },
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "location": "Orange, NSW",
+      "value": "Unknown",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "3",
+      "sample_named_contacts": "Adam Malcolm; Bucky Pinard; Scott Laliberte"
+    },
+    {
+      "id": "690036",
+      "name": "2.1GWh Battery Energy Storage Systems (BESS) for Neoen",
+      "location": "National",
+      "value": "Undisclosed",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "2",
+      "sample_named_contacts": "Guillaume Girard; Peter Elrick"
+    },
+    {
+      "id": "690037",
+      "name": "Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System",
+      "location": "National",
+      "value": "Undisclosed",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "4",
+      "sample_named_contacts": "Clarence Titus; Dominic Akwuzie; Grant Bevington; Vipul Sharma"
+    },
+    {
+      "id": "690006",
+      "name": "Muchea Battery Project",
+      "location": "Muchea, WA",
+      "value": "Unknown",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "5",
+      "sample_named_contacts": "Jonathan Haigh; Matt Stone; Shannon B.; Simon Roberts; Subhajit Dey - MIET, FIRSE, CEng, RPEng, RPEQ"
+    },
+    {
+      "id": "690029",
+      "name": "2.1GWh Battery Storage for Neoen",
+      "location": "National",
+      "value": "2.1GWh",
+      "discoveryAttempts": "1",
+      "last_discovery": "2026-05-07",
+      "total_contacts": "4",
+      "sample_named_contacts": "Akshay Kumar Arya; Bruce Inscoe; Chris Weller; Phillip O'Grady"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tvalue\tdiscoveryAttempts\tlast_discovery\ttotal_contacts\tsample_named_contacts\n720004\tNSW Public Transport Renewable Energy Supply\tNSW\t$1.9 billion\t1\t2026-05-07\t3\tVikram Sahota\n900001\tBrisbane Stadium Redevelopment\tBrisbane, QLD\tUnknown\t1\t2026-05-07\t2\tCarolyn Bannister\n720006\tNT Government Large Scale Battery Energy Storage Systems\tAlice Springs, NT; Katherine, NT\tUnknown\t1\t2026-05-07\t4\tKat Sitwat\n660008\tQueensland Copper Mine Off-grid Renewable Hybrid Power Plant\tQLD\tUnknown\t1\t2026-05-07\t6\tAmna Bihery; Gavin Gautreau; Jason Yeh; Michael Apreku ,MMP; Ousmane Bousso; Scott Johnson Aggreko\n510030\tMaroona to Portland Re-sleepering Project\tWestern VIC, VIC\t$150 million\t1\t2026-05-07\t80\tAcciona Infrastructure Projects Australia P/L; Acciona M&E P/L; ATOM Broome Fuel Terminal; Atom Kwinana Fuel Terminal; BP Kwinana Refinery; Coombabah WWTP C/O Acciona Infrastructure Projects; Cushman & Wakefield C/- Royal Womens Hospital-Dtz; EDI Rail - Alstom Transport (Maintenance) P/L; Faiveley Transport Aust Ltd; Floridia Cheese P/L; Impala Terminals Aust P/L; Levanta; Minera Panama SA C/O First Quantum Minerals (AUS) P/L; Nicole Smith; Omya Australia P/L; Orica Australia P/L; Pfm; Pilbara Iron Company (Serv) P/L; PJL Group P/L; RAAF BASE DARWIN Attn Daniel Goldoni 0499771553; RAAF Tindal; Siemens Ltd Vic; Sunny Queen P/L; Tim Gavaghan MBA. MSc, PMP; Total Tools Wingfield Rousseau Tools P/L; UGL Engineering P/L; UGL Infrastructure P/L; UGL Infrastructure P/L Nsw; UGL Operations & Maintenance; UGL Rail Services Ltd; UGL Rail Services Ltd Newcastle Accounts Payable; UGL Solutions P/L; UGL Unipart Rail Services P/L; Wayne Salas\n690089\tCadia Gold Mine Operations\tOrange, NSW\tUnknown\t1\t2026-05-07\t3\tAdam Malcolm; Bucky Pinard; Scott Laliberte\n690036\t2.1GWh Battery Energy Storage Systems (BESS) for Neoen\tNational\tUndisclosed\t1\t2026-05-07\t2\tGuillaume Girard; Peter Elrick\n690037\tFortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\tNational\tUndisclosed\t1\t2026-05-07\t4\tClarence Titus; Dominic Akwuzie; Grant Bevington; Vipul Sharma\n690006\tMuchea Battery Project\tMuchea, WA\tUnknown\t1\t2026-05-07\t5\tJonathan Haigh; Matt Stone; Shannon B.; Simon Roberts; Subhajit Dey - MIET, FIRSE, CEng, RPEng, RPEQ\n690029\t2.1GWh Battery Storage for Neoen\tNational\t2.1GWh\t1\t2026-05-07\t4\tAkshay Kumar Arya; Bruce Inscoe; Chris Weller; Phillip O'Grady\n",
+  "stderr": "",
+  "execution_time_ms": 2281
+}

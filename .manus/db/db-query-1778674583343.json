@@ -1,0 +1,496 @@
+{
+  "query": "\nSELECT u.name, uesl.digestType, uesl.status, uesl.sentDate, uesl.weekKey, uesl.itemCount, uesl.error\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.userId\nWHERE uesl.digestType = 'monday' AND uesl.weekKey IN ('2026W19', '2026W20')\nORDER BY uesl.weekKey DESC, uesl.sentAt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, uesl.digestType, uesl.status, uesl.sentDate, uesl.weekKey, uesl.itemCount, uesl.error\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.userId\nWHERE uesl.digestType = 'monday' AND uesl.weekKey IN ('2026W19', '2026W20')\nORDER BY uesl.weekKey DESC, uesl.sentAt DESC;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "419",
+      "error": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "577",
+      "error": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "588",
+      "error": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "583",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "303",
+      "error": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "213",
+      "error": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "192",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "158",
+      "error": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "weekKey": "2026W20",
+      "itemCount": "536",
+      "error": "NULL"
+    },
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "370",
+      "error": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "520",
+      "error": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "531",
+      "error": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "526",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "268",
+      "error": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "182",
+      "error": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "174",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "142",
+      "error": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-10",
+      "weekKey": "2026W19",
+      "itemCount": "478",
+      "error": "NULL"
+    },
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "TERRITORY_THRESHOLD_HELD: No action-ready projects with verified contacts found for this territory"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, wrong_contact_pattern, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, wrong_contact_pattern, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-09",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "STALE: pending slot never finalised (gate/threshold blocked before send)"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "STALE: pending slot never finalised (gate/threshold blocked before send)"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "STALE: pending slot never finalised (gate/threshold blocked before send)"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "status": "sent",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "479",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "STALE: pending slot never finalised (gate/threshold blocked before send)"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "status": "failed",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "error": "STALE: pending slot never finalised (gate/threshold blocked before send)"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "status": "sent",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "179",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "status": "sent",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "147",
+      "error": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "status": "sent",
+      "sentDate": "2026-05-08",
+      "weekKey": "2026W19",
+      "itemCount": "445",
+      "error": "NULL"
+    },
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "579",
+      "error": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "571",
+      "error": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "579",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "574",
+      "error": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-06",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "579",
+      "error": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "571",
+      "error": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "579",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "574",
+      "error": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "status": "dry_run",
+      "sentDate": "2026-05-05",
+      "weekKey": "2026W19",
+      "itemCount": "582",
+      "error": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tstatus\tsentDate\tweekKey\titemCount\terror\nAlexandre Leite\tmonday\tdry_run\t2026-05-11\t2026W20\t419\tNULL\nKevin Arnandes\tmonday\tdry_run\t2026-05-11\t2026W20\t577\tNULL\nEgor Ivanov\tmonday\tdry_run\t2026-05-11\t2026W20\t588\tNULL\nAmit Bhargava\tmonday\tdry_run\t2026-05-11\t2026W20\t583\tNULL\nDan Day\tmonday\tdry_run\t2026-05-11\t2026W20\t303\tNULL\nDaniel Zec\tmonday\tdry_run\t2026-05-11\t2026W20\t213\tNULL\nBrett Hansen\tmonday\tdry_run\t2026-05-11\t2026W20\t192\tNULL\nRyan Pemberton\tmonday\tdry_run\t2026-05-11\t2026W20\t158\tNULL\nLeo Williams \tmonday\tdry_run\t2026-05-11\t2026W20\t536\tNULL\nAlexandre Leite\tmonday\tdry_run\t2026-05-10\t2026W19\t370\tNULL\nKevin Arnandes\tmonday\tdry_run\t2026-05-10\t2026W19\t520\tNULL\nEgor Ivanov\tmonday\tdry_run\t2026-05-10\t2026W19\t531\tNULL\nAmit Bhargava\tmonday\tdry_run\t2026-05-10\t2026W19\t526\tNULL\nDan Day\tmonday\tdry_run\t2026-05-10\t2026W19\t268\tNULL\nDaniel Zec\tmonday\tdry_run\t2026-05-10\t2026W19\t182\tNULL\nBrett Hansen\tmonday\tdry_run\t2026-05-10\t2026W19\t174\tNULL\nRyan Pemberton\tmonday\tdry_run\t2026-05-10\t2026W19\t142\tNULL\nLeo Williams \tmonday\tdry_run\t2026-05-10\t2026W19\t478\tNULL\nAlexandre Leite\tmonday\tfailed\t2026-05-09\t2026W19\t0\tTERRITORY_THRESHOLD_HELD: No action-ready projects with verified contacts found for this territory\nKevin Arnandes\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nEgor Ivanov\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nAmit Bhargava\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, wrong_contact_pattern, insufficient_defensible_contacts\nDan Day\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, wrong_contact_pattern, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nDaniel Zec\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nBrett Hansen\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nRyan Pemberton\tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nLeo Williams \tmonday\tfailed\t2026-05-09\t2026W19\t0\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nAlexandre Leite\tmonday\tfailed\t2026-05-08\t2026W19\t0\tSTALE: pending slot never finalised (gate/threshold blocked before send)\nKevin Arnandes\tmonday\tfailed\t2026-05-08\t2026W19\t0\tSTALE: pending slot never finalised (gate/threshold blocked before send)\nEgor Ivanov\tmonday\tfailed\t2026-05-08\t2026W19\t0\tSTALE: pending slot never finalised (gate/threshold blocked before send)\nAmit Bhargava\tmonday\tsent\t2026-05-08\t2026W19\t479\tNULL\nDan Day\tmonday\tfailed\t2026-05-08\t2026W19\t0\tSTALE: pending slot never finalised (gate/threshold blocked before send)\nDaniel Zec\tmonday\tfailed\t2026-05-08\t2026W19\t0\tSTALE: pending slot never finalised (gate/threshold blocked before send)\nBrett Hansen\tmonday\tsent\t2026-05-08\t2026W19\t179\tNULL\nRyan Pemberton\tmonday\tsent\t2026-05-08\t2026W19\t147\tNULL\nLeo Williams \tmonday\tsent\t2026-05-08\t2026W19\t445\tNULL\nAlexandre Leite\tmonday\tdry_run\t2026-05-06\t2026W19\t582\tNULL\nKevin Arnandes\tmonday\tdry_run\t2026-05-06\t2026W19\t582\tNULL\nEgor Ivanov\tmonday\tdry_run\t2026-05-06\t2026W19\t582\tNULL\nAmit Bhargava\tmonday\tdry_run\t2026-05-06\t2026W19\t582\tNULL\nDan Day\tmonday\tdry_run\t2026-05-06\t2026W19\t579\tNULL\nDaniel Zec\tmonday\tdry_run\t2026-05-06\t2026W19\t571\tNULL\nBrett Hansen\tmonday\tdry_run\t2026-05-06\t2026W19\t579\tNULL\nRyan Pemberton\tmonday\tdry_run\t2026-05-06\t2026W19\t574\tNULL\nLeo Williams \tmonday\tdry_run\t2026-05-06\t2026W19\t582\tNULL\nAlexandre Leite\tmonday\tdry_run\t2026-05-05\t2026W19\t582\tNULL\nKevin Arnandes\tmonday\tdry_run\t2026-05-05\t2026W19\t582\tNULL\nEgor Ivanov\tmonday\tdry_run\t2026-05-05\t2026W19\t582\tNULL\nAmit Bhargava\tmonday\tdry_run\t2026-05-05\t2026W19\t582\tNULL\nDan Day\tmonday\tdry_run\t2026-05-05\t2026W19\t579\tNULL\nDaniel Zec\tmonday\tdry_run\t2026-05-05\t2026W19\t571\tNULL\nBrett Hansen\tmonday\tdry_run\t2026-05-05\t2026W19\t579\tNULL\nRyan Pemberton\tmonday\tdry_run\t2026-05-05\t2026W19\t574\tNULL\nLeo Williams \tmonday\tdry_run\t2026-05-05\t2026W19\t582\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1858
+}

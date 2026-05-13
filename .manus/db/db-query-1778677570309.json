@@ -1,0 +1,82 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, p.actionTier, p.productLane, p.owner,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.projectState IN ('NSW', 'VIC', 'SA', 'TAS')\n  AND p.actionTier = 'tier1_actionable'\n  AND p.discoveryStatus = 'send_ready_contact'\nORDER BY send_ready DESC\nLIMIT 8;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, p.actionTier, p.productLane, p.owner,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.projectState IN ('NSW', 'VIC', 'SA', 'TAS')\n  AND p.actionTier = 'tier1_actionable'\n  AND p.discoveryStatus = 'send_ready_contact'\nORDER BY send_ready DESC\nLIMIT 8;\n",
+  "rows": [
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "projectState": "VIC",
+      "actionTier": "tier1_actionable",
+      "productLane": "multi_lane_pt",
+      "owner": "Inland Rail",
+      "send_ready": "11"
+    },
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "productLane": "multi_lane_pt",
+      "owner": "Newmont",
+      "send_ready": "11"
+    },
+    {
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "productLane": "bess",
+      "owner": "Snowy Hydro",
+      "send_ready": "11"
+    },
+    {
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "projectState": "SA",
+      "actionTier": "tier1_actionable",
+      "productLane": "pumps",
+      "owner": "ASC Pty Ltd",
+      "send_ready": "10"
+    },
+    {
+      "id": "630004",
+      "name": "Transgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "productLane": "bess",
+      "owner": "Transgrid",
+      "send_ready": "9"
+    },
+    {
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "projectState": "SA",
+      "actionTier": "tier1_actionable",
+      "productLane": "multi_lane_pt",
+      "owner": "Australian Department of Defence",
+      "send_ready": "6"
+    },
+    {
+      "id": "990006",
+      "name": "Koolunga BESS (Battery Energy Storage System)",
+      "projectState": "SA",
+      "actionTier": "tier1_actionable",
+      "productLane": "NULL",
+      "owner": "Equis",
+      "send_ready": "5"
+    },
+    {
+      "id": "570010",
+      "name": "Large-Scale Student Housing Project",
+      "projectState": "VIC",
+      "actionTier": "tier1_actionable",
+      "productLane": "pumps",
+      "owner": "Developer (unspecified)",
+      "send_ready": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tactionTier\tproductLane\towner\tsend_ready\n570022\tInland Rail Station Upgrades (Euroa)\tVIC\ttier1_actionable\tmulti_lane_pt\tInland Rail\t11\n690089\tCadia Gold Mine Operations\tNSW\ttier1_actionable\tmulti_lane_pt\tNewmont\t11\n690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tNSW\ttier1_actionable\tbess\tSnowy Hydro\t11\n120002\tASC Submarine Maintenance and Capability\tSA\ttier1_actionable\tpumps\tASC Pty Ltd\t10\n630004\tTransgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects\tNSW\ttier1_actionable\tbess\tTransgrid\t9\n120240\tAUKUS Submarine Program (SSN-AUKUS)\tSA\ttier1_actionable\tmulti_lane_pt\tAustralian Department of Defence\t6\n990006\tKoolunga BESS (Battery Energy Storage System)\tSA\ttier1_actionable\tNULL\tEquis\t5\n570010\tLarge-Scale Student Housing Project\tVIC\ttier1_actionable\tpumps\tDeveloper (unspecified)\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1834
+}

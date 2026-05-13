@@ -1,0 +1,230 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, p.actionTier, p.discoveryStatus, p.owner, p.productLane,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.discoveryStatus IN ('no_contacts', 'discovery_queued')\n  AND p.actionTier = 'tier1_actionable'\n  AND (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') = 0\nORDER BY p.name\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, p.actionTier, p.discoveryStatus, p.owner, p.productLane,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.discoveryStatus IN ('no_contacts', 'discovery_queued')\n  AND p.actionTier = 'tier1_actionable'\n  AND (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') = 0\nORDER BY p.name\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "720005",
+      "name": "Alinta Energy 500 MW / 2,000 MWh Battery Energy Storage System (Stage 1)",
+      "projectState": "SA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "no_contacts",
+      "owner": "Alinta Energy",
+      "productLane": "NULL",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "480072",
+      "name": "Alkimos Seawater Desalination Plant",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Water Corporation",
+      "productLane": "pumps",
+      "total_contacts": "56",
+      "send_ready": "0"
+    },
+    {
+      "id": "120006",
+      "name": "Arrow Energy — Surat Gas Project",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Arrow Energy Pty Ltd",
+      "productLane": "portable_air",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "660009",
+      "name": "Australian Rooftop Solar and Battery Energy Storage System (BESS) Installations",
+      "projectState": "NULL",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "no_contacts",
+      "owner": "Individual Consumers / Households",
+      "productLane": "bess",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "120004",
+      "name": "Australian Submarine Agency — AUKUS Pillar 1",
+      "projectState": "SA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Australian Submarine Agency",
+      "productLane": "multi_lane_pt",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "480014",
+      "name": "Bank Street Park Construction",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "NSW Government",
+      "productLane": "pumps",
+      "total_contacts": "2",
+      "send_ready": "0"
+    },
+    {
+      "id": "1200066",
+      "name": "Barossa Gas Project",
+      "projectState": "NT",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Santos",
+      "productLane": "NULL",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "1200030",
+      "name": "Capacity Investment Scheme Tenders 5 and 6 (WA)",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Australian Government",
+      "productLane": "NULL",
+      "total_contacts": "1",
+      "send_ready": "0"
+    },
+    {
+      "id": "720037",
+      "name": "Euroa Station Upgrade (Inland Rail)",
+      "projectState": "VIC",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "no_contacts",
+      "owner": "Inland Rail (Australian Rail Track Corporation - ARTC)",
+      "productLane": "NULL",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "840002",
+      "name": "First Nations Microgrids Program",
+      "projectState": "NT",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "no_contacts",
+      "owner": "First Nations communities (with ARENA funding)",
+      "productLane": "NULL",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "1200017",
+      "name": "Jurien Bay Water Supply Strengthening Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Water Corporation",
+      "productLane": "NULL",
+      "total_contacts": "1",
+      "send_ready": "0"
+    },
+    {
+      "id": "60009",
+      "name": "Kurri Kurri Gas Peaker",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Snowy Hydro",
+      "productLane": "portable_air",
+      "total_contacts": "5",
+      "send_ready": "0"
+    },
+    {
+      "id": "480020",
+      "name": "Liddell Battery Energy Storage System",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "AGL",
+      "productLane": "bess",
+      "total_contacts": "64",
+      "send_ready": "0"
+    },
+    {
+      "id": "480030",
+      "name": "Liddell Grid-Forming BESS",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "AGL",
+      "productLane": "bess",
+      "total_contacts": "75",
+      "send_ready": "0"
+    },
+    {
+      "id": "1110003",
+      "name": "Melton Line Upgrade",
+      "projectState": "VIC",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Victorian Government",
+      "productLane": "NULL",
+      "total_contacts": "2",
+      "send_ready": "0"
+    },
+    {
+      "id": "120009",
+      "name": "Nolans Rare Earths Project",
+      "projectState": "NT",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Arafura Rare Earths Pty Ltd",
+      "productLane": "multi_lane_pt",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "30026",
+      "name": "North East Link",
+      "projectState": "VIC",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Victorian Government",
+      "productLane": "multi_lane_pt",
+      "total_contacts": "1",
+      "send_ready": "0"
+    },
+    {
+      "id": "960002",
+      "name": "North East Link Program",
+      "projectState": "VIC",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "North East Link Program (VIC)",
+      "productLane": "NULL",
+      "total_contacts": "0",
+      "send_ready": "0"
+    },
+    {
+      "id": "480078",
+      "name": "Northern Tasmania Mental Health Precinct",
+      "projectState": "TAS",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Tasmanian Government",
+      "productLane": "pal",
+      "total_contacts": "4",
+      "send_ready": "0"
+    },
+    {
+      "id": "1200022",
+      "name": "Offshore NSW Infrastructure Upgrade Program",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Unknown",
+      "productLane": "NULL",
+      "total_contacts": "0",
+      "send_ready": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tactionTier\tdiscoveryStatus\towner\tproductLane\ttotal_contacts\tsend_ready\n720005\tAlinta Energy 500 MW / 2,000 MWh Battery Energy Storage System (Stage 1)\tSA\ttier1_actionable\tno_contacts\tAlinta Energy\tNULL\t0\t0\n480072\tAlkimos Seawater Desalination Plant\tWA\ttier1_actionable\tdiscovery_queued\tWater Corporation\tpumps\t56\t0\n120006\tArrow Energy — Surat Gas Project\tQLD\ttier1_actionable\tdiscovery_queued\tArrow Energy Pty Ltd\tportable_air\t0\t0\n660009\tAustralian Rooftop Solar and Battery Energy Storage System (BESS) Installations\tNULL\ttier1_actionable\tno_contacts\tIndividual Consumers / Households\tbess\t0\t0\n120004\tAustralian Submarine Agency — AUKUS Pillar 1\tSA\ttier1_actionable\tdiscovery_queued\tAustralian Submarine Agency\tmulti_lane_pt\t0\t0\n480014\tBank Street Park Construction\tNSW\ttier1_actionable\tdiscovery_queued\tNSW Government\tpumps\t2\t0\n1200066\tBarossa Gas Project\tNT\ttier1_actionable\tdiscovery_queued\tSantos\tNULL\t0\t0\n1200030\tCapacity Investment Scheme Tenders 5 and 6 (WA)\tWA\ttier1_actionable\tdiscovery_queued\tAustralian Government\tNULL\t1\t0\n720037\tEuroa Station Upgrade (Inland Rail)\tVIC\ttier1_actionable\tno_contacts\tInland Rail (Australian Rail Track Corporation - ARTC)\tNULL\t0\t0\n840002\tFirst Nations Microgrids Program\tNT\ttier1_actionable\tno_contacts\tFirst Nations communities (with ARENA funding)\tNULL\t0\t0\n1200017\tJurien Bay Water Supply Strengthening Project\tWA\ttier1_actionable\tdiscovery_queued\tWater Corporation\tNULL\t1\t0\n60009\tKurri Kurri Gas Peaker\tNSW\ttier1_actionable\tdiscovery_queued\tSnowy Hydro\tportable_air\t5\t0\n480020\tLiddell Battery Energy Storage System\tNSW\ttier1_actionable\tdiscovery_queued\tAGL\tbess\t64\t0\n480030\tLiddell Grid-Forming BESS\tNSW\ttier1_actionable\tdiscovery_queued\tAGL\tbess\t75\t0\n1110003\tMelton Line Upgrade\tVIC\ttier1_actionable\tdiscovery_queued\tVictorian Government\tNULL\t2\t0\n120009\tNolans Rare Earths Project\tNT\ttier1_actionable\tdiscovery_queued\tArafura Rare Earths Pty Ltd\tmulti_lane_pt\t0\t0\n30026\tNorth East Link\tVIC\ttier1_actionable\tdiscovery_queued\tVictorian Government\tmulti_lane_pt\t1\t0\n960002\tNorth East Link Program\tVIC\ttier1_actionable\tdiscovery_queued\tNorth East Link Program (VIC)\tNULL\t0\t0\n480078\tNorthern Tasmania Mental Health Precinct\tTAS\ttier1_actionable\tdiscovery_queued\tTasmanian Government\tpal\t4\t0\n1200022\tOffshore NSW Infrastructure Upgrade Program\tNSW\ttier1_actionable\tdiscovery_queued\tUnknown\tNULL\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1953
+}

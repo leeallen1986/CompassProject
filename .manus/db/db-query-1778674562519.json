@@ -1,0 +1,90 @@
+{
+  "query": "DESCRIBE userEmailSendLog;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DESCRIBE userEmailSendLog;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "userId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "digestType",
+      "Type": "enum('monday','thursday','manager_rollup')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sentDate",
+      "Type": "varchar(10)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sentAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "status",
+      "Type": "enum('sent','failed','dry_run','pending')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "sent",
+      "Extra": ""
+    },
+    {
+      "Field": "error",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "weekKey",
+      "Type": "varchar(8)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "itemCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "dryRun",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nuserId\tint\tNO\tMUL\tNULL\t\ndigestType\tenum('monday','thursday','manager_rollup')\tNO\t\tNULL\t\nsentDate\tvarchar(10)\tNO\t\tNULL\t\nsentAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nstatus\tenum('sent','failed','dry_run','pending')\tNO\t\tsent\t\nerror\ttext\tYES\t\tNULL\t\nweekKey\tvarchar(8)\tYES\t\tNULL\t\nitemCount\tint\tYES\t\t0\t\ndryRun\ttinyint(1)\tNO\t\t0\t\n",
+  "stderr": "",
+  "execution_time_ms": 1806
+}

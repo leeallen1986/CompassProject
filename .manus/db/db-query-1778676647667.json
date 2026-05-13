@@ -1,0 +1,70 @@
+{
+  "query": "\nSELECT id, name, discoveryStatus,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = projects.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects\nWHERE id IN (120240, 1200018, 1200067, 1260002, 120181, 1200063, 60024, 720027, 1200045, 1260012);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, discoveryStatus,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = projects.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects\nWHERE id IN (120240, 1200018, 1200067, 1260002, 120181, 1200063, 60024, 720027, 1200045, 1260012);\n",
+  "rows": [
+    {
+      "id": "1200045",
+      "name": "EnergyConnect Transmission Project (Southern Superhighway)",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "1"
+    },
+    {
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "6"
+    },
+    {
+      "id": "1200067",
+      "name": "Scarborough Energy Project",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "4"
+    },
+    {
+      "id": "1200018",
+      "name": "Burpengary East Wastewater Treatment Plant Upgrade",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "5"
+    },
+    {
+      "id": "120181",
+      "name": "Sydney Metro City & Southwest",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "1"
+    },
+    {
+      "id": "1260002",
+      "name": "Koolyanobbing iron ore production restart",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "4"
+    },
+    {
+      "id": "720027",
+      "name": "United North Underground Gold Mine",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "2"
+    },
+    {
+      "id": "1260012",
+      "name": "Reward gold mine",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "1"
+    },
+    {
+      "id": "1200063",
+      "name": "Scarborough Gas Project",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "4"
+    },
+    {
+      "id": "60024",
+      "name": "Marinus Link BESS",
+      "discoveryStatus": "send_ready_contact",
+      "send_ready": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tdiscoveryStatus\tsend_ready\n1200045\tEnergyConnect Transmission Project (Southern Superhighway)\tsend_ready_contact\t1\n120240\tAUKUS Submarine Program (SSN-AUKUS)\tsend_ready_contact\t6\n1200067\tScarborough Energy Project\tsend_ready_contact\t4\n1200018\tBurpengary East Wastewater Treatment Plant Upgrade\tsend_ready_contact\t5\n120181\tSydney Metro City & Southwest\tsend_ready_contact\t1\n1260002\tKoolyanobbing iron ore production restart\tsend_ready_contact\t4\n720027\tUnited North Underground Gold Mine\tsend_ready_contact\t2\n1260012\tReward gold mine\tsend_ready_contact\t1\n1200063\tScarborough Gas Project\tsend_ready_contact\t4\n60024\tMarinus Link BESS\tsend_ready_contact\t4\n",
+  "stderr": "",
+  "execution_time_ms": 1913
+}

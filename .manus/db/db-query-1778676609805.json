@@ -1,0 +1,120 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, p.actionTier, p.discoveryStatus, p.owner, p.productLane,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.discoveryStatus = 'discovery_queued'\nHAVING send_ready > 0\nORDER BY CASE p.actionTier WHEN 'tier1_actionable' THEN 1 WHEN 'tier2_watch' THEN 2 ELSE 3 END, send_ready DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, p.actionTier, p.discoveryStatus, p.owner, p.productLane,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.discoveryStatus = 'discovery_queued'\nHAVING send_ready > 0\nORDER BY CASE p.actionTier WHEN 'tier1_actionable' THEN 1 WHEN 'tier2_watch' THEN 2 ELSE 3 END, send_ready DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "projectState": "SA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Australian Department of Defence",
+      "productLane": "multi_lane_pt",
+      "total_contacts": "759",
+      "send_ready": "6"
+    },
+    {
+      "id": "1200018",
+      "name": "Burpengary East Wastewater Treatment Plant Upgrade",
+      "projectState": "QLD",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Unitywater",
+      "productLane": "NULL",
+      "total_contacts": "5",
+      "send_ready": "5"
+    },
+    {
+      "id": "1200067",
+      "name": "Scarborough Energy Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Woodside Energy",
+      "productLane": "NULL",
+      "total_contacts": "4",
+      "send_ready": "4"
+    },
+    {
+      "id": "1260002",
+      "name": "Koolyanobbing iron ore production restart",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Yilgarn Iron",
+      "productLane": "NULL",
+      "total_contacts": "5",
+      "send_ready": "4"
+    },
+    {
+      "id": "120181",
+      "name": "Sydney Metro City & Southwest",
+      "projectState": "NSW",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Sydney Metro",
+      "productLane": "multi_lane_pt",
+      "total_contacts": "1",
+      "send_ready": "1"
+    },
+    {
+      "id": "1200063",
+      "name": "Scarborough Gas Project",
+      "projectState": "WA",
+      "actionTier": "tier2_warm",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Woodside Energy",
+      "productLane": "NULL",
+      "total_contacts": "4",
+      "send_ready": "4"
+    },
+    {
+      "id": "60024",
+      "name": "Marinus Link BESS",
+      "projectState": "TAS",
+      "actionTier": "tier2_warm",
+      "discoveryStatus": "discovery_queued",
+      "owner": "TasNetworks",
+      "productLane": "bess",
+      "total_contacts": "8",
+      "send_ready": "4"
+    },
+    {
+      "id": "720027",
+      "name": "United North Underground Gold Mine",
+      "projectState": "WA",
+      "actionTier": "tier3_monitor",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Rox Resources",
+      "productLane": "NULL",
+      "total_contacts": "2",
+      "send_ready": "2"
+    },
+    {
+      "id": "1200045",
+      "name": "EnergyConnect Transmission Project (Southern Superhighway)",
+      "projectState": "NSW",
+      "actionTier": "tier2_warm",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Transgrid",
+      "productLane": "NULL",
+      "total_contacts": "1",
+      "send_ready": "1"
+    },
+    {
+      "id": "1260012",
+      "name": "Reward gold mine",
+      "projectState": "NSW",
+      "actionTier": "tier3_monitor",
+      "discoveryStatus": "discovery_queued",
+      "owner": "Vertex Minerals",
+      "productLane": "NULL",
+      "total_contacts": "1",
+      "send_ready": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tactionTier\tdiscoveryStatus\towner\tproductLane\ttotal_contacts\tsend_ready\n120240\tAUKUS Submarine Program (SSN-AUKUS)\tSA\ttier1_actionable\tdiscovery_queued\tAustralian Department of Defence\tmulti_lane_pt\t759\t6\n1200018\tBurpengary East Wastewater Treatment Plant Upgrade\tQLD\ttier1_actionable\tdiscovery_queued\tUnitywater\tNULL\t5\t5\n1200067\tScarborough Energy Project\tWA\ttier1_actionable\tdiscovery_queued\tWoodside Energy\tNULL\t4\t4\n1260002\tKoolyanobbing iron ore production restart\tWA\ttier1_actionable\tdiscovery_queued\tYilgarn Iron\tNULL\t5\t4\n120181\tSydney Metro City & Southwest\tNSW\ttier1_actionable\tdiscovery_queued\tSydney Metro\tmulti_lane_pt\t1\t1\n1200063\tScarborough Gas Project\tWA\ttier2_warm\tdiscovery_queued\tWoodside Energy\tNULL\t4\t4\n60024\tMarinus Link BESS\tTAS\ttier2_warm\tdiscovery_queued\tTasNetworks\tbess\t8\t4\n720027\tUnited North Underground Gold Mine\tWA\ttier3_monitor\tdiscovery_queued\tRox Resources\tNULL\t2\t2\n1200045\tEnergyConnect Transmission Project (Southern Superhighway)\tNSW\ttier2_warm\tdiscovery_queued\tTransgrid\tNULL\t1\t1\n1260012\tReward gold mine\tNSW\ttier3_monitor\tdiscovery_queued\tVertex Minerals\tNULL\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1948
+}

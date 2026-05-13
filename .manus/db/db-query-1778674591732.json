@@ -1,0 +1,75 @@
+{
+  "query": "SELECT * FROM digestSendControl LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT * FROM digestSendControl LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "territory": "WA",
+      "firstSendApproved": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:23",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "autoSendEnabled": "1",
+      "lastPreviewAt": "2026-05-06 10:49:55",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0",
+      "createdAt": "2026-05-06 10:49:54",
+      "updatedAt": "2026-05-08 22:54:23"
+    },
+    {
+      "id": "30001",
+      "territory": "NSW",
+      "firstSendApproved": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:23",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "autoSendEnabled": "1",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0",
+      "createdAt": "2026-05-08 03:16:28",
+      "updatedAt": "2026-05-08 22:54:23"
+    },
+    {
+      "id": "30002",
+      "territory": "SA",
+      "firstSendApproved": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:23",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "autoSendEnabled": "1",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0",
+      "createdAt": "2026-05-08 03:16:34",
+      "updatedAt": "2026-05-08 22:54:23"
+    },
+    {
+      "id": "60001",
+      "territory": "QLD",
+      "firstSendApproved": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:24",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "autoSendEnabled": "1",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0",
+      "createdAt": "2026-05-08 22:54:24",
+      "updatedAt": "2026-05-08 22:54:24"
+    },
+    {
+      "id": "60002",
+      "territory": "VIC",
+      "firstSendApproved": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:24",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "autoSendEnabled": "1",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0",
+      "createdAt": "2026-05-08 22:54:24",
+      "updatedAt": "2026-05-08 22:54:24"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tterritory\tfirstSendApproved\tfirstSendApprovedAt\tfirstSendApprovedBy\tautoSendEnabled\tlastPreviewAt\tlastLiveSendAt\tliveSendCount\tcreatedAt\tupdatedAt\n1\tWA\t1\t2026-05-08 22:54:23\tadmin-bulk-approve-2026-05-09\t1\t2026-05-06 10:49:55\tNULL\t0\t2026-05-06 10:49:54\t2026-05-08 22:54:23\n30001\tNSW\t1\t2026-05-08 22:54:23\tadmin-bulk-approve-2026-05-09\t1\tNULL\tNULL\t0\t2026-05-08 03:16:28\t2026-05-08 22:54:23\n30002\tSA\t1\t2026-05-08 22:54:23\tadmin-bulk-approve-2026-05-09\t1\tNULL\tNULL\t0\t2026-05-08 03:16:34\t2026-05-08 22:54:23\n60001\tQLD\t1\t2026-05-08 22:54:24\tadmin-bulk-approve-2026-05-09\t1\tNULL\tNULL\t0\t2026-05-08 22:54:24\t2026-05-08 22:54:24\n60002\tVIC\t1\t2026-05-08 22:54:24\tadmin-bulk-approve-2026-05-09\t1\tNULL\tNULL\t0\t2026-05-08 22:54:24\t2026-05-08 22:54:24\n",
+  "stderr": "",
+  "execution_time_ms": 1858
+}

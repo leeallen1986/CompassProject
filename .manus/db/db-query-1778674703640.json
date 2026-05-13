@@ -1,0 +1,98 @@
+{
+  "query": "\nSELECT u.name, uesl.digestType, uesl.status, uesl.sentDate, uesl.weekKey, uesl.itemCount, uesl.dryRun, uesl.error, uesl.sentAt\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.userId\nWHERE uesl.digestType = 'thursday' \n  AND u.name IN ('Ryan Pemberton', 'Brett Hansen', 'Leo Williams ')\nORDER BY uesl.sentAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, uesl.digestType, uesl.status, uesl.sentDate, uesl.weekKey, uesl.itemCount, uesl.dryRun, uesl.error, uesl.sentAt\nFROM userEmailSendLog uesl\nJOIN users u ON u.id = uesl.userId\nWHERE uesl.digestType = 'thursday' \n  AND u.name IN ('Ryan Pemberton', 'Brett Hansen', 'Leo Williams ')\nORDER BY uesl.sentAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "name": "Brett Hansen",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)",
+      "sentAt": "2026-05-07 00:15:58"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)",
+      "sentAt": "2026-05-07 00:15:32"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-05-07",
+      "weekKey": "2026W19",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)",
+      "sentAt": "2026-05-07 00:11:37"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)",
+      "sentAt": "2026-04-30 00:50:51"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)",
+      "sentAt": "2026-04-30 00:49:59"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "thursday",
+      "status": "failed",
+      "sentDate": "2026-04-30",
+      "weekKey": "2026W18",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)",
+      "sentAt": "2026-04-30 00:49:58"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "status": "dry_run",
+      "sentDate": "2026-04-21",
+      "weekKey": "2026W17",
+      "itemCount": "26",
+      "dryRun": "1",
+      "error": "NULL",
+      "sentAt": "2026-04-21 22:59:20"
+    },
+    {
+      "name": "Leo Williams ",
+      "digestType": "thursday",
+      "status": "dry_run",
+      "sentDate": "2026-04-21",
+      "weekKey": "2026W17",
+      "itemCount": "26",
+      "dryRun": "1",
+      "error": "NULL",
+      "sentAt": "2026-04-21 22:59:17"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tstatus\tsentDate\tweekKey\titemCount\tdryRun\terror\tsentAt\nBrett Hansen\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\t2026-05-07 00:15:58\nRyan Pemberton\tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\t2026-05-07 00:15:32\nLeo Williams \tthursday\tfailed\t2026-05-07\t2026W19\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\t2026-05-07 00:11:37\nBrett Hansen\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\t2026-04-30 00:50:51\nRyan Pemberton\tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\t2026-04-30 00:49:59\nLeo Williams \tthursday\tfailed\t2026-04-30\t2026W18\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\t2026-04-30 00:49:58\nRyan Pemberton\tthursday\tdry_run\t2026-04-21\t2026W17\t26\t1\tNULL\t2026-04-21 22:59:20\nLeo Williams \tthursday\tdry_run\t2026-04-21\t2026W17\t26\t1\tNULL\t2026-04-21 22:59:17\n",
+  "stderr": "",
+  "execution_time_ms": 1850
+}

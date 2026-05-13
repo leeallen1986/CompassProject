@@ -1,0 +1,55 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND ORDINAL_POSITION > 40 ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND ORDINAL_POSITION > 40 ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "productLane"
+    },
+    {
+      "COLUMN_NAME": "sourcePurpose"
+    },
+    {
+      "COLUMN_NAME": "tenderNumber"
+    },
+    {
+      "COLUMN_NAME": "tenderCloseDate"
+    },
+    {
+      "COLUMN_NAME": "enrichmentBlockedReason"
+    },
+    {
+      "COLUMN_NAME": "govFallbackStatus"
+    },
+    {
+      "COLUMN_NAME": "projectCountry"
+    },
+    {
+      "COLUMN_NAME": "projectState"
+    },
+    {
+      "COLUMN_NAME": "locationConfidence"
+    },
+    {
+      "COLUMN_NAME": "geoBlockedReason"
+    },
+    {
+      "COLUMN_NAME": "lastIcnSeenAt"
+    },
+    {
+      "COLUMN_NAME": "discoveryStatus"
+    },
+    {
+      "COLUMN_NAME": "discoveryPriority"
+    },
+    {
+      "COLUMN_NAME": "lastDiscoveryAt"
+    },
+    {
+      "COLUMN_NAME": "discoveryAttempts"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nproductLane\nsourcePurpose\ntenderNumber\ntenderCloseDate\nenrichmentBlockedReason\ngovFallbackStatus\nprojectCountry\nprojectState\nlocationConfidence\ngeoBlockedReason\nlastIcnSeenAt\ndiscoveryStatus\ndiscoveryPriority\nlastDiscoveryAt\ndiscoveryAttempts\n",
+  "stderr": "",
+  "execution_time_ms": 1784
+}

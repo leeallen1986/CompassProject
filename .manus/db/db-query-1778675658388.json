@@ -1,0 +1,100 @@
+{
+  "query": "\nSELECT u.name, sl.digestType, sl.weekKey, sl.status, sl.sentDate, sl.sentAt, sl.itemCount, sl.error\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.digestType = 'monday'\n  AND sl.weekKey = '2026W20'\nORDER BY sl.sentAt;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, sl.digestType, sl.weekKey, sl.status, sl.sentDate, sl.sentAt, sl.itemCount, sl.error\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.digestType = 'monday'\n  AND sl.weekKey = '2026W20'\nORDER BY sl.sentAt;\n",
+  "rows": [
+    {
+      "name": "Leo Williams ",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:26:30",
+      "itemCount": "536",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:26:32",
+      "itemCount": "158",
+      "error": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:27:21",
+      "itemCount": "192",
+      "error": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:27:41",
+      "itemCount": "213",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:27:44",
+      "itemCount": "303",
+      "error": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:27:47",
+      "itemCount": "583",
+      "error": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:29:10",
+      "itemCount": "588",
+      "error": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:31:01",
+      "itemCount": "577",
+      "error": "NULL"
+    },
+    {
+      "name": "Alexandre Leite",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "sentDate": "2026-05-11",
+      "sentAt": "2026-05-11 23:31:03",
+      "itemCount": "419",
+      "error": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tweekKey\tstatus\tsentDate\tsentAt\titemCount\terror\nLeo Williams \tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:26:30\t536\tNULL\nRyan Pemberton\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:26:32\t158\tNULL\nBrett Hansen\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:27:21\t192\tNULL\nDaniel Zec\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:27:41\t213\tNULL\nDan Day\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:27:44\t303\tNULL\nAmit Bhargava\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:27:47\t583\tNULL\nEgor Ivanov\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:29:10\t588\tNULL\nKevin Arnandes\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:31:01\t577\tNULL\nAlexandre Leite\tmonday\t2026W20\tdry_run\t2026-05-11\t2026-05-11 23:31:03\t419\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1887
+}

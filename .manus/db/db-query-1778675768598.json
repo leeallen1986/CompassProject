@@ -1,0 +1,66 @@
+{
+  "query": "\nSELECT u.name, u.email, up.territories, up.assignedBusinessLines, up.industries\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.role = 'user'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, u.email, up.territories, up.assignedBusinessLines, up.industries\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.role = 'user'\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"PT All Capital Sales\"]",
+      "industries": "[\"mining_production\", \"construction_utilities\", \"energy_oil_gas\", \"defence\"]"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"PAL\", \"BESS\"]",
+      "industries": "[\"industrial_maintenance\", \"shutdowns\", \"infrastructure\", \"energy\", \"construction\"]"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"water\", \"civils\", \"infrastructure\"]"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"infrastructure\", \"construction\"]"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]",
+      "industries": "[\"mining_production\", \"mining_shutdown\", \"mining_contractors\", \"construction_civil\", \"construction_commercial\", \"construction_residential\", \"construction_utilities\", \"energy_oil_gas\", \"energy_renewables\", \"energy_powergen\", \"energy_transmission\", \"infrastructure_rail\", \"infrastructure_ports\", \"defence\"]"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\"]",
+      "industries": "[\"construction_civil\", \"construction_commercial\", \"energy_oil_gas\", \"mining_exploration\"]"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tterritories\tassignedBusinessLines\tindustries\nAlexandre Leite\talexandre.leite@atlascopco.com\t[\"NATIONAL\"]\t[\"PT All Capital Sales\"]\t[\"mining_production\", \"construction_utilities\", \"energy_oil_gas\", \"defence\"]\nAmit Bhargava\tamit.bhargava@atlascopco.com\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]\t[\"industrial_maintenance\", \"shutdowns\", \"infrastructure\", \"energy\", \"construction\"]\nDan Day\tdan.day@atlascopco.com\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining_exploration\", \"mining_production\", \"water\", \"civils\", \"infrastructure\"]\nDaniel Zec\tdaniel.zec@atlascopco.com\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\"]\t[\"mining_exploration\", \"mining_production\", \"infrastructure\", \"construction\"]\nEgor Ivanov\tegor.ivanov@atlascopco.com\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\t[\"mining_production\", \"mining_shutdown\", \"mining_contractors\", \"construction_civil\", \"construction_commercial\", \"construction_residential\", \"construction_utilities\", \"energy_oil_gas\", \"energy_renewables\", \"energy_powergen\", \"energy_transmission\", \"infrastructure_rail\", \"infrastructure_ports\", \"defence\"]\nKevin Arnandes\tkevinarnandes@gmail.com\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\"]\t[\"construction_civil\", \"construction_commercial\", \"energy_oil_gas\", \"mining_exploration\"]\nLeo Williams \tleo.williams@atlascopco.com\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\t[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]\nRyan Pemberton\tryan.pemberton@atlascopco.com\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\t[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1928
+}

@@ -1,0 +1,75 @@
+{
+  "query": "\nSELECT rep_name, project_id, project_name, location, value, actionTier, discoveryStatus, last_discovery, discoveryAttempts, total_contacts, send_ready\nFROM (\n  SELECT \n    u.name AS rep_name,\n    p.id AS project_id,\n    p.name AS project_name,\n    p.location,\n    p.value,\n    p.actionTier,\n    p.discoveryStatus,\n    DATE(p.lastDiscoveryAt) AS last_discovery,\n    p.discoveryAttempts,\n    (SELECT COUNT(DISTINCT c2.id) FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id WHERE cp2.projectId = p.id AND c2.crmOrphan = 0) AS total_contacts,\n    (SELECT COUNT(DISTINCT c3.id) FROM contacts c3 JOIN contactProjects cp3 ON cp3.contactId = c3.id WHERE cp3.projectId = p.id AND c3.crmOrphan = 0 AND c3.contactTrustTier = 'send_ready') AS send_ready,\n    ROW_NUMBER() OVER (PARTITION BY u.name ORDER BY p.actionTier ASC, p.priority DESC) AS rn\n  FROM users u\n  JOIN userProfiles up ON up.userId = u.id\n  JOIN projects p ON (\n    p.priority = 'hot'\n    AND p.suppressed = 0\n    AND (\n      JSON_CONTAINS(up.territories, JSON_QUOTE(p.location), '$')\n      OR JSON_CONTAINS(up.territories, '\"NATIONAL\"', '$')\n      OR JSON_CONTAINS(up.territories, '\"National\"', '$')\n    )\n  )\n  WHERE u.name IN ('Ryan Pemberton', 'Brett Hansen')\n    AND u.role = 'user'\n) ranked\nWHERE rn <= 5\nORDER BY rep_name, rn;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT rep_name, project_id, project_name, location, value, actionTier, discoveryStatus, last_discovery, discoveryAttempts, total_contacts, send_ready\nFROM (\n  SELECT \n    u.name AS rep_name,\n    p.id AS project_id,\n    p.name AS project_name,\n    p.location,\n    p.value,\n    p.actionTier,\n    p.discoveryStatus,\n    DATE(p.lastDiscoveryAt) AS last_discovery,\n    p.discoveryAttempts,\n    (SELECT COUNT(DISTINCT c2.id) FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id WHERE cp2.projectId = p.id AND c2.crmOrphan = 0) AS total_contacts,\n    (SELECT COUNT(DISTINCT c3.id) FROM contacts c3 JOIN contactProjects cp3 ON cp3.contactId = c3.id WHERE cp3.projectId = p.id AND c3.crmOrphan = 0 AND c3.contactTrustTier = 'send_ready') AS send_ready,\n    ROW_NUMBER() OVER (PARTITION BY u.name ORDER BY p.actionTier ASC, p.priority DESC) AS rn\n  FROM users u\n  JOIN userProfiles up ON up.userId = u.id\n  JOIN projects p ON (\n    p.priority = 'hot'\n    AND p.suppressed = 0\n    AND (\n      JSON_CONTAINS(up.territories, JSON_QUOTE(p.location), '$')\n      OR JSON_CONTAINS(up.territories, '\"NATIONAL\"', '$')\n      OR JSON_CONTAINS(up.territories, '\"National\"', '$')\n    )\n  )\n  WHERE u.name IN ('Ryan Pemberton', 'Brett Hansen')\n    AND u.role = 'user'\n) ranked\nWHERE rn <= 5\nORDER BY rep_name, rn;\n",
+  "rows": [
+    {
+      "rep_name": "Ryan Pemberton",
+      "project_id": "270003",
+      "project_name": "Western Australia's biggest solar farm",
+      "location": "WA",
+      "value": "Unknown",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "last_discovery": "2026-05-03",
+      "discoveryAttempts": "0",
+      "total_contacts": "44",
+      "send_ready": "3"
+    },
+    {
+      "rep_name": "Ryan Pemberton",
+      "project_id": "270023",
+      "project_name": "440-MW solar park in Western Australia",
+      "location": "WA",
+      "value": "Unknown",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "discovery_queued",
+      "last_discovery": "2026-05-03",
+      "discoveryAttempts": "0",
+      "total_contacts": "187",
+      "send_ready": "3"
+    },
+    {
+      "rep_name": "Ryan Pemberton",
+      "project_id": "120016",
+      "project_name": "Pilbara Iron Ore Expansion — Rio Tinto",
+      "location": "WA",
+      "value": "$10+ billion (rolling program)",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "last_discovery": "NULL",
+      "discoveryAttempts": "0",
+      "total_contacts": "2",
+      "send_ready": "2"
+    },
+    {
+      "rep_name": "Ryan Pemberton",
+      "project_id": "120017",
+      "project_name": "Fortescue Iron Bridge Magnetite Project",
+      "location": "WA",
+      "value": "$3.9 billion",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "last_discovery": "NULL",
+      "discoveryAttempts": "0",
+      "total_contacts": "2",
+      "send_ready": "2"
+    },
+    {
+      "rep_name": "Ryan Pemberton",
+      "project_id": "510012",
+      "project_name": "WA Energy Research Facility (Stage 1)",
+      "location": "WA",
+      "value": "Unknown",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "blocked_dirty_owner",
+      "last_discovery": "NULL",
+      "discoveryAttempts": "0",
+      "total_contacts": "161",
+      "send_ready": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep_name\tproject_id\tproject_name\tlocation\tvalue\tactionTier\tdiscoveryStatus\tlast_discovery\tdiscoveryAttempts\ttotal_contacts\tsend_ready\nRyan Pemberton\t270003\tWestern Australia's biggest solar farm\tWA\tUnknown\ttier1_actionable\tdiscovery_queued\t2026-05-03\t0\t44\t3\nRyan Pemberton\t270023\t440-MW solar park in Western Australia\tWA\tUnknown\ttier1_actionable\tdiscovery_queued\t2026-05-03\t0\t187\t3\nRyan Pemberton\t120016\tPilbara Iron Ore Expansion — Rio Tinto\tWA\t$10+ billion (rolling program)\ttier1_actionable\tsend_ready_contact\tNULL\t0\t2\t2\nRyan Pemberton\t120017\tFortescue Iron Bridge Magnetite Project\tWA\t$3.9 billion\ttier1_actionable\tsend_ready_contact\tNULL\t0\t2\t2\nRyan Pemberton\t510012\tWA Energy Research Facility (Stage 1)\tWA\tUnknown\ttier1_actionable\tblocked_dirty_owner\tNULL\t0\t161\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1764
+}

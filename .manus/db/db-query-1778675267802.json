@@ -1,0 +1,58 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Brett Hansen', 'Ryan Pemberton', 'Daniel Zec', 'Dan Day', 'Amit Bhargava', 'Leo Williams ')\nAND u.role = 'user'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Brett Hansen', 'Ryan Pemberton', 'Daniel Zec', 'Dan Day', 'Amit Bhargava', 'Leo Williams ')\nAND u.role = 'user'\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"PAL\", \"BESS\"]"
+    },
+    {
+      "id": "18360001",
+      "name": "Amit Bhargava",
+      "email": "abhargava1@gmail.com",
+      "role": "user",
+      "territories": "NULL",
+      "assignedBusinessLines": "NULL"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tterritories\tassignedBusinessLines\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]\n18360001\tAmit Bhargava\tabhargava1@gmail.com\tuser\tNULL\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\"]\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1792
+}

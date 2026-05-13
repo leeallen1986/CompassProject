@@ -1,0 +1,59 @@
+{
+  "query": "\nSELECT discoveryStatus, COUNT(*) AS cnt,\n  SUM(CASE WHEN send_ready > 0 THEN 1 ELSE 0 END) AS has_send_ready,\n  SUM(CASE WHEN send_ready = 0 AND total_contacts > 0 THEN 1 ELSE 0 END) AS has_contacts_no_send_ready,\n  SUM(CASE WHEN total_contacts = 0 THEN 1 ELSE 0 END) AS no_contacts_at_all\nFROM (\n  SELECT p.discoveryStatus,\n    (SELECT COUNT(DISTINCT c.id) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n    (SELECT COUNT(DISTINCT c.id) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\n  FROM projects p\n  WHERE p.priority = 'hot' AND p.suppressed = 0\n) sub\nGROUP BY discoveryStatus\nORDER BY cnt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT discoveryStatus, COUNT(*) AS cnt,\n  SUM(CASE WHEN send_ready > 0 THEN 1 ELSE 0 END) AS has_send_ready,\n  SUM(CASE WHEN send_ready = 0 AND total_contacts > 0 THEN 1 ELSE 0 END) AS has_contacts_no_send_ready,\n  SUM(CASE WHEN total_contacts = 0 THEN 1 ELSE 0 END) AS no_contacts_at_all\nFROM (\n  SELECT p.discoveryStatus,\n    (SELECT COUNT(DISTINCT c.id) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0) AS total_contacts,\n    (SELECT COUNT(DISTINCT c.id) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\n  FROM projects p\n  WHERE p.priority = 'hot' AND p.suppressed = 0\n) sub\nGROUP BY discoveryStatus\nORDER BY cnt DESC;\n",
+  "rows": [
+    {
+      "discoveryStatus": "discovery_queued",
+      "cnt": "196",
+      "has_send_ready": "59",
+      "has_contacts_no_send_ready": "75",
+      "no_contacts_at_all": "62"
+    },
+    {
+      "discoveryStatus": "send_ready_contact",
+      "cnt": "73",
+      "has_send_ready": "72",
+      "has_contacts_no_send_ready": "1",
+      "no_contacts_at_all": "0"
+    },
+    {
+      "discoveryStatus": "blocked_government_owner",
+      "cnt": "33",
+      "has_send_ready": "0",
+      "has_contacts_no_send_ready": "27",
+      "no_contacts_at_all": "6"
+    },
+    {
+      "discoveryStatus": "no_contacts",
+      "cnt": "33",
+      "has_send_ready": "3",
+      "has_contacts_no_send_ready": "2",
+      "no_contacts_at_all": "28"
+    },
+    {
+      "discoveryStatus": "named_contact_no_email",
+      "cnt": "23",
+      "has_send_ready": "2",
+      "has_contacts_no_send_ready": "21",
+      "no_contacts_at_all": "0"
+    },
+    {
+      "discoveryStatus": "blocked_dirty_owner",
+      "cnt": "12",
+      "has_send_ready": "0",
+      "has_contacts_no_send_ready": "11",
+      "no_contacts_at_all": "1"
+    },
+    {
+      "discoveryStatus": "watchlist_monitor",
+      "cnt": "9",
+      "has_send_ready": "0",
+      "has_contacts_no_send_ready": "9",
+      "no_contacts_at_all": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "discoveryStatus\tcnt\thas_send_ready\thas_contacts_no_send_ready\tno_contacts_at_all\ndiscovery_queued\t196\t59\t75\t62\nsend_ready_contact\t73\t72\t1\t0\nblocked_government_owner\t33\t0\t27\t6\nno_contacts\t33\t3\t2\t28\nnamed_contact_no_email\t23\t2\t21\t0\nblocked_dirty_owner\t12\t0\t11\t1\nwatchlist_monitor\t9\t0\t9\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1932
+}

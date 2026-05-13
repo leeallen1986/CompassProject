@@ -1,0 +1,110 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, p.actionTier, p.discoveryStatus, p.productLane, p.owner,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.projectState IN ('WA', 'NT')\n  AND p.actionTier = 'tier1_actionable'\n  AND p.discoveryStatus = 'send_ready_contact'\nORDER BY send_ready DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, p.actionTier, p.discoveryStatus, p.productLane, p.owner,\n  (SELECT COUNT(*) FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id WHERE cp.projectId = p.id AND c.crmOrphan = 0 AND c.contactTrustTier = 'send_ready') AS send_ready\nFROM projects p\nWHERE p.priority = 'hot' AND p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.projectState IN ('WA', 'NT')\n  AND p.actionTier = 'tier1_actionable'\n  AND p.discoveryStatus = 'send_ready_contact'\nORDER BY send_ready DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "owner": "BHP",
+      "send_ready": "10"
+    },
+    {
+      "id": "480048",
+      "name": "WA's Largest Wind Farm Construction",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "bess",
+      "owner": "Unknown",
+      "send_ready": "6"
+    },
+    {
+      "id": "720015",
+      "name": "Northern Territory BESS Deployment",
+      "projectState": "NT",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "NULL",
+      "owner": "Territory Generation",
+      "send_ready": "5"
+    },
+    {
+      "id": "120229",
+      "name": "Scarborough Gas Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "owner": "Woodside Energy (73.5%), BHP (26.5% - divested to Woodside)",
+      "send_ready": "4"
+    },
+    {
+      "id": "480023",
+      "name": "Alkimos Desalination Plant",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "owner": "WA Government",
+      "send_ready": "4"
+    },
+    {
+      "id": "1260002",
+      "name": "Koolyanobbing iron ore production restart",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "NULL",
+      "owner": "Yilgarn Iron",
+      "send_ready": "4"
+    },
+    {
+      "id": "1200067",
+      "name": "Scarborough Energy Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "NULL",
+      "owner": "Woodside Energy",
+      "send_ready": "4"
+    },
+    {
+      "id": "120016",
+      "name": "Pilbara Iron Ore Expansion — Rio Tinto",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "owner": "Rio Tinto Iron Ore",
+      "send_ready": "2"
+    },
+    {
+      "id": "660052",
+      "name": "Kwinana Gas Power Generation 2 Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "pumps",
+      "owner": "AGL",
+      "send_ready": "2"
+    },
+    {
+      "id": "120017",
+      "name": "Fortescue Iron Bridge Magnetite Project",
+      "projectState": "WA",
+      "actionTier": "tier1_actionable",
+      "discoveryStatus": "send_ready_contact",
+      "productLane": "multi_lane_pt",
+      "owner": "Fortescue Metals Group",
+      "send_ready": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tactionTier\tdiscoveryStatus\tproductLane\towner\tsend_ready\n450042\tPort Hedland Car Dumper 6 Project\tWA\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\tBHP\t10\n480048\tWA's Largest Wind Farm Construction\tWA\ttier1_actionable\tsend_ready_contact\tbess\tUnknown\t6\n720015\tNorthern Territory BESS Deployment\tNT\ttier1_actionable\tsend_ready_contact\tNULL\tTerritory Generation\t5\n120229\tScarborough Gas Project\tWA\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\tWoodside Energy (73.5%), BHP (26.5% - divested to Woodside)\t4\n480023\tAlkimos Desalination Plant\tWA\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\tWA Government\t4\n1260002\tKoolyanobbing iron ore production restart\tWA\ttier1_actionable\tsend_ready_contact\tNULL\tYilgarn Iron\t4\n1200067\tScarborough Energy Project\tWA\ttier1_actionable\tsend_ready_contact\tNULL\tWoodside Energy\t4\n120016\tPilbara Iron Ore Expansion — Rio Tinto\tWA\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\tRio Tinto Iron Ore\t2\n660052\tKwinana Gas Power Generation 2 Project\tWA\ttier1_actionable\tsend_ready_contact\tpumps\tAGL\t2\n120017\tFortescue Iron Bridge Magnetite Project\tWA\ttier1_actionable\tsend_ready_contact\tmulti_lane_pt\tFortescue Metals Group\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1907
+}
