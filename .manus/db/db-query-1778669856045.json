@@ -1,0 +1,80 @@
+{
+  "query": "\nSELECT id, name, location, priority, sector,\n  LEFT(overview, 300) AS overview_snippet,\n  equipmentSignals,\n  matchedBusinessLines\nFROM projects\nWHERE (\n  location LIKE '%NSW%' OR location LIKE '%New South Wales%'\n  OR location LIKE '%VIC%' OR location LIKE '%Victoria%'\n  OR location LIKE '%SA%' OR location LIKE '%South Australia%'\n  OR location LIKE '%TAS%' OR location LIKE '%Tasmania%'\n  OR location LIKE '%Sydney%' OR location LIKE '%Melbourne%'\n  OR location LIKE '%Adelaide%' OR location LIKE '%Hobart%'\n  OR location LIKE '%Newcastle%' OR location LIKE '%Wollongong%'\n  OR location LIKE '%Geelong%' OR location LIKE '%Launceston%'\n)\nAND (\n  name LIKE '%blast%' OR name LIKE '%paint%' OR name LIKE '%coating%'\n  OR name LIKE '%surface preparation%' OR name LIKE '%corrosion%'\n  OR name LIKE '%refurbish%' OR name LIKE '%maintenance%'\n  OR name LIKE '%shutdown%' OR name LIKE '%turnaround%'\n  OR overview LIKE '%abrasive blast%' OR overview LIKE '%sandblast%'\n  OR overview LIKE '%grit blast%' OR overview LIKE '%blast and paint%'\n  OR overview LIKE '%surface preparation%' OR overview LIKE '%protective coating%'\n  OR overview LIKE '%corrosion%' OR overview LIKE '%asset integrity%'\n  OR overview LIKE '%shutdown%' OR overview LIKE '%turnaround%'\n  OR overview LIKE '%refinery%'\n)\nORDER BY priority DESC, name ASC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, location, priority, sector,\n  LEFT(overview, 300) AS overview_snippet,\n  equipmentSignals,\n  matchedBusinessLines\nFROM projects\nWHERE (\n  location LIKE '%NSW%' OR location LIKE '%New South Wales%'\n  OR location LIKE '%VIC%' OR location LIKE '%Victoria%'\n  OR location LIKE '%SA%' OR location LIKE '%South Australia%'\n  OR location LIKE '%TAS%' OR location LIKE '%Tasmania%'\n  OR location LIKE '%Sydney%' OR location LIKE '%Melbourne%'\n  OR location LIKE '%Adelaide%' OR location LIKE '%Hobart%'\n  OR location LIKE '%Newcastle%' OR location LIKE '%Wollongong%'\n  OR location LIKE '%Geelong%' OR location LIKE '%Launceston%'\n)\nAND (\n  name LIKE '%blast%' OR name LIKE '%paint%' OR name LIKE '%coating%'\n  OR name LIKE '%surface preparation%' OR name LIKE '%corrosion%'\n  OR name LIKE '%refurbish%' OR name LIKE '%maintenance%'\n  OR name LIKE '%shutdown%' OR name LIKE '%turnaround%'\n  OR overview LIKE '%abrasive blast%' OR overview LIKE '%sandblast%'\n  OR overview LIKE '%grit blast%' OR overview LIKE '%blast and paint%'\n  OR overview LIKE '%surface preparation%' OR overview LIKE '%protective coating%'\n  OR overview LIKE '%corrosion%' OR overview LIKE '%asset integrity%'\n  OR overview LIKE '%shutdown%' OR overview LIKE '%turnaround%'\n  OR overview LIKE '%refinery%'\n)\nORDER BY priority DESC, name ASC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "690065",
+      "name": "Geelong Oil Refinery Operations",
+      "location": "Geelong, VIC",
+      "priority": "cold",
+      "sector": "energy",
+      "overview_snippet": "Viva Energy's oil refinery in Geelong continues to produce diesel and jet fuel despite a recent fire incident. The facility is a critical energy infrastructure asset.",
+      "equipmentSignals": "[]",
+      "matchedBusinessLines": "[30001]"
+    },
+    {
+      "id": "690047",
+      "name": "Viva Energy Geelong Refinery Operations",
+      "location": "Geelong, VIC",
+      "priority": "cold",
+      "sector": "oil_gas",
+      "overview_snippet": "Viva Energy's oil refinery in Geelong continues to produce diesel and jet fuel despite a recent fire incident. The article confirms ongoing operations.",
+      "equipmentSignals": "[\"Portable air compressors\", \"Power generators\", \"Dewatering pumps\"]",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120332",
+      "name": "Adelaide Desalination Plant Refurbishment",
+      "location": "Port Stanvac, SA",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "Ongoing refurbishment and replacement of critical components at the Adelaide Desalination Plant to ensure its operational longevity and efficiency.",
+      "equipmentSignals": "[\"RO membranes\", \"pumps\", \"electrical components\", \"valves\", \"instrumentation\"]",
+      "matchedBusinessLines": "[3, 30001]"
+    },
+    {
+      "id": "660024",
+      "name": "Lismore Pump Station Refurbishments",
+      "location": "Lismore, NSW",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "The NSW Government is detailing pump station refurbishments in Lismore to guard against future floods, including the Magellan Street pump station.",
+      "equipmentSignals": "[\"Pumps\", \"Dewatering equipment\", \"Generators\"]",
+      "matchedBusinessLines": "[3, 30001]"
+    },
+    {
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "location": "SA",
+      "priority": "hot",
+      "sector": "defence",
+      "overview_snippet": "Ongoing submarine maintenance and capability upgrades at Osborne, SA. Includes Collins Class sustainment and AUKUS submarine preparation. Requires high-pressure compressed air for hull testing and maintenance.",
+      "equipmentSignals": "[\"High-pressure compressed air for submarine hull testing (350+ psi)\", \"Portable power for dry dock maintenance operations\", \"Dewatering pumps for submarine dock facilities\", \"Industrial lighting for confined space work\"]",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "240018",
+      "name": "Inland Rail Project - Broadford Bridge Demolition",
+      "location": "Broadford, VIC",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "overview_snippet": "Progress on the Inland Rail project in Victoria surged over the weekend as a 40-hour shutdown of the Albury line allowed for the demolition of the old Short Street bridge at Broadford.",
+      "equipmentSignals": "[\"Demolition\", \"Rail works\", \"Infrastructure project\"]",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "180014",
+      "name": "Melbourne CBD intersection tram system maintenance",
+      "location": "Spencer and Bourke Street intersection, Melbourne CBD, VIC",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "overview_snippet": "The Victorian Government is undertaking major maintenance for Melbourne’s tram systems at the intersection of Spencer and Bourke Street. Crews will replace tram tracks and road surfaces, and install new poles and overhead wires.",
+      "equipmentSignals": "[\"Portable air compressors (for road breaking, track work)\", \"Generators (for power tools, lighting)\", \"Lighting towers (for night work)\"]",
+      "matchedBusinessLines": "[1, 3]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tpriority\tsector\toverview_snippet\tequipmentSignals\tmatchedBusinessLines\n690065\tGeelong Oil Refinery Operations\tGeelong, VIC\tcold\tenergy\tViva Energy's oil refinery in Geelong continues to produce diesel and jet fuel despite a recent fire incident. The facility is a critical energy infrastructure asset.\t[]\t[30001]\n690047\tViva Energy Geelong Refinery Operations\tGeelong, VIC\tcold\toil_gas\tViva Energy's oil refinery in Geelong continues to produce diesel and jet fuel despite a recent fire incident. The article confirms ongoing operations.\t[\"Portable air compressors\", \"Power generators\", \"Dewatering pumps\"]\t[1, 3, 30001]\n120332\tAdelaide Desalination Plant Refurbishment\tPort Stanvac, SA\twarm\tinfrastructure\tOngoing refurbishment and replacement of critical components at the Adelaide Desalination Plant to ensure its operational longevity and efficiency.\t[\"RO membranes\", \"pumps\", \"electrical components\", \"valves\", \"instrumentation\"]\t[3, 30001]\n660024\tLismore Pump Station Refurbishments\tLismore, NSW\twarm\tinfrastructure\tThe NSW Government is detailing pump station refurbishments in Lismore to guard against future floods, including the Magellan Street pump station.\t[\"Pumps\", \"Dewatering equipment\", \"Generators\"]\t[3, 30001]\n120002\tASC Submarine Maintenance and Capability\tSA\thot\tdefence\tOngoing submarine maintenance and capability upgrades at Osborne, SA. Includes Collins Class sustainment and AUKUS submarine preparation. Requires high-pressure compressed air for hull testing and maintenance.\t[\"High-pressure compressed air for submarine hull testing (350+ psi)\", \"Portable power for dry dock maintenance operations\", \"Dewatering pumps for submarine dock facilities\", \"Industrial lighting for confined space work\"]\t[1, 3, 30001]\n240018\tInland Rail Project - Broadford Bridge Demolition\tBroadford, VIC\thot\tinfrastructure\tProgress on the Inland Rail project in Victoria surged over the weekend as a 40-hour shutdown of the Albury line allowed for the demolition of the old Short Street bridge at Broadford.\t[\"Demolition\", \"Rail works\", \"Infrastructure project\"]\t[1, 3, 30001]\n180014\tMelbourne CBD intersection tram system maintenance\tSpencer and Bourke Street intersection, Melbourne CBD, VIC\thot\tinfrastructure\tThe Victorian Government is undertaking major maintenance for Melbourne’s tram systems at the intersection of Spencer and Bourke Street. Crews will replace tram tracks and road surfaces, and install new poles and overhead wires.\t[\"Portable air compressors (for road breaking, track work)\", \"Generators (for power tools, lighting)\", \"Lighting towers (for night work)\"]\t[1, 3]\n",
+  "stderr": "",
+  "execution_time_ms": 1966
+}

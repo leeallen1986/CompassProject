@@ -1,0 +1,24 @@
+{
+  "query": "\nSELECT id, name, location, priority, sector, stage, owner, contractors,\n  overview, equipmentSignals, matchedBusinessLines, opportunityRoute\nFROM projects\nWHERE id = '1110004';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, location, priority, sector, stage, owner, contractors,\n  overview, equipmentSignals, matchedBusinessLines, opportunityRoute\nFROM projects\nWHERE id = '1110004';\n",
+  "rows": [
+    {
+      "id": "1110004",
+      "name": "Port of Bunbury Berth 8 Headstocks Stages 2-4 Blast and Paint Services",
+      "location": "Bunbury, Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "stage": "NULL",
+      "owner": "Southern Ports Authority",
+      "contractors": "[]",
+      "overview": "This tender is for blast and paint services for Berth 8 headstocks at the Port of Bunbury. These services are crucial for maintaining port infrastructure, which involves heavy industrial work. Portable compressed air equipment would be essential for abrasive blasting operations.",
+      "equipmentSignals": "[\"portable air compressors\", \"air tools\"]",
+      "matchedBusinessLines": "[1, 3]",
+      "opportunityRoute": "Direct CAPEX"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tpriority\tsector\tstage\towner\tcontractors\toverview\tequipmentSignals\tmatchedBusinessLines\topportunityRoute\n1110004\tPort of Bunbury Berth 8 Headstocks Stages 2-4 Blast and Paint Services\tBunbury, Western Australia\twarm\tinfrastructure\tNULL\tSouthern Ports Authority\t[]\tThis tender is for blast and paint services for Berth 8 headstocks at the Port of Bunbury. These services are crucial for maintaining port infrastructure, which involves heavy industrial work. Portable compressed air equipment would be essential for abrasive blasting operations.\t[\"portable air compressors\", \"air tools\"]\t[1, 3]\tDirect CAPEX\n",
+  "stderr": "",
+  "execution_time_ms": 1756
+}

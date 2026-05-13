@@ -2608,3 +2608,31 @@
 ## Portable Air Blasting Signal — Ryan/Daniel/Leo only (2026-05-13)
 - [x] Implement portable_air_blasting_signal in laneScoring.ts (Portable Air lane only, rep-gated)
 - [x] Write vitest tests confirming rep gate, context gate, and non-impact on other reps/lanes — 51/51 passing
+
+## Daniel Zec Territory Audit (2026-05-13)
+- [x] Audit Daniel Zec's live territory and profile in production DB — confirmed NSW/VIC/SA/TAS (proof pack had wrong hardcoded QLD/NT, DB is correct)
+- [x] Confirm what territory the Portable Air scoring layer uses for Daniel — reads profile.territories directly (laneScoring.ts line 1314), uses NSW/VIC/SA/TAS correctly
+- [x] Fix territory if wrong — no fix needed, DB was correct all along
+- [x] Rerun blasting-signal proof for Daniel with corrected territory — zero NSW/VIC/SA/TAS projects with abrasive blasting phrases in current corpus
+- [x] Report whether any NSW/VIC/SA/TAS blasting projects are in scope — 0 signal matches; 7 related projects exist (Geelong refineries, Adelaide desal refurb, Lismore pump refurb, ASC submarine, Inland Rail, Melbourne tram) but none contain abrasive blasting phrases
+
+## Upstream East-Coast Blasting Capture — Portable Air Only (2026-05-13)
+- [ ] Part A: East-coast source gap audit (NSW/VIC/SA/TAS) — identify missing source categories for blasting/shutdown/coatings
+- [ ] Part B: Improve upstream extraction rules for blasting-implied Portable Air opportunities
+- [ ] Part C: Daniel live validation after extraction changes
+- [ ] Part D: Leo national validation
+- [ ] Part E: Ryan WA non-impact check (control only)
+
+## East-Coast State Tender Scrapers (2026-05-13)
+- [ ] Build tendersNSWScraper.ts (NSW eTendering / ProcurePoint) and integrate into dailyPipeline.ts
+- [ ] Build tendersVICScraper.ts (VIC Tenders) and integrate into dailyPipeline.ts
+- [ ] Build tendersSAScraper.ts (SA Tenders) and integrate into dailyPipeline.ts
+- [ ] Build tendersTASScraper.ts (TAS Tenders) and integrate into dailyPipeline.ts
+- [ ] Write vitest tests for all four scrapers
+- [ ] Validate Daniel Zec territory coverage post-integration
+
+## AusTender Extension + East-Coast RSS Feeds (2026-05-13)
+- [ ] Extend austenderScraper.ts: add NSW/VIC/SA/TAS state filter + blasting/coatings/shutdown keyword boost
+- [ ] Add targeted RSS feeds for east-coast industrial maintenance markets
+- [ ] Write vitest tests for AusTender state filter extension
+- [ ] Run full test suite and confirm no regressions

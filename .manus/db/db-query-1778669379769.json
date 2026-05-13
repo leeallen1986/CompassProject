@@ -1,0 +1,100 @@
+{
+  "query": "\nSELECT id, name, location, priority, sector, LEFT(overview, 300) AS overview_snippet, equipmentSignals\nFROM projects\nWHERE (\n  name LIKE '%paint%' OR name LIKE '%coating%' OR name LIKE '%corrosion%'\n  OR name LIKE '%remediation%' OR name LIKE '%refurbish%'\n  OR overview LIKE '%painting%' OR overview LIKE '%coatings%'\n  OR overview LIKE '%corrosion protection%'\n)\nAND id != '1110004'\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, location, priority, sector, LEFT(overview, 300) AS overview_snippet, equipmentSignals\nFROM projects\nWHERE (\n  name LIKE '%paint%' OR name LIKE '%coating%' OR name LIKE '%corrosion%'\n  OR name LIKE '%remediation%' OR name LIKE '%refurbish%'\n  OR overview LIKE '%painting%' OR overview LIKE '%coatings%'\n  OR overview LIKE '%corrosion protection%'\n)\nAND id != '1110004'\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "120272",
+      "name": "RAAF Base Williamtown PFAS Remediation",
+      "location": "Williamtown, NSW",
+      "priority": "hot",
+      "sector": "defence",
+      "overview_snippet": "Extensive environmental remediation efforts to address PFAS contamination at and around RAAF Base Williamtown. Involves soil and water treatment, containment, and monitoring.",
+      "equipmentSignals": "[\"Water treatment plants\", \"Soil remediation equipment\", \"Environmental monitoring systems\", \"Containment barriers\", \"Specialized waste management\"]"
+    },
+    {
+      "id": "120332",
+      "name": "Adelaide Desalination Plant Refurbishment",
+      "location": "Port Stanvac, SA",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "Ongoing refurbishment and replacement of critical components at the Adelaide Desalination Plant to ensure its operational longevity and efficiency.",
+      "equipmentSignals": "[\"RO membranes\", \"pumps\", \"electrical components\", \"valves\", \"instrumentation\"]"
+    },
+    {
+      "id": "150045",
+      "name": "Manton Dam Refurbishment",
+      "location": "Manton Dam, NT",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "overview_snippet": "The $189 million refurbishment of Manton Dam, a historic landmark, has strengthened Darwin’s water supply system. Modern pump technology was central to the project.",
+      "equipmentSignals": "[\"dewatering pumps\", \"submersible pumps\", \"wellpoint systems\"]"
+    },
+    {
+      "id": "390007",
+      "name": "Defence Air Base Building Refurbishment, WA",
+      "location": "WA, WA",
+      "priority": "warm",
+      "sector": "defence",
+      "overview_snippet": "Procurement has commenced for refurbishment works at a Defence air base in WA, signalling the project’s progression to the market.",
+      "equipmentSignals": "[\"portable compressors\", \"generators\", \"lighting towers\", \"dewatering pumps\"]"
+    },
+    {
+      "id": "660024",
+      "name": "Lismore Pump Station Refurbishments",
+      "location": "Lismore, NSW",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "The NSW Government is detailing pump station refurbishments in Lismore to guard against future floods, including the Magellan Street pump station.",
+      "equipmentSignals": "[\"Pumps\", \"Dewatering equipment\", \"Generators\"]"
+    },
+    {
+      "id": "810003",
+      "name": "Bunbury Storm Surge Barrier: Asset Condition, Maintenance and Refurbishment Review",
+      "location": "Bunbury, Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender seeks a review of the Bunbury Storm Surge Barrier's asset condition, maintenance, and refurbishment needs. While the primary focus is on engineering review, any subsequent maintenance or refurbishment works could potentially require portable air for various tasks like cleaning, operating",
+      "equipmentSignals": "[\"portable air compressors\", \"pumps\"]"
+    },
+    {
+      "id": "810013",
+      "name": "Pulse Energised Fence - Hakea Prison",
+      "location": "Western Australia",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for the installation of a pulse energised fence at Hakea Prison. While the primary focus is security fencing, construction and maintenance activities for such infrastructure projects can sometimes require portable compressed air for tools like drills, grinders, or painting equipment.",
+      "equipmentSignals": "[\"portable compressed air\"]"
+    },
+    {
+      "id": "810015",
+      "name": "South Hedland Office Refurbishments",
+      "location": "South Hedland, Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for proposed office refurbishments at 22 Hamilton Road, South Hedland for the Department of Communities. While primarily an office fit-out, refurbishment projects can sometimes require portable air compressors for demolition tools, painting, or general construction tasks, and potentia",
+      "equipmentSignals": "[\"portable air compressors\", \"pumps\"]"
+    },
+    {
+      "id": "810034",
+      "name": "Armadale Health Service (AHS) Yorgum Courtyard Refurbishment",
+      "location": "Armadale, Western Australia",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for the refurbishment of the Yorgum Courtyard at Armadale Health Service. As a building and facility construction project, there is a low but plausible chance that portable compressed air tools might be used for demolition, construction, or landscaping tasks.",
+      "equipmentSignals": "[\"portable compressed air\"]"
+    },
+    {
+      "id": "870040",
+      "name": "WA Police HQ Office Refurbishment",
+      "location": "Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for the refurbishment of office levels 1 and 3 at the WA Police Headquarters. This project involves building and facility construction and maintenance services. Atlas Copco Portable Air equipment could potentially be relevant for demolition, renovation, or general construction tasks r",
+      "equipmentSignals": "[\"portable air compressors\", \"generators\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tpriority\tsector\toverview_snippet\tequipmentSignals\n120272\tRAAF Base Williamtown PFAS Remediation\tWilliamtown, NSW\thot\tdefence\tExtensive environmental remediation efforts to address PFAS contamination at and around RAAF Base Williamtown. Involves soil and water treatment, containment, and monitoring.\t[\"Water treatment plants\", \"Soil remediation equipment\", \"Environmental monitoring systems\", \"Containment barriers\", \"Specialized waste management\"]\n120332\tAdelaide Desalination Plant Refurbishment\tPort Stanvac, SA\twarm\tinfrastructure\tOngoing refurbishment and replacement of critical components at the Adelaide Desalination Plant to ensure its operational longevity and efficiency.\t[\"RO membranes\", \"pumps\", \"electrical components\", \"valves\", \"instrumentation\"]\n150045\tManton Dam Refurbishment\tManton Dam, NT\thot\tinfrastructure\tThe $189 million refurbishment of Manton Dam, a historic landmark, has strengthened Darwin’s water supply system. Modern pump technology was central to the project.\t[\"dewatering pumps\", \"submersible pumps\", \"wellpoint systems\"]\n390007\tDefence Air Base Building Refurbishment, WA\tWA, WA\twarm\tdefence\tProcurement has commenced for refurbishment works at a Defence air base in WA, signalling the project’s progression to the market.\t[\"portable compressors\", \"generators\", \"lighting towers\", \"dewatering pumps\"]\n660024\tLismore Pump Station Refurbishments\tLismore, NSW\twarm\tinfrastructure\tThe NSW Government is detailing pump station refurbishments in Lismore to guard against future floods, including the Magellan Street pump station.\t[\"Pumps\", \"Dewatering equipment\", \"Generators\"]\n810003\tBunbury Storm Surge Barrier: Asset Condition, Maintenance and Refurbishment Review\tBunbury, Western Australia\twarm\tinfrastructure\tThis tender seeks a review of the Bunbury Storm Surge Barrier's asset condition, maintenance, and refurbishment needs. While the primary focus is on engineering review, any subsequent maintenance or refurbishment works could potentially require portable air for various tasks like cleaning, operating\t[\"portable air compressors\", \"pumps\"]\n810013\tPulse Energised Fence - Hakea Prison\tWestern Australia\tcold\tinfrastructure\tThis tender is for the installation of a pulse energised fence at Hakea Prison. While the primary focus is security fencing, construction and maintenance activities for such infrastructure projects can sometimes require portable compressed air for tools like drills, grinders, or painting equipment.\t[\"portable compressed air\"]\n810015\tSouth Hedland Office Refurbishments\tSouth Hedland, Western Australia\twarm\tinfrastructure\tThis tender is for proposed office refurbishments at 22 Hamilton Road, South Hedland for the Department of Communities. While primarily an office fit-out, refurbishment projects can sometimes require portable air compressors for demolition tools, painting, or general construction tasks, and potentia\t[\"portable air compressors\", \"pumps\"]\n810034\tArmadale Health Service (AHS) Yorgum Courtyard Refurbishment\tArmadale, Western Australia\tcold\tinfrastructure\tThis tender is for the refurbishment of the Yorgum Courtyard at Armadale Health Service. As a building and facility construction project, there is a low but plausible chance that portable compressed air tools might be used for demolition, construction, or landscaping tasks.\t[\"portable compressed air\"]\n870040\tWA Police HQ Office Refurbishment\tWestern Australia\twarm\tinfrastructure\tThis tender is for the refurbishment of office levels 1 and 3 at the WA Police Headquarters. This project involves building and facility construction and maintenance services. Atlas Copco Portable Air equipment could potentially be relevant for demolition, renovation, or general construction tasks r\t[\"portable air compressors\", \"generators\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1812
+}

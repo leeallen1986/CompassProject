@@ -1,0 +1,55 @@
+{
+  "query": "\nSELECT id, name, location, priority, sector,\n  LEFT(overview, 200) AS overview_snippet,\n  LEFT(equipmentSignals, 300) AS equip_signals\nFROM projects\nWHERE (\n  name LIKE '%abrasive blast%' OR name LIKE '%sandblast%' OR name LIKE '%grit blast%'\n  OR name LIKE '%blast and paint%' OR name LIKE '%blasting and paint%'\n  OR name LIKE '%surface preparation%' OR name LIKE '%protective coating%'\n  OR name LIKE '%corrosion remediation%' OR name LIKE '%coating remediation%'\n  OR name LIKE '%shutdown maintenance%' OR name LIKE '%turnaround maintenance%'\n  OR name LIKE '%asset integrity%'\n  OR overview LIKE '%abrasive blast%' OR overview LIKE '%sandblast%'\n  OR overview LIKE '%grit blast%' OR overview LIKE '%blast and paint%'\n  OR overview LIKE '%surface preparation%' OR overview LIKE '%protective coating%'\n  OR overview LIKE '%corrosion remediation%' OR overview LIKE '%coating remediation%'\n  OR overview LIKE '%shutdown maintenance%' OR overview LIKE '%turnaround maintenance%'\n  OR overview LIKE '%asset integrity%'\n  OR equipmentSignals LIKE '%abrasive blast%' OR equipmentSignals LIKE '%sandblast%'\n  OR equipmentSignals LIKE '%surface preparation%' OR equipmentSignals LIKE '%protective coating%'\n  OR equipmentSignals LIKE '%asset integrity%'\n)\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, location, priority, sector,\n  LEFT(overview, 200) AS overview_snippet,\n  LEFT(equipmentSignals, 300) AS equip_signals\nFROM projects\nWHERE (\n  name LIKE '%abrasive blast%' OR name LIKE '%sandblast%' OR name LIKE '%grit blast%'\n  OR name LIKE '%blast and paint%' OR name LIKE '%blasting and paint%'\n  OR name LIKE '%surface preparation%' OR name LIKE '%protective coating%'\n  OR name LIKE '%corrosion remediation%' OR name LIKE '%coating remediation%'\n  OR name LIKE '%shutdown maintenance%' OR name LIKE '%turnaround maintenance%'\n  OR name LIKE '%asset integrity%'\n  OR overview LIKE '%abrasive blast%' OR overview LIKE '%sandblast%'\n  OR overview LIKE '%grit blast%' OR overview LIKE '%blast and paint%'\n  OR overview LIKE '%surface preparation%' OR overview LIKE '%protective coating%'\n  OR overview LIKE '%corrosion remediation%' OR overview LIKE '%coating remediation%'\n  OR overview LIKE '%shutdown maintenance%' OR overview LIKE '%turnaround maintenance%'\n  OR overview LIKE '%asset integrity%'\n  OR equipmentSignals LIKE '%abrasive blast%' OR equipmentSignals LIKE '%sandblast%'\n  OR equipmentSignals LIKE '%surface preparation%' OR equipmentSignals LIKE '%protective coating%'\n  OR equipmentSignals LIKE '%asset integrity%'\n)\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "810001",
+      "name": "Design and Construct - Beckenham Depot - Workshop Storage Extension",
+      "location": "Beckenham, Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for the design and construction of a workshop storage extension at the Beckenham Depot. While the primary focus is building construction, portable air compressors might be used for vari",
+      "equip_signals": "[\"portable air compressors\", \"air tools\"]"
+    },
+    {
+      "id": "1050005",
+      "name": "Retroclay Solution & Associated Works",
+      "location": "Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for a 'Retroclay Solution & Associated Works' in Western Australia. The category is 'Building and Facility Construction and Maintenance Services'. While the exact nature of 'Retroclay S",
+      "equip_signals": "[\"portable air compressors\"]"
+    },
+    {
+      "id": "1050006",
+      "name": "Don Aitken Centre Level 1 Delamination Mitigation Works",
+      "location": "Western Australia",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for construction and maintenance services to mitigate delamination issues at Level 1 of the Don Aitken Centre. While primarily a building maintenance project, general construction activ",
+      "equip_signals": "[\"portable air compressors\", \"pneumatic tools\"]"
+    },
+    {
+      "id": "1110004",
+      "name": "Port of Bunbury Berth 8 Headstocks Stages 2-4 Blast and Paint Services",
+      "location": "Bunbury, Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for blast and paint services for Berth 8 headstocks at the Port of Bunbury. These services are crucial for maintaining port infrastructure, which involves heavy industrial work. Portabl",
+      "equip_signals": "[\"portable air compressors\", \"air tools\"]"
+    },
+    {
+      "id": "1230003",
+      "name": "Fire Penetration Remediation - A and C Blocks",
+      "location": "Western Australia",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "overview_snippet": "This tender is for remediation work related to fire penetrations in A and C Blocks. This type of building maintenance and construction work typically involves tasks like drilling, cutting, and surface",
+      "equip_signals": "[\"portable air compressors\", \"pneumatic tools\", \"dust extractors\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tpriority\tsector\toverview_snippet\tequip_signals\n810001\tDesign and Construct - Beckenham Depot - Workshop Storage Extension\tBeckenham, Western Australia\twarm\tinfrastructure\tThis tender is for the design and construction of a workshop storage extension at the Beckenham Depot. While the primary focus is building construction, portable air compressors might be used for vari\t[\"portable air compressors\", \"air tools\"]\n1050005\tRetroclay Solution & Associated Works\tWestern Australia\twarm\tinfrastructure\tThis tender is for a 'Retroclay Solution & Associated Works' in Western Australia. The category is 'Building and Facility Construction and Maintenance Services'. While the exact nature of 'Retroclay S\t[\"portable air compressors\"]\n1050006\tDon Aitken Centre Level 1 Delamination Mitigation Works\tWestern Australia\tcold\tinfrastructure\tThis tender is for construction and maintenance services to mitigate delamination issues at Level 1 of the Don Aitken Centre. While primarily a building maintenance project, general construction activ\t[\"portable air compressors\", \"pneumatic tools\"]\n1110004\tPort of Bunbury Berth 8 Headstocks Stages 2-4 Blast and Paint Services\tBunbury, Western Australia\twarm\tinfrastructure\tThis tender is for blast and paint services for Berth 8 headstocks at the Port of Bunbury. These services are crucial for maintaining port infrastructure, which involves heavy industrial work. Portabl\t[\"portable air compressors\", \"air tools\"]\n1230003\tFire Penetration Remediation - A and C Blocks\tWestern Australia\twarm\tinfrastructure\tThis tender is for remediation work related to fire penetrations in A and C Blocks. This type of building maintenance and construction work typically involves tasks like drilling, cutting, and surface\t[\"portable air compressors\", \"pneumatic tools\", \"dust extractors\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1990
+}

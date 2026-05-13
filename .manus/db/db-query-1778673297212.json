@@ -1,0 +1,162 @@
+{
+  "query": "SELECT id, name, feedUrl, category, isActive, quarantined FROM rssSources WHERE id > 90001 ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, feedUrl, category, isActive, quarantined FROM rssSources WHERE id > 90001 ORDER BY id;",
+  "rows": [
+    {
+      "id": "90002",
+      "name": "Mining Journal",
+      "feedUrl": "https://www.mining-journal.com/feed",
+      "category": "mining",
+      "isActive": "0",
+      "quarantined": "0"
+    },
+    {
+      "id": "90009",
+      "name": "Rigzone News",
+      "feedUrl": "https://www.rigzone.com/news/rss/rigzone_latest.aspx",
+      "category": "oil_gas",
+      "isActive": "0",
+      "quarantined": "0"
+    },
+    {
+      "id": "90015",
+      "name": "Inside Construction",
+      "feedUrl": "https://insideconstruction.com.au/feed/",
+      "category": "infrastructure",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "90016",
+      "name": "Build Australia",
+      "feedUrl": "https://buildaustralia.com.au/feed/",
+      "category": "infrastructure",
+      "isActive": "0",
+      "quarantined": "0"
+    },
+    {
+      "id": "90017",
+      "name": "Sourceable",
+      "feedUrl": "https://sourceable.net/feed/",
+      "category": "infrastructure",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "90020",
+      "name": "One Step Off The Grid",
+      "feedUrl": "https://onestepoffthegrid.com.au/feed/",
+      "category": "energy",
+      "isActive": "0",
+      "quarantined": "0"
+    },
+    {
+      "id": "90021",
+      "name": "PV Magazine Australia",
+      "feedUrl": "https://www.pv-magazine-australia.com/feed/",
+      "category": "energy",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "90023",
+      "name": "Quarry Magazine",
+      "feedUrl": "https://www.quarrymagazine.com/feed/",
+      "category": "quarry",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "90030",
+      "name": "Defence Connect",
+      "feedUrl": "https://www.defenceconnect.com.au/news?format=feed&type=rss",
+      "category": "defence",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "120001",
+      "name": "ABC News - Business",
+      "feedUrl": "https://www.abc.net.au/news/feed/51120/rss.xml",
+      "category": "news",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "120002",
+      "name": "ABC News - Australia",
+      "feedUrl": "https://www.abc.net.au/news/feed/2942460/rss.xml",
+      "category": "news",
+      "isActive": "0",
+      "quarantined": "0"
+    },
+    {
+      "id": "120003",
+      "name": "Master Builders Australia",
+      "feedUrl": "https://www.masterbuilders.com.au/feed",
+      "category": "infrastructure",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150001",
+      "name": "Offshore Technology",
+      "feedUrl": "https://www.offshore-technology.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150002",
+      "name": "OilPrice.com",
+      "feedUrl": "https://oilprice.com/rss/main",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150003",
+      "name": "LNG Prime",
+      "feedUrl": "https://www.lngprime.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150004",
+      "name": "Drilling Contractor",
+      "feedUrl": "https://www.drillingcontractor.org/feed",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150005",
+      "name": "NS Energy Business",
+      "feedUrl": "https://www.nsenergybusiness.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150006",
+      "name": "Hydrocarbons Technology",
+      "feedUrl": "https://www.hydrocarbons-technology.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    },
+    {
+      "id": "150007",
+      "name": "Gas Today Australia",
+      "feedUrl": "https://www.gastoday.com.au/feed/",
+      "category": "oil_gas",
+      "isActive": "1",
+      "quarantined": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfeedUrl\tcategory\tisActive\tquarantined\n90002\tMining Journal\thttps://www.mining-journal.com/feed\tmining\t0\t0\n90009\tRigzone News\thttps://www.rigzone.com/news/rss/rigzone_latest.aspx\toil_gas\t0\t0\n90015\tInside Construction\thttps://insideconstruction.com.au/feed/\tinfrastructure\t1\t0\n90016\tBuild Australia\thttps://buildaustralia.com.au/feed/\tinfrastructure\t0\t0\n90017\tSourceable\thttps://sourceable.net/feed/\tinfrastructure\t1\t0\n90020\tOne Step Off The Grid\thttps://onestepoffthegrid.com.au/feed/\tenergy\t0\t0\n90021\tPV Magazine Australia\thttps://www.pv-magazine-australia.com/feed/\tenergy\t1\t0\n90023\tQuarry Magazine\thttps://www.quarrymagazine.com/feed/\tquarry\t1\t0\n90030\tDefence Connect\thttps://www.defenceconnect.com.au/news?format=feed&type=rss\tdefence\t1\t0\n120001\tABC News - Business\thttps://www.abc.net.au/news/feed/51120/rss.xml\tnews\t1\t0\n120002\tABC News - Australia\thttps://www.abc.net.au/news/feed/2942460/rss.xml\tnews\t0\t0\n120003\tMaster Builders Australia\thttps://www.masterbuilders.com.au/feed\tinfrastructure\t1\t0\n150001\tOffshore Technology\thttps://www.offshore-technology.com/feed/\toil_gas\t1\t0\n150002\tOilPrice.com\thttps://oilprice.com/rss/main\toil_gas\t1\t0\n150003\tLNG Prime\thttps://www.lngprime.com/feed/\toil_gas\t1\t0\n150004\tDrilling Contractor\thttps://www.drillingcontractor.org/feed\toil_gas\t1\t0\n150005\tNS Energy Business\thttps://www.nsenergybusiness.com/feed/\toil_gas\t1\t0\n150006\tHydrocarbons Technology\thttps://www.hydrocarbons-technology.com/feed/\toil_gas\t1\t0\n150007\tGas Today Australia\thttps://www.gastoday.com.au/feed/\toil_gas\t1\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1692
+}

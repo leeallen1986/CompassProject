@@ -1,0 +1,143 @@
+{
+  "query": "\nSELECT id, name, feedUrl, category, isActive\nFROM rssSources\nORDER BY category, name\nLIMIT 100 OFFSET 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, feedUrl, category, isActive\nFROM rssSources\nORDER BY category, name\nLIMIT 100 OFFSET 20;\n",
+  "rows": [
+    {
+      "id": "60006",
+      "name": "Utility Magazine",
+      "feedUrl": "https://utilitymagazine.com.au/feed/",
+      "category": "industry",
+      "isActive": "1"
+    },
+    {
+      "id": "90016",
+      "name": "Build Australia",
+      "feedUrl": "https://buildaustralia.com.au/feed/",
+      "category": "infrastructure",
+      "isActive": "0"
+    },
+    {
+      "id": "90015",
+      "name": "Inside Construction",
+      "feedUrl": "https://insideconstruction.com.au/feed/",
+      "category": "infrastructure",
+      "isActive": "1"
+    },
+    {
+      "id": "120003",
+      "name": "Master Builders Australia",
+      "feedUrl": "https://www.masterbuilders.com.au/feed",
+      "category": "infrastructure",
+      "isActive": "1"
+    },
+    {
+      "id": "90017",
+      "name": "Sourceable",
+      "feedUrl": "https://sourceable.net/feed/",
+      "category": "infrastructure",
+      "isActive": "1"
+    },
+    {
+      "id": "90002",
+      "name": "Mining Journal",
+      "feedUrl": "https://www.mining-journal.com/feed",
+      "category": "mining",
+      "isActive": "0"
+    },
+    {
+      "id": "90001",
+      "name": "Mining Weekly SA",
+      "feedUrl": "https://www.miningweekly.com/page/home/feed",
+      "category": "mining",
+      "isActive": "0"
+    },
+    {
+      "id": "120002",
+      "name": "ABC News - Australia",
+      "feedUrl": "https://www.abc.net.au/news/feed/2942460/rss.xml",
+      "category": "news",
+      "isActive": "0"
+    },
+    {
+      "id": "120001",
+      "name": "ABC News - Business",
+      "feedUrl": "https://www.abc.net.au/news/feed/51120/rss.xml",
+      "category": "news",
+      "isActive": "1"
+    },
+    {
+      "id": "8",
+      "name": "The Australian - Business",
+      "feedUrl": "https://www.theaustralian.com.au/business/rss",
+      "category": "news",
+      "isActive": "0"
+    },
+    {
+      "id": "150004",
+      "name": "Drilling Contractor",
+      "feedUrl": "https://www.drillingcontractor.org/feed",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "150007",
+      "name": "Gas Today Australia",
+      "feedUrl": "https://www.gastoday.com.au/feed/",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "150006",
+      "name": "Hydrocarbons Technology",
+      "feedUrl": "https://www.hydrocarbons-technology.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "150003",
+      "name": "LNG Prime",
+      "feedUrl": "https://www.lngprime.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "150005",
+      "name": "NS Energy Business",
+      "feedUrl": "https://www.nsenergybusiness.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "150001",
+      "name": "Offshore Technology",
+      "feedUrl": "https://www.offshore-technology.com/feed/",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "150002",
+      "name": "OilPrice.com",
+      "feedUrl": "https://oilprice.com/rss/main",
+      "category": "oil_gas",
+      "isActive": "1"
+    },
+    {
+      "id": "90009",
+      "name": "Rigzone News",
+      "feedUrl": "https://www.rigzone.com/news/rss/rigzone_latest.aspx",
+      "category": "oil_gas",
+      "isActive": "0"
+    },
+    {
+      "id": "90023",
+      "name": "Quarry Magazine",
+      "feedUrl": "https://www.quarrymagazine.com/feed/",
+      "category": "quarry",
+      "isActive": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfeedUrl\tcategory\tisActive\n60006\tUtility Magazine\thttps://utilitymagazine.com.au/feed/\tindustry\t1\n90016\tBuild Australia\thttps://buildaustralia.com.au/feed/\tinfrastructure\t0\n90015\tInside Construction\thttps://insideconstruction.com.au/feed/\tinfrastructure\t1\n120003\tMaster Builders Australia\thttps://www.masterbuilders.com.au/feed\tinfrastructure\t1\n90017\tSourceable\thttps://sourceable.net/feed/\tinfrastructure\t1\n90002\tMining Journal\thttps://www.mining-journal.com/feed\tmining\t0\n90001\tMining Weekly SA\thttps://www.miningweekly.com/page/home/feed\tmining\t0\n120002\tABC News - Australia\thttps://www.abc.net.au/news/feed/2942460/rss.xml\tnews\t0\n120001\tABC News - Business\thttps://www.abc.net.au/news/feed/51120/rss.xml\tnews\t1\n8\tThe Australian - Business\thttps://www.theaustralian.com.au/business/rss\tnews\t0\n150004\tDrilling Contractor\thttps://www.drillingcontractor.org/feed\toil_gas\t1\n150007\tGas Today Australia\thttps://www.gastoday.com.au/feed/\toil_gas\t1\n150006\tHydrocarbons Technology\thttps://www.hydrocarbons-technology.com/feed/\toil_gas\t1\n150003\tLNG Prime\thttps://www.lngprime.com/feed/\toil_gas\t1\n150005\tNS Energy Business\thttps://www.nsenergybusiness.com/feed/\toil_gas\t1\n150001\tOffshore Technology\thttps://www.offshore-technology.com/feed/\toil_gas\t1\n150002\tOilPrice.com\thttps://oilprice.com/rss/main\toil_gas\t1\n90009\tRigzone News\thttps://www.rigzone.com/news/rss/rigzone_latest.aspx\toil_gas\t0\n90023\tQuarry Magazine\thttps://www.quarrymagazine.com/feed/\tquarry\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1783
+}

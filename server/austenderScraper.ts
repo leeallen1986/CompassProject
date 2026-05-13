@@ -198,6 +198,11 @@ function matchBusinessLinesFromContract(description: string, unspscCodes: string
     text.includes("compressor") || text.includes("compressed air") ||
     text.includes("drilling") || text.includes("tunnelling") || text.includes("tunnel") ||
     text.includes("blasting") || text.includes("excavation") ||
+    // Blasting/coatings/surface prep — key Portable Air shutdown/maintenance signals
+    text.includes("blast and paint") || text.includes("abrasive blasting") ||
+    text.includes("grit blasting") || text.includes("surface preparation") ||
+    text.includes("corrosion protection") || text.includes("protective coating") ||
+    text.includes("shutdown") || text.includes("turnaround") ||
     text.includes("concrete") || text.includes("construction") ||
     text.includes("civil works") || text.includes("road") ||
     text.includes("bridge") || text.includes("earthworks") ||
