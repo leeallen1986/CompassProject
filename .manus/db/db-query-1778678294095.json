@@ -1,0 +1,130 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, p.location, p.priority, p.productLane, p.sector, p.owner, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.priority = 'hot'\n  AND p.projectState IN ('SA','QLD','VIC','NSW','TAS')\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, p.location, p.priority, p.productLane, p.sector, p.owner, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active'\n  AND p.priority = 'hot'\n  AND p.projectState IN ('SA','QLD','VIC','NSW','TAS')\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "360011",
+      "name": "Toowoomba-Athol Road Upgrade",
+      "projectState": "QLD",
+      "location": "Toowoomba, QLD",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "owner": "Queensland Government",
+      "value": "Unknown",
+      "sendReadyCount": "13"
+    },
+    {
+      "id": "570013",
+      "name": "Broadsound Battery Energy Storage System (BESS)",
+      "projectState": "QLD",
+      "location": "Broadsound, QLD",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "owner": "Iberdrola Australia",
+      "value": "Unknown",
+      "sendReadyCount": "13"
+    },
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "projectState": "NSW",
+      "location": "Orange, NSW",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "owner": "Newmont",
+      "value": "Unknown",
+      "sendReadyCount": "11"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "projectState": "VIC",
+      "location": "Euroa, VIC",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "owner": "Inland Rail",
+      "value": "Unknown",
+      "sendReadyCount": "11"
+    },
+    {
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "projectState": "NSW",
+      "location": "National, NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "owner": "Snowy Hydro",
+      "value": "$1.9 billion",
+      "sendReadyCount": "11"
+    },
+    {
+      "id": "510032",
+      "name": "Kogan Creek Power Station Stator Replacement",
+      "projectState": "QLD",
+      "location": "Kogan Creek, QLD",
+      "priority": "hot",
+      "productLane": "pal",
+      "sector": "energy",
+      "owner": "CS Energy",
+      "value": "Unknown",
+      "sendReadyCount": "10"
+    },
+    {
+      "id": "570020",
+      "name": "Bruce Highway Targeted Safety Program (BHTSP)",
+      "projectState": "QLD",
+      "location": "QLD",
+      "priority": "hot",
+      "productLane": "pumps",
+      "sector": "infrastructure",
+      "owner": "Federal and Queensland governments",
+      "value": "$9 billion",
+      "sendReadyCount": "10"
+    },
+    {
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "projectState": "SA",
+      "location": "SA",
+      "priority": "hot",
+      "productLane": "pumps",
+      "sector": "defence",
+      "owner": "ASC Pty Ltd",
+      "value": "$10+ billion (AUKUS program)",
+      "sendReadyCount": "10"
+    },
+    {
+      "id": "630004",
+      "name": "Transgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects",
+      "projectState": "NSW",
+      "location": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "owner": "Transgrid",
+      "value": "Unknown",
+      "sendReadyCount": "9"
+    },
+    {
+      "id": "660020",
+      "name": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)",
+      "projectState": "TAS",
+      "location": "Statewide, TAS",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "owner": "TasWater",
+      "value": "$2 billion",
+      "sendReadyCount": "7"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tlocation\tpriority\tproductLane\tsector\towner\tvalue\tsendReadyCount\n360011\tToowoomba-Athol Road Upgrade\tQLD\tToowoomba, QLD\thot\tmulti_lane_pt\tinfrastructure\tQueensland Government\tUnknown\t13\n570013\tBroadsound Battery Energy Storage System (BESS)\tQLD\tBroadsound, QLD\thot\tbess\tenergy\tIberdrola Australia\tUnknown\t13\n690089\tCadia Gold Mine Operations\tNSW\tOrange, NSW\thot\tmulti_lane_pt\tmining\tNewmont\tUnknown\t11\n570022\tInland Rail Station Upgrades (Euroa)\tVIC\tEuroa, VIC\thot\tmulti_lane_pt\tinfrastructure\tInland Rail\tUnknown\t11\n690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tNSW\tNational, NSW\thot\tbess\tenergy\tSnowy Hydro\t$1.9 billion\t11\n510032\tKogan Creek Power Station Stator Replacement\tQLD\tKogan Creek, QLD\thot\tpal\tenergy\tCS Energy\tUnknown\t10\n570020\tBruce Highway Targeted Safety Program (BHTSP)\tQLD\tQLD\thot\tpumps\tinfrastructure\tFederal and Queensland governments\t$9 billion\t10\n120002\tASC Submarine Maintenance and Capability\tSA\tSA\thot\tpumps\tdefence\tASC Pty Ltd\t$10+ billion (AUKUS program)\t10\n630004\tTransgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects\tNSW\tNSW\thot\tbess\tenergy\tTransgrid\tUnknown\t9\n660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\tTAS\tStatewide, TAS\thot\tmulti_lane_pt\tinfrastructure\tTasWater\t$2 billion\t7\n",
+  "stderr": "",
+  "execution_time_ms": 1787
+}

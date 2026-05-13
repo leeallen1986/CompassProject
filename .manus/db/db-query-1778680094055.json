@@ -1,0 +1,52 @@
+{
+  "query": "\nSELECT p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.location LIKE '%new south wales%' OR p.location LIKE '% NSW%' OR p.location LIKE '%victoria%' OR p.location LIKE '% VIC%' OR p.location LIKE '%south australia%' OR p.location LIKE '% SA%' OR p.location LIKE '%tasmania%' OR p.location LIKE '% TAS%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.location LIKE '%new south wales%' OR p.location LIKE '% NSW%' OR p.location LIKE '%victoria%' OR p.location LIKE '% VIC%' OR p.location LIKE '%south australia%' OR p.location LIKE '% SA%' OR p.location LIKE '%tasmania%' OR p.location LIKE '% TAS%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "rows": [
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "send_ready_count": "11"
+    },
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "send_ready_count": "11"
+    },
+    {
+      "id": "210008",
+      "name": "NSW Transformer Manufacturer Expansion",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "240019",
+      "name": "Noarlunga Heights Super Centre Redevelopment",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "240006",
+      "name": "Hunter REZ Transmission Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "send_ready_count": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsend_ready_count\n570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\t11\n690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\t11\n210008\tNSW Transformer Manufacturer Expansion\tmulti_lane_pt\tNSW\t6\n120240\tAUKUS Submarine Program (SSN-AUKUS)\tmulti_lane_pt\tSA\t6\n240019\tNoarlunga Heights Super Centre Redevelopment\tmulti_lane_pt\tSA\t6\n240006\tHunter REZ Transmission Project\tmulti_lane_pt\tNSW\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1842
+}

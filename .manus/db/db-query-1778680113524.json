@@ -1,0 +1,58 @@
+{
+  "query": "\n-- Brett Hansen: WA+NT, pump-only override — exclude bess/pal/portable_air\nSELECT 'Brett' AS rep, p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState IN ('WA','NT') OR p.location LIKE '%western australia%' OR p.location LIKE '% WA%' OR p.location LIKE '%northern territory%' OR p.location LIKE '% NT%' OR p.location LIKE '%darwin%' OR p.location LIKE '%pilbara%' OR p.location LIKE '%karratha%' OR p.location LIKE '%perth%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','portable_air'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Brett Hansen: WA+NT, pump-only override — exclude bess/pal/portable_air\nSELECT 'Brett' AS rep, p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState IN ('WA','NT') OR p.location LIKE '%western australia%' OR p.location LIKE '% WA%' OR p.location LIKE '%northern territory%' OR p.location LIKE '% NT%' OR p.location LIKE '%darwin%' OR p.location LIKE '%pilbara%' OR p.location LIKE '%karratha%' OR p.location LIKE '%perth%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','portable_air'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "rows": [
+    {
+      "rep": "Brett",
+      "id": "120139",
+      "name": "Iluka Resources Eneabba Rare Earths Refinery",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "14"
+    },
+    {
+      "rep": "Brett",
+      "id": "330053",
+      "name": "Never Never Gold Deposit Development",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "10"
+    },
+    {
+      "rep": "Brett",
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "10"
+    },
+    {
+      "rep": "Brett",
+      "id": "120115",
+      "name": "Greenbushes Lithium Mine Expansion",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "7"
+    },
+    {
+      "rep": "Brett",
+      "id": "450043",
+      "name": "Nelson Point Car Dumper 6 Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "6"
+    },
+    {
+      "rep": "Brett",
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "send_ready_count": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tproductLane\tprojectState\tsend_ready_count\nBrett\t120139\tIluka Resources Eneabba Rare Earths Refinery\tmulti_lane_pt\tWA\t14\nBrett\t330053\tNever Never Gold Deposit Development\tmulti_lane_pt\tWA\t10\nBrett\t450042\tPort Hedland Car Dumper 6 Project\tmulti_lane_pt\tWA\t10\nBrett\t120115\tGreenbushes Lithium Mine Expansion\tmulti_lane_pt\tWA\t7\nBrett\t450043\tNelson Point Car Dumper 6 Project\tmulti_lane_pt\tWA\t6\nBrett\t120240\tAUKUS Submarine Program (SSN-AUKUS)\tmulti_lane_pt\tSA\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1818
+}

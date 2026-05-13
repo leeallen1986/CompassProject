@@ -1,0 +1,52 @@
+{
+  "query": "\nSELECT p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState = 'WA' OR p.location LIKE '%western australia%' OR p.location LIKE '% WA%' OR p.location LIKE '%perth%' OR p.location LIKE '%pilbara%' OR p.location LIKE '%kalgoorlie%' OR p.location LIKE '%karratha%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState = 'WA' OR p.location LIKE '%western australia%' OR p.location LIKE '% WA%' OR p.location LIKE '%perth%' OR p.location LIKE '%pilbara%' OR p.location LIKE '%kalgoorlie%' OR p.location LIKE '%karratha%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "rows": [
+    {
+      "id": "120139",
+      "name": "Iluka Resources Eneabba Rare Earths Refinery",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "14"
+    },
+    {
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "10"
+    },
+    {
+      "id": "330053",
+      "name": "Never Never Gold Deposit Development",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "10"
+    },
+    {
+      "id": "120115",
+      "name": "Greenbushes Lithium Mine Expansion",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "450043",
+      "name": "Nelson Point Car Dumper 6 Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "120121",
+      "name": "Pilgangoora Lithium-Tantalum Project (P680 Expansion)",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsend_ready_count\n120139\tIluka Resources Eneabba Rare Earths Refinery\tmulti_lane_pt\tWA\t14\n450042\tPort Hedland Car Dumper 6 Project\tmulti_lane_pt\tWA\t10\n330053\tNever Never Gold Deposit Development\tmulti_lane_pt\tWA\t10\n120115\tGreenbushes Lithium Mine Expansion\tmulti_lane_pt\tWA\t7\n450043\tNelson Point Car Dumper 6 Project\tmulti_lane_pt\tWA\t6\n120121\tPilgangoora Lithium-Tantalum Project (P680 Expansion)\tmulti_lane_pt\tWA\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1755
+}

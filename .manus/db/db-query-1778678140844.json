@@ -1,0 +1,109 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, u.role,\n  p.territories, p.assignedBusinessLines, p.salesMotion, p.offerCategories, p.sectorFocus\nFROM users u\nJOIN userProfiles p ON p.userId = u.id\nWHERE u.role != 'admin'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, u.role,\n  p.territories, p.assignedBusinessLines, p.salesMotion, p.offerCategories, p.sectorFocus\nFROM users u\nJOIN userProfiles p ON p.userId = u.id\nWHERE u.role != 'admin'\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "id": "13020010",
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"PT All Capital Sales\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\"]"
+    },
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"PAL\", \"BESS\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "sectorFocus": "[\"energy\", \"infrastructure\", \"industrial\"]"
+    },
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\"]"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\", \"water\", \"civils\"]"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\", \"oil_gas\", \"industrial\"]"
+    },
+    {
+      "id": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"consumables\", \"software\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"energy\", \"defence\"]"
+    },
+    {
+      "id": "11580001",
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"consumables\", \"software\"]",
+      "sectorFocus": "[\"mining\"]"
+    },
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\"]",
+      "salesMotion": "direct_only",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tterritories\tassignedBusinessLines\tsalesMotion\tofferCategories\tsectorFocus\n13020010\tAlexandre Leite\talexandre.leite@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"PT All Capital Sales\"]\tdirect_only\t[\"equipment\"]\t[\"mining\", \"infrastructure\"]\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]\tdirect_only\t[\"equipment\", \"rentals\", \"services\"]\t[\"energy\", \"infrastructure\", \"industrial\"]\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\t[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\tdirect_only\t[\"equipment\", \"rentals\", \"services\"]\t[\"mining\", \"oil_gas\", \"infrastructure\"]\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\tdirect_only\t[\"equipment\", \"rentals\", \"services\"]\t[\"mining\", \"infrastructure\", \"water\", \"civils\"]\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\"]\tdirect_only\t[\"equipment\", \"rentals\", \"services\"]\t[\"mining\", \"infrastructure\", \"oil_gas\", \"industrial\"]\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\tdirect_only\t[\"equipment\", \"consumables\", \"software\"]\t[\"mining\", \"oil_gas\", \"energy\", \"defence\"]\n11580001\tKevin Arnandes\tkevinarnandes@gmail.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\"]\tdirect_only\t[\"equipment\", \"consumables\", \"software\"]\t[\"mining\"]\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\tdirect_only\t[\"equipment\", \"rentals\", \"services\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\tdirect_only\t[\"equipment\", \"rentals\", \"services\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1797
+}

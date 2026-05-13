@@ -38,6 +38,7 @@ import {
   portableAirOpportunityGate,
   palBessOpportunityGate,
   isPumpLaneRep,
+  resolveRepLaneCategory,
   type VisibilityTier,
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
@@ -1724,6 +1725,36 @@ export async function scoreAndFilterProjects(
     return p.relevanceScore > 25;
   });
 
+  // ── Lane-integrity post-filter (guardrail 4b) ──
+  // For single-lane reps, hard-exclude projects whose productLane is clearly outside
+  // their assigned lane. This prevents high-contact-count BESS/PAL/pump projects from
+  // outscoring lower-contact PA/pump projects purely on contact-count base score.
+  //
+  // Rules:
+  //   PA-only reps (Ryan, Daniel, Leo): exclude bess, pal, pumps
+  //   Pump-only reps (Brett Hansen, Dan Day): exclude bess, pal, portable_air
+  //   PAL/BESS reps (Amit): no exclusion
+  //   Mixed-lane reps: no exclusion
+  //
+  // Keep always: multi_lane_pt, null/unknown (legitimately cross-lane)
+  //
+  // Brett Hansen override: treated as pump-only for this patch even if BL metadata
+  // contains mixed labels. Resolved via resolveRepLaneCategory repNameOverride.
+  const repLaneCategory = resolveRepLaneCategory(
+    assignedBLs,
+    (profile as any).repName as string | null | undefined,
+  );
+  const LANE_EXCLUSIONS_PA:   Set<string> = new Set(['bess', 'pal', 'pumps']);
+  const LANE_EXCLUSIONS_PUMP: Set<string> = new Set(['bess', 'pal', 'portable_air']);
+  const laneFilteredScored = scored.filter(p => {
+    const lane = ((p as any).productLane || '').toLowerCase().trim();
+    // null / unknown / multi_lane_pt always pass through
+    if (!lane || lane === 'null' || lane === 'unknown' || lane === 'multi_lane_pt') return true;
+    if (repLaneCategory === 'portableAir' && LANE_EXCLUSIONS_PA.has(lane)) return false;
+    if (repLaneCategory === 'pump'        && LANE_EXCLUSIONS_PUMP.has(lane)) return false;
+    return true;
+  });
+
   // ── Hard territory filter (post-scoring) ──
   // For state-coded territories (WA, QLD, NSW, VIC, SA, NT, TAS, ACT), a project must
   // match at least one territory via projectState OR location string. Projects with
@@ -1732,7 +1763,7 @@ export async function scoreAndFilterProjects(
   // Wakehurst Parkway NSW, Inland Rail VIC, etc. appearing in WA digest).
   const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
   if (territories.length === 0 || territories.length >= 8) {
-    return scored; // National reps (resolved to all 8+ states) see everything
+    return laneFilteredScored; // National reps (resolved to all 8+ states) see everything
   }
   const AU_STATES = new Set(["WA", "QLD", "NSW", "VIC", "SA", "TAS", "NT", "ACT"]);
   const stateKeywordsMap: Record<string, string[]> = {
@@ -1745,7 +1776,7 @@ export async function scoreAndFilterProjects(
     TAS: ["tasmania", "tas", "hobart", "launceston"],
     ACT: ["australian capital territory", "act", "canberra"],
   };
-  return scored.filter(p => {
+  return laneFilteredScored.filter(p => {
     const projectState = ((p as any).projectState || "").toUpperCase();
     const loc = (p.location || "").toLowerCase();
     return territories.some(t => {

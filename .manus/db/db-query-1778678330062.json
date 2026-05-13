@@ -1,0 +1,120 @@
+{
+  "query": "\n-- Amit Bhargava: all territories, PAL+BESS lanes\n-- The isPalBessRep gate runs palBessOpportunityGate instead of portableAirOpportunityGate\n-- So we look at productLane = bess, pal, NULL (unclassified) — NOT portable_air-only or pumps-only\nSELECT 'Amit' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\nGROUP BY p.id\nORDER BY \n  CASE WHEN p.productLane IN ('bess','pal') THEN 0\n       WHEN p.productLane IN ('multi_lane_pt','NULL') OR p.productLane IS NULL THEN 1\n       ELSE 2 END,\n  sendReadyCount DESC, p.value DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Amit Bhargava: all territories, PAL+BESS lanes\n-- The isPalBessRep gate runs palBessOpportunityGate instead of portableAirOpportunityGate\n-- So we look at productLane = bess, pal, NULL (unclassified) — NOT portable_air-only or pumps-only\nSELECT 'Amit' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\nGROUP BY p.id\nORDER BY \n  CASE WHEN p.productLane IN ('bess','pal') THEN 0\n       WHEN p.productLane IN ('multi_lane_pt','NULL') OR p.productLane IS NULL THEN 1\n       ELSE 2 END,\n  sendReadyCount DESC, p.value DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "rep": "Amit",
+      "id": "570013",
+      "name": "Broadsound Battery Energy Storage System (BESS)",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "13"
+    },
+    {
+      "rep": "Amit",
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "$1.9 billion",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Amit",
+      "id": "510032",
+      "name": "Kogan Creek Power Station Stator Replacement",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "pal",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "10"
+    },
+    {
+      "rep": "Amit",
+      "id": "630004",
+      "name": "Transgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "9"
+    },
+    {
+      "rep": "Amit",
+      "id": "480048",
+      "name": "WA's Largest Wind Farm Construction",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "6"
+    },
+    {
+      "rep": "Amit",
+      "id": "570024",
+      "name": "Gorgon and Jansz feed gas pipeline system and wells commissioning",
+      "projectState": "OFFSHORE_AU",
+      "priority": "hot",
+      "productLane": "pal",
+      "sector": "oil_gas",
+      "value": "Unknown",
+      "sendReadyCount": "6"
+    },
+    {
+      "rep": "Amit",
+      "id": "690003",
+      "name": "Fortescue Green Energy Grid Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "5"
+    },
+    {
+      "rep": "Amit",
+      "id": "570002",
+      "name": "Inland Rail Narrabri to North Star (N2NS) Phase 1 Solar Level Crossings",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "sendReadyCount": "5"
+    },
+    {
+      "rep": "Amit",
+      "id": "690037",
+      "name": "Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System",
+      "projectState": "NULL",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "mining",
+      "value": "Undisclosed",
+      "sendReadyCount": "5"
+    },
+    {
+      "rep": "Amit",
+      "id": "450007",
+      "name": "Two massive solar and battery energy storage projects (1.8 GW)",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unspecified",
+      "sendReadyCount": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tprojectState\tpriority\tproductLane\tsector\tvalue\tsendReadyCount\nAmit\t570013\tBroadsound Battery Energy Storage System (BESS)\tQLD\thot\tbess\tenergy\tUnknown\t13\nAmit\t690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tNSW\thot\tbess\tenergy\t$1.9 billion\t11\nAmit\t510032\tKogan Creek Power Station Stator Replacement\tQLD\thot\tpal\tenergy\tUnknown\t10\nAmit\t630004\tTransgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects\tNSW\thot\tbess\tenergy\tUnknown\t9\nAmit\t480048\tWA's Largest Wind Farm Construction\tWA\thot\tbess\tenergy\tUnknown\t6\nAmit\t570024\tGorgon and Jansz feed gas pipeline system and wells commissioning\tOFFSHORE_AU\thot\tpal\toil_gas\tUnknown\t6\nAmit\t690003\tFortescue Green Energy Grid Project\tWA\thot\tbess\tmining\tUnknown\t5\nAmit\t570002\tInland Rail Narrabri to North Star (N2NS) Phase 1 Solar Level Crossings\tNSW\thot\tbess\tinfrastructure\tUnknown\t5\nAmit\t690037\tFortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\tNULL\thot\tbess\tmining\tUndisclosed\t5\nAmit\t450007\tTwo massive solar and battery energy storage projects (1.8 GW)\tQLD\thot\tbess\tenergy\tUnspecified\t4\n",
+  "stderr": "",
+  "execution_time_ms": 1880
+}

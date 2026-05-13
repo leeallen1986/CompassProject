@@ -1,0 +1,98 @@
+{
+  "query": "\n-- Daniel Zec: NSW/VIC/SA/TAS, Portable Air\nSELECT 'Daniel' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\n  AND p.projectState IN ('NSW','VIC','SA','TAS')\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 8;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Daniel Zec: NSW/VIC/SA/TAS, Portable Air\nSELECT 'Daniel' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\n  AND p.projectState IN ('NSW','VIC','SA','TAS')\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 8;\n",
+  "rows": [
+    {
+      "rep": "Daniel",
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Daniel",
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "projectState": "VIC",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Daniel",
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "$1.9 billion",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Daniel",
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "projectState": "SA",
+      "priority": "hot",
+      "productLane": "pumps",
+      "sector": "defence",
+      "value": "$10+ billion (AUKUS program)",
+      "sendReadyCount": "10"
+    },
+    {
+      "rep": "Daniel",
+      "id": "630004",
+      "name": "Transgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "9"
+    },
+    {
+      "rep": "Daniel",
+      "id": "660020",
+      "name": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)",
+      "projectState": "TAS",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "value": "$2 billion",
+      "sendReadyCount": "7"
+    },
+    {
+      "rep": "Daniel",
+      "id": "570021",
+      "name": "Newell Highway Upgrades (Moree to Boggabilla)",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "pumps",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "sendReadyCount": "6"
+    },
+    {
+      "rep": "Daniel",
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "projectState": "SA",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "defence",
+      "value": "AUD $368 billion (estimated over 30 years)",
+      "sendReadyCount": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tprojectState\tpriority\tproductLane\tsector\tvalue\tsendReadyCount\nDaniel\t690089\tCadia Gold Mine Operations\tNSW\thot\tmulti_lane_pt\tmining\tUnknown\t11\nDaniel\t570022\tInland Rail Station Upgrades (Euroa)\tVIC\thot\tmulti_lane_pt\tinfrastructure\tUnknown\t11\nDaniel\t690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tNSW\thot\tbess\tenergy\t$1.9 billion\t11\nDaniel\t120002\tASC Submarine Maintenance and Capability\tSA\thot\tpumps\tdefence\t$10+ billion (AUKUS program)\t10\nDaniel\t630004\tTransgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects\tNSW\thot\tbess\tenergy\tUnknown\t9\nDaniel\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\tTAS\thot\tmulti_lane_pt\tinfrastructure\t$2 billion\t7\nDaniel\t570021\tNewell Highway Upgrades (Moree to Boggabilla)\tNSW\thot\tpumps\tinfrastructure\tUnknown\t6\nDaniel\t120240\tAUKUS Submarine Program (SSN-AUKUS)\tSA\thot\tmulti_lane_pt\tdefence\tAUD $368 billion (estimated over 30 years)\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1743
+}

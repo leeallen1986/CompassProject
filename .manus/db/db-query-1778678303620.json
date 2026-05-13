@@ -1,0 +1,98 @@
+{
+  "query": "\n-- Leo Williams: all territories, Portable Air lane\nSELECT 'Leo' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 8;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Leo Williams: all territories, Portable Air lane\nSELECT 'Leo' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 8;\n",
+  "rows": [
+    {
+      "rep": "Leo",
+      "id": "330015",
+      "name": "Norseman Gold Project - Third Underground Mine Development",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "21"
+    },
+    {
+      "rep": "Leo",
+      "id": "360011",
+      "name": "Toowoomba-Athol Road Upgrade",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "sendReadyCount": "13"
+    },
+    {
+      "rep": "Leo",
+      "id": "570013",
+      "name": "Broadsound Battery Energy Storage System (BESS)",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "13"
+    },
+    {
+      "rep": "Leo",
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Leo",
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "projectState": "VIC",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Leo",
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "$1.9 billion",
+      "sendReadyCount": "11"
+    },
+    {
+      "rep": "Leo",
+      "id": "510032",
+      "name": "Kogan Creek Power Station Stator Replacement",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "pal",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "10"
+    },
+    {
+      "rep": "Leo",
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "10"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tprojectState\tpriority\tproductLane\tsector\tvalue\tsendReadyCount\nLeo\t330015\tNorseman Gold Project - Third Underground Mine Development\tWA\thot\tmulti_lane_pt\tmining\tUnknown\t21\nLeo\t360011\tToowoomba-Athol Road Upgrade\tQLD\thot\tmulti_lane_pt\tinfrastructure\tUnknown\t13\nLeo\t570013\tBroadsound Battery Energy Storage System (BESS)\tQLD\thot\tbess\tenergy\tUnknown\t13\nLeo\t690089\tCadia Gold Mine Operations\tNSW\thot\tmulti_lane_pt\tmining\tUnknown\t11\nLeo\t570022\tInland Rail Station Upgrades (Euroa)\tVIC\thot\tmulti_lane_pt\tinfrastructure\tUnknown\t11\nLeo\t690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tNSW\thot\tbess\tenergy\t$1.9 billion\t11\nLeo\t510032\tKogan Creek Power Station Stator Replacement\tQLD\thot\tpal\tenergy\tUnknown\t10\nLeo\t450042\tPort Hedland Car Dumper 6 Project\tWA\thot\tmulti_lane_pt\tmining\tUnknown\t10\n",
+  "stderr": "",
+  "execution_time_ms": 1807
+}

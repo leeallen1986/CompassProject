@@ -1,0 +1,58 @@
+{
+  "query": "\n-- Leo Williams: national, portableAir — exclude bess/pal/pumps\nSELECT 'Leo' AS rep, p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Leo Williams: national, portableAir — exclude bess/pal/pumps\nSELECT 'Leo' AS rep, p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "rows": [
+    {
+      "rep": "Leo",
+      "id": "120139",
+      "name": "Iluka Resources Eneabba Rare Earths Refinery",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "14"
+    },
+    {
+      "rep": "Leo",
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "send_ready_count": "11"
+    },
+    {
+      "rep": "Leo",
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "send_ready_count": "11"
+    },
+    {
+      "rep": "Leo",
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "10"
+    },
+    {
+      "rep": "Leo",
+      "id": "330053",
+      "name": "Never Never Gold Deposit Development",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "10"
+    },
+    {
+      "rep": "Leo",
+      "id": "120115",
+      "name": "Greenbushes Lithium Mine Expansion",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "send_ready_count": "7"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tproductLane\tprojectState\tsend_ready_count\nLeo\t120139\tIluka Resources Eneabba Rare Earths Refinery\tmulti_lane_pt\tWA\t14\nLeo\t570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\t11\nLeo\t690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\t11\nLeo\t450042\tPort Hedland Car Dumper 6 Project\tmulti_lane_pt\tWA\t10\nLeo\t330053\tNever Never Gold Deposit Development\tmulti_lane_pt\tWA\t10\nLeo\t120115\tGreenbushes Lithium Mine Expansion\tmulti_lane_pt\tWA\t7\n",
+  "stderr": "",
+  "execution_time_ms": 1760
+}

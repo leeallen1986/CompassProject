@@ -1,0 +1,98 @@
+{
+  "query": "\n-- Brett Hansen: WA+NT, Portable Air + Pump\nSELECT 'Brett' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\n  AND p.projectState IN ('WA','NT')\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 8;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Brett Hansen: WA+NT, Portable Air + Pump\nSELECT 'Brett' AS rep, p.id, p.name, p.projectState, p.priority, p.productLane, p.sector, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sendReadyCount\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active' AND p.priority = 'hot'\n  AND p.projectState IN ('WA','NT')\nGROUP BY p.id\nORDER BY sendReadyCount DESC, p.value DESC\nLIMIT 8;\n",
+  "rows": [
+    {
+      "rep": "Brett",
+      "id": "330015",
+      "name": "Norseman Gold Project - Third Underground Mine Development",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "21"
+    },
+    {
+      "rep": "Brett",
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "10"
+    },
+    {
+      "rep": "Brett",
+      "id": "120302",
+      "name": "Genesis Minerals - Leonora Gold Project - Exploration",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "value": "Confidential, part of ongoing exploration budget",
+      "sendReadyCount": "10"
+    },
+    {
+      "rep": "Brett",
+      "id": "690069",
+      "name": "Walyering West-1 Gas Development",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "portable_air",
+      "sector": "oil_gas",
+      "value": "Unknown",
+      "sendReadyCount": "9"
+    },
+    {
+      "rep": "Brett",
+      "id": "480048",
+      "name": "WA's Largest Wind Farm Construction",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "6"
+    },
+    {
+      "rep": "Brett",
+      "id": "690003",
+      "name": "Fortescue Green Energy Grid Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "bess",
+      "sector": "mining",
+      "value": "Unknown",
+      "sendReadyCount": "5"
+    },
+    {
+      "rep": "Brett",
+      "id": "720015",
+      "name": "Northern Territory BESS Deployment",
+      "projectState": "NT",
+      "priority": "hot",
+      "productLane": "NULL",
+      "sector": "energy",
+      "value": "Unknown",
+      "sendReadyCount": "5"
+    },
+    {
+      "rep": "Brett",
+      "id": "1200067",
+      "name": "Scarborough Energy Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "NULL",
+      "sector": "oil_gas",
+      "value": "Unknown",
+      "sendReadyCount": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tprojectState\tpriority\tproductLane\tsector\tvalue\tsendReadyCount\nBrett\t330015\tNorseman Gold Project - Third Underground Mine Development\tWA\thot\tmulti_lane_pt\tmining\tUnknown\t21\nBrett\t450042\tPort Hedland Car Dumper 6 Project\tWA\thot\tmulti_lane_pt\tmining\tUnknown\t10\nBrett\t120302\tGenesis Minerals - Leonora Gold Project - Exploration\tWA\thot\tmulti_lane_pt\tmining\tConfidential, part of ongoing exploration budget\t10\nBrett\t690069\tWalyering West-1 Gas Development\tWA\thot\tportable_air\toil_gas\tUnknown\t9\nBrett\t480048\tWA's Largest Wind Farm Construction\tWA\thot\tbess\tenergy\tUnknown\t6\nBrett\t690003\tFortescue Green Energy Grid Project\tWA\thot\tbess\tmining\tUnknown\t5\nBrett\t720015\tNorthern Territory BESS Deployment\tNT\thot\tNULL\tenergy\tUnknown\t5\nBrett\t1200067\tScarborough Energy Project\tWA\thot\tNULL\toil_gas\tUnknown\t4\n",
+  "stderr": "",
+  "execution_time_ms": 1768
+}

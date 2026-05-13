@@ -1,0 +1,58 @@
+{
+  "query": "\n-- Dan Day: SA/QLD/VIC/NSW/TAS, pump-only — exclude bess/pal/portable_air\nSELECT 'DanDay' AS rep, p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState IN ('SA','QLD','VIC','NSW','TAS') OR p.location LIKE '%south australia%' OR p.location LIKE '% SA%' OR p.location LIKE '%queensland%' OR p.location LIKE '% QLD%' OR p.location LIKE '%victoria%' OR p.location LIKE '% VIC%' OR p.location LIKE '%new south wales%' OR p.location LIKE '% NSW%' OR p.location LIKE '%tasmania%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','portable_air'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Dan Day: SA/QLD/VIC/NSW/TAS, pump-only — exclude bess/pal/portable_air\nSELECT 'DanDay' AS rep, p.id, p.name, COALESCE(p.productLane,'null') AS productLane, p.projectState,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS send_ready_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState IN ('SA','QLD','VIC','NSW','TAS') OR p.location LIKE '%south australia%' OR p.location LIKE '% SA%' OR p.location LIKE '%queensland%' OR p.location LIKE '% QLD%' OR p.location LIKE '%victoria%' OR p.location LIKE '% VIC%' OR p.location LIKE '%new south wales%' OR p.location LIKE '% NSW%' OR p.location LIKE '%tasmania%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','portable_air'))\nGROUP BY p.id\nORDER BY send_ready_count DESC LIMIT 6;\n",
+  "rows": [
+    {
+      "rep": "DanDay",
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "send_ready_count": "11"
+    },
+    {
+      "rep": "DanDay",
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "send_ready_count": "11"
+    },
+    {
+      "rep": "DanDay",
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "productLane": "pumps",
+      "projectState": "SA",
+      "send_ready_count": "10"
+    },
+    {
+      "rep": "DanDay",
+      "id": "570020",
+      "name": "Bruce Highway Targeted Safety Program (BHTSP)",
+      "productLane": "pumps",
+      "projectState": "QLD",
+      "send_ready_count": "10"
+    },
+    {
+      "rep": "DanDay",
+      "id": "240019",
+      "name": "Noarlunga Heights Super Centre Redevelopment",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "send_ready_count": "6"
+    },
+    {
+      "rep": "DanDay",
+      "id": "240017",
+      "name": "Yarrabilba Retail Precinct",
+      "productLane": "multi_lane_pt",
+      "projectState": "QLD",
+      "send_ready_count": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tid\tname\tproductLane\tprojectState\tsend_ready_count\nDanDay\t690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\t11\nDanDay\t570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\t11\nDanDay\t120002\tASC Submarine Maintenance and Capability\tpumps\tSA\t10\nDanDay\t570020\tBruce Highway Targeted Safety Program (BHTSP)\tpumps\tQLD\t10\nDanDay\t240019\tNoarlunga Heights Super Centre Redevelopment\tmulti_lane_pt\tSA\t6\nDanDay\t240017\tYarrabilba Retail Precinct\tmulti_lane_pt\tQLD\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1764
+}

@@ -2041,3 +2041,53 @@ export function computePumpActionMode(
   if (isEarlyStage || pumpBLScore < 30) return 'reference_only';
   return 'find_site_contact'; // default fallback for pump
 }
+
+// ── Rep Lane Category resolver (guardrail 4b — lane-integrity post-filter) ──
+/**
+ * Determine a rep's single lane category for the purpose of the lane-integrity
+ * post-filter in scoreAndFilterProjects().
+ *
+ * Rules:
+ *   - 'palBess'      → rep has PAL or BESS in their BL list (Amit)
+ *   - 'pump'         → rep has pump-family BLs only, OR repNameOverride forces pump
+ *   - 'portableAir'  → rep has portableAir-family BLs only
+ *   - 'mixed'        → rep has BLs from more than one lane family, or no BLs at all
+ *
+ * The repNameOverride parameter allows a rep-name-level override that takes
+ * precedence over the BL metadata. This is used for Brett Hansen who is
+ * operationally pump-only for Thursday sends even though his BL metadata
+ * may still contain mixed labels.
+ *
+ * @param assignedBLs          - rep's assignedBusinessLines array from their profile
+ * @param repNameOverride      - optional lowercase rep name; if it matches a known
+ *                               pump-only override, forces 'pump' regardless of BLs
+ */
+export function resolveRepLaneCategory(
+  assignedBLs: string[],
+  repNameOverride?: string | null,
+): 'portableAir' | 'pump' | 'palBess' | 'mixed' {
+  // Rep-name-level overrides (narrowest possible — only for Thursday containment patch)
+  const PUMP_ONLY_REP_NAMES = new Set(['brett hansen']);
+  if (repNameOverride && PUMP_ONLY_REP_NAMES.has(repNameOverride.toLowerCase().trim())) {
+    return 'pump';
+  }
+
+  if (assignedBLs.length === 0) return 'mixed';
+
+  const resolvedKeys = new Set(
+    assignedBLs.map(bl => BL_TO_LANE_KEY[bl]).filter(Boolean)
+  );
+
+  // PAL/BESS takes precedence — if any BL maps to pal or bess, treat as palBess
+  if (resolvedKeys.has('pal') || resolvedKeys.has('bess')) return 'palBess';
+
+  const hasPump = resolvedKeys.has('pump');
+  const hasPA   = resolvedKeys.has('portableAir');
+
+  if (hasPump && !hasPA) return 'pump';
+  if (hasPA && !hasPump) return 'portableAir';
+  if (hasPump && hasPA)  return 'mixed';
+
+  // All BLs unmapped (e.g. PT Capital Sales not in BL_TO_LANE_KEY)
+  return 'mixed';
+}
