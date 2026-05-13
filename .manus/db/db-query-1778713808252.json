@@ -1,0 +1,190 @@
+{
+  "query": "\nSELECT p.name AS project, c.name AS contact, c.title, c.company, c.contactTrustTier,\n       c.roleBucket, c.source\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.id IN (570022, 690089, 120240, 210008, 240019, 90009, 240006, 120267, 990006, 120160)\n  AND c.contactTrustTier = 'send_ready'\nORDER BY p.id, c.roleBucket\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.name AS project, c.name AS contact, c.title, c.company, c.contactTrustTier,\n       c.roleBucket, c.source\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.id IN (570022, 690089, 120240, 210008, 240019, 90009, 240006, 120267, 990006, 120160)\n  AND c.contactTrustTier = 'send_ready'\nORDER BY p.id, c.roleBucket\nLIMIT 20;\n",
+  "rows": [
+    {
+      "project": "Osborne Naval Shipyard Expansion",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "jiajia.lu@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "Osborne Naval Shipyard Expansion",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "qinqin.cai@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "Osborne Naval Shipyard Expansion",
+      "contact": "Atlas Copco (Shanghai) Trading",
+      "title": "Service Operations",
+      "company": "dao.ming.wang@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "Osborne Naval Shipyard Expansion",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "jiajia.lu@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "Osborne Naval Shipyard Expansion",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "brian.suares@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "M4-M5 Link (WestConnex Stage 3)",
+      "contact": "Sumit Vatsa",
+      "title": "Maintenance Manager",
+      "company": "Transurban",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "maintenance",
+      "source": "scraper"
+    },
+    {
+      "project": "M4-M5 Link (WestConnex Stage 3)",
+      "contact": "Scott Evans",
+      "title": "Construction Manager",
+      "company": "Transurban",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "M4-M5 Link (WestConnex Stage 3)",
+      "contact": "Ebert Obando",
+      "title": "Construction Manager",
+      "company": "Transurban",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "M4-M5 Link (WestConnex Stage 3)",
+      "contact": "Mehmet Mehmet",
+      "title": "Procurement Operations Manager",
+      "company": "Transurban",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "procurement",
+      "source": "scraper"
+    },
+    {
+      "project": "M4-M5 Link (WestConnex Stage 3)",
+      "contact": "Mark Wisener",
+      "title": "Procurement Manager",
+      "company": "Transurban",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "procurement",
+      "source": "scraper"
+    },
+    {
+      "project": "AUKUS Submarine Program (SSN-AUKUS)",
+      "contact": "Atlas Copco (Shanghai) Trading",
+      "title": "Service Operations",
+      "company": "dao.ming.wang@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "AUKUS Submarine Program (SSN-AUKUS)",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "brian.suares@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "AUKUS Submarine Program (SSN-AUKUS)",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "qinqin.cai@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "AUKUS Submarine Program (SSN-AUKUS)",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "jiajia.lu@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "AUKUS Submarine Program (SSN-AUKUS)",
+      "contact": "Atlas Copco (Shanghai) Trading CO LTD Regional Distribution Center",
+      "title": "Service Operations",
+      "company": "jiajia.lu@atlascopco.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "Operations",
+      "source": "crm"
+    },
+    {
+      "project": "AUKUS Submarine Program (SSN-AUKUS)",
+      "contact": "Greg Whittaker",
+      "title": "Procurement Manager",
+      "company": "ASC Pty Ltd",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "procurement",
+      "source": "scraper"
+    },
+    {
+      "project": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)",
+      "contact": "Gintaras Daugalis",
+      "title": "Engineering/Production Support Manager SA MIEAust CPEng NER APEC Engineer IntPE(Aus)",
+      "company": "Luerssen Australia",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "engineering",
+      "source": "scraper"
+    },
+    {
+      "project": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)",
+      "contact": "Kyron Hales",
+      "title": "Operations Manager - Construction",
+      "company": "Civmec",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "operations",
+      "source": "scraper"
+    },
+    {
+      "project": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)",
+      "contact": "Corey Wyngaarden",
+      "title": "Construction Manager",
+      "company": "Civmec",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)",
+      "contact": "Bertrand Gorjux",
+      "title": "Project Manager",
+      "company": "Luerssen Australia",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "project_manager",
+      "source": "scraper"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tcontact\ttitle\tcompany\tcontactTrustTier\troleBucket\tsource\nOsborne Naval Shipyard Expansion\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tjiajia.lu@atlascopco.com\tsend_ready\tOperations\tcrm\nOsborne Naval Shipyard Expansion\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tqinqin.cai@atlascopco.com\tsend_ready\tOperations\tcrm\nOsborne Naval Shipyard Expansion\tAtlas Copco (Shanghai) Trading\tService Operations\tdao.ming.wang@atlascopco.com\tsend_ready\tOperations\tcrm\nOsborne Naval Shipyard Expansion\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tjiajia.lu@atlascopco.com\tsend_ready\tOperations\tcrm\nOsborne Naval Shipyard Expansion\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tbrian.suares@atlascopco.com\tsend_ready\tOperations\tcrm\nM4-M5 Link (WestConnex Stage 3)\tSumit Vatsa\tMaintenance Manager\tTransurban\tsend_ready\tmaintenance\tscraper\nM4-M5 Link (WestConnex Stage 3)\tScott Evans\tConstruction Manager\tTransurban\tsend_ready\tother\tscraper\nM4-M5 Link (WestConnex Stage 3)\tEbert Obando\tConstruction Manager\tTransurban\tsend_ready\tother\tscraper\nM4-M5 Link (WestConnex Stage 3)\tMehmet Mehmet\tProcurement Operations Manager\tTransurban\tsend_ready\tprocurement\tscraper\nM4-M5 Link (WestConnex Stage 3)\tMark Wisener\tProcurement Manager\tTransurban\tsend_ready\tprocurement\tscraper\nAUKUS Submarine Program (SSN-AUKUS)\tAtlas Copco (Shanghai) Trading\tService Operations\tdao.ming.wang@atlascopco.com\tsend_ready\tOperations\tcrm\nAUKUS Submarine Program (SSN-AUKUS)\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tbrian.suares@atlascopco.com\tsend_ready\tOperations\tcrm\nAUKUS Submarine Program (SSN-AUKUS)\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tqinqin.cai@atlascopco.com\tsend_ready\tOperations\tcrm\nAUKUS Submarine Program (SSN-AUKUS)\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tjiajia.lu@atlascopco.com\tsend_ready\tOperations\tcrm\nAUKUS Submarine Program (SSN-AUKUS)\tAtlas Copco (Shanghai) Trading CO LTD Regional Distribution Center\tService Operations\tjiajia.lu@atlascopco.com\tsend_ready\tOperations\tcrm\nAUKUS Submarine Program (SSN-AUKUS)\tGreg Whittaker\tProcurement Manager\tASC Pty Ltd\tsend_ready\tprocurement\tscraper\nProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\tGintaras Daugalis\tEngineering/Production Support Manager SA MIEAust CPEng NER APEC Engineer IntPE(Aus)\tLuerssen Australia\tsend_ready\tengineering\tscraper\nProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\tKyron Hales\tOperations Manager - Construction\tCivmec\tsend_ready\toperations\tscraper\nProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\tCorey Wyngaarden\tConstruction Manager\tCivmec\tsend_ready\tother\tscraper\nProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\tBertrand Gorjux\tProject Manager\tLuerssen Australia\tsend_ready\tproject_manager\tscraper\n",
+  "stderr": "",
+  "execution_time_ms": 1858
+}

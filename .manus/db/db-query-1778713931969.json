@@ -1,0 +1,50 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, COALESCE(p.productLane,'null') AS productLane, p.sector,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sr\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState = 'WA' OR p.location LIKE '% WA%' OR p.location LIKE '%western australia%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY sr DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, COALESCE(p.productLane,'null') AS productLane, p.sector,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sr\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND (p.projectState = 'WA' OR p.location LIKE '% WA%' OR p.location LIKE '%western australia%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY sr DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "120139",
+      "name": "Iluka Resources Eneabba Rare Earths Refinery",
+      "projectState": "WA",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "sr": "14"
+    },
+    {
+      "id": "330053",
+      "name": "Never Never Gold Deposit Development",
+      "projectState": "WA",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "sr": "10"
+    },
+    {
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "projectState": "WA",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "sr": "10"
+    },
+    {
+      "id": "120115",
+      "name": "Greenbushes Lithium Mine Expansion",
+      "projectState": "WA",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "sr": "7"
+    },
+    {
+      "id": "450043",
+      "name": "Nelson Point Car Dumper 6 Project",
+      "projectState": "WA",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "sr": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tproductLane\tsector\tsr\n120139\tIluka Resources Eneabba Rare Earths Refinery\tWA\tmulti_lane_pt\tmining\t14\n330053\tNever Never Gold Deposit Development\tWA\tmulti_lane_pt\tmining\t10\n450042\tPort Hedland Car Dumper 6 Project\tWA\tmulti_lane_pt\tmining\t10\n120115\tGreenbushes Lithium Mine Expansion\tWA\tmulti_lane_pt\tmining\t7\n450043\tNelson Point Car Dumper 6 Project\tWA\tmulti_lane_pt\tmining\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1911
+}

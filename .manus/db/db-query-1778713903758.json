@@ -1,0 +1,18 @@
+{
+  "query": "\nSELECT id, name, productLane, sector, LEFT(stage,80) AS stage, lifecycleStatus\nFROM projects WHERE id = 990006;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, productLane, sector, LEFT(stage,80) AS stage, lifecycleStatus\nFROM projects WHERE id = 990006;\n",
+  "rows": [
+    {
+      "id": "990006",
+      "name": "Koolunga BESS (Battery Energy Storage System)",
+      "productLane": "NULL",
+      "sector": "energy",
+      "stage": "EPC awarded, construction starting shortly",
+      "lifecycleStatus": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tsector\tstage\tlifecycleStatus\n990006\tKoolunga BESS (Battery Energy Storage System)\tNULL\tenergy\tEPC awarded, construction starting shortly\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 1862
+}

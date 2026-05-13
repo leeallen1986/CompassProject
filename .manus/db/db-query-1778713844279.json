@@ -1,0 +1,170 @@
+{
+  "query": "\nSELECT p.name AS project, c.name AS contact, c.title, c.company, c.roleBucket, c.source\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.id IN (570022, 690089)\n  AND c.contactTrustTier = 'send_ready'\n  AND c.company NOT LIKE '%atlascopco%'\n  AND (c.email IS NULL OR c.email NOT LIKE '%@atlascopco.com%')\nORDER BY p.id, c.roleBucket\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.name AS project, c.name AS contact, c.title, c.company, c.roleBucket, c.source\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.id IN (570022, 690089)\n  AND c.contactTrustTier = 'send_ready'\n  AND c.company NOT LIKE '%atlascopco%'\n  AND (c.email IS NULL OR c.email NOT LIKE '%@atlascopco.com%')\nORDER BY p.id, c.roleBucket\nLIMIT 20;\n",
+  "rows": [
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Andrew Roberts",
+      "title": "Engineering Manager at Inland Rail | Civil Engineer | CPEng RPEQ NER",
+      "company": "Inland Rail",
+      "roleBucket": "engineering",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Mahmoud Fahmy",
+      "title": "Engineering Manager",
+      "company": "Inland Rail",
+      "roleBucket": "engineering",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Lawrence Whitehouse",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Denicce Vargas",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Iain Murray",
+      "title": "Rail Construction Manager - Inland Rail B2A",
+      "company": "Inland Rail",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Nicholas Nikolovski",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Robert Affleck",
+      "title": "National Contracts Manager - Strategic Procurement at John Holland",
+      "company": "John Holland",
+      "roleBucket": "procurement",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Rhys Collum",
+      "title": "Project Manager at John Holland Group",
+      "company": "John Holland",
+      "roleBucket": "project_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "James Callaghan",
+      "title": "Project Manager at John Holland",
+      "company": "John Holland",
+      "roleBucket": "project_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "Scott Stokes",
+      "title": "Construction Site Manager",
+      "company": "John Holland",
+      "roleBucket": "site_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Inland Rail Station Upgrades (Euroa)",
+      "contact": "David Grech",
+      "title": "Site Manager Construction",
+      "company": "John Holland",
+      "roleBucket": "site_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Nicole Dornbusch",
+      "title": "General Manager - Taxation",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "James Highsted",
+      "title": "General Manager",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Carla Scodeller",
+      "title": "General Manager Finance",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Michael Azzi",
+      "title": "General Manager Treasury",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Stuart Simms",
+      "title": "Maintenance Manager",
+      "company": "Macmahon",
+      "roleBucket": "maintenance",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Gabor Varga",
+      "title": "General Manager ICT Operations and Sevice Management",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "roleBucket": "operations",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Paul Dyer",
+      "title": "Construction Manager",
+      "company": "Macmahon",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Luke Barton",
+      "title": "Construction Manager",
+      "company": "Monadelphous",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "project": "Cadia Gold Mine Operations",
+      "contact": "Sundeep Gupta",
+      "title": "General Manager Project Procurement",
+      "company": "Worley",
+      "roleBucket": "procurement",
+      "source": "scraper"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tcontact\ttitle\tcompany\troleBucket\tsource\nInland Rail Station Upgrades (Euroa)\tAndrew Roberts\tEngineering Manager at Inland Rail | Civil Engineer | CPEng RPEQ NER\tInland Rail\tengineering\tscraper\nInland Rail Station Upgrades (Euroa)\tMahmoud Fahmy\tEngineering Manager\tInland Rail\tengineering\tscraper\nInland Rail Station Upgrades (Euroa)\tLawrence Whitehouse\tContracts Manager\tJohn Holland\tother\tscraper\nInland Rail Station Upgrades (Euroa)\tDenicce Vargas\tContracts Manager\tJohn Holland\tother\tscraper\nInland Rail Station Upgrades (Euroa)\tIain Murray\tRail Construction Manager - Inland Rail B2A\tInland Rail\tother\tscraper\nInland Rail Station Upgrades (Euroa)\tNicholas Nikolovski\tContracts Manager\tJohn Holland\tother\tscraper\nInland Rail Station Upgrades (Euroa)\tRobert Affleck\tNational Contracts Manager - Strategic Procurement at John Holland\tJohn Holland\tprocurement\tscraper\nInland Rail Station Upgrades (Euroa)\tRhys Collum\tProject Manager at John Holland Group\tJohn Holland\tproject_manager\tscraper\nInland Rail Station Upgrades (Euroa)\tJames Callaghan\tProject Manager at John Holland\tJohn Holland\tproject_manager\tscraper\nInland Rail Station Upgrades (Euroa)\tScott Stokes\tConstruction Site Manager\tJohn Holland\tsite_manager\tscraper\nInland Rail Station Upgrades (Euroa)\tDavid Grech\tSite Manager Construction\tJohn Holland\tsite_manager\tscraper\nCadia Gold Mine Operations\tNicole Dornbusch\tGeneral Manager - Taxation\tCIMIC Group (e.g., Thiess, CPB Contractors)\tgeneral_manager\tscraper\nCadia Gold Mine Operations\tJames Highsted\tGeneral Manager\tCIMIC Group (e.g., Thiess, CPB Contractors)\tgeneral_manager\tscraper\nCadia Gold Mine Operations\tCarla Scodeller\tGeneral Manager Finance\tCIMIC Group (e.g., Thiess, CPB Contractors)\tgeneral_manager\tscraper\nCadia Gold Mine Operations\tMichael Azzi\tGeneral Manager Treasury\tCIMIC Group (e.g., Thiess, CPB Contractors)\tgeneral_manager\tscraper\nCadia Gold Mine Operations\tStuart Simms\tMaintenance Manager\tMacmahon\tmaintenance\tscraper\nCadia Gold Mine Operations\tGabor Varga\tGeneral Manager ICT Operations and Sevice Management\tCIMIC Group (e.g., Thiess, CPB Contractors)\toperations\tscraper\nCadia Gold Mine Operations\tPaul Dyer\tConstruction Manager\tMacmahon\tother\tscraper\nCadia Gold Mine Operations\tLuke Barton\tConstruction Manager\tMonadelphous\tother\tscraper\nCadia Gold Mine Operations\tSundeep Gupta\tGeneral Manager Project Procurement\tWorley\tprocurement\tscraper\n",
+  "stderr": "",
+  "execution_time_ms": 1738
+}

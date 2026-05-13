@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE projects\nSET suppressed = 1,\n    suppressionReason = 'Suppressed pre-Thursday W20: stale/completed or no Portable Air relevance for Daniel Zec territory.'\nWHERE id IN (\n  120160,  -- M4-M5 Link WestConnex Stage 3: completion=2024, stale\n  240019,  -- Noarlunga Heights Super Centre: retail redevelopment, stale, no PA signal\n  210008,  -- NSW Transformer Manufacturer: stale, energy sector, low PA relevance\n  390003,  -- Regional NSW Health Rehabilitation Facility: stale, health sector, no PA signal\n  300008   -- Blind Creek Solar Farm: stale, solar/energy, no PA signal\n);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nUPDATE projects\nSET suppressed = 1,\n    suppressionReason = 'Suppressed pre-Thursday W20: stale/completed or no Portable Air relevance for Daniel Zec territory.'\nWHERE id IN (\n  120160,  -- M4-M5 Link WestConnex Stage 3: completion=2024, stale\n  240019,  -- Noarlunga Heights Super Centre: retail redevelopment, stale, no PA signal\n  210008,  -- NSW Transformer Manufacturer: stale, energy sector, low PA relevance\n  390003,  -- Regional NSW Health Rehabilitation Facility: stale, health sector, no PA signal\n  300008   -- Blind Creek Solar Farm: stale, solar/energy, no PA signal\n);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1773
+}

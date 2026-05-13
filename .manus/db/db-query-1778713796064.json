@@ -1,0 +1,46 @@
+{
+  "query": "\nSELECT p.id, p.name, p.projectState, COALESCE(p.productLane,'null') AS productLane,\n       p.sector, LEFT(p.stage,80) AS stage, p.stageCode, p.lifecycleStatus,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sr,\n       COUNT(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 END) AS nu\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND p.sector = 'mining'\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.location LIKE '%new south wales%' OR p.location LIKE '% NSW%' OR p.location LIKE '%victoria%' OR p.location LIKE '% VIC%' OR p.location LIKE '%south australia%' OR p.location LIKE '% SA%' OR p.location LIKE '%tasmania%' OR p.location LIKE '% TAS%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY sr DESC, nu DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.projectState, COALESCE(p.productLane,'null') AS productLane,\n       p.sector, LEFT(p.stage,80) AS stage, p.stageCode, p.lifecycleStatus,\n       COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS sr,\n       COUNT(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 END) AS nu\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.actionTier = 'tier1_actionable'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND p.sector = 'mining'\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.location LIKE '%new south wales%' OR p.location LIKE '% NSW%' OR p.location LIKE '%victoria%' OR p.location LIKE '% VIC%' OR p.location LIKE '%south australia%' OR p.location LIKE '% SA%' OR p.location LIKE '%tasmania%' OR p.location LIKE '% TAS%')\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id\nORDER BY sr DESC, nu DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "projectState": "NSW",
+      "productLane": "multi_lane_pt",
+      "sector": "mining",
+      "stage": "Processing operations ramping up post-earthquake",
+      "stageCode": "unknown",
+      "lifecycleStatus": "active",
+      "sr": "11",
+      "nu": "7"
+    },
+    {
+      "id": "960006",
+      "name": "Olympic Dam Expansion — BHP",
+      "projectState": "SA",
+      "productLane": "null",
+      "sector": "mining",
+      "stage": "Active — 2 open, 6 awarded, 4 closed work packages",
+      "stageCode": "unknown",
+      "lifecycleStatus": "active",
+      "sr": "2",
+      "nu": "0"
+    },
+    {
+      "id": "5",
+      "name": "Thiess Mount Pleasant Operation Expansion",
+      "projectState": "NSW",
+      "productLane": "portable_air",
+      "sector": "mining",
+      "stage": "Awarded, Jan 2026",
+      "stageCode": "awarded",
+      "lifecycleStatus": "stale",
+      "sr": "0",
+      "nu": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tproductLane\tsector\tstage\tstageCode\tlifecycleStatus\tsr\tnu\n690089\tCadia Gold Mine Operations\tNSW\tmulti_lane_pt\tmining\tProcessing operations ramping up post-earthquake\tunknown\tactive\t11\t7\n960006\tOlympic Dam Expansion — BHP\tSA\tnull\tmining\tActive — 2 open, 6 awarded, 4 closed work packages\tunknown\tactive\t2\t0\n5\tThiess Mount Pleasant Operation Expansion\tNSW\tportable_air\tmining\tAwarded, Jan 2026\tawarded\tstale\t0\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1887
+}

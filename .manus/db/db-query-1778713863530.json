@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE projects\nSET suppressed = 1,\n    suppressionReason = 'CRM-contaminated: all send_ready contacts are internal Atlas Copco staff (atlascopco.com). No real project decision-makers. Suppressed pre-Thursday W20.'\nWHERE id IN (120240, 510002, 120002, 90009);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nUPDATE projects\nSET suppressed = 1,\n    suppressionReason = 'CRM-contaminated: all send_ready contacts are internal Atlas Copco staff (atlascopco.com). No real project decision-makers. Suppressed pre-Thursday W20.'\nWHERE id IN (120240, 510002, 120002, 90009);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1773
+}

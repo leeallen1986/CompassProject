@@ -1,0 +1,42 @@
+{
+  "query": "\nSELECT DISTINCT p.id, p.name, p.projectState, p.sector,\n  COUNT(CASE WHEN c.company LIKE '%atlascopco%' OR c.email LIKE '%@atlascopco.com%' THEN 1 END) AS internal_sr_count,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND (c.company NOT LIKE '%atlascopco%' AND (c.email IS NULL OR c.email NOT LIKE '%@atlascopco.com%')) THEN 1 END) AS real_sr_count\nFROM projects p\nJOIN contactProjects cp ON cp.projectId = p.id\nJOIN contacts c ON c.id = cp.contactId\nWHERE c.contactTrustTier = 'send_ready'\n  AND (c.company LIKE '%atlascopco%' OR c.company LIKE '%atlas copco%' OR c.email LIKE '%@atlascopco.com%')\nGROUP BY p.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT DISTINCT p.id, p.name, p.projectState, p.sector,\n  COUNT(CASE WHEN c.company LIKE '%atlascopco%' OR c.email LIKE '%@atlascopco.com%' THEN 1 END) AS internal_sr_count,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND (c.company NOT LIKE '%atlascopco%' AND (c.email IS NULL OR c.email NOT LIKE '%@atlascopco.com%')) THEN 1 END) AS real_sr_count\nFROM projects p\nJOIN contactProjects cp ON cp.projectId = p.id\nJOIN contacts c ON c.id = cp.contactId\nWHERE c.contactTrustTier = 'send_ready'\n  AND (c.company LIKE '%atlascopco%' OR c.company LIKE '%atlas copco%' OR c.email LIKE '%@atlascopco.com%')\nGROUP BY p.id;\n",
+  "rows": [
+    {
+      "id": "120240",
+      "name": "AUKUS Submarine Program (SSN-AUKUS)",
+      "projectState": "SA",
+      "sector": "defence",
+      "internal_sr_count": "5",
+      "real_sr_count": "0"
+    },
+    {
+      "id": "510002",
+      "name": "AUKUS Submarine Fleet Development (Pillar 1)",
+      "projectState": "NULL",
+      "sector": "defence",
+      "internal_sr_count": "5",
+      "real_sr_count": "0"
+    },
+    {
+      "id": "120002",
+      "name": "ASC Submarine Maintenance and Capability",
+      "projectState": "SA",
+      "sector": "defence",
+      "internal_sr_count": "5",
+      "real_sr_count": "0"
+    },
+    {
+      "id": "90009",
+      "name": "Osborne Naval Shipyard Expansion",
+      "projectState": "SA",
+      "sector": "defence",
+      "internal_sr_count": "5",
+      "real_sr_count": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tsector\tinternal_sr_count\treal_sr_count\n120240\tAUKUS Submarine Program (SSN-AUKUS)\tSA\tdefence\t5\t0\n510002\tAUKUS Submarine Fleet Development (Pillar 1)\tNULL\tdefence\t5\t0\n120002\tASC Submarine Maintenance and Capability\tSA\tdefence\t5\t0\n90009\tOsborne Naval Shipyard Expansion\tSA\tdefence\t5\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1822
+}

@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  COUNT(DISTINCT c.id) AS internal_contact_count,\n  COUNT(DISTINCT cp.projectId) AS projects_contaminated,\n  GROUP_CONCAT(DISTINCT c.company ORDER BY c.company SEPARATOR ' | ') AS companies\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE c.contactTrustTier = 'send_ready'\n  AND (c.company LIKE '%atlascopco%' OR c.company LIKE '%atlas copco%' OR c.email LIKE '%@atlascopco.com%');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(DISTINCT c.id) AS internal_contact_count,\n  COUNT(DISTINCT cp.projectId) AS projects_contaminated,\n  GROUP_CONCAT(DISTINCT c.company ORDER BY c.company SEPARATOR ' | ') AS companies\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE c.contactTrustTier = 'send_ready'\n  AND (c.company LIKE '%atlascopco%' OR c.company LIKE '%atlas copco%' OR c.email LIKE '%@atlascopco.com%');\n",
+  "rows": [
+    {
+      "internal_contact_count": "5",
+      "projects_contaminated": "4",
+      "companies": "brian.suares@atlascopco.com | dao.ming.wang@atlascopco.com | jiajia.lu@atlascopco.com | qinqin.cai@atlascopco.com"
+    }
+  ],
+  "messages": [],
+  "stdout": "internal_contact_count\tprojects_contaminated\tcompanies\n5\t4\tbrian.suares@atlascopco.com | dao.ming.wang@atlascopco.com | jiajia.lu@atlascopco.com | qinqin.cai@atlascopco.com\n",
+  "stderr": "",
+  "execution_time_ms": 1919
+}

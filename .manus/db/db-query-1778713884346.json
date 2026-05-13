@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Tag Olympic Dam as portable_air (BHP mining, SA, strong PA signal)\nUPDATE projects SET productLane = 'portable_air' WHERE id = 960006;\n\n-- Tag Bass Strait Decommissioning as portable_air (oil_gas, VIC, strong PA signal for compressors)\nUPDATE projects SET productLane = 'portable_air' WHERE id = 990050;\n\n-- Suppress the duplicate stale M1 Pacific Motorway entry (120144 is stale duplicate of 660041)\nUPDATE projects \nSET suppressed = 1, suppressionReason = 'Duplicate of 660041 (active M1 Pacific Motorway). Suppressed pre-Thursday W20.'\nWHERE id = 120144;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Tag Olympic Dam as portable_air (BHP mining, SA, strong PA signal)\nUPDATE projects SET productLane = 'portable_air' WHERE id = 960006;\n\n-- Tag Bass Strait Decommissioning as portable_air (oil_gas, VIC, strong PA signal for compressors)\nUPDATE projects SET productLane = 'portable_air' WHERE id = 990050;\n\n-- Suppress the duplicate stale M1 Pacific Motorway entry (120144 is stale duplicate of 660041)\nUPDATE projects \nSET suppressed = 1, suppressionReason = 'Duplicate of 660041 (active M1 Pacific Motorway). Suppressed pre-Thursday W20.'\nWHERE id = 120144;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2413
+}
