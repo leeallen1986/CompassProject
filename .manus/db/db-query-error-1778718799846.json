@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.productLane,\n  p.projectState,\n  p.sector,\n  p.stageCode,\n  p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.suppressed = 0\n  AND p.geoBlocked = 0\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND (p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') OR p.projectState IS NULL)\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value\nHAVING sr_count > 0\nORDER BY sr_count DESC\nLIMIT 12;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.productLane,\n  p.projectState,\n  p.sector,\n  p.stageCode,\n  p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.suppressed = 0\n  AND p.geoBlocked = 0\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND (p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') OR p.projectState IS NULL)\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value\nHAVING sr_count > 0\nORDER BY sr_count DESC\nLIMIT 12;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'p.geoblocked' in 'where clause'"
+  ]
+}

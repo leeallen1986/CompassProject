@@ -1,0 +1,80 @@
+{
+  "query": "\n-- Get the IDs of the newly inserted Newmont contacts\nSELECT id, name, email FROM contacts \nWHERE company = 'Newmont' \n  AND project = 'Cadia Gold Mine Operations'\n  AND enrichmentSource = 'apollo'\n  AND email IN (\n    'chris.dark@newmont.com', 'rachel.manger@newmont.com', 'danny.ramunno@newmont.com',\n    'jarrad.haynes@newmont.com', 'jennifer.cope@newmont.com', 'john.fisher@newmont.com',\n    'ash.hooper@newmont.com', 'dale.hicks@newmont.com', 'andrew.daly@newmont.com',\n    'vern.kelsey@newmont.com', 'mike.adendorff@newmont.com', 'alexis.singleton@newmont.com',\n    'kevin.elms@newmont.com', 'ami.parekh@newmont.com'\n  )\nORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Get the IDs of the newly inserted Newmont contacts\nSELECT id, name, email FROM contacts \nWHERE company = 'Newmont' \n  AND project = 'Cadia Gold Mine Operations'\n  AND enrichmentSource = 'apollo'\n  AND email IN (\n    'chris.dark@newmont.com', 'rachel.manger@newmont.com', 'danny.ramunno@newmont.com',\n    'jarrad.haynes@newmont.com', 'jennifer.cope@newmont.com', 'john.fisher@newmont.com',\n    'ash.hooper@newmont.com', 'dale.hicks@newmont.com', 'andrew.daly@newmont.com',\n    'vern.kelsey@newmont.com', 'mike.adendorff@newmont.com', 'alexis.singleton@newmont.com',\n    'kevin.elms@newmont.com', 'ami.parekh@newmont.com'\n  )\nORDER BY id;\n",
+  "rows": [
+    {
+      "id": "2100044",
+      "name": "Chris Dark",
+      "email": "chris.dark@newmont.com"
+    },
+    {
+      "id": "2100045",
+      "name": "Rachel Manger",
+      "email": "rachel.manger@newmont.com"
+    },
+    {
+      "id": "2100046",
+      "name": "Danny Ramunno",
+      "email": "danny.ramunno@newmont.com"
+    },
+    {
+      "id": "2100047",
+      "name": "Jarrad Haynes",
+      "email": "jarrad.haynes@newmont.com"
+    },
+    {
+      "id": "2100048",
+      "name": "Jennifer Cope",
+      "email": "jennifer.cope@newmont.com"
+    },
+    {
+      "id": "2100049",
+      "name": "John Fisher",
+      "email": "john.fisher@newmont.com"
+    },
+    {
+      "id": "2100050",
+      "name": "Ash Hooper",
+      "email": "ash.hooper@newmont.com"
+    },
+    {
+      "id": "2100051",
+      "name": "Dale Hicks",
+      "email": "dale.hicks@newmont.com"
+    },
+    {
+      "id": "2100052",
+      "name": "Andrew Daly",
+      "email": "andrew.daly@newmont.com"
+    },
+    {
+      "id": "2100053",
+      "name": "Vern Kelsey",
+      "email": "vern.kelsey@newmont.com"
+    },
+    {
+      "id": "2100054",
+      "name": "Mike Adendorff",
+      "email": "mike.adendorff@newmont.com"
+    },
+    {
+      "id": "2100055",
+      "name": "Alexis Singleton",
+      "email": "alexis.singleton@newmont.com"
+    },
+    {
+      "id": "2100056",
+      "name": "Kevin Elms",
+      "email": "kevin.elms@newmont.com"
+    },
+    {
+      "id": "2100057",
+      "name": "Ami Parekh",
+      "email": "ami.parekh@newmont.com"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\n2100044\tChris Dark\tchris.dark@newmont.com\n2100045\tRachel Manger\trachel.manger@newmont.com\n2100046\tDanny Ramunno\tdanny.ramunno@newmont.com\n2100047\tJarrad Haynes\tjarrad.haynes@newmont.com\n2100048\tJennifer Cope\tjennifer.cope@newmont.com\n2100049\tJohn Fisher\tjohn.fisher@newmont.com\n2100050\tAsh Hooper\tash.hooper@newmont.com\n2100051\tDale Hicks\tdale.hicks@newmont.com\n2100052\tAndrew Daly\tandrew.daly@newmont.com\n2100053\tVern Kelsey\tvern.kelsey@newmont.com\n2100054\tMike Adendorff\tmike.adendorff@newmont.com\n2100055\tAlexis Singleton\talexis.singleton@newmont.com\n2100056\tKevin Elms\tkevin.elms@newmont.com\n2100057\tAmi Parekh\tami.parekh@newmont.com\n",
+  "stderr": "",
+  "execution_time_ms": 2014
+}

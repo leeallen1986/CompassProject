@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE contacts\nSET contactTrustTier = 'named_unverified',\n    rejectionReason = 'back_office_corporate_no_pa_relevance',\n    rejectedAt = NOW()\nWHERE id IN (2070009, 2070004, 2070008, 2070006, 2070005)\n  AND crmOrphan = 0;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nUPDATE contacts\nSET contactTrustTier = 'named_unverified',\n    rejectionReason = 'back_office_corporate_no_pa_relevance',\n    rejectedAt = NOW()\nWHERE id IN (2070009, 2070004, 2070008, 2070006, 2070005)\n  AND crmOrphan = 0;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1808
+}

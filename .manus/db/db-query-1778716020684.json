@@ -1,0 +1,120 @@
+{
+  "query": "\nSELECT \n  c.id,\n  c.name,\n  c.title,\n  c.company,\n  c.email,\n  c.contactTrustTier,\n  c.roleBucket,\n  c.source\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 690089\n  AND c.crmOrphan = 0\n  AND c.contactTrustTier = 'send_ready'\nORDER BY c.roleBucket, c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  c.id,\n  c.name,\n  c.title,\n  c.company,\n  c.email,\n  c.contactTrustTier,\n  c.roleBucket,\n  c.source\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 690089\n  AND c.crmOrphan = 0\n  AND c.contactTrustTier = 'send_ready'\nORDER BY c.roleBucket, c.name;\n",
+  "rows": [
+    {
+      "id": "2070009",
+      "name": "Carla Scodeller",
+      "title": "General Manager Finance",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "email": "carla.scodeller@cimic.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "id": "2070004",
+      "name": "James Highsted",
+      "title": "General Manager",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "email": "james.highsted@nexuspoint.travel",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "id": "2070008",
+      "name": "Michael Azzi",
+      "title": "General Manager Treasury",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "email": "michael.azzi@cimic.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "id": "2070006",
+      "name": "Nicole Dornbusch",
+      "title": "General Manager - Taxation",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "email": "nicole.dornbusch@cimic.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "general_manager",
+      "source": "scraper"
+    },
+    {
+      "id": "1530014",
+      "name": "Stuart Simms",
+      "title": "Maintenance Manager",
+      "company": "Macmahon",
+      "email": "ssimms@macmahon.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "maintenance",
+      "source": "scraper"
+    },
+    {
+      "id": "2070005",
+      "name": "Gabor Varga",
+      "title": "General Manager ICT Operations and Sevice Management",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "email": "gabor.varga@cimic.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "operations",
+      "source": "scraper"
+    },
+    {
+      "id": "2070001",
+      "name": "Luke Barton",
+      "title": "Construction Manager",
+      "company": "Monadelphous",
+      "email": "lbarton@monadel.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "id": "1530012",
+      "name": "Paul Dyer",
+      "title": "Construction Manager",
+      "company": "Macmahon",
+      "email": "pdyer@macmahon.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "other",
+      "source": "scraper"
+    },
+    {
+      "id": "2070010",
+      "name": "Sundeep Gupta",
+      "title": "General Manager Project Procurement",
+      "company": "Worley",
+      "email": "sundeep.k.gupta@worley.com",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "procurement",
+      "source": "scraper"
+    },
+    {
+      "id": "1530013",
+      "name": "Josef Bartolo",
+      "title": "Construction Project Manager",
+      "company": "Macmahon",
+      "email": "jbartolo@macmahon.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "project_manager",
+      "source": "scraper"
+    },
+    {
+      "id": "1530011",
+      "name": "Steve Young",
+      "title": "Maintenance Manager, Project Manager",
+      "company": "Macmahon",
+      "email": "syoung@macmahon.com.au",
+      "contactTrustTier": "send_ready",
+      "roleBucket": "project_manager",
+      "source": "scraper"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\temail\tcontactTrustTier\troleBucket\tsource\n2070009\tCarla Scodeller\tGeneral Manager Finance\tCIMIC Group (e.g., Thiess, CPB Contractors)\tcarla.scodeller@cimic.com.au\tsend_ready\tgeneral_manager\tscraper\n2070004\tJames Highsted\tGeneral Manager\tCIMIC Group (e.g., Thiess, CPB Contractors)\tjames.highsted@nexuspoint.travel\tsend_ready\tgeneral_manager\tscraper\n2070008\tMichael Azzi\tGeneral Manager Treasury\tCIMIC Group (e.g., Thiess, CPB Contractors)\tmichael.azzi@cimic.com.au\tsend_ready\tgeneral_manager\tscraper\n2070006\tNicole Dornbusch\tGeneral Manager - Taxation\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnicole.dornbusch@cimic.com.au\tsend_ready\tgeneral_manager\tscraper\n1530014\tStuart Simms\tMaintenance Manager\tMacmahon\tssimms@macmahon.com.au\tsend_ready\tmaintenance\tscraper\n2070005\tGabor Varga\tGeneral Manager ICT Operations and Sevice Management\tCIMIC Group (e.g., Thiess, CPB Contractors)\tgabor.varga@cimic.com.au\tsend_ready\toperations\tscraper\n2070001\tLuke Barton\tConstruction Manager\tMonadelphous\tlbarton@monadel.com.au\tsend_ready\tother\tscraper\n1530012\tPaul Dyer\tConstruction Manager\tMacmahon\tpdyer@macmahon.com.au\tsend_ready\tother\tscraper\n2070010\tSundeep Gupta\tGeneral Manager Project Procurement\tWorley\tsundeep.k.gupta@worley.com\tsend_ready\tprocurement\tscraper\n1530013\tJosef Bartolo\tConstruction Project Manager\tMacmahon\tjbartolo@macmahon.com.au\tsend_ready\tproject_manager\tscraper\n1530011\tSteve Young\tMaintenance Manager, Project Manager\tMacmahon\tsyoung@macmahon.com.au\tsend_ready\tproject_manager\tscraper\n",
+  "stderr": "",
+  "execution_time_ms": 1870
+}

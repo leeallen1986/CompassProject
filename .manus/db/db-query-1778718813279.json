@@ -1,0 +1,130 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.productLane,\n  p.projectState,\n  p.sector,\n  p.stageCode,\n  p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.suppressed = 0\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND (p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') OR p.projectState IS NULL)\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value\nHAVING sr_count > 0\nORDER BY sr_count DESC\nLIMIT 12;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.productLane,\n  p.projectState,\n  p.sector,\n  p.stageCode,\n  p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot'\n  AND p.suppressed = 0\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND (p.projectState IN ('NSW', 'VIC', 'SA', 'TAS') OR p.projectState IS NULL)\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value\nHAVING sr_count > 0\nORDER BY sr_count DESC\nLIMIT 12;\n",
+  "rows": [
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "mining",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "sr_count": "23"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "Unknown",
+      "sr_count": "11"
+    },
+    {
+      "id": "330035",
+      "name": "Delburn Wind Farm",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "energy",
+      "stageCode": "unknown",
+      "value": "Undisclosed",
+      "sr_count": "9"
+    },
+    {
+      "id": "210007",
+      "name": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)",
+      "productLane": "multi_lane_pt",
+      "projectState": "NULL",
+      "sector": "energy",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "sr_count": "9"
+    },
+    {
+      "id": "330033",
+      "name": "Flint Project",
+      "productLane": "portable_air",
+      "projectState": "NULL",
+      "sector": "mining",
+      "stageCode": "exploration",
+      "value": "Undisclosed",
+      "sr_count": "7"
+    },
+    {
+      "id": "660020",
+      "name": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)",
+      "productLane": "multi_lane_pt",
+      "projectState": "TAS",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "$2 billion",
+      "sr_count": "7"
+    },
+    {
+      "id": "330017",
+      "name": "TasWater Network Overhaul",
+      "productLane": "multi_lane_pt",
+      "projectState": "TAS",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "$2 billion",
+      "sr_count": "6"
+    },
+    {
+      "id": "120346",
+      "name": "Melbourne Water Main Sewer Rehabilitation Program",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "AUD 150 million (annual CAPEX)",
+      "sr_count": "5"
+    },
+    {
+      "id": "120267",
+      "name": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "sector": "defence",
+      "stageCode": "construction",
+      "value": "AUD $3.6 billion",
+      "sr_count": "5"
+    },
+    {
+      "id": "210028",
+      "name": "Marinus Link",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "energy",
+      "stageCode": "unknown",
+      "value": "$6.1 billion",
+      "sr_count": "5"
+    },
+    {
+      "id": "180014",
+      "name": "Melbourne CBD intersection tram system maintenance",
+      "productLane": "portable_air",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "Unknown",
+      "sr_count": "4"
+    },
+    {
+      "id": "330020",
+      "name": "Riverstone Water Resource Recovery Facility Upgrade",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "awarded",
+      "value": "Unknown",
+      "sr_count": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tstageCode\tvalue\tsr_count\n690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\tmining\tunknown\tUnknown\t23\n570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\tinfrastructure\tconstruction\tUnknown\t11\n330035\tDelburn Wind Farm\tmulti_lane_pt\tVIC\tenergy\tunknown\tUndisclosed\t9\n210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\tmulti_lane_pt\tNULL\tenergy\tunknown\tUnknown\t9\n330033\tFlint Project\tportable_air\tNULL\tmining\texploration\tUndisclosed\t7\n660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\tmulti_lane_pt\tTAS\tinfrastructure\tunknown\t$2 billion\t7\n330017\tTasWater Network Overhaul\tmulti_lane_pt\tTAS\tinfrastructure\tunknown\t$2 billion\t6\n120346\tMelbourne Water Main Sewer Rehabilitation Program\tmulti_lane_pt\tVIC\tinfrastructure\tunknown\tAUD 150 million (annual CAPEX)\t5\n120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\tmulti_lane_pt\tSA\tdefence\tconstruction\tAUD $3.6 billion\t5\n210028\tMarinus Link\tmulti_lane_pt\tVIC\tenergy\tunknown\t$6.1 billion\t5\n180014\tMelbourne CBD intersection tram system maintenance\tportable_air\tVIC\tinfrastructure\tconstruction\tUnknown\t4\n330020\tRiverstone Water Resource Recovery Facility Upgrade\tmulti_lane_pt\tNSW\tinfrastructure\tawarded\tUnknown\t4\n",
+  "stderr": "",
+  "execution_time_ms": 1785
+}

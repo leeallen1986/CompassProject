@@ -1,0 +1,70 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.productLane,\n  p.sector,\n  p.projectState,\n  p.lifecycleStatus,\n  p.stageCode,\n  p.owner,\n  p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 THEN 1 END) AS sr_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','tier1')\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL OR p.projectState = 'NATIONAL')\n  AND (p.productLane IN ('portable_air','multi_lane_pt') OR p.productLane IS NULL)\n  AND p.lifecycleStatus NOT IN ('archived','completed')\nGROUP BY p.id, p.name, p.productLane, p.sector, p.projectState, p.lifecycleStatus, p.stageCode, p.owner, p.value\nORDER BY sr_contacts DESC, p.value DESC\nLIMIT 5 OFFSET 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.productLane,\n  p.sector,\n  p.projectState,\n  p.lifecycleStatus,\n  p.stageCode,\n  p.owner,\n  p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 THEN 1 END) AS sr_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','tier1')\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL OR p.projectState = 'NATIONAL')\n  AND (p.productLane IN ('portable_air','multi_lane_pt') OR p.productLane IS NULL)\n  AND p.lifecycleStatus NOT IN ('archived','completed')\nGROUP BY p.id, p.name, p.productLane, p.sector, p.projectState, p.lifecycleStatus, p.stageCode, p.owner, p.value\nORDER BY sr_contacts DESC, p.value DESC\nLIMIT 5 OFFSET 10;\n",
+  "rows": [
+    {
+      "id": "210028",
+      "name": "Marinus Link",
+      "productLane": "multi_lane_pt",
+      "sector": "energy",
+      "projectState": "VIC",
+      "lifecycleStatus": "active",
+      "stageCode": "unknown",
+      "owner": "Clean Energy Finance Corporation (CEFC) / Marinus Link Pty Ltd",
+      "value": "$6.1 billion",
+      "sr_contacts": "5"
+    },
+    {
+      "id": "180014",
+      "name": "Melbourne CBD intersection tram system maintenance",
+      "productLane": "portable_air",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "lifecycleStatus": "stale",
+      "stageCode": "construction",
+      "owner": "Victorian Government",
+      "value": "Unknown",
+      "sr_contacts": "4"
+    },
+    {
+      "id": "330020",
+      "name": "Riverstone Water Resource Recovery Facility Upgrade",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "lifecycleStatus": "stale",
+      "stageCode": "awarded",
+      "owner": "Sydney Water",
+      "value": "Unknown",
+      "sr_contacts": "4"
+    },
+    {
+      "id": "90006",
+      "name": "Warragamba Dam Wall Raising",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "lifecycleStatus": "stale",
+      "stageCode": "construction",
+      "owner": "WaterNSW",
+      "value": "$1.6 billion",
+      "sr_contacts": "4"
+    },
+    {
+      "id": "330026",
+      "name": "3.6GWh Solar-plus-Storage Developments",
+      "productLane": "multi_lane_pt",
+      "sector": "energy",
+      "projectState": "NULL",
+      "lifecycleStatus": "stale",
+      "stageCode": "unknown",
+      "owner": "Edify Energy, Flow Power",
+      "value": "Unknown",
+      "sr_contacts": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tsector\tprojectState\tlifecycleStatus\tstageCode\towner\tvalue\tsr_contacts\n210028\tMarinus Link\tmulti_lane_pt\tenergy\tVIC\tactive\tunknown\tClean Energy Finance Corporation (CEFC) / Marinus Link Pty Ltd\t$6.1 billion\t5\n180014\tMelbourne CBD intersection tram system maintenance\tportable_air\tinfrastructure\tVIC\tstale\tconstruction\tVictorian Government\tUnknown\t4\n330020\tRiverstone Water Resource Recovery Facility Upgrade\tmulti_lane_pt\tinfrastructure\tNSW\tstale\tawarded\tSydney Water\tUnknown\t4\n90006\tWarragamba Dam Wall Raising\tmulti_lane_pt\tinfrastructure\tNSW\tstale\tconstruction\tWaterNSW\t$1.6 billion\t4\n330026\t3.6GWh Solar-plus-Storage Developments\tmulti_lane_pt\tenergy\tNULL\tstale\tunknown\tEdify Energy, Flow Power\tUnknown\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1863
+}

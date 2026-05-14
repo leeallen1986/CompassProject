@@ -1,0 +1,66 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 690089\n  AND c.crmOrphan = 0\n  AND c.company LIKE '%CIMIC%'\nORDER BY c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 690089\n  AND c.crmOrphan = 0\n  AND c.company LIKE '%CIMIC%'\nORDER BY c.name;\n",
+  "rows": [
+    {
+      "id": "2070003",
+      "name": "Alex Discombe",
+      "title": "Construction Manager",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070009",
+      "name": "Carla Scodeller",
+      "title": "General Manager Finance",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070007",
+      "name": "David Campbell",
+      "title": "Project Manager",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070005",
+      "name": "Gabor Varga",
+      "title": "General Manager ICT Operations and Sevice Management",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070004",
+      "name": "James Highsted",
+      "title": "General Manager",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070008",
+      "name": "Michael Azzi",
+      "title": "General Manager Treasury",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070006",
+      "name": "Nicole Dornbusch",
+      "title": "General Manager - Taxation",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "2070002",
+      "name": "Rolie Rosario",
+      "title": "Construction Manager",
+      "company": "CIMIC Group (e.g., Thiess, CPB Contractors)",
+      "contactTrustTier": "named_unverified"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\n2070003\tAlex Discombe\tConstruction Manager\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070009\tCarla Scodeller\tGeneral Manager Finance\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070007\tDavid Campbell\tProject Manager\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070005\tGabor Varga\tGeneral Manager ICT Operations and Sevice Management\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070004\tJames Highsted\tGeneral Manager\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070008\tMichael Azzi\tGeneral Manager Treasury\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070006\tNicole Dornbusch\tGeneral Manager - Taxation\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n2070002\tRolie Rosario\tConstruction Manager\tCIMIC Group (e.g., Thiess, CPB Contractors)\tnamed_unverified\n",
+  "stderr": "",
+  "execution_time_ms": 1957
+}

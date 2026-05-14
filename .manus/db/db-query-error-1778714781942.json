@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  recipientName,\n  recipientEmail,\n  digestType,\n  status,\n  errorMessage,\n  sentAt\nFROM userEmailSendLog\nWHERE digestType = 'thursday_reminder'\n  AND sentAt >= '2026-05-14 00:00:00'\nORDER BY sentAt ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  recipientName,\n  recipientEmail,\n  digestType,\n  status,\n  errorMessage,\n  sentAt\nFROM userEmailSendLog\nWHERE digestType = 'thursday_reminder'\n  AND sentAt >= '2026-05-14 00:00:00'\nORDER BY sentAt ASC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'recipientname' in 'field list'"
+  ]
+}

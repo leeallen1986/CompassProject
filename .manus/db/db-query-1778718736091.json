@@ -1,0 +1,37 @@
+{
+  "query": "\n-- Final Cadia send_ready count\nSELECT \n  COUNT(*) as total_sr,\n  GROUP_CONCAT(CONCAT(c.name, ' (', c.company, ' — ', c.roleBucket, ')') ORDER BY c.roleBucket, c.name SEPARATOR '\\n') as contacts\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 690089\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Final Cadia send_ready count\nSELECT \n  COUNT(*) as total_sr,\n  GROUP_CONCAT(CONCAT(c.name, ' (', c.company, ' — ', c.roleBucket, ')') ORDER BY c.roleBucket, c.name SEPARATOR '\\n') as contacts\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = 690089\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0;\n",
+  "rows": [
+    {
+      "total_sr": "23",
+      "contacts": "Adam Malcolm (Newmont — maintenance)"
+    }
+  ],
+  "messages": [
+    "Alexis Singleton (Newmont — maintenance)",
+    "Andrew Daly (Newmont — maintenance)",
+    "Ash Hooper (Newmont — maintenance)",
+    "Bucky Pinard (Newmont — maintenance)",
+    "Dale Hicks (Newmont — maintenance)",
+    "Jarrad Haynes (Newmont — maintenance)",
+    "Jennifer Cope (Newmont — maintenance)",
+    "John Fisher (Newmont — maintenance)",
+    "Kevin Elms (Newmont — maintenance)",
+    "Mike Adendorff (Newmont — maintenance)",
+    "Stuart Simms (Macmahon — maintenance)",
+    "Vern Kelsey (Newmont — maintenance)",
+    "Chris Dark (Newmont — operations)",
+    "Danny Ramunno (Newmont — operations)",
+    "Rachel Manger (Newmont — operations)",
+    "Scott Laliberte (Newmont — operations)",
+    "Luke Barton (Monadelphous — other)",
+    "Paul Dyer (Macmahon — other)",
+    "Ami Parekh (Newmont — procurement)",
+    "Sundeep Gupta (Worley — procurement)",
+    "Josef Bartolo (Macmahon — project_manager)",
+    "Steve Young (Macmahon — project_manager)"
+  ],
+  "stdout": "total_sr\tcontacts\n23\tAdam Malcolm (Newmont — maintenance)\nAlexis Singleton (Newmont — maintenance)\nAndrew Daly (Newmont — maintenance)\nAsh Hooper (Newmont — maintenance)\nBucky Pinard (Newmont — maintenance)\nDale Hicks (Newmont — maintenance)\nJarrad Haynes (Newmont — maintenance)\nJennifer Cope (Newmont — maintenance)\nJohn Fisher (Newmont — maintenance)\nKevin Elms (Newmont — maintenance)\nMike Adendorff (Newmont — maintenance)\nStuart Simms (Macmahon — maintenance)\nVern Kelsey (Newmont — maintenance)\nChris Dark (Newmont — operations)\nDanny Ramunno (Newmont — operations)\nRachel Manger (Newmont — operations)\nScott Laliberte (Newmont — operations)\nLuke Barton (Monadelphous — other)\nPaul Dyer (Macmahon — other)\nAmi Parekh (Newmont — procurement)\nSundeep Gupta (Worley — procurement)\nJosef Bartolo (Macmahon — project_manager)\nSteve Young (Macmahon — project_manager)\n",
+  "stderr": "",
+  "execution_time_ms": 1795
+}

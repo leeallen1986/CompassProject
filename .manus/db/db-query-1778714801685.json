@@ -1,0 +1,9 @@
+{
+  "query": "\nSELECT \n  usl.userId,\n  u.name AS repName,\n  u.email AS repEmail,\n  usl.digestType,\n  usl.status,\n  usl.dryRun,\n  usl.itemCount,\n  usl.error,\n  usl.sentAt,\n  usl.weekKey\nFROM userEmailSendLog usl\nLEFT JOIN users u ON u.id = usl.userId\nWHERE usl.digestType = 'thursday'\n  AND usl.sentDate >= '2026-05-14'\nORDER BY usl.sentAt ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  usl.userId,\n  u.name AS repName,\n  u.email AS repEmail,\n  usl.digestType,\n  usl.status,\n  usl.dryRun,\n  usl.itemCount,\n  usl.error,\n  usl.sentAt,\n  usl.weekKey\nFROM userEmailSendLog usl\nLEFT JOIN users u ON u.id = usl.userId\nWHERE usl.digestType = 'thursday'\n  AND usl.sentDate >= '2026-05-14'\nORDER BY usl.sentAt ASC;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1815
+}
