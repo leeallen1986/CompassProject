@@ -1,0 +1,55 @@
+{
+  "query": "SELECT u.name, l.digestType, l.weekKey, l.status, l.itemCount, l.sentAt, l.error\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE u.name LIKE '%Ryan%'\nORDER BY l.sentAt DESC\nLIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.name, l.digestType, l.weekKey, l.status, l.itemCount, l.sentAt, l.error\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE u.name LIKE '%Ryan%'\nORDER BY l.sentAt DESC\nLIMIT 5;",
+  "rows": [
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "weekKey": "2026W20",
+      "status": "failed",
+      "itemCount": "0",
+      "sentAt": "2026-05-14 00:47:49",
+      "error": "STALE: pending slot never finalised — cleared by admin 2026-05-15"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "158",
+      "sentAt": "2026-05-11 23:26:32",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "142",
+      "sentAt": "2026-05-10 22:00:37",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "itemCount": "0",
+      "sentAt": "2026-05-09 03:39:02",
+      "error": "REP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "sent",
+      "itemCount": "147",
+      "sentAt": "2026-05-08 03:16:15",
+      "error": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tweekKey\tstatus\titemCount\tsentAt\terror\nRyan Pemberton\tthursday\t2026W20\tfailed\t0\t2026-05-14 00:47:49\tSTALE: pending slot never finalised — cleared by admin 2026-05-15\nRyan Pemberton\tmonday\t2026W20\tdry_run\t158\t2026-05-11 23:26:32\tNULL\nRyan Pemberton\tmonday\t2026W19\tdry_run\t142\t2026-05-10 22:00:37\tNULL\nRyan Pemberton\tmonday\t2026W19\tfailed\t0\t2026-05-09 03:39:02\tREP_HARDENING_GATE: contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, contact_not_defensible, card_detail_mismatch, insufficient_defensible_contacts\nRyan Pemberton\tmonday\t2026W19\tsent\t147\t2026-05-08 03:16:15\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1768
+}

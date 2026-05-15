@@ -1,0 +1,230 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  sl.digestType,\n  sl.sentDate,\n  sl.sentAt,\n  sl.status,\n  sl.itemCount,\n  sl.dryRun,\n  sl.error\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.digestType = 'thursday'\nORDER BY sl.sentAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  sl.digestType,\n  sl.sentDate,\n  sl.sentAt,\n  sl.status,\n  sl.itemCount,\n  sl.dryRun,\n  sl.error\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.digestType = 'thursday'\nORDER BY sl.sentAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 01:05:46",
+      "status": "sent",
+      "itemCount": "210",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 01:03:18",
+      "status": "pending",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 01:03:17",
+      "status": "sent",
+      "itemCount": "244",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 00:55:19",
+      "status": "sent",
+      "itemCount": "242",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 00:48:37",
+      "status": "sent",
+      "itemCount": "130",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 00:48:18",
+      "status": "sent",
+      "itemCount": "82",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 00:48:16",
+      "status": "sent",
+      "itemCount": "56",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 00:47:49",
+      "status": "pending",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-14",
+      "sentAt": "2026-05-14 00:47:48",
+      "status": "sent",
+      "itemCount": "181",
+      "dryRun": "0",
+      "error": "NULL"
+    },
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:18:25",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:18:17",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:18:08",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:18:01",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:17:53",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:17:46",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:15:58",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:15:32",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-05-07",
+      "sentAt": "2026-05-07 00:11:37",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "digestType": "thursday",
+      "sentDate": "2026-04-30",
+      "sentAt": "2026-04-30 00:57:15",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "digestType": "thursday",
+      "sentDate": "2026-04-30",
+      "sentAt": "2026-04-30 00:56:38",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0",
+      "error": "STALE: status was empty (pre-claim/finalise pattern)"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tdigestType\tsentDate\tsentAt\tstatus\titemCount\tdryRun\terror\nAlexandre Leite\talexandre.leite@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 01:05:46\tsent\t210\t0\tNULL\nKevin Arnandes\tkevinarnandes@gmail.com\tthursday\t2026-05-14\t2026-05-14 01:03:18\tpending\t0\t0\tNULL\nEgor Ivanov\tegor.ivanov@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 01:03:17\tsent\t244\t0\tNULL\nAmit Bhargava\tamit.bhargava@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 00:55:19\tsent\t242\t0\tNULL\nDan Day\tdan.day@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 00:48:37\tsent\t130\t0\tNULL\nDaniel Zec\tdaniel.zec@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 00:48:18\tsent\t82\t0\tNULL\nBrett Hansen\tbrett.hansen@sykesgroup.com\tthursday\t2026-05-14\t2026-05-14 00:48:16\tsent\t56\t0\tNULL\nRyan Pemberton\tryan.pemberton@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 00:47:49\tpending\t0\t0\tNULL\nLeo Williams \tleo.williams@atlascopco.com\tthursday\t2026-05-14\t2026-05-14 00:47:48\tsent\t181\t0\tNULL\nAlexandre Leite\talexandre.leite@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:18:25\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nKevin Arnandes\tkevinarnandes@gmail.com\tthursday\t2026-05-07\t2026-05-07 00:18:17\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nEgor Ivanov\tegor.ivanov@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:18:08\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nAmit Bhargava\tamit.bhargava@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:18:01\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nDan Day\tdan.day@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:17:53\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nDaniel Zec\tdaniel.zec@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:17:46\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nBrett Hansen\tbrett.hansen@sykesgroup.com\tthursday\t2026-05-07\t2026-05-07 00:15:58\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nRyan Pemberton\tryan.pemberton@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:15:32\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nLeo Williams \tleo.williams@atlascopco.com\tthursday\t2026-05-07\t2026-05-07 00:11:37\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nKevin Arnandes\tkevinarnandes@gmail.com\tthursday\t2026-04-30\t2026-04-30 00:57:15\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\nEgor Ivanov\tegor.ivanov@atlascopco.com\tthursday\t2026-04-30\t2026-04-30 00:56:38\tfailed\t0\t0\tSTALE: status was empty (pre-claim/finalise pattern)\n",
+  "stderr": "",
+  "execution_time_ms": 1806
+}

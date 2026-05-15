@@ -1,0 +1,70 @@
+{
+  "query": "\nSELECT cp.projectId, c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId IN ('330015','120139','450042','120302','330053')\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY cp.projectId, c.name\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT cp.projectId, c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId IN ('330015','120139','450042','120302','330053')\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY cp.projectId, c.name\nLIMIT 10;\n",
+  "rows": [
+    {
+      "projectId": "120139",
+      "name": "Aaron Orchard",
+      "title": "Operations Manager, Project Manager LNG",
+      "company": "Monadelphous"
+    },
+    {
+      "projectId": "120139",
+      "name": "Dave Wright",
+      "title": "Operations Manager at Iluka Resources",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "David Wright",
+      "title": "Operations Manager at Iluka Resources",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "Derek Bideshi",
+      "title": "General Manager, Finance & Procurement",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "Greg Norris",
+      "title": "Project Manager Land/Port Cape Preston",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "Jackson Ross",
+      "title": "Project Lead",
+      "company": "Monadelphous"
+    },
+    {
+      "projectId": "120139",
+      "name": "James Marker",
+      "title": "Mining Manager",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "Julian Mast-Ingle",
+      "title": "Engineering Manager for significant Rare Earths Project",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "Mark Smith",
+      "title": "Construction Manager",
+      "company": "Iluka Resources"
+    },
+    {
+      "projectId": "120139",
+      "name": "Paul Aldridge",
+      "title": "Construction Manager",
+      "company": "Monadelphous"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectId\tname\ttitle\tcompany\n120139\tAaron Orchard\tOperations Manager, Project Manager LNG\tMonadelphous\n120139\tDave Wright\tOperations Manager at Iluka Resources\tIluka Resources\n120139\tDavid Wright\tOperations Manager at Iluka Resources\tIluka Resources\n120139\tDerek Bideshi\tGeneral Manager, Finance & Procurement\tIluka Resources\n120139\tGreg Norris\tProject Manager Land/Port Cape Preston\tIluka Resources\n120139\tJackson Ross\tProject Lead\tMonadelphous\n120139\tJames Marker\tMining Manager\tIluka Resources\n120139\tJulian Mast-Ingle\tEngineering Manager for significant Rare Earths Project\tIluka Resources\n120139\tMark Smith\tConstruction Manager\tIluka Resources\n120139\tPaul Aldridge\tConstruction Manager\tMonadelphous\n",
+  "stderr": "",
+  "execution_time_ms": 1794
+}

@@ -1,0 +1,82 @@
+{
+  "query": "\n-- Suppress the 5 weak-fit projects from Daniel's pool (Daniel-only suppression via danielZecSuppressed flag doesn't exist, so we use the suppressedReason or we note them for the digest filter)\n-- Actually, we should NOT globally suppress these — they may be valid for other reps.\n-- Instead, we document the verdicts and apply targeted suppression only where appropriate.\n-- For now, just verify the current state of all projects before making any changes.\nSELECT p.id, p.name, p.suppressed, p.priority, p.productLane, p.sector\nFROM projects p\nWHERE p.id IN ('330035','210007','330017','120346','210028','960006','450027','990050','120238')\nORDER BY p.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Suppress the 5 weak-fit projects from Daniel's pool (Daniel-only suppression via danielZecSuppressed flag doesn't exist, so we use the suppressedReason or we note them for the digest filter)\n-- Actually, we should NOT globally suppress these — they may be valid for other reps.\n-- Instead, we document the verdicts and apply targeted suppression only where appropriate.\n-- For now, just verify the current state of all projects before making any changes.\nSELECT p.id, p.name, p.suppressed, p.priority, p.productLane, p.sector\nFROM projects p\nWHERE p.id IN ('330035','210007','330017','120346','210028','960006','450027','990050','120238')\nORDER BY p.id;\n",
+  "rows": [
+    {
+      "id": "120238",
+      "name": "Ocean Patriot Drilling Program",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "portable_air",
+      "sector": "oil_gas"
+    },
+    {
+      "id": "120346",
+      "name": "Melbourne Water Main Sewer Rehabilitation Program",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure"
+    },
+    {
+      "id": "210007",
+      "name": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "energy"
+    },
+    {
+      "id": "210028",
+      "name": "Marinus Link",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "energy"
+    },
+    {
+      "id": "330017",
+      "name": "TasWater Network Overhaul",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "infrastructure"
+    },
+    {
+      "id": "330035",
+      "name": "Delburn Wind Farm",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "sector": "energy"
+    },
+    {
+      "id": "450027",
+      "name": "Tunkillia Gold Project",
+      "suppressed": "0",
+      "priority": "warm",
+      "productLane": "portable_air",
+      "sector": "mining"
+    },
+    {
+      "id": "960006",
+      "name": "Olympic Dam Expansion — BHP",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "portable_air",
+      "sector": "mining"
+    },
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "suppressed": "0",
+      "priority": "hot",
+      "productLane": "portable_air",
+      "sector": "oil_gas"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsuppressed\tpriority\tproductLane\tsector\n120238\tOcean Patriot Drilling Program\t0\thot\tportable_air\toil_gas\n120346\tMelbourne Water Main Sewer Rehabilitation Program\t0\thot\tmulti_lane_pt\tinfrastructure\n210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\t0\thot\tmulti_lane_pt\tenergy\n210028\tMarinus Link\t0\thot\tmulti_lane_pt\tenergy\n330017\tTasWater Network Overhaul\t0\thot\tmulti_lane_pt\tinfrastructure\n330035\tDelburn Wind Farm\t0\thot\tmulti_lane_pt\tenergy\n450027\tTunkillia Gold Project\t0\twarm\tportable_air\tmining\n960006\tOlympic Dam Expansion — BHP\t0\thot\tportable_air\tmining\n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\t0\thot\tportable_air\toil_gas\n",
+  "stderr": "",
+  "execution_time_ms": 1844
+}

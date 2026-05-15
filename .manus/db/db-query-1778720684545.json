@@ -1,0 +1,190 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('690089','570022')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.id NOT IN ('930018','1290022','1620077','1290023','1620076','630124','930017','960103','2100055','2100057','2100052','2100050','960102','2100044','2100051')\nORDER BY cp.projectId, c.name\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('690089','570022')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.id NOT IN ('930018','1290022','1620077','1290023','1620076','630124','930017','960103','2100055','2100057','2100052','2100050','960102','2100044','2100051')\nORDER BY cp.projectId, c.name\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "750024",
+      "name": "Andrew Roberts",
+      "title": "Engineering Manager at Inland Rail | Civil Engineer | CPEng RPEQ NER",
+      "company": "Inland Rail",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530046",
+      "name": "David Grech",
+      "title": "Site Manager Construction",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530049",
+      "name": "Denicce Vargas",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "750004",
+      "name": "Iain Murray",
+      "title": "Rail Construction Manager - Inland Rail B2A",
+      "company": "Inland Rail",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "750051",
+      "name": "James Callaghan",
+      "title": "Project Manager at John Holland",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530050",
+      "name": "Lawrence Whitehouse",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530045",
+      "name": "Mahmoud Fahmy",
+      "title": "Engineering Manager",
+      "company": "Inland Rail",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530048",
+      "name": "Nicholas Nikolovski",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "750050",
+      "name": "Rhys Collum",
+      "title": "Project Manager at John Holland Group",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "750054",
+      "name": "Robert Affleck",
+      "title": "National Contracts Manager - Strategic Procurement at John Holland",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530047",
+      "name": "Scott Stokes",
+      "title": "Construction Site Manager",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "2100046",
+      "name": "Danny Ramunno",
+      "title": "Quarry Manager and Alternate Senior Site Executive",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100047",
+      "name": "Jarrad Haynes",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100048",
+      "name": "Jennifer Cope",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100049",
+      "name": "John Fisher",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "1530013",
+      "name": "Josef Bartolo",
+      "title": "Construction Project Manager",
+      "company": "Macmahon",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100056",
+      "name": "Kevin Elms",
+      "title": "Superintendent Dry Plant Process Maintenance",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2070001",
+      "name": "Luke Barton",
+      "title": "Construction Manager",
+      "company": "Monadelphous",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100054",
+      "name": "Mike Adendorff",
+      "title": "Superintendent Fixed Plant Maintenance",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "1530012",
+      "name": "Paul Dyer",
+      "title": "Construction Manager",
+      "company": "Macmahon",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n750024\tAndrew Roberts\tEngineering Manager at Inland Rail | Civil Engineer | CPEng RPEQ NER\tInland Rail\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530046\tDavid Grech\tSite Manager Construction\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530049\tDenicce Vargas\tContracts Manager\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n750004\tIain Murray\tRail Construction Manager - Inland Rail B2A\tInland Rail\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n750051\tJames Callaghan\tProject Manager at John Holland\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530050\tLawrence Whitehouse\tContracts Manager\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530045\tMahmoud Fahmy\tEngineering Manager\tInland Rail\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530048\tNicholas Nikolovski\tContracts Manager\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n750050\tRhys Collum\tProject Manager at John Holland Group\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n750054\tRobert Affleck\tNational Contracts Manager - Strategic Procurement at John Holland\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530047\tScott Stokes\tConstruction Site Manager\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n2100046\tDanny Ramunno\tQuarry Manager and Alternate Senior Site Executive\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100047\tJarrad Haynes\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100048\tJennifer Cope\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100049\tJohn Fisher\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n1530013\tJosef Bartolo\tConstruction Project Manager\tMacmahon\tsend_ready\t690089\tCadia Gold Mine Operations\n2100056\tKevin Elms\tSuperintendent Dry Plant Process Maintenance\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2070001\tLuke Barton\tConstruction Manager\tMonadelphous\tsend_ready\t690089\tCadia Gold Mine Operations\n2100054\tMike Adendorff\tSuperintendent Fixed Plant Maintenance\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n1530012\tPaul Dyer\tConstruction Manager\tMacmahon\tsend_ready\t690089\tCadia Gold Mine Operations\n",
+  "stderr": "",
+  "execution_time_ms": 1774
+}

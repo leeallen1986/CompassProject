@@ -1,0 +1,60 @@
+{
+  "query": "\n-- Daniel's final top-5\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Daniel's final top-5\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "23"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "11"
+    },
+    {
+      "id": "660020",
+      "name": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)",
+      "productLane": "multi_lane_pt",
+      "projectState": "TAS",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "7"
+    },
+    {
+      "id": "330033",
+      "name": "Flint Project",
+      "productLane": "portable_air",
+      "projectState": "NULL",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "exploration",
+      "sr_count": "7"
+    },
+    {
+      "id": "120267",
+      "name": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "sector": "defence",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tpriority\tstageCode\tsr_count\n690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\tmining\thot\tunknown\t23\n570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\tinfrastructure\thot\tconstruction\t11\n660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\tmulti_lane_pt\tTAS\tinfrastructure\thot\tunknown\t7\n330033\tFlint Project\tportable_air\tNULL\tmining\thot\texploration\t7\n120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\tmulti_lane_pt\tSA\tdefence\thot\tconstruction\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1978
+}

@@ -1,0 +1,190 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('690089','570022','330033','660020','120267','210028')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('690089','570022','330033','660020','120267','210028')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "1650124",
+      "name": "Bertrand Gorjux",
+      "title": "Project Manager",
+      "company": "Luerssen Australia",
+      "contactTrustTier": "send_ready",
+      "projectId": "120267",
+      "projectName": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)"
+    },
+    {
+      "id": "1650128",
+      "name": "Corey Wyngaarden",
+      "title": "Construction Manager",
+      "company": "Civmec",
+      "contactTrustTier": "send_ready",
+      "projectId": "120267",
+      "projectName": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)"
+    },
+    {
+      "id": "1650125",
+      "name": "Gintaras Daugalis",
+      "title": "Engineering/Production Support Manager SA MIEAust CPEng NER APEC Engineer IntPE(Aus)",
+      "company": "Luerssen Australia",
+      "contactTrustTier": "send_ready",
+      "projectId": "120267",
+      "projectName": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)"
+    },
+    {
+      "id": "1650126",
+      "name": "Kyron Hales",
+      "title": "Operations Manager - Construction",
+      "company": "Civmec",
+      "contactTrustTier": "send_ready",
+      "projectId": "120267",
+      "projectName": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)"
+    },
+    {
+      "id": "1650127",
+      "name": "Paul Ross",
+      "title": "Site Manager",
+      "company": "Civmec",
+      "contactTrustTier": "send_ready",
+      "projectId": "120267",
+      "projectName": "Project SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)"
+    },
+    {
+      "id": "660090",
+      "name": "Ahmet SAYGILI",
+      "title": "Hitachi Energy şirketinde Project Manager",
+      "company": "Hitachi Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "210028",
+      "projectName": "Marinus Link"
+    },
+    {
+      "id": "660093",
+      "name": "Ana Luiza Barbosa Alcântara",
+      "title": "Project Manager Structural Engineering at Hitachi Energy",
+      "company": "Hitachi Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "210028",
+      "projectName": "Marinus Link"
+    },
+    {
+      "id": "660094",
+      "name": "Francesco Rossi",
+      "title": "Engineering team manager presso Hitachi Energy",
+      "company": "Hitachi Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "210028",
+      "projectName": "Marinus Link"
+    },
+    {
+      "id": "660092",
+      "name": "Ilkka Dits",
+      "title": "Electrical Engineering Manager at Hitachi Energy",
+      "company": "Hitachi Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "210028",
+      "projectName": "Marinus Link"
+    },
+    {
+      "id": "660091",
+      "name": "Mertcan KÖROĞLU, PMP",
+      "title": "Project Manager - Hitachi Energy",
+      "company": "Hitachi Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "210028",
+      "projectName": "Marinus Link"
+    },
+    {
+      "id": "810012",
+      "name": "Brad Rip",
+      "title": "Project Manager in the mining industry",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "810014",
+      "name": "Brenton Nelson",
+      "title": "National Sales Manager - New Mining Equipment",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "810015",
+      "name": "Don Kemp",
+      "title": "Plant and Equipment Manager at CSI Mining Services",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "810011",
+      "name": "Letlhogonolo Setswalo",
+      "title": "Managing & Project Director - Mining Sanitation & Environmental Support Services - Mobi-Trail",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "810013",
+      "name": "Nimesh Chaudhari",
+      "title": "Senior General Manager (Operations and Projects) @ Mining Engineering Services | New Business Development | Electrical Power Systems",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "810016",
+      "name": "STEVE STAMP",
+      "title": "Equipment and Maintenance Manager at DMC Mining Services",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "810010",
+      "name": "Yudi Arismadinata",
+      "title": "Project and Operations Director | Oil&Gas | Mining | Environment | Sustainability | DBOT | Innovation-Led Profitability",
+      "company": "Mining Services",
+      "contactTrustTier": "send_ready",
+      "projectId": "330033",
+      "projectName": "Flint Project"
+    },
+    {
+      "id": "750024",
+      "name": "Andrew Roberts",
+      "title": "Engineering Manager at Inland Rail | Civil Engineer | CPEng RPEQ NER",
+      "company": "Inland Rail",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530046",
+      "name": "David Grech",
+      "title": "Site Manager Construction",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    },
+    {
+      "id": "1530049",
+      "name": "Denicce Vargas",
+      "title": "Contracts Manager",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "570022",
+      "projectName": "Inland Rail Station Upgrades (Euroa)"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n1650124\tBertrand Gorjux\tProject Manager\tLuerssen Australia\tsend_ready\t120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\n1650128\tCorey Wyngaarden\tConstruction Manager\tCivmec\tsend_ready\t120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\n1650125\tGintaras Daugalis\tEngineering/Production Support Manager SA MIEAust CPEng NER APEC Engineer IntPE(Aus)\tLuerssen Australia\tsend_ready\t120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\n1650126\tKyron Hales\tOperations Manager - Construction\tCivmec\tsend_ready\t120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\n1650127\tPaul Ross\tSite Manager\tCivmec\tsend_ready\t120267\tProject SEA 1180 Phase 1 (Offshore Patrol Vessels - Arafura Class)\n660090\tAhmet SAYGILI\tHitachi Energy şirketinde Project Manager\tHitachi Energy\tsend_ready\t210028\tMarinus Link\n660093\tAna Luiza Barbosa Alcântara\tProject Manager Structural Engineering at Hitachi Energy\tHitachi Energy\tsend_ready\t210028\tMarinus Link\n660094\tFrancesco Rossi\tEngineering team manager presso Hitachi Energy\tHitachi Energy\tsend_ready\t210028\tMarinus Link\n660092\tIlkka Dits\tElectrical Engineering Manager at Hitachi Energy\tHitachi Energy\tsend_ready\t210028\tMarinus Link\n660091\tMertcan KÖROĞLU, PMP\tProject Manager - Hitachi Energy\tHitachi Energy\tsend_ready\t210028\tMarinus Link\n810012\tBrad Rip\tProject Manager in the mining industry\tMining Services\tsend_ready\t330033\tFlint Project\n810014\tBrenton Nelson\tNational Sales Manager - New Mining Equipment\tMining Services\tsend_ready\t330033\tFlint Project\n810015\tDon Kemp\tPlant and Equipment Manager at CSI Mining Services\tMining Services\tsend_ready\t330033\tFlint Project\n810011\tLetlhogonolo Setswalo\tManaging & Project Director - Mining Sanitation & Environmental Support Services - Mobi-Trail\tMining Services\tsend_ready\t330033\tFlint Project\n810013\tNimesh Chaudhari\tSenior General Manager (Operations and Projects) @ Mining Engineering Services | New Business Development | Electrical Power Systems\tMining Services\tsend_ready\t330033\tFlint Project\n810016\tSTEVE STAMP\tEquipment and Maintenance Manager at DMC Mining Services\tMining Services\tsend_ready\t330033\tFlint Project\n810010\tYudi Arismadinata\tProject and Operations Director | Oil&Gas | Mining | Environment | Sustainability | DBOT | Innovation-Led Profitability\tMining Services\tsend_ready\t330033\tFlint Project\n750024\tAndrew Roberts\tEngineering Manager at Inland Rail | Civil Engineer | CPEng RPEQ NER\tInland Rail\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530046\tDavid Grech\tSite Manager Construction\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n1530049\tDenicce Vargas\tContracts Manager\tJohn Holland\tsend_ready\t570022\tInland Rail Station Upgrades (Euroa)\n",
+  "stderr": "",
+  "execution_time_ms": 1763
+}

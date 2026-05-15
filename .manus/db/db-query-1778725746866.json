@@ -1,0 +1,28 @@
+{
+  "query": "\nSELECT id, name, suppressed, productLane, projectState, priority, stageCode\nFROM projects\nWHERE id IN ('330035', '210007');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, suppressed, productLane, projectState, priority, stageCode\nFROM projects\nWHERE id IN ('330035', '210007');\n",
+  "rows": [
+    {
+      "id": "330035",
+      "name": "Delburn Wind Farm",
+      "suppressed": "0",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "priority": "hot",
+      "stageCode": "unknown"
+    },
+    {
+      "id": "210007",
+      "name": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)",
+      "suppressed": "0",
+      "productLane": "multi_lane_pt",
+      "projectState": "NULL",
+      "priority": "hot",
+      "stageCode": "unknown"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsuppressed\tproductLane\tprojectState\tpriority\tstageCode\n330035\tDelburn Wind Farm\t0\tmulti_lane_pt\tVIC\thot\tunknown\n210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\t0\tmulti_lane_pt\tNULL\thot\tunknown\n",
+  "stderr": "",
+  "execution_time_ms": 1799
+}

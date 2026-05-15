@@ -2636,3 +2636,8 @@
 - [ ] Add targeted RSS feeds for east-coast industrial maintenance markets
 - [ ] Write vitest tests for AusTender state filter extension
 - [ ] Run full test suite and confirm no regressions
+
+## Ryan Pemberton Thursday Send Fix (2026-05-15)
+- [ ] Clear Ryan's stuck pending Thursday row (2026-05-14) and force re-send
+- [ ] Add startup stale-pending cleanup: mark any pending rows older than 10 min as failed on server start
+- [ ] Add per-user exception resilience: ensure finaliseDigestSendSlot(failed) is always called even if inner catch also throws

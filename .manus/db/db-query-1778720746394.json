@@ -1,0 +1,82 @@
+{
+  "query": "\nSELECT p.id, p.name, p.stageCode, p.lifecycleStatus, p.discoveryStatus, p.priority, p.sector, p.value, p.productLane, p.projectState\nFROM projects p\nWHERE p.id IN ('90006','960006','450027','990050','120238','330020')\nORDER BY p.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.stageCode, p.lifecycleStatus, p.discoveryStatus, p.priority, p.sector, p.value, p.productLane, p.projectState\nFROM projects p\nWHERE p.id IN ('90006','960006','450027','990050','120238','330020')\nORDER BY p.id;\n",
+  "rows": [
+    {
+      "id": "90006",
+      "name": "Warragamba Dam Wall Raising",
+      "stageCode": "construction",
+      "lifecycleStatus": "stale",
+      "discoveryStatus": "discovery_queued",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "value": "$1.6 billion",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW"
+    },
+    {
+      "id": "120238",
+      "name": "Ocean Patriot Drilling Program",
+      "stageCode": "unknown",
+      "lifecycleStatus": "stale",
+      "discoveryStatus": "discovery_queued",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "value": "Undisclosed (tens of millions AUD)",
+      "productLane": "portable_air",
+      "projectState": "VIC"
+    },
+    {
+      "id": "330020",
+      "name": "Riverstone Water Resource Recovery Facility Upgrade",
+      "stageCode": "awarded",
+      "lifecycleStatus": "stale",
+      "discoveryStatus": "discovery_queued",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "value": "Unknown",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW"
+    },
+    {
+      "id": "450027",
+      "name": "Tunkillia Gold Project",
+      "stageCode": "exploration",
+      "lifecycleStatus": "active",
+      "discoveryStatus": "send_ready_contact",
+      "priority": "warm",
+      "sector": "mining",
+      "value": "Unknown",
+      "productLane": "portable_air",
+      "projectState": "SA"
+    },
+    {
+      "id": "960006",
+      "name": "Olympic Dam Expansion — BHP",
+      "stageCode": "unknown",
+      "lifecycleStatus": "active",
+      "discoveryStatus": "send_ready_contact",
+      "priority": "hot",
+      "sector": "mining",
+      "value": "$5+ billion",
+      "productLane": "portable_air",
+      "projectState": "SA"
+    },
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "stageCode": "unknown",
+      "lifecycleStatus": "active",
+      "discoveryStatus": "send_ready_contact",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "value": "Unknown",
+      "productLane": "portable_air",
+      "projectState": "VIC"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tstageCode\tlifecycleStatus\tdiscoveryStatus\tpriority\tsector\tvalue\tproductLane\tprojectState\n90006\tWarragamba Dam Wall Raising\tconstruction\tstale\tdiscovery_queued\thot\tinfrastructure\t$1.6 billion\tmulti_lane_pt\tNSW\n120238\tOcean Patriot Drilling Program\tunknown\tstale\tdiscovery_queued\thot\toil_gas\tUndisclosed (tens of millions AUD)\tportable_air\tVIC\n330020\tRiverstone Water Resource Recovery Facility Upgrade\tawarded\tstale\tdiscovery_queued\thot\tinfrastructure\tUnknown\tmulti_lane_pt\tNSW\n450027\tTunkillia Gold Project\texploration\tactive\tsend_ready_contact\twarm\tmining\tUnknown\tportable_air\tSA\n960006\tOlympic Dam Expansion — BHP\tunknown\tactive\tsend_ready_contact\thot\tmining\t$5+ billion\tportable_air\tSA\n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tunknown\tactive\tsend_ready_contact\thot\toil_gas\tUnknown\tportable_air\tVIC\n",
+  "stderr": "",
+  "execution_time_ms": 1974
+}

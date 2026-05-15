@@ -1,0 +1,60 @@
+{
+  "query": "\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "23"
+    },
+    {
+      "id": "330015",
+      "name": "Norseman Gold Project - Third Underground Mine Development",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "planning",
+      "sr_count": "21"
+    },
+    {
+      "id": "120139",
+      "name": "Iluka Resources Eneabba Rare Earths Refinery",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "14"
+    },
+    {
+      "id": "360011",
+      "name": "Toowoomba-Athol Road Upgrade",
+      "productLane": "multi_lane_pt",
+      "projectState": "QLD",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "13"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tpriority\tstageCode\tsr_count\n690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\tmining\thot\tunknown\t23\n330015\tNorseman Gold Project - Third Underground Mine Development\tmulti_lane_pt\tWA\tmining\thot\tplanning\t21\n120139\tIluka Resources Eneabba Rare Earths Refinery\tmulti_lane_pt\tWA\tmining\thot\tconstruction\t14\n360011\tToowoomba-Athol Road Upgrade\tmulti_lane_pt\tQLD\tinfrastructure\thot\tunknown\t13\n570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\tinfrastructure\thot\tconstruction\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1942
+}

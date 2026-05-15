@@ -47,7 +47,7 @@ import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
 import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl, accountPriors } from "../drizzle/schema";
-import { eq, and, gte, inArray } from "drizzle-orm";
+import { eq, and, gte, inArray, sql } from "drizzle-orm";
 
 // ── Territory-Level Digest Send Threshold ──
 //
@@ -2693,8 +2693,15 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
     } catch (error) {
       console.error(`[EmailDigest] Failed for user ${user.id}:`, error);
       results.failed++;
-      // Attempt to finalise the slot as failed (may not exist if claim itself failed)
-      if (user?.id) await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: String(error) });
+      // Wrap finalise in its own try/catch — a DB timeout here must not leave
+      // the row permanently pending (which blocks all future re-sends for this user).
+      if (user?.id) {
+        try {
+          await finaliseDigestSendSlot(user.id, "monday", weekKey, "failed", { error: String(error) });
+        } catch (finaliseErr) {
+          console.error(`[EmailDigest] CRITICAL: finaliseDigestSendSlot also failed for user ${user.id} — row may be stuck pending:`, finaliseErr);
+        }
+      }
     }
   }
 
@@ -2877,7 +2884,15 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
     } catch (error) {
       console.error(`[EmailDigest] Thursday reminder failed for user ${user.id}:`, error);
       results.failed++;
-      if (user?.id) await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: String(error) });
+      // Wrap finalise in its own try/catch — a DB timeout here must not leave
+      // the row permanently pending (which blocks all future re-sends for this user).
+      if (user?.id) {
+        try {
+          await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: String(error) });
+        } catch (finaliseErr) {
+          console.error(`[EmailDigest] CRITICAL: finaliseDigestSendSlot also failed for user ${user.id} — row may be stuck pending:`, finaliseErr);
+        }
+      }
     }
   }
 
@@ -3435,4 +3450,148 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
   const subject = `PT Capital Sales — Mid-Week Action Reminder | ${territoryLabel} — ${report.weekEnding}`;
 
   return { subject, content, contentLength: content.length, userName: user.name || "Team Member" };
+}
+
+/**
+ * Force-send the Thursday reminder to a single specific user, bypassing the weekly dedup guard.
+ * Used by admin to re-send to users whose slot was stuck in 'pending' (server restart mid-send).
+ *
+ * This calls sendThursdayReminders(force=true) with a targetUserId filter so only the
+ * specified user is processed. The force flag ensures the dedup guard is bypassed even
+ * if a 'failed' row exists for today.
+ */
+export async function sendThursdayReminderActualToUser(userId: number): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+  error?: string;
+}> {
+  try {
+    // Temporarily patch getEmailRecipients by running the full send with a user filter.
+    // We use sendThursdayReminders(force=true) and filter inside by wrapping the DB.
+    // Simpler approach: call the full send loop but only for this user.
+    const weekKey = getDigestWeekKey();
+    const report = await getLatestReport();
+    if (!report) return { sent: 0, failed: 1, skipped: 0, error: "No report found" };
+
+    const latestRun = await getLatestPipelineRun();
+    const freshnessLine = latestRun?.completedAt
+      ? `Data last refreshed: ${new Date(latestRun.completedAt).toUTCString().slice(0, 16)} UTC`
+      : `Data as of: ${report.weekEnding}`;
+
+    const allProjects = await getActiveProjects();
+
+    const db = await getDb();
+    if (!db) return { sent: 0, failed: 1, skipped: 0, error: "No DB connection" };
+    const { users: usersTable, userProfiles: userProfilesTable } = await import("../drizzle/schema");
+    const { eq: eqOp } = await import("drizzle-orm");
+
+    const [user] = await db.select().from(usersTable).where(eqOp(usersTable.id, userId));
+    if (!user) return { sent: 0, failed: 1, skipped: 0, error: `User ${userId} not found` };
+    if (!user.email) return { sent: 0, failed: 1, skipped: 0, error: `User ${userId} has no email` };
+
+    const [profile] = await db.select().from(userProfilesTable).where(eqOp(userProfilesTable.userId, userId));
+    if (!profile) return { sent: 0, failed: 1, skipped: 0, error: `No profile for user ${userId}` };
+
+    // Claim a fresh slot (force=true bypasses the dedup guard)
+    const claimed = await claimDigestSendSlot(user.id, "thursday", weekKey);
+    // If claim fails (row already exists for today), force-insert via finalise
+    // by calling finalise with 'pending' first to ensure a row exists, then proceed.
+    // Actually: if claimed=false it means a row exists. We need to check if it's failed/sent.
+    // For force-resend we just proceed and finalise will UPDATE the existing row.
+
+    try {
+      const matchedProjects = await scoreAndFilterProjects(allProjects, {
+        territories: profile.territories as string[] | null,
+        industries: profile.industries as string[] | null,
+        offerCategories: profile.offerCategories as string[] | null,
+        customerTypes: profile.customerTypes as string[] | null,
+        dealSizeMin: profile.dealSizeMin,
+        dealSizeMax: profile.dealSizeMax,
+        assignedBusinessLines: profile.assignedBusinessLines as string[] | null,
+        salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
+        repName: user.name || null,
+      });
+      const hotProjects = matchedProjects.filter(p => p.priority === "hot" || p.actionTier === "tier1_actionable");
+      const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
+      const pipeline = await getPipelineClaimsByUser(user.id);
+
+      let thisWeekSection = "";
+      try {
+        const thisWeekData = await getThisWeekForEmail(user.id);
+        thisWeekSection = formatThisWeekSection(
+          thisWeekData.top3Projects, thisWeekData.top2Stakeholders, thisWeekData.urgentAction, "/",
+        );
+      } catch { /* ignore */ }
+
+      const contentWithFreshness = generateThursdayReminder(
+        user.name || "Team Member", report.weekEnding, hotProjects, pipeline.length,
+        thisWeekSection, territories, freshnessLine, weekKey, user.id,
+      );
+
+      const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
+      const subject = `PT Capital Sales — Mid-Week Action Reminder | ${territoryLabel} — ${report.weekEnding}`;
+
+      const thursdaySignals = buildEmailSignals(hotProjects, territories);
+      const thursSummaryLine = hotProjects.length > 0
+        ? `${hotProjects.length} hot opportunit${hotProjects.length === 1 ? "y" : "ies"} need${hotProjects.length === 1 ? "s" : ""} your attention this week.`
+        : "Quick mid-week check-in on your territory.";
+      const thursEmailData: DigestEmailData = {
+        userName: (user.name || "Team Member").split(" ")[0],
+        territory: territoryLabel,
+        weekLabel: report.weekEnding,
+        summaryLine: thursSummaryLine,
+        signals: thursdaySignals,
+        dashboardUrl: getSiteUrl(),
+      };
+      const thursHtmlContent = buildDigestEmailHtml(thursEmailData);
+      const thursTextContent = buildDigestEmailText(thursEmailData);
+
+      const sent = await sendEmail({
+        to: user.email,
+        subject,
+        markdownContent: contentWithFreshness,
+        htmlContent: thursHtmlContent,
+        textContent: thursTextContent,
+      });
+
+      if (sent) {
+        // Force-update the row to 'sent' regardless of current status
+        // (finaliseDigestSendSlot only matches pending/dry_run rows, so we
+        // use a direct UPSERT here to handle the force-resend case correctly).
+        try {
+          const dbConn = await getDb();
+          if (dbConn) {
+            const today = new Date().toISOString().slice(0, 10);
+            await dbConn.execute(
+              sql`INSERT INTO userEmailSendLog
+                (userId, digestType, sentDate, weekKey, status, itemCount, dryRun, error)
+                VALUES
+                (${user.id}, 'thursday', ${today}, ${weekKey}, 'sent', ${hotProjects.length}, 0, NULL)
+                ON DUPLICATE KEY UPDATE
+                  status = 'sent',
+                  weekKey = VALUES(weekKey),
+                  itemCount = VALUES(itemCount),
+                  error = NULL,
+                  dryRun = 0,
+                  sentAt = CURRENT_TIMESTAMP`
+            );
+          }
+        } catch (dbErr) {
+          console.error(`[EmailDigest] DB log update failed after successful send for ${user.name}:`, dbErr);
+        }
+        console.log(`[EmailDigest] \u2713 Force-resend Thursday reminder sent for ${user.name}`);
+        return { sent: 1, failed: 0, skipped: 0 };
+      } else {
+        await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: "sendEmail returned false" });
+        return { sent: 0, failed: 1, skipped: 0, error: "sendEmail returned false" };
+      }
+    } catch (innerErr) {
+      const errMsg = String(innerErr);
+      try { await finaliseDigestSendSlot(user.id, "thursday", weekKey, "failed", { error: errMsg }); } catch { /* ignore */ }
+      return { sent: 0, failed: 1, skipped: 0, error: errMsg };
+    }
+  } catch (outerErr) {
+    return { sent: 0, failed: 1, skipped: 0, error: String(outerErr) };
+  }
 }

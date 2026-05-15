@@ -1,0 +1,58 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email,\n  up.territories, up.assignedBusinessLines, up.sectorFocus\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Ryan Pemberton','Daniel Zec','Leo Williams','Brett Hansen','Dan Day','Amit Bhargava')\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email,\n  up.territories, up.assignedBusinessLines, up.sectorFocus\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Ryan Pemberton','Daniel Zec','Leo Williams','Brett Hansen','Dan Day','Amit Bhargava')\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"PAL\", \"BESS\"]",
+      "sectorFocus": "[\"energy\", \"infrastructure\", \"industrial\"]"
+    },
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\"]"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\", \"water\", \"civils\"]"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\", \"oil_gas\", \"industrial\"]"
+    },
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tterritories\tassignedBusinessLines\tsectorFocus\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]\t[\"energy\", \"infrastructure\", \"industrial\"]\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\t[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining\", \"oil_gas\", \"infrastructure\"]\n3630009\tDan Day\tdan.day@atlascopco.com\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining\", \"infrastructure\", \"water\", \"civils\"]\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\"]\t[\"mining\", \"infrastructure\", \"oil_gas\", \"industrial\"]\n840008\tLeo Williams \tleo.williams@atlascopco.com\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1828
+}

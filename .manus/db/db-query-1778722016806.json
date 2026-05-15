@@ -1,0 +1,65 @@
+{
+  "query": "\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState = 'WA' OR p.projectState IS NULL)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode, p.value\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode, p.value,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState = 'WA' OR p.projectState IS NULL)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode, p.value\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "330015",
+      "name": "Norseman Gold Project - Third Underground Mine Development",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "planning",
+      "value": "Unknown",
+      "sr_count": "21"
+    },
+    {
+      "id": "120139",
+      "name": "Iluka Resources Eneabba Rare Earths Refinery",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "construction",
+      "value": "AUD$1.2 billion",
+      "sr_count": "14"
+    },
+    {
+      "id": "450042",
+      "name": "Port Hedland Car Dumper 6 Project",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "construction",
+      "value": "Unknown",
+      "sr_count": "10"
+    },
+    {
+      "id": "120302",
+      "name": "Genesis Minerals - Leonora Gold Project - Exploration",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "exploration",
+      "value": "Confidential, part of ongoing exploration budget",
+      "sr_count": "10"
+    },
+    {
+      "id": "330053",
+      "name": "Never Never Gold Deposit Development",
+      "productLane": "multi_lane_pt",
+      "projectState": "WA",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "sr_count": "10"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tpriority\tstageCode\tvalue\tsr_count\n330015\tNorseman Gold Project - Third Underground Mine Development\tmulti_lane_pt\tWA\tmining\thot\tplanning\tUnknown\t21\n120139\tIluka Resources Eneabba Rare Earths Refinery\tmulti_lane_pt\tWA\tmining\thot\tconstruction\tAUD$1.2 billion\t14\n450042\tPort Hedland Car Dumper 6 Project\tmulti_lane_pt\tWA\tmining\thot\tconstruction\tUnknown\t10\n120302\tGenesis Minerals - Leonora Gold Project - Exploration\tmulti_lane_pt\tWA\tmining\thot\texploration\tConfidential, part of ongoing exploration budget\t10\n330053\tNever Never Gold Deposit Development\tmulti_lane_pt\tWA\tmining\thot\tunknown\tUnknown\t10\n",
+  "stderr": "",
+  "execution_time_ms": 1836
+}

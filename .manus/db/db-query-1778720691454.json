@@ -1,0 +1,82 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('330020','90006')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('330020','90006')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name;\n",
+  "rows": [
+    {
+      "id": "1650005",
+      "name": "Chris Field",
+      "title": "Construction Manager",
+      "company": "WaterNSW",
+      "contactTrustTier": "send_ready",
+      "projectId": "90006",
+      "projectName": "Warragamba Dam Wall Raising"
+    },
+    {
+      "id": "1650002",
+      "name": "Mark Coughlin",
+      "title": "Construction Manager",
+      "company": "WaterNSW",
+      "contactTrustTier": "send_ready",
+      "projectId": "90006",
+      "projectName": "Warragamba Dam Wall Raising"
+    },
+    {
+      "id": "1650006",
+      "name": "Peter Demeo",
+      "title": "Construction Manager",
+      "company": "WaterNSW",
+      "contactTrustTier": "send_ready",
+      "projectId": "90006",
+      "projectName": "Warragamba Dam Wall Raising"
+    },
+    {
+      "id": "1650003",
+      "name": "Wayne Suttie",
+      "title": "Construction Manager",
+      "company": "WaterNSW",
+      "contactTrustTier": "send_ready",
+      "projectId": "90006",
+      "projectName": "Warragamba Dam Wall Raising"
+    },
+    {
+      "id": "780270",
+      "name": "Ashley Smith",
+      "title": "Engineering Team Manager",
+      "company": "Sydney Water",
+      "contactTrustTier": "send_ready",
+      "projectId": "330020",
+      "projectName": "Riverstone Water Resource Recovery Facility Upgrade"
+    },
+    {
+      "id": "780268",
+      "name": "Mukul Mahajan",
+      "title": "Asset Engineering Manager, Sydney Water",
+      "company": "Sydney Water",
+      "contactTrustTier": "send_ready",
+      "projectId": "330020",
+      "projectName": "Riverstone Water Resource Recovery Facility Upgrade"
+    },
+    {
+      "id": "780271",
+      "name": "Trent Olsen",
+      "title": "Civil Construction Manager at John Holland",
+      "company": "John Holland",
+      "contactTrustTier": "send_ready",
+      "projectId": "330020",
+      "projectName": "Riverstone Water Resource Recovery Facility Upgrade"
+    },
+    {
+      "id": "780269",
+      "name": "Zara Shahraeni",
+      "title": "Engineering Team Manager at Sydney Water",
+      "company": "Sydney Water",
+      "contactTrustTier": "send_ready",
+      "projectId": "330020",
+      "projectName": "Riverstone Water Resource Recovery Facility Upgrade"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n1650005\tChris Field\tConstruction Manager\tWaterNSW\tsend_ready\t90006\tWarragamba Dam Wall Raising\n1650002\tMark Coughlin\tConstruction Manager\tWaterNSW\tsend_ready\t90006\tWarragamba Dam Wall Raising\n1650006\tPeter Demeo\tConstruction Manager\tWaterNSW\tsend_ready\t90006\tWarragamba Dam Wall Raising\n1650003\tWayne Suttie\tConstruction Manager\tWaterNSW\tsend_ready\t90006\tWarragamba Dam Wall Raising\n780270\tAshley Smith\tEngineering Team Manager\tSydney Water\tsend_ready\t330020\tRiverstone Water Resource Recovery Facility Upgrade\n780268\tMukul Mahajan\tAsset Engineering Manager, Sydney Water\tSydney Water\tsend_ready\t330020\tRiverstone Water Resource Recovery Facility Upgrade\n780271\tTrent Olsen\tCivil Construction Manager at John Holland\tJohn Holland\tsend_ready\t330020\tRiverstone Water Resource Recovery Facility Upgrade\n780269\tZara Shahraeni\tEngineering Team Manager at Sydney Water\tSydney Water\tsend_ready\t330020\tRiverstone Water Resource Recovery Facility Upgrade\n",
+  "stderr": "",
+  "execution_time_ms": 1894
+}

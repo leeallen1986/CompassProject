@@ -1,0 +1,190 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('690089','660020')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('690089','660020')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "930018",
+      "name": "Brad Kratzer",
+      "title": "Senior Supply Chain Procurement and Contracts Professional",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "1290022",
+      "name": "Brendan Windmeyer",
+      "title": "General Manager, Service Delivery",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "1620077",
+      "name": "Gerard Tolson",
+      "title": "Project Manager",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "1290023",
+      "name": "Jack Thompson",
+      "title": "Project Manager",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "1620076",
+      "name": "Jonathan Vaughan",
+      "title": "Project Manager",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "630124",
+      "name": "Nikunj Patel",
+      "title": "Project Manager @ TasWater | Cross-functional Team Leadership",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "930017",
+      "name": "Tim W.",
+      "title": "Procurement & Category Manager",
+      "company": "TasWater",
+      "contactTrustTier": "send_ready",
+      "projectId": "660020",
+      "projectName": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)"
+    },
+    {
+      "id": "960103",
+      "name": "Adam Malcolm",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100055",
+      "name": "Alexis Singleton",
+      "title": "Superintendent Drills and Auxiliary Maintenance",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100057",
+      "name": "Ami Parekh",
+      "title": "Procurement Officer",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100052",
+      "name": "Andrew Daly",
+      "title": "Field and Marine Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100050",
+      "name": "Ash Hooper",
+      "title": "Process Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "960102",
+      "name": "Bucky Pinard",
+      "title": "Mine Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100044",
+      "name": "Chris Dark",
+      "title": "General Manager Boddington Mine",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100051",
+      "name": "Dale Hicks",
+      "title": "Wet Plant Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100046",
+      "name": "Danny Ramunno",
+      "title": "Quarry Manager and Alternate Senior Site Executive",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100047",
+      "name": "Jarrad Haynes",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100048",
+      "name": "Jennifer Cope",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "2100049",
+      "name": "John Fisher",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    },
+    {
+      "id": "1530013",
+      "name": "Josef Bartolo",
+      "title": "Construction Project Manager",
+      "company": "Macmahon",
+      "contactTrustTier": "send_ready",
+      "projectId": "690089",
+      "projectName": "Cadia Gold Mine Operations"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n930018\tBrad Kratzer\tSenior Supply Chain Procurement and Contracts Professional\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n1290022\tBrendan Windmeyer\tGeneral Manager, Service Delivery\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n1620077\tGerard Tolson\tProject Manager\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n1290023\tJack Thompson\tProject Manager\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n1620076\tJonathan Vaughan\tProject Manager\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n630124\tNikunj Patel\tProject Manager @ TasWater | Cross-functional Team Leadership\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n930017\tTim W.\tProcurement & Category Manager\tTasWater\tsend_ready\t660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\n960103\tAdam Malcolm\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100055\tAlexis Singleton\tSuperintendent Drills and Auxiliary Maintenance\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100057\tAmi Parekh\tProcurement Officer\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100052\tAndrew Daly\tField and Marine Maintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100050\tAsh Hooper\tProcess Maintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n960102\tBucky Pinard\tMine Maintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100044\tChris Dark\tGeneral Manager Boddington Mine\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100051\tDale Hicks\tWet Plant Maintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100046\tDanny Ramunno\tQuarry Manager and Alternate Senior Site Executive\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100047\tJarrad Haynes\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100048\tJennifer Cope\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n2100049\tJohn Fisher\tMaintenance Superintendent\tNewmont\tsend_ready\t690089\tCadia Gold Mine Operations\n1530013\tJosef Bartolo\tConstruction Project Manager\tMacmahon\tsend_ready\t690089\tCadia Gold Mine Operations\n",
+  "stderr": "",
+  "execution_time_ms": 1872
+}

@@ -1,0 +1,82 @@
+{
+  "query": "\nSELECT l.id, u.name, l.status, l.itemCount, l.error, l.sentAt\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.digestType = 'thursday'\n  AND l.sentDate = '2026-05-14'\nORDER BY l.sentAt ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT l.id, u.name, l.status, l.itemCount, l.error, l.sentAt\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.digestType = 'thursday'\n  AND l.sentDate = '2026-05-14'\nORDER BY l.sentAt ASC;\n",
+  "rows": [
+    {
+      "id": "1230001",
+      "name": "Leo Williams ",
+      "status": "sent",
+      "itemCount": "181",
+      "error": "NULL",
+      "sentAt": "2026-05-14 00:47:48"
+    },
+    {
+      "id": "1230002",
+      "name": "Ryan Pemberton",
+      "status": "pending",
+      "itemCount": "0",
+      "error": "NULL",
+      "sentAt": "2026-05-14 00:47:49"
+    },
+    {
+      "id": "1230005",
+      "name": "Brett Hansen",
+      "status": "sent",
+      "itemCount": "56",
+      "error": "NULL",
+      "sentAt": "2026-05-14 00:48:16"
+    },
+    {
+      "id": "1230006",
+      "name": "Daniel Zec",
+      "status": "sent",
+      "itemCount": "82",
+      "error": "NULL",
+      "sentAt": "2026-05-14 00:48:18"
+    },
+    {
+      "id": "1230007",
+      "name": "Dan Day",
+      "status": "sent",
+      "itemCount": "130",
+      "error": "NULL",
+      "sentAt": "2026-05-14 00:48:37"
+    },
+    {
+      "id": "1230008",
+      "name": "Amit Bhargava",
+      "status": "sent",
+      "itemCount": "242",
+      "error": "NULL",
+      "sentAt": "2026-05-14 00:55:19"
+    },
+    {
+      "id": "1230009",
+      "name": "Egor Ivanov",
+      "status": "sent",
+      "itemCount": "244",
+      "error": "NULL",
+      "sentAt": "2026-05-14 01:03:17"
+    },
+    {
+      "id": "1230010",
+      "name": "Kevin Arnandes",
+      "status": "pending",
+      "itemCount": "0",
+      "error": "NULL",
+      "sentAt": "2026-05-14 01:03:18"
+    },
+    {
+      "id": "1230019",
+      "name": "Alexandre Leite",
+      "status": "sent",
+      "itemCount": "210",
+      "error": "NULL",
+      "sentAt": "2026-05-14 01:05:46"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tstatus\titemCount\terror\tsentAt\n1230001\tLeo Williams \tsent\t181\tNULL\t2026-05-14 00:47:48\n1230002\tRyan Pemberton\tpending\t0\tNULL\t2026-05-14 00:47:49\n1230005\tBrett Hansen\tsent\t56\tNULL\t2026-05-14 00:48:16\n1230006\tDaniel Zec\tsent\t82\tNULL\t2026-05-14 00:48:18\n1230007\tDan Day\tsent\t130\tNULL\t2026-05-14 00:48:37\n1230008\tAmit Bhargava\tsent\t242\tNULL\t2026-05-14 00:55:19\n1230009\tEgor Ivanov\tsent\t244\tNULL\t2026-05-14 01:03:17\n1230010\tKevin Arnandes\tpending\t0\tNULL\t2026-05-14 01:03:18\n1230019\tAlexandre Leite\tsent\t210\tNULL\t2026-05-14 01:05:46\n",
+  "stderr": "",
+  "execution_time_ms": 1875
+}

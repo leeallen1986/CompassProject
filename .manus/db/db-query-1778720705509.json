@@ -1,0 +1,145 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('330035','210007')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('330035','210007')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name\nLIMIT 15;\n",
+  "rows": [
+    {
+      "id": "1620311",
+      "name": "Clive Leota",
+      "title": "Construction Manager",
+      "company": "Zinfra",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "1620314",
+      "name": "Ettienne Naude",
+      "title": "Construction Manager",
+      "company": "NRW Holdings",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "660060",
+      "name": "Juliet Lewis",
+      "title": "Principal Draftsperson | Drafting Manager",
+      "company": "UGL",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "1620313",
+      "name": "Lisa Branford",
+      "title": "General Manager - Mining",
+      "company": "NRW Holdings",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "660061",
+      "name": "Mark Paterson",
+      "title": "Power Development & Electrical Contracts Manager | Energy Transition | Generation, Renewables & Storage | NEM | Tier 1 Projects",
+      "company": "UGL",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "1620310",
+      "name": "Matt Day",
+      "title": "Construction Manager",
+      "company": "Zinfra",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "660062",
+      "name": "Murray Maughan",
+      "title": "Lead Electrical Engineer at Worley",
+      "company": "Worley",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "660059",
+      "name": "Stephen S.",
+      "title": "Senior electrical project manager",
+      "company": "UGL",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "1",
+      "name": "Yogesh Prajapati",
+      "title": "GM Procurement & Logistics",
+      "company": "NRW Holdings",
+      "contactTrustTier": "send_ready",
+      "projectId": "210007",
+      "projectName": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)"
+    },
+    {
+      "id": "810021",
+      "name": "Alok Kumar Srivastava",
+      "title": "General Manager Voith Hydro GE Vernova (worked till Jan26) Sr Manager Product & Services Sourcing Procurement",
+      "company": "GE Renewable Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "330035",
+      "projectName": "Delburn Wind Farm"
+    },
+    {
+      "id": "1620245",
+      "name": "Andrew Linford-Garcia",
+      "title": "Project Engineering Manager",
+      "company": "ElectraNet",
+      "contactTrustTier": "send_ready",
+      "projectId": "330035",
+      "projectName": "Delburn Wind Farm"
+    },
+    {
+      "id": "1620241",
+      "name": "Keegan Bartlett",
+      "title": "Project Manager",
+      "company": "CATCON",
+      "contactTrustTier": "send_ready",
+      "projectId": "330035",
+      "projectName": "Delburn Wind Farm"
+    },
+    {
+      "id": "1620240",
+      "name": "Nathan Batanas",
+      "title": "Site Manager",
+      "company": "CATCON",
+      "contactTrustTier": "send_ready",
+      "projectId": "330035",
+      "projectName": "Delburn Wind Farm"
+    },
+    {
+      "id": "1620244",
+      "name": "Pervelan Govender",
+      "title": "Project Engineering Manager",
+      "company": "ElectraNet",
+      "contactTrustTier": "send_ready",
+      "projectId": "330035",
+      "projectName": "Delburn Wind Farm"
+    },
+    {
+      "id": "810020",
+      "name": "Raim Mislimoski",
+      "title": "Procurement Manager bei GE Renewable Energy",
+      "company": "GE Renewable Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "330035",
+      "projectName": "Delburn Wind Farm"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n1620311\tClive Leota\tConstruction Manager\tZinfra\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n1620314\tEttienne Naude\tConstruction Manager\tNRW Holdings\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n660060\tJuliet Lewis\tPrincipal Draftsperson | Drafting Manager\tUGL\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n1620313\tLisa Branford\tGeneral Manager - Mining\tNRW Holdings\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n660061\tMark Paterson\tPower Development & Electrical Contracts Manager | Energy Transition | Generation, Renewables & Storage | NEM | Tier 1 Projects\tUGL\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n1620310\tMatt Day\tConstruction Manager\tZinfra\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n660062\tMurray Maughan\tLead Electrical Engineer at Worley\tWorley\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n660059\tStephen S.\tSenior electrical project manager\tUGL\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n1\tYogesh Prajapati\tGM Procurement & Logistics\tNRW Holdings\tsend_ready\t210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\n810021\tAlok Kumar Srivastava\tGeneral Manager Voith Hydro GE Vernova (worked till Jan26) Sr Manager Product & Services Sourcing Procurement\tGE Renewable Energy\tsend_ready\t330035\tDelburn Wind Farm\n1620245\tAndrew Linford-Garcia\tProject Engineering Manager\tElectraNet\tsend_ready\t330035\tDelburn Wind Farm\n1620241\tKeegan Bartlett\tProject Manager\tCATCON\tsend_ready\t330035\tDelburn Wind Farm\n1620240\tNathan Batanas\tSite Manager\tCATCON\tsend_ready\t330035\tDelburn Wind Farm\n1620244\tPervelan Govender\tProject Engineering Manager\tElectraNet\tsend_ready\t330035\tDelburn Wind Farm\n810020\tRaim Mislimoski\tProcurement Manager bei GE Renewable Energy\tGE Renewable Energy\tsend_ready\t330035\tDelburn Wind Farm\n",
+  "stderr": "",
+  "execution_time_ms": 1840
+}

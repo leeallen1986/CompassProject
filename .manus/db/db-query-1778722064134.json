@@ -1,0 +1,60 @@
+{
+  "query": "\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND p.sector IN ('energy','infrastructure','industrial')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND p.sector IN ('energy','infrastructure','industrial')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "360011",
+      "name": "Toowoomba-Athol Road Upgrade",
+      "productLane": "multi_lane_pt",
+      "projectState": "QLD",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "13"
+    },
+    {
+      "id": "570013",
+      "name": "Broadsound Battery Energy Storage System (BESS)",
+      "productLane": "bess",
+      "projectState": "QLD",
+      "sector": "energy",
+      "priority": "hot",
+      "stageCode": "commissioning",
+      "sr_count": "13"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "11"
+    },
+    {
+      "id": "180005",
+      "name": "Swanbank BESS",
+      "productLane": "bess",
+      "projectState": "QLD",
+      "sector": "energy",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "11"
+    },
+    {
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "productLane": "bess",
+      "projectState": "NSW",
+      "sector": "energy",
+      "priority": "hot",
+      "stageCode": "awarded",
+      "sr_count": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tpriority\tstageCode\tsr_count\n360011\tToowoomba-Athol Road Upgrade\tmulti_lane_pt\tQLD\tinfrastructure\thot\tunknown\t13\n570013\tBroadsound Battery Energy Storage System (BESS)\tbess\tQLD\tenergy\thot\tcommissioning\t13\n570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\tinfrastructure\thot\tconstruction\t11\n180005\tSwanbank BESS\tbess\tQLD\tenergy\thot\tunknown\t11\n690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tbess\tNSW\tenergy\thot\tawarded\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1770
+}

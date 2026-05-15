@@ -1,0 +1,18 @@
+{
+  "query": "\n-- Check how many of the ryan_leak projects have at least 1 send_ready contact\n-- (if they do, they could appear in the digest without the lane filter)\nSELECT 'ryan_bess_pal_pumps_with_sr' as check_name, COUNT(*) as count\nFROM (\n  SELECT p.id\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL\n  WHERE p.suppressed = 0\n    AND p.priority IN ('hot','warm')\n    AND p.geoBlockedReason IS NULL\n    AND (p.projectState = 'WA' OR p.projectState IS NULL)\n    AND p.productLane IN ('bess','pal','pumps')\n  GROUP BY p.id\n  HAVING COUNT(c.id) >= 1\n) t\n\nUNION ALL\n\nSELECT 'daniel_bess_pal_pumps_with_sr', COUNT(*)\nFROM (\n  SELECT p.id\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL\n  WHERE p.suppressed = 0\n    AND p.priority IN ('hot','warm')\n    AND p.geoBlockedReason IS NULL\n    AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n    AND p.productLane IN ('bess','pal','pumps')\n  GROUP BY p.id\n  HAVING COUNT(c.id) >= 1\n) t;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check how many of the ryan_leak projects have at least 1 send_ready contact\n-- (if they do, they could appear in the digest without the lane filter)\nSELECT 'ryan_bess_pal_pumps_with_sr' as check_name, COUNT(*) as count\nFROM (\n  SELECT p.id\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL\n  WHERE p.suppressed = 0\n    AND p.priority IN ('hot','warm')\n    AND p.geoBlockedReason IS NULL\n    AND (p.projectState = 'WA' OR p.projectState IS NULL)\n    AND p.productLane IN ('bess','pal','pumps')\n  GROUP BY p.id\n  HAVING COUNT(c.id) >= 1\n) t\n\nUNION ALL\n\nSELECT 'daniel_bess_pal_pumps_with_sr', COUNT(*)\nFROM (\n  SELECT p.id\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL\n  WHERE p.suppressed = 0\n    AND p.priority IN ('hot','warm')\n    AND p.geoBlockedReason IS NULL\n    AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n    AND p.productLane IN ('bess','pal','pumps')\n  GROUP BY p.id\n  HAVING COUNT(c.id) >= 1\n) t;\n",
+  "rows": [
+    {
+      "check_name": "ryan_bess_pal_pumps_with_sr",
+      "count": "35"
+    },
+    {
+      "check_name": "daniel_bess_pal_pumps_with_sr",
+      "count": "78"
+    }
+  ],
+  "messages": [],
+  "stdout": "check_name\tcount\nryan_bess_pal_pumps_with_sr\t35\ndaniel_bess_pal_pumps_with_sr\t78\n",
+  "stderr": "",
+  "execution_time_ms": 1852
+}

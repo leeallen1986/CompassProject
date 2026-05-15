@@ -1,0 +1,22 @@
+{
+  "query": "\n-- Verify: PA reps (Ryan=WA, Daniel=NSW/VIC/SA/TAS, Leo=national) should have zero bess/pal/pumps in their pool\n-- Check Ryan's territory for bess/pal/pumps leakage\nSELECT 'ryan_leak' as rep, COUNT(*) as leaked\nFROM projects p\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState = 'WA' OR p.projectState IS NULL)\n  AND p.productLane IN ('bess','pal','pumps')\n\nUNION ALL\n\n-- Check Daniel's territory for bess/pal/pumps leakage\nSELECT 'daniel_leak', COUNT(*)\nFROM projects p\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND p.productLane IN ('bess','pal','pumps')\n\nUNION ALL\n\n-- Check Brett's territory for portable_air leakage (pump-only rep)\nSELECT 'brett_pa_leak', COUNT(*)\nFROM projects p\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('WA','NT') OR p.projectState IS NULL)\n  AND p.productLane = 'portable_air';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Verify: PA reps (Ryan=WA, Daniel=NSW/VIC/SA/TAS, Leo=national) should have zero bess/pal/pumps in their pool\n-- Check Ryan's territory for bess/pal/pumps leakage\nSELECT 'ryan_leak' as rep, COUNT(*) as leaked\nFROM projects p\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState = 'WA' OR p.projectState IS NULL)\n  AND p.productLane IN ('bess','pal','pumps')\n\nUNION ALL\n\n-- Check Daniel's territory for bess/pal/pumps leakage\nSELECT 'daniel_leak', COUNT(*)\nFROM projects p\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND p.productLane IN ('bess','pal','pumps')\n\nUNION ALL\n\n-- Check Brett's territory for portable_air leakage (pump-only rep)\nSELECT 'brett_pa_leak', COUNT(*)\nFROM projects p\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('WA','NT') OR p.projectState IS NULL)\n  AND p.productLane = 'portable_air';\n",
+  "rows": [
+    {
+      "rep": "brett_pa_leak",
+      "leaked": "44"
+    },
+    {
+      "rep": "daniel_leak",
+      "leaked": "221"
+    },
+    {
+      "rep": "ryan_leak",
+      "leaked": "94"
+    }
+  ],
+  "messages": [],
+  "stdout": "rep\tleaked\nbrett_pa_leak\t44\ndaniel_leak\t221\nryan_leak\t94\n",
+  "stderr": "",
+  "execution_time_ms": 1810
+}

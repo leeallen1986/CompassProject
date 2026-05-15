@@ -1,0 +1,55 @@
+{
+  "query": "\nSELECT * FROM digestScheduleLog \nWHERE digestType = 'thursday' \nORDER BY createdAt DESC \nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT * FROM digestScheduleLog \nWHERE digestType = 'thursday' \nORDER BY createdAt DESC \nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "300004",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 01:05:46",
+      "sentAt": "2026-05-14 01:05:46",
+      "status": "sent",
+      "error": "NULL",
+      "createdAt": "2026-05-14 01:05:46"
+    },
+    {
+      "id": "300003",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 01:05:42",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL",
+      "createdAt": "2026-05-14 01:05:41"
+    },
+    {
+      "id": "300002",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 00:48:13",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL",
+      "createdAt": "2026-05-14 00:48:12"
+    },
+    {
+      "id": "300001",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 00:35:49",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL",
+      "createdAt": "2026-05-14 00:35:49"
+    },
+    {
+      "id": "240004",
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-07 00:19:34",
+      "sentAt": "2026-05-07 00:19:34",
+      "status": "sent",
+      "error": "NULL",
+      "createdAt": "2026-05-07 00:19:34"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdigestType\tscheduledFor\tsentAt\tstatus\terror\tcreatedAt\n300004\tthursday\t2026-05-14 01:05:46\t2026-05-14 01:05:46\tsent\tNULL\t2026-05-14 01:05:46\n300003\tthursday\t2026-05-14 01:05:42\tNULL\tpending\tNULL\t2026-05-14 01:05:41\n300002\tthursday\t2026-05-14 00:48:13\tNULL\tpending\tNULL\t2026-05-14 00:48:12\n300001\tthursday\t2026-05-14 00:35:49\tNULL\tpending\tNULL\t2026-05-14 00:35:49\n240004\tthursday\t2026-05-07 00:19:34\t2026-05-07 00:19:34\tsent\tNULL\t2026-05-07 00:19:34\n",
+  "stderr": "",
+  "execution_time_ms": 1785
+}

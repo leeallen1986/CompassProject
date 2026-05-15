@@ -1,0 +1,30 @@
+{
+  "query": "\nSELECT id, name, suppressed, productLane, projectState, priority, stageCode,\n  (SELECT COUNT(*) FROM contactProjects cp JOIN contacts c ON c.id = cp.contactId \n   WHERE cp.projectId = p.id AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL) as sr_count\nFROM projects p\nWHERE id IN ('570022', '720037');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, suppressed, productLane, projectState, priority, stageCode,\n  (SELECT COUNT(*) FROM contactProjects cp JOIN contacts c ON c.id = cp.contactId \n   WHERE cp.projectId = p.id AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL) as sr_count\nFROM projects p\nWHERE id IN ('570022', '720037');\n",
+  "rows": [
+    {
+      "id": "720037",
+      "name": "Euroa Station Upgrade (Inland Rail)",
+      "suppressed": "0",
+      "productLane": "NULL",
+      "projectState": "VIC",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "10"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "suppressed": "0",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsuppressed\tproductLane\tprojectState\tpriority\tstageCode\tsr_count\n720037\tEuroa Station Upgrade (Inland Rail)\t0\tNULL\tVIC\thot\tunknown\t10\n570022\tInland Rail Station Upgrades (Euroa)\t0\tmulti_lane_pt\tVIC\thot\tconstruction\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1915
+}

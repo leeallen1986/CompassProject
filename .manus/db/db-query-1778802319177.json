@@ -1,0 +1,13 @@
+{
+  "query": "\nSELECT COUNT(*) as qualifying_projects\nFROM (\n  SELECT p.id\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL\n  WHERE p.suppressed = 0\n    AND p.priority IN ('hot','warm')\n    AND p.geoBlockedReason IS NULL\n    AND (p.projectState = 'WA' OR p.projectState IS NULL OR p.projectState = 'OFFSHORE_AU')\n    AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\n  GROUP BY p.id\n  HAVING COUNT(c.id) >= 1\n) t;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COUNT(*) as qualifying_projects\nFROM (\n  SELECT p.id\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL\n  WHERE p.suppressed = 0\n    AND p.priority IN ('hot','warm')\n    AND p.geoBlockedReason IS NULL\n    AND (p.projectState = 'WA' OR p.projectState IS NULL OR p.projectState = 'OFFSHORE_AU')\n    AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\n  GROUP BY p.id\n  HAVING COUNT(c.id) >= 1\n) t;\n",
+  "rows": [
+    {
+      "qualifying_projects": "69"
+    }
+  ],
+  "messages": [],
+  "stdout": "qualifying_projects\n69\n",
+  "stderr": "",
+  "execution_time_ms": 1987
+}

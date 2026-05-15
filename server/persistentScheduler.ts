@@ -20,8 +20,8 @@
 
 import { getDb } from "./db";
 import { sendWeeklyDigests, sendThursdayReminders, sendManagerRollupEmail } from "./emailDigest";
-import { digestScheduleLog } from "../drizzle/schema";
-import { eq, gte, and } from "drizzle-orm";
+import { digestScheduleLog, userEmailSendLog } from "../drizzle/schema";
+import { eq, gte, and, lt } from "drizzle-orm";
 
 // ── Schedule constants ──────────────────────────────────────────────────────
 /**
@@ -344,6 +344,33 @@ export async function startPersistentScheduler(): Promise<void> {
   if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
     console.log("[PersistentScheduler] ⚠ Email digests DISABLED (EMAIL_DIGESTS_ENABLED != true). Scheduler will not run.");
     return;
+  }
+
+  // ── Startup: clear stale pending slots (older than 10 min) ──
+  // If the server was killed mid-send, pending rows are left behind.
+  // These block the dedup guard (claimDigestSendSlot returns false) and
+  // prevent the affected user from ever receiving a re-send.
+  // We mark them as failed so the next send attempt can claim a fresh slot.
+  try {
+    const db = await getDb();
+    if (db) {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const result = await db
+        .update(userEmailSendLog)
+        .set({ status: "failed", error: "STALE: pending slot never finalised (server restart cleanup)" })
+        .where(
+          and(
+            eq(userEmailSendLog.status, "pending"),
+            lt(userEmailSendLog.sentAt, tenMinutesAgo)
+          )
+        );
+      const cleaned = (result[0] as any).affectedRows ?? 0;
+      if (cleaned > 0) {
+        console.log(`[PersistentScheduler] ⚠ Cleared ${cleaned} stale pending send slot(s) — these users will be retried on next scheduled send`);
+      }
+    }
+  } catch (cleanupErr) {
+    console.error("[PersistentScheduler] Failed to clean stale pending slots:", cleanupErr);
   }
 
   console.log("[PersistentScheduler] Starting persistent email digest scheduler...");

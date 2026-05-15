@@ -1,0 +1,154 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('450027','990050','960002')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('450027','990050','960002')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name;\n",
+  "rows": [
+    {
+      "id": "840055",
+      "name": "Christopher Hayes",
+      "title": "Project Manager at Ausdrill",
+      "company": "Ausdrill",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "840053",
+      "name": "Dair Bakuridze",
+      "title": "Project manager",
+      "company": "Barton Gold",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "1650346",
+      "name": "David Wilson",
+      "title": "General Manager Projects",
+      "company": "Barton Gold",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "1650345",
+      "name": "Kim Russell",
+      "title": "General Manager Development",
+      "company": "Barton Gold",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "840056",
+      "name": "lindsay Lindsay Hall",
+      "title": "project manager at Ausdrill",
+      "company": "Ausdrill",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "840052",
+      "name": "Simon Kitson",
+      "title": "Project Manager Barton Gold",
+      "company": "Barton Gold",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "840057",
+      "name": "Steven Donhardt",
+      "title": "Project Manager at Ausdrill",
+      "company": "Ausdrill",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "840054",
+      "name": "Susan Wilshusen",
+      "title": "Writer, entrepreneur with years of client account management experience",
+      "company": "Barton Gold",
+      "contactTrustTier": "send_ready",
+      "projectId": "450027",
+      "projectName": "Tunkillia Gold Project"
+    },
+    {
+      "id": "2100063",
+      "name": "Adrian Lim",
+      "title": "Project Manager",
+      "company": "North East Link Program (VIC)",
+      "contactTrustTier": "send_ready",
+      "projectId": "960002",
+      "projectName": "North East Link Program"
+    },
+    {
+      "id": "2100060",
+      "name": "Brett Kavanagh",
+      "title": "Construction Manager",
+      "company": "North East Link Program (VIC)",
+      "contactTrustTier": "send_ready",
+      "projectId": "960002",
+      "projectName": "North East Link Program"
+    },
+    {
+      "id": "2100061",
+      "name": "Brett Taig",
+      "title": "Digital Engineering Manager",
+      "company": "North East Link Program (VIC)",
+      "contactTrustTier": "send_ready",
+      "projectId": "960002",
+      "projectName": "North East Link Program"
+    },
+    {
+      "id": "2100064",
+      "name": "Dheeraj Kandel",
+      "title": "Project Manager",
+      "company": "North East Link Program (VIC)",
+      "contactTrustTier": "send_ready",
+      "projectId": "960002",
+      "projectName": "North East Link Program"
+    },
+    {
+      "id": "2100062",
+      "name": "Nicholas Mirecki",
+      "title": "Project Manager",
+      "company": "North East Link Program (VIC)",
+      "contactTrustTier": "send_ready",
+      "projectId": "960002",
+      "projectName": "North East Link Program"
+    },
+    {
+      "id": "1380039",
+      "name": "Darren Whyte",
+      "title": "Fleet Manager",
+      "company": "Qube",
+      "contactTrustTier": "send_ready",
+      "projectId": "990050",
+      "projectName": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)"
+    },
+    {
+      "id": "1380038",
+      "name": "John Allen",
+      "title": "Fleet Manager",
+      "company": "Qube",
+      "contactTrustTier": "send_ready",
+      "projectId": "990050",
+      "projectName": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)"
+    },
+    {
+      "id": "1380040",
+      "name": "Sam Leszczynski",
+      "title": "General Manager - Mining Services",
+      "company": "Qube",
+      "contactTrustTier": "send_ready",
+      "projectId": "990050",
+      "projectName": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n840055\tChristopher Hayes\tProject Manager at Ausdrill\tAusdrill\tsend_ready\t450027\tTunkillia Gold Project\n840053\tDair Bakuridze\tProject manager\tBarton Gold\tsend_ready\t450027\tTunkillia Gold Project\n1650346\tDavid Wilson\tGeneral Manager Projects\tBarton Gold\tsend_ready\t450027\tTunkillia Gold Project\n1650345\tKim Russell\tGeneral Manager Development\tBarton Gold\tsend_ready\t450027\tTunkillia Gold Project\n840056\tlindsay Lindsay Hall\tproject manager at Ausdrill\tAusdrill\tsend_ready\t450027\tTunkillia Gold Project\n840052\tSimon Kitson\tProject Manager Barton Gold\tBarton Gold\tsend_ready\t450027\tTunkillia Gold Project\n840057\tSteven Donhardt\tProject Manager at Ausdrill\tAusdrill\tsend_ready\t450027\tTunkillia Gold Project\n840054\tSusan Wilshusen\tWriter, entrepreneur with years of client account management experience\tBarton Gold\tsend_ready\t450027\tTunkillia Gold Project\n2100063\tAdrian Lim\tProject Manager\tNorth East Link Program (VIC)\tsend_ready\t960002\tNorth East Link Program\n2100060\tBrett Kavanagh\tConstruction Manager\tNorth East Link Program (VIC)\tsend_ready\t960002\tNorth East Link Program\n2100061\tBrett Taig\tDigital Engineering Manager\tNorth East Link Program (VIC)\tsend_ready\t960002\tNorth East Link Program\n2100064\tDheeraj Kandel\tProject Manager\tNorth East Link Program (VIC)\tsend_ready\t960002\tNorth East Link Program\n2100062\tNicholas Mirecki\tProject Manager\tNorth East Link Program (VIC)\tsend_ready\t960002\tNorth East Link Program\n1380039\tDarren Whyte\tFleet Manager\tQube\tsend_ready\t990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\n1380038\tJohn Allen\tFleet Manager\tQube\tsend_ready\t990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\n1380040\tSam Leszczynski\tGeneral Manager - Mining Services\tQube\tsend_ready\t990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\n",
+  "stderr": "",
+  "execution_time_ms": 1812
+}

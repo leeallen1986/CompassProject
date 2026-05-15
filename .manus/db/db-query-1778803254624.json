@@ -1,0 +1,28 @@
+{
+  "query": "SELECT u.name, l.digestType, l.weekKey, l.status, l.itemCount, l.sentAt, l.error\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE u.name LIKE '%Ryan%' AND l.digestType = 'thursday' AND l.weekKey = '2026W20'\nORDER BY l.sentAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.name, l.digestType, l.weekKey, l.status, l.itemCount, l.sentAt, l.error\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE u.name LIKE '%Ryan%' AND l.digestType = 'thursday' AND l.weekKey = '2026W20'\nORDER BY l.sentAt DESC;",
+  "rows": [
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "weekKey": "2026W20",
+      "status": "sent",
+      "itemCount": "41",
+      "sentAt": "2026-05-15 00:00:45",
+      "error": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "thursday",
+      "weekKey": "2026W20",
+      "status": "failed",
+      "itemCount": "0",
+      "sentAt": "2026-05-14 00:47:49",
+      "error": "STALE: pending slot never finalised — cleared by admin 2026-05-15"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tweekKey\tstatus\titemCount\tsentAt\terror\nRyan Pemberton\tthursday\t2026W20\tsent\t41\t2026-05-15 00:00:45\tNULL\nRyan Pemberton\tthursday\t2026W20\tfailed\t0\t2026-05-14 00:47:49\tSTALE: pending slot never finalised — cleared by admin 2026-05-15\n",
+  "stderr": "",
+  "execution_time_ms": 1767
+}

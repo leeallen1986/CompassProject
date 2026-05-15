@@ -1,0 +1,37 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId = '120238'\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId = '120238'\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY c.name;\n",
+  "rows": [
+    {
+      "id": "1650114",
+      "name": "Bill Best",
+      "title": "General Manager Onshore",
+      "company": "Beach Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "120238",
+      "projectName": "Ocean Patriot Drilling Program"
+    },
+    {
+      "id": "1650115",
+      "name": "Heidi Edwards",
+      "title": "General Manager - Taxation",
+      "company": "Beach Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "120238",
+      "projectName": "Ocean Patriot Drilling Program"
+    },
+    {
+      "id": "1650113",
+      "name": "Ronaldo Cruz",
+      "title": "Project Manager",
+      "company": "Beach Energy",
+      "contactTrustTier": "send_ready",
+      "projectId": "120238",
+      "projectName": "Ocean Patriot Drilling Program"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n1650114\tBill Best\tGeneral Manager Onshore\tBeach Energy\tsend_ready\t120238\tOcean Patriot Drilling Program\n1650115\tHeidi Edwards\tGeneral Manager - Taxation\tBeach Energy\tsend_ready\t120238\tOcean Patriot Drilling Program\n1650113\tRonaldo Cruz\tProject Manager\tBeach Energy\tsend_ready\t120238\tOcean Patriot Drilling Program\n",
+  "stderr": "",
+  "execution_time_ms": 1875
+}

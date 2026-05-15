@@ -1,0 +1,85 @@
+{
+  "query": "\nSELECT c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = '690089'\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY c.name\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = '690089'\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY c.name\nLIMIT 15;\n",
+  "rows": [
+    {
+      "name": "Adam Malcolm",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Alexis Singleton",
+      "title": "Superintendent Drills and Auxiliary Maintenance",
+      "company": "Newmont"
+    },
+    {
+      "name": "Ami Parekh",
+      "title": "Procurement Officer",
+      "company": "Newmont"
+    },
+    {
+      "name": "Andrew Daly",
+      "title": "Field and Marine Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Ash Hooper",
+      "title": "Process Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Bucky Pinard",
+      "title": "Mine Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Chris Dark",
+      "title": "General Manager Boddington Mine",
+      "company": "Newmont"
+    },
+    {
+      "name": "Dale Hicks",
+      "title": "Wet Plant Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Danny Ramunno",
+      "title": "Quarry Manager and Alternate Senior Site Executive",
+      "company": "Newmont"
+    },
+    {
+      "name": "Jarrad Haynes",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Jennifer Cope",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "John Fisher",
+      "title": "Maintenance Superintendent",
+      "company": "Newmont"
+    },
+    {
+      "name": "Josef Bartolo",
+      "title": "Construction Project Manager",
+      "company": "Macmahon"
+    },
+    {
+      "name": "Kevin Elms",
+      "title": "Superintendent Dry Plant Process Maintenance",
+      "company": "Newmont"
+    },
+    {
+      "name": "Luke Barton",
+      "title": "Construction Manager",
+      "company": "Monadelphous"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\ttitle\tcompany\nAdam Malcolm\tMaintenance Superintendent\tNewmont\nAlexis Singleton\tSuperintendent Drills and Auxiliary Maintenance\tNewmont\nAmi Parekh\tProcurement Officer\tNewmont\nAndrew Daly\tField and Marine Maintenance Superintendent\tNewmont\nAsh Hooper\tProcess Maintenance Superintendent\tNewmont\nBucky Pinard\tMine Maintenance Superintendent\tNewmont\nChris Dark\tGeneral Manager Boddington Mine\tNewmont\nDale Hicks\tWet Plant Maintenance Superintendent\tNewmont\nDanny Ramunno\tQuarry Manager and Alternate Senior Site Executive\tNewmont\nJarrad Haynes\tMaintenance Superintendent\tNewmont\nJennifer Cope\tMaintenance Superintendent\tNewmont\nJohn Fisher\tMaintenance Superintendent\tNewmont\nJosef Bartolo\tConstruction Project Manager\tMacmahon\nKevin Elms\tSuperintendent Dry Plant Process Maintenance\tNewmont\nLuke Barton\tConstruction Manager\tMonadelphous\n",
+  "stderr": "",
+  "execution_time_ms": 1808
+}

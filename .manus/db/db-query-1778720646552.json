@@ -1,0 +1,230 @@
+{
+  "query": "\nSELECT \n  p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND p.projectState IN ('NSW', 'VIC', 'SA', 'TAS')\n  AND p.sector IN ('mining', 'oil_gas', 'infrastructure')\n  AND p.id NOT IN ('690089','570022','330035','210007','330033','660020','330017','120346','120267','210028')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority\nHAVING sr_count >= 2\nORDER BY sr_count DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND p.projectState IN ('NSW', 'VIC', 'SA', 'TAS')\n  AND p.sector IN ('mining', 'oil_gas', 'infrastructure')\n  AND p.id NOT IN ('690089','570022','330035','210007','330033','660020','330017','120346','120267','210028')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority\nHAVING sr_count >= 2\nORDER BY sr_count DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "720037",
+      "name": "Euroa Station Upgrade (Inland Rail)",
+      "productLane": "NULL",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "10"
+    },
+    {
+      "id": "450027",
+      "name": "Tunkillia Gold Project",
+      "productLane": "portable_air",
+      "projectState": "SA",
+      "sector": "mining",
+      "stageCode": "exploration",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "8"
+    },
+    {
+      "id": "990022",
+      "name": "Glen Eira and Greater Dandenong Sewer Network Upgrade",
+      "productLane": "NULL",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "5"
+    },
+    {
+      "id": "330045",
+      "name": "Melbourne Airport Rail Link (MARL)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "5"
+    },
+    {
+      "id": "960002",
+      "name": "North East Link Program",
+      "productLane": "NULL",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "$26.1 billion",
+      "priority": "hot",
+      "sr_count": "5"
+    },
+    {
+      "id": "240016",
+      "name": "High Speed Rail Newcastle to Sydney",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "procurement",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "4"
+    },
+    {
+      "id": "330006",
+      "name": "Melbourne Airport Rail Link - Jet Fuel Pipeline Relocation",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "4"
+    },
+    {
+      "id": "180014",
+      "name": "Melbourne CBD intersection tram system maintenance",
+      "productLane": "portable_air",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "4"
+    },
+    {
+      "id": "90006",
+      "name": "Warragamba Dam Wall Raising",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "$1.6 billion",
+      "priority": "hot",
+      "sr_count": "4"
+    },
+    {
+      "id": "660048",
+      "name": "$1M boost for regional level crossing safety",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "$1 million",
+      "priority": "warm",
+      "sr_count": "4"
+    },
+    {
+      "id": "330020",
+      "name": "Riverstone Water Resource Recovery Facility Upgrade",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "awarded",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "4"
+    },
+    {
+      "id": "240025",
+      "name": "Queanbeyan Wastewater Treatment Plant Upgrade",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "procurement",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "3"
+    },
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "productLane": "portable_air",
+      "projectState": "VIC",
+      "sector": "oil_gas",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "3"
+    },
+    {
+      "id": "660041",
+      "name": "M1 Pacific Motorway extension to Raymond Terrace",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "3"
+    },
+    {
+      "id": "870009",
+      "name": "Selfs Point Sewer Transformation",
+      "productLane": "NULL",
+      "projectState": "TAS",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "3"
+    },
+    {
+      "id": "120238",
+      "name": "Ocean Patriot Drilling Program",
+      "productLane": "portable_air",
+      "projectState": "VIC",
+      "sector": "oil_gas",
+      "stageCode": "unknown",
+      "value": "Undisclosed (tens of millions AUD)",
+      "priority": "hot",
+      "sr_count": "3"
+    },
+    {
+      "id": "210001",
+      "name": "Federal and SA Government Housing Deal",
+      "productLane": "multi_lane_pt",
+      "projectState": "SA",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "$801.5 million",
+      "priority": "warm",
+      "sr_count": "3"
+    },
+    {
+      "id": "960006",
+      "name": "Olympic Dam Expansion — BHP",
+      "productLane": "portable_air",
+      "projectState": "SA",
+      "sector": "mining",
+      "stageCode": "unknown",
+      "value": "$5+ billion",
+      "priority": "hot",
+      "sr_count": "2"
+    },
+    {
+      "id": "120013",
+      "name": "Snowy Mountains Special Activation Precinct",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "$2+ billion",
+      "priority": "hot",
+      "sr_count": "2"
+    },
+    {
+      "id": "750009",
+      "name": "Infrastructure funding to unlock thousands of new homes in Tasmania and ACT",
+      "productLane": "NULL",
+      "projectState": "TAS",
+      "sector": "infrastructure",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "warm",
+      "sr_count": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tstageCode\tvalue\tpriority\tsr_count\n720037\tEuroa Station Upgrade (Inland Rail)\tNULL\tVIC\tinfrastructure\tunknown\tUnknown\thot\t10\n450027\tTunkillia Gold Project\tportable_air\tSA\tmining\texploration\tUnknown\twarm\t8\n990022\tGlen Eira and Greater Dandenong Sewer Network Upgrade\tNULL\tVIC\tinfrastructure\tunknown\tUnknown\twarm\t5\n330045\tMelbourne Airport Rail Link (MARL)\tmulti_lane_pt\tVIC\tinfrastructure\tunknown\tUnknown\twarm\t5\n960002\tNorth East Link Program\tNULL\tVIC\tinfrastructure\tunknown\t$26.1 billion\thot\t5\n240016\tHigh Speed Rail Newcastle to Sydney\tmulti_lane_pt\tNSW\tinfrastructure\tprocurement\tUnknown\twarm\t4\n330006\tMelbourne Airport Rail Link - Jet Fuel Pipeline Relocation\tmulti_lane_pt\tVIC\tinfrastructure\tconstruction\tUnknown\twarm\t4\n180014\tMelbourne CBD intersection tram system maintenance\tportable_air\tVIC\tinfrastructure\tconstruction\tUnknown\thot\t4\n90006\tWarragamba Dam Wall Raising\tmulti_lane_pt\tNSW\tinfrastructure\tconstruction\t$1.6 billion\thot\t4\n660048\t$1M boost for regional level crossing safety\tmulti_lane_pt\tNSW\tinfrastructure\tunknown\t$1 million\twarm\t4\n330020\tRiverstone Water Resource Recovery Facility Upgrade\tmulti_lane_pt\tNSW\tinfrastructure\tawarded\tUnknown\thot\t4\n240025\tQueanbeyan Wastewater Treatment Plant Upgrade\tmulti_lane_pt\tNSW\tinfrastructure\tprocurement\tUnknown\twarm\t3\n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tportable_air\tVIC\toil_gas\tunknown\tUnknown\thot\t3\n660041\tM1 Pacific Motorway extension to Raymond Terrace\tmulti_lane_pt\tNSW\tinfrastructure\tconstruction\tUnknown\thot\t3\n870009\tSelfs Point Sewer Transformation\tNULL\tTAS\tinfrastructure\tunknown\tUnknown\thot\t3\n120238\tOcean Patriot Drilling Program\tportable_air\tVIC\toil_gas\tunknown\tUndisclosed (tens of millions AUD)\thot\t3\n210001\tFederal and SA Government Housing Deal\tmulti_lane_pt\tSA\tinfrastructure\tunknown\t$801.5 million\twarm\t3\n960006\tOlympic Dam Expansion — BHP\tportable_air\tSA\tmining\tunknown\t$5+ billion\thot\t2\n120013\tSnowy Mountains Special Activation Precinct\tmulti_lane_pt\tNSW\tinfrastructure\tunknown\t$2+ billion\thot\t2\n750009\tInfrastructure funding to unlock thousands of new homes in Tasmania and ACT\tNULL\tTAS\tinfrastructure\tunknown\tUnknown\twarm\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1908
+}

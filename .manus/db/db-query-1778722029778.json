@@ -1,0 +1,100 @@
+{
+  "query": "\nSELECT cp.projectId, c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId IN ('330015','450042','120302','330053')\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY cp.projectId, c.name\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT cp.projectId, c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId IN ('330015','450042','120302','330053')\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY cp.projectId, c.name\nLIMIT 15;\n",
+  "rows": [
+    {
+      "projectId": "120302",
+      "name": "Anthony Parker",
+      "title": "--",
+      "company": "DDH1 Drilling"
+    },
+    {
+      "projectId": "120302",
+      "name": "Ben Cooper",
+      "title": "General Manager at Genesis Minerals",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Derek Johnston",
+      "title": "Project Manager",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Neil Sutcliffe",
+      "title": "General Manager | Executive Leader",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Nicholas Nolan",
+      "title": "Operations Manager",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Paul Kline",
+      "title": "Mining leader with a passion for driving culture and high performance",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Peter Tyrrell",
+      "title": "Operations Manager",
+      "company": "DDH1 Drilling"
+    },
+    {
+      "projectId": "120302",
+      "name": "Robert Watters",
+      "title": "Maintenance Manager",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Ryan Lenegan",
+      "title": "Manager - Contracts",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "120302",
+      "name": "Ryan Tooher",
+      "title": "Manager - Ore Processing and Maintenance",
+      "company": "Genesis Minerals Limited"
+    },
+    {
+      "projectId": "330015",
+      "name": "Alan McGuire",
+      "title": "Contracts Manager",
+      "company": "Monadelphous"
+    },
+    {
+      "projectId": "330015",
+      "name": "Brentan Palmer",
+      "title": "Mining Project Manager",
+      "company": "Byrnecut"
+    },
+    {
+      "projectId": "330015",
+      "name": "Bruce Peak",
+      "title": "Construction Contracts Manager",
+      "company": "Monadelphous"
+    },
+    {
+      "projectId": "330015",
+      "name": "Darryl Blake",
+      "title": "Maintenance Manager",
+      "company": "Macmahon"
+    },
+    {
+      "projectId": "330015",
+      "name": "Jack Kent",
+      "title": "Mining Project Manager",
+      "company": "Byrnecut"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectId\tname\ttitle\tcompany\n120302\tAnthony Parker\t--\tDDH1 Drilling\n120302\tBen Cooper\tGeneral Manager at Genesis Minerals\tGenesis Minerals Limited\n120302\tDerek Johnston\tProject Manager\tGenesis Minerals Limited\n120302\tNeil Sutcliffe\tGeneral Manager | Executive Leader\tGenesis Minerals Limited\n120302\tNicholas Nolan\tOperations Manager\tGenesis Minerals Limited\n120302\tPaul Kline\tMining leader with a passion for driving culture and high performance\tGenesis Minerals Limited\n120302\tPeter Tyrrell\tOperations Manager\tDDH1 Drilling\n120302\tRobert Watters\tMaintenance Manager\tGenesis Minerals Limited\n120302\tRyan Lenegan\tManager - Contracts\tGenesis Minerals Limited\n120302\tRyan Tooher\tManager - Ore Processing and Maintenance\tGenesis Minerals Limited\n330015\tAlan McGuire\tContracts Manager\tMonadelphous\n330015\tBrentan Palmer\tMining Project Manager\tByrnecut\n330015\tBruce Peak\tConstruction Contracts Manager\tMonadelphous\n330015\tDarryl Blake\tMaintenance Manager\tMacmahon\n330015\tJack Kent\tMining Project Manager\tByrnecut\n",
+  "stderr": "",
+  "execution_time_ms": 1879
+}

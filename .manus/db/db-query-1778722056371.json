@@ -1,0 +1,60 @@
+{
+  "query": "\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot','warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess','pal','pumps'))\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.priority, p.stageCode\nHAVING sr_count >= 1\nORDER BY CASE p.priority WHEN 'hot' THEN 0 ELSE 1 END, sr_count DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "productLane": "multi_lane_pt",
+      "projectState": "NSW",
+      "sector": "mining",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "23"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "construction",
+      "sr_count": "11"
+    },
+    {
+      "id": "720037",
+      "name": "Euroa Station Upgrade (Inland Rail)",
+      "productLane": "NULL",
+      "projectState": "VIC",
+      "sector": "infrastructure",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "10"
+    },
+    {
+      "id": "210007",
+      "name": "Multiple Large-Scale Renewable Energy Generation Projects (1.2 GW)",
+      "productLane": "multi_lane_pt",
+      "projectState": "NULL",
+      "sector": "energy",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "9"
+    },
+    {
+      "id": "330035",
+      "name": "Delburn Wind Farm",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "energy",
+      "priority": "hot",
+      "stageCode": "unknown",
+      "sr_count": "9"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tpriority\tstageCode\tsr_count\n690089\tCadia Gold Mine Operations\tmulti_lane_pt\tNSW\tmining\thot\tunknown\t23\n570022\tInland Rail Station Upgrades (Euroa)\tmulti_lane_pt\tVIC\tinfrastructure\thot\tconstruction\t11\n720037\tEuroa Station Upgrade (Inland Rail)\tNULL\tVIC\tinfrastructure\thot\tunknown\t10\n210007\tMultiple Large-Scale Renewable Energy Generation Projects (1.2 GW)\tmulti_lane_pt\tNULL\tenergy\thot\tunknown\t9\n330035\tDelburn Wind Farm\tmulti_lane_pt\tVIC\tenergy\thot\tunknown\t9\n",
+  "stderr": "",
+  "execution_time_ms": 1905
+}

@@ -1,0 +1,16 @@
+{
+  "query": "\nSELECT cp.projectId, c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId IN ('690089','360011','570022','570020','720037','570013','180005','690075')\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY cp.projectId, c.name\nLIMIT 1 -- just need one primary per project to confirm contact quality\n;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT cp.projectId, c.name, c.title, c.company\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId IN ('690089','360011','570022','570020','720037','570013','180005','690075')\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\n  AND c.rejectedAt IS NULL\nORDER BY cp.projectId, c.name\nLIMIT 1 -- just need one primary per project to confirm contact quality\n;\n",
+  "rows": [
+    {
+      "projectId": "180005",
+      "name": "Brad Cathcart",
+      "title": "Procurement Manager",
+      "company": "CleanCo Queensland"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectId\tname\ttitle\tcompany\n180005\tBrad Cathcart\tProcurement Manager\tCleanCo Queensland\n",
+  "stderr": "",
+  "execution_time_ms": 1756
+}

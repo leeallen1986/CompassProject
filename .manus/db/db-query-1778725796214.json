@@ -1,0 +1,20 @@
+{
+  "query": "\nSELECT id, name, suppressed FROM projects \nWHERE name IN ('TasWater Network Overhaul','Melbourne Water Sewer Rehabilitation','Marinus Link')\n   OR id IN ('330017');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, suppressed FROM projects \nWHERE name IN ('TasWater Network Overhaul','Melbourne Water Sewer Rehabilitation','Marinus Link')\n   OR id IN ('330017');\n",
+  "rows": [
+    {
+      "id": "210028",
+      "name": "Marinus Link",
+      "suppressed": "0"
+    },
+    {
+      "id": "330017",
+      "name": "TasWater Network Overhaul",
+      "suppressed": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsuppressed\n210028\tMarinus Link\t0\n330017\tTasWater Network Overhaul\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1855
+}

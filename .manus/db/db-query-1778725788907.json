@@ -1,0 +1,18 @@
+{
+  "query": "\nSELECT id, name, suppressed, productLane, projectState, priority FROM projects WHERE id = '330017';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, suppressed, productLane, projectState, priority FROM projects WHERE id = '330017';\n",
+  "rows": [
+    {
+      "id": "330017",
+      "name": "TasWater Network Overhaul",
+      "suppressed": "0",
+      "productLane": "multi_lane_pt",
+      "projectState": "TAS",
+      "priority": "hot"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tsuppressed\tproductLane\tprojectState\tpriority\n330017\tTasWater Network Overhaul\t0\tmulti_lane_pt\tTAS\thot\n",
+  "stderr": "",
+  "execution_time_ms": 1769
+}

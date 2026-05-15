@@ -1,0 +1,30 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, c.crmOrphan, c.rejectedAt, cp.projectId\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = '960006'\n  AND c.rejectedAt IS NULL\nORDER BY c.contactTrustTier, c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, c.crmOrphan, c.rejectedAt, cp.projectId\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nWHERE cp.projectId = '960006'\n  AND c.rejectedAt IS NULL\nORDER BY c.contactTrustTier, c.name;\n",
+  "rows": [
+    {
+      "id": "1410001",
+      "name": "Olga Machrone",
+      "title": "Head of Projects Commercial, Major Projects and New Developments",
+      "company": "BHP",
+      "contactTrustTier": "send_ready",
+      "crmOrphan": "0",
+      "rejectedAt": "NULL",
+      "projectId": "960006"
+    },
+    {
+      "id": "1410002",
+      "name": "Quinton Brand",
+      "title": "Head of Major Projects | Senior Project Executive",
+      "company": "BHP",
+      "contactTrustTier": "send_ready",
+      "crmOrphan": "0",
+      "rejectedAt": "NULL",
+      "projectId": "960006"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tcrmOrphan\trejectedAt\tprojectId\n1410001\tOlga Machrone\tHead of Projects Commercial, Major Projects and New Developments\tBHP\tsend_ready\t0\tNULL\t960006\n1410002\tQuinton Brand\tHead of Major Projects | Senior Project Executive\tBHP\tsend_ready\t0\tNULL\t960006\n",
+  "stderr": "",
+  "execution_time_ms": 1790
+}

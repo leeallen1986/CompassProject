@@ -1,0 +1,64 @@
+{
+  "query": "\n-- Clear Ryan's and Kevin's stuck pending rows\nUPDATE userEmailSendLog\nSET status = 'failed',\n    error = 'STALE: pending slot never finalised — cleared by admin 2026-05-15'\nWHERE digestType = 'thursday'\n  AND sentDate = '2026-05-14'\n  AND status = 'pending';\n\nSELECT id, userId, status, error FROM userEmailSendLog\nWHERE digestType = 'thursday' AND sentDate = '2026-05-14';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Clear Ryan's and Kevin's stuck pending rows\nUPDATE userEmailSendLog\nSET status = 'failed',\n    error = 'STALE: pending slot never finalised — cleared by admin 2026-05-15'\nWHERE digestType = 'thursday'\n  AND sentDate = '2026-05-14'\n  AND status = 'pending';\n\nSELECT id, userId, status, error FROM userEmailSendLog\nWHERE digestType = 'thursday' AND sentDate = '2026-05-14';\n",
+  "rows": [
+    {
+      "id": "1230001",
+      "userId": "840008",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "id": "1230002",
+      "userId": "2340043",
+      "status": "failed",
+      "error": "STALE: pending slot never finalised — cleared by admin 2026-05-15"
+    },
+    {
+      "id": "1230005",
+      "userId": "2550006",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "id": "1230006",
+      "userId": "2820073",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "id": "1230007",
+      "userId": "3630009",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "id": "1230008",
+      "userId": "3870014",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "id": "1230009",
+      "userId": "4590008",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "id": "1230010",
+      "userId": "11580001",
+      "status": "failed",
+      "error": "STALE: pending slot never finalised — cleared by admin 2026-05-15"
+    },
+    {
+      "id": "1230019",
+      "userId": "13020010",
+      "status": "sent",
+      "error": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tstatus\terror\n1230001\t840008\tsent\tNULL\n1230002\t2340043\tfailed\tSTALE: pending slot never finalised — cleared by admin 2026-05-15\n1230005\t2550006\tsent\tNULL\n1230006\t2820073\tsent\tNULL\n1230007\t3630009\tsent\tNULL\n1230008\t3870014\tsent\tNULL\n1230009\t4590008\tsent\tNULL\n1230010\t11580001\tfailed\tSTALE: pending slot never finalised — cleared by admin 2026-05-15\n1230019\t13020010\tsent\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 2264
+}

@@ -1,0 +1,109 @@
+{
+  "query": "\nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('120346','330017')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.title, c.company, c.contactTrustTier, cp.projectId, p.name as projectName\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE cp.projectId IN ('120346','330017')\n  AND c.rejectedAt IS NULL\n  AND c.contactTrustTier = 'send_ready'\n  AND c.crmOrphan = 0\nORDER BY cp.projectId, c.name;\n",
+  "rows": [
+    {
+      "id": "1650180",
+      "name": "Darren Malley",
+      "title": "Construction Manager",
+      "company": "Interflow",
+      "contactTrustTier": "send_ready",
+      "projectId": "120346",
+      "projectName": "Melbourne Water Main Sewer Rehabilitation Program"
+    },
+    {
+      "id": "1650178",
+      "name": "Luke Wales",
+      "title": "Construction Manager",
+      "company": "Interflow",
+      "contactTrustTier": "send_ready",
+      "projectId": "120346",
+      "projectName": "Melbourne Water Main Sewer Rehabilitation Program"
+    },
+    {
+      "id": "1650176",
+      "name": "Michael Flanagan",
+      "title": "Construction Manager",
+      "company": "Melbourne Water",
+      "contactTrustTier": "send_ready",
+      "projectId": "120346",
+      "projectName": "Melbourne Water Main Sewer Rehabilitation Program"
+    },
+    {
+      "id": "1650179",
+      "name": "Michael Gardner",
+      "title": "Construction Manager",
+      "company": "Interflow",
+      "contactTrustTier": "send_ready",
+      "projectId": "120346",
+      "projectName": "Melbourne Water Main Sewer Rehabilitation Program"
+    },
+    {
+      "id": "1650177",
+      "name": "Muhammad Aziz",
+      "title": "Maintenance Manager",
+      "company": "Melbourne Water",
+      "contactTrustTier": "send_ready",
+      "projectId": "120346",
+      "projectName": "Melbourne Water Main Sewer Rehabilitation Program"
+    },
+    {
+      "id": "780254",
+      "name": "Clair Millar",
+      "title": "Global Lead GHD in the Community @ GHD | Masters of Social Impact",
+      "company": "GHD",
+      "contactTrustTier": "send_ready",
+      "projectId": "330017",
+      "projectName": "TasWater Network Overhaul"
+    },
+    {
+      "id": "780251",
+      "name": "David Yeeles",
+      "title": "Quality Engineering Manager at ghd",
+      "company": "GHD",
+      "contactTrustTier": "send_ready",
+      "projectId": "330017",
+      "projectName": "TasWater Network Overhaul"
+    },
+    {
+      "id": "780250",
+      "name": "Issam El-Khatib, P.Eng.",
+      "title": "Principal, Engineering Manager at GHD",
+      "company": "GHD",
+      "contactTrustTier": "send_ready",
+      "projectId": "330017",
+      "projectName": "TasWater Network Overhaul"
+    },
+    {
+      "id": "780253",
+      "name": "Jacqui Parker",
+      "title": "Procurement Lead Promotions at ghd",
+      "company": "GHD",
+      "contactTrustTier": "send_ready",
+      "projectId": "330017",
+      "projectName": "TasWater Network Overhaul"
+    },
+    {
+      "id": "780252",
+      "name": "Princess Joy Cervas",
+      "title": "Civil Service Eligible - Professional Information Services Procurement - Team Lead",
+      "company": "GHD",
+      "contactTrustTier": "send_ready",
+      "projectId": "330017",
+      "projectName": "TasWater Network Overhaul"
+    },
+    {
+      "id": "780249",
+      "name": "Rebecca Farrugia P. Eng., PMP",
+      "title": "Engineering Manager | A GHD Principal",
+      "company": "GHD",
+      "contactTrustTier": "send_ready",
+      "projectId": "330017",
+      "projectName": "TasWater Network Overhaul"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttitle\tcompany\tcontactTrustTier\tprojectId\tprojectName\n1650180\tDarren Malley\tConstruction Manager\tInterflow\tsend_ready\t120346\tMelbourne Water Main Sewer Rehabilitation Program\n1650178\tLuke Wales\tConstruction Manager\tInterflow\tsend_ready\t120346\tMelbourne Water Main Sewer Rehabilitation Program\n1650176\tMichael Flanagan\tConstruction Manager\tMelbourne Water\tsend_ready\t120346\tMelbourne Water Main Sewer Rehabilitation Program\n1650179\tMichael Gardner\tConstruction Manager\tInterflow\tsend_ready\t120346\tMelbourne Water Main Sewer Rehabilitation Program\n1650177\tMuhammad Aziz\tMaintenance Manager\tMelbourne Water\tsend_ready\t120346\tMelbourne Water Main Sewer Rehabilitation Program\n780254\tClair Millar\tGlobal Lead GHD in the Community @ GHD | Masters of Social Impact\tGHD\tsend_ready\t330017\tTasWater Network Overhaul\n780251\tDavid Yeeles\tQuality Engineering Manager at ghd\tGHD\tsend_ready\t330017\tTasWater Network Overhaul\n780250\tIssam El-Khatib, P.Eng.\tPrincipal, Engineering Manager at GHD\tGHD\tsend_ready\t330017\tTasWater Network Overhaul\n780253\tJacqui Parker\tProcurement Lead Promotions at ghd\tGHD\tsend_ready\t330017\tTasWater Network Overhaul\n780252\tPrincess Joy Cervas\tCivil Service Eligible - Professional Information Services Procurement - Team Lead\tGHD\tsend_ready\t330017\tTasWater Network Overhaul\n780249\tRebecca Farrugia P. Eng., PMP\tEngineering Manager | A GHD Principal\tGHD\tsend_ready\t330017\tTasWater Network Overhaul\n",
+  "stderr": "",
+  "execution_time_ms": 1959
+}

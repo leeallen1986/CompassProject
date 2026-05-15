@@ -1,0 +1,40 @@
+{
+  "query": "\nSELECT \n  p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority, p.suppressed, p.discoveryStatus, p.lifecycleStatus,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count,\n  COUNT(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectedAt IS NULL THEN 1 END) as nu_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.id IN ('210028', '120348')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority, p.suppressed, p.discoveryStatus, p.lifecycleStatus;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority, p.suppressed, p.discoveryStatus, p.lifecycleStatus,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count,\n  COUNT(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectedAt IS NULL THEN 1 END) as nu_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.id IN ('210028', '120348')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority, p.suppressed, p.discoveryStatus, p.lifecycleStatus;\n",
+  "rows": [
+    {
+      "id": "120348",
+      "name": "Port Pirie Lead Abatement Program - Water Infrastructure",
+      "productLane": "pumps",
+      "projectState": "SA",
+      "sector": "infrastructure",
+      "stageCode": "construction",
+      "value": "AUD 20 million (water component)",
+      "priority": "warm",
+      "suppressed": "0",
+      "discoveryStatus": "discovery_queued",
+      "lifecycleStatus": "stale",
+      "sr_count": "0",
+      "nu_count": "268"
+    },
+    {
+      "id": "210028",
+      "name": "Marinus Link",
+      "productLane": "multi_lane_pt",
+      "projectState": "VIC",
+      "sector": "energy",
+      "stageCode": "unknown",
+      "value": "$6.1 billion",
+      "priority": "hot",
+      "suppressed": "0",
+      "discoveryStatus": "send_ready_contact",
+      "lifecycleStatus": "active",
+      "sr_count": "5",
+      "nu_count": "89"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tstageCode\tvalue\tpriority\tsuppressed\tdiscoveryStatus\tlifecycleStatus\tsr_count\tnu_count\n120348\tPort Pirie Lead Abatement Program - Water Infrastructure\tpumps\tSA\tinfrastructure\tconstruction\tAUD 20 million (water component)\twarm\t0\tdiscovery_queued\tstale\t0\t268\n210028\tMarinus Link\tmulti_lane_pt\tVIC\tenergy\tunknown\t$6.1 billion\thot\t0\tsend_ready_contact\tactive\t5\t89\n",
+  "stderr": "",
+  "execution_time_ms": 1926
+}

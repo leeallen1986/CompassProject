@@ -741,6 +741,17 @@ export const appRouter = router({
         return sendThursdayReminderForUser(input.userId);
       }),
 
+    /**
+     * Force-send Thursday reminder to a single specific user.
+     * Bypasses the weekly dedup guard — use to re-send to users whose slot was stuck in 'pending'.
+     */
+    sendThursdayNowForUser: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input }) => {
+        const { sendThursdayReminderActualToUser } = await import("./emailDigest");
+        return sendThursdayReminderActualToUser(input.userId);
+      }),
+
     /** Preview manager rollup (dry-run, no send) */
     previewManagerRollup: adminProcedure
       .mutation(async () => {

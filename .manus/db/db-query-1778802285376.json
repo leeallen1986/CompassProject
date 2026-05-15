@@ -1,0 +1,22 @@
+{
+  "query": "\n-- Check emailDigestPrefs for Ryan\nSELECT edp.*\nFROM emailDigestPrefs edp\nJOIN users u ON u.id = edp.userId\nWHERE u.name = 'Ryan Pemberton';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check emailDigestPrefs for Ryan\nSELECT edp.*\nFROM emailDigestPrefs edp\nJOIN users u ON u.id = edp.userId\nWHERE u.name = 'Ryan Pemberton';\n",
+  "rows": [
+    {
+      "id": "60002",
+      "userId": "2340043",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "includeContacts": "1",
+      "includePipelineUpdates": "1",
+      "lastSentAt": "NULL",
+      "createdAt": "2026-05-08 22:54:26",
+      "updatedAt": "2026-05-08 22:54:26"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tenabled\tfrequency\tincludeHotOnly\tincludeContacts\tincludePipelineUpdates\tlastSentAt\tcreatedAt\tupdatedAt\n60002\t2340043\t1\tweekly\t0\t1\t1\tNULL\t2026-05-08 22:54:26\t2026-05-08 22:54:26\n",
+  "stderr": "",
+  "execution_time_ms": 1884
+}

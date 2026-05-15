@@ -1,0 +1,32 @@
+{
+  "query": "\nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND p.sector = 'oil_gas'\n  AND p.id NOT IN ('690089','570022','330035','210007','330033','660020','330017','120346','120267','210028')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority\nHAVING sr_count >= 1\nORDER BY sr_count DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' AND c.crmOrphan = 0 AND c.rejectedAt IS NULL THEN 1 END) as sr_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\n  AND p.geoBlockedReason IS NULL\n  AND (p.productLane IS NULL OR p.productLane NOT IN ('bess', 'pal', 'pumps'))\n  AND (p.projectState IN ('NSW','VIC','SA','TAS') OR p.projectState IS NULL)\n  AND p.sector = 'oil_gas'\n  AND p.id NOT IN ('690089','570022','330035','210007','330033','660020','330017','120346','120267','210028')\nGROUP BY p.id, p.name, p.productLane, p.projectState, p.sector, p.stageCode, p.value, p.priority\nHAVING sr_count >= 1\nORDER BY sr_count DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "productLane": "portable_air",
+      "projectState": "VIC",
+      "sector": "oil_gas",
+      "stageCode": "unknown",
+      "value": "Unknown",
+      "priority": "hot",
+      "sr_count": "3"
+    },
+    {
+      "id": "120238",
+      "name": "Ocean Patriot Drilling Program",
+      "productLane": "portable_air",
+      "projectState": "VIC",
+      "sector": "oil_gas",
+      "stageCode": "unknown",
+      "value": "Undisclosed (tens of millions AUD)",
+      "priority": "hot",
+      "sr_count": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tprojectState\tsector\tstageCode\tvalue\tpriority\tsr_count\n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tportable_air\tVIC\toil_gas\tunknown\tUnknown\thot\t3\n120238\tOcean Patriot Drilling Program\tportable_air\tVIC\toil_gas\tunknown\tUndisclosed (tens of millions AUD)\thot\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1866
+}
