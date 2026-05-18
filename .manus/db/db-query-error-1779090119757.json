@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, projectId, digestSafe, primaryContactId, backupContactId, updatedAt FROM projectValidationGates WHERE projectId IN (690089, 360011, 660020, 570022);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, projectId, digestSafe, primaryContactId, backupContactId, updatedAt FROM projectValidationGates WHERE projectId IN (690089, 360011, 660020, 570022);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'primarycontactid' in 'field list'"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "query": "SELECT u.id, u.name, u.email\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Ryan Pemberton', 'Dan Day')\nORDER BY u.name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.id, u.name, u.email\nFROM users u\nJOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Ryan Pemberton', 'Dan Day')\nORDER BY u.name;",
+  "rows": [
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\n3630009\tDan Day\tdan.day@atlascopco.com\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\n",
+  "stderr": "",
+  "execution_time_ms": 1725
+}

@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, name, priority, sector, projectState, stageCode, productLane, createdAt\nFROM projects\nWHERE createdAt >= '2026-05-17 20:00:00'\nORDER BY createdAt ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, priority, sector, projectState, stageCode, productLane, createdAt\nFROM projects\nWHERE createdAt >= '2026-05-17 20:00:00'\nORDER BY createdAt ASC;",
+  "rows": [
+    {
+      "id": "1470001",
+      "name": "Queensland Housing Infrastructure Deal",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "stageCode": "unknown",
+      "productLane": "NULL",
+      "createdAt": "2026-05-17 20:15:37"
+    },
+    {
+      "id": "1470002",
+      "name": "Hobart Military Barracks Housing Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "TAS",
+      "stageCode": "unknown",
+      "productLane": "NULL",
+      "createdAt": "2026-05-17 20:15:44"
+    },
+    {
+      "id": "1470003",
+      "name": "Australia's Biggest Wind Farm (unnamed)",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "stageCode": "unknown",
+      "productLane": "NULL",
+      "createdAt": "2026-05-17 20:16:16"
+    },
+    {
+      "id": "1470004",
+      "name": "Australia's Biggest Solar Farm (operating)",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "NULL",
+      "stageCode": "unknown",
+      "productLane": "NULL",
+      "createdAt": "2026-05-17 20:16:30"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tpriority\tsector\tprojectState\tstageCode\tproductLane\tcreatedAt\n1470001\tQueensland Housing Infrastructure Deal\twarm\tinfrastructure\tQLD\tunknown\tNULL\t2026-05-17 20:15:37\n1470002\tHobart Military Barracks Housing Development\twarm\tinfrastructure\tTAS\tunknown\tNULL\t2026-05-17 20:15:44\n1470003\tAustralia's Biggest Wind Farm (unnamed)\twarm\tenergy\tQLD\tunknown\tNULL\t2026-05-17 20:16:16\n1470004\tAustralia's Biggest Solar Farm (operating)\tcold\tenergy\tNULL\tunknown\tNULL\t2026-05-17 20:16:30\n",
+  "stderr": "",
+  "execution_time_ms": 1761
+}

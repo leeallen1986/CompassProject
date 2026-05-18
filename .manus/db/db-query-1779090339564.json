@@ -1,0 +1,28 @@
+{
+  "query": "SHOW CREATE TABLE userEmailSendLog;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW CREATE TABLE userEmailSendLog;",
+  "rows": [
+    {
+      "Table": "userEmailSendLog",
+      "Create Table": "CREATE TABLE `userEmailSendLog` ("
+    }
+  ],
+  "messages": [
+    "  `id` int NOT NULL AUTO_INCREMENT,",
+    "  `userId` int NOT NULL,",
+    "  `digestType` enum('monday','thursday','manager_rollup') COLLATE utf8mb4_unicode_ci NOT NULL,",
+    "  `sentDate` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,",
+    "  `sentAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+    "  `status` enum('sent','failed','dry_run','pending') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'sent',",
+    "  `error` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `weekKey` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `itemCount` int DEFAULT '0',",
+    "  `dryRun` tinyint(1) NOT NULL DEFAULT '0',",
+    "  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,",
+    "  UNIQUE KEY `uq_user_type_date` (`userId`,`digestType`,`sentDate`)",
+    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=1410001"
+  ],
+  "stdout": "Table\tCreate Table\nuserEmailSendLog\tCREATE TABLE `userEmailSendLog` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `userId` int NOT NULL,\n  `digestType` enum('monday','thursday','manager_rollup') COLLATE utf8mb4_unicode_ci NOT NULL,\n  `sentDate` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,\n  `sentAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `status` enum('sent','failed','dry_run','pending') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'sent',\n  `error` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `weekKey` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `itemCount` int DEFAULT '0',\n  `dryRun` tinyint(1) NOT NULL DEFAULT '0',\n  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,\n  UNIQUE KEY `uq_user_type_date` (`userId`,`digestType`,`sentDate`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=1410001\n",
+  "stderr": "",
+  "execution_time_ms": 1752
+}

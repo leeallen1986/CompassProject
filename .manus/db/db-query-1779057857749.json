@@ -1,0 +1,136 @@
+{
+  "query": "SELECT \n  DATE(createdAt) AS addedDate,\n  name, priority, sector, projectState,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[0].label')) AS source1,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[1].label')) AS source2\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nORDER BY createdAt ASC\nLIMIT 40 OFFSET 100;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  DATE(createdAt) AS addedDate,\n  name, priority, sector, projectState,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[0].label')) AS source1,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[1].label')) AS source2\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nORDER BY createdAt ASC\nLIMIT 40 OFFSET 100;",
+  "rows": [
+    {
+      "addedDate": "2026-05-15",
+      "name": "Bellevue Gold Project",
+      "priority": "hot",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Finniss Lithium Operation - BP33 Underground Mining Project",
+      "priority": "hot",
+      "sector": "mining",
+      "projectState": "NT",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Hillgrove Antimony-Gold Project - Tailings Storage Facility 1 (TSF1) Metallurgical Testwork",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Finniss Lithium Project restart and underground development",
+      "priority": "hot",
+      "sector": "mining",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "name": "Deep Maintenance and Modification Facility at RAAF Base Edinburgh",
+      "priority": "hot",
+      "sector": "defence",
+      "projectState": "SA",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "name": "Renewable Energy Tender (Solar-Battery Hybrids, Wind Energy, Storage)",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "name": "Norseman Gold Project growth pipeline",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "name": "Facility Management Services at Public Transport Authority Non-Rail Facilities",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "Tenders WA — PTA260005",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "name": "Petrophysics Data Acquisition Services",
+      "priority": "cold",
+      "sector": "mining",
+      "projectState": "NULL",
+      "source1": "Tenders WA — LGIRS25337",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "name": "Lumsden Point - Work Package 18 - Port Area Civils and Services",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "Tenders WA — PPAT0826",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-17",
+      "name": "Queensland Housing Infrastructure Deal",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-17",
+      "name": "Hobart Military Barracks Housing Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "TAS",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-17",
+      "name": "Australia's Biggest Wind Farm (unnamed)",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-17",
+      "name": "Australia's Biggest Solar Farm (operating)",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "addedDate\tname\tpriority\tsector\tprojectState\tsource1\tsource2\n2026-05-15\tBellevue Gold Project\thot\tmining\tWA\tRSS Feed\tProjectory\n2026-05-15\tFinniss Lithium Operation - BP33 Underground Mining Project\thot\tmining\tNT\tRSS Feed\tNULL\n2026-05-15\tHillgrove Antimony-Gold Project - Tailings Storage Facility 1 (TSF1) Metallurgical Testwork\twarm\tmining\tNSW\tRSS Feed\tNULL\n2026-05-15\tFinniss Lithium Project restart and underground development\thot\tmining\tNULL\tRSS Feed\tProjectory\n2026-05-16\tDeep Maintenance and Modification Facility at RAAF Base Edinburgh\thot\tdefence\tSA\tRSS Feed\tProjectory\n2026-05-16\tRenewable Energy Tender (Solar-Battery Hybrids, Wind Energy, Storage)\twarm\tenergy\tQLD\tRSS Feed\tNULL\n2026-05-16\tNorseman Gold Project growth pipeline\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-16\tFacility Management Services at Public Transport Authority Non-Rail Facilities\tcold\tinfrastructure\tNULL\tTenders WA — PTA260005\tNULL\n2026-05-16\tPetrophysics Data Acquisition Services\tcold\tmining\tNULL\tTenders WA — LGIRS25337\tNULL\n2026-05-16\tLumsden Point - Work Package 18 - Port Area Civils and Services\twarm\tinfrastructure\tNULL\tTenders WA — PPAT0826\tNULL\n2026-05-17\tQueensland Housing Infrastructure Deal\twarm\tinfrastructure\tQLD\tRSS Feed\tNULL\n2026-05-17\tHobart Military Barracks Housing Development\twarm\tinfrastructure\tTAS\tRSS Feed\tNULL\n2026-05-17\tAustralia's Biggest Wind Farm (unnamed)\twarm\tenergy\tQLD\tRSS Feed\tNULL\n2026-05-17\tAustralia's Biggest Solar Farm (operating)\tcold\tenergy\tNULL\tRSS Feed\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1782
+}

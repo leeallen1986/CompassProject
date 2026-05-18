@@ -1,0 +1,75 @@
+{
+  "query": "SELECT \n  id,\n  runType,\n  status,\n  startedAt,\n  completedAt,\n  ROUND(durationMs / 60000, 1) AS durationMins,\n  feedsFetched,\n  feedErrors,\n  articlesIngested,\n  projectsCreated,\n  contactsEnriched\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  id,\n  runType,\n  status,\n  startedAt,\n  completedAt,\n  ROUND(durationMs / 60000, 1) AS durationMins,\n  feedsFetched,\n  feedErrors,\n  articlesIngested,\n  projectsCreated,\n  contactsEnriched\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 5;",
+  "rows": [
+    {
+      "id": "1200001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-16 20:10:04",
+      "completedAt": "2026-05-16 22:54:01",
+      "durationMins": "163.9",
+      "feedsFetched": "37",
+      "feedErrors": "10",
+      "articlesIngested": "43",
+      "projectsCreated": "3",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "1170001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-15 20:10:02",
+      "completedAt": "2026-05-15 20:37:51",
+      "durationMins": "NULL",
+      "feedsFetched": "37",
+      "feedErrors": "10",
+      "articlesIngested": "253",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "1140001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-14 23:38:21",
+      "completedAt": "2026-05-14 23:53:04",
+      "durationMins": "NULL",
+      "feedsFetched": "0",
+      "feedErrors": "0",
+      "articlesIngested": "0",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    },
+    {
+      "id": "1110001",
+      "runType": "daily",
+      "status": "completed",
+      "startedAt": "2026-05-13 23:08:26",
+      "completedAt": "2026-05-14 00:53:51",
+      "durationMins": "105.4",
+      "feedsFetched": "37",
+      "feedErrors": "14",
+      "articlesIngested": "86",
+      "projectsCreated": "38",
+      "contactsEnriched": "1"
+    },
+    {
+      "id": "1080001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-13 10:10:48",
+      "completedAt": "2026-05-13 10:16:16",
+      "durationMins": "NULL",
+      "feedsFetched": "0",
+      "feedErrors": "0",
+      "articlesIngested": "0",
+      "projectsCreated": "0",
+      "contactsEnriched": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunType\tstatus\tstartedAt\tcompletedAt\tdurationMins\tfeedsFetched\tfeedErrors\tarticlesIngested\tprojectsCreated\tcontactsEnriched\n1200001\tdaily\tfailed\t2026-05-16 20:10:04\t2026-05-16 22:54:01\t163.9\t37\t10\t43\t3\t0\n1170001\tdaily\tfailed\t2026-05-15 20:10:02\t2026-05-15 20:37:51\tNULL\t37\t10\t253\t0\t0\n1140001\tdaily\tfailed\t2026-05-14 23:38:21\t2026-05-14 23:53:04\tNULL\t0\t0\t0\t0\t0\n1110001\tdaily\tcompleted\t2026-05-13 23:08:26\t2026-05-14 00:53:51\t105.4\t37\t14\t86\t38\t1\n1080001\tdaily\tfailed\t2026-05-13 10:10:48\t2026-05-13 10:16:16\tNULL\t0\t0\t0\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1762
+}

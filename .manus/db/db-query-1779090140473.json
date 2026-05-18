@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, projectId, digestSafe, primaryAcceptable, backupAcceptable, gateSetBy, gateSetAt FROM projectValidationGates WHERE projectId IN (690089, 360011, 660020, 570022);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, projectId, digestSafe, primaryAcceptable, backupAcceptable, gateSetBy, gateSetAt FROM projectValidationGates WHERE projectId IN (690089, 360011, 660020, 570022);",
+  "rows": [
+    {
+      "id": "60002",
+      "projectId": "570022",
+      "digestSafe": "1",
+      "primaryAcceptable": "1",
+      "backupAcceptable": "1",
+      "gateSetBy": "system-auto-gate-v1",
+      "gateSetAt": "2026-05-07 08:54:03"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprojectId\tdigestSafe\tprimaryAcceptable\tbackupAcceptable\tgateSetBy\tgateSetAt\n60002\t570022\t1\t1\t1\tsystem-auto-gate-v1\t2026-05-07 08:54:03\n",
+  "stderr": "",
+  "execution_time_ms": 1717
+}

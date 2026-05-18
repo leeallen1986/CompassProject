@@ -2641,3 +2641,12 @@
 - [ ] Clear Ryan's stuck pending Thursday row (2026-05-14) and force re-send
 - [ ] Add startup stale-pending cleanup: mark any pending rows older than 10 min as failed on server start
 - [ ] Add per-user exception resilience: ensure finaliseDigestSendSlot(failed) is always called even if inner catch also throws
+
+## Dan Day Digest Fix + dry_run Blocking Bug (2026-05-18)
+- [x] Audit Dan Day's project pool — 26 send_ready projects confirmed; only 1 digest-safe (Inland Rail Euroa)
+- [x] Root cause: 7 other digest-safe projects were WA territory (correctly excluded); Dan Day's NSW/QLD/TAS projects lacked digestSafe=true gates
+- [x] Mark 3 top qualifying projects digest-safe: Cadia Gold Mine (690089), Toowoomba-Athol Road (360011), TasWater Wastewater (660020)
+- [x] Re-send Monday digest for Dan Day — Resend ID 55e8dcc9; all 9 reps now confirmed sent
+- [x] Fix dry_run blocking bug in logEmailSendExtended: add IF(status IN ('sent','failed'), ...) guards to ON DUPLICATE KEY UPDATE so dry-run previews never downgrade terminal status rows
+- [x] Fix claimDigestSendSlot: add Step 2 UPDATE to claim dry_run rows on same UTC day (handles preview-then-send-same-day scenario)
+- [x] TypeScript clean — 0 errors; 3272/3276 tests passing (4 pre-existing Apollo timeout failures unrelated to fix)

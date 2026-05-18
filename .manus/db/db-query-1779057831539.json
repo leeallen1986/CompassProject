@@ -1,0 +1,75 @@
+{
+  "query": "SELECT \n  DATE(createdAt) AS addedDate,\n  COUNT(*) AS totalProjects,\n  SUM(CASE WHEN sources LIKE '%RSS Feed%' THEN 1 ELSE 0 END) AS fromRSS,\n  SUM(CASE WHEN sources LIKE '%Projectory%' THEN 1 ELSE 0 END) AS fromProjectory,\n  SUM(CASE WHEN sources LIKE '%Tenders WA%' OR sources LIKE '%tenders.wa%' THEN 1 ELSE 0 END) AS fromTendersWA,\n  SUM(CASE WHEN sources LIKE '%ICN%' THEN 1 ELSE 0 END) AS fromICN,\n  SUM(CASE WHEN sources LIKE '%AusTender%' THEN 1 ELSE 0 END) AS fromAusTender,\n  SUM(CASE WHEN sources LIKE '%ASX%' THEN 1 ELSE 0 END) AS fromASX,\n  SUM(CASE WHEN priority = 'hot' THEN 1 ELSE 0 END) AS hotCount,\n  SUM(CASE WHEN priority = 'warm' THEN 1 ELSE 0 END) AS warmCount,\n  SUM(CASE WHEN priority = 'cold' THEN 1 ELSE 0 END) AS coldCount\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nGROUP BY DATE(createdAt)\nORDER BY addedDate ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  DATE(createdAt) AS addedDate,\n  COUNT(*) AS totalProjects,\n  SUM(CASE WHEN sources LIKE '%RSS Feed%' THEN 1 ELSE 0 END) AS fromRSS,\n  SUM(CASE WHEN sources LIKE '%Projectory%' THEN 1 ELSE 0 END) AS fromProjectory,\n  SUM(CASE WHEN sources LIKE '%Tenders WA%' OR sources LIKE '%tenders.wa%' THEN 1 ELSE 0 END) AS fromTendersWA,\n  SUM(CASE WHEN sources LIKE '%ICN%' THEN 1 ELSE 0 END) AS fromICN,\n  SUM(CASE WHEN sources LIKE '%AusTender%' THEN 1 ELSE 0 END) AS fromAusTender,\n  SUM(CASE WHEN sources LIKE '%ASX%' THEN 1 ELSE 0 END) AS fromASX,\n  SUM(CASE WHEN priority = 'hot' THEN 1 ELSE 0 END) AS hotCount,\n  SUM(CASE WHEN priority = 'warm' THEN 1 ELSE 0 END) AS warmCount,\n  SUM(CASE WHEN priority = 'cold' THEN 1 ELSE 0 END) AS coldCount\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nGROUP BY DATE(createdAt)\nORDER BY addedDate ASC;",
+  "rows": [
+    {
+      "addedDate": "2026-05-12",
+      "totalProjects": "15",
+      "fromRSS": "15",
+      "fromProjectory": "2",
+      "fromTendersWA": "0",
+      "fromICN": "2",
+      "fromAusTender": "0",
+      "fromASX": "0",
+      "hotCount": "5",
+      "warmCount": "10",
+      "coldCount": "0"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "totalProjects": "46",
+      "fromRSS": "42",
+      "fromProjectory": "4",
+      "fromTendersWA": "4",
+      "fromICN": "3",
+      "fromAusTender": "0",
+      "fromASX": "0",
+      "hotCount": "7",
+      "warmCount": "31",
+      "coldCount": "8"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "totalProjects": "43",
+      "fromRSS": "43",
+      "fromProjectory": "4",
+      "fromTendersWA": "0",
+      "fromICN": "0",
+      "fromAusTender": "0",
+      "fromASX": "0",
+      "hotCount": "14",
+      "warmCount": "23",
+      "coldCount": "6"
+    },
+    {
+      "addedDate": "2026-05-16",
+      "totalProjects": "6",
+      "fromRSS": "3",
+      "fromProjectory": "1",
+      "fromTendersWA": "3",
+      "fromICN": "0",
+      "fromAusTender": "0",
+      "fromASX": "0",
+      "hotCount": "1",
+      "warmCount": "3",
+      "coldCount": "2"
+    },
+    {
+      "addedDate": "2026-05-17",
+      "totalProjects": "4",
+      "fromRSS": "4",
+      "fromProjectory": "0",
+      "fromTendersWA": "0",
+      "fromICN": "0",
+      "fromAusTender": "0",
+      "fromASX": "0",
+      "hotCount": "0",
+      "warmCount": "3",
+      "coldCount": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "addedDate\ttotalProjects\tfromRSS\tfromProjectory\tfromTendersWA\tfromICN\tfromAusTender\tfromASX\thotCount\twarmCount\tcoldCount\n2026-05-12\t15\t15\t2\t0\t2\t0\t0\t5\t10\t0\n2026-05-13\t46\t42\t4\t4\t3\t0\t0\t7\t31\t8\n2026-05-15\t43\t43\t4\t0\t0\t0\t0\t14\t23\t6\n2026-05-16\t6\t3\t1\t3\t0\t0\t0\t1\t3\t2\n2026-05-17\t4\t4\t0\t0\t0\t0\t0\t0\t3\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1785
+}

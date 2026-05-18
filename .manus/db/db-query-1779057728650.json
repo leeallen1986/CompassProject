@@ -1,0 +1,122 @@
+{
+  "query": "SELECT u.name, l.digestType, l.weekKey, l.status, l.itemCount, l.sentAt\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.digestType = 'monday' \n  AND l.weekKey IN ('2026W19', '2026W20')\n  AND u.name IN ('Ryan Pemberton', 'Dan Day')\nORDER BY u.name, l.weekKey;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.name, l.digestType, l.weekKey, l.status, l.itemCount, l.sentAt\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.digestType = 'monday' \n  AND l.weekKey IN ('2026W19', '2026W20')\n  AND u.name IN ('Ryan Pemberton', 'Dan Day')\nORDER BY u.name, l.weekKey;",
+  "rows": [
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "579",
+      "sentAt": "2026-05-05 01:58:37"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "268",
+      "sentAt": "2026-05-10 22:00:49"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "itemCount": "0",
+      "sentAt": "2026-05-09 03:39:10"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "itemCount": "0",
+      "sentAt": "2026-05-08 03:16:29"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "579",
+      "sentAt": "2026-05-06 07:49:11"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "267",
+      "sentAt": "2026-05-17 22:00:44"
+    },
+    {
+      "name": "Dan Day",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "303",
+      "sentAt": "2026-05-11 23:27:44"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "failed",
+      "itemCount": "0",
+      "sentAt": "2026-05-09 03:39:02"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "142",
+      "sentAt": "2026-05-10 22:00:37"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "574",
+      "sentAt": "2026-05-05 01:58:34"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "sent",
+      "itemCount": "147",
+      "sentAt": "2026-05-08 03:16:15"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "status": "dry_run",
+      "itemCount": "574",
+      "sentAt": "2026-05-06 07:49:00"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "152",
+      "sentAt": "2026-05-17 22:00:30"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "status": "dry_run",
+      "itemCount": "158",
+      "sentAt": "2026-05-11 23:26:32"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdigestType\tweekKey\tstatus\titemCount\tsentAt\nDan Day\tmonday\t2026W19\tdry_run\t579\t2026-05-05 01:58:37\nDan Day\tmonday\t2026W19\tdry_run\t268\t2026-05-10 22:00:49\nDan Day\tmonday\t2026W19\tfailed\t0\t2026-05-09 03:39:10\nDan Day\tmonday\t2026W19\tfailed\t0\t2026-05-08 03:16:29\nDan Day\tmonday\t2026W19\tdry_run\t579\t2026-05-06 07:49:11\nDan Day\tmonday\t2026W20\tdry_run\t267\t2026-05-17 22:00:44\nDan Day\tmonday\t2026W20\tdry_run\t303\t2026-05-11 23:27:44\nRyan Pemberton\tmonday\t2026W19\tfailed\t0\t2026-05-09 03:39:02\nRyan Pemberton\tmonday\t2026W19\tdry_run\t142\t2026-05-10 22:00:37\nRyan Pemberton\tmonday\t2026W19\tdry_run\t574\t2026-05-05 01:58:34\nRyan Pemberton\tmonday\t2026W19\tsent\t147\t2026-05-08 03:16:15\nRyan Pemberton\tmonday\t2026W19\tdry_run\t574\t2026-05-06 07:49:00\nRyan Pemberton\tmonday\t2026W20\tdry_run\t152\t2026-05-17 22:00:30\nRyan Pemberton\tmonday\t2026W20\tdry_run\t158\t2026-05-11 23:26:32\n",
+  "stderr": "",
+  "execution_time_ms": 1803
+}

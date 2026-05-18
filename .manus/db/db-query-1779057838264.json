@@ -1,0 +1,370 @@
+{
+  "query": "SELECT \n  DATE(createdAt) AS addedDate,\n  name, priority, sector, projectState,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[0].label')) AS source1,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[1].label')) AS source2\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nORDER BY createdAt ASC\nLIMIT 40;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  DATE(createdAt) AS addedDate,\n  name, priority, sector, projectState,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[0].label')) AS source1,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[1].label')) AS source2\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nORDER BY createdAt ASC\nLIMIT 40;",
+  "rows": [
+    {
+      "addedDate": "2026-05-12",
+      "name": "Browse LNG Project",
+      "priority": "warm",
+      "sector": "oil_gas",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Paradise Dam Rebuild",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Woomera Prohibited Area Modernisation",
+      "priority": "warm",
+      "sector": "defence",
+      "projectState": "SA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Toondoon Kaolin Project",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Yindjibarndi Energy Solar Project",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "ICN Gateway"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Renewable Energy Zones (REZs) Development",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Voltavate Battery Manufacturing Facility",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Yarra Energy Foundation Neighbourhood Battery and EV Chargers",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Poatina Power Station Turbine Upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "TAS",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Southern Gold Coast Coastal Residential High-Rise Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Southeast Queensland Major Rail Corridor Project",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Southern Queensland Regional Water Infrastructure Project",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Murchs Corner Battery Energy Storage System (BESS)",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Bannaby Battery Storage Project",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-12",
+      "name": "Webbs Silver Project",
+      "priority": "hot",
+      "sector": "mining",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Offshore drilling operations support in Bass Strait",
+      "priority": "warm",
+      "sector": "oil_gas",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Ichthys LNG Export Plant Operations",
+      "priority": "cold",
+      "sector": "oil_gas",
+      "projectState": "NT",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Federal Budget Discussion on Housing Supply",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Australian Housing Supply Initiative (Federal Budget)",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Greenbushes Lithium Mine Operations",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Hill of Leaders Tungsten Project Acquisition",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "NT",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Nuckulla Hill Gold Project - Drilling Campaign",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "SA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Hyden Gold Project",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Whyalla Steelworks Upgrade",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "SA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Carmichael Mine Road Dispute",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Bairnsdale Quarries Operations",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Climate Capital Solar and Storage Projects Pipeline",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "SA Water network expansion to Wellington East",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "SA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "TAS",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Large-scale Renewable Energy Development",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Secondary School Upgrade",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "New Secure Government Facility",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Large-scale Wind Energy Development",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "New Iron Ore Mine Development",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Ironmaking Pilot Project",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Gas Processing Development",
+      "priority": "warm",
+      "sector": "oil_gas",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Waste Gas Capture and Energy Generation Project",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "ICN Gateway"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Australia's largest solar and battery project",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Federal Budget 2026/27 Infrastructure Pipeline",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "EnergyConnect Interconnector",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    }
+  ],
+  "messages": [],
+  "stdout": "addedDate\tname\tpriority\tsector\tprojectState\tsource1\tsource2\n2026-05-12\tBrowse LNG Project\twarm\toil_gas\tWA\tRSS Feed\tNULL\n2026-05-12\tParadise Dam Rebuild\thot\tinfrastructure\tQLD\tRSS Feed\tProjectory\n2026-05-12\tWoomera Prohibited Area Modernisation\twarm\tdefence\tSA\tRSS Feed\tNULL\n2026-05-12\tToondoon Kaolin Project\twarm\tmining\tQLD\tRSS Feed\tNULL\n2026-05-12\tYindjibarndi Energy Solar Project\thot\tenergy\tWA\tRSS Feed\tICN Gateway\n2026-05-12\tRenewable Energy Zones (REZs) Development\twarm\tenergy\tWA\tRSS Feed\tNULL\n2026-05-12\tVoltavate Battery Manufacturing Facility\twarm\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-12\tYarra Energy Foundation Neighbourhood Battery and EV Chargers\thot\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-12\tPoatina Power Station Turbine Upgrade\thot\tenergy\tTAS\tRSS Feed\tProjectory\n2026-05-12\tSouthern Gold Coast Coastal Residential High-Rise Development\twarm\tinfrastructure\tQLD\tRSS Feed\tNULL\n2026-05-12\tSoutheast Queensland Major Rail Corridor Project\twarm\tinfrastructure\tQLD\tRSS Feed\tNULL\n2026-05-12\tSouthern Queensland Regional Water Infrastructure Project\twarm\tinfrastructure\tQLD\tRSS Feed\tNULL\n2026-05-12\tMurchs Corner Battery Energy Storage System (BESS)\twarm\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-12\tBannaby Battery Storage Project\twarm\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-12\tWebbs Silver Project\thot\tmining\tNSW\tRSS Feed\tNULL\n2026-05-13\tOffshore drilling operations support in Bass Strait\twarm\toil_gas\tVIC\tRSS Feed\tNULL\n2026-05-13\tIchthys LNG Export Plant Operations\tcold\toil_gas\tNT\tRSS Feed\tNULL\n2026-05-13\tFederal Budget Discussion on Housing Supply\tcold\tinfrastructure\tNULL\tRSS Feed\tNULL\n2026-05-13\tAustralian Housing Supply Initiative (Federal Budget)\twarm\tinfrastructure\tNULL\tRSS Feed\tNULL\n2026-05-13\tGreenbushes Lithium Mine Operations\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-13\tHill of Leaders Tungsten Project Acquisition\twarm\tmining\tNT\tRSS Feed\tNULL\n2026-05-13\tNuckulla Hill Gold Project - Drilling Campaign\twarm\tmining\tSA\tRSS Feed\tNULL\n2026-05-13\tHyden Gold Project\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-13\tWhyalla Steelworks Upgrade\twarm\tmining\tSA\tRSS Feed\tNULL\n2026-05-13\tCarmichael Mine Road Dispute\twarm\tmining\tQLD\tRSS Feed\tNULL\n2026-05-13\tBairnsdale Quarries Operations\twarm\tmining\tVIC\tRSS Feed\tNULL\n2026-05-13\tClimate Capital Solar and Storage Projects Pipeline\twarm\tenergy\tNULL\tRSS Feed\tNULL\n2026-05-13\tSA Water network expansion to Wellington East\twarm\tinfrastructure\tSA\tRSS Feed\tNULL\n2026-05-13\tTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tTAS\tRSS Feed\tNULL\n2026-05-13\tLarge-scale Renewable Energy Development\twarm\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-13\tSecondary School Upgrade\thot\tinfrastructure\tNSW\tRSS Feed\tProjectory\n2026-05-13\tNew Secure Government Facility\thot\tinfrastructure\tWA\tRSS Feed\tProjectory\n2026-05-13\tLarge-scale Wind Energy Development\twarm\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-13\tNew Iron Ore Mine Development\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-13\tIronmaking Pilot Project\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-13\tGas Processing Development\twarm\toil_gas\tWA\tRSS Feed\tNULL\n2026-05-13\tWaste Gas Capture and Energy Generation Project\twarm\tenergy\tQLD\tRSS Feed\tICN Gateway\n2026-05-13\tAustralia's largest solar and battery project\twarm\tenergy\tNULL\tRSS Feed\tNULL\n2026-05-13\tFederal Budget 2026/27 Infrastructure Pipeline\twarm\tinfrastructure\tNULL\tRSS Feed\tNULL\n2026-05-13\tEnergyConnect Interconnector\thot\tenergy\tVIC\tRSS Feed\tProjectory\n",
+  "stderr": "",
+  "execution_time_ms": 1738
+}

@@ -1,0 +1,220 @@
+{
+  "query": "SELECT p.name AS project, p.priority, p.sector,\n  c.name AS contact, c.title, c.company, c.email, c.contactTrustTier\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.id IN (1380015, 1350010, 1380002, 1350030)\n  AND c.contactTrustTier IN ('send_ready', 'named_unverified')\nORDER BY p.id, c.contactTrustTier DESC, c.name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.name AS project, p.priority, p.sector,\n  c.name AS contact, c.title, c.company, c.email, c.contactTrustTier\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.id IN (1380015, 1350010, 1380002, 1350030)\n  AND c.contactTrustTier IN ('send_ready', 'named_unverified')\nORDER BY p.id, c.contactTrustTier DESC, c.name;",
+  "rows": [
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Fernanda Romero",
+      "title": "Audiovisual Project Manager | Video Production, Motion Graphics & Creative Direction",
+      "company": "Genus",
+      "email": "fernanda.romero@genus.com.au",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "sagar Choudhary",
+      "title": "HES/MDM/O&M/DT METERING /RF & GPRS / GATWAY PLANNING/NON NEVER COM RESOLUTION/PLANNING AND EXECUTION/DATA ANALYSIS/SLA MANAGEMENT/ KPI PERFORMANCE/E Accounting / ETC:- MBA in Information Technology",
+      "company": "Genus",
+      "email": "sagar.choudhary@genus.com.au",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Alan Heald",
+      "title": "Construction Manager",
+      "company": "Genus",
+      "email": "alan.heald@genus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Alan McGregor",
+      "title": "Construction Manager",
+      "company": "Genus",
+      "email": "alan.mcgregor@genus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Alistair Smyth",
+      "title": "Procurement Manager",
+      "company": "Genus",
+      "email": "alistair.smyth@powerlinesplus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Brendon Quinlan",
+      "title": "Construction Manager",
+      "company": "Genus",
+      "email": "brendon.quinlan@genus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Jack Martin",
+      "title": "National Fleet Manager",
+      "company": "Genus",
+      "email": "jack.martin@genus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Paul Steele",
+      "title": "Construction Manager",
+      "company": "Genus",
+      "email": "paul.steele@genus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Peter Findlater",
+      "title": "Project Manager",
+      "company": "TasNetworks",
+      "email": "peter.findlater@tasnetworks.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Wayne Black",
+      "title": "Linesman",
+      "company": "Genus",
+      "email": "wayne.black@genus.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "AGL Big Battery",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Burak Salduz",
+      "title": "Project Manager",
+      "company": "AGL",
+      "email": "burak.salduz@agl.com.au",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Colby Hart",
+      "title": "Software Engineering Manager at Genex",
+      "company": "Genex",
+      "email": "colby.hart@genex.com.au",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Mujtaba Ahmed",
+      "title": "Regional Sales Operations Manager @ GENEX | Sales and Marketing, Strategic Planning",
+      "company": "Genex",
+      "email": "mujtaba.ahmed@genex.com.au",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Nick Morton",
+      "title": "Operations Manager",
+      "company": "Genex",
+      "email": "NULL",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Amy Crowley",
+      "title": "Project Manager",
+      "company": "Genex",
+      "email": "ac@genexpower.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Ben Williams",
+      "title": "General Manager - Development and Construction",
+      "company": "Genex",
+      "email": "bw@genexpower.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Jeremy Balding",
+      "title": "General Manager - Commercial",
+      "company": "Genex",
+      "email": "jeremyb@genexpower.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "John Vanderloos",
+      "title": "Project Manager",
+      "company": "Genex",
+      "email": "jv@genexpower.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "contact": "Jordan Newbound",
+      "title": "Assistant Project Manager",
+      "company": "Genex",
+      "email": "jn@genexpower.com.au",
+      "contactTrustTier": "send_ready"
+    },
+    {
+      "project": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "contact": "John Young",
+      "title": "Manager Statewide Maintenance at Hydro Tasmania",
+      "company": "Hydro Tasmania",
+      "email": "john.young@hydrotasmania.com.au",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "contact": "Ray Clark",
+      "title": "Manager Statewide Maintenance at Hydro Tasmania",
+      "company": "Hydro Tasmania",
+      "email": "ray.clark@hydrotasmania.com.au",
+      "contactTrustTier": "named_unverified"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tpriority\tsector\tcontact\ttitle\tcompany\temail\tcontactTrustTier\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tFernanda Romero\tAudiovisual Project Manager | Video Production, Motion Graphics & Creative Direction\tGenus\tfernanda.romero@genus.com.au\tnamed_unverified\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tsagar Choudhary\tHES/MDM/O&M/DT METERING /RF & GPRS / GATWAY PLANNING/NON NEVER COM RESOLUTION/PLANNING AND EXECUTION/DATA ANALYSIS/SLA MANAGEMENT/ KPI PERFORMANCE/E Accounting / ETC:- MBA in Information Technology\tGenus\tsagar.choudhary@genus.com.au\tnamed_unverified\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tAlan Heald\tConstruction Manager\tGenus\talan.heald@genus.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tAlan McGregor\tConstruction Manager\tGenus\talan.mcgregor@genus.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tAlistair Smyth\tProcurement Manager\tGenus\talistair.smyth@powerlinesplus.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tBrendon Quinlan\tConstruction Manager\tGenus\tbrendon.quinlan@genus.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tJack Martin\tNational Fleet Manager\tGenus\tjack.martin@genus.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tPaul Steele\tConstruction Manager\tGenus\tpaul.steele@genus.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tPeter Findlater\tProject Manager\tTasNetworks\tpeter.findlater@tasnetworks.com.au\tsend_ready\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\tWayne Black\tLinesman\tGenus\twayne.black@genus.com.au\tsend_ready\nAGL Big Battery\twarm\tenergy\tBurak Salduz\tProject Manager\tAGL\tburak.salduz@agl.com.au\tnamed_unverified\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tColby Hart\tSoftware Engineering Manager at Genex\tGenex\tcolby.hart@genex.com.au\tnamed_unverified\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tMujtaba Ahmed\tRegional Sales Operations Manager @ GENEX | Sales and Marketing, Strategic Planning\tGenex\tmujtaba.ahmed@genex.com.au\tnamed_unverified\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tNick Morton\tOperations Manager\tGenex\tNULL\tnamed_unverified\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tAmy Crowley\tProject Manager\tGenex\tac@genexpower.com.au\tsend_ready\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tBen Williams\tGeneral Manager - Development and Construction\tGenex\tbw@genexpower.com.au\tsend_ready\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tJeremy Balding\tGeneral Manager - Commercial\tGenex\tjeremyb@genexpower.com.au\tsend_ready\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tJohn Vanderloos\tProject Manager\tGenex\tjv@genexpower.com.au\tsend_ready\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tJordan Newbound\tAssistant Project Manager\tGenex\tjn@genexpower.com.au\tsend_ready\nPoatina hydropower station upgrade\thot\tenergy\tJohn Young\tManager Statewide Maintenance at Hydro Tasmania\tHydro Tasmania\tjohn.young@hydrotasmania.com.au\tnamed_unverified\nPoatina hydropower station upgrade\thot\tenergy\tRay Clark\tManager Statewide Maintenance at Hydro Tasmania\tHydro Tasmania\tray.clark@hydrotasmania.com.au\tnamed_unverified\n",
+  "stderr": "",
+  "execution_time_ms": 1842
+}

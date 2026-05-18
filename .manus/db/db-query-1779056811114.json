@@ -1,0 +1,30 @@
+{
+  "query": "SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND TABLE_SCHEMA = DATABASE()\nAND ORDINAL_POSITION > 40\nORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND TABLE_SCHEMA = DATABASE()\nAND ORDINAL_POSITION > 40\nORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "enrichmentPriority",
+      "COLUMN_TYPE": "enum('high','medium','low')"
+    },
+    {
+      "COLUMN_NAME": "regionClassification",
+      "COLUMN_TYPE": "enum('australia','non_australia','unknown')"
+    },
+    {
+      "COLUMN_NAME": "geoFilterReason",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "contactTrustTier",
+      "COLUMN_TYPE": "enum('send_ready','named_unverified','llm_inferred')"
+    },
+    {
+      "COLUMN_NAME": "crmOrphan",
+      "COLUMN_TYPE": "tinyint(1)"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tCOLUMN_TYPE\nenrichmentPriority\tenum('high','medium','low')\nregionClassification\tenum('australia','non_australia','unknown')\ngeoFilterReason\tvarchar(256)\ncontactTrustTier\tenum('send_ready','named_unverified','llm_inferred')\ncrmOrphan\ttinyint(1)\n",
+  "stderr": "",
+  "execution_time_ms": 1730
+}

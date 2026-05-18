@@ -1,0 +1,190 @@
+{
+  "query": "SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND TABLE_SCHEMA = DATABASE()\nORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND TABLE_SCHEMA = DATABASE()\nORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "reportId",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "name",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "title",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "company",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "project",
+      "COLUMN_TYPE": "varchar(512)"
+    },
+    {
+      "COLUMN_NAME": "priority",
+      "COLUMN_TYPE": "enum('hot','warm','cold')"
+    },
+    {
+      "COLUMN_NAME": "roleBucket",
+      "COLUMN_TYPE": "varchar(128)"
+    },
+    {
+      "COLUMN_NAME": "email",
+      "COLUMN_TYPE": "varchar(320)"
+    },
+    {
+      "COLUMN_NAME": "linkedin",
+      "COLUMN_TYPE": "varchar(512)"
+    },
+    {
+      "COLUMN_NAME": "phone",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "enrichmentStatus",
+      "COLUMN_TYPE": "enum('pending','enriched','not_found','failed')"
+    },
+    {
+      "COLUMN_NAME": "enrichedAt",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "linkedinHeadline",
+      "COLUMN_TYPE": "varchar(512)"
+    },
+    {
+      "COLUMN_NAME": "linkedinLocation",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "linkedinProfilePic",
+      "COLUMN_TYPE": "varchar(1024)"
+    },
+    {
+      "COLUMN_NAME": "enrichmentSource",
+      "COLUMN_TYPE": "enum('linkedin','llm','manual','apollo','web_search','lusha')"
+    },
+    {
+      "COLUMN_NAME": "verificationStatus",
+      "COLUMN_TYPE": "enum('verified','ai_suggested','unverified')"
+    },
+    {
+      "COLUMN_NAME": "confidenceScore",
+      "COLUMN_TYPE": "enum('high','medium','low')"
+    },
+    {
+      "COLUMN_NAME": "linkedinSearchUrl",
+      "COLUMN_TYPE": "varchar(1024)"
+    },
+    {
+      "COLUMN_NAME": "emailVerified",
+      "COLUMN_TYPE": "tinyint(1)"
+    },
+    {
+      "COLUMN_NAME": "linkedinProfileUrl",
+      "COLUMN_TYPE": "varchar(1024)"
+    },
+    {
+      "COLUMN_NAME": "verificationScore",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "verifiedByUserId",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "verifiedAt",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "verifiedLinkedinUrl",
+      "COLUMN_TYPE": "varchar(1024)"
+    },
+    {
+      "COLUMN_NAME": "rejectedByUserId",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "rejectedAt",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "rejectionReason",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "sourceUrl",
+      "COLUMN_TYPE": "varchar(1024)"
+    },
+    {
+      "COLUMN_NAME": "roleRelevance",
+      "COLUMN_TYPE": "enum('high','medium','low')"
+    },
+    {
+      "COLUMN_NAME": "crmId",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "crmAccountId",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "department",
+      "COLUMN_TYPE": "varchar(128)"
+    },
+    {
+      "COLUMN_NAME": "mobilePhone",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "crmOwner",
+      "COLUMN_TYPE": "varchar(128)"
+    },
+    {
+      "COLUMN_NAME": "lastCrmModified",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "source",
+      "COLUMN_TYPE": "enum('scraper','crm','manual','apollo')"
+    },
+    {
+      "COLUMN_NAME": "sectorTag",
+      "COLUMN_TYPE": "varchar(64)"
+    },
+    {
+      "COLUMN_NAME": "enrichmentPriority",
+      "COLUMN_TYPE": "enum('high','medium','low')"
+    },
+    {
+      "COLUMN_NAME": "regionClassification",
+      "COLUMN_TYPE": "enum('australia','non_australia','unknown')"
+    },
+    {
+      "COLUMN_NAME": "geoFilterReason",
+      "COLUMN_TYPE": "varchar(256)"
+    },
+    {
+      "COLUMN_NAME": "contactTrustTier",
+      "COLUMN_TYPE": "enum('send_ready','named_unverified','llm_inferred')"
+    },
+    {
+      "COLUMN_NAME": "crmOrphan",
+      "COLUMN_TYPE": "tinyint(1)"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tCOLUMN_TYPE\nid\tint\nreportId\tint\nname\tvarchar(256)\ntitle\tvarchar(256)\ncompany\tvarchar(256)\nproject\tvarchar(512)\npriority\tenum('hot','warm','cold')\nroleBucket\tvarchar(128)\nemail\tvarchar(320)\nlinkedin\tvarchar(512)\nphone\tvarchar(64)\ncreatedAt\ttimestamp\nenrichmentStatus\tenum('pending','enriched','not_found','failed')\nenrichedAt\ttimestamp\nlinkedinHeadline\tvarchar(512)\nlinkedinLocation\tvarchar(256)\nlinkedinProfilePic\tvarchar(1024)\nenrichmentSource\tenum('linkedin','llm','manual','apollo','web_search','lusha')\nverificationStatus\tenum('verified','ai_suggested','unverified')\nconfidenceScore\tenum('high','medium','low')\nlinkedinSearchUrl\tvarchar(1024)\nemailVerified\ttinyint(1)\nlinkedinProfileUrl\tvarchar(1024)\nverificationScore\tint\nverifiedByUserId\tint\nverifiedAt\ttimestamp\nverifiedLinkedinUrl\tvarchar(1024)\nrejectedByUserId\tint\nrejectedAt\ttimestamp\nrejectionReason\tvarchar(256)\nsourceUrl\tvarchar(1024)\nroleRelevance\tenum('high','medium','low')\ncrmId\tvarchar(64)\ncrmAccountId\tvarchar(64)\ndepartment\tvarchar(128)\nmobilePhone\tvarchar(64)\ncrmOwner\tvarchar(128)\nlastCrmModified\ttimestamp\nsource\tenum('scraper','crm','manual','apollo')\nsectorTag\tvarchar(64)\nenrichmentPriority\tenum('high','medium','low')\nregionClassification\tenum('australia','non_australia','unknown')\ngeoFilterReason\tvarchar(256)\ncontactTrustTier\tenum('send_ready','named_unverified','llm_inferred')\ncrmOrphan\ttinyint(1)\n",
+  "stderr": "",
+  "execution_time_ms": 1800
+}

@@ -1,0 +1,150 @@
+{
+  "query": "SELECT p.id, p.name, p.priority, p.sector,\n  COUNT(c.id) AS namedUnverified\nFROM projects p\nJOIN contacts c ON c.project = p.name AND c.contactTrustTier = 'named_unverified'\nWHERE p.createdAt >= '2026-05-12 00:00:00'\n  AND p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\nGROUP BY p.id\nORDER BY p.priority ASC, namedUnverified DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.priority, p.sector,\n  COUNT(c.id) AS namedUnverified\nFROM projects p\nJOIN contacts c ON c.project = p.name AND c.contactTrustTier = 'named_unverified'\nWHERE p.createdAt >= '2026-05-12 00:00:00'\n  AND p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\nGROUP BY p.id\nORDER BY p.priority ASC, namedUnverified DESC;",
+  "rows": [
+    {
+      "id": "1350035",
+      "name": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "namedUnverified": "4"
+    },
+    {
+      "id": "1380005",
+      "name": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot",
+      "sector": "energy",
+      "namedUnverified": "3"
+    },
+    {
+      "id": "1380015",
+      "name": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "namedUnverified": "2"
+    },
+    {
+      "id": "1350021",
+      "name": "EnergyConnect Interconnector",
+      "priority": "hot",
+      "sector": "energy",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1350013",
+      "name": "New Secure Government Facility",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1350022",
+      "name": "Nolans Rare Earths Project",
+      "priority": "warm",
+      "sector": "mining",
+      "namedUnverified": "3"
+    },
+    {
+      "id": "1350006",
+      "name": "Carmichael Mine Road Dispute",
+      "priority": "warm",
+      "sector": "mining",
+      "namedUnverified": "3"
+    },
+    {
+      "id": "1350010",
+      "name": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "namedUnverified": "2"
+    },
+    {
+      "id": "1380001",
+      "name": "Naval Strike Missiles and Joint Strike Missiles Domestic Manufacturing",
+      "priority": "warm",
+      "sector": "defence",
+      "namedUnverified": "2"
+    },
+    {
+      "id": "1350007",
+      "name": "Bairnsdale Quarries Operations",
+      "priority": "warm",
+      "sector": "mining",
+      "namedUnverified": "2"
+    },
+    {
+      "id": "1350015",
+      "name": "New Iron Ore Mine Development",
+      "priority": "warm",
+      "sector": "mining",
+      "namedUnverified": "2"
+    },
+    {
+      "id": "1380002",
+      "name": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "namedUnverified": "2"
+    },
+    {
+      "id": "1350025",
+      "name": "Delburn Wind Farm",
+      "priority": "warm",
+      "sector": "energy",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1350032",
+      "name": "Bulwer Island Fuel Storage Expansion",
+      "priority": "warm",
+      "sector": "energy",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1380028",
+      "name": "Queensland Renewable Energy Tender (QRET)",
+      "priority": "warm",
+      "sector": "energy",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1350020",
+      "name": "Federal Budget 2026/27 Infrastructure Pipeline",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1350030",
+      "name": "AGL Big Battery",
+      "priority": "warm",
+      "sector": "energy",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1380013",
+      "name": "Victorian water infrastructure upgrade",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1290011",
+      "name": "Southern Gold Coast Coastal Residential High-Rise Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "namedUnverified": "1"
+    },
+    {
+      "id": "1350004",
+      "name": "Hyden Gold Project",
+      "priority": "warm",
+      "sector": "mining",
+      "namedUnverified": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tpriority\tsector\tnamedUnverified\n1350035\tOrigin/APLNG Ironbark Expansion\thot\toil_gas\t4\n1380005\tFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\tenergy\t3\n1380015\tPoatina hydropower station upgrade\thot\tenergy\t2\n1350021\tEnergyConnect Interconnector\thot\tenergy\t1\n1350013\tNew Secure Government Facility\thot\tinfrastructure\t1\n1350022\tNolans Rare Earths Project\twarm\tmining\t3\n1350006\tCarmichael Mine Road Dispute\twarm\tmining\t3\n1350010\tTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\t2\n1380001\tNaval Strike Missiles and Joint Strike Missiles Domestic Manufacturing\twarm\tdefence\t2\n1350007\tBairnsdale Quarries Operations\twarm\tmining\t2\n1350015\tNew Iron Ore Mine Development\twarm\tmining\t2\n1380002\tBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\t2\n1350025\tDelburn Wind Farm\twarm\tenergy\t1\n1350032\tBulwer Island Fuel Storage Expansion\twarm\tenergy\t1\n1380028\tQueensland Renewable Energy Tender (QRET)\twarm\tenergy\t1\n1350020\tFederal Budget 2026/27 Infrastructure Pipeline\twarm\tinfrastructure\t1\n1350030\tAGL Big Battery\twarm\tenergy\t1\n1380013\tVictorian water infrastructure upgrade\twarm\tinfrastructure\t1\n1290011\tSouthern Gold Coast Coastal Residential High-Rise Development\twarm\tinfrastructure\t1\n1350004\tHyden Gold Project\twarm\tmining\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1829
+}

@@ -1,0 +1,42 @@
+{
+  "query": "SELECT id, runType, status, startedAt, completedAt,\n  ROUND(durationMs / 60000, 1) AS durationMins,\n  feedsFetched, feedErrors, articlesIngested, projectsCreated,\n  contactsEnriched, currentStep, lastActivityNote, errors\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 2;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, runType, status, startedAt, completedAt,\n  ROUND(durationMs / 60000, 1) AS durationMins,\n  feedsFetched, feedErrors, articlesIngested, projectsCreated,\n  contactsEnriched, currentStep, lastActivityNote, errors\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 2;",
+  "rows": [
+    {
+      "id": "1230001",
+      "runType": "daily",
+      "status": "running",
+      "startedAt": "2026-05-17 20:10:03",
+      "completedAt": "NULL",
+      "durationMins": "NULL",
+      "feedsFetched": "37",
+      "feedErrors": "10",
+      "articlesIngested": "35",
+      "projectsCreated": "4",
+      "contactsEnriched": "0",
+      "currentStep": "Discovery Queue Processing",
+      "lastActivityNote": "Contact enrichment: 0 contacts enriched (1 Apollo credits used).",
+      "errors": "[\"QTOL NT: Child exited with code 1 after 15s\"]"
+    },
+    {
+      "id": "1200001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-16 20:10:04",
+      "completedAt": "2026-05-16 22:54:01",
+      "durationMins": "163.9",
+      "feedsFetched": "37",
+      "feedErrors": "10",
+      "articlesIngested": "43",
+      "projectsCreated": "3",
+      "contactsEnriched": "0",
+      "currentStep": "Duplicate Detection Sweep",
+      "lastActivityNote": "Discovery queue: 50 projects processed — 11 send-ready, 10 named-no-email.",
+      "errors": "[\"QTOL NT: Child exited with code 1 after 47s\", \"ICN Validation: Timeout after 900s: ICN Validation\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunType\tstatus\tstartedAt\tcompletedAt\tdurationMins\tfeedsFetched\tfeedErrors\tarticlesIngested\tprojectsCreated\tcontactsEnriched\tcurrentStep\tlastActivityNote\terrors\n1230001\tdaily\trunning\t2026-05-17 20:10:03\tNULL\tNULL\t37\t10\t35\t4\t0\tDiscovery Queue Processing\tContact enrichment: 0 contacts enriched (1 Apollo credits used).\t[\"QTOL NT: Child exited with code 1 after 15s\"]\n1200001\tdaily\tfailed\t2026-05-16 20:10:04\t2026-05-16 22:54:01\t163.9\t37\t10\t43\t3\t0\tDuplicate Detection Sweep\tDiscovery queue: 50 projects processed — 11 send-ready, 10 named-no-email.\t[\"QTOL NT: Child exited with code 1 after 47s\", \"ICN Validation: Timeout after 900s: ICN Validation\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1815
+}

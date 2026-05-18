@@ -1,0 +1,25 @@
+{
+  "query": "SELECT id, weekEnding, createdAt FROM reports ORDER BY createdAt DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, weekEnding, createdAt FROM reports ORDER BY createdAt DESC LIMIT 3;",
+  "rows": [
+    {
+      "id": "990001",
+      "weekEnding": "2026-05-17",
+      "createdAt": "2026-05-17 20:15:22"
+    },
+    {
+      "id": "960001",
+      "weekEnding": "2026-05-16",
+      "createdAt": "2026-05-16 20:17:40"
+    },
+    {
+      "id": "930001",
+      "weekEnding": "2026-05-15",
+      "createdAt": "2026-05-15 20:18:10"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tweekEnding\tcreatedAt\n990001\t2026-05-17\t2026-05-17 20:15:22\n960001\t2026-05-16\t2026-05-16 20:17:40\n930001\t2026-05-15\t2026-05-15 20:18:10\n",
+  "stderr": "",
+  "execution_time_ms": 1739
+}

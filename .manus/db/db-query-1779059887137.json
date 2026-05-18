@@ -1,0 +1,38 @@
+{
+  "query": "SELECT p.name AS project, p.priority, p.sector,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sendReady,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) AS unverified\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.id IN (1380015, 1350010, 1380002, 1350030)\nGROUP BY p.id, p.name, p.priority, p.sector\nORDER BY sendReady DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.name AS project, p.priority, p.sector,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sendReady,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) AS unverified\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.id IN (1380015, 1350010, 1380002, 1350030)\nGROUP BY p.id, p.name, p.priority, p.sector\nORDER BY sendReady DESC;",
+  "rows": [
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "8",
+      "unverified": "2"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "5",
+      "unverified": "3"
+    },
+    {
+      "project": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "sendReady": "0",
+      "unverified": "2"
+    },
+    {
+      "project": "AGL Big Battery",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "0",
+      "unverified": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tpriority\tsector\tsendReady\tunverified\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\t8\t2\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\t5\t3\nPoatina hydropower station upgrade\thot\tenergy\t0\t2\nAGL Big Battery\twarm\tenergy\t0\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1750
+}

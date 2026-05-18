@@ -1,0 +1,55 @@
+{
+  "query": "SELECT id, runType, status, startedAt, completedAt, \n  ROUND(durationMs / 60000, 1) AS durationMins,\n  feedsFetched, feedErrors, articlesIngested, projectsCreated,\n  contactsEnriched, triggeredBy, errors\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, runType, status, startedAt, completedAt, \n  ROUND(durationMs / 60000, 1) AS durationMins,\n  feedsFetched, feedErrors, articlesIngested, projectsCreated,\n  contactsEnriched, triggeredBy, errors\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;",
+  "rows": [
+    {
+      "id": "1200001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-16 20:10:04",
+      "completedAt": "2026-05-16 22:54:01",
+      "durationMins": "163.9",
+      "feedsFetched": "37",
+      "feedErrors": "10",
+      "articlesIngested": "43",
+      "projectsCreated": "3",
+      "contactsEnriched": "0",
+      "triggeredBy": "self-healing-retry",
+      "errors": "[\"QTOL NT: Child exited with code 1 after 47s\", \"ICN Validation: Timeout after 900s: ICN Validation\"]"
+    },
+    {
+      "id": "1170001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-15 20:10:02",
+      "completedAt": "2026-05-15 20:37:51",
+      "durationMins": "NULL",
+      "feedsFetched": "37",
+      "feedErrors": "10",
+      "articlesIngested": "253",
+      "projectsCreated": "0",
+      "contactsEnriched": "0",
+      "triggeredBy": "self-healing-retry",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    },
+    {
+      "id": "1140001",
+      "runType": "daily",
+      "status": "failed",
+      "startedAt": "2026-05-14 23:38:21",
+      "completedAt": "2026-05-14 23:53:04",
+      "durationMins": "NULL",
+      "feedsFetched": "0",
+      "feedErrors": "0",
+      "articlesIngested": "0",
+      "projectsCreated": "0",
+      "contactsEnriched": "0",
+      "triggeredBy": "self-healing-retry",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunType\tstatus\tstartedAt\tcompletedAt\tdurationMins\tfeedsFetched\tfeedErrors\tarticlesIngested\tprojectsCreated\tcontactsEnriched\ttriggeredBy\terrors\n1200001\tdaily\tfailed\t2026-05-16 20:10:04\t2026-05-16 22:54:01\t163.9\t37\t10\t43\t3\t0\tself-healing-retry\t[\"QTOL NT: Child exited with code 1 after 47s\", \"ICN Validation: Timeout after 900s: ICN Validation\"]\n1170001\tdaily\tfailed\t2026-05-15 20:10:02\t2026-05-15 20:37:51\tNULL\t37\t10\t253\t0\t0\tself-healing-retry\t[\"Container shutdown (SIGTERM)\"]\n1140001\tdaily\tfailed\t2026-05-14 23:38:21\t2026-05-14 23:53:04\tNULL\t0\t0\t0\t0\t0\tself-healing-retry\t[\"Container shutdown (SIGTERM)\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1911
+}

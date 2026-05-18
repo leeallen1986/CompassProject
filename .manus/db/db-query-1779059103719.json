@@ -1,0 +1,162 @@
+{
+  "query": "SELECT \n  p.name AS project, p.priority, p.sector,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sendReady,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) AS stillUnverified,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) > 0 AS isActionable\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.id IN (\n  1350035, 1380005, 1380015, 1350021, 1350013,\n  1350022, 1350006, 1350010, 1380001, 1350007,\n  1350015, 1380002, 1350032, 1380028, 1350020,\n  1350030, 1380013, 1290011, 1350004\n)\nGROUP BY p.id\nORDER BY p.priority ASC, sendReady DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  p.name AS project, p.priority, p.sector,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sendReady,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) AS stillUnverified,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) > 0 AS isActionable\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.id IN (\n  1350035, 1380005, 1380015, 1350021, 1350013,\n  1350022, 1350006, 1350010, 1380001, 1350007,\n  1350015, 1380002, 1350032, 1380028, 1350020,\n  1350030, 1380013, 1290011, 1350004\n)\nGROUP BY p.id\nORDER BY p.priority ASC, sendReady DESC;",
+  "rows": [
+    {
+      "project": "EnergyConnect Interconnector",
+      "priority": "hot",
+      "sector": "energy",
+      "sendReady": "7",
+      "stillUnverified": "1",
+      "isActionable": "1"
+    },
+    {
+      "project": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "sendReady": "3",
+      "stillUnverified": "4",
+      "isActionable": "1"
+    },
+    {
+      "project": "New Secure Government Facility",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "2",
+      "isActionable": "0"
+    },
+    {
+      "project": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "3",
+      "isActionable": "0"
+    },
+    {
+      "project": "Hyden Gold Project",
+      "priority": "warm",
+      "sector": "mining",
+      "sendReady": "1",
+      "stillUnverified": "0",
+      "isActionable": "1"
+    },
+    {
+      "project": "Victorian water infrastructure upgrade",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "Southern Gold Coast Coastal Residential High-Rise Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "Bairnsdale Quarries Operations",
+      "priority": "warm",
+      "sector": "mining",
+      "sendReady": "0",
+      "stillUnverified": "2",
+      "isActionable": "0"
+    },
+    {
+      "project": "Federal Budget 2026/27 Infrastructure Pipeline",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "AGL Big Battery",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "Bulwer Island Fuel Storage Expansion",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "2",
+      "isActionable": "0"
+    },
+    {
+      "project": "Queensland Renewable Energy Tender (QRET)",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "1",
+      "isActionable": "0"
+    },
+    {
+      "project": "Carmichael Mine Road Dispute",
+      "priority": "warm",
+      "sector": "mining",
+      "sendReady": "0",
+      "stillUnverified": "3",
+      "isActionable": "0"
+    },
+    {
+      "project": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "priority": "warm",
+      "sector": "energy",
+      "sendReady": "0",
+      "stillUnverified": "2",
+      "isActionable": "0"
+    },
+    {
+      "project": "New Iron Ore Mine Development",
+      "priority": "warm",
+      "sector": "mining",
+      "sendReady": "0",
+      "stillUnverified": "2",
+      "isActionable": "0"
+    },
+    {
+      "project": "Nolans Rare Earths Project",
+      "priority": "warm",
+      "sector": "mining",
+      "sendReady": "0",
+      "stillUnverified": "3",
+      "isActionable": "0"
+    },
+    {
+      "project": "Naval Strike Missiles and Joint Strike Missiles Domestic Manufacturing",
+      "priority": "warm",
+      "sector": "defence",
+      "sendReady": "0",
+      "stillUnverified": "2",
+      "isActionable": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tpriority\tsector\tsendReady\tstillUnverified\tisActionable\nEnergyConnect Interconnector\thot\tenergy\t7\t1\t1\nOrigin/APLNG Ironbark Expansion\thot\toil_gas\t3\t4\t1\nNew Secure Government Facility\thot\tinfrastructure\t0\t1\t0\nPoatina hydropower station upgrade\thot\tenergy\t0\t2\t0\nFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\tenergy\t0\t3\t0\nHyden Gold Project\twarm\tmining\t1\t0\t1\nVictorian water infrastructure upgrade\twarm\tinfrastructure\t0\t1\t0\nSouthern Gold Coast Coastal Residential High-Rise Development\twarm\tinfrastructure\t0\t1\t0\nBairnsdale Quarries Operations\twarm\tmining\t0\t2\t0\nFederal Budget 2026/27 Infrastructure Pipeline\twarm\tinfrastructure\t0\t1\t0\nAGL Big Battery\twarm\tenergy\t0\t1\t0\nBulwer Island Fuel Storage Expansion\twarm\tenergy\t0\t1\t0\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\t0\t2\t0\nQueensland Renewable Energy Tender (QRET)\twarm\tenergy\t0\t1\t0\nCarmichael Mine Road Dispute\twarm\tmining\t0\t3\t0\nTasNetworks North West Transmission Developments (NWTD) Stage 1\twarm\tenergy\t0\t2\t0\nNew Iron Ore Mine Development\twarm\tmining\t0\t2\t0\nNolans Rare Earths Project\twarm\tmining\t0\t3\t0\nNaval Strike Missiles and Joint Strike Missiles Domestic Manufacturing\twarm\tdefence\t0\t2\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1806
+}

@@ -1,0 +1,60 @@
+{
+  "query": "SELECT p.id, p.name, p.priority, p.sector, p.projectState, p.productLane, \n  DATE(p.createdAt) AS addedDate,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS srCount\nFROM projects p\nLEFT JOIN contacts c ON c.project = p.name\nWHERE p.createdAt >= '2026-05-12 00:00:00'\n  AND p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\nGROUP BY p.id\nHAVING srCount >= 1\nORDER BY p.createdAt ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.priority, p.sector, p.projectState, p.productLane, \n  DATE(p.createdAt) AS addedDate,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) AS srCount\nFROM projects p\nLEFT JOIN contacts c ON c.project = p.name\nWHERE p.createdAt >= '2026-05-12 00:00:00'\n  AND p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\nGROUP BY p.id\nHAVING srCount >= 1\nORDER BY p.createdAt ASC;",
+  "rows": [
+    {
+      "id": "1350021",
+      "name": "EnergyConnect Interconnector",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "VIC",
+      "productLane": "NULL",
+      "addedDate": "2026-05-13",
+      "srCount": "7"
+    },
+    {
+      "id": "1350025",
+      "name": "Delburn Wind Farm",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "VIC",
+      "productLane": "NULL",
+      "addedDate": "2026-05-13",
+      "srCount": "9"
+    },
+    {
+      "id": "1350035",
+      "name": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "projectState": "QLD",
+      "productLane": "NULL",
+      "addedDate": "2026-05-13",
+      "srCount": "3"
+    },
+    {
+      "id": "1380040",
+      "name": "Bellevue Gold Project",
+      "priority": "hot",
+      "sector": "mining",
+      "projectState": "WA",
+      "productLane": "NULL",
+      "addedDate": "2026-05-15",
+      "srCount": "6"
+    },
+    {
+      "id": "1380043",
+      "name": "Finniss Lithium Project restart and underground development",
+      "priority": "hot",
+      "sector": "mining",
+      "projectState": "NULL",
+      "productLane": "NULL",
+      "addedDate": "2026-05-15",
+      "srCount": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tpriority\tsector\tprojectState\tproductLane\taddedDate\tsrCount\n1350021\tEnergyConnect Interconnector\thot\tenergy\tVIC\tNULL\t2026-05-13\t7\n1350025\tDelburn Wind Farm\twarm\tenergy\tVIC\tNULL\t2026-05-13\t9\n1350035\tOrigin/APLNG Ironbark Expansion\thot\toil_gas\tQLD\tNULL\t2026-05-13\t3\n1380040\tBellevue Gold Project\thot\tmining\tWA\tNULL\t2026-05-15\t6\n1380043\tFinniss Lithium Project restart and underground development\thot\tmining\tNULL\tNULL\t2026-05-15\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1838
+}

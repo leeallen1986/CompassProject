@@ -1,0 +1,40 @@
+{
+  "query": "SELECT territory, firstSendApproved, autoSendEnabled, liveSendCount FROM digestSendControl WHERE territory IN ('SA', 'QLD', 'VIC', 'NSW', 'TAS') ORDER BY territory;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT territory, firstSendApproved, autoSendEnabled, liveSendCount FROM digestSendControl WHERE territory IN ('SA', 'QLD', 'VIC', 'NSW', 'TAS') ORDER BY territory;",
+  "rows": [
+    {
+      "territory": "NSW",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "QLD",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "SA",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "TAS",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "VIC",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "liveSendCount": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "territory\tfirstSendApproved\tautoSendEnabled\tliveSendCount\nNSW\t1\t1\t0\nQLD\t1\t1\t0\nSA\t1\t1\t0\nTAS\t1\t1\t0\nVIC\t1\t1\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1755
+}

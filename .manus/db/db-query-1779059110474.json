@@ -1,0 +1,90 @@
+{
+  "query": "SELECT c.name, c.title, c.company, c.email, c.contactTrustTier, p.name AS project\nFROM contacts c\nJOIN projects p ON c.project = p.name\nWHERE p.id IN (1350035, 1350021)\n  AND c.contactTrustTier = 'send_ready'\nORDER BY p.priority ASC, p.name ASC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT c.name, c.title, c.company, c.email, c.contactTrustTier, p.name AS project\nFROM contacts c\nJOIN projects p ON c.project = p.name\nWHERE p.id IN (1350035, 1350021)\n  AND c.contactTrustTier = 'send_ready'\nORDER BY p.priority ASC, p.name ASC;",
+  "rows": [
+    {
+      "name": "Ben Maude",
+      "title": "Construction Manager",
+      "company": "Transgrid",
+      "email": "ben.m@transgrid.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Anthony Nasta",
+      "title": "Construction Manager",
+      "company": "Transgrid",
+      "email": "anthony.nasta@transgrid.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Richard Schuster",
+      "title": "Fleet Manager",
+      "company": "Ventia",
+      "email": "richard.schuster@ventia.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Peter Johnson",
+      "title": "Construction Manager Ops",
+      "company": "Ventia",
+      "email": "peter.johnson@ventia.com",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Kelly Smith",
+      "title": "Fleet & Project Manager",
+      "company": "Ventia",
+      "email": "kelly.smith@ventia.com",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Richard Jenkins",
+      "title": "Operations and Maintenance Manager",
+      "company": "Ventia",
+      "email": "richard.jenkins@ventia.com",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Fernando Candi",
+      "title": "Sourcing & Procurement profesional",
+      "company": "SecureEnergy",
+      "email": "fernando.candi@secureenergy.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "EnergyConnect Interconnector"
+    },
+    {
+      "name": "Simon Game",
+      "title": "General Manager Commercial",
+      "company": "APLNG",
+      "email": "simon.game@aplng.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "Origin/APLNG Ironbark Expansion"
+    },
+    {
+      "name": "Michael Brown",
+      "title": "Construction Manager",
+      "company": "Origin",
+      "email": "michael.brown@origin.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "Origin/APLNG Ironbark Expansion"
+    },
+    {
+      "name": "Conal McCullough",
+      "title": "General Manager, Development and Construction",
+      "company": "Origin",
+      "email": "conal.mccullough@originenergy.com.au",
+      "contactTrustTier": "send_ready",
+      "project": "Origin/APLNG Ironbark Expansion"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\ttitle\tcompany\temail\tcontactTrustTier\tproject\nBen Maude\tConstruction Manager\tTransgrid\tben.m@transgrid.com.au\tsend_ready\tEnergyConnect Interconnector\nAnthony Nasta\tConstruction Manager\tTransgrid\tanthony.nasta@transgrid.com.au\tsend_ready\tEnergyConnect Interconnector\nRichard Schuster\tFleet Manager\tVentia\trichard.schuster@ventia.com.au\tsend_ready\tEnergyConnect Interconnector\nPeter Johnson\tConstruction Manager Ops\tVentia\tpeter.johnson@ventia.com\tsend_ready\tEnergyConnect Interconnector\nKelly Smith\tFleet & Project Manager\tVentia\tkelly.smith@ventia.com\tsend_ready\tEnergyConnect Interconnector\nRichard Jenkins\tOperations and Maintenance Manager\tVentia\trichard.jenkins@ventia.com\tsend_ready\tEnergyConnect Interconnector\nFernando Candi\tSourcing & Procurement profesional\tSecureEnergy\tfernando.candi@secureenergy.com.au\tsend_ready\tEnergyConnect Interconnector\nSimon Game\tGeneral Manager Commercial\tAPLNG\tsimon.game@aplng.com.au\tsend_ready\tOrigin/APLNG Ironbark Expansion\nMichael Brown\tConstruction Manager\tOrigin\tmichael.brown@origin.com.au\tsend_ready\tOrigin/APLNG Ironbark Expansion\nConal McCullough\tGeneral Manager, Development and Construction\tOrigin\tconal.mccullough@originenergy.com.au\tsend_ready\tOrigin/APLNG Ironbark Expansion\n",
+  "stderr": "",
+  "execution_time_ms": 1836
+}

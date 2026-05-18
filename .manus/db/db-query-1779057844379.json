@@ -1,0 +1,370 @@
+{
+  "query": "SELECT \n  DATE(createdAt) AS addedDate,\n  name, priority, sector, projectState,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[0].label')) AS source1,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[1].label')) AS source2\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nORDER BY createdAt ASC\nLIMIT 40 OFFSET 40;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  DATE(createdAt) AS addedDate,\n  name, priority, sector, projectState,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[0].label')) AS source1,\n  JSON_UNQUOTE(JSON_EXTRACT(sources, '$[1].label')) AS source2\nFROM projects\nWHERE createdAt >= '2026-05-12 00:00:00'\n  AND suppressed = 0\nORDER BY createdAt ASC\nLIMIT 40 OFFSET 40;",
+  "rows": [
+    {
+      "addedDate": "2026-05-13",
+      "name": "Nolans Rare Earths Project",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "NT",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Mt Mulgine Project",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "FranklinWH aPower Energy Resilience System",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Delburn Wind Farm",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Yarra Energy Foundation Neighbourhood Battery Project",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Poatina Power Station Upgrade",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "TAS",
+      "source1": "RSS Feed",
+      "source2": "ICN Gateway"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Major New Solar and Battery Project",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "New England Wind Project (Squadron Energy)",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "AGL Big Battery",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Webster Street Level Crossing Removal Project",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "ICN Gateway"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Dungog Shire Bridge Infrastructure Renewal",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Bulwer Island Fuel Storage Expansion",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Browse Gas Project",
+      "priority": "cold",
+      "sector": "oil_gas",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Curry's Block prospect at Hillgrove Antimony-Gold Project",
+      "priority": "cold",
+      "sector": "mining",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Earl Grey Lithium Project Expansion",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Jinbi Solar Farm",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "General Restoration Works - Kununurra MRDWA Administration Building",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "Tenders WA — DHW0332825",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Routine Maintenance for Backup Power Systems (Generators & UPS) - Southern Region",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "Tenders WA — DHW0171126",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Detective’s Area Expansion - Karratha District",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "Tenders WA — WAPOL01526",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-13",
+      "name": "Paint and Station Upgrade - Tambellup Police Station",
+      "priority": "cold",
+      "sector": "infrastructure",
+      "projectState": "NULL",
+      "source1": "Tenders WA — WAPOL15525",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Naval Strike Missiles and Joint Strike Missiles Domestic Manufacturing",
+      "priority": "warm",
+      "sector": "defence",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Alkimos Beach Community Battery Energy Storage System Recycling Project",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Tongwei Solar Distribution Partnership with OSW",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "NSW Roadmap Tender 7 Firming Infrastructure Projects (Tomago BESS & VPP)",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Melbourne's Biggest Railway Project (Suburban Rail Loop)",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Glen Innes Hospital Redevelopment",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Fraser Coast Tourism and Residential Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Brisbane Riverfront Apartment Development",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "South Burnett Solar and Battery Project",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Western Victoria Battery Storage Project",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Victorian water infrastructure upgrade",
+      "priority": "warm",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Melbourne hyperscale data centre development",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "Projectory"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "TAS",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Western Australia Battery Storage Performance",
+      "priority": "cold",
+      "sector": "energy",
+      "projectState": "WA",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Glenrowan Battery Energy Storage System (BESS)",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "VIC",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "NSW Firming Tender Energy Storage Projects",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    },
+    {
+      "addedDate": "2026-05-15",
+      "name": "Iberdrola Australia 1GW Battery Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NULL",
+      "source1": "RSS Feed",
+      "source2": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "addedDate\tname\tpriority\tsector\tprojectState\tsource1\tsource2\n2026-05-13\tNolans Rare Earths Project\twarm\tmining\tNT\tRSS Feed\tNULL\n2026-05-13\tMt Mulgine Project\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-13\tFranklinWH aPower Energy Resilience System\tcold\tenergy\tNULL\tRSS Feed\tNULL\n2026-05-13\tDelburn Wind Farm\twarm\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-13\tYarra Energy Foundation Neighbourhood Battery Project\thot\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-13\tPoatina Power Station Upgrade\twarm\tenergy\tTAS\tRSS Feed\tICN Gateway\n2026-05-13\tMajor New Solar and Battery Project\thot\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-13\tNew England Wind Project (Squadron Energy)\tcold\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-13\tAGL Big Battery\twarm\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-13\tWebster Street Level Crossing Removal Project\twarm\tinfrastructure\tVIC\tRSS Feed\tICN Gateway\n2026-05-13\tDungog Shire Bridge Infrastructure Renewal\twarm\tinfrastructure\tNSW\tRSS Feed\tNULL\n2026-05-13\tBulwer Island Fuel Storage Expansion\twarm\tenergy\tQLD\tRSS Feed\tNULL\n2026-05-13\tBrowse Gas Project\tcold\toil_gas\tWA\tRSS Feed\tNULL\n2026-05-13\tOrigin/APLNG Ironbark Expansion\thot\toil_gas\tQLD\tRSS Feed\tNULL\n2026-05-13\tCurry's Block prospect at Hillgrove Antimony-Gold Project\tcold\tmining\tNULL\tRSS Feed\tNULL\n2026-05-13\tEarl Grey Lithium Project Expansion\twarm\tmining\tWA\tRSS Feed\tNULL\n2026-05-13\tJinbi Solar Farm\thot\tenergy\tWA\tRSS Feed\tProjectory\n2026-05-13\tGeneral Restoration Works - Kununurra MRDWA Administration Building\tcold\tinfrastructure\tNULL\tTenders WA — DHW0332825\tNULL\n2026-05-13\tRoutine Maintenance for Backup Power Systems (Generators & UPS) - Southern Region\twarm\tinfrastructure\tNULL\tTenders WA — DHW0171126\tNULL\n2026-05-13\tDetective’s Area Expansion - Karratha District\twarm\tinfrastructure\tNULL\tTenders WA — WAPOL01526\tNULL\n2026-05-13\tPaint and Station Upgrade - Tambellup Police Station\tcold\tinfrastructure\tNULL\tTenders WA — WAPOL15525\tNULL\n2026-05-15\tNaval Strike Missiles and Joint Strike Missiles Domestic Manufacturing\twarm\tdefence\tNULL\tRSS Feed\tNULL\n2026-05-15\tBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tQLD\tRSS Feed\tNULL\n2026-05-15\tAlkimos Beach Community Battery Energy Storage System Recycling Project\tcold\tenergy\tWA\tRSS Feed\tNULL\n2026-05-15\tTongwei Solar Distribution Partnership with OSW\tcold\tenergy\tNULL\tRSS Feed\tNULL\n2026-05-15\tFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-15\tNSW Roadmap Tender 7 Firming Infrastructure Projects (Tomago BESS & VPP)\thot\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-15\tMelbourne's Biggest Railway Project (Suburban Rail Loop)\thot\tinfrastructure\tVIC\tRSS Feed\tNULL\n2026-05-15\tGlen Innes Hospital Redevelopment\thot\tinfrastructure\tNSW\tRSS Feed\tProjectory\n2026-05-15\tFraser Coast Tourism and Residential Development\twarm\tinfrastructure\tQLD\tRSS Feed\tNULL\n2026-05-15\tBrisbane Riverfront Apartment Development\twarm\tinfrastructure\tQLD\tRSS Feed\tNULL\n2026-05-15\tSouth Burnett Solar and Battery Project\twarm\tenergy\tQLD\tRSS Feed\tNULL\n2026-05-15\tWestern Victoria Battery Storage Project\twarm\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-15\tVictorian water infrastructure upgrade\twarm\tinfrastructure\tVIC\tRSS Feed\tNULL\n2026-05-15\tMelbourne hyperscale data centre development\thot\tinfrastructure\tVIC\tRSS Feed\tProjectory\n2026-05-15\tPoatina hydropower station upgrade\thot\tenergy\tTAS\tRSS Feed\tNULL\n2026-05-15\tWestern Australia Battery Storage Performance\tcold\tenergy\tWA\tRSS Feed\tNULL\n2026-05-15\tGlenrowan Battery Energy Storage System (BESS)\twarm\tenergy\tVIC\tRSS Feed\tNULL\n2026-05-15\tNSW Firming Tender Energy Storage Projects\thot\tenergy\tNSW\tRSS Feed\tNULL\n2026-05-15\tIberdrola Australia 1GW Battery Storage System\twarm\tenergy\tNULL\tRSS Feed\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1781
+}

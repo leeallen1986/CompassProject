@@ -1,0 +1,210 @@
+{
+  "query": "SELECT \n  p.name AS project, p.priority, p.sector, p.projectState,\n  c.name AS contactName, c.title, c.company, c.contactTrustTier\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.createdAt >= '2026-05-12 00:00:00'\n  AND p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\n  AND c.contactTrustTier = 'named_unverified'\nORDER BY p.priority ASC, p.name ASC\nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  p.name AS project, p.priority, p.sector, p.projectState,\n  c.name AS contactName, c.title, c.company, c.contactTrustTier\nFROM projects p\nJOIN contacts c ON c.project = p.name\nWHERE p.createdAt >= '2026-05-12 00:00:00'\n  AND p.suppressed = 0\n  AND p.priority IN ('hot', 'warm')\n  AND c.contactTrustTier = 'named_unverified'\nORDER BY p.priority ASC, p.name ASC\nLIMIT 20;",
+  "rows": [
+    {
+      "project": "EnergyConnect Interconnector",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "VIC",
+      "contactName": "Ian Russell",
+      "title": "Project Manager / Construction Manager",
+      "company": "Ventia",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "contactName": "Jarrod Galea",
+      "title": "Project Management | Site Management | Infrastructure Delivery",
+      "company": "Victoria Racing Club",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "contactName": "Meg Liston",
+      "title": "Director | Enterprise Project Delivery, Technology Engagement & Workplace Transformation | Future of Work & Enterprise-level Project Leadership | Client Side Project Leadership",
+      "company": "Victoria Racing Club",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "NSW",
+      "contactName": "Melissa W.",
+      "title": "Strategic leader, helping you connect more to win more",
+      "company": "Victoria Racing Club",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "New Secure Government Facility",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "WA",
+      "contactName": "Nicolas SPANO",
+      "title": "Senior Engineering Manager at Open Government Products",
+      "company": "Government",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "projectState": "QLD",
+      "contactName": "Rod Neale",
+      "title": "Construction Manager",
+      "company": "Origin",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "projectState": "QLD",
+      "contactName": "Mark Smith",
+      "title": "Programme Manager, Aplng Operations Centre",
+      "company": "APLNG",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "projectState": "QLD",
+      "contactName": "Andrew Gambling",
+      "title": "Construction / Project Manager",
+      "company": "Origin",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "projectState": "QLD",
+      "contactName": "Ian Moran",
+      "title": "Engineering & Maintenance Manager",
+      "company": "Origin",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "TAS",
+      "contactName": "Ray Clark",
+      "title": "Manager Statewide Maintenance at Hydro Tasmania",
+      "company": "Hydro Tasmania",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Poatina hydropower station upgrade",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "TAS",
+      "contactName": "John Young",
+      "title": "Manager Statewide Maintenance at Hydro Tasmania",
+      "company": "Hydro Tasmania",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "AGL Big Battery",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "NSW",
+      "contactName": "Burak Salduz",
+      "title": "Project Manager",
+      "company": "AGL",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bairnsdale Quarries Operations",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "VIC",
+      "contactName": "Andy Oliveira",
+      "title": "Technology solutions specialist in mining and civil",
+      "company": "CJD Equipment",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bairnsdale Quarries Operations",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "VIC",
+      "contactName": "Andrew Minty",
+      "title": "National Product Manager - Site Solutions at CJD Equipment",
+      "company": "CJD Equipment",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "contactName": "Mujtaba Ahmed",
+      "title": "Regional Sales Operations Manager @ GENEX | Sales and Marketing, Strategic Planning",
+      "company": "Genex",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulli Creek Stage 1 Solar Farm and Battery Energy Storage System",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "contactName": "Colby Hart",
+      "title": "Software Engineering Manager at Genex",
+      "company": "Genex",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Bulwer Island Fuel Storage Expansion",
+      "priority": "warm",
+      "sector": "energy",
+      "projectState": "QLD",
+      "contactName": "Janelle Fletcher",
+      "title": "IT Project Manager/Business Analyst • D365 & PowerApps Enthusiast",
+      "company": "Queensland Government",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Carmichael Mine Road Dispute",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "QLD",
+      "contactName": "Jason Smith",
+      "title": "Operations Organisational Leader | Mining & Resources | ESG & Technology Integration | Board Director | Business Transformation | Entrepreneur",
+      "company": "Bravus Mining and Resources",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Carmichael Mine Road Dispute",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "QLD",
+      "contactName": "David Evans",
+      "title": "Senior Construction Manager",
+      "company": "Bravus Mining and Resources",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "project": "Carmichael Mine Road Dispute",
+      "priority": "warm",
+      "sector": "mining",
+      "projectState": "QLD",
+      "contactName": "Andrew Kuipers",
+      "title": "An energetic Manager with a heavy focus on delivering projects safely, on time and on budget.",
+      "company": "Bravus Mining and Resources",
+      "contactTrustTier": "named_unverified"
+    }
+  ],
+  "messages": [],
+  "stdout": "project\tpriority\tsector\tprojectState\tcontactName\ttitle\tcompany\tcontactTrustTier\nEnergyConnect Interconnector\thot\tenergy\tVIC\tIan Russell\tProject Manager / Construction Manager\tVentia\tnamed_unverified\nFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\tenergy\tNSW\tJarrod Galea\tProject Management | Site Management | Infrastructure Delivery\tVictoria Racing Club\tnamed_unverified\nFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\tenergy\tNSW\tMeg Liston\tDirector | Enterprise Project Delivery, Technology Engagement & Workplace Transformation | Future of Work & Enterprise-level Project Leadership | Client Side Project Leadership\tVictoria Racing Club\tnamed_unverified\nFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\tenergy\tNSW\tMelissa W.\tStrategic leader, helping you connect more to win more\tVictoria Racing Club\tnamed_unverified\nNew Secure Government Facility\thot\tinfrastructure\tWA\tNicolas SPANO\tSenior Engineering Manager at Open Government Products\tGovernment\tnamed_unverified\nOrigin/APLNG Ironbark Expansion\thot\toil_gas\tQLD\tRod Neale\tConstruction Manager\tOrigin\tnamed_unverified\nOrigin/APLNG Ironbark Expansion\thot\toil_gas\tQLD\tMark Smith\tProgramme Manager, Aplng Operations Centre\tAPLNG\tnamed_unverified\nOrigin/APLNG Ironbark Expansion\thot\toil_gas\tQLD\tAndrew Gambling\tConstruction / Project Manager\tOrigin\tnamed_unverified\nOrigin/APLNG Ironbark Expansion\thot\toil_gas\tQLD\tIan Moran\tEngineering & Maintenance Manager\tOrigin\tnamed_unverified\nPoatina hydropower station upgrade\thot\tenergy\tTAS\tRay Clark\tManager Statewide Maintenance at Hydro Tasmania\tHydro Tasmania\tnamed_unverified\nPoatina hydropower station upgrade\thot\tenergy\tTAS\tJohn Young\tManager Statewide Maintenance at Hydro Tasmania\tHydro Tasmania\tnamed_unverified\nAGL Big Battery\twarm\tenergy\tNSW\tBurak Salduz\tProject Manager\tAGL\tnamed_unverified\nBairnsdale Quarries Operations\twarm\tmining\tVIC\tAndy Oliveira\tTechnology solutions specialist in mining and civil\tCJD Equipment\tnamed_unverified\nBairnsdale Quarries Operations\twarm\tmining\tVIC\tAndrew Minty\tNational Product Manager - Site Solutions at CJD Equipment\tCJD Equipment\tnamed_unverified\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tQLD\tMujtaba Ahmed\tRegional Sales Operations Manager @ GENEX | Sales and Marketing, Strategic Planning\tGenex\tnamed_unverified\nBulli Creek Stage 1 Solar Farm and Battery Energy Storage System\twarm\tenergy\tQLD\tColby Hart\tSoftware Engineering Manager at Genex\tGenex\tnamed_unverified\nBulwer Island Fuel Storage Expansion\twarm\tenergy\tQLD\tJanelle Fletcher\tIT Project Manager/Business Analyst • D365 & PowerApps Enthusiast\tQueensland Government\tnamed_unverified\nCarmichael Mine Road Dispute\twarm\tmining\tQLD\tJason Smith\tOperations Organisational Leader | Mining & Resources | ESG & Technology Integration | Board Director | Business Transformation | Entrepreneur\tBravus Mining and Resources\tnamed_unverified\nCarmichael Mine Road Dispute\twarm\tmining\tQLD\tDavid Evans\tSenior Construction Manager\tBravus Mining and Resources\tnamed_unverified\nCarmichael Mine Road Dispute\twarm\tmining\tQLD\tAndrew Kuipers\tAn energetic Manager with a heavy focus on delivering projects safely, on time and on budget.\tBravus Mining and Resources\tnamed_unverified\n",
+  "stderr": "",
+  "execution_time_ms": 1808
+}

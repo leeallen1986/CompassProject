@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT u.name, u.email, sl.status, sl.itemCount, sl.sentAt, sl.errorMessage\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.weekKey = '2026W20'\n  AND sl.digestType = 'monday'\nORDER BY sl.sentAt ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, u.email, sl.status, sl.itemCount, sl.sentAt, sl.errorMessage\nFROM userEmailSendLog sl\nJOIN users u ON u.id = sl.userId\nWHERE sl.weekKey = '2026W20'\n  AND sl.digestType = 'monday'\nORDER BY sl.sentAt ASC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'sl.errormessage' in 'field list'"
+  ]
+}

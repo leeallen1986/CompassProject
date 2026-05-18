@@ -2426,6 +2426,8 @@ export async function logEmailSendExtended(params: {
     const today = new Date().toISOString().slice(0, 10);
     // Use UPSERT: if a row already exists for (userId, digestType, sentDate),
     // update it rather than crashing on duplicate key.
+    // CRITICAL: Never downgrade a terminal status (sent/failed) to dry_run or pending.
+    // The IF() guards ensure a dry-run preview cannot overwrite a successfully sent row.
     await db.execute(
       sql`INSERT INTO userEmailSendLog
         (userId, digestType, sentDate, weekKey, status, itemCount, dryRun, error)
@@ -2434,10 +2436,10 @@ export async function logEmailSendExtended(params: {
          ${params.status}, ${params.itemCount ?? 0}, ${params.dryRun ? 1 : 0}, ${params.error ?? null})
         ON DUPLICATE KEY UPDATE
           weekKey = VALUES(weekKey),
-          status = VALUES(status),
-          itemCount = VALUES(itemCount),
-          dryRun = VALUES(dryRun),
-          error = VALUES(error),
+          status = IF(status IN ('sent', 'failed'), status, VALUES(status)),
+          itemCount = IF(status IN ('sent', 'failed'), itemCount, VALUES(itemCount)),
+          dryRun = IF(status IN ('sent', 'failed'), dryRun, VALUES(dryRun)),
+          error = IF(status IN ('sent', 'failed'), error, VALUES(error)),
           sentAt = CURRENT_TIMESTAMP`
     );
   } catch (err) {
@@ -2465,17 +2467,37 @@ export async function claimDigestSendSlot(
     const db = await getDb();
     if (!db) return false; // No DB → fail safe (don't send)
     const today = new Date().toISOString().slice(0, 10);
-    // INSERT IGNORE: silently skips if the unique key already exists
-    const result = await db.execute(
+    // Step 1: Try INSERT IGNORE — wins the slot if no row exists yet.
+    const insertResult = await db.execute(
       sql`INSERT IGNORE INTO userEmailSendLog
         (userId, digestType, sentDate, weekKey, status, itemCount, dryRun)
         VALUES
         (${userId}, ${digestType}, ${today}, ${weekKey}, 'pending', 0, 0)`
     );
-    // affectedRows = 1 → we inserted (won the slot)
+    const insertedRows = (insertResult[0] as any).affectedRows ?? 0;
+    if (insertedRows > 0) return true; // Won the slot via fresh insert
+
+    // Step 2: INSERT IGNORE returned 0 — a row already exists for today.
+    // If that row is a dry_run preview (not yet a real send), we can claim it
+    // by atomically updating it to 'pending'. This handles the scenario where
+    // the scheduler preview runs on the same UTC calendar day as the real send.
+    const updateResult = await db.execute(
+      sql`UPDATE userEmailSendLog
+        SET status = 'pending', weekKey = ${weekKey}, dryRun = 0, sentAt = CURRENT_TIMESTAMP
+        WHERE userId = ${userId}
+          AND digestType = ${digestType}
+          AND sentDate = ${today}
+          AND status = 'dry_run'`
+    );
+    const updatedRows = (updateResult[0] as any).affectedRows ?? 0;
+    if (updatedRows > 0) {
+      console.log(`[EmailOps] claimDigestSendSlot: claimed dry_run slot for user ${userId} (${digestType}, ${today})`);
+      return true; // Claimed the dry_run slot
+    }
+
+    // Step 3: Row exists and is not dry_run — it's pending/sent/failed from another goroutine.
     // affectedRows = 0 → duplicate was ignored (another goroutine already claimed it)
-    const affectedRows = (result[0] as any).affectedRows ?? 0;
-    return affectedRows > 0;
+    return false;
   } catch (err) {
     console.error(`[EmailOps] claimDigestSendSlot error for user ${userId}:`, err);
     return false; // Fail safe: don't send on error

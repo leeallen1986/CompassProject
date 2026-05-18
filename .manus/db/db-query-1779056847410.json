@@ -1,0 +1,70 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE()\nORDER BY ORDINAL_POSITION LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE()\nORDER BY ORDINAL_POSITION LIMIT 20;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "projectKey"
+    },
+    {
+      "COLUMN_NAME": "name"
+    },
+    {
+      "COLUMN_NAME": "location"
+    },
+    {
+      "COLUMN_NAME": "value"
+    },
+    {
+      "COLUMN_NAME": "owner"
+    },
+    {
+      "COLUMN_NAME": "priority"
+    },
+    {
+      "COLUMN_NAME": "capexGrade"
+    },
+    {
+      "COLUMN_NAME": "opportunityRoute"
+    },
+    {
+      "COLUMN_NAME": "sector"
+    },
+    {
+      "COLUMN_NAME": "isNew"
+    },
+    {
+      "COLUMN_NAME": "stage"
+    },
+    {
+      "COLUMN_NAME": "overview"
+    },
+    {
+      "COLUMN_NAME": "equipmentSignals"
+    },
+    {
+      "COLUMN_NAME": "contractors"
+    },
+    {
+      "COLUMN_NAME": "opportunityNote"
+    },
+    {
+      "COLUMN_NAME": "sources"
+    },
+    {
+      "COLUMN_NAME": "timeline"
+    },
+    {
+      "COLUMN_NAME": "completion"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nreportId\nprojectKey\nname\nlocation\nvalue\nowner\npriority\ncapexGrade\nopportunityRoute\nsector\nisNew\nstage\noverview\nequipmentSignals\ncontractors\nopportunityNote\nsources\ntimeline\ncompletion\n",
+  "stderr": "",
+  "execution_time_ms": 1864
+}

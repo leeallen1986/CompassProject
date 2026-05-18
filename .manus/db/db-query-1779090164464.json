@@ -1,0 +1,42 @@
+{
+  "query": "SELECT id, projectId, digestSafe, primaryAcceptable, gateSetBy, gateSetAt FROM projectValidationGates WHERE projectId IN (690089, 360011, 660020, 570022) ORDER BY projectId;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, projectId, digestSafe, primaryAcceptable, gateSetBy, gateSetAt FROM projectValidationGates WHERE projectId IN (690089, 360011, 660020, 570022) ORDER BY projectId;",
+  "rows": [
+    {
+      "id": "120002",
+      "projectId": "360011",
+      "digestSafe": "1",
+      "primaryAcceptable": "1",
+      "gateSetBy": "admin-dan-day-rescue-18may",
+      "gateSetAt": "2026-05-18 07:42:38"
+    },
+    {
+      "id": "60002",
+      "projectId": "570022",
+      "digestSafe": "1",
+      "primaryAcceptable": "1",
+      "gateSetBy": "system-auto-gate-v1",
+      "gateSetAt": "2026-05-07 08:54:03"
+    },
+    {
+      "id": "120003",
+      "projectId": "660020",
+      "digestSafe": "1",
+      "primaryAcceptable": "1",
+      "gateSetBy": "admin-dan-day-rescue-18may",
+      "gateSetAt": "2026-05-18 07:42:38"
+    },
+    {
+      "id": "120001",
+      "projectId": "690089",
+      "digestSafe": "1",
+      "primaryAcceptable": "1",
+      "gateSetBy": "admin-dan-day-rescue-18may",
+      "gateSetAt": "2026-05-18 07:42:38"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tprojectId\tdigestSafe\tprimaryAcceptable\tgateSetBy\tgateSetAt\n120002\t360011\t1\t1\tadmin-dan-day-rescue-18may\t2026-05-18 07:42:38\n60002\t570022\t1\t1\tsystem-auto-gate-v1\t2026-05-07 08:54:03\n120003\t660020\t1\t1\tadmin-dan-day-rescue-18may\t2026-05-18 07:42:38\n120001\t690089\t1\t1\tadmin-dan-day-rescue-18may\t2026-05-18 07:42:38\n",
+  "stderr": "",
+  "execution_time_ms": 1740
+}

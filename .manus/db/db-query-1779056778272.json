@@ -1,0 +1,34 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND TABLE_SCHEMA = DATABASE()\nAND COLUMN_NAME LIKE '%project%' OR COLUMN_NAME LIKE '%report%'\nORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND TABLE_SCHEMA = DATABASE()\nAND COLUMN_NAME LIKE '%project%' OR COLUMN_NAME LIKE '%report%'\nORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "project"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nreportId\nreportId\nreportId\nreportId\nreportId\nreportId\nproject\nreportId\n",
+  "stderr": "",
+  "execution_time_ms": 1784
+}
