@@ -1281,7 +1281,7 @@
 - [ ] Add tRPC procedures: campaign.stageUpload, campaign.getStagingBatch, campaign.commitStagingBatch, campaign.discardStagingBatch
 - [ ] Wire CampaignBuilder upload flow to use staging pipeline before importCampaignContacts
 - [ ] Write Vitest tests for ingestionService (all normalization functions)
-- [ ] Save checkpoint
+- [x] Save checkpoint
 
 ## Stage 1 Completion Status
 - [x] Upload type detection (contact_split, contact_full, crm_export, company_only, unknown)
@@ -2650,3 +2650,10 @@
 - [x] Fix dry_run blocking bug in logEmailSendExtended: add IF(status IN ('sent','failed'), ...) guards to ON DUPLICATE KEY UPDATE so dry-run previews never downgrade terminal status rows
 - [x] Fix claimDigestSendSlot: add Step 2 UPDATE to claim dry_run rows on same UTC day (handles preview-then-send-same-day scenario)
 - [x] TypeScript clean — 0 errors; 3272/3276 tests passing (4 pre-existing Apollo timeout failures unrelated to fix)
+
+## Automated digestSafe Promotion Job (2026-05-18)
+- [x] Build digestSafePromotion.ts — nightly job that promotes projects with ≥3 send_ready contacts + relevanceScore > 40 to digestSafe=true for all reps' territories
+- [x] Wire job into persistentScheduler.ts — runs nightly at 02:00 UTC
+- [x] Add startup catch-up run on server start
+- [x] Write vitest tests for the promotion logic (18 tests in digestSafePromotion.test.ts)
+- [x] Save checkpoint

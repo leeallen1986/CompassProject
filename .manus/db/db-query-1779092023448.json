@@ -1,0 +1,38 @@
+{
+  "query": "\nSELECT projectState, COUNT(*) as cnt \nFROM projects \nWHERE projectKey LIKE 'austender-%' \nGROUP BY projectState \nORDER BY cnt DESC \nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT projectState, COUNT(*) as cnt \nFROM projects \nWHERE projectKey LIKE 'austender-%' \nGROUP BY projectState \nORDER BY cnt DESC \nLIMIT 15;\n",
+  "rows": [
+    {
+      "projectState": "NSW",
+      "cnt": "12"
+    },
+    {
+      "projectState": "VIC",
+      "cnt": "4"
+    },
+    {
+      "projectState": "WA",
+      "cnt": "2"
+    },
+    {
+      "projectState": "ACT",
+      "cnt": "2"
+    },
+    {
+      "projectState": "SA",
+      "cnt": "1"
+    },
+    {
+      "projectState": "QLD",
+      "cnt": "1"
+    },
+    {
+      "projectState": "NULL",
+      "cnt": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectState\tcnt\nNSW\t12\nVIC\t4\nWA\t2\nACT\t2\nSA\t1\nQLD\t1\nNULL\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1852
+}

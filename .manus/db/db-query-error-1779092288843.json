@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  u.name, u.email,\n  l.digestType, l.weekKey, l.sentDate, l.status, l.resendId,\n  l.subjectLine\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE u.name LIKE '%Zec%' OR u.name LIKE '%Daniel%'\nORDER BY l.sentDate DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name, u.email,\n  l.digestType, l.weekKey, l.sentDate, l.status, l.resendId,\n  l.subjectLine\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE u.name LIKE '%Zec%' OR u.name LIKE '%Daniel%'\nORDER BY l.sentDate DESC\nLIMIT 10;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'l.resendid' in 'field list'"
+  ]
+}

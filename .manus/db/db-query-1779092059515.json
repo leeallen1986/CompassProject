@@ -1,0 +1,60 @@
+{
+  "query": "\nSELECT \n  p.projectState, \n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN p.id END) as projects_with_send_ready\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nGROUP BY p.projectState \nORDER BY total_projects DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.projectState, \n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN p.id END) as projects_with_send_ready\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nGROUP BY p.projectState \nORDER BY total_projects DESC;\n",
+  "rows": [
+    {
+      "projectState": "WA",
+      "total_projects": "402",
+      "projects_with_send_ready": "90"
+    },
+    {
+      "projectState": "NSW",
+      "total_projects": "334",
+      "projects_with_send_ready": "89"
+    },
+    {
+      "projectState": "NULL",
+      "total_projects": "243",
+      "projects_with_send_ready": "58"
+    },
+    {
+      "projectState": "QLD",
+      "total_projects": "236",
+      "projects_with_send_ready": "57"
+    },
+    {
+      "projectState": "VIC",
+      "total_projects": "188",
+      "projects_with_send_ready": "46"
+    },
+    {
+      "projectState": "SA",
+      "total_projects": "88",
+      "projects_with_send_ready": "23"
+    },
+    {
+      "projectState": "NT",
+      "total_projects": "73",
+      "projects_with_send_ready": "13"
+    },
+    {
+      "projectState": "TAS",
+      "total_projects": "42",
+      "projects_with_send_ready": "17"
+    },
+    {
+      "projectState": "OFFSHORE_AU",
+      "total_projects": "15",
+      "projects_with_send_ready": "7"
+    },
+    {
+      "projectState": "ACT",
+      "total_projects": "14",
+      "projects_with_send_ready": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "projectState\ttotal_projects\tprojects_with_send_ready\nWA\t402\t90\nNSW\t334\t89\nNULL\t243\t58\nQLD\t236\t57\nVIC\t188\t46\nSA\t88\t23\nNT\t73\t13\nTAS\t42\t17\nOFFSHORE_AU\t15\t7\nACT\t14\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1909
+}

@@ -972,6 +972,29 @@ export const appRouter = router({
           autoSendEnabled: true,
         };
       }),
+    /**
+     * Manually trigger the nightly digestSafe auto-promotion job.
+     * Promotes projects with ≥3 send_ready contacts and BL score ≥40 to digestSafe=true.
+     * Idempotent — already-promoted projects are skipped.
+     */
+    triggerDigestSafePromotion: adminProcedure.mutation(async () => {
+      const { runDigestSafePromotion } = await import("./digestSafePromotion");
+      const result = await runDigestSafePromotion();
+      return result;
+    }),
+    /**
+     * Get the last digestSafe promotion run summary from systemKv.
+     */
+    getDigestSafePromotionStatus: adminProcedure.query(async () => {
+      const { getSystemKv } = await import("./db");
+      const lastRunAt = await getSystemKv("digestSafePromotion.lastRunAt");
+      const lastRunSummaryRaw = await getSystemKv("digestSafePromotion.lastRunSummary");
+      let lastRunSummary = null;
+      try {
+        if (lastRunSummaryRaw) lastRunSummary = JSON.parse(lastRunSummaryRaw);
+      } catch { /* ignore parse error */ }
+      return { lastRunAt, lastRunSummary };
+    }),
   }),
 
   // ── AI Project Search / Matching ──

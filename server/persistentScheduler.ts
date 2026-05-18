@@ -20,6 +20,7 @@
 
 import { getDb } from "./db";
 import { sendWeeklyDigests, sendThursdayReminders, sendManagerRollupEmail } from "./emailDigest";
+import { runDigestSafePromotionSafe } from "./digestSafePromotion";
 import { digestScheduleLog, userEmailSendLog } from "../drizzle/schema";
 import { eq, gte, and, lt } from "drizzle-orm";
 
@@ -335,10 +336,42 @@ function formatAUTimes(utcDate: Date): string {
 }
 
 /**
+ * DigestSafe auto-promotion nightly job.
+ * Runs at 02:00 UTC every night (after Sunday preview, before Monday send).
+ * Also runs once on startup as a catch-up pass.
+ */
+async function scheduleNightlyDigestSafePromotion(): Promise<void> {
+  // Run once immediately on startup as a catch-up pass
+  console.log("[PersistentScheduler] Running startup digestSafe promotion catch-up pass...");
+  await runDigestSafePromotionSafe();
+
+  // Schedule recurring nightly at 02:00 UTC
+  const NIGHTLY_HOUR = 2; // 02:00 UTC = 10:00 AWST / 12:00 AEST
+  function scheduleNext(): void {
+    const now = new Date();
+    const next = new Date(now);
+    next.setUTCHours(NIGHTLY_HOUR, 0, 0, 0);
+    if (next <= now) {
+      // Already past 02:00 UTC today — schedule for tomorrow
+      next.setUTCDate(next.getUTCDate() + 1);
+    }
+    const delay = next.getTime() - now.getTime();
+    const hoursUntil = Math.round((delay / 3600000) * 10) / 10;
+    console.log(`[PersistentScheduler] Next digestSafe promotion scheduled in ${hoursUntil}h (02:00 UTC)`);
+    setTimeout(async () => {
+      await runDigestSafePromotionSafe();
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+}
+
+/**
  * Main scheduler that runs on startup and periodically checks for missed digests.
  *
  * Monday digest:   Sunday 22:00 UTC = Monday 06:00 AWST / 08:00 AEST
  * Thursday digest: Thursday 23:00 UTC = Friday 07:00 AWST / 09:00 AEST
+ * DigestSafe promotion: nightly 02:00 UTC
  */
 export async function startPersistentScheduler(): Promise<void> {
   if (process.env.EMAIL_DIGESTS_ENABLED !== "true") {
@@ -458,6 +491,7 @@ export async function startPersistentScheduler(): Promise<void> {
 
   scheduleNextMonday();
   scheduleNextThursday();
+  scheduleNightlyDigestSafePromotion();
 
   console.log("[PersistentScheduler] ✓ Persistent scheduler initialized");
 }

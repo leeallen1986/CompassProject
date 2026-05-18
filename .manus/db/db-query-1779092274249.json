@@ -1,0 +1,170 @@
+{
+  "query": "\nSELECT \n  p.id, p.name, p.projectState, p.priority,\n  pvg.digestSafe,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN c.id END) as send_ready_count\nFROM projects p\nLEFT JOIN projectValidationGates pvg ON pvg.projectId = p.id\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.projectState IN ('NSW', 'VIC', 'SA', 'TAS')\n  AND p.suppressed = 0\nGROUP BY p.id, p.name, p.projectState, p.priority, pvg.digestSafe\nHAVING pvg.digestSafe = 1 OR (send_ready_count > 0 AND pvg.digestSafe IS NULL)\nORDER BY pvg.digestSafe DESC, send_ready_count DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id, p.name, p.projectState, p.priority,\n  pvg.digestSafe,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN c.id END) as send_ready_count\nFROM projects p\nLEFT JOIN projectValidationGates pvg ON pvg.projectId = p.id\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.projectState IN ('NSW', 'VIC', 'SA', 'TAS')\n  AND p.suppressed = 0\nGROUP BY p.id, p.name, p.projectState, p.priority, pvg.digestSafe\nHAVING pvg.digestSafe = 1 OR (send_ready_count > 0 AND pvg.digestSafe IS NULL)\nORDER BY pvg.digestSafe DESC, send_ready_count DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "690089",
+      "name": "Cadia Gold Mine Operations",
+      "projectState": "NSW",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "23"
+    },
+    {
+      "id": "570022",
+      "name": "Inland Rail Station Upgrades (Euroa)",
+      "projectState": "VIC",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "11"
+    },
+    {
+      "id": "660020",
+      "name": "TasWater Wastewater Upgrades Program (Green Point STP Upgrade)",
+      "projectState": "TAS",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "570010",
+      "name": "Large-Scale Student Housing Project",
+      "projectState": "VIC",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "5"
+    },
+    {
+      "id": "480008",
+      "name": "Liddell Battery at Hunter Energy Hub",
+      "projectState": "NSW",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "4"
+    },
+    {
+      "id": "990050",
+      "name": "Bass Strait Decommissioning Infrastructure Upgrade (Barry Beach)",
+      "projectState": "VIC",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "3"
+    },
+    {
+      "id": "960006",
+      "name": "Olympic Dam Expansion — BHP",
+      "projectState": "SA",
+      "priority": "hot",
+      "digestSafe": "1",
+      "send_ready_count": "2"
+    },
+    {
+      "id": "1350010",
+      "name": "TasNetworks North West Transmission Developments (NWTD) Stage 1",
+      "projectState": "TAS",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "12"
+    },
+    {
+      "id": "690075",
+      "name": "100% Renewable Power Supply for State's Trains, Trams and Electric Buses",
+      "projectState": "NSW",
+      "priority": "hot",
+      "digestSafe": "NULL",
+      "send_ready_count": "11"
+    },
+    {
+      "id": "630004",
+      "name": "Transgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects",
+      "projectState": "NSW",
+      "priority": "hot",
+      "digestSafe": "NULL",
+      "send_ready_count": "9"
+    },
+    {
+      "id": "450027",
+      "name": "Tunkillia Gold Project",
+      "projectState": "SA",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "8"
+    },
+    {
+      "id": "330018",
+      "name": "North-West Tasmania Irrigation Augmentation Program",
+      "projectState": "TAS",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "480056",
+      "name": "Gippsland Offshore Wind Sector Development",
+      "projectState": "VIC",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "180015",
+      "name": "Huxley Hill Wind Farm Turbine Repair",
+      "projectState": "TAS",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "270009",
+      "name": "Cooper Basin Infrastructure Upgrade",
+      "projectState": "SA",
+      "priority": "hot",
+      "digestSafe": "NULL",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "1350021",
+      "name": "EnergyConnect Interconnector",
+      "projectState": "VIC",
+      "priority": "hot",
+      "digestSafe": "NULL",
+      "send_ready_count": "7"
+    },
+    {
+      "id": "60008",
+      "name": "Snowy 2.0",
+      "projectState": "NSW",
+      "priority": "hot",
+      "digestSafe": "NULL",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "330042",
+      "name": "Swan Hill Bridge Replacement Project",
+      "projectState": "NSW",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "330050",
+      "name": "Blue Mackerel offshore wind farm",
+      "projectState": "TAS",
+      "priority": "warm",
+      "digestSafe": "NULL",
+      "send_ready_count": "6"
+    },
+    {
+      "id": "570021",
+      "name": "Newell Highway Upgrades (Moree to Boggabilla)",
+      "projectState": "NSW",
+      "priority": "hot",
+      "digestSafe": "NULL",
+      "send_ready_count": "6"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tpriority\tdigestSafe\tsend_ready_count\n690089\tCadia Gold Mine Operations\tNSW\thot\t1\t23\n570022\tInland Rail Station Upgrades (Euroa)\tVIC\thot\t1\t11\n660020\tTasWater Wastewater Upgrades Program (Green Point STP Upgrade)\tTAS\thot\t1\t7\n570010\tLarge-Scale Student Housing Project\tVIC\thot\t1\t5\n480008\tLiddell Battery at Hunter Energy Hub\tNSW\thot\t1\t4\n990050\tBass Strait Decommissioning Infrastructure Upgrade (Barry Beach)\tVIC\thot\t1\t3\n960006\tOlympic Dam Expansion — BHP\tSA\thot\t1\t2\n1350010\tTasNetworks North West Transmission Developments (NWTD) Stage 1\tTAS\twarm\tNULL\t12\n690075\t100% Renewable Power Supply for State's Trains, Trams and Electric Buses\tNSW\thot\tNULL\t11\n630004\tTransgrid NSW Grid Strengthening - 2 GW Battery Energy Storage Projects\tNSW\thot\tNULL\t9\n450027\tTunkillia Gold Project\tSA\twarm\tNULL\t8\n330018\tNorth-West Tasmania Irrigation Augmentation Program\tTAS\twarm\tNULL\t7\n480056\tGippsland Offshore Wind Sector Development\tVIC\twarm\tNULL\t7\n180015\tHuxley Hill Wind Farm Turbine Repair\tTAS\twarm\tNULL\t7\n270009\tCooper Basin Infrastructure Upgrade\tSA\thot\tNULL\t7\n1350021\tEnergyConnect Interconnector\tVIC\thot\tNULL\t7\n60008\tSnowy 2.0\tNSW\thot\tNULL\t6\n330042\tSwan Hill Bridge Replacement Project\tNSW\twarm\tNULL\t6\n330050\tBlue Mackerel offshore wind farm\tTAS\twarm\tNULL\t6\n570021\tNewell Highway Upgrades (Moree to Boggabilla)\tNSW\thot\tNULL\t6\n",
+  "stderr": "",
+  "execution_time_ms": 1789
+}

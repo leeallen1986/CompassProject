@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  p.projectState, \n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactStatus = 'send_ready' THEN p.id END) as projects_with_send_ready\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.contactStatus = 'send_ready'\nGROUP BY p.projectState \nORDER BY total_projects DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.projectState, \n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactStatus = 'send_ready' THEN p.id END) as projects_with_send_ready\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.contactStatus = 'send_ready'\nGROUP BY p.projectState \nORDER BY total_projects DESC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'c.contactstatus' in 'on clause'"
+  ]
+}

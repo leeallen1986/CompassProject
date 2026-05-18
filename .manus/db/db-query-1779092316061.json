@@ -1,0 +1,110 @@
+{
+  "query": "\nSELECT \n  u.name, u.email,\n  l.digestType, l.weekKey, l.sentDate, l.status, l.itemCount, l.dryRun\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE (u.name LIKE '%Zec%' OR u.name LIKE '%Daniel%')\nORDER BY l.sentDate DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name, u.email,\n  l.digestType, l.weekKey, l.sentDate, l.status, l.itemCount, l.dryRun\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE (u.name LIKE '%Zec%' OR u.name LIKE '%Daniel%')\nORDER BY l.sentDate DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W21",
+      "sentDate": "2026-05-18",
+      "status": "sent",
+      "itemCount": "167",
+      "dryRun": "0"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "sentDate": "2026-05-17",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "thursday",
+      "weekKey": "2026W20",
+      "sentDate": "2026-05-14",
+      "status": "sent",
+      "itemCount": "82",
+      "dryRun": "0"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W20",
+      "sentDate": "2026-05-11",
+      "status": "dry_run",
+      "itemCount": "213",
+      "dryRun": "1"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "sentDate": "2026-05-10",
+      "status": "dry_run",
+      "itemCount": "182",
+      "dryRun": "1"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "sentDate": "2026-05-09",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "sentDate": "2026-05-08",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "thursday",
+      "weekKey": "2026W19",
+      "sentDate": "2026-05-07",
+      "status": "failed",
+      "itemCount": "0",
+      "dryRun": "0"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "sentDate": "2026-05-06",
+      "status": "dry_run",
+      "itemCount": "571",
+      "dryRun": "1"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "digestType": "monday",
+      "weekKey": "2026W19",
+      "sentDate": "2026-05-05",
+      "status": "dry_run",
+      "itemCount": "571",
+      "dryRun": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tdigestType\tweekKey\tsentDate\tstatus\titemCount\tdryRun\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W21\t2026-05-18\tsent\t167\t0\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W20\t2026-05-17\tfailed\t0\t0\nDaniel Zec\tdaniel.zec@atlascopco.com\tthursday\t2026W20\t2026-05-14\tsent\t82\t0\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W20\t2026-05-11\tdry_run\t213\t1\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W19\t2026-05-10\tdry_run\t182\t1\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W19\t2026-05-09\tfailed\t0\t0\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W19\t2026-05-08\tfailed\t0\t0\nDaniel Zec\tdaniel.zec@atlascopco.com\tthursday\t2026W19\t2026-05-07\tfailed\t0\t0\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W19\t2026-05-06\tdry_run\t571\t1\nDaniel Zec\tdaniel.zec@atlascopco.com\tmonday\t2026W19\t2026-05-05\tdry_run\t571\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1868
+}
