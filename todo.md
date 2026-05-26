@@ -2657,3 +2657,18 @@
 - [x] Add startup catch-up run on server start
 - [x] Write vitest tests for the promotion logic (18 tests in digestSafePromotion.test.ts)
 - [x] Save checkpoint
+## Cloud Computer Pipeline Migration (2026-05-27)
+- [x] Connect to cloud computer (34.142.160.59) and assess environment (Ubuntu 24.04, 2 vCPU, 955 MB RAM)
+- [x] Install Node.js 22, pnpm 11, tsx globally on cloud computer
+- [x] Transfer project code (7MB tar, 936 packages installed via pnpm)
+- [x] Write .env with all secrets (chmod 600)
+- [x] Write pipeline-runner.ts (standalone entry point calling runDailyPipeline)
+- [x] Write run-pipeline.sh (cron wrapper, logs to logs/pipeline-YYYY-MM-DD.log)
+- [x] Install cron job: 0 20 * * * (20:00 UTC daily)
+- [x] Smoke test: DB connected, pipeline started (run ID 1320002), RSS harvest began
+- [x] Confirmed no double-run risk: WebDev self-healing at 20:10 UTC checks wasRunStartedToday() and skips if cloud computer already ran
+- [x] Write CLOUD-PIPELINE-SETUP.md documentation
+## Pipeline Investigation Fixes (2026-05-25)
+- [x] Fix sourcesSearched varchar(16→64) schema truncation bug
+- [x] Update Apollo API key to new master key (zDjTBDrJnnd0m2hgjIjeVg)
+- [x] Narrow tsx watch scope to exclude server/scripts/** (prevents pipeline SIGTERM during dev)
