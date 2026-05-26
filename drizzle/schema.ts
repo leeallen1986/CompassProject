@@ -115,7 +115,7 @@ export const reports = mysqlTable("reports", {
   predictedContractors: int("predictedContractors").notNull().default(0),
   capexOpportunities: int("capexOpportunities").notNull().default(0),
   totalContacts: int("totalContacts").notNull().default(0),
-  sourcesSearched: varchar("sourcesSearched", { length: 16 }).notNull().default("20+"),
+  sourcesSearched: varchar("sourcesSearched", { length: 64 }).notNull().default("20+"),
   newProjectsCount: int("newProjectsCount").notNull().default(0),
   executiveSummaryMain: text("executiveSummaryMain"),
   executiveSummaryChanges: text("executiveSummaryChanges"),

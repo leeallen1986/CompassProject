@@ -610,6 +610,13 @@
       "when": 1778576834231,
       "tag": "0086_wide_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "5",
+      "when": 1779774362265,
+      "tag": "0087_hot_lockheed",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, status, currentStep, lastActivityNote, lastProgressAt, errors FROM pipelineRuns WHERE id = 1260001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, status, currentStep, lastActivityNote, lastProgressAt, errors FROM pipelineRuns WHERE id = 1260001;",
+  "rows": [
+    {
+      "id": "1260001",
+      "status": "running",
+      "currentStep": "RSS Harvest",
+      "lastActivityNote": "NULL",
+      "lastProgressAt": "2026-05-26 05:43:24",
+      "errors": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tcurrentStep\tlastActivityNote\tlastProgressAt\terrors\n1260001\trunning\tRSS Harvest\tNULL\t2026-05-26 05:43:24\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1730
+}

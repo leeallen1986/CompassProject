@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, status, errors FROM pipelineRuns WHERE id IN (1290001, 1260001, 1200001, 1170001, 1140001, 1080001) ORDER BY id DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, status, errors FROM pipelineRuns WHERE id IN (1290001, 1260001, 1200001, 1170001, 1140001, 1080001) ORDER BY id DESC;",
+  "rows": [
+    {
+      "id": "1290001",
+      "status": "failed",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    },
+    {
+      "id": "1260001",
+      "status": "failed",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    },
+    {
+      "id": "1200001",
+      "status": "failed",
+      "errors": "[\"QTOL NT: Child exited with code 1 after 47s\", \"ICN Validation: Timeout after 900s: ICN Validation\"]"
+    },
+    {
+      "id": "1170001",
+      "status": "failed",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    },
+    {
+      "id": "1140001",
+      "status": "failed",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    },
+    {
+      "id": "1080001",
+      "status": "failed",
+      "errors": "[\"Container shutdown (SIGTERM)\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\terrors\n1290001\tfailed\t[\"Container shutdown (SIGTERM)\"]\n1260001\tfailed\t[\"Container shutdown (SIGTERM)\"]\n1200001\tfailed\t[\"QTOL NT: Child exited with code 1 after 47s\", \"ICN Validation: Timeout after 900s: ICN Validation\"]\n1170001\tfailed\t[\"Container shutdown (SIGTERM)\"]\n1140001\tfailed\t[\"Container shutdown (SIGTERM)\"]\n1080001\tfailed\t[\"Container shutdown (SIGTERM)\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1790
+}

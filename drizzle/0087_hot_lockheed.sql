@@ -1,0 +1,1 @@
+ALTER TABLE `reports` MODIFY COLUMN `sourcesSearched` varchar(64) NOT NULL DEFAULT '20+';
