@@ -2672,3 +2672,9 @@
 - [x] Fix sourcesSearched varchar(16→64) schema truncation bug
 - [x] Update Apollo API key to new master key (zDjTBDrJnnd0m2hgjIjeVg)
 - [x] Narrow tsx watch scope to exclude server/scripts/** (prevents pipeline SIGTERM during dev)
+## Automated Cloud Sync + Apollo Enrichment Pass (2026-05-27)
+- [x] Build sync-to-cloud.sh script that tars server/ code and pushes to cloud computer
+- [x] Wire sync-to-cloud.sh into post-pipeline step or document as a manual one-liner
+- [x] Run Apollo enrichment pass on top-scoring projects with 0 send_ready contacts (relevanceScore > 50)
+- [x] Re-run digestSafe promotion after enrichment to promote newly qualifying projects
+- [x] Save checkpoint

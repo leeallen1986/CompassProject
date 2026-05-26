@@ -1,0 +1,8 @@
+{
+  "query": "SELECT \n  COUNT(*) AS total_projects,\n  SUM(CASE WHEN digestSafe = 1 THEN 1 ELSE 0 END) AS digest_safe_count,\n  SUM(CASE WHEN digestSafe = 0 OR digestSafe IS NULL THEN 1 ELSE 0 END) AS not_digest_safe\nFROM projects \nWHERE lifecycleStatus = 'active' AND (suppressed IS NULL OR suppressed = 0);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  COUNT(*) AS total_projects,\n  SUM(CASE WHEN digestSafe = 1 THEN 1 ELSE 0 END) AS digest_safe_count,\n  SUM(CASE WHEN digestSafe = 0 OR digestSafe IS NULL THEN 1 ELSE 0 END) AS not_digest_safe\nFROM projects \nWHERE lifecycleStatus = 'active' AND (suppressed IS NULL OR suppressed = 0);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'digestsafe' in 'where clause'"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "query": "SELECT \n  send_ready_bucket,\n  COUNT(*) AS project_count\nFROM (\n  SELECT \n    p.id,\n    CASE \n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) = 0 THEN '0 send_ready'\n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) = 1 THEN '1 send_ready'\n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) = 2 THEN '2 send_ready'\n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) >= 3 THEN '3+ send_ready'\n    END AS send_ready_bucket\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0)\n  GROUP BY p.id\n) sub\nGROUP BY send_ready_bucket\nORDER BY send_ready_bucket;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  send_ready_bucket,\n  COUNT(*) AS project_count\nFROM (\n  SELECT \n    p.id,\n    CASE \n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) = 0 THEN '0 send_ready'\n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) = 1 THEN '1 send_ready'\n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) = 2 THEN '2 send_ready'\n      WHEN COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) >= 3 THEN '3+ send_ready'\n    END AS send_ready_bucket\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0)\n  GROUP BY p.id\n) sub\nGROUP BY send_ready_bucket\nORDER BY send_ready_bucket;",
+  "rows": [
+    {
+      "send_ready_bucket": "0 send_ready",
+      "project_count": "93"
+    },
+    {
+      "send_ready_bucket": "1 send_ready",
+      "project_count": "22"
+    },
+    {
+      "send_ready_bucket": "2 send_ready",
+      "project_count": "13"
+    },
+    {
+      "send_ready_bucket": "3+ send_ready",
+      "project_count": "64"
+    }
+  ],
+  "messages": [],
+  "stdout": "send_ready_bucket\tproject_count\n0 send_ready\t93\n1 send_ready\t22\n2 send_ready\t13\n3+ send_ready\t64\n",
+  "stderr": "",
+  "execution_time_ms": 1802
+}

@@ -1,0 +1,18 @@
+{
+  "query": "\nSELECT \n  priority,\n  COUNT(*) AS project_count\nFROM (\n  SELECT \n    p.id,\n    p.priority\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  LEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\n  WHERE p.priority IN ('hot', 'warm')\n    AND p.lifecycleStatus = 'active'\n    AND (p.suppressed IS NULL OR p.suppressed = 0)\n    AND p.enrichmentBlockedReason IS NULL\n  GROUP BY p.id, p.priority\n  HAVING SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) = 0\n    AND COALESCE(MAX(bls.score), 0) >= 50\n) sub\nGROUP BY priority;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  priority,\n  COUNT(*) AS project_count\nFROM (\n  SELECT \n    p.id,\n    p.priority\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  LEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\n  WHERE p.priority IN ('hot', 'warm')\n    AND p.lifecycleStatus = 'active'\n    AND (p.suppressed IS NULL OR p.suppressed = 0)\n    AND p.enrichmentBlockedReason IS NULL\n  GROUP BY p.id, p.priority\n  HAVING SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) = 0\n    AND COALESCE(MAX(bls.score), 0) >= 50\n) sub\nGROUP BY priority;\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "project_count": "63"
+    },
+    {
+      "priority": "warm",
+      "project_count": "335"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tproject_count\nhot\t63\nwarm\t335\n",
+  "stderr": "",
+  "execution_time_ms": 1864
+}

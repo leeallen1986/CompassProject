@@ -1,0 +1,15 @@
+{
+  "query": "SELECT \n  COUNT(*) AS total_gates,\n  SUM(CASE WHEN digestSafe = 1 THEN 1 ELSE 0 END) AS digest_safe_count,\n  SUM(CASE WHEN digestSafe = 0 THEN 1 ELSE 0 END) AS not_digest_safe\nFROM projectValidationGates;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  COUNT(*) AS total_gates,\n  SUM(CASE WHEN digestSafe = 1 THEN 1 ELSE 0 END) AS digest_safe_count,\n  SUM(CASE WHEN digestSafe = 0 THEN 1 ELSE 0 END) AS not_digest_safe\nFROM projectValidationGates;",
+  "rows": [
+    {
+      "total_gates": "104",
+      "digest_safe_count": "104",
+      "not_digest_safe": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_gates\tdigest_safe_count\tnot_digest_safe\n104\t104\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1993
+}

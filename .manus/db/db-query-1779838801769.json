@@ -1,0 +1,230 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.projectState,\n  p.priority,\n  p.productLane,\n  p.discoveryStatus,\n  COUNT(DISTINCT cp.contactId) AS total_contacts,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) AS named_unverified,\n  COALESCE(MAX(bls.score), 0) AS max_bl_score\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\nLEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\nWHERE p.priority = 'hot'\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND p.enrichmentBlockedReason IS NULL\nGROUP BY p.id, p.name, p.projectState, p.priority, p.productLane, p.discoveryStatus\nHAVING SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) = 0\n  AND COALESCE(MAX(bls.score), 0) >= 50\nORDER BY named_unverified DESC, max_bl_score DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.projectState,\n  p.priority,\n  p.productLane,\n  p.discoveryStatus,\n  COUNT(DISTINCT cp.contactId) AS total_contacts,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' THEN 1 ELSE 0 END) AS named_unverified,\n  COALESCE(MAX(bls.score), 0) AS max_bl_score\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\nLEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\nWHERE p.priority = 'hot'\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND p.enrichmentBlockedReason IS NULL\nGROUP BY p.id, p.name, p.projectState, p.priority, p.productLane, p.discoveryStatus\nHAVING SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) = 0\n  AND COALESCE(MAX(bls.score), 0) >= 50\nORDER BY named_unverified DESC, max_bl_score DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "510012",
+      "name": "WA Energy Research Facility (Stage 1)",
+      "projectState": "NULL",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "discoveryStatus": "blocked_dirty_owner",
+      "total_contacts": "161",
+      "named_unverified": "1404",
+      "max_bl_score": "85"
+    },
+    {
+      "id": "480030",
+      "name": "Liddell Grid-Forming BESS",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "75",
+      "named_unverified": "648",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "480020",
+      "name": "Liddell Battery Energy Storage System",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "64",
+      "named_unverified": "576",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "840005",
+      "name": "Australia Post Brisbane Airport Mega Hub Solar & BESS Installation",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "NULL",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "7",
+      "named_unverified": "63",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "690006",
+      "name": "Muchea Battery Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "5",
+      "named_unverified": "45",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "690029",
+      "name": "2.1GWh Battery Storage for Neoen",
+      "projectState": "NULL",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "4",
+      "named_unverified": "36",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "690036",
+      "name": "2.1GWh Battery Energy Storage Systems (BESS) for Neoen",
+      "projectState": "NULL",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "4",
+      "named_unverified": "36",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "510004",
+      "name": "Renewable Energy Generation and Storage Investment for Aluminium Smelter",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "named_contact_no_email",
+      "total_contacts": "3",
+      "named_unverified": "27",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "1380005",
+      "name": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "NULL",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "3",
+      "named_unverified": "27",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "510020",
+      "name": "Elizabeth Hill Silver Project",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "portable_air",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "3",
+      "named_unverified": "27",
+      "max_bl_score": "89"
+    },
+    {
+      "id": "1200030",
+      "name": "Capacity Investment Scheme Tenders 5 and 6 (WA)",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "NULL",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "3",
+      "named_unverified": "18",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "120193",
+      "name": "Marinus Link Interconnector",
+      "projectState": "VIC",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "2",
+      "named_unverified": "18",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "480028",
+      "name": "Bellambi Heights BESS",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "2",
+      "named_unverified": "18",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "960003",
+      "name": "Western Sydney Airport — Aerotropolis",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "NULL",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "1",
+      "named_unverified": "9",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "690009",
+      "name": "Amazon Australia Renewable Energy PPAs (430 MW)",
+      "projectState": "NULL",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "1",
+      "named_unverified": "9",
+      "max_bl_score": "100"
+    },
+    {
+      "id": "1080002",
+      "name": "Waroona Renewable Energy Project Stage One",
+      "projectState": "WA",
+      "priority": "hot",
+      "productLane": "NULL",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "1",
+      "named_unverified": "9",
+      "max_bl_score": "99"
+    },
+    {
+      "id": "480068",
+      "name": "Blind Creek Solar and Battery Project",
+      "projectState": "NSW",
+      "priority": "hot",
+      "productLane": "multi_lane_pt",
+      "discoveryStatus": "send_ready_contact",
+      "total_contacts": "6",
+      "named_unverified": "9",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "690032",
+      "name": "Reeves Plains Battery Stage 1",
+      "projectState": "SA",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "1",
+      "named_unverified": "9",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "690071",
+      "name": "Four New Wind Projects & Green Steel Plant (State Fast-Track)",
+      "projectState": "NULL",
+      "priority": "hot",
+      "productLane": "bess",
+      "discoveryStatus": "blocked_government_owner",
+      "total_contacts": "1",
+      "named_unverified": "9",
+      "max_bl_score": "95"
+    },
+    {
+      "id": "1290002",
+      "name": "Paradise Dam Rebuild",
+      "projectState": "QLD",
+      "priority": "hot",
+      "productLane": "NULL",
+      "discoveryStatus": "discovery_queued",
+      "total_contacts": "2",
+      "named_unverified": "0",
+      "max_bl_score": "100"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprojectState\tpriority\tproductLane\tdiscoveryStatus\ttotal_contacts\tnamed_unverified\tmax_bl_score\n510012\tWA Energy Research Facility (Stage 1)\tNULL\thot\tmulti_lane_pt\tblocked_dirty_owner\t161\t1404\t85\n480030\tLiddell Grid-Forming BESS\tNSW\thot\tbess\tdiscovery_queued\t75\t648\t100\n480020\tLiddell Battery Energy Storage System\tNSW\thot\tbess\tdiscovery_queued\t64\t576\t100\n840005\tAustralia Post Brisbane Airport Mega Hub Solar & BESS Installation\tQLD\thot\tNULL\tdiscovery_queued\t7\t63\t95\n690006\tMuchea Battery Project\tWA\thot\tbess\tdiscovery_queued\t5\t45\t95\n690029\t2.1GWh Battery Storage for Neoen\tNULL\thot\tbess\tdiscovery_queued\t4\t36\t100\n690036\t2.1GWh Battery Energy Storage Systems (BESS) for Neoen\tNULL\thot\tbess\tdiscovery_queued\t4\t36\t95\n510004\tRenewable Energy Generation and Storage Investment for Aluminium Smelter\tQLD\thot\tbess\tnamed_contact_no_email\t3\t27\t100\n1380005\tFlemington Racecourse 767 kWdc Commercial Solar Installation\tNSW\thot\tNULL\tdiscovery_queued\t3\t27\t95\n510020\tElizabeth Hill Silver Project\tWA\thot\tportable_air\tdiscovery_queued\t3\t27\t89\n1200030\tCapacity Investment Scheme Tenders 5 and 6 (WA)\tWA\thot\tNULL\tdiscovery_queued\t3\t18\t100\n120193\tMarinus Link Interconnector\tVIC\thot\tmulti_lane_pt\tdiscovery_queued\t2\t18\t95\n480028\tBellambi Heights BESS\tNSW\thot\tbess\tdiscovery_queued\t2\t18\t95\n960003\tWestern Sydney Airport — Aerotropolis\tNSW\thot\tNULL\tdiscovery_queued\t1\t9\t100\n690009\tAmazon Australia Renewable Energy PPAs (430 MW)\tNULL\thot\tbess\tdiscovery_queued\t1\t9\t100\n1080002\tWaroona Renewable Energy Project Stage One\tWA\thot\tNULL\tdiscovery_queued\t1\t9\t99\n480068\tBlind Creek Solar and Battery Project\tNSW\thot\tmulti_lane_pt\tsend_ready_contact\t6\t9\t95\n690032\tReeves Plains Battery Stage 1\tSA\thot\tbess\tdiscovery_queued\t1\t9\t95\n690071\tFour New Wind Projects & Green Steel Plant (State Fast-Track)\tNULL\thot\tbess\tblocked_government_owner\t1\t9\t95\n1290002\tParadise Dam Rebuild\tQLD\thot\tNULL\tdiscovery_queued\t2\t0\t100\n",
+  "stderr": "",
+  "execution_time_ms": 1838
+}

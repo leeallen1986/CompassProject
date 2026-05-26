@@ -1,0 +1,2796 @@
+{
+  "query": "\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) AS project_count,\n  SUM(CASE WHEN p.discoveryStatus = 'discovery_queued' THEN 1 ELSE 0 END) AS queued,\n  SUM(CASE WHEN p.discoveryStatus = 'named_contact_no_email' THEN 1 ELSE 0 END) AS named_no_email,\n  SUM(CASE WHEN p.discoveryStatus = 'no_contacts' THEN 1 ELSE 0 END) AS no_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\nLEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\nWHERE p.priority IN ('hot', 'warm')\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND p.enrichmentBlockedReason IS NULL\nGROUP BY p.id, p.priority, p.discoveryStatus\nHAVING SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) = 0\n  AND COALESCE(MAX(bls.score), 0) >= 50\nORDER BY p.priority;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) AS project_count,\n  SUM(CASE WHEN p.discoveryStatus = 'discovery_queued' THEN 1 ELSE 0 END) AS queued,\n  SUM(CASE WHEN p.discoveryStatus = 'named_contact_no_email' THEN 1 ELSE 0 END) AS named_no_email,\n  SUM(CASE WHEN p.discoveryStatus = 'no_contacts' THEN 1 ELSE 0 END) AS no_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\nLEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\nWHERE p.priority IN ('hot', 'warm')\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\n  AND p.enrichmentBlockedReason IS NULL\nGROUP BY p.id, p.priority, p.discoveryStatus\nHAVING SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) = 0\n  AND COALESCE(MAX(bls.score), 0) >= 50\nORDER BY p.priority;\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "45",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "45",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "54",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "72",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "45",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "576",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "675",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "36",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "63",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "36",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "27",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "45",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "hot",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "27"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "99",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "81"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "45"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "45"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "27"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "27"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "45"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "36",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "45",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "54"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "81"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "180"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "81",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "45"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "45"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "297"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "342"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1359"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "216"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "18",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "27",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "117"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "117",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "711"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1548"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1584"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1512"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1413"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1386"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1476"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1368"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "18"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1422"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1125"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "1665"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "1593",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "9"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "0",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    },
+    {
+      "priority": "warm",
+      "project_count": "1",
+      "queued": "9",
+      "named_no_email": "0",
+      "no_contacts": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tproject_count\tqueued\tnamed_no_email\tno_contacts\nhot\t1\t18\t0\t0\nhot\t1\t45\t0\t0\nhot\t1\t45\t0\t0\nhot\t1\t54\t0\t0\nhot\t1\t72\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t45\t0\t0\nhot\t1\t27\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t18\t0\t0\nhot\t1\t18\t0\t0\nhot\t1\t27\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t576\t0\t0\nhot\t1\t675\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t9\t0\t0\nhot\t1\t27\t0\t0\nhot\t1\t18\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t0\t0\t0\nhot\t1\t36\t0\t0\nhot\t1\t63\t0\t0\nhot\t1\t36\t0\t0\nhot\t1\t0\t27\t0\nhot\t1\t9\t0\t0\nhot\t1\t45\t0\t0\nhot\t1\t18\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t27\nwarm\t1\t99\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t81\nwarm\t1\t0\t0\t45\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t18\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t45\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t27\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t18\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t27\nwarm\t1\t27\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t0\t0\t45\nwarm\t1\t0\t0\t0\nwarm\t1\t27\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t36\t0\t0\nwarm\t1\t45\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t18\nwarm\t1\t0\t0\t54\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t81\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t18\nwarm\t1\t0\t0\t180\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t81\t0\t0\nwarm\t1\t0\t0\t45\nwarm\t1\t0\t0\t45\nwarm\t1\t0\t0\t297\nwarm\t1\t0\t0\t342\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t1359\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t27\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t216\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t0\t0\t18\nwarm\t1\t0\t0\t0\nwarm\t1\t27\t0\t0\nwarm\t1\t18\t0\t0\nwarm\t1\t27\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t117\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t117\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t18\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t711\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t1548\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t1584\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t1512\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t1413\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t9\nwarm\t1\t0\t0\t1386\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t1476\nwarm\t1\t0\t0\t1368\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t18\nwarm\t1\t0\t0\t0\nwarm\t1\t0\t0\t1422\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t1125\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t1665\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t1593\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t9\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t0\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\nwarm\t1\t9\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1864
+}
