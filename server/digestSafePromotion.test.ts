@@ -16,8 +16,8 @@ import { checkJunkSuppression } from "./digestHardeningGates";
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 describe("digestSafePromotion constants", () => {
-  it("MIN_SEND_READY_CONTACTS is 3", () => {
-    expect(MIN_SEND_READY_CONTACTS).toBe(3);
+  it("MIN_SEND_READY_CONTACTS is 1", () => {
+    expect(MIN_SEND_READY_CONTACTS).toBe(1);
   });
 
   it("MIN_BL_SCORE is 40", () => {
@@ -100,20 +100,20 @@ describe("digestSafePromotion junk suppression gate", () => {
 // ── Promotion criteria logic ──────────────────────────────────────────────────
 
 describe("digestSafePromotion criteria logic", () => {
-  it("project with 3 send_ready contacts and BL score 45 should qualify", () => {
-    const sendReadyCount = 3;
+  it("project with 1 send_ready contact and BL score 45 should qualify (threshold=1)", () => {
+    const sendReadyCount = 1;
     const topBLScore = 45;
     expect(sendReadyCount >= MIN_SEND_READY_CONTACTS).toBe(true);
     expect(topBLScore >= MIN_BL_SCORE).toBe(true);
   });
 
-  it("project with 2 send_ready contacts should NOT qualify (below threshold)", () => {
-    const sendReadyCount = 2;
+  it("project with 0 send_ready contacts should NOT qualify", () => {
+    const sendReadyCount = 0;
     expect(sendReadyCount >= MIN_SEND_READY_CONTACTS).toBe(false);
   });
 
-  it("project with 5 send_ready contacts but BL score 35 should NOT qualify", () => {
-    const sendReadyCount = 5;
+  it("project with 1 send_ready contact but BL score 35 should NOT qualify (low BL score)", () => {
+    const sendReadyCount = 1;
     const topBLScore = 35;
     expect(sendReadyCount >= MIN_SEND_READY_CONTACTS).toBe(true);
     expect(topBLScore >= MIN_BL_SCORE).toBe(false);
@@ -124,15 +124,15 @@ describe("digestSafePromotion criteria logic", () => {
     expect(topBLScore >= MIN_BL_SCORE).toBe(false);
   });
 
-  it("project with exactly 3 send_ready contacts and score exactly 40 should qualify", () => {
-    const sendReadyCount = 3;
+  it("project with exactly 1 send_ready contact and score exactly 40 should qualify", () => {
+    const sendReadyCount = 1;
     const topBLScore = 40;
     expect(sendReadyCount >= MIN_SEND_READY_CONTACTS).toBe(true);
     expect(topBLScore >= MIN_BL_SCORE).toBe(true);
   });
 
-  it("project with 10 send_ready contacts and BL score 100 should qualify", () => {
-    const sendReadyCount = 10;
+  it("project with 3 send_ready contacts and BL score 100 should qualify", () => {
+    const sendReadyCount = 3;
     const topBLScore = 100;
     expect(sendReadyCount >= MIN_SEND_READY_CONTACTS).toBe(true);
     expect(topBLScore >= MIN_BL_SCORE).toBe(true);

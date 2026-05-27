@@ -2678,3 +2678,13 @@
 - [x] Run Apollo enrichment pass on top-scoring projects with 0 send_ready contacts (relevanceScore > 50)
 - [x] Re-run digestSafe promotion after enrichment to promote newly qualifying projects
 - [x] Save checkpoint
+
+## Contact Backfill Enrichment Sprint (2026-05-27)
+- [x] Run Apollo pass on hot projects with 1-2 send_ready contacts (35 projects, up to 100 credits)
+- [x] Run Apollo pass on warm projects with 0 send_ready contacts (335 projects, up to 100 credits)
+- [x] Lower digestSafe threshold from 3 to 1 send_ready contact (digestSafePromotion.ts)
+- [x] Re-run digestSafe promotion — 183 total digest-safe projects (up from 96)
+- [x] Wire Step 12b (Apollo Backfill) + Step 12c (DigestSafe Promotion) into daily pipeline
+- [x] Update digestSafePromotion.test.ts to reflect new threshold=1 (19/19 tests pass)
+- [x] Sync all changes to cloud computer
+- [x] Save checkpoint

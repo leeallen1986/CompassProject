@@ -1,0 +1,100 @@
+{
+  "query": "SELECT \n  p.id,\n  p.name,\n  p.priority,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS send_ready_count,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectionReason IS NULL AND c.crmOrphan = 0 THEN 1 END) AS all_unverified,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectionReason IS NULL AND c.crmOrphan = 0 \n    AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL) THEN 1 END) AS apollo_linkedin_unverified,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectionReason IS NULL AND c.crmOrphan = 0 \n    AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL)\n    AND (c.enrichmentStatus IS NULL OR (c.enrichmentStatus NOT IN ('enriched', 'not_found') AND c.enrichedAt IS NULL) OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))\n    THEN 1 END) AS eligible_after_filter\nFROM projects p\nJOIN contactProjects cp ON cp.projectId = p.id\nJOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0)\nGROUP BY p.id, p.name, p.priority\nHAVING send_ready_count BETWEEN 1 AND 2\nORDER BY apollo_linkedin_unverified DESC\nLIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  p.id,\n  p.name,\n  p.priority,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS send_ready_count,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectionReason IS NULL AND c.crmOrphan = 0 THEN 1 END) AS all_unverified,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectionReason IS NULL AND c.crmOrphan = 0 \n    AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL) THEN 1 END) AS apollo_linkedin_unverified,\n  SUM(CASE WHEN c.contactTrustTier = 'named_unverified' AND c.rejectionReason IS NULL AND c.crmOrphan = 0 \n    AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL)\n    AND (c.enrichmentStatus IS NULL OR (c.enrichmentStatus NOT IN ('enriched', 'not_found') AND c.enrichedAt IS NULL) OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))\n    THEN 1 END) AS eligible_after_filter\nFROM projects p\nJOIN contactProjects cp ON cp.projectId = p.id\nJOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0)\nGROUP BY p.id, p.name, p.priority\nHAVING send_ready_count BETWEEN 1 AND 2\nORDER BY apollo_linkedin_unverified DESC\nLIMIT 10;",
+  "rows": [
+    {
+      "id": "780001",
+      "name": "Northern Territory Road Flood Damage Repair Program",
+      "priority": "hot",
+      "send_ready_count": "2",
+      "all_unverified": "7",
+      "apollo_linkedin_unverified": "6",
+      "eligible_after_filter": "6"
+    },
+    {
+      "id": "840005",
+      "name": "Australia Post Brisbane Airport Mega Hub Solar & BESS Installation",
+      "priority": "hot",
+      "send_ready_count": "2",
+      "all_unverified": "5",
+      "apollo_linkedin_unverified": "5",
+      "eligible_after_filter": "2"
+    },
+    {
+      "id": "660052",
+      "name": "Kwinana Gas Power Generation 2 Project",
+      "priority": "hot",
+      "send_ready_count": "2",
+      "all_unverified": "5",
+      "apollo_linkedin_unverified": "5",
+      "eligible_after_filter": "5"
+    },
+    {
+      "id": "480030",
+      "name": "Liddell Grid-Forming BESS",
+      "priority": "hot",
+      "send_ready_count": "1",
+      "all_unverified": "71",
+      "apollo_linkedin_unverified": "3",
+      "eligible_after_filter": "NULL"
+    },
+    {
+      "id": "930001",
+      "name": "Pilbara Green Energy Project",
+      "priority": "hot",
+      "send_ready_count": "1",
+      "all_unverified": "3",
+      "apollo_linkedin_unverified": "3",
+      "eligible_after_filter": "3"
+    },
+    {
+      "id": "570009",
+      "name": "Regional Road Upgrade",
+      "priority": "hot",
+      "send_ready_count": "1",
+      "all_unverified": "23",
+      "apollo_linkedin_unverified": "3",
+      "eligible_after_filter": "3"
+    },
+    {
+      "id": "690006",
+      "name": "Muchea Battery Project",
+      "priority": "hot",
+      "send_ready_count": "2",
+      "all_unverified": "3",
+      "apollo_linkedin_unverified": "3",
+      "eligible_after_filter": "2"
+    },
+    {
+      "id": "1260018",
+      "name": "Warringah Freeway Upgrade",
+      "priority": "hot",
+      "send_ready_count": "1",
+      "all_unverified": "2",
+      "apollo_linkedin_unverified": "2",
+      "eligible_after_filter": "2"
+    },
+    {
+      "id": "690029",
+      "name": "2.1GWh Battery Storage for Neoen",
+      "priority": "hot",
+      "send_ready_count": "2",
+      "all_unverified": "2",
+      "apollo_linkedin_unverified": "2",
+      "eligible_after_filter": "NULL"
+    },
+    {
+      "id": "510016",
+      "name": "Boyne Smelter Future-Proofing (Storage-Firmed Renewables)",
+      "priority": "hot",
+      "send_ready_count": "2",
+      "all_unverified": "27",
+      "apollo_linkedin_unverified": "2",
+      "eligible_after_filter": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tpriority\tsend_ready_count\tall_unverified\tapollo_linkedin_unverified\teligible_after_filter\n780001\tNorthern Territory Road Flood Damage Repair Program\thot\t2\t7\t6\t6\n840005\tAustralia Post Brisbane Airport Mega Hub Solar & BESS Installation\thot\t2\t5\t5\t2\n660052\tKwinana Gas Power Generation 2 Project\thot\t2\t5\t5\t5\n480030\tLiddell Grid-Forming BESS\thot\t1\t71\t3\tNULL\n930001\tPilbara Green Energy Project\thot\t1\t3\t3\t3\n570009\tRegional Road Upgrade\thot\t1\t23\t3\t3\n690006\tMuchea Battery Project\thot\t2\t3\t3\t2\n1260018\tWarringah Freeway Upgrade\thot\t1\t2\t2\t2\n690029\t2.1GWh Battery Storage for Neoen\thot\t2\t2\t2\tNULL\n510016\tBoyne Smelter Future-Proofing (Storage-Firmed Renewables)\thot\t2\t27\t2\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1809
+}

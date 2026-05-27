@@ -32,8 +32,10 @@ import { checkJunkSuppression } from "./digestHardeningGates";
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
 
-/** Minimum number of send_ready contacts a project must have to be promoted */
-export const MIN_SEND_READY_CONTACTS = 3;
+/** Minimum number of send_ready contacts a project must have to be promoted.
+ * Set to 1 — even a single verified contact is enough for a sales rep to engage.
+ * The digest card will show the best available contact(s). */
+export const MIN_SEND_READY_CONTACTS = 1;
 
 /**
  * Minimum BL dimension score (0–100) required in at least one dimension.

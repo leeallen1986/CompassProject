@@ -67,6 +67,7 @@ import { cleanContractorUrls } from "./cleanContractorUrls";
 import { classifyAllContactRelevance } from "./roleRelevance";
 import { runBulkSecondPass } from "./secondPassContactSearch";
 import { enforceHotProjectSLA, processDiscoveryQueue } from "./discoveryQueue";
+import { runDigestSafePromotion } from "./digestSafePromotion";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -1118,6 +1119,119 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     failStep(apolloStep, errMsg);
   }
   steps.push(apolloStep);
+
+  // ── Step 12b: Apollo Backfill Pass (warm/hot projects with 0 send_ready, remaining budget) ──
+  // Runs after the primary gap-fill to chip away at the backlog of projects with 0 send_ready contacts.
+  // Uses whatever budget remains after the gap-fill (up to 30 credits max to avoid monopolising).
+  const apolloBackfillStep = startStep("Apollo Backfill Pass");
+  try {
+    const backfillBudget = await getBudgetStatus();
+    if (!backfillBudget.withinBudget || backfillBudget.dailyRemaining < 5) {
+      skipStep(apolloBackfillStep, `Budget too low for backfill — daily remaining: ${backfillBudget.dailyRemaining}`);
+      console.log(`[DailyPipeline] Apollo backfill skipped: only ${backfillBudget.dailyRemaining} credits remaining`);
+    } else {
+      const maxBackfillCredits = Math.min(30, backfillBudget.dailyRemaining);
+      console.log(`[DailyPipeline] Step 12b: Apollo backfill pass — targeting warm/hot projects with 0 send_ready (budget: ${maxBackfillCredits} credits)...`);
+
+      // Query projects with 0 send_ready but eligible named_unverified contacts
+      const db = await getDb();
+      const backfillTargets = db ? await db.execute(
+        sql`SELECT DISTINCT
+          cp.projectId,
+          p.name AS projectName,
+          p.priority,
+          SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS send_ready_count,
+          SUM(CASE WHEN c.contactTrustTier = 'named_unverified'
+            AND c.rejectionReason IS NULL AND c.crmOrphan = 0
+            AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL)
+            AND (c.enrichmentStatus IS NULL
+              OR (c.enrichmentStatus NOT IN ('enriched', 'not_found') AND c.enrichedAt IS NULL)
+              OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))
+          THEN 1 ELSE 0 END) AS eligible_count
+        FROM projects p
+        JOIN contactProjects cp ON cp.projectId = p.id
+        JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0
+        WHERE p.priority IN ('hot', 'warm')
+          AND p.lifecycleStatus = 'active'
+          AND (p.suppressed IS NULL OR p.suppressed = 0)
+        GROUP BY cp.projectId, p.name, p.priority
+        HAVING send_ready_count = 0 AND eligible_count > 0
+        ORDER BY p.priority = 'hot' DESC, eligible_count DESC
+        LIMIT 20`
+      ) : null;
+
+      const rows = (backfillTargets as any)?.[0] ?? [];
+      let backfillRevealed = 0;
+      let backfillSkipped = 0;
+      let backfillCredits = 0;
+
+      for (const row of rows) {
+        const currentBudget = await getBudgetStatus();
+        if (!currentBudget.withinBudget || backfillCredits >= maxBackfillCredits) break;
+
+        // Get the top eligible contact for this project
+        const contactRows = db ? await db.execute(
+          sql`SELECT c.id FROM contacts c
+            JOIN contactProjects cp ON cp.contactId = c.id
+            WHERE cp.projectId = ${row.projectId}
+              AND c.contactTrustTier = 'named_unverified'
+              AND c.rejectionReason IS NULL AND c.crmOrphan = 0
+              AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL)
+              AND (c.enrichmentStatus IS NULL
+                OR (c.enrichmentStatus NOT IN ('enriched', 'not_found') AND c.enrichedAt IS NULL)
+                OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))
+            ORDER BY c.linkedin IS NOT NULL DESC, c.enrichmentSource = 'apollo' DESC
+            LIMIT 3`
+        ) : null;
+
+        const contactList = (contactRows as any)?.[0] ?? [];
+        for (const contactRow of contactList) {
+          if (backfillCredits >= maxBackfillCredits) break;
+          try {
+            const revealed = await revealContactEmail(contactRow.id, { userId: 0, userName: "pipeline-backfill" });
+            if (revealed) {
+              backfillRevealed++;
+              backfillCredits++;
+              console.log(`[DailyPipeline] Backfill revealed contact ${contactRow.id} for project ${row.projectId}`);
+              break; // One reveal per project is enough to qualify for digestSafe
+            } else {
+              backfillSkipped++;
+            }
+          } catch {
+            backfillSkipped++;
+          }
+        }
+      }
+
+      completeStep(apolloBackfillStep, { revealed: backfillRevealed, skipped: backfillSkipped, creditsUsed: backfillCredits, projectsTargeted: rows.length });
+      console.log(`[DailyPipeline] Apollo backfill complete: ${backfillRevealed} revealed, ${backfillSkipped} skipped, ${backfillCredits} credits used`);
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Apollo backfill failed:", errMsg);
+    failStep(apolloBackfillStep, errMsg);
+  }
+  steps.push(apolloBackfillStep);
+
+  // ── Step 12c: DigestSafe Auto-Promotion ──
+  // Runs after all Apollo enrichment to promote newly qualifying projects.
+  const digestSafeStep = startStep("DigestSafe Promotion");
+  try {
+    console.log("[DailyPipeline] Step 12c: Running digestSafe auto-promotion...");
+    const promoResult = await runDigestSafePromotion();
+    completeStep(digestSafeStep, {
+      promoted: promoResult.promoted,
+      alreadySafe: promoResult.alreadySafe,
+      skipped: promoResult.skipped,
+      errors: promoResult.errors,
+    });
+    console.log(`[DailyPipeline] DigestSafe promotion: ${promoResult.promoted} promoted, ${promoResult.alreadySafe} already safe, ${promoResult.skipped} skipped`);
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] DigestSafe promotion failed:", errMsg);
+    failStep(digestSafeStep, errMsg);
+  }
+  steps.push(digestSafeStep);
 
   // ── Step 13: Business Line Scoring ──
   markStepStarted("Business Line Scoring");

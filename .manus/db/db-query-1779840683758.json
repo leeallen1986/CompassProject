@@ -1,0 +1,16 @@
+{
+  "query": "SELECT \n  COUNT(*) AS total_hot_12,\n  SUM(CASE WHEN bls_max IS NOT NULL THEN 1 ELSE 0 END) AS has_bl_score,\n  SUM(CASE WHEN bls_max IS NULL THEN 1 ELSE 0 END) AS no_bl_score,\n  SUM(CASE WHEN bls_max >= 40 THEN 1 ELSE 0 END) AS bl_score_gte_40\nFROM (\n  SELECT \n    p.id,\n    MAX(bls.score) AS bls_max,\n    SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sr\n  FROM projects p\n  JOIN contactProjects cp ON cp.projectId = p.id\n  JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  LEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0)\n  GROUP BY p.id\n  HAVING sr BETWEEN 1 AND 2\n) sub;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  COUNT(*) AS total_hot_12,\n  SUM(CASE WHEN bls_max IS NOT NULL THEN 1 ELSE 0 END) AS has_bl_score,\n  SUM(CASE WHEN bls_max IS NULL THEN 1 ELSE 0 END) AS no_bl_score,\n  SUM(CASE WHEN bls_max >= 40 THEN 1 ELSE 0 END) AS bl_score_gte_40\nFROM (\n  SELECT \n    p.id,\n    MAX(bls.score) AS bls_max,\n    SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sr\n  FROM projects p\n  JOIN contactProjects cp ON cp.projectId = p.id\n  JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  LEFT JOIN projectBusinessLineScores bls ON bls.projectId = p.id\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND (p.suppressed IS NULL OR p.suppressed = 0)\n  GROUP BY p.id\n  HAVING sr BETWEEN 1 AND 2\n) sub;",
+  "rows": [
+    {
+      "total_hot_12": "0",
+      "has_bl_score": "NULL",
+      "no_bl_score": "NULL",
+      "bl_score_gte_40": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_hot_12\thas_bl_score\tno_bl_score\tbl_score_gte_40\n0\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1803
+}

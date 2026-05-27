@@ -1,0 +1,30 @@
+{
+  "query": "SELECT \n  p.enrichmentBlockedReason,\n  COUNT(*) AS count,\n  SUM(CASE WHEN sr.sr_count BETWEEN 1 AND 2 THEN 1 ELSE 0 END) AS has_1_2_send_ready\nFROM projects p\nLEFT JOIN (\n  SELECT cp.projectId, SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sr_count\n  FROM contactProjects cp\n  JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  GROUP BY cp.projectId\n) sr ON sr.projectId = p.id\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active'\nGROUP BY p.enrichmentBlockedReason\nORDER BY count DESC\nLIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT \n  p.enrichmentBlockedReason,\n  COUNT(*) AS count,\n  SUM(CASE WHEN sr.sr_count BETWEEN 1 AND 2 THEN 1 ELSE 0 END) AS has_1_2_send_ready\nFROM projects p\nLEFT JOIN (\n  SELECT cp.projectId, SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sr_count\n  FROM contactProjects cp\n  JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0\n  GROUP BY cp.projectId\n) sr ON sr.projectId = p.id\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active'\nGROUP BY p.enrichmentBlockedReason\nORDER BY count DESC\nLIMIT 10;",
+  "rows": [
+    {
+      "enrichmentBlockedReason": "NULL",
+      "count": "155",
+      "has_1_2_send_ready": "30"
+    },
+    {
+      "enrichmentBlockedReason": "blocked_government_owner_manual_discovery",
+      "count": "36",
+      "has_1_2_send_ready": "7"
+    },
+    {
+      "enrichmentBlockedReason": "blocked_no_usable_domain",
+      "count": "14",
+      "has_1_2_send_ready": "0"
+    },
+    {
+      "enrichmentBlockedReason": "blocked_unknown_owner",
+      "count": "13",
+      "has_1_2_send_ready": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentBlockedReason\tcount\thas_1_2_send_ready\nNULL\t155\t30\nblocked_government_owner_manual_discovery\t36\t7\nblocked_no_usable_domain\t14\t0\nblocked_unknown_owner\t13\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1782
+}
