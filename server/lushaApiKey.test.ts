@@ -32,5 +32,5 @@ describe("Lusha API Key Validation", () => {
     expect(response.status).not.toBe(401);
     expect(response.status).not.toBe(403);
     console.log(`Lusha API responded with status ${response.status} — key is valid`);
-  });
+  }, 15000);
 });

@@ -2688,3 +2688,10 @@
 - [x] Update digestSafePromotion.test.ts to reflect new threshold=1 (19/19 tests pass)
 - [x] Sync all changes to cloud computer
 - [x] Save checkpoint
+
+## Test Suite Green Sprint (2026-05-27)
+- [x] Fix apolloRoutes.test.ts — add 15s timeouts to all 4 live API tests (6/6 passing)
+- [x] Fix hunterService.test.ts — add 15s timeouts to 2 network-calling tests (2/2 passing)
+- [x] Fix lushaApiKey.test.ts — add 15s timeout to live API test (2/2 passing)
+- [x] Full suite: 3,295 tests, 115 files — all passing (zero failures)
+- [x] Save checkpoint

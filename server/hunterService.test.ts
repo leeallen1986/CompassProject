@@ -21,7 +21,7 @@ describe("Hunter.io API Key Validation", () => {
     expect(json.data.email).toBeDefined();
 
     console.log(`[Hunter] API key valid. Plan: ${json.data.plan_name}, Searches remaining: ${json.data.requests?.searches?.available ?? "unknown"}`);
-  });
+  }, 15000);
 
   it("should perform a domain search (0 credit test with known domain)", async () => {
     const apiKey = process.env.HUNTER_API_KEY;
@@ -38,5 +38,5 @@ describe("Hunter.io API Key Validation", () => {
     expect(json.data.domain).toBe("atlascopco.com");
 
     console.log(`[Hunter] Domain search works. Found ${json.meta?.results ?? 0} emails at atlascopco.com`);
-  });
+  }, 15000);
 });

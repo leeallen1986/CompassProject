@@ -13,6 +13,9 @@ import {
   type ApolloEnrichmentResult,
 } from "./apolloEnrichment";
 
+// All tests in this file make live Apollo API calls — use 15s timeout throughout
+const LIVE_API_TIMEOUT = 15000;
+
 describe("Apollo tRPC Route Logic", () => {
   describe("apolloPeopleSearch (used by apolloSearch endpoint)", () => {
     it("should search for people at a known Australian company", async () => {
@@ -39,7 +42,7 @@ describe("Apollo tRPC Route Logic", () => {
         expect(person.last_name_obfuscated).toBeDefined();
         expect(typeof person.has_email).toBe("boolean");
       }
-    });
+    }, LIVE_API_TIMEOUT);
 
     it("should return empty results for a non-existent company", async () => {
       const result = await apolloPeopleSearch({
@@ -51,7 +54,7 @@ describe("Apollo tRPC Route Logic", () => {
       expect(result).toBeDefined();
       expect(result.people).toBeDefined();
       expect(result.people.length).toBe(0);
-    });
+    }, LIVE_API_TIMEOUT);
   });
 
   describe("inferDomain", () => {
@@ -75,7 +78,7 @@ describe("Apollo tRPC Route Logic", () => {
       const result = await validateApolloApiKey();
       expect(result).toBeDefined();
       expect(result.valid).toBe(true);
-    });
+    }, LIVE_API_TIMEOUT);
   });
 
   describe("enrichSingleContact", () => {
@@ -126,6 +129,6 @@ describe("Apollo tRPC Route Logic", () => {
         expect(enriched.name).toBeDefined();
         expect(enriched.name.length).toBeGreaterThan(0);
       }
-    });
+    }, LIVE_API_TIMEOUT);
   });
 });
