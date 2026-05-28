@@ -24,6 +24,7 @@ import {
   type InsertContact,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { cleanContactName } from "./nameUtils";
 
 // ── Configuration ──
 
@@ -888,15 +889,18 @@ export async function revealContactEmail(
   }
 
   // Enrich via Apollo
+  // Clean the name before validation: strip credentials, parenthetical nicknames, emoji
+  const cleanedName = cleanContactName(contact.name);
   // Guard: Apollo rejects single-letter first names or malformed last names
-  const enrichFirstName = contact.name.split(" ")[0];
-  const nameParts = contact.name.trim().split(/\s+/);
+  const enrichFirstName = cleanedName ? cleanedName.split(" ")[0] : contact.name.split(" ")[0];
+  const nameParts = (cleanedName ?? contact.name).trim().split(/\s+/);
   const enrichLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
   const hasInvalidName =
+    !cleanedName ||
     enrichFirstName.length <= 1 ||
     (enrichLastName.length > 0 && !/^[a-zA-Z\-'\u00C0-\u024F\s]+$/.test(enrichLastName));
   if (hasInvalidName) {
-    console.log(`[Apollo] Skipping enrichment for "${contact.name}" — invalid name format (firstName: "${enrichFirstName}", lastName: "${enrichLastName}")`);
+    console.log(`[Apollo] Skipping enrichment for "${contact.name}" — invalid name format after cleaning (firstName: "${enrichFirstName}", lastName: "${enrichLastName}")`);
     return {
       contactId: contact.id,
       apolloId: "",
@@ -919,7 +923,7 @@ export async function revealContactEmail(
   try {
     const enrichResult = await apolloPeopleEnrich({
       firstName: enrichFirstName,
-      lastName: contact.name.split(" ").slice(1).join(" "),
+      lastName: enrichLastName,
       organizationName: contact.company,
       linkedinUrl: contact.linkedin ?? undefined,
     });

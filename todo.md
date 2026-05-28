@@ -2695,3 +2695,11 @@
 - [x] Fix lushaApiKey.test.ts — add 15s timeout to live API test (2/2 passing)
 - [x] Full suite: 3,295 tests, 115 files — all passing (zero failures)
 - [x] Save checkpoint
+
+## Apollo Name Cleaner Sprint (2026-05-28)
+- [x] Extract cleanContactName() to server/nameUtils.ts (strips credentials, parenthetical nicknames, emoji)
+- [x] Import cleanContactName in apolloEnrichment.ts — use cleaned name for Apollo API calls
+- [x] Write 20 unit tests for nameUtils (cleanContactName, parseContactName, isEnrichableName)
+- [x] Full suite: 3,315 tests, 116 files — all passing
+- [x] Sync to cloud computer and re-run warm pass — Mohamed Kenawy (Mo) → mkenawy@hazergroup.com.au
+- [x] Run digestSafe promotion — DB at 213+ digest-safe projects
