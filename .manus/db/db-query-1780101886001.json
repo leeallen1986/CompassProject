@@ -1,0 +1,25 @@
+{
+  "query": "\nSELECT \n  DATE(createdAt) as date,\n  SUM(creditsUsed) as credits_used,\n  COUNT(*) as calls_made\nFROM apolloCreditLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)\nGROUP BY DATE(createdAt)\nORDER BY date DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  DATE(createdAt) as date,\n  SUM(creditsUsed) as credits_used,\n  COUNT(*) as calls_made\nFROM apolloCreditLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)\nGROUP BY DATE(createdAt)\nORDER BY date DESC;\n",
+  "rows": [
+    {
+      "date": "2026-05-28",
+      "credits_used": "66",
+      "calls_made": "66"
+    },
+    {
+      "date": "2026-05-27",
+      "credits_used": "105",
+      "calls_made": "105"
+    },
+    {
+      "date": "2026-05-26",
+      "credits_used": "35",
+      "calls_made": "35"
+    }
+  ],
+  "messages": [],
+  "stdout": "date\tcredits_used\tcalls_made\n2026-05-28\t66\t66\n2026-05-27\t105\t105\n2026-05-26\t35\t35\n",
+  "stderr": "",
+  "execution_time_ms": 1747
+}

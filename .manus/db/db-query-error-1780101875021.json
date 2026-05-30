@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  DATE(FROM_UNIXTIME(usedAt/1000)) as date,\n  COUNT(*) as credits_used,\n  SUM(CASE WHEN result = 'found' THEN 1 ELSE 0 END) as found,\n  SUM(CASE WHEN result = 'not_found' THEN 1 ELSE 0 END) as not_found\nFROM apolloCreditLog\nWHERE usedAt >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000\nGROUP BY DATE(FROM_UNIXTIME(usedAt/1000))\nORDER BY date DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  DATE(FROM_UNIXTIME(usedAt/1000)) as date,\n  COUNT(*) as credits_used,\n  SUM(CASE WHEN result = 'found' THEN 1 ELSE 0 END) as found,\n  SUM(CASE WHEN result = 'not_found' THEN 1 ELSE 0 END) as not_found\nFROM apolloCreditLog\nWHERE usedAt >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 7 DAY)) * 1000\nGROUP BY DATE(FROM_UNIXTIME(usedAt/1000))\nORDER BY date DESC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'usedat' in 'group statement'"
+  ]
+}

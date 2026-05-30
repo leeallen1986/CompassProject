@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_projects,\n  SUM(CASE WHEN vg.id IS NOT NULL THEN 1 ELSE 0 END) as has_gate,\n  SUM(CASE WHEN vg.id IS NULL THEN 1 ELSE 0 END) as no_gate_yet\nFROM projects p\nLEFT JOIN projectValidationGates vg ON vg.projectId = p.id\nWHERE p.priority IN ('hot', 'warm');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as total_projects,\n  SUM(CASE WHEN vg.id IS NOT NULL THEN 1 ELSE 0 END) as has_gate,\n  SUM(CASE WHEN vg.id IS NULL THEN 1 ELSE 0 END) as no_gate_yet\nFROM projects p\nLEFT JOIN projectValidationGates vg ON vg.projectId = p.id\nWHERE p.priority IN ('hot', 'warm');\n",
+  "rows": [
+    {
+      "total_projects": "1405",
+      "has_gate": "216",
+      "no_gate_yet": "1189"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_projects\thas_gate\tno_gate_yet\n1405\t216\t1189\n",
+  "stderr": "",
+  "execution_time_ms": 1802
+}

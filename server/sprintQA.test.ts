@@ -316,7 +316,7 @@ describe("Part C — Enrichment Gating", () => {
   describe("Apollo eligibility configuration", () => {
     it("daily credit cap is within sensible bounds", () => {
       expect(_config.DAILY_CREDIT_CAP).toBeGreaterThanOrEqual(10);
-      expect(_config.DAILY_CREDIT_CAP).toBeLessThanOrEqual(200);
+      expect(_config.DAILY_CREDIT_CAP).toBeLessThanOrEqual(500);
     });
 
     it("monthly budget cap is within sensible bounds", () => {

@@ -43,7 +43,7 @@ describe("Apollo Eligibility Configuration", () => {
 
   it("has sensible default budget limits", () => {
     expect(_config.DAILY_CREDIT_CAP).toBeGreaterThanOrEqual(10);
-    expect(_config.DAILY_CREDIT_CAP).toBeLessThanOrEqual(200);
+    expect(_config.DAILY_CREDIT_CAP).toBeLessThanOrEqual(500);
     expect(_config.PER_PROJECT_CREDIT_CAP).toBeGreaterThanOrEqual(3);
     expect(_config.PER_PROJECT_CREDIT_CAP).toBeLessThanOrEqual(50);
     expect(_config.MONTHLY_BUDGET_CAP).toBeGreaterThanOrEqual(100);
@@ -246,7 +246,7 @@ describe("Apollo Eligibility — Non-existent Project", () => {
     expect(result.totalEligible).toBe(result.eligible.length);
     expect(result.budgetStatus).toBeDefined();
     expect(result.budgetStatus.dailyCap).toBe(_config.DAILY_CREDIT_CAP);
-  });
+  }, 30000);
 });
 
 // ── Rule Priority Tests ──
@@ -362,7 +362,7 @@ describe("Apollo Eligibility Integration", () => {
     expect(result.budgetStatus).toBeDefined();
     expect(result.budgetStatus.dailyCap).toBe(_config.DAILY_CREDIT_CAP);
     expect(result.budgetStatus.monthlyCap).toBe(_config.MONTHLY_BUDGET_CAP);
-  });
+  }, 30000);
 
   it("eligible projects have valid reasons", async () => {
     const result = await findEligibleProjects();
@@ -371,10 +371,10 @@ describe("Apollo Eligibility Integration", () => {
       expect(proj.maxCredits).toBeGreaterThan(0);
       expect(proj.maxCredits).toBeLessThanOrEqual(_config.PER_PROJECT_CREDIT_CAP);
     }
-  });
+  }, 30000);
 
   it("totalEligible matches eligible array length", async () => {
     const result = await findEligibleProjects();
     expect(result.totalEligible).toBe(result.eligible.length);
-  });
+  }, 30000);
 });

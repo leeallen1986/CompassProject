@@ -2703,3 +2703,19 @@
 - [x] Full suite: 3,315 tests, 116 files — all passing
 - [x] Sync to cloud computer and re-run warm pass — Mohamed Kenawy (Mo) → mkenawy@hazergroup.com.au
 - [x] Run digestSafe promotion — DB at 213+ digest-safe projects
+
+## DigestSafe Bulk Promotion + Hot Backlog Sprint (2026-05-30)
+- [ ] Run digestSafe promotion on all 1,189 ungated hot/warm projects with send_ready contacts
+- [ ] Raise Apollo daily budget cap from 100 to 300 credits/day
+- [ ] Run Apollo hot enrichment pass 1 (100 credits)
+- [ ] Run Apollo hot enrichment pass 2 (100 credits)
+- [ ] Run Apollo hot enrichment pass 3 (100 credits)
+- [ ] Run final digestSafe promotion after all passes
+- [ ] Save checkpoint
+
+## Lusha Reverse-LinkedIn Pass (2026-05-30)
+- [ ] Check existing Lusha integration code (lushaService.ts or similar)
+- [ ] Write lusha-enrichment-pass.ts targeting 31 blocked contacts with LinkedIn URLs
+- [ ] Test dry-run, sync to cloud, run live pass
+- [ ] Run digestSafe promotion after pass
+- [ ] Save checkpoint

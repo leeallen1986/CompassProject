@@ -1,0 +1,310 @@
+{
+  "query": "\nSELECT c.id, c.name, c.company, c.linkedin, c.linkedinProfileUrl, c.contactTrustTier,\n       p.name as projectName, p.priority\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE c.contactTrustTier != 'send_ready'\n  AND (c.linkedin IS NOT NULL OR c.linkedinProfileUrl IS NOT NULL)\n  AND (c.name LIKE '% _.' OR c.name REGEXP '^[A-Z][a-z]+ [A-Z]\\\\.$')\n  AND p.priority IN ('hot', 'warm')\nORDER BY p.priority, p.name\nLIMIT 30;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT c.id, c.name, c.company, c.linkedin, c.linkedinProfileUrl, c.contactTrustTier,\n       p.name as projectName, p.priority\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE c.contactTrustTier != 'send_ready'\n  AND (c.linkedin IS NOT NULL OR c.linkedinProfileUrl IS NOT NULL)\n  AND (c.name LIKE '% _.' OR c.name REGEXP '^[A-Z][a-z]+ [A-Z]\\\\.$')\n  AND p.priority IN ('hot', 'warm')\nORDER BY p.priority, p.name\nLIMIT 30;\n",
+  "rows": [
+    {
+      "id": "960007",
+      "name": "Laura Ivonne H.",
+      "company": "Amazon Australia",
+      "linkedin": "https://www.linkedin.com/in/lauraivonneh",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Amazon Australia Renewable Energy PPAs (430 MW)",
+      "priority": "hot"
+    },
+    {
+      "id": "660004",
+      "name": "Toby M.",
+      "company": "Australian Department of Defence",
+      "linkedin": "https://www.linkedin.com/in/toby-m-11147516",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "AUKUS Submarine Fleet Development (Pillar 1)",
+      "priority": "hot"
+    },
+    {
+      "id": "660013",
+      "name": "Angela W.",
+      "company": "Australian Department of Defence",
+      "linkedin": "https://www.linkedin.com/in/angela-w-6544947",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "AUKUS Submarine Fleet Development (Pillar 1)",
+      "priority": "hot"
+    },
+    {
+      "id": "2100084",
+      "name": "Brigid F.",
+      "company": "Australia Post",
+      "linkedin": "https://www.linkedin.com/in/brigidf",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Australia Post Brisbane Airport Mega Hub Solar & BESS Installation",
+      "priority": "hot"
+    },
+    {
+      "id": "660051",
+      "name": "James H.",
+      "company": "Santos",
+      "linkedin": "http://www.linkedin.com/in/james-h-023b69314",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Barossa LNG Project",
+      "priority": "hot"
+    },
+    {
+      "id": "750023",
+      "name": "Ray C.",
+      "company": "Iberdrola Australia",
+      "linkedin": "http://www.linkedin.com/in/raelcohen",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Broadsound Battery Energy Storage System (BESS)",
+      "priority": "hot"
+    },
+    {
+      "id": "2220030",
+      "name": "Mark K.",
+      "company": "Australian Government",
+      "linkedin": "https://www.linkedin.com/in/mark-k-966b571a",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Capacity Investment Scheme Tenders 5 and 6 (WA)",
+      "priority": "hot"
+    },
+    {
+      "id": "2220029",
+      "name": "Kel D.",
+      "company": "Australian Government",
+      "linkedin": "https://www.linkedin.com/in/kel-d-94b92b2a3",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Capacity Investment Scheme Tenders 5 and 6 (WA)",
+      "priority": "hot"
+    },
+    {
+      "id": "630127",
+      "name": "Ashlee G.",
+      "company": "TasWater",
+      "linkedin": "https://www.linkedin.com/in/ashleegeard",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Clarence Street Water Main Overhaul",
+      "priority": "hot"
+    },
+    {
+      "id": "2160008",
+      "name": "Melissa W.",
+      "company": "Victoria Racing Club",
+      "linkedin": "https://www.linkedin.com/in/melissa-w-7a52b914",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Flemington Racecourse 767 kWdc Commercial Solar Installation",
+      "priority": "hot"
+    },
+    {
+      "id": "570109",
+      "name": "Michael A.",
+      "company": "DDH1 Drilling",
+      "linkedin": "NULL",
+      "linkedinProfileUrl": "https://www.linkedin.com/in/michael-a-019a56a1",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Genesis Minerals - Leonora Gold Project - Exploration",
+      "priority": "hot"
+    },
+    {
+      "id": "570112",
+      "name": "Matt W.",
+      "company": "Genesis Minerals Limited",
+      "linkedin": "NULL",
+      "linkedinProfileUrl": "https://www.linkedin.com/in/matt-w-941955177",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Genesis Minerals - Leonora Gold Project - Exploration",
+      "priority": "hot"
+    },
+    {
+      "id": "960001",
+      "name": "Mingmin L.",
+      "company": "Hornsby Shire Council",
+      "linkedin": "https://www.linkedin.com/in/mingmin-l-879477a0",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Hornsby Park Quarry Rehabilitation (Crusher Plant Precinct)",
+      "priority": "hot"
+    },
+    {
+      "id": "750064",
+      "name": "John R.",
+      "company": "John Holland",
+      "linkedin": "https://www.linkedin.com/in/john-r-88573946",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Inland Rail Station Upgrades (Euroa)",
+      "priority": "hot"
+    },
+    {
+      "id": "1200001",
+      "name": "Hardy D.",
+      "company": "Gippsland Water",
+      "linkedin": "https://www.linkedin.com/in/hardydeleon",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Latrobe Valley 50ML Basin Construction",
+      "priority": "hot"
+    },
+    {
+      "id": "960006",
+      "name": "Shannon B.",
+      "company": "UGL",
+      "linkedin": "https://www.linkedin.com/in/shannon-b-7a131a168",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Muchea Battery Project",
+      "priority": "hot"
+    },
+    {
+      "id": "570079",
+      "name": "Daniel S.",
+      "company": "BHP",
+      "linkedin": "https://www.linkedin.com/in/daniel-s-097531112",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Nelson Point Car Dumper 6 Project",
+      "priority": "hot"
+    },
+    {
+      "id": "750014",
+      "name": "Jigar P.",
+      "company": "Northern Territory Government",
+      "linkedin": "http://www.linkedin.com/in/jigar-p-1359a178",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Regional Road Upgrade",
+      "priority": "hot"
+    },
+    {
+      "id": "570128",
+      "name": "Antonio V.",
+      "company": "Tesla",
+      "linkedin": "NULL",
+      "linkedinProfileUrl": "https://www.linkedin.com/in/antoniovitale93",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Swanbank BESS",
+      "priority": "hot"
+    },
+    {
+      "id": "780035",
+      "name": "Hollie L.",
+      "company": "Stockland",
+      "linkedin": "NULL",
+      "linkedinProfileUrl": "https://www.linkedin.com/in/hollie-l-23199935",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Yarrabilba Retail Precinct",
+      "priority": "hot"
+    },
+    {
+      "id": "750034",
+      "name": "Thea R.",
+      "company": "Unknown",
+      "linkedin": "https://www.linkedin.com/in/thea-r-938398181",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "1.6 GWh Battery Energy Storage System (BESS)",
+      "priority": "warm"
+    },
+    {
+      "id": "570015",
+      "name": "Angela H.",
+      "company": "ACT Government",
+      "linkedin": "https://www.linkedin.com/in/angela-harrison-leadership-mastery",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "ACT Government Open Tenders (various projects)",
+      "priority": "warm"
+    },
+    {
+      "id": "960079",
+      "name": "Purusoth M.",
+      "company": "Various",
+      "linkedin": "https://www.linkedin.com/in/purusothm",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Australia's Battery Rollout",
+      "priority": "warm"
+    },
+    {
+      "id": "630073",
+      "name": "Josef D.",
+      "company": "Various",
+      "linkedin": "https://www.linkedin.com/in/josef-d-14484326",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Australia's EPBC Act Battery Storage Pipeline",
+      "priority": "warm"
+    },
+    {
+      "id": "1020010",
+      "name": "Kenjiro H.",
+      "company": "INPEX",
+      "linkedin": "https://www.linkedin.com/in/kenjiro-h-80a97a157",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Bonaparte CCS Project",
+      "priority": "warm"
+    },
+    {
+      "id": "1230009",
+      "name": "Jason M.",
+      "company": "Bunnings",
+      "linkedin": "https://www.linkedin.com/in/jason-m-3855b52a",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Bunnings Home Solar and Battery Subscription Service Rollout",
+      "priority": "warm"
+    },
+    {
+      "id": "2190011",
+      "name": "Joshua K.",
+      "company": "Equinix",
+      "linkedin": "NULL",
+      "linkedinProfileUrl": "https://www.linkedin.com/in/joshuakilburn",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Data Centre Battery Storage Expansion",
+      "priority": "warm"
+    },
+    {
+      "id": "570051",
+      "name": "nicolas M.",
+      "company": "Fortescue",
+      "linkedin": "https://www.linkedin.com/in/nicolas-m-22a7b748",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Fortescue Pilbara Wind Farm",
+      "priority": "warm"
+    },
+    {
+      "id": "930043",
+      "name": "Andrew S.",
+      "company": "Federal Government",
+      "linkedin": "https://www.linkedin.com/in/andrew-seligson",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Investor Front Door Program",
+      "priority": "warm"
+    },
+    {
+      "id": "2160001",
+      "name": "Thomas B.",
+      "company": "Australian Government",
+      "linkedin": "https://www.linkedin.com/in/thomas-b-2b6137135",
+      "linkedinProfileUrl": "NULL",
+      "contactTrustTier": "named_unverified",
+      "projectName": "Naval Strike Missiles and Joint Strike Missiles Domestic Manufacturing",
+      "priority": "warm"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcompany\tlinkedin\tlinkedinProfileUrl\tcontactTrustTier\tprojectName\tpriority\n960007\tLaura Ivonne H.\tAmazon Australia\thttps://www.linkedin.com/in/lauraivonneh\tNULL\tnamed_unverified\tAmazon Australia Renewable Energy PPAs (430 MW)\thot\n660004\tToby M.\tAustralian Department of Defence\thttps://www.linkedin.com/in/toby-m-11147516\tNULL\tnamed_unverified\tAUKUS Submarine Fleet Development (Pillar 1)\thot\n660013\tAngela W.\tAustralian Department of Defence\thttps://www.linkedin.com/in/angela-w-6544947\tNULL\tnamed_unverified\tAUKUS Submarine Fleet Development (Pillar 1)\thot\n2100084\tBrigid F.\tAustralia Post\thttps://www.linkedin.com/in/brigidf\tNULL\tnamed_unverified\tAustralia Post Brisbane Airport Mega Hub Solar & BESS Installation\thot\n660051\tJames H.\tSantos\thttp://www.linkedin.com/in/james-h-023b69314\tNULL\tnamed_unverified\tBarossa LNG Project\thot\n750023\tRay C.\tIberdrola Australia\thttp://www.linkedin.com/in/raelcohen\tNULL\tnamed_unverified\tBroadsound Battery Energy Storage System (BESS)\thot\n2220030\tMark K.\tAustralian Government\thttps://www.linkedin.com/in/mark-k-966b571a\tNULL\tnamed_unverified\tCapacity Investment Scheme Tenders 5 and 6 (WA)\thot\n2220029\tKel D.\tAustralian Government\thttps://www.linkedin.com/in/kel-d-94b92b2a3\tNULL\tnamed_unverified\tCapacity Investment Scheme Tenders 5 and 6 (WA)\thot\n630127\tAshlee G.\tTasWater\thttps://www.linkedin.com/in/ashleegeard\tNULL\tnamed_unverified\tClarence Street Water Main Overhaul\thot\n2160008\tMelissa W.\tVictoria Racing Club\thttps://www.linkedin.com/in/melissa-w-7a52b914\tNULL\tnamed_unverified\tFlemington Racecourse 767 kWdc Commercial Solar Installation\thot\n570109\tMichael A.\tDDH1 Drilling\tNULL\thttps://www.linkedin.com/in/michael-a-019a56a1\tnamed_unverified\tGenesis Minerals - Leonora Gold Project - Exploration\thot\n570112\tMatt W.\tGenesis Minerals Limited\tNULL\thttps://www.linkedin.com/in/matt-w-941955177\tnamed_unverified\tGenesis Minerals - Leonora Gold Project - Exploration\thot\n960001\tMingmin L.\tHornsby Shire Council\thttps://www.linkedin.com/in/mingmin-l-879477a0\tNULL\tnamed_unverified\tHornsby Park Quarry Rehabilitation (Crusher Plant Precinct)\thot\n750064\tJohn R.\tJohn Holland\thttps://www.linkedin.com/in/john-r-88573946\tNULL\tnamed_unverified\tInland Rail Station Upgrades (Euroa)\thot\n1200001\tHardy D.\tGippsland Water\thttps://www.linkedin.com/in/hardydeleon\tNULL\tnamed_unverified\tLatrobe Valley 50ML Basin Construction\thot\n960006\tShannon B.\tUGL\thttps://www.linkedin.com/in/shannon-b-7a131a168\tNULL\tnamed_unverified\tMuchea Battery Project\thot\n570079\tDaniel S.\tBHP\thttps://www.linkedin.com/in/daniel-s-097531112\tNULL\tnamed_unverified\tNelson Point Car Dumper 6 Project\thot\n750014\tJigar P.\tNorthern Territory Government\thttp://www.linkedin.com/in/jigar-p-1359a178\tNULL\tnamed_unverified\tRegional Road Upgrade\thot\n570128\tAntonio V.\tTesla\tNULL\thttps://www.linkedin.com/in/antoniovitale93\tnamed_unverified\tSwanbank BESS\thot\n780035\tHollie L.\tStockland\tNULL\thttps://www.linkedin.com/in/hollie-l-23199935\tnamed_unverified\tYarrabilba Retail Precinct\thot\n750034\tThea R.\tUnknown\thttps://www.linkedin.com/in/thea-r-938398181\tNULL\tnamed_unverified\t1.6 GWh Battery Energy Storage System (BESS)\twarm\n570015\tAngela H.\tACT Government\thttps://www.linkedin.com/in/angela-harrison-leadership-mastery\tNULL\tnamed_unverified\tACT Government Open Tenders (various projects)\twarm\n960079\tPurusoth M.\tVarious\thttps://www.linkedin.com/in/purusothm\tNULL\tnamed_unverified\tAustralia's Battery Rollout\twarm\n630073\tJosef D.\tVarious\thttps://www.linkedin.com/in/josef-d-14484326\tNULL\tnamed_unverified\tAustralia's EPBC Act Battery Storage Pipeline\twarm\n1020010\tKenjiro H.\tINPEX\thttps://www.linkedin.com/in/kenjiro-h-80a97a157\tNULL\tnamed_unverified\tBonaparte CCS Project\twarm\n1230009\tJason M.\tBunnings\thttps://www.linkedin.com/in/jason-m-3855b52a\tNULL\tnamed_unverified\tBunnings Home Solar and Battery Subscription Service Rollout\twarm\n2190011\tJoshua K.\tEquinix\tNULL\thttps://www.linkedin.com/in/joshuakilburn\tnamed_unverified\tData Centre Battery Storage Expansion\twarm\n570051\tnicolas M.\tFortescue\thttps://www.linkedin.com/in/nicolas-m-22a7b748\tNULL\tnamed_unverified\tFortescue Pilbara Wind Farm\twarm\n930043\tAndrew S.\tFederal Government\thttps://www.linkedin.com/in/andrew-seligson\tNULL\tnamed_unverified\tInvestor Front Door Program\twarm\n2160001\tThomas B.\tAustralian Government\thttps://www.linkedin.com/in/thomas-b-2b6137135\tNULL\tnamed_unverified\tNaval Strike Missiles and Joint Strike Missiles Domestic Manufacturing\twarm\n",
+  "stderr": "",
+  "execution_time_ms": 1903
+}

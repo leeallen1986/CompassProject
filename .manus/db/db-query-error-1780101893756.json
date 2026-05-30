@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as total_projects,\n  SUM(CASE WHEN sr.cnt > 0 THEN 1 ELSE 0 END) as has_send_ready,\n  SUM(CASE WHEN sr.cnt = 0 OR sr.cnt IS NULL THEN 1 ELSE 0 END) as zero_send_ready\nFROM projects p\nLEFT JOIN (\n  SELECT cp.projectId, COUNT(*) as cnt\n  FROM contactProjects cp\n  JOIN contacts c ON c.id = cp.contactId\n  WHERE c.contactTier = 'send_ready'\n  GROUP BY cp.projectId\n) sr ON sr.projectId = p.id\nWHERE p.priority IN ('hot', 'warm', 'cold')\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as total_projects,\n  SUM(CASE WHEN sr.cnt > 0 THEN 1 ELSE 0 END) as has_send_ready,\n  SUM(CASE WHEN sr.cnt = 0 OR sr.cnt IS NULL THEN 1 ELSE 0 END) as zero_send_ready\nFROM projects p\nLEFT JOIN (\n  SELECT cp.projectId, COUNT(*) as cnt\n  FROM contactProjects cp\n  JOIN contacts c ON c.id = cp.contactId\n  WHERE c.contactTier = 'send_ready'\n  GROUP BY cp.projectId\n) sr ON sr.projectId = p.id\nWHERE p.priority IN ('hot', 'warm', 'cold')\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'c.contacttier' in 'where clause'"
+  ]
+}

@@ -84,22 +84,25 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Call Lusha Person API to enrich a single contact.
+ * Supports two lookup modes:
+ *   1. LinkedIn URL lookup (preferred for privacy-restricted contacts)
+ *   2. Name + company lookup (fallback)
  */
 async function lushaPersonLookup(
   firstName: string,
   lastName: string,
   company: string,
+  linkedinUrl?: string,
 ): Promise<LushaPersonResult | null> {
   const apiKey = ENV.lushaApiKey;
   if (!apiKey) {
     throw new Error("LUSHA_API_KEY not configured");
   }
 
-  const params = new URLSearchParams({
-    firstName,
-    lastName,
-    company,
-  });
+  // Prefer LinkedIn URL lookup when available — more accurate for privacy-restricted contacts
+  const params = linkedinUrl
+    ? new URLSearchParams({ linkedinUrl })
+    : new URLSearchParams({ firstName, lastName, company });
 
   const response = await fetch(`${LUSHA_BASE_URL}/v2/person?${params.toString()}`, {
     method: "GET",
@@ -257,9 +260,10 @@ export async function lushaEnrichProjectContacts(
 
   // Get contacts for this project that need enrichment
   // Priority: named contacts without verified email, not LLM-inferred
+  // Include linkedin/linkedinProfileUrl for LinkedIn URL lookup mode
   const projectContacts = await db.execute(sql`
     SELECT c.id, c.name, c.company, c.title, c.email, c.enrichmentStatus, c.enrichmentSource,
-           c.contactTrustTier, c.roleBucket
+           c.contactTrustTier, c.roleBucket, c.linkedin, c.linkedinProfileUrl
     FROM contacts c
     JOIN contactProjects cp ON cp.contactId = c.id
     WHERE cp.projectId = ${projectId}
@@ -305,7 +309,9 @@ export async function lushaEnrichProjectContacts(
     result.contactsAttempted++;
     const { firstName, lastName } = splitName(contact.name);
 
-    if (!firstName || !lastName) {
+    // For LinkedIn URL lookup, we don't need a last name (privacy-restricted contacts like "Mark K.")
+    const contactLinkedinUrlForCheck = contact.linkedin || contact.linkedinProfileUrl;
+    if (!firstName || (!lastName && !contactLinkedinUrlForCheck)) {
       result.results.push({
         contactId: contact.id,
         contactName: contact.name,
@@ -313,20 +319,25 @@ export async function lushaEnrichProjectContacts(
         projectName,
         status: "failed",
         promoted: false,
-        error: "Cannot split name into first/last",
+        error: "Cannot split name into first/last and no LinkedIn URL available",
         creditsUsed: 0,
       });
       continue;
     }
 
     try {
-      const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company);
+      // Use LinkedIn URL if available (preferred for privacy-restricted contacts like "Mark K.")
+      const contactLinkedinUrl = contact.linkedin || contact.linkedinProfileUrl || undefined;
+      const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl);
+      const queryInput: Record<string, string> = contactLinkedinUrl
+        ? { linkedinUrl: contactLinkedinUrl, firstName, lastName: lastName || '', company: contact.company }
+        : { firstName, lastName, company: contact.company };
 
       // Log the attempt
       await db.insert(lushaEnrichmentLog).values({
         contactId: contact.id,
         projectId,
-        queryInput: { firstName, lastName, company: contact.company },
+        queryInput,
         emailFound: lushaResult?.email || null,
         phoneFound: lushaResult?.phone || null,
         titleFound: lushaResult?.title || null,

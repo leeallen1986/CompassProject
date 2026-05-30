@@ -85,4 +85,38 @@ describe("Lusha Enrichment Module", () => {
       expect(LUSHA_COOLDOWN_DAYS).toBe(14);
     });
   });
+
+  describe("LinkedIn URL lookup mode", () => {
+    it("lushaPersonLookup accepts a linkedinUrl parameter", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      // Should have the linkedinUrl parameter in lushaPersonLookup signature
+      expect(content).toContain("linkedinUrl?: string");
+      // Should prefer LinkedIn URL lookup when available
+      expect(content).toContain("new URLSearchParams({ linkedinUrl })");
+    });
+
+    it("enrichment loop fetches linkedin columns and passes them to lushaPersonLookup", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      // Should fetch linkedin and linkedinProfileUrl from contacts table
+      expect(content).toContain("c.linkedin, c.linkedinProfileUrl");
+      // Should pass the LinkedIn URL to lushaPersonLookup
+      expect(content).toContain("lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl)");
+    });
+
+    it("privacy-restricted contacts (single initial) can proceed when LinkedIn URL is available", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      // Should not block contacts with only first name when LinkedIn URL is available
+      expect(content).toContain("!lastName && !contactLinkedinUrlForCheck");
+    });
+
+    it("queryInput logs linkedinUrl for audit trail when LinkedIn URL lookup is used", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      // Should log the linkedinUrl in the query input for audit trail
+      expect(content).toContain("linkedinUrl: contactLinkedinUrl");
+    });
+  });
 });

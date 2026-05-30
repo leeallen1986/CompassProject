@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_projects,\n  SUM(CASE WHEN digest_safe = 1 THEN 1 ELSE 0 END) as digest_safe,\n  SUM(CASE WHEN digest_safe = 0 THEN 1 ELSE 0 END) as not_digest_safe\nFROM project_validation_gates;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  COUNT(*) as total_projects,\n  SUM(CASE WHEN digest_safe = 1 THEN 1 ELSE 0 END) as digest_safe,\n  SUM(CASE WHEN digest_safe = 0 THEN 1 ELSE 0 END) as not_digest_safe\nFROM project_validation_gates;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 2: Table '3smu786vmcwdcnmnsx6pxw.project_validation_gates' doesn't exist"
+  ]
+}
