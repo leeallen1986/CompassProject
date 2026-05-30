@@ -1,0 +1,9 @@
+{
+  "query": "\nSELECT \n  u.name,\n  r.weekKey,\n  r.decision,\n  r.rescueAttempted,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].criterion')) as blocker1,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].detail')) as blocker1_detail,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[1].criterion')) as blocker2\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nWHERE r.weekKey = '2026-W22'\nORDER BY r.decision DESC, u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  r.weekKey,\n  r.decision,\n  r.rescueAttempted,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].criterion')) as blocker1,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].detail')) as blocker1_detail,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[1].criterion')) as blocker2\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nWHERE r.weekKey = '2026-W22'\nORDER BY r.decision DESC, u.name;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1707
+}

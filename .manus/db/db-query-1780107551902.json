@@ -1,0 +1,170 @@
+{
+  "query": "\nSELECT \n  u.name,\n  r.weekKey,\n  r.decision,\n  r.rescueAttempted,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].criterion')) as blocker1,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].detail')) as blocker1_detail\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nORDER BY r.id DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  r.weekKey,\n  r.decision,\n  r.rescueAttempted,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].criterion')) as blocker1,\n  JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].detail')) as blocker1_detail\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nORDER BY r.id DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "name": "Kevin Arnandes",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    },
+    {
+      "name": "Leo Williams ",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blocker1": "NULL",
+      "blocker1_detail": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tweekKey\tdecision\trescueAttempted\tblocker1\tblocker1_detail\nKevin Arnandes\t2026W22\tSEND\t0\tNULL\tNULL\nEgor Ivanov\t2026W22\tSEND\t0\tNULL\tNULL\nAmit Bhargava\t2026W22\tSEND\t0\tNULL\tNULL\nDan Day\t2026W22\tHOLD\t1\tNULL\tNULL\nDan Day\t2026W22\tHOLD\t0\tNULL\tNULL\nDaniel Zec\t2026W22\tHOLD\t1\tNULL\tNULL\nDaniel Zec\t2026W22\tHOLD\t0\tNULL\tNULL\nBrett Hansen\t2026W22\tSEND\t0\tNULL\tNULL\nRyan Pemberton\t2026W22\tSEND\t0\tNULL\tNULL\nLeo Williams \t2026W22\tSEND\t0\tNULL\tNULL\nKevin Arnandes\t2026W22\tSEND\t0\tNULL\tNULL\nEgor Ivanov\t2026W22\tSEND\t0\tNULL\tNULL\nAmit Bhargava\t2026W22\tSEND\t0\tNULL\tNULL\nDan Day\t2026W22\tHOLD\t1\tNULL\tNULL\nDan Day\t2026W22\tHOLD\t0\tNULL\tNULL\nDaniel Zec\t2026W22\tHOLD\t1\tNULL\tNULL\nDaniel Zec\t2026W22\tHOLD\t0\tNULL\tNULL\nBrett Hansen\t2026W22\tSEND\t0\tNULL\tNULL\nRyan Pemberton\t2026W22\tSEND\t0\tNULL\tNULL\nLeo Williams \t2026W22\tSEND\t0\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1798
+}

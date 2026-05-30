@@ -432,14 +432,38 @@ describe("Government domain allowlist", () => {
     expect(result.failedChecks).not.toContain("non_defensible_domain");
   });
 
-  it("still blocks random .gov.au domains not in allowlist", () => {
+  it("passes treasury.gov.au (all *.gov.au now allowlisted via catch-all entry)", () => {
+    // The GOV_DOMAIN_ALLOWLIST now includes 'gov.au' as a catch-all so that any
+    // Australian government subdomain (*.vic.gov.au, *.nsw.gov.au, etc.) is defensible.
+    // Non-industrial government projects are filtered by the junk suppression gate instead.
     const contact = { ...VALID_CONTACT, email: "info@treasury.gov.au", company: "Treasury" };
     const result = checkContactDefensibility(
       contact,
       { name: "Budget Office Renovation", owner: "Commonwealth Treasury", contractors: null },
       "portable_air",
     );
-    expect(result.failedChecks).toContain("non_defensible_domain");
+    expect(result.failedChecks).not.toContain("non_defensible_domain");
+  });
+
+  it("passes northeastlink.vic.gov.au (VIC government project delivery agency)", () => {
+    const contact = { ...VALID_CONTACT, email: "dheeraj.kandel@northeastlink.vic.gov.au", company: "North East Link Program (VIC)" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "North East Link Program", owner: "North East Link Program (VIC)", contractors: ["SPARK Consortium"] },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("non_defensible_domain");
+    expect(result.passes).toBe(true);
+  });
+
+  it("passes dpie.nsw.gov.au (NSW Government infrastructure department)", () => {
+    const contact = { ...VALID_CONTACT, email: "contact@dpie.nsw.gov.au", company: "NSW Department of Planning" };
+    const result = checkContactDefensibility(
+      contact,
+      { name: "Sydney Metro West", owner: "NSW Government", contractors: null },
+      "portable_air",
+    );
+    expect(result.failedChecks).not.toContain("non_defensible_domain");
   });
 
   it("still blocks .edu.au domains", () => {

@@ -1,0 +1,28 @@
+{
+  "query": "\nSELECT \n  u.id,\n  u.name,\n  u.email,\n  u.role,\n  edp.enabled AS digestEnabled,\n  edp.frequency,\n  edp.lastSentAt\nFROM users u\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nWHERE u.id NOT IN (1, 2550006, 3360134, 3360129, 13020010, 3870014, 18360001, 3630009, 2820073, 4590008, 11580001)\nORDER BY u.name ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.id,\n  u.name,\n  u.email,\n  u.role,\n  edp.enabled AS digestEnabled,\n  edp.frequency,\n  edp.lastSentAt\nFROM users u\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nWHERE u.id NOT IN (1, 2550006, 3360134, 3360129, 13020010, 3870014, 18360001, 3630009, 2820073, 4590008, 11580001)\nORDER BY u.name ASC;\n",
+  "rows": [
+    {
+      "id": "840008",
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user",
+      "digestEnabled": "1",
+      "frequency": "weekly",
+      "lastSentAt": "NULL"
+    },
+    {
+      "id": "2340043",
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "digestEnabled": "1",
+      "frequency": "weekly",
+      "lastSentAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tdigestEnabled\tfrequency\tlastSentAt\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\t1\tweekly\tNULL\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t1\tweekly\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1803
+}

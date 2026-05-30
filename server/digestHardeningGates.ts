@@ -257,12 +257,27 @@ function isTruncatedDomain(domain: string, projectOwner: string | null | undefin
  * Add domains here when a government entity is a confirmed project owner with procurement authority.
  */
 const GOV_DOMAIN_ALLOWLIST: string[] = [
-  "cyber.qld.gov.au",        // Queensland Cyber Infrastructure — Dan Day territory
+  // ── Federal government ──
   "defence.gov.au",          // Australian Defence — confirmed procurement contacts
   "infrastructure.gov.au",   // Dept of Infrastructure — major project owners
+  // ── State/territory government (all states) ──
+  // Using top-level state suffixes so that any *.state.gov.au subdomain is covered
+  // (e.g. northeastlink.vic.gov.au, dpie.nsw.gov.au, dpti.sa.gov.au, etc.)
   "wa.gov.au",               // WA Government — mining/resources procurement
   "nt.gov.au",               // NT Government — infrastructure projects
   "qld.gov.au",              // QLD Government — state infrastructure
+  "vic.gov.au",              // VIC Government — e.g. northeastlink.vic.gov.au
+  "nsw.gov.au",              // NSW Government
+  "sa.gov.au",               // SA Government
+  "tas.gov.au",              // TAS Government
+  "act.gov.au",              // ACT Government
+  // ── Project-specific government delivery agencies ──
+  "northeastlink.vic.gov.au", // North East Link Program — VIC infrastructure
+  "crossriverrail.qld.gov.au", // Cross River Rail — QLD
+  "sydneymetro.info",         // Sydney Metro — NSW delivery authority
+  "snowy2.com.au",            // Snowy 2.0 — federal
+  "lumsdenpoint.com.au",      // Lumsden Point — WA port
+  "linkconsortium.com.au",    // Link Consortium — NEL delivery partner
 ];
 /** Domains that are known non-industrial (government, education, etc.) */
 const NON_DEFENSIBLE_DOMAINS = [

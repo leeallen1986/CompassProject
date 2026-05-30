@@ -1,0 +1,181 @@
+{
+  "query": "\nSELECT \n  p.name,\n  p.sector,\n  p.priority,\n  p.location,\n  COUNT(c.id) as total_contacts,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) as send_ready_contacts,\n  DATE(p.createdAt) as added_date\nFROM projects p\nLEFT JOIN contacts c ON c.reportId = p.id\nWHERE p.createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY p.id\nORDER BY p.priority, p.createdAt DESC\nLIMIT 25;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.name,\n  p.sector,\n  p.priority,\n  p.location,\n  COUNT(c.id) as total_contacts,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) as send_ready_contacts,\n  DATE(p.createdAt) as added_date\nFROM projects p\nLEFT JOIN contacts c ON c.reportId = p.id\nWHERE p.createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY p.id\nORDER BY p.priority, p.createdAt DESC\nLIMIT 25;\n",
+  "rows": [
+    {
+      "name": "Deep Maintenance and Modification Facility at RAAF Base Edinburgh",
+      "sector": "defence",
+      "priority": "hot",
+      "location": "Edinburgh, SA",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-16"
+    },
+    {
+      "name": "Yulara Water and Sewer Sample Collection and Analysis (36 Months)",
+      "sector": "infrastructure",
+      "priority": "warm",
+      "location": "Yulara",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-27"
+    },
+    {
+      "name": "Australia's Biggest Wind Farm (unnamed)",
+      "sector": "energy",
+      "priority": "warm",
+      "location": "STATE (not specified in article), QLD",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-17"
+    },
+    {
+      "name": "Hobart Military Barracks Housing Development",
+      "sector": "infrastructure",
+      "priority": "warm",
+      "location": "Hobart, TAS",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-17"
+    },
+    {
+      "name": "Queensland Housing Infrastructure Deal",
+      "sector": "infrastructure",
+      "priority": "warm",
+      "location": "National, QLD",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-17"
+    },
+    {
+      "name": "Lumsden Point - Work Package 18 - Port Area Civils and Services",
+      "sector": "infrastructure",
+      "priority": "warm",
+      "location": "Western Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-16"
+    },
+    {
+      "name": "Norseman Gold Project growth pipeline",
+      "sector": "mining",
+      "priority": "warm",
+      "location": "Norseman, WA",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-16"
+    },
+    {
+      "name": "Renewable Energy Tender (Solar-Battery Hybrids, Wind Energy, Storage)",
+      "sector": "energy",
+      "priority": "warm",
+      "location": "QLD",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-16"
+    },
+    {
+      "name": "Alice Springs Hospital - Replacement of Main Electrical Switchboard",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "Alice Springs",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-29"
+    },
+    {
+      "name": "4500163396 — Department of Health, Disability and Ageing",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "QLD, Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-28"
+    },
+    {
+      "name": "4500153923 — Department of Health, Disability and Ageing",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "NSW, Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-28"
+    },
+    {
+      "name": "26CPU003 — Comcare",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "NSW, Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-28"
+    },
+    {
+      "name": "CON010890 — Department of Industry, Science and Resources",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "Outside Australia, Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-28"
+    },
+    {
+      "name": "CON010893 — Department of Industry, Science and Resources",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "VIC, Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-28"
+    },
+    {
+      "name": "5600004717 — Australian Taxation Office",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "NSW, Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-28"
+    },
+    {
+      "name": "Darwin Defence Accommodation - Cool Room, Dry Store & Freezer Construction",
+      "sector": "defence",
+      "priority": "cold",
+      "location": "Darwin",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-26"
+    },
+    {
+      "name": "Australia's Biggest Solar Farm (operating)",
+      "sector": "energy",
+      "priority": "cold",
+      "location": "National",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-17"
+    },
+    {
+      "name": "Petrophysics Data Acquisition Services",
+      "sector": "mining",
+      "priority": "cold",
+      "location": "Western Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-16"
+    },
+    {
+      "name": "Facility Management Services at Public Transport Authority Non-Rail Facilities",
+      "sector": "infrastructure",
+      "priority": "cold",
+      "location": "Western Australia",
+      "total_contacts": "0",
+      "send_ready_contacts": "0",
+      "added_date": "2026-05-16"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tsector\tpriority\tlocation\ttotal_contacts\tsend_ready_contacts\tadded_date\nDeep Maintenance and Modification Facility at RAAF Base Edinburgh\tdefence\thot\tEdinburgh, SA\t0\t0\t2026-05-16\nYulara Water and Sewer Sample Collection and Analysis (36 Months)\tinfrastructure\twarm\tYulara\t0\t0\t2026-05-27\nAustralia's Biggest Wind Farm (unnamed)\tenergy\twarm\tSTATE (not specified in article), QLD\t0\t0\t2026-05-17\nHobart Military Barracks Housing Development\tinfrastructure\twarm\tHobart, TAS\t0\t0\t2026-05-17\nQueensland Housing Infrastructure Deal\tinfrastructure\twarm\tNational, QLD\t0\t0\t2026-05-17\nLumsden Point - Work Package 18 - Port Area Civils and Services\tinfrastructure\twarm\tWestern Australia\t0\t0\t2026-05-16\nNorseman Gold Project growth pipeline\tmining\twarm\tNorseman, WA\t0\t0\t2026-05-16\nRenewable Energy Tender (Solar-Battery Hybrids, Wind Energy, Storage)\tenergy\twarm\tQLD\t0\t0\t2026-05-16\nAlice Springs Hospital - Replacement of Main Electrical Switchboard\tinfrastructure\tcold\tAlice Springs\t0\t0\t2026-05-29\n4500163396 — Department of Health, Disability and Ageing\tinfrastructure\tcold\tQLD, Australia\t0\t0\t2026-05-28\n4500153923 — Department of Health, Disability and Ageing\tinfrastructure\tcold\tNSW, Australia\t0\t0\t2026-05-28\n26CPU003 — Comcare\tinfrastructure\tcold\tNSW, Australia\t0\t0\t2026-05-28\nCON010890 — Department of Industry, Science and Resources\tinfrastructure\tcold\tOutside Australia, Australia\t0\t0\t2026-05-28\nCON010893 — Department of Industry, Science and Resources\tinfrastructure\tcold\tVIC, Australia\t0\t0\t2026-05-28\n5600004717 — Australian Taxation Office\tinfrastructure\tcold\tNSW, Australia\t0\t0\t2026-05-28\nDarwin Defence Accommodation - Cool Room, Dry Store & Freezer Construction\tdefence\tcold\tDarwin\t0\t0\t2026-05-26\nAustralia's Biggest Solar Farm (operating)\tenergy\tcold\tNational\t0\t0\t2026-05-17\nPetrophysics Data Acquisition Services\tmining\tcold\tWestern Australia\t0\t0\t2026-05-16\nFacility Management Services at Public Transport Authority Non-Rail Facilities\tinfrastructure\tcold\tWestern Australia\t0\t0\t2026-05-16\n",
+  "stderr": "",
+  "execution_time_ms": 1756
+}

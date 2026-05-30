@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  p.name,\n  p.sector,\n  p.priority,\n  p.location,\n  COUNT(c.id) as total_contacts,\n  SUM(CASE WHEN c.trustTier = 'send_ready' THEN 1 ELSE 0 END) as send_ready_contacts,\n  DATE(p.createdAt) as added_date\nFROM projects p\nLEFT JOIN contacts c ON c.reportId = p.id\nWHERE p.createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY p.id\nORDER BY p.priority, p.createdAt DESC\nLIMIT 25;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.name,\n  p.sector,\n  p.priority,\n  p.location,\n  COUNT(c.id) as total_contacts,\n  SUM(CASE WHEN c.trustTier = 'send_ready' THEN 1 ELSE 0 END) as send_ready_contacts,\n  DATE(p.createdAt) as added_date\nFROM projects p\nLEFT JOIN contacts c ON c.reportId = p.id\nWHERE p.createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY p.id\nORDER BY p.priority, p.createdAt DESC\nLIMIT 25;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'c.trusttier' in 'where clause'"
+  ]
+}

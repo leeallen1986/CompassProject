@@ -1,0 +1,175 @@
+{
+  "query": "\nSELECT \n  r.userId,\n  u.name,\n  u.email,\n  r.weekKey,\n  r.decision,\n  r.rescueAttempted,\n  LEFT(JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].criterion')), 80) AS firstBlocker,\n  JSON_LENGTH(r.blockers) AS blockerCount,\n  LEFT(JSON_UNQUOTE(JSON_EXTRACT(r.top3Snapshot, '$[0].name')), 60) AS topProject\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nORDER BY r.weekKey DESC, u.name ASC\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  r.userId,\n  u.name,\n  u.email,\n  r.weekKey,\n  r.decision,\n  r.rescueAttempted,\n  LEFT(JSON_UNQUOTE(JSON_EXTRACT(r.blockers, '$[0].criterion')), 80) AS firstBlocker,\n  JSON_LENGTH(r.blockers) AS blockerCount,\n  LEFT(JSON_UNQUOTE(JSON_EXTRACT(r.top3Snapshot, '$[0].name')), 60) AS topProject\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nORDER BY r.weekKey DESC, u.name ASC\nLIMIT 15;\n",
+  "rows": [
+    {
+      "userId": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "4590008",
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    },
+    {
+      "userId": "11580001",
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "weekKey": "2026W22",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "firstBlocker": "NULL",
+      "blockerCount": "1",
+      "topProject": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "userId\tname\temail\tweekKey\tdecision\trescueAttempted\tfirstBlocker\tblockerCount\ttopProject\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\t2026W22\tHOLD\t0\tNULL\t1\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\t2026W22\tHOLD\t0\tNULL\t1\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\t2026W22\tHOLD\t1\tNULL\t1\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\t2026W22\tHOLD\t1\tNULL\t1\tNULL\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\t2026W22\tHOLD\t0\tNULL\t1\tNULL\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\t2026W22\tHOLD\t1\tNULL\t1\tNULL\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\t2026W22\tHOLD\t1\tNULL\t1\tNULL\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\t2026W22\tHOLD\t0\tNULL\t1\tNULL\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n11580001\tKevin Arnandes\tkevinarnandes@gmail.com\t2026W22\tSEND\t0\tNULL\t1\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1731
+}

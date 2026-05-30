@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  p.id, p.name, p.priority, p.lifecycleStatus, p.state, p.sector,\n  p.createdAt, p.suppressed,\n  COUNT(DISTINCT c.id) AS totalContacts,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sendReadyContacts,\n  SUM(CASE WHEN c.email IS NOT NULL THEN 1 ELSE 0 END) AS contactsWithEmail\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\n  AND p.projectType = 'opportunity'\nGROUP BY p.id, p.name, p.priority, p.lifecycleStatus, p.state, p.sector, p.createdAt, p.suppressed\nORDER BY p.priority ASC, p.createdAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id, p.name, p.priority, p.lifecycleStatus, p.state, p.sector,\n  p.createdAt, p.suppressed,\n  COUNT(DISTINCT c.id) AS totalContacts,\n  SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS sendReadyContacts,\n  SUM(CASE WHEN c.email IS NOT NULL THEN 1 ELSE 0 END) AS contactsWithEmail\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\n  AND p.projectType = 'opportunity'\nGROUP BY p.id, p.name, p.priority, p.lifecycleStatus, p.state, p.sector, p.createdAt, p.suppressed\nORDER BY p.priority ASC, p.createdAt DESC\nLIMIT 20;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'p.state' in 'group statement'"
+  ]
+}

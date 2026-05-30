@@ -1,0 +1,170 @@
+{
+  "query": "\nSELECT \n  u.name,\n  r.decision,\n  r.rescueAttempted,\n  r.blockers,\n  r.weekKey,\n  r.createdAt\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nWHERE r.weekKey = '2026W22'\nORDER BY r.createdAt DESC, u.name ASC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  r.decision,\n  r.rescueAttempted,\n  r.blockers,\n  r.weekKey,\n  r.createdAt\nFROM repDigestGateResults r\nJOIN users u ON u.id = r.userId\nWHERE r.weekKey = '2026W22'\nORDER BY r.createdAt DESC, u.name ASC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "name": "Kevin Arnandes",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:52"
+    },
+    {
+      "name": "Egor Ivanov",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:50"
+    },
+    {
+      "name": "Amit Bhargava",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Capacity Investment Scheme Tenders 5 and 6 (WA)\\\\\\\" contact \\\\\\\"Kel D.\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:42"
+    },
+    {
+      "name": "Dan Day",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:35"
+    },
+    {
+      "name": "Dan Day",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:29"
+    },
+    {
+      "name": "Daniel Zec",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:20"
+    },
+    {
+      "name": "Daniel Zec",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:14"
+    },
+    {
+      "name": "Brett Hansen",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:13"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:04"
+    },
+    {
+      "name": "Leo Williams ",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-30 01:09:03"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:56:11"
+    },
+    {
+      "name": "Egor Ivanov",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:56:07"
+    },
+    {
+      "name": "Amit Bhargava",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Capacity Investment Scheme Tenders 5 and 6 (WA)\\\\\\\" contact \\\\\\\"Kel D.\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:58"
+    },
+    {
+      "name": "Dan Day",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:55"
+    },
+    {
+      "name": "Dan Day",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:47"
+    },
+    {
+      "name": "Daniel Zec",
+      "decision": "HOLD",
+      "rescueAttempted": "1",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:44"
+    },
+    {
+      "name": "Brett Hansen",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:37"
+    },
+    {
+      "name": "Daniel Zec",
+      "decision": "HOLD",
+      "rescueAttempted": "0",
+      "blockers": "\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:37"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:28"
+    },
+    {
+      "name": "Leo Williams ",
+      "decision": "SEND",
+      "rescueAttempted": "0",
+      "blockers": "\"[]\"",
+      "weekKey": "2026W22",
+      "createdAt": "2026-05-28 03:55:26"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tdecision\trescueAttempted\tblockers\tweekKey\tcreatedAt\nKevin Arnandes\tSEND\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"\t2026W22\t2026-05-30 01:09:52\nEgor Ivanov\tSEND\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"\t2026W22\t2026-05-30 01:09:50\nAmit Bhargava\tSEND\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Capacity Investment Scheme Tenders 5 and 6 (WA)\\\\\\\" contact \\\\\\\"Kel D.\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"\t2026W22\t2026-05-30 01:09:42\nDan Day\tHOLD\t1\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-30 01:09:35\nDan Day\tHOLD\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-30 01:09:29\nDaniel Zec\tHOLD\t1\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-30 01:09:20\nDaniel Zec\tHOLD\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-30 01:09:14\nBrett Hansen\tSEND\t0\t\"[]\"\t2026W22\t2026-05-30 01:09:13\nRyan Pemberton\tSEND\t0\t\"[]\"\t2026W22\t2026-05-30 01:09:04\nLeo Williams \tSEND\t0\t\"[]\"\t2026W22\t2026-05-30 01:09:03\nKevin Arnandes\tSEND\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"\t2026W22\t2026-05-28 03:56:11\nEgor Ivanov\tSEND\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Fortescue 4-5GWh Battery Storage & 1.8GW Renewable Energy System\\\\\\\" contact \\\\\\\"Clarence Titus\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"\t2026W22\t2026-05-28 03:56:07\nAmit Bhargava\tSEND\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"Capacity Investment Scheme Tenders 5 and 6 (WA)\\\\\\\" contact \\\\\\\"Kel D.\\\\\\\" failed: trust_tier_not_send_ready\\\",\\\"severity\\\":\\\"warning\\\"}]\"\t2026W22\t2026-05-28 03:55:58\nDan Day\tHOLD\t1\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-28 03:55:55\nDan Day\tHOLD\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-28 03:55:47\nDaniel Zec\tHOLD\t1\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-28 03:55:44\nBrett Hansen\tSEND\t0\t\"[]\"\t2026W22\t2026-05-28 03:55:37\nDaniel Zec\tHOLD\t0\t\"[{\\\"criterion\\\":\\\"contact_not_defensible\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact \\\\\\\"Dheeraj Kandel\\\\\\\" failed: non_defensible_domain\\\",\\\"severity\\\":\\\"warning\\\"},{\\\"criterion\\\":\\\"wrong_contact_pattern\\\",\\\"detail\\\":\\\"\\\\\\\"North East Link Program\\\\\\\" contact has wrong company/domain/title pattern\\\",\\\"severity\\\":\\\"blocking\\\"}]\"\t2026W22\t2026-05-28 03:55:37\nRyan Pemberton\tSEND\t0\t\"[]\"\t2026W22\t2026-05-28 03:55:28\nLeo Williams \tSEND\t0\t\"[]\"\t2026W22\t2026-05-28 03:55:26\n",
+  "stderr": "",
+  "execution_time_ms": 1758
+}

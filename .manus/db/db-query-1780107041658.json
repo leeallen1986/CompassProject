@@ -1,0 +1,31 @@
+{
+  "query": "\nSELECT \n  p.priority,\n  COUNT(*) AS totalProjects,\n  SUM(CASE WHEN p.suppressed = 0 OR p.suppressed IS NULL THEN 1 ELSE 0 END) AS unsuppressed,\n  SUM(CASE WHEN (p.suppressed = 0 OR p.suppressed IS NULL) AND EXISTS (\n    SELECT 1 FROM contactProjects cp2 \n    JOIN contacts c2 ON c2.id = cp2.contactId \n    WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n  ) THEN 1 ELSE 0 END) AS withSendReadyContacts,\n  SUM(CASE WHEN p.lifecycleStatus = 'active' AND (p.suppressed = 0 OR p.suppressed IS NULL) THEN 1 ELSE 0 END) AS activeUnsuppressed\nFROM projects p\nWHERE p.projectType = 'opportunity'\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.priority,\n  COUNT(*) AS totalProjects,\n  SUM(CASE WHEN p.suppressed = 0 OR p.suppressed IS NULL THEN 1 ELSE 0 END) AS unsuppressed,\n  SUM(CASE WHEN (p.suppressed = 0 OR p.suppressed IS NULL) AND EXISTS (\n    SELECT 1 FROM contactProjects cp2 \n    JOIN contacts c2 ON c2.id = cp2.contactId \n    WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n  ) THEN 1 ELSE 0 END) AS withSendReadyContacts,\n  SUM(CASE WHEN p.lifecycleStatus = 'active' AND (p.suppressed = 0 OR p.suppressed IS NULL) THEN 1 ELSE 0 END) AS activeUnsuppressed\nFROM projects p\nWHERE p.projectType = 'opportunity'\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "totalProjects": "430",
+      "unsuppressed": "387",
+      "withSendReadyContacts": "167",
+      "activeUnsuppressed": "154"
+    },
+    {
+      "priority": "warm",
+      "totalProjects": "911",
+      "unsuppressed": "817",
+      "withSendReadyContacts": "202",
+      "activeUnsuppressed": "372"
+    },
+    {
+      "priority": "cold",
+      "totalProjects": "212",
+      "unsuppressed": "167",
+      "withSendReadyContacts": "28",
+      "activeUnsuppressed": "92"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\ttotalProjects\tunsuppressed\twithSendReadyContacts\tactiveUnsuppressed\nhot\t430\t387\t167\t154\nwarm\t911\t817\t202\t372\ncold\t212\t167\t28\t92\n",
+  "stderr": "",
+  "execution_time_ms": 1763
+}

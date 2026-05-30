@@ -1,0 +1,80 @@
+{
+  "query": "\nSELECT digestType, scheduledFor, sentAt, status, error\nFROM digestScheduleLog\nORDER BY scheduledFor DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT digestType, scheduledFor, sentAt, status, error\nFROM digestScheduleLog\nORDER BY scheduledFor DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "digestType": "monday",
+      "scheduledFor": "2026-05-27 00:22:29",
+      "sentAt": "NULL",
+      "status": "failed",
+      "error": "FRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 218.7h ago (Sun, 17 May 2026 21:37:58 GMT)"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-26 05:44:39",
+      "sentAt": "2026-05-26 05:44:39",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-26 05:43:23",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-21 01:41:35",
+      "sentAt": "2026-05-21 01:41:35",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-21 01:07:41",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 01:05:46",
+      "sentAt": "2026-05-14 01:05:46",
+      "status": "sent",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 01:05:42",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 00:48:13",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL"
+    },
+    {
+      "digestType": "thursday",
+      "scheduledFor": "2026-05-14 00:35:49",
+      "sentAt": "NULL",
+      "status": "pending",
+      "error": "NULL"
+    },
+    {
+      "digestType": "monday",
+      "scheduledFor": "2026-05-11 04:51:37",
+      "sentAt": "NULL",
+      "status": "failed",
+      "error": "FRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 75.1h ago (Fri, 08 May 2026 01:47:49 GMT)"
+    }
+  ],
+  "messages": [],
+  "stdout": "digestType\tscheduledFor\tsentAt\tstatus\terror\nmonday\t2026-05-27 00:22:29\tNULL\tfailed\tFRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 218.7h ago (Sun, 17 May 2026 21:37:58 GMT)\nthursday\t2026-05-26 05:44:39\t2026-05-26 05:44:39\tsent\tNULL\nthursday\t2026-05-26 05:43:23\tNULL\tpending\tNULL\nthursday\t2026-05-21 01:41:35\t2026-05-21 01:41:35\tsent\tNULL\nthursday\t2026-05-21 01:07:41\tNULL\tpending\tNULL\nthursday\t2026-05-14 01:05:46\t2026-05-14 01:05:46\tsent\tNULL\nthursday\t2026-05-14 01:05:42\tNULL\tpending\tNULL\nthursday\t2026-05-14 00:48:13\tNULL\tpending\tNULL\nthursday\t2026-05-14 00:35:49\tNULL\tpending\tNULL\nmonday\t2026-05-11 04:51:37\tNULL\tfailed\tFRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 75.1h ago (Fri, 08 May 2026 01:47:49 GMT)\n",
+  "stderr": "",
+  "execution_time_ms": 1780
+}

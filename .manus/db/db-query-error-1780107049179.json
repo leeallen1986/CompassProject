@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  u.role,\n  ut.territory,\n  ut.productLine,\n  ut.states,\n  ut.sectors\nFROM users u\nLEFT JOIN userTerritories ut ON ut.userId = u.id\nWHERE u.id IN (1, 2550006, 3360134, 3360129, 13020010, 3870014, 3630009, 2820073, 4590008, 840008, 2340043)\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  u.role,\n  ut.territory,\n  ut.productLine,\n  ut.states,\n  ut.sectors\nFROM users u\nLEFT JOIN userTerritories ut ON ut.userId = u.id\nWHERE u.id IN (1, 2550006, 3360134, 3360129, 13020010, 3870014, 3630009, 2820073, 4590008, 840008, 2340043)\nORDER BY u.name;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 2: Table '3smu786vmcwdcnmnsx6pxw.userTerritories' doesn't exist"
+  ]
+}

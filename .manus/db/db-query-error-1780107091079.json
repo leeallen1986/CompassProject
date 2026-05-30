@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  c.id, c.name, c.title, c.company, c.email, c.linkedin, \n  c.contactTrustTier, c.emailVerificationStatus, c.emailSource,\n  c.emailDomain, c.phone,\n  p.id AS projectId, p.name AS projectName, p.priority, p.projectState, p.sector\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE c.name LIKE '%Dheeraj%' OR c.name LIKE '%Kandel%'\n   OR p.name LIKE '%North East Link%'\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  c.id, c.name, c.title, c.company, c.email, c.linkedin, \n  c.contactTrustTier, c.emailVerificationStatus, c.emailSource,\n  c.emailDomain, c.phone,\n  p.id AS projectId, p.name AS projectName, p.priority, p.projectState, p.sector\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE c.name LIKE '%Dheeraj%' OR c.name LIKE '%Kandel%'\n   OR p.name LIKE '%North East Link%'\nLIMIT 10;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'c.emailverificationstatus' in 'field list'"
+  ]
+}

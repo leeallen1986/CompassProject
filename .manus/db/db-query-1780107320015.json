@@ -1,0 +1,106 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  edp.enabled,\n  edp.frequency,\n  edp.includeHotOnly,\n  edp.lastSentAt\nFROM emailDigestPrefs edp\nJOIN users u ON u.id = edp.userId\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  edp.enabled,\n  edp.frequency,\n  edp.includeHotOnly,\n  edp.lastSentAt\nFROM emailDigestPrefs edp\nJOIN users u ON u.id = edp.userId\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "1",
+      "lastSentAt": "2026-03-16 08:33:43"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Ray Clinch",
+      "email": "ray.clinch@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    },
+    {
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "enabled": "1",
+      "frequency": "weekly",
+      "includeHotOnly": "0",
+      "lastSentAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tenabled\tfrequency\tincludeHotOnly\tlastSentAt\nAlexandre Leite\talexandre.leite@atlascopco.com\t1\tweekly\t0\tNULL\nAmit Bhargava\tamit.bhargava@atlascopco.com\t1\tweekly\t0\tNULL\nBrett Hansen\tbrett.hansen@sykesgroup.com\t1\tweekly\t0\tNULL\nDan Day\tdan.day@atlascopco.com\t1\tweekly\t0\tNULL\nDaniel Zec\tdaniel.zec@atlascopco.com\t1\tweekly\t0\tNULL\nEgor Ivanov\tegor.ivanov@atlascopco.com\t1\tweekly\t0\tNULL\nKevin Arnandes\tkevinarnandes@gmail.com\t1\tweekly\t0\tNULL\nLee\tlee.allen@atlascopco.com\t1\tweekly\t1\t2026-03-16 08:33:43\nLeo Williams \tleo.williams@atlascopco.com\t1\tweekly\t0\tNULL\nRay Clinch\tray.clinch@atlascopco.com\t1\tweekly\t0\tNULL\nRyan Pemberton\tryan.pemberton@atlascopco.com\t1\tweekly\t0\tNULL\nTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\t1\tweekly\t0\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1732
+}

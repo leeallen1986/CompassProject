@@ -1,0 +1,110 @@
+{
+  "query": "\nSELECT \n  territory,\n  firstSendApproved,\n  autoSendEnabled,\n  firstSendApprovedAt,\n  firstSendApprovedBy,\n  lastPreviewAt,\n  lastLiveSendAt,\n  liveSendCount\nFROM digestSendControl\nORDER BY territory;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  territory,\n  firstSendApproved,\n  autoSendEnabled,\n  firstSendApprovedAt,\n  firstSendApprovedBy,\n  lastPreviewAt,\n  lastLiveSendAt,\n  liveSendCount\nFROM digestSendControl\nORDER BY territory;\n",
+  "rows": [
+    {
+      "territory": "ACT",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:25",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "National",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:25",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "NSW",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:23",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "NT",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:24",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "OFFSHORE_AU",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:25",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "QLD",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:24",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "SA",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:23",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "TAS",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:24",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "VIC",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:24",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "NULL",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    },
+    {
+      "territory": "WA",
+      "firstSendApproved": "1",
+      "autoSendEnabled": "1",
+      "firstSendApprovedAt": "2026-05-08 22:54:23",
+      "firstSendApprovedBy": "admin-bulk-approve-2026-05-09",
+      "lastPreviewAt": "2026-05-06 10:49:55",
+      "lastLiveSendAt": "NULL",
+      "liveSendCount": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "territory\tfirstSendApproved\tautoSendEnabled\tfirstSendApprovedAt\tfirstSendApprovedBy\tlastPreviewAt\tlastLiveSendAt\tliveSendCount\nACT\t1\t1\t2026-05-08 22:54:25\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nNational\t1\t1\t2026-05-08 22:54:25\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nNSW\t1\t1\t2026-05-08 22:54:23\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nNT\t1\t1\t2026-05-08 22:54:24\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nOFFSHORE_AU\t1\t1\t2026-05-08 22:54:25\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nQLD\t1\t1\t2026-05-08 22:54:24\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nSA\t1\t1\t2026-05-08 22:54:23\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nTAS\t1\t1\t2026-05-08 22:54:24\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nVIC\t1\t1\t2026-05-08 22:54:24\tadmin-bulk-approve-2026-05-09\tNULL\tNULL\t0\nWA\t1\t1\t2026-05-08 22:54:23\tadmin-bulk-approve-2026-05-09\t2026-05-06 10:49:55\tNULL\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1704
+}
