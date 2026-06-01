@@ -2719,3 +2719,11 @@
 - [ ] Test dry-run, sync to cloud, run live pass
 - [ ] Run digestSafe promotion after pass
 - [ ] Save checkpoint
+
+## Session Fixes (2026-06-01)
+- [x] Fix scheduledPipeline.test.ts — add default query:{} to makeReq helper so req.query.async doesn't throw TypeError (3 tests fixed)
+- [x] Verify async pipeline endpoint works: POST /api/scheduled/pipeline?async=true with X-Pipeline-Secret returns HTTP 200 {"status":"started"}
+- [x] Verify auto-send is active: persistentScheduler.ts confirmed using sendWeeklyDigests(false, false) — no dryRun, no admin review gate
+- [x] Server restarted at 05:04 UTC — next Monday digest (2026-06-08) will auto-send at 22:00 UTC Sunday
+- [x] Full suite: 3,323 tests, 116 files — all passing
+- [x] Save checkpoint

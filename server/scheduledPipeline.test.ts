@@ -102,6 +102,7 @@ function makeReq(overrides: Partial<Request> = {}): Request {
       "x-scheduled-task": "true",
       ...overrides.headers,
     },
+    query: {},
     ...overrides,
   } as unknown as Request;
 }

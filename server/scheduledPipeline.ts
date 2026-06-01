@@ -238,6 +238,42 @@ export async function handleScheduledPipelineTrigger(
     return;
   }
 
+  // ── Async (fire-and-forget) mode ──
+  // When ?async=true is passed, immediately return 200 and run the pipeline
+  // in the background. This is the recommended mode for Manus scheduled tasks
+  // which cannot hold an HTTP connection open for 30-60 minutes.
+  const isAsync = req.query.async === "true";
+  if (isAsync) {
+    console.log(`${logPrefix} Async mode — returning 200 immediately, pipeline will run in background (triggered by: ${triggeredBy})`);
+    res.status(200).json({
+      status: "started",
+      runId: null,
+      message: "Pipeline launched in background (async mode)",
+      triggeredAt,
+    } satisfies ScheduledPipelineResponse);
+    // Run pipeline in background — do NOT await
+    runDailyPipeline(triggeredBy).then((result) => {
+      const durationSec = Math.round((Date.now() - startMs) / 1000);
+      console.log(
+        `${logPrefix} ✓ Async pipeline completed: ` +
+        `${result.extraction.extracted} new projects, ` +
+        `${result.enrichment.enriched} contacts enriched, ` +
+        `duration=${durationSec}s`
+      );
+      // Snapshot post-pipeline state for digest delta gate
+      import("./digestHardeningGates").then(({ snapshotPostPipelineState }) => {
+        snapshotPostPipelineState().catch((e: unknown) => {
+          console.warn(`${logPrefix} Post-pipeline delta snapshot failed (non-fatal):`, e);
+        });
+      }).catch(() => {});
+    }).catch((err: unknown) => {
+      const durationSec = Math.round((Date.now() - startMs) / 1000);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error(`${logPrefix} ✗ Async pipeline failed after ${durationSec}s:`, errorMsg);
+    });
+    return;
+  }
+
   // ── Start streaming response ──
   // Set headers for NDJSON streaming — prevents CloudRun from buffering
   // and keeps the connection alive for the full pipeline duration.
