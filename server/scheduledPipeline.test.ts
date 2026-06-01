@@ -20,6 +20,28 @@ import {
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
+// Mock ENV so pipelineSecret is available in tests
+vi.mock("./_core/env", () => ({
+  ENV: {
+    pipelineSecret: "test-pipeline-secret-abc123",
+    appId: "test-app-id",
+    cookieSecret: "test-cookie-secret",
+    databaseUrl: "mysql://localhost/test",
+    oAuthServerUrl: "https://api.manus.im",
+    ownerOpenId: "test-owner",
+    isProduction: false,
+    forgeApiUrl: "https://forge.manus.im",
+    forgeApiKey: "test-forge-key",
+    apolloApiKey: "",
+    projectoryEmail: "",
+    projectoryPassword: "",
+    resendApiKey: "",
+    appSiteUrl: "https://compasspt.manus.space",
+    hunterApiKey: "",
+    lushaApiKey: "",
+  },
+}));
+
 // Mock sdk.authenticateRequest
 vi.mock("./_core/sdk", () => ({
   sdk: {
@@ -190,7 +212,41 @@ describe("handleScheduledPipelineTrigger", () => {
     vi.clearAllMocks();
   });
 
-  // ── Auth tests ──
+  // ── Auth tests: X-Pipeline-Secret (bypasses OAuth) ──
+
+  it("authenticates via X-Pipeline-Secret header without OAuth cookie", async () => {
+    mockDb({ inProgressId: null, recentCompletedId: null, insertId: 42 });
+    const req = makeReq({
+      headers: {
+        "x-pipeline-secret": "test-pipeline-secret-abc123",
+        // deliberately no cookie or x-scheduled-task header
+      },
+    });
+    const { res, captured } = makeRes();
+    await handleScheduledPipelineTrigger(req, res);
+    // Should start streaming — sdk.authenticateRequest must NOT have been called
+    expect(sdk.authenticateRequest as MockedFn).not.toHaveBeenCalled();
+    expect(captured.headers["Content-Type"]).toBe("application/x-ndjson");
+    expect(captured.lines.length).toBeGreaterThanOrEqual(1);
+    const startedLine = JSON.parse(captured.lines[0]);
+    expect(startedLine.event).toBe("started");
+  });
+
+  it("returns 401 when X-Pipeline-Secret header value is wrong", async () => {
+    const req = makeReq({
+      headers: {
+        "x-pipeline-secret": "wrong-secret-value",
+      },
+    });
+    const { res, captured } = makeRes();
+    await handleScheduledPipelineTrigger(req, res);
+    expect(captured.status).toBe(401);
+    const body = captured.body as ScheduledPipelineResponse;
+    expect(body.status).toBe("error");
+    expect(body.message).toContain("Unauthorized");
+  });
+
+  // ── Auth tests: OAuth cookie path ──
 
   it("returns 401 when X-Scheduled-Task header is missing", async () => {
     const req = makeReq({ headers: { cookie: "app_session_id=valid-jwt" } });

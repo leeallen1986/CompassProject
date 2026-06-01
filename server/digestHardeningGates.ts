@@ -278,6 +278,8 @@ const GOV_DOMAIN_ALLOWLIST: string[] = [
   "snowy2.com.au",            // Snowy 2.0 — federal
   "lumsdenpoint.com.au",      // Lumsden Point — WA port
   "linkconsortium.com.au",    // Link Consortium — NEL delivery partner
+  // ── Catch-all: any remaining *.gov.au is a legitimate Australian government entity ──
+  "gov.au",
 ];
 /** Domains that are known non-industrial (government, education, etc.) */
 const NON_DEFENSIBLE_DOMAINS = [

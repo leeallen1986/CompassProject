@@ -15,4 +15,6 @@ export const ENV = {
   appSiteUrl: (process.env.APP_SITE_URL ?? "").replace(/\/$/, ""),
   hunterApiKey: process.env.HUNTER_API_KEY ?? "",
   lushaApiKey: process.env.LUSHA_API_KEY ?? "",
+  /** Secret key for the /api/scheduled/pipeline endpoint — allows Manus scheduled tasks to trigger the pipeline without OAuth. */
+  pipelineSecret: process.env.PIPELINE_SECRET ?? "",
 };

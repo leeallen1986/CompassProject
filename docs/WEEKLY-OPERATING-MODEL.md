@@ -36,10 +36,12 @@ The production pipeline is triggered by a **Manus external scheduled task** that
 
 ```
 POST /api/scheduled/pipeline
-Header: X-Scheduled-Task: true
+Header: X-Pipeline-Secret: <PIPELINE_SECRET env var value>
 ```
 
 This fires every Sunday at 20:00 UTC (06:00 AEST Monday). The in-process scheduler is disabled in production.
+
+**Auth note:** The endpoint uses `X-Pipeline-Secret` header authentication (no OAuth session cookie required). The secret value is stored in the `PIPELINE_SECRET` environment variable. The Manus scheduled task must pass this header — do NOT use `X-Scheduled-Task: true` as that path requires an OAuth session cookie which the scheduled task cannot obtain.
 
 ### 2. Anti-Hibernation (Warm-up Endpoint)
 

@@ -42,6 +42,7 @@ import { getDb } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { sdk } from "./_core/sdk";
+import { ENV } from "./_core/env";
 import { runDailyPipeline } from "./dailyPipeline";
 
 /** Hours within which a completed run counts as "already ran" for idempotency. */
@@ -64,12 +65,29 @@ export type ScheduledPipelineResponse = {
 /**
  * Authenticate the request.
  * Accepts:
- *   1. Scheduled-task cookie + X-Scheduled-Task header (automated trigger)
- *   2. Admin/owner session cookie (manual trigger from Admin panel)
+ *   1. X-Pipeline-Secret header matching PIPELINE_SECRET env var (no cookie needed — for Manus scheduled tasks)
+ *   2. Scheduled-task cookie + X-Scheduled-Task header (legacy automated trigger)
+ *   3. Admin/owner session cookie (manual trigger from Admin panel)
  *
- * Returns { authenticated, triggeredBy } or null if auth fails.
+ * Returns { triggeredBy } or null if auth fails.
  */
 async function authenticateRequest(req: Request): Promise<{ triggeredBy: string } | null> {
+  // ── Path 1: Secret key auth (no OAuth cookie needed) ──
+  // Used by Manus scheduled tasks which cannot complete Google sign-in.
+  // Set PIPELINE_SECRET in the app secrets, then pass it as X-Pipeline-Secret header.
+  const pipelineSecret = ENV.pipelineSecret;
+  const providedSecret = req.headers["x-pipeline-secret"];
+  if (pipelineSecret && providedSecret) {
+    if (providedSecret === pipelineSecret) {
+      console.log("[ScheduledPipeline] Authenticated via X-Pipeline-Secret header");
+      return { triggeredBy: "scheduled-task-secret" };
+    } else {
+      console.warn("[ScheduledPipeline] X-Pipeline-Secret header present but value does not match — rejecting");
+      return null;
+    }
+  }
+
+  // ── Path 2 & 3: OAuth session cookie ──
   try {
     const user = await sdk.authenticateRequest(req);
     if (!user) {
