@@ -855,3 +855,72 @@ export async function getEnrichmentStats(): Promise<{
     dailyCap: DAILY_ENRICHMENT_CAP,
   };
 }
+
+// ── Stale Trust-Tier Backfill ──
+/**
+ * Promotes contacts that already have sufficient evidence to be send_ready
+ * but are stuck at named_unverified due to a missing trust-tier update.
+ *
+ * Rules (in order of confidence):
+ *   1. Apollo source + emailVerified=1                              → send_ready
+ *   2. linkedin source + email + linkedin URL + not crmOrphan       → send_ready
+ *   3. web_search source + verificationStatus='verified' + email    → send_ready
+ *
+ * Safe to run daily — only promotes, never demotes.
+ * Returns the number of contacts promoted.
+ */
+export async function runStaleTierBackfill(): Promise<{
+  promoted: number;
+  breakdown: { rule: string; count: number }[];
+}> {
+  const db = await getDb();
+  if (!db) return { promoted: 0, breakdown: [] };
+
+  const breakdown: { rule: string; count: number }[] = [];
+
+  // Rule 1: Apollo contacts with emailVerified=1
+  const [apolloResult] = await db.execute(sql`
+    UPDATE contacts
+    SET contactTrustTier = 'send_ready'
+    WHERE contactTrustTier = 'named_unverified'
+      AND enrichmentSource = 'apollo'
+      AND emailVerified = 1
+      AND email IS NOT NULL
+  `);
+  const apolloCount = (apolloResult as any)?.affectedRows ?? 0;
+  if (apolloCount > 0) breakdown.push({ rule: "apollo_email_verified", count: apolloCount });
+
+  // Rule 2: LinkedIn-sourced contacts with both email and linkedin URL
+  const [linkedinResult] = await db.execute(sql`
+    UPDATE contacts
+    SET contactTrustTier = 'send_ready'
+    WHERE contactTrustTier = 'named_unverified'
+      AND enrichmentSource = 'linkedin'
+      AND email IS NOT NULL
+      AND linkedin IS NOT NULL
+      AND crmOrphan = 0
+  `);
+  const linkedinCount = (linkedinResult as any)?.affectedRows ?? 0;
+  if (linkedinCount > 0) breakdown.push({ rule: "linkedin_email_and_url", count: linkedinCount });
+
+  // Rule 3: web_search contacts with verified status and email
+  const [webResult] = await db.execute(sql`
+    UPDATE contacts
+    SET contactTrustTier = 'send_ready'
+    WHERE contactTrustTier = 'named_unverified'
+      AND enrichmentSource = 'web_search'
+      AND verificationStatus = 'verified'
+      AND email IS NOT NULL
+  `);
+  const webCount = (webResult as any)?.affectedRows ?? 0;
+  if (webCount > 0) breakdown.push({ rule: "web_search_verified", count: webCount });
+
+  const total = apolloCount + linkedinCount + webCount;
+  if (total > 0) {
+    console.log(`[StaleTierBackfill] Promoted ${total} contacts to send_ready:`, breakdown);
+  } else {
+    console.log(`[StaleTierBackfill] No stale contacts found — all tiers are current`);
+  }
+
+  return { promoted: total, breakdown };
+}

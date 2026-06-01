@@ -1,0 +1,8 @@
+{
+  "query": "\n-- Recent pipeline runs\nSELECT \n  id,\n  DATE(startedAt) as run_date,\n  status,\n  LEFT(summary, 200) as summary_preview\nFROM pipelineRuns\nWHERE startedAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nORDER BY startedAt DESC\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Recent pipeline runs\nSELECT \n  id,\n  DATE(startedAt) as run_date,\n  status,\n  LEFT(summary, 200) as summary_preview\nFROM pipelineRuns\nWHERE startedAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nORDER BY startedAt DESC\nLIMIT 15;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'summary' in 'field list'"
+  ]
+}

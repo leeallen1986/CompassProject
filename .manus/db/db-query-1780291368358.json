@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Fix 3: linkedin-source contacts with email AND linkedin URL — these are real people, promote to send_ready\nUPDATE contacts\nSET contactTrustTier = 'send_ready'\nWHERE contactTrustTier = 'named_unverified'\n  AND enrichmentSource = 'linkedin'\n  AND email IS NOT NULL\n  AND linkedin IS NOT NULL\n  AND crmOrphan = false;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Fix 3: linkedin-source contacts with email AND linkedin URL — these are real people, promote to send_ready\nUPDATE contacts\nSET contactTrustTier = 'send_ready'\nWHERE contactTrustTier = 'named_unverified'\n  AND enrichmentSource = 'linkedin'\n  AND email IS NOT NULL\n  AND linkedin IS NOT NULL\n  AND crmOrphan = false;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1662
+}

@@ -1,0 +1,25 @@
+{
+  "query": "\n-- 1. Overall contact trust tier distribution\nSELECT \n  contactTrustTier,\n  COUNT(*) as count,\n  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct\nFROM contacts\nGROUP BY contactTrustTier\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Overall contact trust tier distribution\nSELECT \n  contactTrustTier,\n  COUNT(*) as count,\n  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct\nFROM contacts\nGROUP BY contactTrustTier\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "contactTrustTier": "named_unverified",
+      "count": "26617",
+      "pct": "92.8"
+    },
+    {
+      "contactTrustTier": "send_ready",
+      "count": "1532",
+      "pct": "5.3"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "count": "526",
+      "pct": "1.8"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tcount\tpct\nnamed_unverified\t26617\t92.8\nsend_ready\t1532\t5.3\nllm_inferred\t526\t1.8\n",
+  "stderr": "",
+  "execution_time_ms": 1560
+}

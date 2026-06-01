@@ -1,0 +1,87 @@
+{
+  "query": "\n-- For hot projects that were enriched but have 0 send_ready contacts,\n-- what's the trust tier breakdown of their contacts?\nSELECT \n  c.contactTrustTier,\n  c.enrichmentStatus,\n  c.enrichmentSource,\n  c.email IS NOT NULL as has_email,\n  COUNT(*) as contact_count\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active'\n  AND p.id NOT IN (\n    SELECT DISTINCT cp2.projectId \n    FROM contactProjects cp2 \n    JOIN contacts c2 ON c2.id = cp2.contactId \n    WHERE c2.contactTrustTier = 'send_ready'\n  )\nGROUP BY c.contactTrustTier, c.enrichmentStatus, c.enrichmentSource, has_email\nORDER BY contact_count DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- For hot projects that were enriched but have 0 send_ready contacts,\n-- what's the trust tier breakdown of their contacts?\nSELECT \n  c.contactTrustTier,\n  c.enrichmentStatus,\n  c.enrichmentSource,\n  c.email IS NOT NULL as has_email,\n  COUNT(*) as contact_count\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active'\n  AND p.id NOT IN (\n    SELECT DISTINCT cp2.projectId \n    FROM contactProjects cp2 \n    JOIN contacts c2 ON c2.id = cp2.contactId \n    WHERE c2.contactTrustTier = 'send_ready'\n  )\nGROUP BY c.contactTrustTier, c.enrichmentStatus, c.enrichmentSource, has_email\nORDER BY contact_count DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "contactTrustTier": "llm_inferred",
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "llm",
+      "has_email": "1",
+      "contact_count": "117"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "web_search",
+      "has_email": "1",
+      "contact_count": "17"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "linkedin",
+      "has_email": "1",
+      "contact_count": "14"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "pending",
+      "enrichmentSource": "manual",
+      "has_email": "1",
+      "contact_count": "9"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "apollo",
+      "has_email": "1",
+      "contact_count": "8"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "apollo",
+      "has_email": "1",
+      "contact_count": "6"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "pending",
+      "enrichmentSource": "manual",
+      "has_email": "0",
+      "contact_count": "6"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "manual",
+      "has_email": "1",
+      "contact_count": "4"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "llm",
+      "has_email": "1",
+      "contact_count": "2"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "web_search",
+      "has_email": "1",
+      "contact_count": "2"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentStatus": "failed",
+      "enrichmentSource": "linkedin",
+      "has_email": "0",
+      "contact_count": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tenrichmentStatus\tenrichmentSource\thas_email\tcontact_count\nllm_inferred\tenriched\tllm\t1\t117\nnamed_unverified\tenriched\tweb_search\t1\t17\nnamed_unverified\tenriched\tlinkedin\t1\t14\nnamed_unverified\tpending\tmanual\t1\t9\nllm_inferred\tenriched\tapollo\t1\t8\nnamed_unverified\tenriched\tapollo\t1\t6\nnamed_unverified\tpending\tmanual\t0\t6\nnamed_unverified\tnot_found\tmanual\t1\t4\nnamed_unverified\tenriched\tllm\t1\t2\nnamed_unverified\tnot_found\tweb_search\t1\t2\nnamed_unverified\tfailed\tlinkedin\t0\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1592
+}

@@ -40,7 +40,7 @@
  */
 import { harvestAllFeeds } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
-import { runEnrichmentPipeline } from "./contactEnrichment";
+import { runEnrichmentPipeline, runStaleTierBackfill } from "./contactEnrichment";
 import { runProjectoryScraper } from "./projectoryScraper";
 import { runDmirsScraper } from "./dmirsScraper";
 import { runAemoScraper } from "./aemoScraper";
@@ -486,6 +486,98 @@ export async function runWeeklyPipeline(): Promise<WeeklyPipelineResult> {
     }
   } catch (err: unknown) {
     console.error("[WeeklyPipeline] ✗ Apollo gap-fill failed:", err instanceof Error ? err.message : String(err));
+  }
+
+  // ── Step 14a: Stale Trust-Tier Backfill (weekly — zero API cost) ──
+  console.log(`[WeeklyPipeline] Step 14a/${TOTAL_STEPS}: Running stale trust-tier backfill...`);
+  try {
+    const staleTierResult = await runStaleTierBackfill();
+    if (staleTierResult.promoted > 0) {
+      console.log(`[WeeklyPipeline] ✓ Stale tier backfill: promoted ${staleTierResult.promoted} contacts to send_ready`);
+    } else {
+      console.log(`[WeeklyPipeline] ✓ Stale tier backfill: no stale contacts found`);
+    }
+  } catch (err: unknown) {
+    console.error("[WeeklyPipeline] ✗ Stale tier backfill failed:", err instanceof Error ? err.message : String(err));
+  }
+
+  // ── Step 14b: Apollo Backfill Pass (weekly — 200 credits, all hot/warm with 0 send_ready) ──
+  // Larger budget than the daily pass (100) to clear the backlog faster on Sundays.
+  console.log(`[WeeklyPipeline] Step 14b/${TOTAL_STEPS}: Running Apollo backfill pass (200 credits)...`);
+  try {
+    const weeklyBackfillBudget = await getBudgetStatus();
+    if (!weeklyBackfillBudget.withinBudget || weeklyBackfillBudget.dailyRemaining < 5) {
+      console.log(`[WeeklyPipeline] ⊘ Apollo backfill skipped: only ${weeklyBackfillBudget.dailyRemaining} credits remaining`);
+    } else {
+      const maxWeeklyBackfill = Math.min(200, weeklyBackfillBudget.dailyRemaining);
+      const db = await getDb();
+      const weeklyBackfillTargets = db ? await db.execute(
+        sql`SELECT DISTINCT
+          cp.projectId,
+          p.name AS projectName,
+          p.priority,
+          SUM(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) AS send_ready_count,
+          SUM(CASE WHEN c.contactTrustTier = 'named_unverified'
+            AND c.rejectionReason IS NULL AND c.crmOrphan = 0
+            AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL)
+            AND (c.enrichmentStatus IS NULL
+              OR (c.enrichmentStatus NOT IN ('enriched', 'not_found') AND c.enrichedAt IS NULL)
+              OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))
+          THEN 1 ELSE 0 END) AS eligible_count
+        FROM projects p
+        JOIN contactProjects cp ON cp.projectId = p.id
+        JOIN contacts c ON c.id = cp.contactId AND c.rejectionReason IS NULL AND c.crmOrphan = 0
+        WHERE p.priority IN ('hot', 'warm')
+          AND p.lifecycleStatus = 'active'
+          AND (p.suppressed IS NULL OR p.suppressed = 0)
+        GROUP BY cp.projectId, p.name, p.priority
+        HAVING send_ready_count = 0 AND eligible_count > 0
+        ORDER BY p.priority = 'hot' DESC, eligible_count DESC
+        LIMIT 50`
+      ) : null;
+
+      const weeklyRows = (weeklyBackfillTargets as any)?.[0] ?? [];
+      let weeklyRevealed = 0;
+      let weeklyCredits = 0;
+
+      for (const row of weeklyRows) {
+        const currentBudget = await getBudgetStatus();
+        if (!currentBudget.withinBudget || weeklyCredits >= maxWeeklyBackfill) break;
+
+        const contactRows = db ? await db.execute(
+          sql`SELECT c.id FROM contacts c
+            JOIN contactProjects cp ON cp.contactId = c.id
+            WHERE cp.projectId = ${row.projectId}
+              AND c.contactTrustTier = 'named_unverified'
+              AND c.rejectionReason IS NULL AND c.crmOrphan = 0
+              AND (c.enrichmentSource = 'apollo' OR c.linkedin IS NOT NULL)
+              AND (c.enrichmentStatus IS NULL
+                OR (c.enrichmentStatus NOT IN ('enriched', 'not_found') AND c.enrichedAt IS NULL)
+                OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))
+            ORDER BY c.linkedin IS NOT NULL DESC, c.enrichmentSource = 'apollo' DESC
+            LIMIT 3`
+        ) : null;
+
+        const contactList = (contactRows as any)?.[0] ?? [];
+        for (const contactRow of contactList) {
+          if (weeklyCredits >= maxWeeklyBackfill) break;
+          try {
+            const revealed = await revealContactEmail(contactRow.id, { userId: 0, userName: "weekly-backfill" });
+            if (revealed) {
+              weeklyRevealed++;
+              weeklyCredits++;
+              break; // One reveal per project is enough
+            }
+          } catch {
+            // continue
+          }
+        }
+      }
+
+      console.log(`[WeeklyPipeline] ✓ Apollo backfill pass: ${weeklyRevealed} contacts revealed across ${weeklyRows.length} target projects (${weeklyCredits} credits used)`);
+    }
+  } catch (err: unknown) {
+    console.error("[WeeklyPipeline] ✗ Apollo backfill pass failed:", err instanceof Error ? err.message : String(err));
   }
 
   // ── Step 15: Business Line Scoring ──

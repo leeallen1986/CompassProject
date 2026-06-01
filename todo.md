@@ -2727,3 +2727,11 @@
 - [x] Server restarted at 05:04 UTC — next Monday digest (2026-06-08) will auto-send at 22:00 UTC Sunday
 - [x] Full suite: 3,323 tests, 116 files — all passing
 - [x] Save checkpoint
+
+## Contact Enrichment Automation (2026-06-01)
+- [x] Add runStaleTierBackfill() function to server/contactEnrichment.ts — promotes apollo/linkedin/web_search contacts with verified emails to send_ready automatically
+- [x] Add stale trust-tier backfill as Step 10a in dailyPipeline.ts (runs before Apollo Gap-Fill)
+- [x] Increase Apollo Backfill Pass daily cap from 30 to 100 credits (currently under-spending)
+- [x] Add Apollo Backfill Pass to weeklyPipeline.ts with higher budget (200 credits, all hot/warm projects)
+- [ ] Verify all enrichment steps are reflected in pipelineRuns contactsEnriched counter
+- [ ] Write vitest tests for runStaleTierBackfill()

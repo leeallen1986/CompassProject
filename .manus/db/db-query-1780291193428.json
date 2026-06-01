@@ -1,0 +1,140 @@
+{
+  "query": "\n-- Recent pipeline runs with enrichment stats\nSELECT \n  id,\n  runType,\n  DATE(startedAt) as run_date,\n  status,\n  contactsEnriched,\n  apolloCreditsUsed,\n  projectsCreated,\n  articlesExtracted\nFROM pipelineRuns\nWHERE startedAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nORDER BY startedAt DESC\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Recent pipeline runs with enrichment stats\nSELECT \n  id,\n  runType,\n  DATE(startedAt) as run_date,\n  status,\n  contactsEnriched,\n  apolloCreditsUsed,\n  projectsCreated,\n  articlesExtracted\nFROM pipelineRuns\nWHERE startedAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nORDER BY startedAt DESC\nLIMIT 15;\n",
+  "rows": [
+    {
+      "id": "1500004",
+      "runType": "daily",
+      "run_date": "2026-06-01",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "5",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1500003",
+      "runType": "daily",
+      "run_date": "2026-06-01",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "5",
+      "projectsCreated": "17",
+      "articlesExtracted": "17"
+    },
+    {
+      "id": "1500002",
+      "runType": "daily",
+      "run_date": "2026-06-01",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1500001",
+      "runType": "daily",
+      "run_date": "2026-06-01",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1470001",
+      "runType": "daily",
+      "run_date": "2026-05-31",
+      "status": "completed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1440001",
+      "runType": "daily",
+      "run_date": "2026-05-30",
+      "status": "completed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "4",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1410001",
+      "runType": "daily",
+      "run_date": "2026-05-29",
+      "status": "completed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1380001",
+      "runType": "daily",
+      "run_date": "2026-05-28",
+      "status": "completed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "61",
+      "projectsCreated": "6",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1350001",
+      "runType": "daily",
+      "run_date": "2026-05-27",
+      "status": "completed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "101",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1320002",
+      "runType": "daily",
+      "run_date": "2026-05-26",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1320001",
+      "runType": "daily",
+      "run_date": "2026-05-26",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1290001",
+      "runType": "daily",
+      "run_date": "2026-05-26",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    },
+    {
+      "id": "1260001",
+      "runType": "daily",
+      "run_date": "2026-05-26",
+      "status": "failed",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "projectsCreated": "0",
+      "articlesExtracted": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunType\trun_date\tstatus\tcontactsEnriched\tapolloCreditsUsed\tprojectsCreated\tarticlesExtracted\n1500004\tdaily\t2026-06-01\tfailed\t0\t5\t0\t0\n1500003\tdaily\t2026-06-01\tfailed\t0\t5\t17\t17\n1500002\tdaily\t2026-06-01\tfailed\t0\t0\t0\t0\n1500001\tdaily\t2026-06-01\tfailed\t0\t0\t0\t0\n1470001\tdaily\t2026-05-31\tcompleted\t0\t0\t0\t0\n1440001\tdaily\t2026-05-30\tcompleted\t0\t4\t0\t0\n1410001\tdaily\t2026-05-29\tcompleted\t0\t0\t0\t0\n1380001\tdaily\t2026-05-28\tcompleted\t0\t61\t6\t0\n1350001\tdaily\t2026-05-27\tcompleted\t0\t101\t0\t0\n1320002\tdaily\t2026-05-26\tfailed\t0\t0\t0\t0\n1320001\tdaily\t2026-05-26\tfailed\t0\t0\t0\t0\n1290001\tdaily\t2026-05-26\tfailed\t0\t0\t0\t0\n1260001\tdaily\t2026-05-26\tfailed\t0\t0\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1523
+}

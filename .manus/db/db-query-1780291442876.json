@@ -1,0 +1,18 @@
+{
+  "query": "\n-- Apollo credits used today and this month\nSELECT \n  SUM(CASE WHEN DATE(createdAt) = CURDATE() THEN creditsUsed ELSE 0 END) as today_used,\n  SUM(CASE WHEN YEAR(createdAt) = YEAR(NOW()) AND MONTH(createdAt) = MONTH(NOW()) THEN creditsUsed ELSE 0 END) as month_used,\n  300 as daily_cap,\n  2200 as monthly_cap,\n  300 - SUM(CASE WHEN DATE(createdAt) = CURDATE() THEN creditsUsed ELSE 0 END) as daily_remaining,\n  2200 - SUM(CASE WHEN YEAR(createdAt) = YEAR(NOW()) AND MONTH(createdAt) = MONTH(NOW()) THEN creditsUsed ELSE 0 END) as monthly_remaining\nFROM apolloCreditLog;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo credits used today and this month\nSELECT \n  SUM(CASE WHEN DATE(createdAt) = CURDATE() THEN creditsUsed ELSE 0 END) as today_used,\n  SUM(CASE WHEN YEAR(createdAt) = YEAR(NOW()) AND MONTH(createdAt) = MONTH(NOW()) THEN creditsUsed ELSE 0 END) as month_used,\n  300 as daily_cap,\n  2200 as monthly_cap,\n  300 - SUM(CASE WHEN DATE(createdAt) = CURDATE() THEN creditsUsed ELSE 0 END) as daily_remaining,\n  2200 - SUM(CASE WHEN YEAR(createdAt) = YEAR(NOW()) AND MONTH(createdAt) = MONTH(NOW()) THEN creditsUsed ELSE 0 END) as monthly_remaining\nFROM apolloCreditLog;\n",
+  "rows": [
+    {
+      "today_used": "5",
+      "month_used": "5",
+      "daily_cap": "300",
+      "monthly_cap": "2200",
+      "daily_remaining": "295",
+      "monthly_remaining": "2195"
+    }
+  ],
+  "messages": [],
+  "stdout": "today_used\tmonth_used\tdaily_cap\tmonthly_cap\tdaily_remaining\tmonthly_remaining\n5\t5\t300\t2200\t295\t2195\n",
+  "stderr": "",
+  "execution_time_ms": 1599
+}

@@ -1,0 +1,58 @@
+{
+  "query": "\n-- named_unverified contacts from Apollo with emails — these should be send_ready but aren't\n-- This is the \"stale trust tier\" problem\nSELECT \n  c.enrichmentSource,\n  c.emailVerified,\n  c.verificationStatus,\n  COUNT(*) as count\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.contactTrustTier = 'named_unverified'\n  AND c.email IS NOT NULL\n  AND p.priority IN ('hot', 'warm')\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed = false OR p.suppressed IS NULL)\nGROUP BY c.enrichmentSource, c.emailVerified, c.verificationStatus\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- named_unverified contacts from Apollo with emails — these should be send_ready but aren't\n-- This is the \"stale trust tier\" problem\nSELECT \n  c.enrichmentSource,\n  c.emailVerified,\n  c.verificationStatus,\n  COUNT(*) as count\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.contactTrustTier = 'named_unverified'\n  AND c.email IS NOT NULL\n  AND p.priority IN ('hot', 'warm')\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed = false OR p.suppressed IS NULL)\nGROUP BY c.enrichmentSource, c.emailVerified, c.verificationStatus\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "enrichmentSource": "manual",
+      "emailVerified": "0",
+      "verificationStatus": "unverified",
+      "count": "451"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "emailVerified": "0",
+      "verificationStatus": "unverified",
+      "count": "121"
+    },
+    {
+      "enrichmentSource": "linkedin",
+      "emailVerified": "0",
+      "verificationStatus": "unverified",
+      "count": "96"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "emailVerified": "0",
+      "verificationStatus": "verified",
+      "count": "27"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "emailVerified": "0",
+      "verificationStatus": "ai_suggested",
+      "count": "8"
+    },
+    {
+      "enrichmentSource": "llm",
+      "emailVerified": "0",
+      "verificationStatus": "ai_suggested",
+      "count": "6"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "emailVerified": "1",
+      "verificationStatus": "verified",
+      "count": "5"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "emailVerified": "1",
+      "verificationStatus": "verified",
+      "count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\temailVerified\tverificationStatus\tcount\nmanual\t0\tunverified\t451\napollo\t0\tunverified\t121\nlinkedin\t0\tunverified\t96\nweb_search\t0\tverified\t27\nweb_search\t0\tai_suggested\t8\nllm\t0\tai_suggested\t6\napollo\t1\tverified\t5\nweb_search\t1\tverified\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1616
+}

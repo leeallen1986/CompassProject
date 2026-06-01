@@ -1,0 +1,80 @@
+{
+  "query": "\n-- named_unverified contacts with emails on hot/warm active projects — Apollo gap-fill candidates\nSELECT \n  p.priority,\n  c.enrichmentSource,\n  COUNT(*) as contact_count,\n  SUM(CASE WHEN c.email IS NOT NULL THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN c.linkedin IS NOT NULL THEN 1 ELSE 0 END) as has_linkedin\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.contactTrustTier = 'named_unverified'\n  AND p.priority IN ('hot', 'warm')\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed = false OR p.suppressed IS NULL)\nGROUP BY p.priority, c.enrichmentSource\nORDER BY p.priority, contact_count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- named_unverified contacts with emails on hot/warm active projects — Apollo gap-fill candidates\nSELECT \n  p.priority,\n  c.enrichmentSource,\n  COUNT(*) as contact_count,\n  SUM(CASE WHEN c.email IS NOT NULL THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN c.linkedin IS NOT NULL THEN 1 ELSE 0 END) as has_linkedin\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.contactTrustTier = 'named_unverified'\n  AND p.priority IN ('hot', 'warm')\n  AND p.lifecycleStatus = 'active'\n  AND (p.suppressed = false OR p.suppressed IS NULL)\nGROUP BY p.priority, c.enrichmentSource\nORDER BY p.priority, contact_count DESC;\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "enrichmentSource": "manual",
+      "contact_count": "797",
+      "has_email": "342",
+      "has_linkedin": "0"
+    },
+    {
+      "priority": "hot",
+      "enrichmentSource": "apollo",
+      "contact_count": "73",
+      "has_email": "73",
+      "has_linkedin": "69"
+    },
+    {
+      "priority": "hot",
+      "enrichmentSource": "linkedin",
+      "contact_count": "51",
+      "has_email": "51",
+      "has_linkedin": "51"
+    },
+    {
+      "priority": "hot",
+      "enrichmentSource": "web_search",
+      "contact_count": "16",
+      "has_email": "16",
+      "has_linkedin": "0"
+    },
+    {
+      "priority": "hot",
+      "enrichmentSource": "llm",
+      "contact_count": "2",
+      "has_email": "2",
+      "has_linkedin": "0"
+    },
+    {
+      "priority": "warm",
+      "enrichmentSource": "manual",
+      "contact_count": "220",
+      "has_email": "109",
+      "has_linkedin": "0"
+    },
+    {
+      "priority": "warm",
+      "enrichmentSource": "apollo",
+      "contact_count": "60",
+      "has_email": "53",
+      "has_linkedin": "57"
+    },
+    {
+      "priority": "warm",
+      "enrichmentSource": "linkedin",
+      "contact_count": "46",
+      "has_email": "45",
+      "has_linkedin": "46"
+    },
+    {
+      "priority": "warm",
+      "enrichmentSource": "web_search",
+      "contact_count": "20",
+      "has_email": "20",
+      "has_linkedin": "0"
+    },
+    {
+      "priority": "warm",
+      "enrichmentSource": "llm",
+      "contact_count": "4",
+      "has_email": "4",
+      "has_linkedin": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tenrichmentSource\tcontact_count\thas_email\thas_linkedin\nhot\tmanual\t797\t342\t0\nhot\tapollo\t73\t73\t69\nhot\tlinkedin\t51\t51\t51\nhot\tweb_search\t16\t16\t0\nhot\tllm\t2\t2\t0\nwarm\tmanual\t220\t109\t0\nwarm\tapollo\t60\t53\t57\nwarm\tlinkedin\t46\t45\t46\nwarm\tweb_search\t20\t20\t0\nwarm\tllm\t4\t4\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1592
+}

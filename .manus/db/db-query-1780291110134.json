@@ -1,0 +1,28 @@
+{
+  "query": "\n-- 1. Active projects with send_ready contacts by priority\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN p.id END) as projects_with_send_ready,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) as total_send_ready_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.lifecycleStatus = 'active'\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Active projects with send_ready contacts by priority\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN p.id END) as projects_with_send_ready,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) as total_send_ready_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.lifecycleStatus = 'active'\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "total_projects": "173",
+      "projects_with_send_ready": "83",
+      "total_send_ready_contacts": "343"
+    },
+    {
+      "priority": "warm",
+      "total_projects": "432",
+      "projects_with_send_ready": "77",
+      "total_send_ready_contacts": "168"
+    },
+    {
+      "priority": "cold",
+      "total_projects": "115",
+      "projects_with_send_ready": "5",
+      "total_send_ready_contacts": "17"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\ttotal_projects\tprojects_with_send_ready\ttotal_send_ready_contacts\nhot\t173\t83\t343\nwarm\t432\t77\t168\ncold\t115\t5\t17\n",
+  "stderr": "",
+  "execution_time_ms": 1617
+}

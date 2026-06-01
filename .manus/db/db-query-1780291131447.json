@@ -1,0 +1,30 @@
+{
+  "query": "\n-- Count of hot projects with zero send_ready, grouped by enrichment outcome\nSELECT \n  COALESCE(c.enrichmentStatus, 'no_contacts_at_all') as enrichment_outcome,\n  COUNT(DISTINCT p.id) as project_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active'\n  AND p.id NOT IN (\n    SELECT DISTINCT cp2.projectId \n    FROM contactProjects cp2 \n    JOIN contacts c2 ON c2.id = cp2.contactId \n    WHERE c2.contactTrustTier = 'send_ready'\n  )\nGROUP BY COALESCE(c.enrichmentStatus, 'no_contacts_at_all')\nORDER BY project_count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Count of hot projects with zero send_ready, grouped by enrichment outcome\nSELECT \n  COALESCE(c.enrichmentStatus, 'no_contacts_at_all') as enrichment_outcome,\n  COUNT(DISTINCT p.id) as project_count\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot' AND p.lifecycleStatus = 'active'\n  AND p.id NOT IN (\n    SELECT DISTINCT cp2.projectId \n    FROM contactProjects cp2 \n    JOIN contacts c2 ON c2.id = cp2.contactId \n    WHERE c2.contactTrustTier = 'send_ready'\n  )\nGROUP BY COALESCE(c.enrichmentStatus, 'no_contacts_at_all')\nORDER BY project_count DESC;\n",
+  "rows": [
+    {
+      "enrichment_outcome": "enriched",
+      "project_count": "61"
+    },
+    {
+      "enrichment_outcome": "no_contacts_at_all",
+      "project_count": "32"
+    },
+    {
+      "enrichment_outcome": "not_found",
+      "project_count": "3"
+    },
+    {
+      "enrichment_outcome": "pending",
+      "project_count": "2"
+    },
+    {
+      "enrichment_outcome": "failed",
+      "project_count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichment_outcome\tproject_count\nenriched\t61\nno_contacts_at_all\t32\nnot_found\t3\npending\t2\nfailed\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1576
+}

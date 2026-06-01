@@ -1,0 +1,8 @@
+{
+  "query": "\n-- 1. Projects with send_ready contacts by priority (active projects only)\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN p.id END) as projects_with_send_ready,\n  COUNT(DISTINCT CASE WHEN p.digestSafe = 1 THEN p.id END) as digest_safe_projects,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) as total_send_ready_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.lifecycleStatus = 'active'\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Projects with send_ready contacts by priority (active projects only)\nSELECT \n  p.priority,\n  COUNT(DISTINCT p.id) as total_projects,\n  COUNT(DISTINCT CASE WHEN c.contactTrustTier = 'send_ready' THEN p.id END) as projects_with_send_ready,\n  COUNT(DISTINCT CASE WHEN p.digestSafe = 1 THEN p.id END) as digest_safe_projects,\n  COUNT(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 END) as total_send_ready_contacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.lifecycleStatus = 'active'\nGROUP BY p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm', 'cold');\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'p.digestsafe' in 'where clause'"
+  ]
+}

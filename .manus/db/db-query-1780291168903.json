@@ -1,0 +1,58 @@
+{
+  "query": "\n-- Apollo credit usage last 14 days\nSELECT \n  DATE(createdAt) as day,\n  COUNT(*) as calls,\n  SUM(creditsUsed) as credits_used,\n  action\nFROM apolloCreditLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY DATE(createdAt), action\nORDER BY day DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo credit usage last 14 days\nSELECT \n  DATE(createdAt) as day,\n  COUNT(*) as calls,\n  SUM(creditsUsed) as credits_used,\n  action\nFROM apolloCreditLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY DATE(createdAt), action\nORDER BY day DESC;\n",
+  "rows": [
+    {
+      "day": "2026-06-01",
+      "calls": "5",
+      "credits_used": "5",
+      "action": "reveal"
+    },
+    {
+      "day": "2026-05-30",
+      "calls": "13",
+      "credits_used": "13",
+      "action": "reveal"
+    },
+    {
+      "day": "2026-05-28",
+      "calls": "61",
+      "credits_used": "61",
+      "action": "verify_email"
+    },
+    {
+      "day": "2026-05-28",
+      "calls": "5",
+      "credits_used": "5",
+      "action": "reveal"
+    },
+    {
+      "day": "2026-05-27",
+      "calls": "5",
+      "credits_used": "5",
+      "action": "reveal"
+    },
+    {
+      "day": "2026-05-27",
+      "calls": "100",
+      "credits_used": "100",
+      "action": "verify_email"
+    },
+    {
+      "day": "2026-05-26",
+      "calls": "35",
+      "credits_used": "35",
+      "action": "verify_email"
+    },
+    {
+      "day": "2026-05-18",
+      "calls": "4",
+      "credits_used": "4",
+      "action": "reveal"
+    }
+  ],
+  "messages": [],
+  "stdout": "day\tcalls\tcredits_used\taction\n2026-06-01\t5\t5\treveal\n2026-05-30\t13\t13\treveal\n2026-05-28\t61\t61\tverify_email\n2026-05-28\t5\t5\treveal\n2026-05-27\t5\t5\treveal\n2026-05-27\t100\t100\tverify_email\n2026-05-26\t35\t35\tverify_email\n2026-05-18\t4\t4\treveal\n",
+  "stderr": "",
+  "execution_time_ms": 1537
+}

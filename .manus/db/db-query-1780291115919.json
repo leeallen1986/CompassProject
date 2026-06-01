@@ -1,0 +1,16 @@
+{
+  "query": "\n-- 2. digestSafe gate coverage\nSELECT \n  COUNT(*) as total_gates,\n  SUM(digestSafe) as digest_safe_count,\n  SUM(primaryAcceptable) as primary_acceptable,\n  SUM(backupAcceptable) as backup_acceptable\nFROM projectValidationGates;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 2. digestSafe gate coverage\nSELECT \n  COUNT(*) as total_gates,\n  SUM(digestSafe) as digest_safe_count,\n  SUM(primaryAcceptable) as primary_acceptable,\n  SUM(backupAcceptable) as backup_acceptable\nFROM projectValidationGates;\n",
+  "rows": [
+    {
+      "total_gates": "225",
+      "digest_safe_count": "225",
+      "primary_acceptable": "225",
+      "backup_acceptable": "222"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_gates\tdigest_safe_count\tprimary_acceptable\tbackup_acceptable\n225\t225\t225\t222\n",
+  "stderr": "",
+  "execution_time_ms": 1501
+}

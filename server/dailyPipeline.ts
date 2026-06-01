@@ -36,7 +36,7 @@
  */
 import { harvestAllFeeds } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
-import { runEnrichmentPipeline } from "./contactEnrichment";
+import { runEnrichmentPipeline, runStaleTierBackfill } from "./contactEnrichment";
 import { runProjectoryScraper } from "./projectoryScraper";
 import { runDmirsScraper } from "./dmirsScraper";
 import { runAemoScraper } from "./aemoScraper";
@@ -994,6 +994,24 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     enrichmentResult = { processed: 0, enriched: 0, notFound: 0, failed: 0, dailyUsed: 0, results: [] };
   }
   steps.push(enrichmentStep);
+
+  // ── Step 10a: Stale Trust-Tier Backfill ──
+  // Promotes contacts already meeting send_ready criteria but stuck at named_unverified.
+  // Zero API cost, safe to run every day (promote-only, never demotes).
+  const staleTierStep = startStep("Stale Trust-Tier Backfill");
+  try {
+    const staleTierResult = await runStaleTierBackfill();
+    completeStep(staleTierStep, { promoted: staleTierResult.promoted });
+    if (staleTierResult.promoted > 0) {
+      console.log(`[DailyPipeline] Step 10a: Promoted ${staleTierResult.promoted} stale contacts to send_ready`);
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Stale tier backfill failed:", errMsg);
+    failStep(staleTierStep, errMsg);
+  }
+  steps.push(staleTierStep);
+
   // ── Progress checkpoint 3/4: contact enrichment complete ──
   void writeProgressCheckpoint({
     feedsFetched: harvestResult.totalSources,
@@ -1122,7 +1140,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
 
   // ── Step 12b: Apollo Backfill Pass (warm/hot projects with 0 send_ready, remaining budget) ──
   // Runs after the primary gap-fill to chip away at the backlog of projects with 0 send_ready contacts.
-  // Uses whatever budget remains after the gap-fill (up to 30 credits max to avoid monopolising).
+  // Uses whatever budget remains after the gap-fill (up to 100 credits max — raised from 30 to accelerate coverage).
   const apolloBackfillStep = startStep("Apollo Backfill Pass");
   try {
     const backfillBudget = await getBudgetStatus();
@@ -1130,7 +1148,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       skipStep(apolloBackfillStep, `Budget too low for backfill — daily remaining: ${backfillBudget.dailyRemaining}`);
       console.log(`[DailyPipeline] Apollo backfill skipped: only ${backfillBudget.dailyRemaining} credits remaining`);
     } else {
-      const maxBackfillCredits = Math.min(30, backfillBudget.dailyRemaining);
+      const maxBackfillCredits = Math.min(100, backfillBudget.dailyRemaining);
       console.log(`[DailyPipeline] Step 12b: Apollo backfill pass — targeting warm/hot projects with 0 send_ready (budget: ${maxBackfillCredits} credits)...`);
 
       // Query projects with 0 send_ready but eligible named_unverified contacts
