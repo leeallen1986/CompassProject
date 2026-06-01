@@ -83,6 +83,12 @@ async function startServer() {
 
   // Lightweight health ping — used by pipeline keepalive to prevent CloudRun container recycling
   app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+  // Temporary debug: check if PIPELINE_SECRET is set in production runtime
+  app.get("/api/debug-env", (_req, res) => res.json({
+    hasPipelineSecret: !!(process.env.PIPELINE_SECRET),
+    pipelineSecretLen: process.env.PIPELINE_SECRET?.length ?? 0,
+    nodeEnv: process.env.NODE_ENV,
+  }));
   // Warm-up endpoint — called by scheduled task 2-3 min before pipeline trigger
   // Wakes the container from hibernation and returns readiness state
   app.get("/api/warmup", handleWarmup);
