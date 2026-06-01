@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  u.role,\n  edp.territories,\n  edp.businessLines,\n  edp.digestEnabled,\n  edp.frequency\nFROM users u\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  u.role,\n  edp.territories,\n  edp.businessLines,\n  edp.digestEnabled,\n  edp.frequency\nFROM users u\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nORDER BY u.name;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'edp.territories' in 'field list'"
+  ]
+}

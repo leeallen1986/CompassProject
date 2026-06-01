@@ -1,0 +1,153 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  u.role,\n  CAST(up.territories AS CHAR) as territories,\n  CAST(up.assignedBusinessLines AS CHAR) as businessLines,\n  CAST(up.sectorFocus AS CHAR) as sectorFocus,\n  up.salesMotion,\n  edp.enabled as digestEnabled,\n  edp.frequency\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  u.role,\n  CAST(up.territories AS CHAR) as territories,\n  CAST(up.assignedBusinessLines AS CHAR) as businessLines,\n  CAST(up.sectorFocus AS CHAR) as sectorFocus,\n  up.salesMotion,\n  edp.enabled as digestEnabled,\n  edp.frequency\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "businessLines": "[\"PT All Capital Sales\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "businessLines": "[\"PAL\", \"BESS\"]",
+      "sectorFocus": "[\"energy\", \"infrastructure\", \"industrial\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "abhargava1@gmail.com",
+      "role": "user",
+      "territories": "NULL",
+      "businessLines": "NULL",
+      "sectorFocus": "NULL",
+      "salesMotion": "NULL",
+      "digestEnabled": "NULL",
+      "frequency": "NULL"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor",
+      "territories": "[\"WA\", \"NT\"]",
+      "businessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "businessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\", \"water\", \"civils\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]",
+      "businessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"infrastructure\", \"oil_gas\", \"industrial\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "businessLines": "[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"energy\", \"defence\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "role": "user",
+      "territories": "[\"NATIONAL\"]",
+      "businessLines": "[\"BESS\", \"Portable Air\"]",
+      "sectorFocus": "[\"mining\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"WA\"]",
+      "businessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]",
+      "businessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Ray Clinch",
+      "email": "ray.clinch@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"NATIONAL\"]",
+      "businessLines": "[\"PAL\", \"BESS\", \"Pump (Flow)\"]",
+      "sectorFocus": "NULL",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "role": "user",
+      "territories": "[\"WA\"]",
+      "businessLines": "[\"Portable Air\", \"PT Capital Sales\"]",
+      "sectorFocus": "[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    },
+    {
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"NATIONAL\"]",
+      "businessLines": "[\"Portable Air\", \"PAL\", \"BESS\", \"Pump (Flow)\"]",
+      "sectorFocus": "NULL",
+      "salesMotion": "direct_only",
+      "digestEnabled": "1",
+      "frequency": "weekly"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\trole\tterritories\tbusinessLines\tsectorFocus\tsalesMotion\tdigestEnabled\tfrequency\nAlexandre Leite\talexandre.leite@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"PT All Capital Sales\"]\t[\"mining\", \"infrastructure\"]\tdirect_only\t1\tweekly\nAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]\t[\"energy\", \"infrastructure\", \"industrial\"]\tdirect_only\t1\tweekly\nAmit Bhargava\tabhargava1@gmail.com\tuser\tNULL\tNULL\tNULL\tNULL\tNULL\tNULL\nBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\t[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining\", \"oil_gas\", \"infrastructure\"]\tdirect_only\t1\tweekly\nDan Day\tdan.day@atlascopco.com\tuser\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining\", \"infrastructure\", \"water\", \"civils\"]\tdirect_only\t1\tweekly\nDaniel Zec\tdaniel.zec@atlascopco.com\tuser\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\"]\t[\"mining\", \"infrastructure\", \"oil_gas\", \"industrial\"]\tdirect_only\t1\tweekly\nEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\t[\"mining\", \"oil_gas\", \"energy\", \"defence\"]\tdirect_only\t1\tweekly\nKevin Arnandes\tkevinarnandes@gmail.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\"]\t[\"mining\"]\tdirect_only\t1\tweekly\nLee\tlee.allen@atlascopco.com\tadmin\t[\"WA\"]\t[\"Portable Air\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]\tdirect_only\t1\tweekly\nLeo Williams \tleo.williams@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"industrial\"]\tdirect_only\t1\tweekly\nRay Clinch\tray.clinch@atlascopco.com\tadmin\t[\"NATIONAL\"]\t[\"PAL\", \"BESS\", \"Pump (Flow)\"]\tNULL\tdirect_only\t1\tweekly\nRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\"]\tdirect_only\t1\tweekly\nTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\tadmin\t[\"NATIONAL\"]\t[\"Portable Air\", \"PAL\", \"BESS\", \"Pump (Flow)\"]\tNULL\tdirect_only\t1\tweekly\n",
+  "stderr": "",
+  "execution_time_ms": 1748
+}

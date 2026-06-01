@@ -1,0 +1,9 @@
+{
+  "query": "\nSELECT \n  dsl.digestType,\n  dsl.scheduledFor,\n  dsl.sentAt,\n  dsl.status,\n  dsl.error\nFROM digestScheduleLog dsl\nWHERE dsl.scheduledFor >= '2026-06-01'\nORDER BY dsl.scheduledFor DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  dsl.digestType,\n  dsl.scheduledFor,\n  dsl.sentAt,\n  dsl.status,\n  dsl.error\nFROM digestScheduleLog dsl\nWHERE dsl.scheduledFor >= '2026-06-01'\nORDER BY dsl.scheduledFor DESC\nLIMIT 10;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1695
+}

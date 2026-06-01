@@ -1,0 +1,31 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  CAST(up.territories AS CHAR) as territories,\n  CAST(up.assignedBusinessLines AS CHAR) as businessLines,\n  edp.enabled as digestEnabled\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nWHERE u.name IN ('Ryan Pemberton', 'Lee', 'Alexandre Leite')\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  CAST(up.territories AS CHAR) as territories,\n  CAST(up.assignedBusinessLines AS CHAR) as businessLines,\n  edp.enabled as digestEnabled\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nLEFT JOIN emailDigestPrefs edp ON edp.userId = u.id\nWHERE u.name IN ('Ryan Pemberton', 'Lee', 'Alexandre Leite')\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "territories": "[\"NATIONAL\"]",
+      "businessLines": "[\"PT All Capital Sales\"]",
+      "digestEnabled": "1"
+    },
+    {
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "territories": "[\"WA\"]",
+      "businessLines": "[\"Portable Air\"]",
+      "digestEnabled": "1"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "territories": "[\"WA\"]",
+      "businessLines": "[\"Portable Air\", \"PT Capital Sales\"]",
+      "digestEnabled": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tterritories\tbusinessLines\tdigestEnabled\nAlexandre Leite\talexandre.leite@atlascopco.com\t[\"NATIONAL\"]\t[\"PT All Capital Sales\"]\t1\nLee\tlee.allen@atlascopco.com\t[\"WA\"]\t[\"Portable Air\"]\t1\nRyan Pemberton\tryan.pemberton@atlascopco.com\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\"]\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1731
+}
