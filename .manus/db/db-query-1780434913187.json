@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT \n  hunterStatus,\n  COUNT(*) as count,\n  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct,\n  AVG(hunterConfidence) as avg_confidence\nFROM hunterVerificationLog\nWHERE hunterStatus IS NOT NULL\nGROUP BY hunterStatus\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  hunterStatus,\n  COUNT(*) as count,\n  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct,\n  AVG(hunterConfidence) as avg_confidence\nFROM hunterVerificationLog\nWHERE hunterStatus IS NOT NULL\nGROUP BY hunterStatus\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "hunterStatus": "invalid",
+      "count": "560",
+      "pct": "57.1",
+      "avg_confidence": "0.0000"
+    },
+    {
+      "hunterStatus": "accept_all",
+      "count": "209",
+      "pct": "21.3",
+      "avg_confidence": "72.8900"
+    },
+    {
+      "hunterStatus": "unknown",
+      "count": "185",
+      "pct": "18.9",
+      "avg_confidence": "12.2000"
+    },
+    {
+      "hunterStatus": "valid",
+      "count": "27",
+      "pct": "2.8",
+      "avg_confidence": "93.2593"
+    }
+  ],
+  "messages": [],
+  "stdout": "hunterStatus\tcount\tpct\tavg_confidence\ninvalid\t560\t57.1\t0.0000\naccept_all\t209\t21.3\t72.8900\nunknown\t185\t18.9\t12.2000\nvalid\t27\t2.8\t93.2593\n",
+  "stderr": "",
+  "execution_time_ms": 1550
+}

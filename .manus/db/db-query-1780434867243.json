@@ -1,0 +1,15 @@
+{
+  "query": "\n-- Fix 1: Strip [S] - prefix from company names\nUPDATE contacts\nSET company = TRIM(SUBSTRING(company, 6))\nWHERE enrichmentSource = 'manual'\n  AND company LIKE '[S] - %';\n\n-- Check how many have no real person name (name is a job title or company name)\nSELECT \n  SUM(CASE WHEN name REGEXP '^(Sales Manager|Operations Manager|Supply Chain Manager|Purchaser|Engineer|Manager|Director|CEO|CFO|CTO|Owner|Principal|Coordinator|Supervisor|Technician|Planner|Analyst|Consultant|Administrator|Officer|Specialist|Estimator|Superintendent|Foreman|Operator|Buyer|Procurement|Project Manager|Site Manager|General Manager|Managing Director|Executive|Chairman|President|VP|Vice President)' THEN 1 ELSE 0 END) as role_only_names,\n  SUM(CASE WHEN name REGEXP '^\\\\[S\\\\]' THEN 1 ELSE 0 END) as still_has_prefix,\n  COUNT(*) as total_pending_with_email\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\n  AND email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Fix 1: Strip [S] - prefix from company names\nUPDATE contacts\nSET company = TRIM(SUBSTRING(company, 6))\nWHERE enrichmentSource = 'manual'\n  AND company LIKE '[S] - %';\n\n-- Check how many have no real person name (name is a job title or company name)\nSELECT \n  SUM(CASE WHEN name REGEXP '^(Sales Manager|Operations Manager|Supply Chain Manager|Purchaser|Engineer|Manager|Director|CEO|CFO|CTO|Owner|Principal|Coordinator|Supervisor|Technician|Planner|Analyst|Consultant|Administrator|Officer|Specialist|Estimator|Superintendent|Foreman|Operator|Buyer|Procurement|Project Manager|Site Manager|General Manager|Managing Director|Executive|Chairman|President|VP|Vice President)' THEN 1 ELSE 0 END) as role_only_names,\n  SUM(CASE WHEN name REGEXP '^\\\\[S\\\\]' THEN 1 ELSE 0 END) as still_has_prefix,\n  COUNT(*) as total_pending_with_email\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\n  AND email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$';\n",
+  "rows": [
+    {
+      "role_only_names": "2462",
+      "still_has_prefix": "3",
+      "total_pending_with_email": "25864"
+    }
+  ],
+  "messages": [],
+  "stdout": "role_only_names\tstill_has_prefix\ttotal_pending_with_email\n2462\t3\t25864\n",
+  "stderr": "",
+  "execution_time_ms": 1861
+}

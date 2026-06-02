@@ -226,8 +226,9 @@ export async function verifyContactWithHunter(
         apiCreditsUsed: 1,
       });
 
+      // accept_all is common on enterprise/mining domains (BHP, Worley, etc.) — include if confidence ≥70
       const shouldPromote =
-        verifyResult.status === "valid" &&
+        (verifyResult.status === "valid" || verifyResult.status === "accept_all") &&
         verifyResult.score >= HUNTER_MIN_CONFIDENCE_FOR_PROMOTION &&
         !verifyResult.disposable &&
         !verifyResult.block;
@@ -303,8 +304,9 @@ export async function verifyContactWithHunter(
 
       emailToProcess = hunterResult.email;
 
+      // accept_all is common on enterprise/mining domains — include if confidence ≥70
       const shouldPromote =
-        hunterResult.status === "valid" &&
+        (hunterResult.status === "valid" || hunterResult.status === "accept_all") &&
         hunterResult.score >= HUNTER_MIN_CONFIDENCE_FOR_PROMOTION;
 
       if (shouldPromote) {

@@ -1,0 +1,16 @@
+{
+  "query": "\n-- Check the remaining pending manual contacts with emails — are they swapped too?\nSELECT \n  SUM(CASE WHEN company REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$' THEN 1 ELSE 0 END) as company_looks_like_email,\n  SUM(CASE WHEN email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$' THEN 1 ELSE 0 END) as email_looks_valid,\n  SUM(CASE WHEN email NOT REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$' AND email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as email_looks_invalid,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\n  AND email IS NOT NULL AND email != '';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check the remaining pending manual contacts with emails — are they swapped too?\nSELECT \n  SUM(CASE WHEN company REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$' THEN 1 ELSE 0 END) as company_looks_like_email,\n  SUM(CASE WHEN email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$' THEN 1 ELSE 0 END) as email_looks_valid,\n  SUM(CASE WHEN email NOT REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$' AND email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as email_looks_invalid,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\n  AND email IS NOT NULL AND email != '';\n",
+  "rows": [
+    {
+      "company_looks_like_email": "3098",
+      "email_looks_valid": "2",
+      "email_looks_invalid": "3098",
+      "total": "3100"
+    }
+  ],
+  "messages": [],
+  "stdout": "company_looks_like_email\temail_looks_valid\temail_looks_invalid\ttotal\n3098\t2\t3098\t3100\n",
+  "stderr": "",
+  "execution_time_ms": 1571
+}

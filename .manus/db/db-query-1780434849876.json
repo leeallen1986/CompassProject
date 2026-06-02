@@ -1,0 +1,55 @@
+{
+  "query": "\n-- Verify the fix — sample 5 contacts that were swapped\nSELECT id, name, email, company, title, enrichmentStatus, contactTrustTier\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'\n  AND enrichmentStatus = 'pending'\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Verify the fix — sample 5 contacts that were swapped\nSELECT id, name, email, company, title, enrichmentStatus, contactTrustTier\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND email REGEXP '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'\n  AND enrichmentStatus = 'pending'\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "870001",
+      "name": "Sales Manager",
+      "email": "paull@airmatics.com.au",
+      "company": "[S] - AIRMATICS",
+      "title": "CRM Contact",
+      "enrichmentStatus": "pending",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "870002",
+      "name": "Supply Chain Manager",
+      "email": "Darryl.Yates2@clough.com.au",
+      "company": "[S] - BAM CLOUGH JOINT VENTURE",
+      "title": "CRM Contact",
+      "enrichmentStatus": "pending",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "870003",
+      "name": "[S] - CONCORD ENGINEERING CO P/L",
+      "email": "tom@concordeng.com.au",
+      "company": "[S] - CONCORD ENGINEERING CO P/L",
+      "title": "CRM Contact",
+      "enrichmentStatus": "pending",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "870004",
+      "name": "Operations Manager",
+      "email": "brianj@fuelquipindustries.com.au",
+      "company": "[S] - FUELQUIP AUSTRALIA P/L",
+      "title": "CRM Contact",
+      "enrichmentStatus": "pending",
+      "contactTrustTier": "named_unverified"
+    },
+    {
+      "id": "870005",
+      "name": "[S] - MACKAY SUGAR LIMITED",
+      "email": "j.reitarno@mkysugar.com.au",
+      "company": "[S] - MACKAY SUGAR LIMITED",
+      "title": "CRM Contact",
+      "enrichmentStatus": "pending",
+      "contactTrustTier": "named_unverified"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tcompany\ttitle\tenrichmentStatus\tcontactTrustTier\n870001\tSales Manager\tpaull@airmatics.com.au\t[S] - AIRMATICS\tCRM Contact\tpending\tnamed_unverified\n870002\tSupply Chain Manager\tDarryl.Yates2@clough.com.au\t[S] - BAM CLOUGH JOINT VENTURE\tCRM Contact\tpending\tnamed_unverified\n870003\t[S] - CONCORD ENGINEERING CO P/L\ttom@concordeng.com.au\t[S] - CONCORD ENGINEERING CO P/L\tCRM Contact\tpending\tnamed_unverified\n870004\tOperations Manager\tbrianj@fuelquipindustries.com.au\t[S] - FUELQUIP AUSTRALIA P/L\tCRM Contact\tpending\tnamed_unverified\n870005\t[S] - MACKAY SUGAR LIMITED\tj.reitarno@mkysugar.com.au\t[S] - MACKAY SUGAR LIMITED\tCRM Contact\tpending\tnamed_unverified\n",
+  "stderr": "",
+  "execution_time_ms": 1559
+}
