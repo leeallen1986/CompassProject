@@ -1,0 +1,74 @@
+{
+  "query": "\n-- Top 50 job titles in the manual no-email backlog — identify which are irrelevant to sales\nSELECT \n  c.title,\n  COUNT(*) as count\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual'\n  AND (c.email IS NULL OR c.email = '')\n  AND p.priority IN ('hot', 'warm')\nGROUP BY c.title\nORDER BY count DESC\nLIMIT 60;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Top 50 job titles in the manual no-email backlog — identify which are irrelevant to sales\nSELECT \n  c.title,\n  COUNT(*) as count\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual'\n  AND (c.email IS NULL OR c.email = '')\n  AND p.priority IN ('hot', 'warm')\nGROUP BY c.title\nORDER BY count DESC\nLIMIT 60;\n",
+  "rows": [
+    {
+      "title": "Service Operations",
+      "count": "7607"
+    },
+    {
+      "title": "Finance",
+      "count": "5573"
+    },
+    {
+      "title": "CRM Contact",
+      "count": "5161"
+    },
+    {
+      "title": "Purchasing",
+      "count": "973"
+    },
+    {
+      "title": "Maintenance",
+      "count": "325"
+    },
+    {
+      "title": "Engineering",
+      "count": "315"
+    },
+    {
+      "title": "Logistics",
+      "count": "94"
+    },
+    {
+      "title": "Sales & Marketing",
+      "count": "65"
+    },
+    {
+      "title": "Administration",
+      "count": "57"
+    },
+    {
+      "title": "Production",
+      "count": "37"
+    },
+    {
+      "title": "Management",
+      "count": "22"
+    },
+    {
+      "title": "Invoice via Email",
+      "count": "18"
+    },
+    {
+      "title": "IT",
+      "count": "13"
+    },
+    {
+      "title": "Development",
+      "count": "8"
+    },
+    {
+      "title": "Collections Contact",
+      "count": "4"
+    },
+    {
+      "title": "Service Purchase",
+      "count": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "title\tcount\nService Operations\t7607\nFinance\t5573\nCRM Contact\t5161\nPurchasing\t973\nMaintenance\t325\nEngineering\t315\nLogistics\t94\nSales & Marketing\t65\nAdministration\t57\nProduction\t37\nManagement\t22\nInvoice via Email\t18\nIT\t13\nDevelopment\t8\nCollections Contact\t4\nService Purchase\t4\n",
+  "stderr": "",
+  "execution_time_ms": 5331
+}

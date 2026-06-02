@@ -1368,6 +1368,12 @@ export async function manualContactApolloPass(options: {
           AND p.lifecycleStatus = 'active'
           AND (p.suppressed IS NULL OR p.suppressed = 0)
           AND (c.enrichedAt IS NULL OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))
+          AND c.title NOT IN (
+            'Finance', 'CRM Contact', 'Invoice via Email', 'Collections Contact',
+            'IT', 'Administration', 'Logistics', 'Development',
+            'Service Operations', 'Service Purchase',
+            'Sales & Marketing', 'HR', 'Legal', 'Department', 'Health & Safety'
+          )
         ORDER BY
           FIELD(p.priority, 'hot', 'warm') ASC,
           (c.linkedin IS NOT NULL AND c.linkedin != '') DESC,

@@ -1,0 +1,17 @@
+{
+  "query": "\nSELECT \n  SUM(CASE WHEN c.linkedin IS NOT NULL AND c.linkedin != '' THEN 1 ELSE 0 END) as has_linkedin,\n  SUM(CASE WHEN c.linkedin IS NULL OR c.linkedin = '' THEN 1 ELSE 0 END) as no_linkedin,\n  SUM(CASE WHEN c.company IS NOT NULL AND c.company != '' THEN 1 ELSE 0 END) as has_company,\n  SUM(CASE WHEN c.title IS NOT NULL AND c.title != '' THEN 1 ELSE 0 END) as has_title,\n  COUNT(*) as total\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual'\n  AND (c.email IS NULL OR c.email = '')\n  AND p.priority IN ('hot', 'warm');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  SUM(CASE WHEN c.linkedin IS NOT NULL AND c.linkedin != '' THEN 1 ELSE 0 END) as has_linkedin,\n  SUM(CASE WHEN c.linkedin IS NULL OR c.linkedin = '' THEN 1 ELSE 0 END) as no_linkedin,\n  SUM(CASE WHEN c.company IS NOT NULL AND c.company != '' THEN 1 ELSE 0 END) as has_company,\n  SUM(CASE WHEN c.title IS NOT NULL AND c.title != '' THEN 1 ELSE 0 END) as has_title,\n  COUNT(*) as total\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual'\n  AND (c.email IS NULL OR c.email = '')\n  AND p.priority IN ('hot', 'warm');\n",
+  "rows": [
+    {
+      "has_linkedin": "0",
+      "no_linkedin": "20276",
+      "has_company": "20276",
+      "has_title": "20276",
+      "total": "20276"
+    }
+  ],
+  "messages": [],
+  "stdout": "has_linkedin\tno_linkedin\thas_company\thas_title\ttotal\n0\t20276\t20276\t20276\t20276\n",
+  "stderr": "",
+  "execution_time_ms": 1867
+}

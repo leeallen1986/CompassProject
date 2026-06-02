@@ -1,0 +1,30 @@
+{
+  "query": "\n-- Categorise the 20,276 contacts into: keep (sales-relevant) vs cull (not sales-relevant)\nSELECT \n  CASE \n    WHEN c.title IN ('Finance', 'CRM Contact', 'Invoice via Email', 'Collections Contact', 'IT', 'Administration', 'Logistics', 'Development') THEN 'cull_not_sales_relevant'\n    WHEN c.title IN ('Service Operations', 'Service Purchase') THEN 'cull_service_not_buyer'\n    WHEN c.title IN ('Sales & Marketing') THEN 'cull_internal_sales'\n    WHEN c.title IN ('Purchasing', 'Maintenance', 'Engineering', 'Production', 'Management') THEN 'keep_potential_buyer'\n    ELSE 'keep_other'\n  END as category,\n  COUNT(*) as count,\n  GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ' | ') as titles\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual'\n  AND (c.email IS NULL OR c.email = '')\n  AND p.priority IN ('hot', 'warm')\nGROUP BY category\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Categorise the 20,276 contacts into: keep (sales-relevant) vs cull (not sales-relevant)\nSELECT \n  CASE \n    WHEN c.title IN ('Finance', 'CRM Contact', 'Invoice via Email', 'Collections Contact', 'IT', 'Administration', 'Logistics', 'Development') THEN 'cull_not_sales_relevant'\n    WHEN c.title IN ('Service Operations', 'Service Purchase') THEN 'cull_service_not_buyer'\n    WHEN c.title IN ('Sales & Marketing') THEN 'cull_internal_sales'\n    WHEN c.title IN ('Purchasing', 'Maintenance', 'Engineering', 'Production', 'Management') THEN 'keep_potential_buyer'\n    ELSE 'keep_other'\n  END as category,\n  COUNT(*) as count,\n  GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ' | ') as titles\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual'\n  AND (c.email IS NULL OR c.email = '')\n  AND p.priority IN ('hot', 'warm')\nGROUP BY category\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "category": "cull_not_sales_relevant",
+      "count": "10928",
+      "titles": "Administration | Collections Contact | CRM Contact | Development | Finance | Invoice via Email | IT | Logistics"
+    },
+    {
+      "category": "cull_service_not_buyer",
+      "count": "7611",
+      "titles": "Service Operations | Service Purchase"
+    },
+    {
+      "category": "keep_potential_buyer",
+      "count": "1672",
+      "titles": "Engineering | Maintenance | Management | Production | Purchasing"
+    },
+    {
+      "category": "cull_internal_sales",
+      "count": "65",
+      "titles": "Sales & Marketing"
+    }
+  ],
+  "messages": [],
+  "stdout": "category\tcount\ttitles\ncull_not_sales_relevant\t10928\tAdministration | Collections Contact | CRM Contact | Development | Finance | Invoice via Email | IT | Logistics\ncull_service_not_buyer\t7611\tService Operations | Service Purchase\nkeep_potential_buyer\t1672\tEngineering | Maintenance | Management | Production | Purchasing\ncull_internal_sales\t65\tSales & Marketing\n",
+  "stderr": "",
+  "execution_time_ms": 1838
+}

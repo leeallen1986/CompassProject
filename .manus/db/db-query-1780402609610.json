@@ -1,0 +1,38 @@
+{
+  "query": "\n-- Apollo actual hit rate: how many contacts have Apollo as source and have an email vs no email\nSELECT \n  enrichmentSource,\n  COUNT(*) as total,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  ROUND(SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as email_hit_rate_pct\nFROM contacts\nWHERE enrichmentSource IN ('apollo', 'apollo_email', 'manual', 'linkedin', 'web_search')\nGROUP BY enrichmentSource\nORDER BY total DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo actual hit rate: how many contacts have Apollo as source and have an email vs no email\nSELECT \n  enrichmentSource,\n  COUNT(*) as total,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  ROUND(SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as email_hit_rate_pct\nFROM contacts\nWHERE enrichmentSource IN ('apollo', 'apollo_email', 'manual', 'linkedin', 'web_search')\nGROUP BY enrichmentSource\nORDER BY total DESC;\n",
+  "rows": [
+    {
+      "enrichmentSource": "manual",
+      "total": "25887",
+      "has_email": "10376",
+      "no_email": "15511",
+      "email_hit_rate_pct": "40.1"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "total": "943",
+      "has_email": "929",
+      "no_email": "14",
+      "email_hit_rate_pct": "98.5"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "total": "926",
+      "has_email": "916",
+      "no_email": "10",
+      "email_hit_rate_pct": "98.9"
+    },
+    {
+      "enrichmentSource": "linkedin",
+      "total": "503",
+      "has_email": "446",
+      "no_email": "57",
+      "email_hit_rate_pct": "88.7"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\ttotal\thas_email\tno_email\temail_hit_rate_pct\nmanual\t25887\t10376\t15511\t40.1\napollo\t943\t929\t14\t98.5\nweb_search\t926\t916\t10\t98.9\nlinkedin\t503\t446\t57\t88.7\n",
+  "stderr": "",
+  "execution_time_ms": 3976
+}

@@ -1,0 +1,35 @@
+{
+  "query": "\n-- Of the 943 Apollo-source contacts, what's the trust tier breakdown?\n-- This tells us how many Apollo reveals actually reached send_ready\nSELECT \n  contactTrustTier,\n  verificationStatus,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'apollo'\nGROUP BY contactTrustTier, verificationStatus\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Of the 943 Apollo-source contacts, what's the trust tier breakdown?\n-- This tells us how many Apollo reveals actually reached send_ready\nSELECT \n  contactTrustTier,\n  verificationStatus,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'apollo'\nGROUP BY contactTrustTier, verificationStatus\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "contactTrustTier": "send_ready",
+      "verificationStatus": "verified",
+      "count": "633"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "verificationStatus": "unverified",
+      "count": "253"
+    },
+    {
+      "contactTrustTier": "send_ready",
+      "verificationStatus": "unverified",
+      "count": "43"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "verificationStatus": "unverified",
+      "count": "9"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "verificationStatus": "verified",
+      "count": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tverificationStatus\tcount\nsend_ready\tverified\t633\nnamed_unverified\tunverified\t253\nsend_ready\tunverified\t43\nllm_inferred\tunverified\t9\nllm_inferred\tverified\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1879
+}

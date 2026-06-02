@@ -1,0 +1,28 @@
+{
+  "query": "\n-- Apollo credit log: what's the actual reveal success rate from API calls\nSELECT \n  action,\n  COUNT(*) as total_calls,\n  SUM(CASE WHEN creditsUsed > 0 THEN 1 ELSE 0 END) as paid_reveals,\n  SUM(CASE WHEN creditsUsed = 0 THEN 1 ELSE 0 END) as free_or_failed,\n  SUM(creditsUsed) as total_credits,\n  MIN(createdAt) as first_call,\n  MAX(createdAt) as last_call\nFROM apolloCreditLog\nGROUP BY action\nORDER BY total_calls DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo credit log: what's the actual reveal success rate from API calls\nSELECT \n  action,\n  COUNT(*) as total_calls,\n  SUM(CASE WHEN creditsUsed > 0 THEN 1 ELSE 0 END) as paid_reveals,\n  SUM(CASE WHEN creditsUsed = 0 THEN 1 ELSE 0 END) as free_or_failed,\n  SUM(creditsUsed) as total_credits,\n  MIN(createdAt) as first_call,\n  MAX(createdAt) as last_call\nFROM apolloCreditLog\nGROUP BY action\nORDER BY total_calls DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "action": "reveal",
+      "total_calls": "1856",
+      "paid_reveals": "1856",
+      "free_or_failed": "0",
+      "total_credits": "1856",
+      "first_call": "2026-02-20 06:29:32",
+      "last_call": "2026-06-02 11:19:21"
+    },
+    {
+      "action": "verify_email",
+      "total_calls": "329",
+      "paid_reveals": "329",
+      "free_or_failed": "0",
+      "total_credits": "329",
+      "first_call": "2026-03-16 06:52:53",
+      "last_call": "2026-06-01 05:25:21"
+    }
+  ],
+  "messages": [],
+  "stdout": "action\ttotal_calls\tpaid_reveals\tfree_or_failed\ttotal_credits\tfirst_call\tlast_call\nreveal\t1856\t1856\t0\t1856\t2026-02-20 06:29:32\t2026-06-02 11:19:21\nverify_email\t329\t329\t0\t329\t2026-03-16 06:52:53\t2026-06-01 05:25:21\n",
+  "stderr": "",
+  "execution_time_ms": 1721
+}

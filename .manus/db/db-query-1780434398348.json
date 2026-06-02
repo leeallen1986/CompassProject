@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending';\n",
+  "rows": [
+    {
+      "has_email": "3100",
+      "no_email": "729",
+      "total": "3829"
+    }
+  ],
+  "messages": [],
+  "stdout": "has_email\tno_email\ttotal\n3100\t729\t3829\n",
+  "stderr": "",
+  "execution_time_ms": 1612
+}

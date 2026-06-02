@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Cull all non-sales-relevant manual pending contacts (with or without email)\n-- Keeping: Maintenance, Engineering, Management, Purchasing, Production, Quality assurance, R&D, Sales, Service Department, Health & Safety\n-- Culling: Finance, CRM Contact, Service Operations, Administration, Sales & Marketing, Logistics, Service Purchase, HR, Legal, Department, IT\nUPDATE contacts \nSET enrichmentStatus = 'not_found',\n    enrichedAt = NOW()\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\n  AND title IN (\n    'Finance', 'CRM Contact', 'Invoice via Email', 'Collections Contact', \n    'IT', 'Administration', 'Logistics', 'Development',\n    'Service Operations', 'Service Purchase',\n    'Sales & Marketing', 'HR', 'Legal', 'Department', 'Health & Safety'\n  );\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Cull all non-sales-relevant manual pending contacts (with or without email)\n-- Keeping: Maintenance, Engineering, Management, Purchasing, Production, Quality assurance, R&D, Sales, Service Department, Health & Safety\n-- Culling: Finance, CRM Contact, Service Operations, Administration, Sales & Marketing, Logistics, Service Purchase, HR, Legal, Department, IT\nUPDATE contacts \nSET enrichmentStatus = 'not_found',\n    enrichedAt = NOW()\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\n  AND title IN (\n    'Finance', 'CRM Contact', 'Invoice via Email', 'Collections Contact', \n    'IT', 'Administration', 'Logistics', 'Development',\n    'Service Operations', 'Service Purchase',\n    'Sales & Marketing', 'HR', 'Legal', 'Department', 'Health & Safety'\n  );\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1732
+}

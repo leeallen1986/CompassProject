@@ -1,0 +1,20 @@
+{
+  "query": "\n-- Verify the cull results\nSELECT \n  enrichmentSource,\n  enrichmentStatus,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual'\nGROUP BY enrichmentSource, enrichmentStatus\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Verify the cull results\nSELECT \n  enrichmentSource,\n  enrichmentStatus,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual'\nGROUP BY enrichmentSource, enrichmentStatus\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "enrichmentSource": "manual",
+      "enrichmentStatus": "not_found",
+      "count": "17303"
+    },
+    {
+      "enrichmentSource": "manual",
+      "enrichmentStatus": "pending",
+      "count": "8584"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\tenrichmentStatus\tcount\nmanual\tnot_found\t17303\nmanual\tpending\t8584\n",
+  "stderr": "",
+  "execution_time_ms": 1552
+}

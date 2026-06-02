@@ -2740,3 +2740,8 @@
 - [x] Implement manualContactApolloPass() in server/apolloEnrichment.ts — targets manual pending contacts on hot/warm projects with no email (150 credits/day daily, 250 credits Sundays)
 - [x] Wire manualContactApolloPass as Step 12d in dailyPipeline.ts (runs before DigestSafe promotion)
 - [x] Wire manualContactApolloPass as Step 14c in weeklyPipeline.ts (runs after Apollo backfill pass)
+
+## Contact Cull — Non-Sales-Relevant Manual Contacts (2026-06-03)
+- [x] Mark 22,058 non-sales-relevant manual contacts as enrichmentStatus='not_found' to exclude from enrichment queue
+- [x] Add cull filter to manualContactApolloPass() to skip non-sales-relevant title categories automatically
+- [ ] Add cull filter to future CRM imports so Finance/Service/Admin contacts are never queued for enrichment

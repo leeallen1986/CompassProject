@@ -1,0 +1,148 @@
+{
+  "query": "\nSELECT \n  title,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\nGROUP BY title\nORDER BY total DESC\nLIMIT 30;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  title,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual'\n  AND enrichmentStatus = 'pending'\nGROUP BY title\nORDER BY total DESC\nLIMIT 30;\n",
+  "rows": [
+    {
+      "title": "CRM Contact",
+      "has_email": "2272",
+      "no_email": "0",
+      "total": "2272"
+    },
+    {
+      "title": "Service Operations",
+      "has_email": "1548",
+      "no_email": "0",
+      "total": "1548"
+    },
+    {
+      "title": "Maintenance",
+      "has_email": "1031",
+      "no_email": "155",
+      "total": "1186"
+    },
+    {
+      "title": "Engineering",
+      "has_email": "912",
+      "no_email": "139",
+      "total": "1051"
+    },
+    {
+      "title": "Management",
+      "has_email": "645",
+      "no_email": "109",
+      "total": "754"
+    },
+    {
+      "title": "Purchasing",
+      "has_email": "411",
+      "no_email": "280",
+      "total": "691"
+    },
+    {
+      "title": "Finance",
+      "has_email": "573",
+      "no_email": "0",
+      "total": "573"
+    },
+    {
+      "title": "Administration",
+      "has_email": "156",
+      "no_email": "0",
+      "total": "156"
+    },
+    {
+      "title": "Sales & Marketing",
+      "has_email": "132",
+      "no_email": "0",
+      "total": "132"
+    },
+    {
+      "title": "Production",
+      "has_email": "87",
+      "no_email": "30",
+      "total": "117"
+    },
+    {
+      "title": "Logistics",
+      "has_email": "59",
+      "no_email": "0",
+      "total": "59"
+    },
+    {
+      "title": "Quality assurance",
+      "has_email": "9",
+      "no_email": "2",
+      "total": "11"
+    },
+    {
+      "title": "Sales",
+      "has_email": "0",
+      "no_email": "8",
+      "total": "8"
+    },
+    {
+      "title": "Service Purchase",
+      "has_email": "6",
+      "no_email": "0",
+      "total": "6"
+    },
+    {
+      "title": "R&D",
+      "has_email": "3",
+      "no_email": "2",
+      "total": "5"
+    },
+    {
+      "title": "Service Department",
+      "has_email": "1",
+      "no_email": "4",
+      "total": "5"
+    },
+    {
+      "title": "Health & Safety",
+      "has_email": "3",
+      "no_email": "0",
+      "total": "3"
+    },
+    {
+      "title": "HR",
+      "has_email": "2",
+      "no_email": "0",
+      "total": "2"
+    },
+    {
+      "title": "Department",
+      "has_email": "1",
+      "no_email": "0",
+      "total": "1"
+    },
+    {
+      "title": "Legal",
+      "has_email": "1",
+      "no_email": "0",
+      "total": "1"
+    },
+    {
+      "title": "Secretaries",
+      "has_email": "1",
+      "no_email": "0",
+      "total": "1"
+    },
+    {
+      "title": "Development",
+      "has_email": "1",
+      "no_email": "0",
+      "total": "1"
+    },
+    {
+      "title": "Invoice via Email",
+      "has_email": "1",
+      "no_email": "0",
+      "total": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "title\thas_email\tno_email\ttotal\nCRM Contact\t2272\t0\t2272\nService Operations\t1548\t0\t1548\nMaintenance\t1031\t155\t1186\nEngineering\t912\t139\t1051\nManagement\t645\t109\t754\nPurchasing\t411\t280\t691\nFinance\t573\t0\t573\nAdministration\t156\t0\t156\nSales & Marketing\t132\t0\t132\nProduction\t87\t30\t117\nLogistics\t59\t0\t59\nQuality assurance\t9\t2\t11\nSales\t0\t8\t8\nService Purchase\t6\t0\t6\nR&D\t3\t2\t5\nService Department\t1\t4\t5\nHealth & Safety\t3\t0\t3\nHR\t2\t0\t2\nDepartment\t1\t0\t1\nLegal\t1\t0\t1\nSecretaries\t1\t0\t1\nDevelopment\t1\t0\t1\nInvoice via Email\t1\t0\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1690
+}
