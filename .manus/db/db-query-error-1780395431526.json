@@ -1,0 +1,14 @@
+{
+  "query": "\n-- Apollo credits used today\nSELECT COUNT(*) as apolloRevealsToday, SUM(creditsUsed) as totalCreditsUsed\nFROM apolloCreditLog\nWHERE DATE(createdAt) = '2026-06-02';\n\n-- New projects created today\nSELECT COUNT(*) as newProjectsToday FROM projects WHERE DATE(createdAt) = '2026-06-02';\n\n-- New contacts created today  \nSELECT COUNT(*) as newContactsToday FROM contacts WHERE DATE(createdAt) = '2026-06-02';\n\n-- Current send_ready total\nSELECT COUNT(*) as totalSendReady FROM contacts WHERE trustTier = 'send_ready';\n\n-- Hot projects with send_ready contacts\nSELECT COUNT(DISTINCT p.id) as hotProjectsWithContacts\nFROM projects p\nJOIN contactProjects cp ON cp.projectId = p.id\nJOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot' AND c.trustTier = 'send_ready';\n\n-- Total hot projects\nSELECT COUNT(*) as totalHotProjects FROM projects WHERE priority = 'hot' AND status = 'active';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo credits used today\nSELECT COUNT(*) as apolloRevealsToday, SUM(creditsUsed) as totalCreditsUsed\nFROM apolloCreditLog\nWHERE DATE(createdAt) = '2026-06-02';\n\n-- New projects created today\nSELECT COUNT(*) as newProjectsToday FROM projects WHERE DATE(createdAt) = '2026-06-02';\n\n-- New contacts created today  \nSELECT COUNT(*) as newContactsToday FROM contacts WHERE DATE(createdAt) = '2026-06-02';\n\n-- Current send_ready total\nSELECT COUNT(*) as totalSendReady FROM contacts WHERE trustTier = 'send_ready';\n\n-- Hot projects with send_ready contacts\nSELECT COUNT(DISTINCT p.id) as hotProjectsWithContacts\nFROM projects p\nJOIN contactProjects cp ON cp.projectId = p.id\nJOIN contacts c ON c.id = cp.contactId\nWHERE p.priority = 'hot' AND c.trustTier = 'send_ready';\n\n-- Total hot projects\nSELECT COUNT(*) as totalHotProjects FROM projects WHERE priority = 'hot' AND status = 'active';\n",
+  "returncode": 1,
+  "logs": [
+    "apolloRevealsToday\ttotalCreditsUsed",
+    "30\t30",
+    "newProjectsToday",
+    "27",
+    "newContactsToday",
+    "35",
+    "ERROR 1054 (42S22) at line 14: Unknown column 'trusttier' in 'where clause'"
+  ]
+}

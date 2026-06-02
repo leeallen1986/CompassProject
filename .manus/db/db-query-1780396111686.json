@@ -1,0 +1,13 @@
+{
+  "query": "\n-- 5. Check if there's a Hunter log table\nSELECT COUNT(*) as hunterLogRows FROM hunterVerificationLog LIMIT 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 5. Check if there's a Hunter log table\nSELECT COUNT(*) as hunterLogRows FROM hunterVerificationLog LIMIT 1;\n",
+  "rows": [
+    {
+      "hunterLogRows": "968"
+    }
+  ],
+  "messages": [],
+  "stdout": "hunterLogRows\n968\n",
+  "stderr": "",
+  "execution_time_ms": 1747
+}

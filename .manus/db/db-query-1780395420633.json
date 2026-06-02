@@ -1,0 +1,220 @@
+{
+  "query": "\n-- Recent Apollo credit usage during the pipeline run window\nSELECT \n  action,\n  creditsUsed,\n  projectId,\n  contactId,\n  createdAt\nFROM apolloCreditLog\nWHERE createdAt >= '2026-06-02 06:45:00' AND createdAt <= '2026-06-02 07:31:00'\nORDER BY createdAt ASC\nLIMIT 50;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Recent Apollo credit usage during the pipeline run window\nSELECT \n  action,\n  creditsUsed,\n  projectId,\n  contactId,\n  createdAt\nFROM apolloCreditLog\nWHERE createdAt >= '2026-06-02 06:45:00' AND createdAt <= '2026-06-02 07:31:00'\nORDER BY createdAt ASC\nLIMIT 50;\n",
+  "rows": [
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 06:46:58"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 06:48:30"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:15:57"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:00"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:03"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:26"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:28"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:31"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:38"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:41"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:16:43"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:17:05"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:17:07"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:17:10"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:17:51"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:20:14"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:20:17"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:20:19"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:20:22"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:20:24"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:21:05"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:21:08"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:21:10"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:21:13"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:21:16"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:28:00"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:28:03"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:28:05"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:28:08"
+    },
+    {
+      "action": "reveal",
+      "creditsUsed": "1",
+      "projectId": "NULL",
+      "contactId": "NULL",
+      "createdAt": "2026-06-02 07:28:10"
+    }
+  ],
+  "messages": [],
+  "stdout": "action\tcreditsUsed\tprojectId\tcontactId\tcreatedAt\nreveal\t1\tNULL\tNULL\t2026-06-02 06:46:58\nreveal\t1\tNULL\tNULL\t2026-06-02 06:48:30\nreveal\t1\tNULL\tNULL\t2026-06-02 07:15:57\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:00\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:03\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:26\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:28\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:31\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:38\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:41\nreveal\t1\tNULL\tNULL\t2026-06-02 07:16:43\nreveal\t1\tNULL\tNULL\t2026-06-02 07:17:05\nreveal\t1\tNULL\tNULL\t2026-06-02 07:17:07\nreveal\t1\tNULL\tNULL\t2026-06-02 07:17:10\nreveal\t1\tNULL\tNULL\t2026-06-02 07:17:51\nreveal\t1\tNULL\tNULL\t2026-06-02 07:20:14\nreveal\t1\tNULL\tNULL\t2026-06-02 07:20:17\nreveal\t1\tNULL\tNULL\t2026-06-02 07:20:19\nreveal\t1\tNULL\tNULL\t2026-06-02 07:20:22\nreveal\t1\tNULL\tNULL\t2026-06-02 07:20:24\nreveal\t1\tNULL\tNULL\t2026-06-02 07:21:05\nreveal\t1\tNULL\tNULL\t2026-06-02 07:21:08\nreveal\t1\tNULL\tNULL\t2026-06-02 07:21:10\nreveal\t1\tNULL\tNULL\t2026-06-02 07:21:13\nreveal\t1\tNULL\tNULL\t2026-06-02 07:21:16\nreveal\t1\tNULL\tNULL\t2026-06-02 07:28:00\nreveal\t1\tNULL\tNULL\t2026-06-02 07:28:03\nreveal\t1\tNULL\tNULL\t2026-06-02 07:28:05\nreveal\t1\tNULL\tNULL\t2026-06-02 07:28:08\nreveal\t1\tNULL\tNULL\t2026-06-02 07:28:10\n",
+  "stderr": "",
+  "execution_time_ms": 1852
+}

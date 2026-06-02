@@ -1,0 +1,65 @@
+{
+  "query": "\n-- 2. Contacts by enrichment source and trust tier\nSELECT \n  enrichmentSource,\n  contactTrustTier,\n  COUNT(*) as count\nFROM contacts\nGROUP BY enrichmentSource, contactTrustTier\nORDER BY enrichmentSource, contactTrustTier;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 2. Contacts by enrichment source and trust tier\nSELECT \n  enrichmentSource,\n  contactTrustTier,\n  COUNT(*) as count\nFROM contacts\nGROUP BY enrichmentSource, contactTrustTier\nORDER BY enrichmentSource, contactTrustTier;\n",
+  "rows": [
+    {
+      "enrichmentSource": "linkedin",
+      "contactTrustTier": "send_ready",
+      "count": "443"
+    },
+    {
+      "enrichmentSource": "linkedin",
+      "contactTrustTier": "named_unverified",
+      "count": "60"
+    },
+    {
+      "enrichmentSource": "llm",
+      "contactTrustTier": "named_unverified",
+      "count": "6"
+    },
+    {
+      "enrichmentSource": "llm",
+      "contactTrustTier": "llm_inferred",
+      "count": "525"
+    },
+    {
+      "enrichmentSource": "manual",
+      "contactTrustTier": "send_ready",
+      "count": "5"
+    },
+    {
+      "enrichmentSource": "manual",
+      "contactTrustTier": "named_unverified",
+      "count": "25882"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "contactTrustTier": "send_ready",
+      "count": "676"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "contactTrustTier": "named_unverified",
+      "count": "253"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "contactTrustTier": "llm_inferred",
+      "count": "14"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "contactTrustTier": "send_ready",
+      "count": "901"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "contactTrustTier": "named_unverified",
+      "count": "25"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\tcontactTrustTier\tcount\nlinkedin\tsend_ready\t443\nlinkedin\tnamed_unverified\t60\nllm\tnamed_unverified\t6\nllm\tllm_inferred\t525\nmanual\tsend_ready\t5\nmanual\tnamed_unverified\t25882\napollo\tsend_ready\t676\napollo\tnamed_unverified\t253\napollo\tllm_inferred\t14\nweb_search\tsend_ready\t901\nweb_search\tnamed_unverified\t25\n",
+  "stderr": "",
+  "execution_time_ms": 1951
+}

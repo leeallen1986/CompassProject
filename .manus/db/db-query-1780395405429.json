@@ -1,0 +1,23 @@
+{
+  "query": "\nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  ROUND((UNIX_TIMESTAMP(completedAt) - UNIX_TIMESTAMP(startedAt)) / 60, 1) AS durationMinutes,\n  currentStep,\n  lastActivityNote,\n  articlesIngested,\n  projectsCreated,\n  contactsEnriched,\n  triggeredBy\nFROM pipelineRuns\nWHERE id = 1590001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  ROUND((UNIX_TIMESTAMP(completedAt) - UNIX_TIMESTAMP(startedAt)) / 60, 1) AS durationMinutes,\n  currentStep,\n  lastActivityNote,\n  articlesIngested,\n  projectsCreated,\n  contactsEnriched,\n  triggeredBy\nFROM pipelineRuns\nWHERE id = 1590001;\n",
+  "rows": [
+    {
+      "id": "1590001",
+      "status": "completed",
+      "startedAt": "2026-06-02 06:45:53",
+      "completedAt": "2026-06-02 07:30:53",
+      "durationMinutes": "45.0",
+      "currentStep": "Duplicate Detection Sweep",
+      "lastActivityNote": "Discovery queue: 50 projects processed — 28 send-ready, 1 named-no-email.",
+      "articlesIngested": "146",
+      "projectsCreated": "25",
+      "contactsEnriched": "0",
+      "triggeredBy": "scheduled-task-secret"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tdurationMinutes\tcurrentStep\tlastActivityNote\tarticlesIngested\tprojectsCreated\tcontactsEnriched\ttriggeredBy\n1590001\tcompleted\t2026-06-02 06:45:53\t2026-06-02 07:30:53\t45.0\tDuplicate Detection Sweep\tDiscovery queue: 50 projects processed — 28 send-ready, 1 named-no-email.\t146\t25\t0\tscheduled-task-secret\n",
+  "stderr": "",
+  "execution_time_ms": 4108
+}

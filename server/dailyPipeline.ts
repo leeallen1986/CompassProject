@@ -47,7 +47,7 @@ import { runIcnScraper } from "./icnScraper";
 // import { sendWeeklyDigests, sendThursdayReminders } from "./emailDigest";
 import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
-import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
+import { enrichProjectContacts, revealContactEmail, manualContactApolloPass } from "./apolloEnrichment";
 import { markStaleProjects, runDuplicateDetectionSweep, getDb } from "./db";
 import { pipelineRuns, reports, type PipelineStep } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -1230,6 +1230,37 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     failStep(apolloBackfillStep, errMsg);
   }
   steps.push(apolloBackfillStep);
+
+  // ── Step 12d: Manual Contact Apollo Pass ──
+  // Targets the large backlog of manually-imported contacts (enrichmentSource = 'manual')
+  // on hot/warm active projects that have no email yet. These contacts are excluded from
+  // the LinkedIn enrichment step, so they never get emails unless Apollo is called for them.
+  const manualApolloStep = startStep("Manual Contact Apollo Pass");
+  try {
+    const manualBudget = await getBudgetStatus();
+    if (!manualBudget.withinBudget || manualBudget.dailyRemaining < 5) {
+      skipStep(manualApolloStep, `Budget too low for manual pass — daily remaining: ${manualBudget.dailyRemaining}`);
+      console.log(`[DailyPipeline] Manual Apollo pass skipped: only ${manualBudget.dailyRemaining} credits remaining`);
+    } else {
+      const maxManualCredits = Math.min(150, manualBudget.dailyRemaining);
+      console.log(`[DailyPipeline] Step 12d: Manual Contact Apollo Pass — targeting manual pending contacts on hot/warm projects (budget: ${maxManualCredits} credits)...`);
+      const manualResult = await manualContactApolloPass({ maxCredits: maxManualCredits });
+      completeStep(manualApolloStep, {
+        processed: manualResult.processed,
+        revealed: manualResult.revealed,
+        skipped: manualResult.skipped,
+        failed: manualResult.failed,
+        creditsUsed: manualResult.creditsUsed,
+        projectsTargeted: manualResult.projectsTargeted,
+      });
+      console.log(`[DailyPipeline] Manual Apollo pass complete: ${manualResult.revealed} revealed, ${manualResult.skipped} skipped, ${manualResult.creditsUsed} credits used across ${manualResult.projectsTargeted} projects`);
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[DailyPipeline] Manual Apollo pass failed:", errMsg);
+    failStep(manualApolloStep, errMsg);
+  }
+  steps.push(manualApolloStep);
 
   // ── Step 12c: DigestSafe Auto-Promotion ──
   // Runs after all Apollo enrichment to promote newly qualifying projects.

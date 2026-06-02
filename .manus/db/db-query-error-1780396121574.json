@@ -1,0 +1,8 @@
+{
+  "query": "\n-- Hunter usage by day last 14 days\nSELECT \n  DATE(createdAt) as day,\n  COUNT(*) as verifications,\n  SUM(CASE WHEN result = 'deliverable' THEN 1 ELSE 0 END) as deliverable,\n  SUM(CASE WHEN result = 'undeliverable' THEN 1 ELSE 0 END) as undeliverable,\n  SUM(CASE WHEN result = 'risky' THEN 1 ELSE 0 END) as risky,\n  SUM(CASE WHEN result = 'unknown' THEN 1 ELSE 0 END) as unknown_result\nFROM hunterVerificationLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY DATE(createdAt)\nORDER BY day DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Hunter usage by day last 14 days\nSELECT \n  DATE(createdAt) as day,\n  COUNT(*) as verifications,\n  SUM(CASE WHEN result = 'deliverable' THEN 1 ELSE 0 END) as deliverable,\n  SUM(CASE WHEN result = 'undeliverable' THEN 1 ELSE 0 END) as undeliverable,\n  SUM(CASE WHEN result = 'risky' THEN 1 ELSE 0 END) as risky,\n  SUM(CASE WHEN result = 'unknown' THEN 1 ELSE 0 END) as unknown_result\nFROM hunterVerificationLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY DATE(createdAt)\nORDER BY day DESC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'result' in 'where clause'"
+  ]
+}

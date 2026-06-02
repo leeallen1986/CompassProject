@@ -1294,3 +1294,133 @@ export async function validateApolloApiKey(): Promise<{
     };
   }
 }
+
+// ── Manual Contact Apollo Pass ──
+
+/**
+ * manualContactApolloPass
+ *
+ * Targets the large backlog of manually-imported contacts (enrichmentSource = 'manual')
+ * on hot/warm active projects that have no email yet. These contacts are intentionally
+ * excluded from the LinkedIn enrichment step (which only handles non-manual sources),
+ * so they never get emails unless Apollo is explicitly called for them.
+ *
+ * Strategy:
+ * 1. Query manual pending contacts on hot/warm active projects, no email, not recently attempted
+ * 2. Call revealContactEmail() for each — handles dedup, credit logging, and send_ready promotion
+ * 3. Respect the daily budget cap (maxCredits param)
+ * 4. Hot projects are processed first; within a project, contacts with a LinkedIn URL are prioritised
+ *
+ * This function is designed to be called as a daily pipeline step (Step 12d).
+ */
+export async function manualContactApolloPass(options: {
+  maxCredits?: number;
+  dryRun?: boolean;
+} = {}): Promise<{
+  processed: number;
+  revealed: number;
+  skipped: number;
+  failed: number;
+  creditsUsed: number;
+  projectsTargeted: number;
+}> {
+  const { maxCredits = 150, dryRun = false } = options;
+
+  const db = await getDb();
+  if (!db) {
+    console.warn("[ManualApolloPass] Database not available — skipping");
+    return { processed: 0, revealed: 0, skipped: 0, failed: 0, creditsUsed: 0, projectsTargeted: 0 };
+  }
+
+  // Check remaining daily budget
+  const budgetRows = await db.execute(
+    sql`SELECT COALESCE(SUM(creditsUsed), 0) AS used
+        FROM apolloCreditLog
+        WHERE DATE(createdAt) = CURDATE()`
+  ) as any;
+  const dailyUsed = Number((budgetRows as any)?.[0]?.[0]?.used ?? 0);
+  // Use the shared daily cap from apolloEligibility (300) — respect it here too
+  const SHARED_DAILY_CAP = 300;
+  const remainingBudget = Math.max(0, SHARED_DAILY_CAP - dailyUsed);
+  const effectiveMax = Math.min(maxCredits, remainingBudget);
+
+  if (effectiveMax < 5) {
+    console.log(`[ManualApolloPass] Skipping — only ${remainingBudget} credits remaining today (daily cap: ${SHARED_DAILY_CAP}, used: ${dailyUsed})`);
+    return { processed: 0, revealed: 0, skipped: 0, failed: 0, creditsUsed: 0, projectsTargeted: 0 };
+  }
+
+  console.log(`[ManualApolloPass] Starting — budget: ${effectiveMax} credits (daily remaining: ${remainingBudget}, cap: ${maxCredits})`);
+
+  // Query: manual pending contacts on hot/warm active projects with no email
+  // Ordered by project priority (hot first), then by whether they have a LinkedIn URL (easier match)
+  // Exclude contacts attempted in the last 7 days to avoid re-burning credits
+  const targetRows = await db.execute(
+    sql`SELECT c.id, c.name, c.company, c.title, c.linkedin, p.priority, p.id AS projectId, p.name AS projectName
+        FROM contacts c
+        JOIN contactProjects cp ON cp.contactId = c.id
+        JOIN projects p ON p.id = cp.projectId
+        WHERE c.enrichmentSource = 'manual'
+          AND c.enrichmentStatus = 'pending'
+          AND (c.email IS NULL OR c.email = '')
+          AND c.rejectionReason IS NULL
+          AND (c.crmOrphan IS NULL OR c.crmOrphan = 0)
+          AND p.priority IN ('hot', 'warm')
+          AND p.lifecycleStatus = 'active'
+          AND (p.suppressed IS NULL OR p.suppressed = 0)
+          AND (c.enrichedAt IS NULL OR c.enrichedAt < DATE_SUB(NOW(), INTERVAL 7 DAY))
+        ORDER BY
+          FIELD(p.priority, 'hot', 'warm') ASC,
+          (c.linkedin IS NOT NULL AND c.linkedin != '') DESC,
+          c.createdAt DESC
+        LIMIT ${effectiveMax * 3}`
+  ) as any;
+
+  const rows: any[] = (targetRows as any)?.[0] ?? [];
+  const projectIds = new Set(rows.map((r: any) => r.projectId));
+
+  console.log(`[ManualApolloPass] Found ${rows.length} manual contacts across ${projectIds.size} projects`);
+
+  if (rows.length === 0) {
+    return { processed: 0, revealed: 0, skipped: 0, failed: 0, creditsUsed: 0, projectsTargeted: 0 };
+  }
+
+  let processed = 0;
+  let revealed = 0;
+  let skipped = 0;
+  let failed = 0;
+  let creditsUsed = 0;
+
+  for (const row of rows) {
+    if (creditsUsed >= effectiveMax) break;
+
+    processed++;
+
+    if (dryRun) {
+      console.log(`[ManualApolloPass] DRY RUN: would reveal contact ${row.id} (${row.name} @ ${row.company}) for project ${row.projectId} (${row.priority})`);
+      skipped++;
+      continue;
+    }
+
+    try {
+      const result = await revealContactEmail(row.id, { userId: 0, userName: "pipeline-manual-apollo-pass" });
+      if (result) {
+        revealed++;
+        creditsUsed++;
+        console.log(`[ManualApolloPass] Revealed contact ${row.id} (${row.name} @ ${row.company}) — email: ${result.email ? "found" : "not found"}, project: ${row.projectName} (${row.priority})`);
+      } else {
+        skipped++;
+        console.log(`[ManualApolloPass] Skipped contact ${row.id} (${row.name}) — dedup guard or no result`);
+      }
+    } catch (err: unknown) {
+      failed++;
+      console.error(`[ManualApolloPass] Failed for contact ${row.id} (${row.name}):`, err instanceof Error ? err.message : String(err));
+    }
+
+    // Rate limit: 500ms between calls (same as DELAY_BETWEEN_CALLS_MS)
+    await sleep(DELAY_BETWEEN_CALLS_MS);
+  }
+
+  console.log(`[ManualApolloPass] Complete — processed: ${processed}, revealed: ${revealed}, skipped: ${skipped}, failed: ${failed}, credits used: ${creditsUsed}/${effectiveMax}`);
+
+  return { processed, revealed, skipped, failed, creditsUsed, projectsTargeted: projectIds.size };
+}

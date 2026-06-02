@@ -59,7 +59,7 @@ import { enrichUnenrichedProjects } from "./projectoryEnrichment";
 import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { runBulkWebDiscovery } from "./webStakeholderDiscovery";
 import { findEligibleProjects, buildGapFillPlan, getBudgetStatus } from "./apolloEligibility";
-import { enrichProjectContacts, revealContactEmail } from "./apolloEnrichment";
+import { enrichProjectContacts, revealContactEmail, manualContactApolloPass } from "./apolloEnrichment";
 import { classifyAllProjects } from "./tierClassification";
 import { runContractorEngine } from "./contractorEngine";
 import { runContractorEnrichmentPass } from "./contractorEnrichmentPass";
@@ -578,6 +578,23 @@ export async function runWeeklyPipeline(): Promise<WeeklyPipelineResult> {
     }
   } catch (err: unknown) {
     console.error("[WeeklyPipeline] ✗ Apollo backfill pass failed:", err instanceof Error ? err.message : String(err));
+  }
+
+  // ── Step 14c: Manual Contact Apollo Pass (weekly — higher budget, all hot/warm manual contacts) ──
+  // Runs after the existing Apollo backfill pass to target the large manual-import backlog.
+  // Weekly run uses a higher budget (250 credits) to accelerate coverage.
+  console.log(`[WeeklyPipeline] Step 14c/${TOTAL_STEPS}: Running manual contact Apollo pass (250 credits)...`);
+  try {
+    const manualPassBudget = await getBudgetStatus();
+    if (!manualPassBudget.withinBudget || manualPassBudget.dailyRemaining < 5) {
+      console.log(`[WeeklyPipeline] ⊘ Manual Apollo pass skipped: only ${manualPassBudget.dailyRemaining} credits remaining`);
+    } else {
+      const maxManualWeekly = Math.min(250, manualPassBudget.dailyRemaining);
+      const manualResult = await manualContactApolloPass({ maxCredits: maxManualWeekly });
+      console.log(`[WeeklyPipeline] ✓ Manual Apollo pass: ${manualResult.revealed} revealed, ${manualResult.skipped} skipped, ${manualResult.creditsUsed} credits used across ${manualResult.projectsTargeted} projects`);
+    }
+  } catch (err: unknown) {
+    console.error("[WeeklyPipeline] ✗ Manual Apollo pass failed:", err instanceof Error ? err.message : String(err));
   }
 
   // ── Step 15: Business Line Scoring ──

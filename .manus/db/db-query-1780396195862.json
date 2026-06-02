@@ -1,0 +1,65 @@
+{
+  "query": "\nSELECT \n  enrichmentStatus,\n  enrichmentSource,\n  COUNT(*) as count\nFROM contacts\nGROUP BY enrichmentStatus, enrichmentSource\nORDER BY enrichmentStatus, count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  enrichmentStatus,\n  enrichmentSource,\n  COUNT(*) as count\nFROM contacts\nGROUP BY enrichmentStatus, enrichmentSource\nORDER BY enrichmentStatus, count DESC;\n",
+  "rows": [
+    {
+      "enrichmentStatus": "pending",
+      "enrichmentSource": "manual",
+      "count": "23295"
+    },
+    {
+      "enrichmentStatus": "pending",
+      "enrichmentSource": "apollo",
+      "count": "3"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "web_search",
+      "count": "919"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "apollo",
+      "count": "873"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "llm",
+      "count": "531"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "linkedin",
+      "count": "425"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "manual",
+      "count": "2592"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "apollo",
+      "count": "67"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "linkedin",
+      "count": "26"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "web_search",
+      "count": "7"
+    },
+    {
+      "enrichmentStatus": "failed",
+      "enrichmentSource": "linkedin",
+      "count": "52"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentStatus\tenrichmentSource\tcount\npending\tmanual\t23295\npending\tapollo\t3\nenriched\tweb_search\t919\nenriched\tapollo\t873\nenriched\tllm\t531\nenriched\tlinkedin\t425\nnot_found\tmanual\t2592\nnot_found\tapollo\t67\nnot_found\tlinkedin\t26\nnot_found\tweb_search\t7\nfailed\tlinkedin\t52\n",
+  "stderr": "",
+  "execution_time_ms": 1816
+}

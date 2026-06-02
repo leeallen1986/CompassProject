@@ -1,0 +1,22 @@
+{
+  "query": "\nSELECT \n  (SELECT COUNT(*) FROM apolloCreditLog WHERE DATE(createdAt) = '2026-06-02') as apolloRevealsToday,\n  (SELECT SUM(creditsUsed) FROM apolloCreditLog WHERE DATE(createdAt) = '2026-06-02') as totalCreditsUsed,\n  (SELECT COUNT(*) FROM projects WHERE DATE(createdAt) = '2026-06-02') as newProjectsToday,\n  (SELECT COUNT(*) FROM contacts WHERE DATE(createdAt) = '2026-06-02') as newContactsToday,\n  (SELECT COUNT(*) FROM contacts WHERE contactTrustTier = 'send_ready') as totalSendReady,\n  (SELECT COUNT(DISTINCT p.id) FROM projects p JOIN contactProjects cp ON cp.projectId = p.id JOIN contacts c ON c.id = cp.contactId WHERE p.priority = 'hot' AND c.contactTrustTier = 'send_ready') as hotProjectsWithContacts,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'hot' AND lifecycleStatus = 'active') as totalHotProjects,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'warm' AND lifecycleStatus = 'active') as totalWarmProjects,\n  (SELECT COUNT(*) FROM contacts WHERE contactTrustTier = 'named_unverified') as namedUnverified,\n  (SELECT COUNT(*) FROM contacts WHERE contactTrustTier = 'llm_inferred') as llmInferred;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  (SELECT COUNT(*) FROM apolloCreditLog WHERE DATE(createdAt) = '2026-06-02') as apolloRevealsToday,\n  (SELECT SUM(creditsUsed) FROM apolloCreditLog WHERE DATE(createdAt) = '2026-06-02') as totalCreditsUsed,\n  (SELECT COUNT(*) FROM projects WHERE DATE(createdAt) = '2026-06-02') as newProjectsToday,\n  (SELECT COUNT(*) FROM contacts WHERE DATE(createdAt) = '2026-06-02') as newContactsToday,\n  (SELECT COUNT(*) FROM contacts WHERE contactTrustTier = 'send_ready') as totalSendReady,\n  (SELECT COUNT(DISTINCT p.id) FROM projects p JOIN contactProjects cp ON cp.projectId = p.id JOIN contacts c ON c.id = cp.contactId WHERE p.priority = 'hot' AND c.contactTrustTier = 'send_ready') as hotProjectsWithContacts,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'hot' AND lifecycleStatus = 'active') as totalHotProjects,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'warm' AND lifecycleStatus = 'active') as totalWarmProjects,\n  (SELECT COUNT(*) FROM contacts WHERE contactTrustTier = 'named_unverified') as namedUnverified,\n  (SELECT COUNT(*) FROM contacts WHERE contactTrustTier = 'llm_inferred') as llmInferred;\n",
+  "rows": [
+    {
+      "apolloRevealsToday": "30",
+      "totalCreditsUsed": "30",
+      "newProjectsToday": "27",
+      "newContactsToday": "35",
+      "totalSendReady": "2025",
+      "hotProjectsWithContacts": "250",
+      "totalHotProjects": "179",
+      "totalWarmProjects": "454",
+      "namedUnverified": "26226",
+      "llmInferred": "539"
+    }
+  ],
+  "messages": [],
+  "stdout": "apolloRevealsToday\ttotalCreditsUsed\tnewProjectsToday\tnewContactsToday\ttotalSendReady\thotProjectsWithContacts\ttotalHotProjects\ttotalWarmProjects\tnamedUnverified\tllmInferred\n30\t30\t27\t35\t2025\t250\t179\t454\t26226\t539\n",
+  "stderr": "",
+  "execution_time_ms": 1905
+}

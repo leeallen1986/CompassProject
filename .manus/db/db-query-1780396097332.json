@@ -1,0 +1,20 @@
+{
+  "query": "\n-- 3. Manual contacts breakdown — email presence and verification status\nSELECT \n  CASE WHEN email IS NOT NULL AND email != '' THEN 'has_email' ELSE 'no_email' END as emailStatus,\n  verificationStatus,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual' AND contactTrustTier = 'named_unverified'\nGROUP BY emailStatus, verificationStatus\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 3. Manual contacts breakdown — email presence and verification status\nSELECT \n  CASE WHEN email IS NOT NULL AND email != '' THEN 'has_email' ELSE 'no_email' END as emailStatus,\n  verificationStatus,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual' AND contactTrustTier = 'named_unverified'\nGROUP BY emailStatus, verificationStatus\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "emailStatus": "no_email",
+      "verificationStatus": "unverified",
+      "count": "15511"
+    },
+    {
+      "emailStatus": "has_email",
+      "verificationStatus": "unverified",
+      "count": "10371"
+    }
+  ],
+  "messages": [],
+  "stdout": "emailStatus\tverificationStatus\tcount\nno_email\tunverified\t15511\nhas_email\tunverified\t10371\n",
+  "stderr": "",
+  "execution_time_ms": 1761
+}

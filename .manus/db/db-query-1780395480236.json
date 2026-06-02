@@ -1,0 +1,70 @@
+{
+  "query": "\n-- Check the last 5 pipeline runs for context\nSELECT \n  id,\n  status,\n  DATE_FORMAT(startedAt, '%Y-%m-%d %H:%i UTC') as started,\n  DATE_FORMAT(completedAt, '%Y-%m-%d %H:%i UTC') as completed,\n  ROUND((UNIX_TIMESTAMP(completedAt) - UNIX_TIMESTAMP(startedAt)) / 60, 1) as durationMins,\n  articlesIngested,\n  projectsCreated,\n  contactsEnriched,\n  triggeredBy,\n  lastActivityNote\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check the last 5 pipeline runs for context\nSELECT \n  id,\n  status,\n  DATE_FORMAT(startedAt, '%Y-%m-%d %H:%i UTC') as started,\n  DATE_FORMAT(completedAt, '%Y-%m-%d %H:%i UTC') as completed,\n  ROUND((UNIX_TIMESTAMP(completedAt) - UNIX_TIMESTAMP(startedAt)) / 60, 1) as durationMins,\n  articlesIngested,\n  projectsCreated,\n  contactsEnriched,\n  triggeredBy,\n  lastActivityNote\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "1590001",
+      "status": "completed",
+      "started": "2026-06-02 06:45 UTC",
+      "completed": "2026-06-02 07:30 UTC",
+      "durationMins": "45.0",
+      "articlesIngested": "146",
+      "projectsCreated": "25",
+      "contactsEnriched": "0",
+      "triggeredBy": "scheduled-task-secret",
+      "lastActivityNote": "Discovery queue: 50 projects processed — 28 send-ready, 1 named-no-email."
+    },
+    {
+      "id": "1560001",
+      "status": "completed",
+      "started": "2026-06-01 20:00 UTC",
+      "completed": "2026-06-01 20:56 UTC",
+      "durationMins": "56.3",
+      "articlesIngested": "72",
+      "projectsCreated": "2",
+      "contactsEnriched": "0",
+      "triggeredBy": "cron",
+      "lastActivityNote": "Discovery queue: 0 projects processed — 0 send-ready, 0 named-no-email."
+    },
+    {
+      "id": "1530001",
+      "status": "failed",
+      "started": "2026-06-01 05:44 UTC",
+      "completed": "2026-06-01 05:45 UTC",
+      "durationMins": "0.3",
+      "articlesIngested": "0",
+      "projectsCreated": "0",
+      "contactsEnriched": "0",
+      "triggeredBy": "scheduled-task-secret",
+      "lastActivityNote": "NULL"
+    },
+    {
+      "id": "1500004",
+      "status": "failed",
+      "started": "2026-06-01 05:06 UTC",
+      "completed": "2026-06-01 05:14 UTC",
+      "durationMins": "7.8",
+      "articlesIngested": "0",
+      "projectsCreated": "0",
+      "contactsEnriched": "0",
+      "triggeredBy": "scheduled-task-secret",
+      "lastActivityNote": "Contact enrichment: 0 contacts enriched (5 Apollo credits used)."
+    },
+    {
+      "id": "1500003",
+      "status": "failed",
+      "started": "2026-06-01 05:04 UTC",
+      "completed": "2026-06-01 05:05 UTC",
+      "durationMins": "0.9",
+      "articlesIngested": "5",
+      "projectsCreated": "17",
+      "contactsEnriched": "0",
+      "triggeredBy": "scheduled-task-secret",
+      "lastActivityNote": "Contact enrichment: 0 contacts enriched (5 Apollo credits used)."
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstarted\tcompleted\tdurationMins\tarticlesIngested\tprojectsCreated\tcontactsEnriched\ttriggeredBy\tlastActivityNote\n1590001\tcompleted\t2026-06-02 06:45 UTC\t2026-06-02 07:30 UTC\t45.0\t146\t25\t0\tscheduled-task-secret\tDiscovery queue: 50 projects processed — 28 send-ready, 1 named-no-email.\n1560001\tcompleted\t2026-06-01 20:00 UTC\t2026-06-01 20:56 UTC\t56.3\t72\t2\t0\tcron\tDiscovery queue: 0 projects processed — 0 send-ready, 0 named-no-email.\n1530001\tfailed\t2026-06-01 05:44 UTC\t2026-06-01 05:45 UTC\t0.3\t0\t0\t0\tscheduled-task-secret\tNULL\n1500004\tfailed\t2026-06-01 05:06 UTC\t2026-06-01 05:14 UTC\t7.8\t0\t0\t0\tscheduled-task-secret\tContact enrichment: 0 contacts enriched (5 Apollo credits used).\n1500003\tfailed\t2026-06-01 05:04 UTC\t2026-06-01 05:05 UTC\t0.9\t5\t17\t0\tscheduled-task-secret\tContact enrichment: 0 contacts enriched (5 Apollo credits used).\n",
+  "stderr": "",
+  "execution_time_ms": 1743
+}

@@ -2735,3 +2735,8 @@
 - [x] Add Apollo Backfill Pass to weeklyPipeline.ts with higher budget (200 credits, all hot/warm projects)
 - [ ] Verify all enrichment steps are reflected in pipelineRuns contactsEnriched counter
 - [ ] Write vitest tests for runStaleTierBackfill()
+
+## Manual Contact Apollo Pass (2026-06-02)
+- [x] Implement manualContactApolloPass() in server/apolloEnrichment.ts — targets manual pending contacts on hot/warm projects with no email (150 credits/day daily, 250 credits Sundays)
+- [x] Wire manualContactApolloPass as Step 12d in dailyPipeline.ts (runs before DigestSafe promotion)
+- [x] Wire manualContactApolloPass as Step 14c in weeklyPipeline.ts (runs after Apollo backfill pass)

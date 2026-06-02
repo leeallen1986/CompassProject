@@ -1,0 +1,40 @@
+{
+  "query": "\n-- 1. Apollo credit usage by day for last 14 days\nSELECT DATE(createdAt) as day, COUNT(*) as reveals, SUM(creditsUsed) as credits\nFROM apolloCreditLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY DATE(createdAt)\nORDER BY day DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Apollo credit usage by day for last 14 days\nSELECT DATE(createdAt) as day, COUNT(*) as reveals, SUM(creditsUsed) as credits\nFROM apolloCreditLog\nWHERE createdAt >= DATE_SUB(NOW(), INTERVAL 14 DAY)\nGROUP BY DATE(createdAt)\nORDER BY day DESC;\n",
+  "rows": [
+    {
+      "day": "2026-06-02",
+      "reveals": "30",
+      "credits": "30"
+    },
+    {
+      "day": "2026-06-01",
+      "reveals": "130",
+      "credits": "130"
+    },
+    {
+      "day": "2026-05-30",
+      "reveals": "13",
+      "credits": "13"
+    },
+    {
+      "day": "2026-05-28",
+      "reveals": "66",
+      "credits": "66"
+    },
+    {
+      "day": "2026-05-27",
+      "reveals": "105",
+      "credits": "105"
+    },
+    {
+      "day": "2026-05-26",
+      "reveals": "35",
+      "credits": "35"
+    }
+  ],
+  "messages": [],
+  "stdout": "day\treveals\tcredits\n2026-06-02\t30\t30\n2026-06-01\t130\t130\n2026-05-30\t13\t13\n2026-05-28\t66\t66\n2026-05-27\t105\t105\n2026-05-26\t35\t35\n",
+  "stderr": "",
+  "execution_time_ms": 3250
+}

@@ -1,0 +1,35 @@
+{
+  "query": "\n-- Apollo monthly usage\nSELECT \n  DATE_FORMAT(createdAt, '%Y-%m') as month,\n  COUNT(*) as reveals,\n  SUM(creditsUsed) as credits\nFROM apolloCreditLog\nGROUP BY DATE_FORMAT(createdAt, '%Y-%m')\nORDER BY month DESC\nLIMIT 6;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo monthly usage\nSELECT \n  DATE_FORMAT(createdAt, '%Y-%m') as month,\n  COUNT(*) as reveals,\n  SUM(creditsUsed) as credits\nFROM apolloCreditLog\nGROUP BY DATE_FORMAT(createdAt, '%Y-%m')\nORDER BY month DESC\nLIMIT 6;\n",
+  "rows": [
+    {
+      "month": "2026-06",
+      "reveals": "160",
+      "credits": "160"
+    },
+    {
+      "month": "2026-05",
+      "reveals": "990",
+      "credits": "990"
+    },
+    {
+      "month": "2026-04",
+      "reveals": "856",
+      "credits": "856"
+    },
+    {
+      "month": "2026-03",
+      "reveals": "162",
+      "credits": "162"
+    },
+    {
+      "month": "2026-02",
+      "reveals": "15",
+      "credits": "15"
+    }
+  ],
+  "messages": [],
+  "stdout": "month\treveals\tcredits\n2026-06\t160\t160\n2026-05\t990\t990\n2026-04\t856\t856\n2026-03\t162\t162\n2026-02\t15\t15\n",
+  "stderr": "",
+  "execution_time_ms": 1731
+}

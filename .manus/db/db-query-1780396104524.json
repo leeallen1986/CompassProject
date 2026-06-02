@@ -1,0 +1,22 @@
+{
+  "query": "\n-- 4. Apollo named_unverified — why aren't they send_ready?\nSELECT \n  CASE WHEN email IS NOT NULL AND email != '' THEN 'has_email' ELSE 'no_email' END as emailStatus,\n  verificationStatus,\n  emailVerified,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'apollo' AND contactTrustTier = 'named_unverified'\nGROUP BY emailStatus, verificationStatus, emailVerified\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 4. Apollo named_unverified — why aren't they send_ready?\nSELECT \n  CASE WHEN email IS NOT NULL AND email != '' THEN 'has_email' ELSE 'no_email' END as emailStatus,\n  verificationStatus,\n  emailVerified,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'apollo' AND contactTrustTier = 'named_unverified'\nGROUP BY emailStatus, verificationStatus, emailVerified\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "emailStatus": "has_email",
+      "verificationStatus": "unverified",
+      "emailVerified": "0",
+      "count": "239"
+    },
+    {
+      "emailStatus": "no_email",
+      "verificationStatus": "unverified",
+      "emailVerified": "0",
+      "count": "14"
+    }
+  ],
+  "messages": [],
+  "stdout": "emailStatus\tverificationStatus\temailVerified\tcount\nhas_email\tunverified\t0\t239\nno_email\tunverified\t0\t14\n",
+  "stderr": "",
+  "execution_time_ms": 1957
+}

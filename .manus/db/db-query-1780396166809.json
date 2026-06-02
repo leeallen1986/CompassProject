@@ -1,0 +1,42 @@
+{
+  "query": "\nSELECT \n  DATE_FORMAT(createdAt, '%Y-%m') as month,\n  queryType,\n  COUNT(*) as calls,\n  SUM(CASE WHEN emailFound IS NOT NULL THEN 1 ELSE 0 END) as emailsFound,\n  SUM(CASE WHEN tierPromoted = 1 THEN 1 ELSE 0 END) as tiersPromoted,\n  SUM(apiCreditsUsed) as creditsUsed\nFROM hunterVerificationLog\nGROUP BY DATE_FORMAT(createdAt, '%Y-%m'), queryType\nORDER BY month DESC, queryType;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  DATE_FORMAT(createdAt, '%Y-%m') as month,\n  queryType,\n  COUNT(*) as calls,\n  SUM(CASE WHEN emailFound IS NOT NULL THEN 1 ELSE 0 END) as emailsFound,\n  SUM(CASE WHEN tierPromoted = 1 THEN 1 ELSE 0 END) as tiersPromoted,\n  SUM(apiCreditsUsed) as creditsUsed\nFROM hunterVerificationLog\nGROUP BY DATE_FORMAT(createdAt, '%Y-%m'), queryType\nORDER BY month DESC, queryType;\n",
+  "rows": [
+    {
+      "month": "2026-06",
+      "queryType": "email_finder",
+      "calls": "6",
+      "emailsFound": "0",
+      "tiersPromoted": "0",
+      "creditsUsed": "6"
+    },
+    {
+      "month": "2026-06",
+      "queryType": "email_verifier",
+      "calls": "37",
+      "emailsFound": "2",
+      "tiersPromoted": "2",
+      "creditsUsed": "37"
+    },
+    {
+      "month": "2026-05",
+      "queryType": "email_finder",
+      "calls": "143",
+      "emailsFound": "28",
+      "tiersPromoted": "5",
+      "creditsUsed": "143"
+    },
+    {
+      "month": "2026-05",
+      "queryType": "email_verifier",
+      "calls": "782",
+      "emailsFound": "25",
+      "tiersPromoted": "27",
+      "creditsUsed": "782"
+    }
+  ],
+  "messages": [],
+  "stdout": "month\tqueryType\tcalls\temailsFound\ttiersPromoted\tcreditsUsed\n2026-06\temail_finder\t6\t0\t0\t6\n2026-06\temail_verifier\t37\t2\t2\t37\n2026-05\temail_finder\t143\t28\t5\t143\n2026-05\temail_verifier\t782\t25\t27\t782\n",
+  "stderr": "",
+  "execution_time_ms": 1795
+}

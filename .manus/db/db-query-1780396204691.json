@@ -1,0 +1,30 @@
+{
+  "query": "\n-- Of the 23,295 manual pending contacts, how many are linked to active projects?\nSELECT \n  CASE WHEN cp.contactId IS NOT NULL THEN 'project_linked' ELSE 'orphan_crm' END as linkStatus,\n  CASE WHEN c.email IS NOT NULL AND c.email != '' THEN 'has_email' ELSE 'no_email' END as emailStatus,\n  COUNT(*) as count\nFROM contacts c\nLEFT JOIN contactProjects cp ON cp.contactId = c.id\nWHERE c.enrichmentStatus = 'pending' AND c.enrichmentSource = 'manual'\nGROUP BY linkStatus, emailStatus\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Of the 23,295 manual pending contacts, how many are linked to active projects?\nSELECT \n  CASE WHEN cp.contactId IS NOT NULL THEN 'project_linked' ELSE 'orphan_crm' END as linkStatus,\n  CASE WHEN c.email IS NOT NULL AND c.email != '' THEN 'has_email' ELSE 'no_email' END as emailStatus,\n  COUNT(*) as count\nFROM contacts c\nLEFT JOIN contactProjects cp ON cp.contactId = c.id\nWHERE c.enrichmentStatus = 'pending' AND c.enrichmentSource = 'manual'\nGROUP BY linkStatus, emailStatus\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "linkStatus": "project_linked",
+      "emailStatus": "no_email",
+      "count": "22002"
+    },
+    {
+      "linkStatus": "orphan_crm",
+      "emailStatus": "no_email",
+      "count": "12196"
+    },
+    {
+      "linkStatus": "project_linked",
+      "emailStatus": "has_email",
+      "count": "11577"
+    },
+    {
+      "linkStatus": "orphan_crm",
+      "emailStatus": "has_email",
+      "count": "6325"
+    }
+  ],
+  "messages": [],
+  "stdout": "linkStatus\temailStatus\tcount\nproject_linked\tno_email\t22002\norphan_crm\tno_email\t12196\nproject_linked\thas_email\t11577\norphan_crm\thas_email\t6325\n",
+  "stderr": "",
+  "execution_time_ms": 1817
+}
