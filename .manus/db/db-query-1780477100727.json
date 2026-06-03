@@ -1,0 +1,44 @@
+{
+  "query": "\nSELECT u.name, u.email, up.assignedBusinessLines, up.territories \nFROM users u \nLEFT JOIN userProfiles up ON u.id = up.userId \nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Dan%';\n\nSELECT id, name, productLine, applicationTags, matchCount, isActive \nFROM collateralItems \nWHERE name LIKE 'Sykes%' \nORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, u.email, up.assignedBusinessLines, up.territories \nFROM users u \nLEFT JOIN userProfiles up ON u.id = up.userId \nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Dan%';\n\nSELECT id, name, productLine, applicationTags, matchCount, isActive \nFROM collateralItems \nWHERE name LIKE 'Sykes%' \nORDER BY id;\n",
+  "rows": [
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "territories": "[\"WA\", \"NT\"]"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "territories": "[\"NSW\", \"VIC\", \"SA\", \"TAS\"]"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]"
+    }
+  ],
+  "messages": [
+    "id\tname\tproductLine\tapplicationTags\tmatchCount\tisActive",
+    "120001\tSykes Acoustic Range - Noise-Attenuated Dewatering Pumps\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"urban_construction\", \"noise_sensitive\"]\t22\t1",
+    "120002\tSykes Medium Head Pumps - MH Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"civil_works\"]\t22\t1",
+    "120003\tSykes High Head Pumps - HH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\"]\t22\t1",
+    "120004\tSykes Extra High Head Pumps - XH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\", \"extreme_dewatering\"]\t22\t1",
+    "120005\tSykes Contractor Low Head Pumps - CP Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"flood_recovery\", \"civil_works\", \"low_head\"]\t22\t1",
+    "120006\tSykes Sewage & Waste Pumps - SW Series\tdewatering\t[\"dewatering\", \"sewage\", \"wastewater\", \"sewer_bypass\", \"civil_works\"]\t22\t1",
+    "120007\tSykes Yakka V2 - Compact Versatile Pump Range\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"sewer_bypass\", \"rental\"]\t22\t1",
+    "120008\tSykes Acoustic Range - Noise-Attenuated Dewatering Pumps\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"urban_construction\", \"noise_sensitive\"]\t0\t1",
+    "120009\tSykes Medium Head Pumps - MH Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"civil_works\"]\t0\t1",
+    "120010\tSykes High Head Pumps - HH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\"]\t0\t1",
+    "120011\tSykes Extra High Head Pumps - XH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\", \"extreme_dewatering\"]\t0\t1",
+    "120012\tSykes Contractor Low Head Pumps - CP Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"flood_recovery\", \"civil_works\", \"low_head\"]\t0\t1",
+    "120013\tSykes Sewage & Waste Pumps - SW Series\tdewatering\t[\"dewatering\", \"sewage\", \"wastewater\", \"sewer_bypass\", \"civil_works\"]\t0\t1",
+    "120014\tSykes Yakka V2 - Compact Versatile Pump Range\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"sewer_bypass\", \"rental\"]\t0\t1"
+  ],
+  "stdout": "name\temail\tassignedBusinessLines\tterritories\nBrett Hansen\tbrett.hansen@sykesgroup.com\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"WA\", \"NT\"]\nDaniel Zec\tdaniel.zec@atlascopco.com\t[\"Portable Air\"]\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\nDan Day\tdan.day@atlascopco.com\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\nid\tname\tproductLine\tapplicationTags\tmatchCount\tisActive\n120001\tSykes Acoustic Range - Noise-Attenuated Dewatering Pumps\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"urban_construction\", \"noise_sensitive\"]\t22\t1\n120002\tSykes Medium Head Pumps - MH Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"civil_works\"]\t22\t1\n120003\tSykes High Head Pumps - HH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\"]\t22\t1\n120004\tSykes Extra High Head Pumps - XH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\", \"extreme_dewatering\"]\t22\t1\n120005\tSykes Contractor Low Head Pumps - CP Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"flood_recovery\", \"civil_works\", \"low_head\"]\t22\t1\n120006\tSykes Sewage & Waste Pumps - SW Series\tdewatering\t[\"dewatering\", \"sewage\", \"wastewater\", \"sewer_bypass\", \"civil_works\"]\t22\t1\n120007\tSykes Yakka V2 - Compact Versatile Pump Range\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"sewer_bypass\", \"rental\"]\t22\t1\n120008\tSykes Acoustic Range - Noise-Attenuated Dewatering Pumps\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"urban_construction\", \"noise_sensitive\"]\t0\t1\n120009\tSykes Medium Head Pumps - MH Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"civil_works\"]\t0\t1\n120010\tSykes High Head Pumps - HH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\"]\t0\t1\n120011\tSykes Extra High Head Pumps - XH Series\tdewatering\t[\"dewatering\", \"mine_dewatering\", \"deep_well_dewatering\", \"high_pressure\", \"extreme_dewatering\"]\t0\t1\n120012\tSykes Contractor Low Head Pumps - CP Series\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"flood_recovery\", \"civil_works\", \"low_head\"]\t0\t1\n120013\tSykes Sewage & Waste Pumps - SW Series\tdewatering\t[\"dewatering\", \"sewage\", \"wastewater\", \"sewer_bypass\", \"civil_works\"]\t0\t1\n120014\tSykes Yakka V2 - Compact Versatile Pump Range\tdewatering\t[\"dewatering\", \"construction_dewatering\", \"mine_dewatering\", \"sewer_bypass\", \"rental\"]\t0\t1\n",
+  "stderr": "",
+  "execution_time_ms": 2165
+}

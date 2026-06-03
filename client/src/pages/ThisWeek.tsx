@@ -14,12 +14,145 @@ import {
   AlertTriangle, Search, Clock, X, Zap,
   ChevronDown, ChevronUp, MoreHorizontal, Crosshair,
   UserCircle, Layers, Megaphone, Settings, Shield,
+  Droplets, ExternalLink, Package,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { getLoginUrl } from "@/const";
 import ScopeBar, { type ScopeMode } from "@/components/ScopeBar";
 import { LaneBadge } from "@/components/LaneBadge";
+
+// ── Sykes Pump Range Section ──
+const SYKES_SERIES_LABELS: Record<string, { short: string; color: string; models: string }> = {
+  "Acoustic": { short: "Acoustic", color: "bg-slate-100 text-slate-700 border-slate-200", models: "Noise-attenuated enclosures" },
+  "MH": { short: "Medium Head", color: "bg-blue-50 text-blue-700 border-blue-200", models: "MH150, MH220, MH300, MH450" },
+  "HH": { short: "High Head", color: "bg-indigo-50 text-indigo-700 border-indigo-200", models: "HH80, HH135, HH160i, HH220i, HH300" },
+  "XH": { short: "Extra High Head", color: "bg-violet-50 text-violet-700 border-violet-200", models: "XH100, XH150, XH200, XH250, XH300" },
+  "CP": { short: "Contractor Low Head", color: "bg-amber-50 text-amber-700 border-amber-200", models: "CP80i, CP100i, CP150i, CP220i, CP300i, CP310" },
+  "SW": { short: "Sewage & Waste", color: "bg-rose-50 text-rose-700 border-rose-200", models: "SW100, SW150, SW250, SW310" },
+  "Yakka": { short: "Yakka V2", color: "bg-emerald-50 text-emerald-700 border-emerald-200", models: "Yakka V2 150, V2 100, V2 SW100, V2 HH80" },
+};
+
+function getSykesSeries(name: string): string {
+  if (name.includes("Acoustic")) return "Acoustic";
+  if (name.includes("Medium Head") || name.includes("MH Series")) return "MH";
+  if (name.includes("Extra High Head") || name.includes("XH Series")) return "XH";
+  if (name.includes("High Head") || name.includes("HH Series")) return "HH";
+  if (name.includes("Contractor") || name.includes("CP Series")) return "CP";
+  if (name.includes("Sewage") || name.includes("SW Series")) return "SW";
+  if (name.includes("Yakka")) return "Yakka";
+  return "Other";
+}
+
+function SykesPumpRangeSection({ profile }: { profile: any }) {
+  const [open, setOpen] = useState(false);
+  const isAuthenticated = !!profile;
+
+  // Only show for pump-line reps
+  const assignedBLs: string[] = profile?.assignedBusinessLines ?? [];
+  const hasPumpBL = assignedBLs.some(bl =>
+    bl.toLowerCase().includes("pump") ||
+    bl.toLowerCase().includes("dewater") ||
+    bl.toLowerCase().includes("flow")
+  );
+  if (!hasPumpBL) return null;
+
+  const { data: sykesPumps, isLoading } = trpc.collateral.list.useQuery(
+    { productLine: "dewatering" },
+    { enabled: isAuthenticated, staleTime: 10 * 60 * 1000 }
+  );
+
+  const sykesItems = (sykesPumps ?? []).filter(item => item.name.startsWith("Sykes"));
+
+  return (
+    <div className="rounded-lg border border-blue-200 bg-blue-50/30 overflow-hidden">
+      <button
+        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/60 transition-colors text-left"
+        onClick={() => setOpen(o => !o)}
+      >
+        <Droplets className="w-4 h-4 text-blue-600 shrink-0" />
+        <span className="font-semibold text-navy text-sm flex-1">Sykes Pump Range</span>
+        <span className="text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full mr-1">
+          NEW
+        </span>
+        <span className="text-xs font-bold text-navy bg-slate-100 px-2.5 py-0.5 rounded-full">{sykesItems.length}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+      </button>
+
+      {open && (
+        <div className="border-t border-blue-200">
+          <div className="px-5 py-3 bg-blue-50/50 border-b border-blue-100">
+            <p className="text-xs text-blue-800">
+              <strong>Sykes Group</strong> pumps have been added to your portfolio. Each range below is matched against active hot/warm projects in your territory.
+              <a href="https://sykesgroup.com/product-category/pumps/" target="_blank" rel="noopener noreferrer"
+                className="ml-2 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold underline-offset-2 hover:underline">
+                View Sykes catalogue <ExternalLink className="w-3 h-3" />
+              </a>
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="px-5 py-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading pump range...
+            </div>
+          ) : sykesItems.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic px-5 py-4">No Sykes pump items found.</p>
+          ) : (
+            <div className="divide-y divide-blue-100">
+              {sykesItems.map((item: any) => {
+                const seriesKey = getSykesSeries(item.name);
+                const seriesInfo = SYKES_SERIES_LABELS[seriesKey];
+                return (
+                  <div key={item.id} className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50/40 transition-colors">
+                    <Package className="w-4 h-4 text-blue-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-navy">{item.name}</span>
+                        {seriesInfo && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${seriesInfo.color}`}>
+                            {seriesInfo.short}
+                          </span>
+                        )}
+                      </div>
+                      {seriesInfo && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{seriesInfo.models}</div>
+                      )}
+                    </div>
+                    {item.matchCount > 0 && (
+                      <a
+                        href={`/dashboard?collateralId=${item.id}`}
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                      >
+                        {item.matchCount} projects
+                      </a>
+                    )}
+                    <a
+                      href={item.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" /> View
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="px-5 py-3 border-t border-blue-100 bg-blue-50/30">
+            <a
+              href="/collateral?filter=dewatering"
+              className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 transition-colors"
+            >
+              View all dewatering collateral in library <ChevronRight className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Dismiss Button ──
 function DismissButton({ actionKey }: { actionKey: string }) {
@@ -810,6 +943,9 @@ export default function ThisWeek() {
             })}
           </div>
         </CollapsibleSection>
+
+        {/* ── Sykes Pump Range ── */}
+        <SykesPumpRangeSection profile={profile} />
 
         {/* ── Collapsible: Contact Actions ── */}
         <CollapsibleSection

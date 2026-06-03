@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO collateralProjectMatches (collateralId, projectId, matchScore, matchReason)\nSELECT ci.id, p.id, 85, CONCAT('Sykes pump range matches ', p.sector, ' dewatering/water management project: ', p.name)\nFROM collateralItems ci\nJOIN projects p ON (\n  p.productLane = 'pumps'\n  AND p.priority IN ('hot', 'warm')\n  AND p.suppressed = 0\n  AND p.lifecycleStatus = 'active'\n)\nWHERE ci.id BETWEEN 120001 AND 120007\n  AND NOT EXISTS (\n    SELECT 1 FROM collateralProjectMatches cpm WHERE cpm.collateralId = ci.id AND cpm.projectId = p.id\n  )\nLIMIT 200;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute INSERT INTO collateralProjectMatches (collateralId, projectId, matchScore, matchReason)\nSELECT ci.id, p.id, 85, CONCAT('Sykes pump range matches ', p.sector, ' dewatering/water management project: ', p.name)\nFROM collateralItems ci\nJOIN projects p ON (\n  p.productLane = 'pumps'\n  AND p.priority IN ('hot', 'warm')\n  AND p.suppressed = 0\n  AND p.lifecycleStatus = 'active'\n)\nWHERE ci.id BETWEEN 120001 AND 120007\n  AND NOT EXISTS (\n    SELECT 1 FROM collateralProjectMatches cpm WHERE cpm.collateralId = ci.id AND cpm.projectId = p.id\n  )\nLIMIT 200;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1871
+}

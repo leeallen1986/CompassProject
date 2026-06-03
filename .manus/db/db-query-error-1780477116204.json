@@ -1,0 +1,8 @@
+{
+  "query": "\n-- First remove any collateralProjectMatches for the duplicates\nDELETE FROM collateralProjectMatches WHERE collateralItemId IN (120008, 120009, 120010, 120011, 120012, 120013, 120014);\n\n-- Then remove the duplicate collateral items\nDELETE FROM collateralItems WHERE id IN (120008, 120009, 120010, 120011, 120012, 120013, 120014);\n\n-- Verify remaining Sykes items\nSELECT id, name, matchCount FROM collateralItems WHERE name LIKE 'Sykes%' ORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- First remove any collateralProjectMatches for the duplicates\nDELETE FROM collateralProjectMatches WHERE collateralItemId IN (120008, 120009, 120010, 120011, 120012, 120013, 120014);\n\n-- Then remove the duplicate collateral items\nDELETE FROM collateralItems WHERE id IN (120008, 120009, 120010, 120011, 120012, 120013, 120014);\n\n-- Verify remaining Sykes items\nSELECT id, name, matchCount FROM collateralItems WHERE name LIKE 'Sykes%' ORDER BY id;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'collateralitemid' in 'where clause'"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "query": "SELECT p.id, p.name, p.priority, p.sector, p.state, p.blScores FROM projects p WHERE p.isActive = 1 AND p.priority IN ('hot', 'warm') AND (JSON_EXTRACT(p.blScores, '$.\"Pump (Flow)\"') > 30 OR JSON_EXTRACT(p.blScores, '$.Dewatering') > 30 OR p.name LIKE '%dewater%' OR p.name LIKE '%pump%' OR p.name LIKE '%flood%' OR p.name LIKE '%water%' OR p.sector = 'mining' OR p.sector = 'infrastructure') ORDER BY p.priority, JSON_EXTRACT(p.blScores, '$.\"Pump (Flow)\"') DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT p.id, p.name, p.priority, p.sector, p.state, p.blScores FROM projects p WHERE p.isActive = 1 AND p.priority IN ('hot', 'warm') AND (JSON_EXTRACT(p.blScores, '$.\"Pump (Flow)\"') > 30 OR JSON_EXTRACT(p.blScores, '$.Dewatering') > 30 OR p.name LIKE '%dewater%' OR p.name LIKE '%pump%' OR p.name LIKE '%flood%' OR p.name LIKE '%water%' OR p.sector = 'mining' OR p.sector = 'infrastructure') ORDER BY p.priority, JSON_EXTRACT(p.blScores, '$.\"Pump (Flow)\"') DESC LIMIT 20;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'p.blScores' in 'order clause'"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "query": "SELECT u.name, u.email, up.assignedBusinessLines, up.territories FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE u.name LIKE '%Lee%' OR u.email LIKE '%lee%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.name, u.email, up.assignedBusinessLines, up.territories FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE u.name LIKE '%Lee%' OR u.email LIKE '%lee%' LIMIT 5;",
+  "rows": [
+    {
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "territories": "[\"WA\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tassignedBusinessLines\tterritories\nLee\tlee.allen@atlascopco.com\t[\"Portable Air\"]\t[\"WA\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1742
+}

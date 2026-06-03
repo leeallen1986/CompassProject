@@ -1,0 +1,61 @@
+{
+  "query": "SHOW TABLES LIKE 'user%'; SHOW TABLES LIKE 'business%'; DESCRIBE businessLines;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW TABLES LIKE 'user%'; SHOW TABLES LIKE 'business%'; DESCRIBE businessLines;",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "userActivity"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "userEmailSendLog"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "userProfiles"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "users"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "Tables_in_3SMu786VMCWdCnmNSx6pxw (business%)"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "businessLines"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "Field\tType\tNull\tKey\tDefault\tExtra"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "id\tint\tNO\tPRI\tNULL\tauto_increment"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "name\tvarchar(128)\tNO\tUNI\tNULL\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "description\ttext\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "keywords\tjson\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "sectors\tjson\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "equipmentTypes\tjson\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "defaultTerritories\tjson\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "isActive\ttinyint(1)\tNO\t\t1\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "createdAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)": "updatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (user%)\nuserActivity\nuserEmailSendLog\nuserProfiles\nusers\nTables_in_3SMu786VMCWdCnmNSx6pxw (business%)\nbusinessLines\nField\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nname\tvarchar(128)\tNO\tUNI\tNULL\t\ndescription\ttext\tYES\t\tNULL\t\nkeywords\tjson\tYES\t\tNULL\t\nsectors\tjson\tYES\t\tNULL\t\nequipmentTypes\tjson\tYES\t\tNULL\t\ndefaultTerritories\tjson\tYES\t\tNULL\t\nisActive\ttinyint(1)\tNO\t\t1\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\n",
+  "stderr": "",
+  "execution_time_ms": 2192
+}

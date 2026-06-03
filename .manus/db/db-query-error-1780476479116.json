@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, name, priority, sector, projectState, productLane, matchedBusinessLines, overview FROM projects WHERE isActive = 1 AND priority IN ('hot', 'warm') AND (productLane LIKE '%pump%' OR productLane LIKE '%dewater%' OR JSON_CONTAINS(matchedBusinessLines, '\"Pump (Flow)\"') OR JSON_CONTAINS(matchedBusinessLines, '\"Dewatering Pumps\"') OR name LIKE '%dewater%' OR name LIKE '%flood%' OR overview LIKE '%dewater%' OR overview LIKE '%pump%') ORDER BY priority, id LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, priority, sector, projectState, productLane, matchedBusinessLines, overview FROM projects WHERE isActive = 1 AND priority IN ('hot', 'warm') AND (productLane LIKE '%pump%' OR productLane LIKE '%dewater%' OR JSON_CONTAINS(matchedBusinessLines, '\"Pump (Flow)\"') OR JSON_CONTAINS(matchedBusinessLines, '\"Dewatering Pumps\"') OR name LIKE '%dewater%' OR name LIKE '%flood%' OR overview LIKE '%dewater%' OR overview LIKE '%pump%') ORDER BY priority, id LIMIT 20;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'isactive' in 'where clause'"
+  ]
+}

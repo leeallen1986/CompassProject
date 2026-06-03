@@ -1,0 +1,178 @@
+{
+  "query": "DESCRIBE collateralItems;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DESCRIBE collateralItems;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "name",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "description",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "productLine",
+      "Type": "enum('portable_air','dewatering','generators','bess','nitrogen','lighting','other')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "portable_air",
+      "Extra": ""
+    },
+    {
+      "Field": "fileKey",
+      "Type": "varchar(512)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fileUrl",
+      "Type": "varchar(1024)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fileName",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fileMimeType",
+      "Type": "varchar(128)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "application/pdf",
+      "Extra": ""
+    },
+    {
+      "Field": "fileSizeBytes",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "thumbnailUrl",
+      "Type": "varchar(1024)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "applicationTags",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sectorTags",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "keywordTags",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "matchCount",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "attachCount",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "uploadedBy",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "uploadedByName",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "isActive",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "1",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "minProjectSize",
+      "Type": "enum('any','large','mega')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "any",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nname\tvarchar(256)\tNO\t\tNULL\t\ndescription\ttext\tYES\t\tNULL\t\nproductLine\tenum('portable_air','dewatering','generators','bess','nitrogen','lighting','other')\tNO\t\tportable_air\t\nfileKey\tvarchar(512)\tNO\t\tNULL\t\nfileUrl\tvarchar(1024)\tNO\t\tNULL\t\nfileName\tvarchar(256)\tNO\t\tNULL\t\nfileMimeType\tvarchar(128)\tNO\t\tapplication/pdf\t\nfileSizeBytes\tint\tYES\t\tNULL\t\nthumbnailUrl\tvarchar(1024)\tYES\t\tNULL\t\napplicationTags\tjson\tYES\t\tNULL\t\nsectorTags\tjson\tYES\t\tNULL\t\nkeywordTags\tjson\tYES\t\tNULL\t\nmatchCount\tint\tNO\t\t0\t\nattachCount\tint\tNO\t\t0\t\nuploadedBy\tint\tNO\t\tNULL\t\nuploadedByName\tvarchar(256)\tYES\t\tNULL\t\nisActive\ttinyint(1)\tNO\t\t1\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nminProjectSize\tenum('any','large','mega')\tNO\t\tany\t\n",
+  "stderr": "",
+  "execution_time_ms": 1719
+}

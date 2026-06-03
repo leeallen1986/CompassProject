@@ -1,0 +1,190 @@
+{
+  "query": "SELECT id, name, priority, sector, projectState, productLane, matchedBusinessLines FROM projects WHERE priority IN ('hot', 'warm') AND suppressed = 0 AND (productLane LIKE '%pump%' OR productLane LIKE '%dewater%' OR JSON_CONTAINS(matchedBusinessLines, '\"Pump (Flow)\"') OR JSON_CONTAINS(matchedBusinessLines, '\"Dewatering Pumps\"') OR name LIKE '%dewater%' OR name LIKE '%flood%') ORDER BY priority, id LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, priority, sector, projectState, productLane, matchedBusinessLines FROM projects WHERE priority IN ('hot', 'warm') AND suppressed = 0 AND (productLane LIKE '%pump%' OR productLane LIKE '%dewater%' OR JSON_CONTAINS(matchedBusinessLines, '\"Pump (Flow)\"') OR JSON_CONTAINS(matchedBusinessLines, '\"Dewatering Pumps\"') OR name LIKE '%dewater%' OR name LIKE '%flood%') ORDER BY priority, id LIMIT 20;",
+  "rows": [
+    {
+      "id": "120021",
+      "name": "Macquarie Point Pump Station & Sewer Transformation",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "TAS",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    },
+    {
+      "id": "120086",
+      "name": "South Australia’s East-West Rail Corridor Recovery",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "SA",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120091",
+      "name": "Bruxner Highway Flood Recovery Works",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "productLane": "multi_lane_pt",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    },
+    {
+      "id": "120153",
+      "name": "Tasmanian Major Roads Upgrades Program",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "TAS",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120178",
+      "name": "Brisbane Green Bridges Program",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    },
+    {
+      "id": "120272",
+      "name": "RAAF Base Williamtown PFAS Remediation",
+      "priority": "hot",
+      "sector": "defence",
+      "projectState": "NSW",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    },
+    {
+      "id": "120318",
+      "name": "Western Sydney Advanced Water Recycling Centre",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    },
+    {
+      "id": "120321",
+      "name": "Melbourne Water Eastern Treatment Plant Upgrade",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    },
+    {
+      "id": "120324",
+      "name": "TasWater Capital Delivery Office Program",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "TAS",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    },
+    {
+      "id": "120325",
+      "name": "Darwin Region Water Supply Program - Manton Dam Return to Service",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NT",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    },
+    {
+      "id": "120328",
+      "name": "Bundaberg East Levee",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120329",
+      "name": "Central Coast Council Water and Sewerage Program",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    },
+    {
+      "id": "120336",
+      "name": "Hunter Water Lower Hunter Water Plan - Recycled Water Schemes",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "NSW",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    },
+    {
+      "id": "120341",
+      "name": "Mildura Future Ready - Water Smart Project",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "VIC",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120349",
+      "name": "Bundaberg Region - Paradise Dam Restoration",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120354",
+      "name": "SA Water - Bolivar Wastewater Treatment Plant Upgrade",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "SA",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "120358",
+      "name": "Logan City Council - Loganholme Wastewater Treatment Plant Upgrade",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30001]"
+    },
+    {
+      "id": "120366",
+      "name": "Queen's Wharf Brisbane",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "projectState": "QLD",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    },
+    {
+      "id": "450005",
+      "name": "1.8 GW Solar-plus-Storage Projects (Womalilla and Prairie)",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "QLD",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    },
+    {
+      "id": "480012",
+      "name": "Warrnambool Floating Solar System",
+      "priority": "hot",
+      "sector": "energy",
+      "projectState": "VIC",
+      "productLane": "pumps",
+      "matchedBusinessLines": "[3, 30002, 30001]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tpriority\tsector\tprojectState\tproductLane\tmatchedBusinessLines\n120021\tMacquarie Point Pump Station & Sewer Transformation\thot\tinfrastructure\tTAS\tpumps\t[3, 30002, 30001]\n120086\tSouth Australia’s East-West Rail Corridor Recovery\thot\tinfrastructure\tSA\tpumps\t[1, 3, 30001]\n120091\tBruxner Highway Flood Recovery Works\thot\tinfrastructure\tNSW\tmulti_lane_pt\t[1, 3, 30002, 30001]\n120153\tTasmanian Major Roads Upgrades Program\thot\tinfrastructure\tTAS\tpumps\t[1, 3, 30001]\n120178\tBrisbane Green Bridges Program\thot\tinfrastructure\tQLD\tpumps\t[1, 3, 30002, 30001]\n120272\tRAAF Base Williamtown PFAS Remediation\thot\tdefence\tNSW\tpumps\t[3, 30002, 30001]\n120318\tWestern Sydney Advanced Water Recycling Centre\thot\tinfrastructure\tNSW\tpumps\t[1, 3, 30002, 30001]\n120321\tMelbourne Water Eastern Treatment Plant Upgrade\thot\tinfrastructure\tVIC\tpumps\t[3, 30002, 30001]\n120324\tTasWater Capital Delivery Office Program\thot\tinfrastructure\tTAS\tpumps\t[1, 3, 30002, 30001]\n120325\tDarwin Region Water Supply Program - Manton Dam Return to Service\thot\tinfrastructure\tNT\tpumps\t[1, 3, 30002, 30001]\n120328\tBundaberg East Levee\thot\tinfrastructure\tQLD\tpumps\t[1, 3, 30001]\n120329\tCentral Coast Council Water and Sewerage Program\thot\tinfrastructure\tNSW\tpumps\t[3, 30002, 30001]\n120336\tHunter Water Lower Hunter Water Plan - Recycled Water Schemes\thot\tinfrastructure\tNSW\tpumps\t[3, 30002, 30001]\n120341\tMildura Future Ready - Water Smart Project\thot\tinfrastructure\tVIC\tpumps\t[1, 3, 30001]\n120349\tBundaberg Region - Paradise Dam Restoration\thot\tinfrastructure\tQLD\tpumps\t[1, 3, 30001]\n120354\tSA Water - Bolivar Wastewater Treatment Plant Upgrade\thot\tinfrastructure\tSA\tpumps\t[1, 3, 30001]\n120358\tLogan City Council - Loganholme Wastewater Treatment Plant Upgrade\thot\tinfrastructure\tQLD\tpumps\t[3, 30001]\n120366\tQueen's Wharf Brisbane\thot\tinfrastructure\tQLD\tpumps\t[1, 3, 30002, 30001]\n450005\t1.8 GW Solar-plus-Storage Projects (Womalilla and Prairie)\thot\tenergy\tQLD\tpumps\t[3, 30002, 30001]\n480012\tWarrnambool Floating Solar System\thot\tenergy\tVIC\tpumps\t[3, 30002, 30001]\n",
+  "stderr": "",
+  "execution_time_ms": 1765
+}

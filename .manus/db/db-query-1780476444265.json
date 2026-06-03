@@ -1,0 +1,450 @@
+{
+  "query": "DESCRIBE projects;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DESCRIBE projects;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "reportId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "projectKey",
+      "Type": "varchar(128)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "name",
+      "Type": "varchar(512)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "location",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "value",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "owner",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "priority",
+      "Type": "enum('hot','warm','cold')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "capexGrade",
+      "Type": "enum('A','B','Unknown')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "Unknown",
+      "Extra": ""
+    },
+    {
+      "Field": "opportunityRoute",
+      "Type": "enum('Direct CAPEX','Fleet CAPEX','OPEX/Monitor')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sector",
+      "Type": "enum('mining','oil_gas','infrastructure','energy','defence')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "isNew",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "stage",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "overview",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "equipmentSignals",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "contractors",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "opportunityNote",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sources",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "timeline",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "completion",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "matchedBusinessLines",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lifecycleStatus",
+      "Type": "enum('active','stale','archived','awarded','completed')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "active",
+      "Extra": ""
+    },
+    {
+      "Field": "lastActivityAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "archivedBy",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "archivedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "projectoryEnriched",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "actionTier",
+      "Type": "enum('tier1_actionable','tier2_warm','tier3_monitor')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "tier3_monitor",
+      "Extra": ""
+    },
+    {
+      "Field": "sourceLastSeenAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "staleReason",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "keepFlag",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "duplicateClusterId",
+      "Type": "varchar(36)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "mergedIntoId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "duplicateDismissed",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "projectType",
+      "Type": "enum('opportunity','background_account','macro_item','program_wrapper')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "opportunity",
+      "Extra": ""
+    },
+    {
+      "Field": "stageCode",
+      "Type": "enum('exploration','feasibility','planning','design','procurement','awarded','construction','commissioning','operational','completed','cancelled','unknown')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "unknown",
+      "Extra": ""
+    },
+    {
+      "Field": "stageConfidence",
+      "Type": "float",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0.5",
+      "Extra": ""
+    },
+    {
+      "Field": "suppressionReason",
+      "Type": "varchar(512)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "suppressed",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "productLane",
+      "Type": "enum('portable_air','pumps','pal','bess','multi_lane_pt')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sourcePurpose",
+      "Type": "enum('live_tender','forward_plan','project_signal','contractor_path','awarded')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "project_signal",
+      "Extra": ""
+    },
+    {
+      "Field": "tenderNumber",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "tenderCloseDate",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "enrichmentBlockedReason",
+      "Type": "enum('blocked_government_owner_manual_discovery','blocked_unknown_owner','blocked_dirty_owner_string','blocked_no_usable_domain')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "govFallbackStatus",
+      "Type": "enum('government_fallback_contact_found','government_fallback_named_person_no_email','government_fallback_role_only','government_fallback_no_result','government_fallback_manual_review_required')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "projectCountry",
+      "Type": "varchar(2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "projectState",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "locationConfidence",
+      "Type": "float",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "geoBlockedReason",
+      "Type": "enum('blocked_non_australian_project','blocked_location_unclear','blocked_cross_border_signal')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lastIcnSeenAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "discoveryStatus",
+      "Type": "enum('no_contacts','discovery_queued','discovery_running','role_only','named_contact_no_email','send_ready_contact','blocked_government_owner','blocked_dirty_owner','blocked_no_usable_domain','watchlist_monitor')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "no_contacts",
+      "Extra": ""
+    },
+    {
+      "Field": "discoveryPriority",
+      "Type": "enum('A','B','C')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "C",
+      "Extra": ""
+    },
+    {
+      "Field": "lastDiscoveryAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "discoveryAttempts",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nreportId\tint\tNO\t\tNULL\t\nprojectKey\tvarchar(128)\tNO\t\tNULL\t\nname\tvarchar(512)\tNO\t\tNULL\t\nlocation\tvarchar(256)\tNO\t\tNULL\t\nvalue\tvarchar(64)\tNO\t\tNULL\t\nowner\tvarchar(256)\tNO\t\tNULL\t\npriority\tenum('hot','warm','cold')\tNO\t\tNULL\t\ncapexGrade\tenum('A','B','Unknown')\tNO\t\tUnknown\t\nopportunityRoute\tenum('Direct CAPEX','Fleet CAPEX','OPEX/Monitor')\tNO\t\tNULL\t\nsector\tenum('mining','oil_gas','infrastructure','energy','defence')\tNO\t\tNULL\t\nisNew\ttinyint(1)\tNO\t\t0\t\nstage\tvarchar(256)\tYES\t\tNULL\t\noverview\ttext\tYES\t\tNULL\t\nequipmentSignals\tjson\tYES\t\tNULL\t\ncontractors\tjson\tYES\t\tNULL\t\nopportunityNote\ttext\tYES\t\tNULL\t\nsources\tjson\tYES\t\tNULL\t\ntimeline\tvarchar(256)\tYES\t\tNULL\t\ncompletion\tvarchar(256)\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nmatchedBusinessLines\tjson\tYES\t\tNULL\t\nlifecycleStatus\tenum('active','stale','archived','awarded','completed')\tNO\t\tactive\t\nlastActivityAt\ttimestamp\tYES\t\tCURRENT_TIMESTAMP\t\narchivedBy\tint\tYES\t\tNULL\t\narchivedAt\ttimestamp\tYES\t\tNULL\t\nprojectoryEnriched\ttinyint(1)\tYES\t\t0\t\nupdatedAt\ttimestamp\tYES\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nactionTier\tenum('tier1_actionable','tier2_warm','tier3_monitor')\tYES\t\ttier3_monitor\t\nsourceLastSeenAt\ttimestamp\tYES\t\tNULL\t\nstaleReason\tvarchar(256)\tYES\t\tNULL\t\nkeepFlag\ttinyint(1)\tYES\t\t0\t\nduplicateClusterId\tvarchar(36)\tYES\t\tNULL\t\nmergedIntoId\tint\tYES\t\tNULL\t\nduplicateDismissed\ttinyint(1)\tYES\t\t0\t\nprojectType\tenum('opportunity','background_account','macro_item','program_wrapper')\tYES\t\topportunity\t\nstageCode\tenum('exploration','feasibility','planning','design','procurement','awarded','construction','commissioning','operational','completed','cancelled','unknown')\tYES\t\tunknown\t\nstageConfidence\tfloat\tYES\t\t0.5\t\nsuppressionReason\tvarchar(512)\tYES\t\tNULL\t\nsuppressed\ttinyint(1)\tYES\t\t0\t\nproductLane\tenum('portable_air','pumps','pal','bess','multi_lane_pt')\tYES\t\tNULL\t\nsourcePurpose\tenum('live_tender','forward_plan','project_signal','contractor_path','awarded')\tYES\t\tproject_signal\t\ntenderNumber\tvarchar(64)\tYES\t\tNULL\t\ntenderCloseDate\ttimestamp\tYES\t\tNULL\t\nenrichmentBlockedReason\tenum('blocked_government_owner_manual_discovery','blocked_unknown_owner','blocked_dirty_owner_string','blocked_no_usable_domain')\tYES\t\tNULL\t\ngovFallbackStatus\tenum('government_fallback_contact_found','government_fallback_named_person_no_email','government_fallback_role_only','government_fallback_no_result','government_fallback_manual_review_required')\tYES\t\tNULL\t\nprojectCountry\tvarchar(2)\tYES\t\tNULL\t\nprojectState\tvarchar(64)\tYES\t\tNULL\t\nlocationConfidence\tfloat\tYES\t\tNULL\t\ngeoBlockedReason\tenum('blocked_non_australian_project','blocked_location_unclear','blocked_cross_border_signal')\tYES\t\tNULL\t\nlastIcnSeenAt\ttimestamp\tYES\t\tNULL\t\ndiscoveryStatus\tenum('no_contacts','discovery_queued','discovery_running','role_only','named_contact_no_email','send_ready_contact','blocked_government_owner','blocked_dirty_owner','blocked_no_usable_domain','watchlist_monitor')\tYES\t\tno_contacts\t\ndiscoveryPriority\tenum('A','B','C')\tYES\t\tC\t\nlastDiscoveryAt\ttimestamp\tYES\t\tNULL\t\ndiscoveryAttempts\tint\tYES\t\t0\t\n",
+  "stderr": "",
+  "execution_time_ms": 1769
+}

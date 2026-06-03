@@ -1,0 +1,52 @@
+{
+  "query": "SELECT id, name, productLine, uploadedByName FROM collateralItems WHERE name LIKE 'Sykes%' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, productLine, uploadedByName FROM collateralItems WHERE name LIKE 'Sykes%' ORDER BY id;",
+  "rows": [
+    {
+      "id": "120001",
+      "name": "Sykes Acoustic Range - Noise-Attenuated Dewatering Pumps",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    },
+    {
+      "id": "120002",
+      "name": "Sykes Medium Head Pumps - MH Series",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    },
+    {
+      "id": "120003",
+      "name": "Sykes High Head Pumps - HH Series",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    },
+    {
+      "id": "120004",
+      "name": "Sykes Extra High Head Pumps - XH Series",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    },
+    {
+      "id": "120005",
+      "name": "Sykes Contractor Low Head Pumps - CP Series",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    },
+    {
+      "id": "120006",
+      "name": "Sykes Sewage & Waste Pumps - SW Series",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    },
+    {
+      "id": "120007",
+      "name": "Sykes Yakka V2 - Compact Versatile Pump Range",
+      "productLine": "dewatering",
+      "uploadedByName": "Dan Day"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLine\tuploadedByName\n120001\tSykes Acoustic Range - Noise-Attenuated Dewatering Pumps\tdewatering\tDan Day\n120002\tSykes Medium Head Pumps - MH Series\tdewatering\tDan Day\n120003\tSykes High Head Pumps - HH Series\tdewatering\tDan Day\n120004\tSykes Extra High Head Pumps - XH Series\tdewatering\tDan Day\n120005\tSykes Contractor Low Head Pumps - CP Series\tdewatering\tDan Day\n120006\tSykes Sewage & Waste Pumps - SW Series\tdewatering\tDan Day\n120007\tSykes Yakka V2 - Compact Versatile Pump Range\tdewatering\tDan Day\n",
+  "stderr": "",
+  "execution_time_ms": 1861
+}

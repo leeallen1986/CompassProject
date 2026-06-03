@@ -1,0 +1,175 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE() ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'projects' AND TABLE_SCHEMA = DATABASE() ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "projectKey"
+    },
+    {
+      "COLUMN_NAME": "name"
+    },
+    {
+      "COLUMN_NAME": "location"
+    },
+    {
+      "COLUMN_NAME": "value"
+    },
+    {
+      "COLUMN_NAME": "owner"
+    },
+    {
+      "COLUMN_NAME": "priority"
+    },
+    {
+      "COLUMN_NAME": "capexGrade"
+    },
+    {
+      "COLUMN_NAME": "opportunityRoute"
+    },
+    {
+      "COLUMN_NAME": "sector"
+    },
+    {
+      "COLUMN_NAME": "isNew"
+    },
+    {
+      "COLUMN_NAME": "stage"
+    },
+    {
+      "COLUMN_NAME": "overview"
+    },
+    {
+      "COLUMN_NAME": "equipmentSignals"
+    },
+    {
+      "COLUMN_NAME": "contractors"
+    },
+    {
+      "COLUMN_NAME": "opportunityNote"
+    },
+    {
+      "COLUMN_NAME": "sources"
+    },
+    {
+      "COLUMN_NAME": "timeline"
+    },
+    {
+      "COLUMN_NAME": "completion"
+    },
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "matchedBusinessLines"
+    },
+    {
+      "COLUMN_NAME": "lifecycleStatus"
+    },
+    {
+      "COLUMN_NAME": "lastActivityAt"
+    },
+    {
+      "COLUMN_NAME": "archivedBy"
+    },
+    {
+      "COLUMN_NAME": "archivedAt"
+    },
+    {
+      "COLUMN_NAME": "projectoryEnriched"
+    },
+    {
+      "COLUMN_NAME": "updatedAt"
+    },
+    {
+      "COLUMN_NAME": "actionTier"
+    },
+    {
+      "COLUMN_NAME": "sourceLastSeenAt"
+    },
+    {
+      "COLUMN_NAME": "staleReason"
+    },
+    {
+      "COLUMN_NAME": "keepFlag"
+    },
+    {
+      "COLUMN_NAME": "duplicateClusterId"
+    },
+    {
+      "COLUMN_NAME": "mergedIntoId"
+    },
+    {
+      "COLUMN_NAME": "duplicateDismissed"
+    },
+    {
+      "COLUMN_NAME": "projectType"
+    },
+    {
+      "COLUMN_NAME": "stageCode"
+    },
+    {
+      "COLUMN_NAME": "stageConfidence"
+    },
+    {
+      "COLUMN_NAME": "suppressionReason"
+    },
+    {
+      "COLUMN_NAME": "suppressed"
+    },
+    {
+      "COLUMN_NAME": "productLane"
+    },
+    {
+      "COLUMN_NAME": "sourcePurpose"
+    },
+    {
+      "COLUMN_NAME": "tenderNumber"
+    },
+    {
+      "COLUMN_NAME": "tenderCloseDate"
+    },
+    {
+      "COLUMN_NAME": "enrichmentBlockedReason"
+    },
+    {
+      "COLUMN_NAME": "govFallbackStatus"
+    },
+    {
+      "COLUMN_NAME": "projectCountry"
+    },
+    {
+      "COLUMN_NAME": "projectState"
+    },
+    {
+      "COLUMN_NAME": "locationConfidence"
+    },
+    {
+      "COLUMN_NAME": "geoBlockedReason"
+    },
+    {
+      "COLUMN_NAME": "lastIcnSeenAt"
+    },
+    {
+      "COLUMN_NAME": "discoveryStatus"
+    },
+    {
+      "COLUMN_NAME": "discoveryPriority"
+    },
+    {
+      "COLUMN_NAME": "lastDiscoveryAt"
+    },
+    {
+      "COLUMN_NAME": "discoveryAttempts"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nreportId\nprojectKey\nname\nlocation\nvalue\nowner\npriority\ncapexGrade\nopportunityRoute\nsector\nisNew\nstage\noverview\nequipmentSignals\ncontractors\nopportunityNote\nsources\ntimeline\ncompletion\ncreatedAt\nmatchedBusinessLines\nlifecycleStatus\nlastActivityAt\narchivedBy\narchivedAt\nprojectoryEnriched\nupdatedAt\nactionTier\nsourceLastSeenAt\nstaleReason\nkeepFlag\nduplicateClusterId\nmergedIntoId\nduplicateDismissed\nprojectType\nstageCode\nstageConfidence\nsuppressionReason\nsuppressed\nproductLane\nsourcePurpose\ntenderNumber\ntenderCloseDate\nenrichmentBlockedReason\ngovFallbackStatus\nprojectCountry\nprojectState\nlocationConfidence\ngeoBlockedReason\nlastIcnSeenAt\ndiscoveryStatus\ndiscoveryPriority\nlastDiscoveryAt\ndiscoveryAttempts\n",
+  "stderr": "",
+  "execution_time_ms": 1741
+}

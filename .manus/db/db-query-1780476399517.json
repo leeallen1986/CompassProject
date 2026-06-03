@@ -1,0 +1,195 @@
+{
+  "query": "DESCRIBE userProfiles; SELECT * FROM businessLines ORDER BY name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute DESCRIBE userProfiles; SELECT * FROM businessLines ORDER BY name;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "userId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "companyName",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "companyWebsite",
+      "Type": "varchar(512)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "territories",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "remoteMetroOnly",
+      "Type": "varchar(16)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "industries",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "offerCategories",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "customerTypes",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "dealSizeMin",
+      "Type": "varchar(32)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "dealSizeMax",
+      "Type": "varchar(32)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "stageTiming",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "buyerRoles",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "keyAccounts",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "excludeAccounts",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "aiSegments",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "onboardingCompleted",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "assignedBusinessLines",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "sectorFocus",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "salesMotion",
+      "Type": "enum('direct_only','mixed')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "direct_only",
+      "Extra": ""
+    }
+  ],
+  "messages": [
+    "id\tname\tdescription\tkeywords\tsectors\tequipmentTypes\tdefaultTerritories\tisActive\tcreatedAt\tupdatedAt",
+    "30002\tBESS\tBattery Energy Storage Systems for mining, construction, and renewable energy projects. ZenergiZe range, hybrid power solutions, and peak shaving.\t[\"battery energy storage\", \"BESS\", \"energy storage system\", \"battery storage\", \"hybrid power\", \"solar hybrid\", \"ZenergiZe\", \"peak shaving\", \"load management\", \"microgrid\", \"off-grid power\", \"renewable energy storage\", \"lithium battery\", \"containerised power\", \"battery\", \"energy storage\", \"grid scale battery\", \"utility scale battery\", \"MW battery\", \"MWh\", \"gigawatt\", \"GW\", \"megawatt\", \"solar project\", \"wind project\", \"renewable project\", \"clean energy project\", \"AEMO\", \"NEM\", \"national electricity market\", \"capacity market\", \"inverter\", \"power conversion\", \"grid stability\", \"frequency control\", \"virtual power plant\", \"VPP\", \"distributed energy\", \"DER\", \"Neoen\", \"AGL\", \"Origin Energy\", \"Snowy Hydro\", \"Transgrid\", \"ElectraNet\", \"Powerlink\", \"Ausgrid\", \"Endeavour Energy\"]\t[\"mining\", \"infrastructure\", \"energy\"]\t[\"Battery Energy Storage\", \"Hybrid Power System\", \"Containerised Power\", \"Microgrid\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\", \"SA\"]\t1\t2026-02-11 09:57:15\t2026-02-11 14:36:40",
+    "2\tIndustrial Compressors\tStationary compressors for manufacturing, process industries, food & beverage, and energy. GA, ZR, ZT series.\t[\"industrial compressor\", \"stationary compressor\", \"oil-free compressor\", \"screw compressor\", \"centrifugal compressor\", \"manufacturing plant\", \"process air\", \"instrument air\", \"plant air\", \"nitrogen generation\", \"food processing\", \"pharmaceutical\", \"semiconductor\", \"data centre\", \"compressed air system\", \"energy efficiency\", \"VSD compressor\"]\t[\"energy\", \"infrastructure\"]\t[\"Screw Compressor\", \"Centrifugal Compressor\", \"Oil-Free Compressor\", \"Nitrogen Generator\", \"Air Dryer\"]\t[\"NSW\", \"VIC\", \"QLD\", \"SA\", \"WA\"]\t0\t2026-02-11 08:45:56\t2026-02-11 08:59:45",
+    "3\tPAL\tPower generators, lighting towers, and BESS (Battery Energy Storage Systems). QAS, QES series generators, HiLight towers, and ZenergiZe BESS.\t[\"generator\", \"power generation\", \"diesel generator\", \"portable generator\", \"lighting tower\", \"light tower\", \"temporary power\", \"standby power\", \"backup power\", \"construction power\", \"mine site power\", \"battery energy storage\", \"BESS\", \"energy storage system\", \"hybrid power\", \"solar hybrid\", \"ZenergiZe\", \"power supply\", \"genset\", \"power plant\", \"electricity generation\", \"off-grid\", \"remote power\", \"site power\", \"emergency power\", \"load shedding\", \"solar farm\", \"wind farm\", \"renewable energy\", \"clean energy\", \"data centre\", \"data center\", \"grid connection\", \"transmission line\", \"substation\", \"transformer\", \"electrical infrastructure\", \"hydrogen\", \"green hydrogen\", \"electrolysis\", \"fuel cell\", \"defence facility\", \"military base\", \"defence contract\", \"construction site\", \"civil works\", \"site works\", \"tunnel\", \"underground\", \"remote site\", \"major project\", \"mega project\", \"billion dollar\", \"hospital\"]\t[\"mining\", \"infrastructure\", \"energy\"]\t[\"Diesel Generator\", \"Lighting Tower\", \"Battery Energy Storage\", \"Hybrid Power\", \"Power Pack\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\"]\t1\t2026-02-11 08:45:57\t2026-03-11 02:23:38",
+    "1\tPortable Air\tPortable compressors for mining, construction, drilling, and infrastructure projects. Key products include XAS, XATS, XAHS, and XAVS series.\t[\"compressor\", \"portable air\", \"compressed air\", \"drilling\", \"RC drilling\", \"diamond drilling\", \"blasting\", \"pneumatic\", \"CFM\", \"air compressor\", \"sandblasting\", \"shotcrete\", \"tunnelling\", \"mining equipment\", \"construction equipment\", \"atlas copco\", \"portable compressor\", \"air receiver\", \"aftercooler\", \"drill rig\", \"mining project\", \"mine site\", \"mine expansion\", \"mine development\", \"mining contract\", \"mining contractor\", \"mining award\", \"mineral exploration\", \"exploration drilling\", \"quarry\", \"quarrying\", \"aggregate\", \"crusher\", \"screening plant\", \"tunnel boring\", \"TBM\", \"underground mining\", \"open pit\", \"open cut\", \"construction project\", \"infrastructure project\", \"road construction\", \"highway construction\", \"rail project\", \"bridge construction\", \"dam construction\", \"pipeline construction\", \"gas pipeline\", \"LNG\", \"oil and gas\", \"offshore\", \"onshore\", \"defence project\", \"defence contract\", \"military base\", \"concrete\", \"formwork\", \"earthworks\", \"excavation\", \"major project\", \"billion dollar\", \"contract award\", \"contract win\", \"mobilisation\", \"mobilization\", \"site preparation\", \"ground works\", \"BHP\", \"Rio Tinto\", \"Fortescue\", \"South32\", \"Newmont\", \"Gold Fields\", \"Glencore\", \"Anglo American\", \"Mineral Resources\", \"Pilbara\", \"Bowen Basin\", \"iron ore\", \"gold mine\", \"copper mine\", \"lithium mine\", \"nickel mine\", \"coal mine\", \"rare earth\", \"critical minerals\", \"Western Australia\", \"Queensland\", \"New South Wales\", \"Northern Territory\", \"contractor\", \"subcontractor\", \"EPC\", \"EPCM\", \"procurement\", \"Thiess\", \"Downer\", \"CIMIC\", \"Monadelphous\", \"NRW Holdings\", \"Macmahon\", \"Perenti\", \"Byrnecut\", \"Barminco\", \"Decmil\", \"SRG Global\", \"Bechtel\", \"Fluor\", \"Worley\", \"Wood\", \"Jacobs\", \"hire fleet\", \"equipment hire\", \"rental fleet\", \"civil works\", \"site works\", \"bulk earthworks\", \"tunnel construction\", \"rail construction\", \"wharf construction\", \"port construction\", \"contract awarded\", \"contract signed\", \"defence facility\", \"defence infrastructure\", \"naval base\", \"army base\", \"air force base\", \"defence precinct\", \"sustainment\", \"defence estate\", \"highway\", \"water infrastructure\", \"transmission line\", \"mine construction\", \"processing plant\", \"tailings\", \"concentrator\", \"heap leach\", \"mega project\", \"million dollar\", \"project award\", \"project approval\", \"EIS\", \"environmental approval\", \"feasibility study\", \"DFS\", \"BFS\", \"PFS\", \"trenchless\", \"HDD\", \"horizontal directional drilling\", \"directional drilling\", \"air dryer\", \"refrigerant dryer\", \"desiccant dryer\", \"air drying\", \"line drying\", \"pipe drying\", \"pipeline drying\", \"drying of pipeline\", \"moisture separator\", \"moisture trap\", \"dew point\", \"dew-point\", \"instrument air\", \"instrument-air\", \"instrument quality air\", \"control air\", \"control valve air\", \"oil-free air\", \"oil free air\", \"iso 8573\", \"moisture-sensitive\", \"moisture sensitive\", \"nitrogen\", \"nitrogen gas\", \"n2 membrane\", \"nitrogen membrane\", \"nitrogen generator\", \"nitrogen purging\", \"pipeline purging\", \"purging\", \"inerting\", \"inert gas\", \"inert atmosphere\", \"pipeline testing\", \"pipeline pressure test\", \"pneumatic pressure test\", \"hydrostatic testing\", \"hydrostatic pressure test\", \"pressure testing\", \"pre-commissioning\", \"pre commissioning\", \"precommissioning\", \"pipeline pre-commissioning\", \"dry-out\", \"dryout\", \"pipeline dry-out\", \"booster compressor\", \"pressure booster\", \"gas booster\", \"air booster\", \"high pressure testing\", \"high-pressure test\", \"high pressure air\", \"pipeline commissioning\", \"pipeline dewatering\", \"pipeline cleaning\", \"pipeline gauging\", \"pigging\", \"pig launcher\", \"pig receiver\", \"subsea pipeline\", \"export pipeline\", \"gas export\", \"water well\", \"waterwell\", \"water bore\", \"groundwater bore\", \"bore hole\", \"borehole\", \"dewatering bore\", \"water well drilling\", \"bore drilling\", \"water supply bore\", \"piling\", \"driven pile\", \"bored pile\", \"CFA pile\", \"sheet pile\", \"foundation pile\", \"piling rig\", \"pile driving\", \"pile installation\", \"deep foundation\", \"shutdown\", \"turnaround\", \"planned outage\", \"maintenance shutdown\", \"plant turnaround\", \"annual shutdown\", \"plant shutdown\", \"facility shutdown\", \"refinery shutdown\", \"scheduled shutdown\", \"maintenance outage\", \"plant maintenance\", \"abrasive blasting\", \"grit blasting\", \"surface preparation\", \"blast and paint\", \"corrosion protection\", \"protective coating\", \"blast cleaning\", \"sand blasting\", \"steel preparation\", \"surface treatment\", \"coating application\", \"site air\", \"construction air\", \"temporary air supply\", \"plant air\", \"workshop air\", \"temporary compressor\", \"hire compressor\", \"rental compressor\", \"portable air hire\", \"air supply contract\", \"compressed air supply\", \"commissioning air\", \"leak testing\", \"high-pressure testing\", \"nitrogen purge\", \"pipeline purge\", \"gas purge\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]\t[\"Portable Compressor\", \"Booster Compressor\", \"Drill Rig\", \"Air Treatment\", \"Lighting Tower\"]\t[\"WA\", \"QLD\", \"NSW\", \"SA\", \"NT\", \"VIC\", \"TAS\"]\t1\t2026-02-11 08:45:56\t2026-05-08 02:45:40",
+    "90001\tPT All Capital Sales\tUmbrella business line covering all Power Technique capital sales lanes: Portable Air, Pumps, PAL, and BESS.\t[\"portable air\", \"compressor\", \"pump\", \"dewatering\", \"generator\", \"lighting tower\", \"BESS\", \"battery\", \"PAL\", \"power\", \"PT capital\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]\t[\"Portable Air Compressor\", \"Dewatering Pump\", \"Generator\", \"Lighting Tower\", \"BESS\", \"Power Pack\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\", \"SA\", \"VIC\"]\t1\t2026-04-21 12:49:17\t2026-04-21 12:49:17",
+    "30001\tPump (Flow)\tDewatering pumps, submersible pumps, and wellpoint systems for mining, construction, and flood recovery. PAS and WEDA series.\t[\"dewatering pump\", \"submersible pump\", \"wellpoint dewatering\", \"pump station\", \"water pump\", \"mine dewatering\", \"flood pump\", \"centrifugal pump\", \"drainage pump\", \"slurry pump\", \"water management\", \"pit dewatering\", \"water treatment\", \"wastewater\", \"sewage\", \"stormwater\", \"irrigation\", \"desalination\", \"water infrastructure\", \"water pipeline\", \"water supply\", \"dam\", \"reservoir\", \"flood mitigation\", \"flood protection\", \"tailings\", \"tailings dam\", \"process water\", \"recycled water\", \"pump\", \"pumping\", \"flow control\", \"valve\", \"pipe\", \"TasWater\", \"SA Water\", \"Sydney Water\", \"Melbourne Water\", \"Water Corporation\"]\t[\"mining\", \"infrastructure\", \"energy\"]\t[\"Dewatering Pump\", \"Submersible Pump\", \"Wellpoint System\", \"Centrifugal Pump\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\", \"SA\"]\t1\t2026-02-11 09:57:15\t2026-02-11 14:36:40",
+    "4\tVacuum Solutions\tVacuum pumps and systems for semiconductor, food packaging, and industrial processes.\t[\"vacuum pump\", \"vacuum system\", \"semiconductor\", \"food packaging\", \"vacuum technology\", \"dry vacuum\", \"liquid ring\", \"rotary vane\", \"central vacuum\", \"vacuum conveying\", \"packaging line\"]\t[\"infrastructure\", \"energy\"]\t[\"Dry Vacuum Pump\", \"Liquid Ring Pump\", \"Rotary Vane Pump\", \"Vacuum Booster\", \"Central Vacuum System\"]\t[\"NSW\", \"VIC\", \"QLD\"]\t0\t2026-02-11 08:45:57\t2026-02-11 08:59:45"
+  ],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nuserId\tint\tNO\tUNI\tNULL\t\ncompanyName\tvarchar(256)\tYES\t\tNULL\t\ncompanyWebsite\tvarchar(512)\tYES\t\tNULL\t\nterritories\tjson\tYES\t\tNULL\t\nremoteMetroOnly\tvarchar(16)\tYES\t\tNULL\t\nindustries\tjson\tYES\t\tNULL\t\nofferCategories\tjson\tYES\t\tNULL\t\ncustomerTypes\tjson\tYES\t\tNULL\t\ndealSizeMin\tvarchar(32)\tYES\t\tNULL\t\ndealSizeMax\tvarchar(32)\tYES\t\tNULL\t\nstageTiming\tjson\tYES\t\tNULL\t\nbuyerRoles\tjson\tYES\t\tNULL\t\nkeyAccounts\tjson\tYES\t\tNULL\t\nexcludeAccounts\tjson\tYES\t\tNULL\t\naiSegments\tjson\tYES\t\tNULL\t\nonboardingCompleted\ttinyint(1)\tNO\t\t0\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nassignedBusinessLines\tjson\tYES\t\tNULL\t\nsectorFocus\tjson\tYES\t\tNULL\t\nsalesMotion\tenum('direct_only','mixed')\tYES\t\tdirect_only\t\nid\tname\tdescription\tkeywords\tsectors\tequipmentTypes\tdefaultTerritories\tisActive\tcreatedAt\tupdatedAt\n30002\tBESS\tBattery Energy Storage Systems for mining, construction, and renewable energy projects. ZenergiZe range, hybrid power solutions, and peak shaving.\t[\"battery energy storage\", \"BESS\", \"energy storage system\", \"battery storage\", \"hybrid power\", \"solar hybrid\", \"ZenergiZe\", \"peak shaving\", \"load management\", \"microgrid\", \"off-grid power\", \"renewable energy storage\", \"lithium battery\", \"containerised power\", \"battery\", \"energy storage\", \"grid scale battery\", \"utility scale battery\", \"MW battery\", \"MWh\", \"gigawatt\", \"GW\", \"megawatt\", \"solar project\", \"wind project\", \"renewable project\", \"clean energy project\", \"AEMO\", \"NEM\", \"national electricity market\", \"capacity market\", \"inverter\", \"power conversion\", \"grid stability\", \"frequency control\", \"virtual power plant\", \"VPP\", \"distributed energy\", \"DER\", \"Neoen\", \"AGL\", \"Origin Energy\", \"Snowy Hydro\", \"Transgrid\", \"ElectraNet\", \"Powerlink\", \"Ausgrid\", \"Endeavour Energy\"]\t[\"mining\", \"infrastructure\", \"energy\"]\t[\"Battery Energy Storage\", \"Hybrid Power System\", \"Containerised Power\", \"Microgrid\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\", \"SA\"]\t1\t2026-02-11 09:57:15\t2026-02-11 14:36:40\n2\tIndustrial Compressors\tStationary compressors for manufacturing, process industries, food & beverage, and energy. GA, ZR, ZT series.\t[\"industrial compressor\", \"stationary compressor\", \"oil-free compressor\", \"screw compressor\", \"centrifugal compressor\", \"manufacturing plant\", \"process air\", \"instrument air\", \"plant air\", \"nitrogen generation\", \"food processing\", \"pharmaceutical\", \"semiconductor\", \"data centre\", \"compressed air system\", \"energy efficiency\", \"VSD compressor\"]\t[\"energy\", \"infrastructure\"]\t[\"Screw Compressor\", \"Centrifugal Compressor\", \"Oil-Free Compressor\", \"Nitrogen Generator\", \"Air Dryer\"]\t[\"NSW\", \"VIC\", \"QLD\", \"SA\", \"WA\"]\t0\t2026-02-11 08:45:56\t2026-02-11 08:59:45\n3\tPAL\tPower generators, lighting towers, and BESS (Battery Energy Storage Systems). QAS, QES series generators, HiLight towers, and ZenergiZe BESS.\t[\"generator\", \"power generation\", \"diesel generator\", \"portable generator\", \"lighting tower\", \"light tower\", \"temporary power\", \"standby power\", \"backup power\", \"construction power\", \"mine site power\", \"battery energy storage\", \"BESS\", \"energy storage system\", \"hybrid power\", \"solar hybrid\", \"ZenergiZe\", \"power supply\", \"genset\", \"power plant\", \"electricity generation\", \"off-grid\", \"remote power\", \"site power\", \"emergency power\", \"load shedding\", \"solar farm\", \"wind farm\", \"renewable energy\", \"clean energy\", \"data centre\", \"data center\", \"grid connection\", \"transmission line\", \"substation\", \"transformer\", \"electrical infrastructure\", \"hydrogen\", \"green hydrogen\", \"electrolysis\", \"fuel cell\", \"defence facility\", \"military base\", \"defence contract\", \"construction site\", \"civil works\", \"site works\", \"tunnel\", \"underground\", \"remote site\", \"major project\", \"mega project\", \"billion dollar\", \"hospital\"]\t[\"mining\", \"infrastructure\", \"energy\"]\t[\"Diesel Generator\", \"Lighting Tower\", \"Battery Energy Storage\", \"Hybrid Power\", \"Power Pack\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\"]\t1\t2026-02-11 08:45:57\t2026-03-11 02:23:38\n1\tPortable Air\tPortable compressors for mining, construction, drilling, and infrastructure projects. Key products include XAS, XATS, XAHS, and XAVS series.\t[\"compressor\", \"portable air\", \"compressed air\", \"drilling\", \"RC drilling\", \"diamond drilling\", \"blasting\", \"pneumatic\", \"CFM\", \"air compressor\", \"sandblasting\", \"shotcrete\", \"tunnelling\", \"mining equipment\", \"construction equipment\", \"atlas copco\", \"portable compressor\", \"air receiver\", \"aftercooler\", \"drill rig\", \"mining project\", \"mine site\", \"mine expansion\", \"mine development\", \"mining contract\", \"mining contractor\", \"mining award\", \"mineral exploration\", \"exploration drilling\", \"quarry\", \"quarrying\", \"aggregate\", \"crusher\", \"screening plant\", \"tunnel boring\", \"TBM\", \"underground mining\", \"open pit\", \"open cut\", \"construction project\", \"infrastructure project\", \"road construction\", \"highway construction\", \"rail project\", \"bridge construction\", \"dam construction\", \"pipeline construction\", \"gas pipeline\", \"LNG\", \"oil and gas\", \"offshore\", \"onshore\", \"defence project\", \"defence contract\", \"military base\", \"concrete\", \"formwork\", \"earthworks\", \"excavation\", \"major project\", \"billion dollar\", \"contract award\", \"contract win\", \"mobilisation\", \"mobilization\", \"site preparation\", \"ground works\", \"BHP\", \"Rio Tinto\", \"Fortescue\", \"South32\", \"Newmont\", \"Gold Fields\", \"Glencore\", \"Anglo American\", \"Mineral Resources\", \"Pilbara\", \"Bowen Basin\", \"iron ore\", \"gold mine\", \"copper mine\", \"lithium mine\", \"nickel mine\", \"coal mine\", \"rare earth\", \"critical minerals\", \"Western Australia\", \"Queensland\", \"New South Wales\", \"Northern Territory\", \"contractor\", \"subcontractor\", \"EPC\", \"EPCM\", \"procurement\", \"Thiess\", \"Downer\", \"CIMIC\", \"Monadelphous\", \"NRW Holdings\", \"Macmahon\", \"Perenti\", \"Byrnecut\", \"Barminco\", \"Decmil\", \"SRG Global\", \"Bechtel\", \"Fluor\", \"Worley\", \"Wood\", \"Jacobs\", \"hire fleet\", \"equipment hire\", \"rental fleet\", \"civil works\", \"site works\", \"bulk earthworks\", \"tunnel construction\", \"rail construction\", \"wharf construction\", \"port construction\", \"contract awarded\", \"contract signed\", \"defence facility\", \"defence infrastructure\", \"naval base\", \"army base\", \"air force base\", \"defence precinct\", \"sustainment\", \"defence estate\", \"highway\", \"water infrastructure\", \"transmission line\", \"mine construction\", \"processing plant\", \"tailings\", \"concentrator\", \"heap leach\", \"mega project\", \"million dollar\", \"project award\", \"project approval\", \"EIS\", \"environmental approval\", \"feasibility study\", \"DFS\", \"BFS\", \"PFS\", \"trenchless\", \"HDD\", \"horizontal directional drilling\", \"directional drilling\", \"air dryer\", \"refrigerant dryer\", \"desiccant dryer\", \"air drying\", \"line drying\", \"pipe drying\", \"pipeline drying\", \"drying of pipeline\", \"moisture separator\", \"moisture trap\", \"dew point\", \"dew-point\", \"instrument air\", \"instrument-air\", \"instrument quality air\", \"control air\", \"control valve air\", \"oil-free air\", \"oil free air\", \"iso 8573\", \"moisture-sensitive\", \"moisture sensitive\", \"nitrogen\", \"nitrogen gas\", \"n2 membrane\", \"nitrogen membrane\", \"nitrogen generator\", \"nitrogen purging\", \"pipeline purging\", \"purging\", \"inerting\", \"inert gas\", \"inert atmosphere\", \"pipeline testing\", \"pipeline pressure test\", \"pneumatic pressure test\", \"hydrostatic testing\", \"hydrostatic pressure test\", \"pressure testing\", \"pre-commissioning\", \"pre commissioning\", \"precommissioning\", \"pipeline pre-commissioning\", \"dry-out\", \"dryout\", \"pipeline dry-out\", \"booster compressor\", \"pressure booster\", \"gas booster\", \"air booster\", \"high pressure testing\", \"high-pressure test\", \"high pressure air\", \"pipeline commissioning\", \"pipeline dewatering\", \"pipeline cleaning\", \"pipeline gauging\", \"pigging\", \"pig launcher\", \"pig receiver\", \"subsea pipeline\", \"export pipeline\", \"gas export\", \"water well\", \"waterwell\", \"water bore\", \"groundwater bore\", \"bore hole\", \"borehole\", \"dewatering bore\", \"water well drilling\", \"bore drilling\", \"water supply bore\", \"piling\", \"driven pile\", \"bored pile\", \"CFA pile\", \"sheet pile\", \"foundation pile\", \"piling rig\", \"pile driving\", \"pile installation\", \"deep foundation\", \"shutdown\", \"turnaround\", \"planned outage\", \"maintenance shutdown\", \"plant turnaround\", \"annual shutdown\", \"plant shutdown\", \"facility shutdown\", \"refinery shutdown\", \"scheduled shutdown\", \"maintenance outage\", \"plant maintenance\", \"abrasive blasting\", \"grit blasting\", \"surface preparation\", \"blast and paint\", \"corrosion protection\", \"protective coating\", \"blast cleaning\", \"sand blasting\", \"steel preparation\", \"surface treatment\", \"coating application\", \"site air\", \"construction air\", \"temporary air supply\", \"plant air\", \"workshop air\", \"temporary compressor\", \"hire compressor\", \"rental compressor\", \"portable air hire\", \"air supply contract\", \"compressed air supply\", \"commissioning air\", \"leak testing\", \"high-pressure testing\", \"nitrogen purge\", \"pipeline purge\", \"gas purge\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]\t[\"Portable Compressor\", \"Booster Compressor\", \"Drill Rig\", \"Air Treatment\", \"Lighting Tower\"]\t[\"WA\", \"QLD\", \"NSW\", \"SA\", \"NT\", \"VIC\", \"TAS\"]\t1\t2026-02-11 08:45:56\t2026-05-08 02:45:40\n90001\tPT All Capital Sales\tUmbrella business line covering all Power Technique capital sales lanes: Portable Air, Pumps, PAL, and BESS.\t[\"portable air\", \"compressor\", \"pump\", \"dewatering\", \"generator\", \"lighting tower\", \"BESS\", \"battery\", \"PAL\", \"power\", \"PT capital\"]\t[\"mining\", \"oil_gas\", \"infrastructure\", \"energy\", \"defence\"]\t[\"Portable Air Compressor\", \"Dewatering Pump\", \"Generator\", \"Lighting Tower\", \"BESS\", \"Power Pack\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\", \"SA\", \"VIC\"]\t1\t2026-04-21 12:49:17\t2026-04-21 12:49:17\n30001\tPump (Flow)\tDewatering pumps, submersible pumps, and wellpoint systems for mining, construction, and flood recovery. PAS and WEDA series.\t[\"dewatering pump\", \"submersible pump\", \"wellpoint dewatering\", \"pump station\", \"water pump\", \"mine dewatering\", \"flood pump\", \"centrifugal pump\", \"drainage pump\", \"slurry pump\", \"water management\", \"pit dewatering\", \"water treatment\", \"wastewater\", \"sewage\", \"stormwater\", \"irrigation\", \"desalination\", \"water infrastructure\", \"water pipeline\", \"water supply\", \"dam\", \"reservoir\", \"flood mitigation\", \"flood protection\", \"tailings\", \"tailings dam\", \"process water\", \"recycled water\", \"pump\", \"pumping\", \"flow control\", \"valve\", \"pipe\", \"TasWater\", \"SA Water\", \"Sydney Water\", \"Melbourne Water\", \"Water Corporation\"]\t[\"mining\", \"infrastructure\", \"energy\"]\t[\"Dewatering Pump\", \"Submersible Pump\", \"Wellpoint System\", \"Centrifugal Pump\"]\t[\"WA\", \"QLD\", \"NSW\", \"NT\", \"SA\"]\t1\t2026-02-11 09:57:15\t2026-02-11 14:36:40\n4\tVacuum Solutions\tVacuum pumps and systems for semiconductor, food packaging, and industrial processes.\t[\"vacuum pump\", \"vacuum system\", \"semiconductor\", \"food packaging\", \"vacuum technology\", \"dry vacuum\", \"liquid ring\", \"rotary vane\", \"central vacuum\", \"vacuum conveying\", \"packaging line\"]\t[\"infrastructure\", \"energy\"]\t[\"Dry Vacuum Pump\", \"Liquid Ring Pump\", \"Rotary Vane Pump\", \"Vacuum Booster\", \"Central Vacuum System\"]\t[\"NSW\", \"VIC\", \"QLD\"]\t0\t2026-02-11 08:45:57\t2026-02-11 08:59:45\n",
+  "stderr": "",
+  "execution_time_ms": 2116
+}

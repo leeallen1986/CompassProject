@@ -1,0 +1,30 @@
+{
+  "query": "SELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines, up.industries, up.offerCategories FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE u.id IN (2550006, 3630009);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT u.id, u.name, u.email, u.role, up.territories, up.assignedBusinessLines, up.industries, up.offerCategories FROM users u LEFT JOIN userProfiles up ON u.id = up.userId WHERE u.id IN (2550006, 3630009);",
+  "rows": [
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor",
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user",
+      "territories": "[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]",
+      "assignedBusinessLines": "[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"water\", \"civils\", \"infrastructure\"]",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tterritories\tassignedBusinessLines\tindustries\tofferCategories\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\t[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]\t[\"equipment\", \"rentals\", \"services\"]\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"mining_exploration\", \"mining_production\", \"water\", \"civils\", \"infrastructure\"]\t[\"equipment\", \"rentals\", \"services\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1792
+}

@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, name, email, role FROM users WHERE name LIKE '%Brett%' OR name LIKE '%Dan%' OR name LIKE '%Daniel%' OR email LIKE '%brett%' OR email LIKE '%dan%' ORDER BY name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SELECT id, name, email, role FROM users WHERE name LIKE '%Brett%' OR name LIKE '%Dan%' OR name LIKE '%Daniel%' OR email LIKE '%brett%' OR email LIKE '%dan%' ORDER BY name;",
+  "rows": [
+    {
+      "id": "2550006",
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "role": "distributor"
+    },
+    {
+      "id": "3630009",
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "role": "user"
+    },
+    {
+      "id": "2820073",
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n2550006\tBrett Hansen\tbrett.hansen@sykesgroup.com\tdistributor\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 1905
+}
