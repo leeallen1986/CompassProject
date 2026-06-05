@@ -1,0 +1,80 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.location,\n  p.stage,\n  p.value,\n  p.timeline,\n  LEFT(p.overview, 250) as overview,\n  LEFT(p.opportunityNote, 200) as opportunityNote,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReady,\n  SUM(CASE WHEN c.enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pendingEnrichment,\n  SUM(CASE WHEN c.enrichmentStatus = 'not_found' OR c.enrichmentStatus = 'failed' THEN 1 ELSE 0 END) as notFound\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE JSON_CONTAINS(p.matchedBusinessLines, '90002')\nAND p.priority = 'warm'\nAND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\nAND p.id NOT IN (120007, 660045, 660054, 990051, 1200064)\nGROUP BY p.id, p.name, p.location, p.stage, p.value, p.timeline, p.overview, p.opportunityNote\nORDER BY p.id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.location,\n  p.stage,\n  p.value,\n  p.timeline,\n  LEFT(p.overview, 250) as overview,\n  LEFT(p.opportunityNote, 200) as opportunityNote,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReady,\n  SUM(CASE WHEN c.enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pendingEnrichment,\n  SUM(CASE WHEN c.enrichmentStatus = 'not_found' OR c.enrichmentStatus = 'failed' THEN 1 ELSE 0 END) as notFound\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE JSON_CONTAINS(p.matchedBusinessLines, '90002')\nAND p.priority = 'warm'\nAND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\nAND p.id NOT IN (120007, 660045, 660054, 990051, 1200064)\nGROUP BY p.id, p.name, p.location, p.stage, p.value, p.timeline, p.overview, p.opportunityNote\nORDER BY p.id;\n",
+  "rows": [
+    {
+      "id": "1200065",
+      "name": "Ichthys LNG Project Operations",
+      "location": "Darwin, NT",
+      "stage": "Operational - potential industrial action",
+      "value": "Undisclosed",
+      "timeline": "Ongoing operations, potential for immediate disruption",
+      "overview": "Workers at INPEX's Ichthys LNG Project have voted in favour of strike action, indicating ongoing industrial relations issues. The project is a large-scale LNG production facility.",
+      "opportunityNote": "Monitor for potential disruptions due to industrial action which may lead to increased demand for rental equipment or temporary power solutions.",
+      "totalContacts": "0",
+      "sendReady": "0",
+      "pendingEnrichment": "0",
+      "notFound": "0"
+    },
+    {
+      "id": "1290001",
+      "name": "Browse LNG Project",
+      "location": "Kimberley, WA",
+      "stage": "Planning/Approval",
+      "value": "A$48.7 billion ($35.2 billion)",
+      "timeline": "Not specified, currently in cost estimation phase.",
+      "overview": "Woodside expects its Browse LNG project, which would deliver natural gas from the Calliance, Torosa, and Brecknock fields to the existing Karratha gas plant, to cost A$48.7 billion ($35.2 billion).",
+      "opportunityNote": "Large-scale LNG project with significant CAPEX. Potential for power generation, portable air for construction/maintenance, and pumps. Monitor for FID and contractor awards.",
+      "totalContacts": "0",
+      "sendReady": "0",
+      "pendingEnrichment": "0",
+      "notFound": "0"
+    },
+    {
+      "id": "1350009",
+      "name": "SA Water network expansion to Wellington East",
+      "location": "Wellington East, SA",
+      "stage": "Upgrade/Construction",
+      "value": "Unknown",
+      "timeline": "Soon",
+      "overview": "Around 220 homes in Wellington East will gain access to safe, treated drinking water as the township’s supply is connected to the wider SA Water network. The upgrade involves expanding the network.",
+      "opportunityNote": "SA Water is expanding its network to connect Wellington East homes to treated drinking water. This will involve pipeline installation and potentially other infrastructure upgrades. Opportunity for pum",
+      "totalContacts": "1",
+      "sendReady": "1",
+      "pendingEnrichment": "0",
+      "notFound": "0"
+    },
+    {
+      "id": "1680001",
+      "name": "Ichthys LNG Export Terminal Operations",
+      "location": "Darwin, NT",
+      "stage": "Operational (industrial action)",
+      "value": "Unknown",
+      "timeline": "Ongoing",
+      "overview": "Workers at the Inpex-operated Ichthys liquefied natural gas (LNG) export terminal have started industrial action over pay and conditions. This indicates ongoing operational activity at the facility.",
+      "opportunityNote": "Monitor the situation for potential operational disruptions or maintenance needs that might require temporary power, air, or dewatering solutions. Industrial action could lead to increased demand for ",
+      "totalContacts": "0",
+      "sendReady": "0",
+      "pendingEnrichment": "0",
+      "notFound": "0"
+    },
+    {
+      "id": "1740001",
+      "name": "Geelong LNG Import Terminal",
+      "location": "Geelong, VIC",
+      "stage": "Environmental approval secured",
+      "value": "Unknown",
+      "timeline": "Ongoing approvals, construction timeline not yet specified.",
+      "overview": "Viva Energy has secured another environmental approval for its proposed FSRU-based LNG import terminal in Geelong, Victoria. This project involves importing liquefied natural gas via a Floating Storage and Regasification Unit (FSRU) to supply the Aus",
+      "opportunityNote": "This project is in the approval stage, indicating future construction and equipment needs. Atlas Copco PT can target the project owner (Viva Energy) for direct CAPEX opportunities for power generation",
+      "totalContacts": "1",
+      "sendReady": "1",
+      "pendingEnrichment": "0",
+      "notFound": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tstage\tvalue\ttimeline\toverview\topportunityNote\ttotalContacts\tsendReady\tpendingEnrichment\tnotFound\n1200065\tIchthys LNG Project Operations\tDarwin, NT\tOperational - potential industrial action\tUndisclosed\tOngoing operations, potential for immediate disruption\tWorkers at INPEX's Ichthys LNG Project have voted in favour of strike action, indicating ongoing industrial relations issues. The project is a large-scale LNG production facility.\tMonitor for potential disruptions due to industrial action which may lead to increased demand for rental equipment or temporary power solutions.\t0\t0\t0\t0\n1290001\tBrowse LNG Project\tKimberley, WA\tPlanning/Approval\tA$48.7 billion ($35.2 billion)\tNot specified, currently in cost estimation phase.\tWoodside expects its Browse LNG project, which would deliver natural gas from the Calliance, Torosa, and Brecknock fields to the existing Karratha gas plant, to cost A$48.7 billion ($35.2 billion).\tLarge-scale LNG project with significant CAPEX. Potential for power generation, portable air for construction/maintenance, and pumps. Monitor for FID and contractor awards.\t0\t0\t0\t0\n1350009\tSA Water network expansion to Wellington East\tWellington East, SA\tUpgrade/Construction\tUnknown\tSoon\tAround 220 homes in Wellington East will gain access to safe, treated drinking water as the township’s supply is connected to the wider SA Water network. The upgrade involves expanding the network.\tSA Water is expanding its network to connect Wellington East homes to treated drinking water. This will involve pipeline installation and potentially other infrastructure upgrades. Opportunity for pum\t1\t1\t0\t0\n1680001\tIchthys LNG Export Terminal Operations\tDarwin, NT\tOperational (industrial action)\tUnknown\tOngoing\tWorkers at the Inpex-operated Ichthys liquefied natural gas (LNG) export terminal have started industrial action over pay and conditions. This indicates ongoing operational activity at the facility.\tMonitor the situation for potential operational disruptions or maintenance needs that might require temporary power, air, or dewatering solutions. Industrial action could lead to increased demand for \t0\t0\t0\t0\n1740001\tGeelong LNG Import Terminal\tGeelong, VIC\tEnvironmental approval secured\tUnknown\tOngoing approvals, construction timeline not yet specified.\tViva Energy has secured another environmental approval for its proposed FSRU-based LNG import terminal in Geelong, Victoria. This project involves importing liquefied natural gas via a Floating Storage and Regasification Unit (FSRU) to supply the Aus\tThis project is in the approval stage, indicating future construction and equipment needs. Atlas Copco PT can target the project owner (Viva Energy) for direct CAPEX opportunities for power generation\t1\t1\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1789
+}

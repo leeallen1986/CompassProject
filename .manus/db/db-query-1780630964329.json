@@ -1,0 +1,108 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.priority,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReady\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE JSON_CONTAINS(p.matchedBusinessLines, '90002')\nAND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\nGROUP BY p.id, p.name, p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm'), p.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.priority,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReady\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE JSON_CONTAINS(p.matchedBusinessLines, '90002')\nAND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\nGROUP BY p.id, p.name, p.priority\nORDER BY FIELD(p.priority, 'hot', 'warm'), p.name;\n",
+  "rows": [
+    {
+      "id": "570024",
+      "name": "Gorgon and Jansz feed gas pipeline system and wells commissioning",
+      "priority": "hot",
+      "totalContacts": "174",
+      "sendReady": "12"
+    },
+    {
+      "id": "990051",
+      "name": "Gorgon Backfill Fields Development",
+      "priority": "hot",
+      "totalContacts": "2",
+      "sendReady": "2"
+    },
+    {
+      "id": "1680001",
+      "name": "Ichthys LNG Export Terminal Operations",
+      "priority": "hot",
+      "totalContacts": "0",
+      "sendReady": "0"
+    },
+    {
+      "id": "1200065",
+      "name": "Ichthys LNG Project Operations",
+      "priority": "hot",
+      "totalContacts": "5",
+      "sendReady": "5"
+    },
+    {
+      "id": "1350035",
+      "name": "Origin/APLNG Ironbark Expansion",
+      "priority": "hot",
+      "totalContacts": "7",
+      "sendReady": "6"
+    },
+    {
+      "id": "1200064",
+      "name": "Pluto LNG Facility Operations",
+      "priority": "hot",
+      "totalContacts": "3",
+      "sendReady": "2"
+    },
+    {
+      "id": "660054",
+      "name": "Pluto LNG Flaring Technology Upgrade",
+      "priority": "hot",
+      "totalContacts": "8",
+      "sendReady": "8"
+    },
+    {
+      "id": "1200067",
+      "name": "Scarborough Energy Project",
+      "priority": "hot",
+      "totalContacts": "4",
+      "sendReady": "3"
+    },
+    {
+      "id": "120229",
+      "name": "Scarborough Gas Project",
+      "priority": "hot",
+      "totalContacts": "292",
+      "sendReady": "4"
+    },
+    {
+      "id": "1290001",
+      "name": "Browse LNG Project",
+      "priority": "warm",
+      "totalContacts": "5",
+      "sendReady": "5"
+    },
+    {
+      "id": "120007",
+      "name": "Chevron Australia Operations — NWS & Gorgon",
+      "priority": "warm",
+      "totalContacts": "15",
+      "sendReady": "2"
+    },
+    {
+      "id": "1740001",
+      "name": "Geelong LNG Import Terminal",
+      "priority": "warm",
+      "totalContacts": "1",
+      "sendReady": "1"
+    },
+    {
+      "id": "1350009",
+      "name": "SA Water network expansion to Wellington East",
+      "priority": "warm",
+      "totalContacts": "1",
+      "sendReady": "1"
+    },
+    {
+      "id": "660045",
+      "name": "Viva Energy LNG Terminal",
+      "priority": "warm",
+      "totalContacts": "3",
+      "sendReady": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tpriority\ttotalContacts\tsendReady\n570024\tGorgon and Jansz feed gas pipeline system and wells commissioning\thot\t174\t12\n990051\tGorgon Backfill Fields Development\thot\t2\t2\n1680001\tIchthys LNG Export Terminal Operations\thot\t0\t0\n1200065\tIchthys LNG Project Operations\thot\t5\t5\n1350035\tOrigin/APLNG Ironbark Expansion\thot\t7\t6\n1200064\tPluto LNG Facility Operations\thot\t3\t2\n660054\tPluto LNG Flaring Technology Upgrade\thot\t8\t8\n1200067\tScarborough Energy Project\thot\t4\t3\n120229\tScarborough Gas Project\thot\t292\t4\n1290001\tBrowse LNG Project\twarm\t5\t5\n120007\tChevron Australia Operations — NWS & Gorgon\twarm\t15\t2\n1740001\tGeelong LNG Import Terminal\twarm\t1\t1\n1350009\tSA Water network expansion to Wellington East\twarm\t1\t1\n660045\tViva Energy LNG Terminal\twarm\t3\t3\n",
+  "stderr": "",
+  "execution_time_ms": 2013
+}

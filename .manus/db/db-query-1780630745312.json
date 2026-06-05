@@ -1,0 +1,46 @@
+{
+  "query": "\nSELECT u.name, up.assignedBusinessLines\nFROM users u\nINNER JOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Paul Lueth', 'Ryan Pemberton', 'Daniel Zec', 'Leo Williams ', 'Lee', 'Brett Hansen', 'Tim Oneil-Shaw ', 'Egor Ivanov', 'Kevin Arnandes')\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.name, up.assignedBusinessLines\nFROM users u\nINNER JOIN userProfiles up ON up.userId = u.id\nWHERE u.name IN ('Paul Lueth', 'Ryan Pemberton', 'Daniel Zec', 'Leo Williams ', 'Lee', 'Brett Hansen', 'Tim Oneil-Shaw ', 'Egor Ivanov', 'Kevin Arnandes')\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "name": "Brett Hansen",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]"
+    },
+    {
+      "name": "Daniel Zec",
+      "assignedBusinessLines": "[\"Portable Air\", \"Specialty Air\"]"
+    },
+    {
+      "name": "Egor Ivanov",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "assignedBusinessLines": "[\"BESS\", \"Portable Air\"]"
+    },
+    {
+      "name": "Lee",
+      "assignedBusinessLines": "[\"Portable Air\", \"Specialty Air\"]"
+    },
+    {
+      "name": "Leo Williams ",
+      "assignedBusinessLines": "[\"Portable Air\", \"Specialty Air\"]"
+    },
+    {
+      "name": "Paul Lueth",
+      "assignedBusinessLines": "[\"Portable Air\", \"Specialty Air\"]"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "assignedBusinessLines": "[\"Portable Air\", \"PT Capital Sales\", \"Specialty Air\"]"
+    },
+    {
+      "name": "Tim Oneil-Shaw ",
+      "assignedBusinessLines": "[\"Portable Air\", \"PAL\", \"BESS\", \"Pump (Flow)\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tassignedBusinessLines\nBrett Hansen\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\nDaniel Zec\t[\"Portable Air\", \"Specialty Air\"]\nEgor Ivanov\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\nKevin Arnandes\t[\"BESS\", \"Portable Air\"]\nLee\t[\"Portable Air\", \"Specialty Air\"]\nLeo Williams \t[\"Portable Air\", \"Specialty Air\"]\nPaul Lueth\t[\"Portable Air\", \"Specialty Air\"]\nRyan Pemberton\t[\"Portable Air\", \"PT Capital Sales\", \"Specialty Air\"]\nTim Oneil-Shaw \t[\"Portable Air\", \"PAL\", \"BESS\", \"Pump (Flow)\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1814
+}

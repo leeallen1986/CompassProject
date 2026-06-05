@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Promote to hot: Gorgon Backfill (active drilling), Pluto LNG Flaring Upgrade (installation this year), \n-- Pluto LNG Facility Ops (industrial action = immediate opportunity), Ichthys LNG Export Terminal (industrial action = immediate)\nUPDATE projects \nSET priority = 'hot'\nWHERE id IN (990051, 660054, 1200064, 1680001);\n\n-- Also promote Ichthys LNG Project Operations (same industrial action trigger)\nUPDATE projects \nSET priority = 'hot'\nWHERE id = 1200065;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Promote to hot: Gorgon Backfill (active drilling), Pluto LNG Flaring Upgrade (installation this year), \n-- Pluto LNG Facility Ops (industrial action = immediate opportunity), Ichthys LNG Export Terminal (industrial action = immediate)\nUPDATE projects \nSET priority = 'hot'\nWHERE id IN (990051, 660054, 1200064, 1680001);\n\n-- Also promote Ichthys LNG Project Operations (same industrial action trigger)\nUPDATE projects \nSET priority = 'hot'\nWHERE id = 1200065;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2003
+}
