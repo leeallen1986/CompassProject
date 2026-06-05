@@ -1,0 +1,24 @@
+{
+  "query": "\nSELECT id, status, startedAt, completedAt, \n       feedsFetched, feedErrors, articlesIngested, projectsCreated,\n       errors, currentStep, lastActivityNote, triggeredBy\nFROM pipelineRuns \nWHERE id = 1650001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, status, startedAt, completedAt, \n       feedsFetched, feedErrors, articlesIngested, projectsCreated,\n       errors, currentStep, lastActivityNote, triggeredBy\nFROM pipelineRuns \nWHERE id = 1650001;\n",
+  "rows": [
+    {
+      "id": "1650001",
+      "status": "failed",
+      "startedAt": "2026-06-03 20:00:11",
+      "completedAt": "2026-06-04 08:04:21",
+      "feedsFetched": "37",
+      "feedErrors": "14",
+      "articlesIngested": "141",
+      "projectsCreated": "29",
+      "errors": "[\"Pipeline run timed out or server restarted — marked as failed during cleanup\"]",
+      "currentStep": "Discovery Queue Processing",
+      "lastActivityNote": "Contact enrichment: 0 contacts enriched (9 Apollo credits used).",
+      "triggeredBy": "cron"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tfeedsFetched\tfeedErrors\tarticlesIngested\tprojectsCreated\terrors\tcurrentStep\tlastActivityNote\ttriggeredBy\n1650001\tfailed\t2026-06-03 20:00:11\t2026-06-04 08:04:21\t37\t14\t141\t29\t[\"Pipeline run timed out or server restarted — marked as failed during cleanup\"]\tDiscovery Queue Processing\tContact enrichment: 0 contacts enriched (9 Apollo credits used).\tcron\n",
+  "stderr": "",
+  "execution_time_ms": 1690
+}

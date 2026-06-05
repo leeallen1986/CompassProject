@@ -1,0 +1,90 @@
+{
+  "query": "\nSELECT p.id, p.name, p.location, p.priority, p.matchedBusinessLines, p.lifecycleStatus\nFROM projects p\nWHERE p.priority IN ('hot', 'warm')\nAND (p.location LIKE '%QLD%' OR p.location LIKE '%NT%')\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT p.id, p.name, p.location, p.priority, p.matchedBusinessLines, p.lifecycleStatus\nFROM projects p\nWHERE p.priority IN ('hot', 'warm')\nAND (p.location LIKE '%QLD%' OR p.location LIKE '%NT%')\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "3",
+      "name": "Golding Meandu Coal Mine MSA",
+      "location": "South Burnett, QLD",
+      "priority": "hot",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "4",
+      "name": "BW Opal FPSO / Barossa LNG Commissioning",
+      "location": "Darwin, NT",
+      "priority": "hot",
+      "matchedBusinessLines": "[1, 3]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "5",
+      "name": "Thiess Mount Pleasant Operation Expansion",
+      "location": "Hunter Valley, NSW",
+      "priority": "hot",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "6",
+      "name": "Logan & Gold Coast Faster Rail",
+      "location": "Brisbane-Gold Coast, QLD",
+      "priority": "warm",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "11",
+      "name": "Bowen Basin Coking Coal Operations Extension",
+      "location": "Bowen Basin, QLD",
+      "priority": "warm",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "13",
+      "name": "Callide C Power Station Outage",
+      "location": "Biloela, QLD",
+      "priority": "warm",
+      "matchedBusinessLines": "[1, 3]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "14",
+      "name": "Gladstone LNG Shutdown Season",
+      "location": "Gladstone, QLD",
+      "priority": "warm",
+      "matchedBusinessLines": "[1, 3]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "15",
+      "name": "Eva Copper Mine Project",
+      "location": "Cloncurry, QLD",
+      "priority": "warm",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "30001",
+      "name": "Hunter Valley BESS",
+      "location": "Hunter Valley, NSW",
+      "priority": "warm",
+      "matchedBusinessLines": "[3, 30002]",
+      "lifecycleStatus": "stale"
+    },
+    {
+      "id": "30024",
+      "name": "Sydney Metro West Project (Tunnelling)",
+      "location": "Darling Harbour to Hunter Street, Sydney, NSW",
+      "priority": "hot",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "lifecycleStatus": "stale"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tpriority\tmatchedBusinessLines\tlifecycleStatus\n3\tGolding Meandu Coal Mine MSA\tSouth Burnett, QLD\thot\t[1, 3, 30002, 30001]\tstale\n4\tBW Opal FPSO / Barossa LNG Commissioning\tDarwin, NT\thot\t[1, 3]\tstale\n5\tThiess Mount Pleasant Operation Expansion\tHunter Valley, NSW\thot\t[1, 3, 30002, 30001]\tstale\n6\tLogan & Gold Coast Faster Rail\tBrisbane-Gold Coast, QLD\twarm\t[1, 3, 30002, 30001]\tstale\n11\tBowen Basin Coking Coal Operations Extension\tBowen Basin, QLD\twarm\t[1, 3, 30002, 30001]\tstale\n13\tCallide C Power Station Outage\tBiloela, QLD\twarm\t[1, 3]\tstale\n14\tGladstone LNG Shutdown Season\tGladstone, QLD\twarm\t[1, 3]\tstale\n15\tEva Copper Mine Project\tCloncurry, QLD\twarm\t[1, 3, 30002, 30001]\tstale\n30001\tHunter Valley BESS\tHunter Valley, NSW\twarm\t[3, 30002]\tstale\n30024\tSydney Metro West Project (Tunnelling)\tDarling Harbour to Hunter Street, Sydney, NSW\thot\t[1, 3, 30002, 30001]\tstale\n",
+  "stderr": "",
+  "execution_time_ms": 1747
+}

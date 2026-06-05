@@ -1,0 +1,252 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.location,\n  p.matchedBusinessLines,\n  p.stage,\n  p.actionTier,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReadyContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pendingContacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.priority IN ('hot','warm')\nWHERE p.priority = 'hot'\n  AND (p.lifecycleStatus IS NULL OR p.lifecycleStatus NOT IN ('archived','stale','dead'))\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\nGROUP BY p.id, p.name, p.location, p.matchedBusinessLines, p.stage, p.actionTier\nHAVING sendReadyContacts = 0\nORDER BY p.actionTier ASC, totalContacts DESC\nLIMIT 30;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.location,\n  p.matchedBusinessLines,\n  p.stage,\n  p.actionTier,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReadyContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pendingContacts\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId AND c.priority IN ('hot','warm')\nWHERE p.priority = 'hot'\n  AND (p.lifecycleStatus IS NULL OR p.lifecycleStatus NOT IN ('archived','stale','dead'))\n  AND (p.suppressed IS NULL OR p.suppressed = 0)\nGROUP BY p.id, p.name, p.location, p.matchedBusinessLines, p.stage, p.actionTier\nHAVING sendReadyContacts = 0\nORDER BY p.actionTier ASC, totalContacts DESC\nLIMIT 30;\n",
+  "rows": [
+    {
+      "id": "120006",
+      "name": "Arrow Energy — Surat Gas Project",
+      "location": "QLD",
+      "matchedBusinessLines": "[1, 3, 30001]",
+      "stage": "Active — 3 open, 0 awarded, 65 closed work packages",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "5",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "120004",
+      "name": "Australian Submarine Agency — AUKUS Pillar 1",
+      "location": "SA",
+      "matchedBusinessLines": "[1, 3, 30001]",
+      "stage": "Active — 5 open, 3 awarded, 7 closed work packages",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "5",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1680006",
+      "name": "Remote Fibre Corridor Project",
+      "location": "National",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]",
+      "stage": "Advancing toward construction, contractors positioned",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "1",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1290005",
+      "name": "Yindjibarndi Energy Solar Project",
+      "location": "Pilbara, WA",
+      "matchedBusinessLines": "[1, 3, 30002]",
+      "stage": "Construction imminent",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1740008",
+      "name": "SA Firm Energy Reliability (FER) Battery Projects",
+      "location": "Statewide, SA",
+      "matchedBusinessLines": "[3, 30002]",
+      "stage": "Contracts Awarded",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1380025",
+      "name": "Rasp Mine ATA Tailings Dewatering Plant",
+      "location": "Broken Hill, NSW",
+      "matchedBusinessLines": "[3, 30001]",
+      "stage": "Contract awarded, design-build phase",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1380014",
+      "name": "Melbourne hyperscale data centre development",
+      "location": "Western Melbourne, VIC",
+      "matchedBusinessLines": "[1, 3, 30002]",
+      "stage": "Construction phase expanded",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1350038",
+      "name": "Jinbi Solar Farm",
+      "location": "Pilbara, WA",
+      "matchedBusinessLines": "[3, 30002]",
+      "stage": "Construction to begin",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1020016",
+      "name": "SAMI Bitumen Container Facility Expansion",
+      "location": "Darwin, NT",
+      "matchedBusinessLines": "[1, 3]",
+      "stage": "Expansion underway",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "840002",
+      "name": "First Nations Microgrids Program",
+      "location": "NT, NT",
+      "matchedBusinessLines": "[3, 30002]",
+      "stage": "Funding awarded for design and development",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1350012",
+      "name": "Secondary School Upgrade",
+      "location": "Western Sydney, NSW",
+      "matchedBusinessLines": "[1, 3, 30001]",
+      "stage": "Construction activity ramping up following contractor appointment",
+      "actionTier": "tier1_actionable",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1200051",
+      "name": "Beni Creek Rail Bridge Restoration",
+      "location": "Dubbo, NSW",
+      "matchedBusinessLines": "[3, 30001]",
+      "stage": "Restoration/Reopening",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "840004",
+      "name": "Janus Electric Heavy Vehicle Electrification Conversion Centre",
+      "location": "Adelaide, SA",
+      "matchedBusinessLines": "[3, 30002]",
+      "stage": "Launched",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1290015",
+      "name": "Webbs Silver Project",
+      "location": "Northern NSW, NSW",
+      "matchedBusinessLines": "[1, 3]",
+      "stage": "Exploration drilling approved",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1080003",
+      "name": "WA Renewable Generation and Battery Storage Program (10 Projects)",
+      "location": "National",
+      "matchedBusinessLines": "[3, 30002]",
+      "stage": "Financial underwriting secured",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1020012",
+      "name": "Queen Alexandra and Redcastle Reef Gold Mining",
+      "location": "Unknown, WA",
+      "matchedBusinessLines": "[3, 30001]",
+      "stage": "Development Approval Granted",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1200004",
+      "name": "Sun Turtle solar and battery project",
+      "location": "Remote, WA",
+      "matchedBusinessLines": "[3, 30002]",
+      "stage": "Approved for development",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1350026",
+      "name": "Yarra Energy Foundation Neighbourhood Battery Project",
+      "location": "Inner Melbourne, VIC",
+      "matchedBusinessLines": "[30002]",
+      "stage": "Launched",
+      "actionTier": "tier2_warm",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "750005",
+      "name": "Orient Silver-Indium Exploration",
+      "location": "Orient, QLD",
+      "matchedBusinessLines": "[1, 3]",
+      "stage": "Exploration Drilling",
+      "actionTier": "tier3_monitor",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1290008",
+      "name": "Yarra Energy Foundation Neighbourhood Battery and EV Chargers",
+      "location": "Collingwood, VIC",
+      "matchedBusinessLines": "[30002]",
+      "stage": "Launched/Completed",
+      "actionTier": "tier3_monitor",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "720036",
+      "name": "Newpave Asphalt Plant",
+      "location": "Warnervale, NSW",
+      "matchedBusinessLines": "[3]",
+      "stage": "Brand-new plant operational",
+      "actionTier": "tier3_monitor",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    },
+    {
+      "id": "1410001",
+      "name": "Deep Maintenance and Modification Facility at RAAF Base Edinburgh",
+      "location": "Edinburgh, SA",
+      "matchedBusinessLines": "[1]",
+      "stage": "Officially opened",
+      "actionTier": "tier3_monitor",
+      "totalContacts": "0",
+      "sendReadyContacts": "0",
+      "pendingContacts": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\tmatchedBusinessLines\tstage\tactionTier\ttotalContacts\tsendReadyContacts\tpendingContacts\n120006\tArrow Energy — Surat Gas Project\tQLD\t[1, 3, 30001]\tActive — 3 open, 0 awarded, 65 closed work packages\ttier1_actionable\t5\t0\t0\n120004\tAustralian Submarine Agency — AUKUS Pillar 1\tSA\t[1, 3, 30001]\tActive — 5 open, 3 awarded, 7 closed work packages\ttier1_actionable\t5\t0\t0\n1680006\tRemote Fibre Corridor Project\tNational\t[1, 3, 30002, 30001]\tAdvancing toward construction, contractors positioned\ttier1_actionable\t1\t0\t0\n1290005\tYindjibarndi Energy Solar Project\tPilbara, WA\t[1, 3, 30002]\tConstruction imminent\ttier1_actionable\t0\t0\t0\n1740008\tSA Firm Energy Reliability (FER) Battery Projects\tStatewide, SA\t[3, 30002]\tContracts Awarded\ttier1_actionable\t0\t0\t0\n1380025\tRasp Mine ATA Tailings Dewatering Plant\tBroken Hill, NSW\t[3, 30001]\tContract awarded, design-build phase\ttier1_actionable\t0\t0\t0\n1380014\tMelbourne hyperscale data centre development\tWestern Melbourne, VIC\t[1, 3, 30002]\tConstruction phase expanded\ttier1_actionable\t0\t0\t0\n1350038\tJinbi Solar Farm\tPilbara, WA\t[3, 30002]\tConstruction to begin\ttier1_actionable\t0\t0\t0\n1020016\tSAMI Bitumen Container Facility Expansion\tDarwin, NT\t[1, 3]\tExpansion underway\ttier1_actionable\t0\t0\t0\n840002\tFirst Nations Microgrids Program\tNT, NT\t[3, 30002]\tFunding awarded for design and development\ttier1_actionable\t0\t0\t0\n1350012\tSecondary School Upgrade\tWestern Sydney, NSW\t[1, 3, 30001]\tConstruction activity ramping up following contractor appointment\ttier1_actionable\t0\t0\t0\n1200051\tBeni Creek Rail Bridge Restoration\tDubbo, NSW\t[3, 30001]\tRestoration/Reopening\ttier2_warm\t0\t0\t0\n840004\tJanus Electric Heavy Vehicle Electrification Conversion Centre\tAdelaide, SA\t[3, 30002]\tLaunched\ttier2_warm\t0\t0\t0\n1290015\tWebbs Silver Project\tNorthern NSW, NSW\t[1, 3]\tExploration drilling approved\ttier2_warm\t0\t0\t0\n1080003\tWA Renewable Generation and Battery Storage Program (10 Projects)\tNational\t[3, 30002]\tFinancial underwriting secured\ttier2_warm\t0\t0\t0\n1020012\tQueen Alexandra and Redcastle Reef Gold Mining\tUnknown, WA\t[3, 30001]\tDevelopment Approval Granted\ttier2_warm\t0\t0\t0\n1200004\tSun Turtle solar and battery project\tRemote, WA\t[3, 30002]\tApproved for development\ttier2_warm\t0\t0\t0\n1350026\tYarra Energy Foundation Neighbourhood Battery Project\tInner Melbourne, VIC\t[30002]\tLaunched\ttier2_warm\t0\t0\t0\n750005\tOrient Silver-Indium Exploration\tOrient, QLD\t[1, 3]\tExploration Drilling\ttier3_monitor\t0\t0\t0\n1290008\tYarra Energy Foundation Neighbourhood Battery and EV Chargers\tCollingwood, VIC\t[30002]\tLaunched/Completed\ttier3_monitor\t0\t0\t0\n720036\tNewpave Asphalt Plant\tWarnervale, NSW\t[3]\tBrand-new plant operational\ttier3_monitor\t0\t0\t0\n1410001\tDeep Maintenance and Modification Facility at RAAF Base Edinburgh\tEdinburgh, SA\t[1]\tOfficially opened\ttier3_monitor\t0\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1839
+}

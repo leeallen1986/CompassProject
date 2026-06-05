@@ -1,0 +1,40 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' AND COLUMN_NAME LIKE '%score%' OR COLUMN_NAME LIKE '%Score%' OR COLUMN_NAME LIKE '%bl%'\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' AND COLUMN_NAME LIKE '%score%' OR COLUMN_NAME LIKE '%Score%' OR COLUMN_NAME LIKE '%bl%'\nLIMIT 10;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "confidenceScore"
+    },
+    {
+      "COLUMN_NAME": "verificationScore"
+    },
+    {
+      "COLUMN_NAME": "matchScore"
+    },
+    {
+      "COLUMN_NAME": "momentumScore"
+    },
+    {
+      "COLUMN_NAME": "recurrenceScore"
+    },
+    {
+      "COLUMN_NAME": "atlasRelevanceScore"
+    },
+    {
+      "COLUMN_NAME": "earlySignalScore"
+    },
+    {
+      "COLUMN_NAME": "compositeScore"
+    },
+    {
+      "COLUMN_NAME": "strengthScore"
+    },
+    {
+      "COLUMN_NAME": "autoSendEnabled"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nconfidenceScore\nverificationScore\nmatchScore\nmomentumScore\nrecurrenceScore\natlasRelevanceScore\nearlySignalScore\ncompositeScore\nstrengthScore\nautoSendEnabled\n",
+  "stderr": "",
+  "execution_time_ms": 1768
+}

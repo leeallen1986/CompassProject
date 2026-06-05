@@ -1,0 +1,22 @@
+{
+  "query": "\nSELECT \n  p.priority,\n  COUNT(*) as projectCount,\n  SUM(CASE WHEN sendReady.sendReadyContacts > 0 THEN 1 ELSE 0 END) as withContacts,\n  SUM(CASE WHEN sendReady.sendReadyContacts = 0 THEN 1 ELSE 0 END) as noContacts\nFROM projects p\nLEFT JOIN (\n  SELECT cp.projectId, SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReadyContacts\n  FROM contactProjects cp\n  INNER JOIN contacts c ON c.id = cp.contactId\n  GROUP BY cp.projectId\n) sendReady ON sendReady.projectId = p.id\nWHERE \n  p.priority IN ('hot', 'warm')\n  AND (p.location LIKE '%QLD%' OR p.location LIKE '%NT%')\n  AND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\n  AND JSON_CONTAINS(p.matchedBusinessLines, '1')\nGROUP BY p.priority;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.priority,\n  COUNT(*) as projectCount,\n  SUM(CASE WHEN sendReady.sendReadyContacts > 0 THEN 1 ELSE 0 END) as withContacts,\n  SUM(CASE WHEN sendReady.sendReadyContacts = 0 THEN 1 ELSE 0 END) as noContacts\nFROM projects p\nLEFT JOIN (\n  SELECT cp.projectId, SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReadyContacts\n  FROM contactProjects cp\n  INNER JOIN contacts c ON c.id = cp.contactId\n  GROUP BY cp.projectId\n) sendReady ON sendReady.projectId = p.id\nWHERE \n  p.priority IN ('hot', 'warm')\n  AND (p.location LIKE '%QLD%' OR p.location LIKE '%NT%')\n  AND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\n  AND JSON_CONTAINS(p.matchedBusinessLines, '1')\nGROUP BY p.priority;\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "projectCount": "21",
+      "withContacts": "18",
+      "noContacts": "0"
+    },
+    {
+      "priority": "warm",
+      "projectCount": "47",
+      "withContacts": "19",
+      "noContacts": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tprojectCount\twithContacts\tnoContacts\nhot\t21\t18\t0\nwarm\t47\t19\t1\n",
+  "stderr": "",
+  "execution_time_ms": 2019
+}

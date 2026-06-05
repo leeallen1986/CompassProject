@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT * FROM userProfiles WHERE userId = 23130008;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT * FROM userProfiles WHERE userId = 23130008;\n",
+  "rows": [
+    {
+      "id": "600001",
+      "userId": "23130008",
+      "companyName": "NULL",
+      "companyWebsite": "NULL",
+      "territories": "[\"QLD\", \"NT\"]",
+      "remoteMetroOnly": "both",
+      "industries": "[\"mining_exploration\", \"mining_contractors\", \"mining_development\", \"mining_production\", \"mining_shutdown\", \"construction_commercial\", \"construction_civil\", \"construction_utilities\", \"energy_oil_gas\", \"energy_renewables\", \"energy_powergen\", \"energy_transmission\", \"infrastructure_roads\", \"infrastructure_rail\", \"infrastructure_ports\", \"infrastructure_water\", \"defence\", \"construction_residential\"]",
+      "offerCategories": "[\"equipment\", \"consumables\", \"services\", \"engineering\", \"software\"]",
+      "customerTypes": "[\"owner_operator\", \"principal_contractor\", \"government\", \"specialist_contractor\", \"epcm\", \"oem\"]",
+      "dealSizeMin": "25k_100k",
+      "dealSizeMax": "500k_plus",
+      "stageTiming": "[\"early_signal\", \"tender_live\", \"awarded_mobilizing\"]",
+      "buyerRoles": "[\"project_manager\", \"operations_site\", \"commercial\", \"fleet_manager\", \"procurement\", \"hse_esg\"]",
+      "keyAccounts": "[]",
+      "excludeAccounts": "[]",
+      "aiSegments": "NULL",
+      "onboardingCompleted": "1",
+      "createdAt": "2026-06-05 00:09:34",
+      "updatedAt": "2026-06-05 00:11:14",
+      "assignedBusinessLines": "[\"Portable Air\"]",
+      "sectorFocus": "[]",
+      "salesMotion": "direct_only"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tcompanyName\tcompanyWebsite\tterritories\tremoteMetroOnly\tindustries\tofferCategories\tcustomerTypes\tdealSizeMin\tdealSizeMax\tstageTiming\tbuyerRoles\tkeyAccounts\texcludeAccounts\taiSegments\tonboardingCompleted\tcreatedAt\tupdatedAt\tassignedBusinessLines\tsectorFocus\tsalesMotion\n600001\t23130008\tNULL\tNULL\t[\"QLD\", \"NT\"]\tboth\t[\"mining_exploration\", \"mining_contractors\", \"mining_development\", \"mining_production\", \"mining_shutdown\", \"construction_commercial\", \"construction_civil\", \"construction_utilities\", \"energy_oil_gas\", \"energy_renewables\", \"energy_powergen\", \"energy_transmission\", \"infrastructure_roads\", \"infrastructure_rail\", \"infrastructure_ports\", \"infrastructure_water\", \"defence\", \"construction_residential\"]\t[\"equipment\", \"consumables\", \"services\", \"engineering\", \"software\"]\t[\"owner_operator\", \"principal_contractor\", \"government\", \"specialist_contractor\", \"epcm\", \"oem\"]\t25k_100k\t500k_plus\t[\"early_signal\", \"tender_live\", \"awarded_mobilizing\"]\t[\"project_manager\", \"operations_site\", \"commercial\", \"fleet_manager\", \"procurement\", \"hse_esg\"]\t[]\t[]\tNULL\t1\t2026-06-05 00:09:34\t2026-06-05 00:11:14\t[\"Portable Air\"]\t[]\tdirect_only\n",
+  "stderr": "",
+  "execution_time_ms": 1812
+}

@@ -1,0 +1,90 @@
+{
+  "query": "\n-- Check the breakdown of not_found contacts by role bucket to understand what was culled\nSELECT roleBucket, COUNT(*) as count\nFROM contacts\nWHERE enrichmentStatus = 'not_found'\nGROUP BY roleBucket\nORDER BY count DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check the breakdown of not_found contacts by role bucket to understand what was culled\nSELECT roleBucket, COUNT(*) as count\nFROM contacts\nWHERE enrichmentStatus = 'not_found'\nGROUP BY roleBucket\nORDER BY count DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "roleBucket": "Operations",
+      "count": "7262"
+    },
+    {
+      "roleBucket": "Finance",
+      "count": "5179"
+    },
+    {
+      "roleBucket": "Unknown",
+      "count": "4436"
+    },
+    {
+      "roleBucket": "Other",
+      "count": "605"
+    },
+    {
+      "roleBucket": "Procurement",
+      "count": "16"
+    },
+    {
+      "roleBucket": "site_manager",
+      "count": "15"
+    },
+    {
+      "roleBucket": "project_manager",
+      "count": "8"
+    },
+    {
+      "roleBucket": "fleet_manager",
+      "count": "7"
+    },
+    {
+      "roleBucket": "+61 417 337 136",
+      "count": "7"
+    },
+    {
+      "roleBucket": "Project Manager",
+      "count": "6"
+    },
+    {
+      "roleBucket": "engineering",
+      "count": "5"
+    },
+    {
+      "roleBucket": "+61 439 314 026",
+      "count": "4"
+    },
+    {
+      "roleBucket": "+61 438 717 067",
+      "count": "3"
+    },
+    {
+      "roleBucket": "+61 400 950 026",
+      "count": "3"
+    },
+    {
+      "roleBucket": "+61 439 773 010",
+      "count": "3"
+    },
+    {
+      "roleBucket": "+61 407 708 104",
+      "count": "3"
+    },
+    {
+      "roleBucket": "+61 419 675 409",
+      "count": "3"
+    },
+    {
+      "roleBucket": "+61 468 568 849",
+      "count": "3"
+    },
+    {
+      "roleBucket": "+61 432 284 072",
+      "count": "3"
+    },
+    {
+      "roleBucket": "general_manager",
+      "count": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "roleBucket\tcount\nOperations\t7262\nFinance\t5179\nUnknown\t4436\nOther\t605\nProcurement\t16\nsite_manager\t15\nproject_manager\t8\nfleet_manager\t7\n+61 417 337 136\t7\nProject Manager\t6\nengineering\t5\n+61 439 314 026\t4\n+61 438 717 067\t3\n+61 400 950 026\t3\n+61 439 773 010\t3\n+61 407 708 104\t3\n+61 419 675 409\t3\n+61 468 568 849\t3\n+61 432 284 072\t3\ngeneral_manager\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1911
+}

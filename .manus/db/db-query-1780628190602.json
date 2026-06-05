@@ -1,0 +1,142 @@
+{
+  "query": "\nSELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = 'userProfiles'\nORDER BY ORDINAL_POSITION;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = 'userProfiles'\nORDER BY ORDINAL_POSITION;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "DATA_TYPE": "int",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "userId",
+      "DATA_TYPE": "int",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "companyName",
+      "DATA_TYPE": "varchar",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "companyWebsite",
+      "DATA_TYPE": "varchar",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "territories",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "remoteMetroOnly",
+      "DATA_TYPE": "varchar",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "industries",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "offerCategories",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "customerTypes",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "dealSizeMin",
+      "DATA_TYPE": "varchar",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "dealSizeMax",
+      "DATA_TYPE": "varchar",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "stageTiming",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "buyerRoles",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "keyAccounts",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "excludeAccounts",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "aiSegments",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "onboardingCompleted",
+      "DATA_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "0"
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "DATA_TYPE": "timestamp",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+    },
+    {
+      "COLUMN_NAME": "updatedAt",
+      "DATA_TYPE": "timestamp",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+    },
+    {
+      "COLUMN_NAME": "assignedBusinessLines",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "sectorFocus",
+      "DATA_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL"
+    },
+    {
+      "COLUMN_NAME": "salesMotion",
+      "DATA_TYPE": "enum",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "direct_only"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tDATA_TYPE\tIS_NULLABLE\tCOLUMN_DEFAULT\nid\tint\tNO\tNULL\nuserId\tint\tNO\tNULL\ncompanyName\tvarchar\tYES\tNULL\ncompanyWebsite\tvarchar\tYES\tNULL\nterritories\tjson\tYES\tNULL\nremoteMetroOnly\tvarchar\tYES\tNULL\nindustries\tjson\tYES\tNULL\nofferCategories\tjson\tYES\tNULL\ncustomerTypes\tjson\tYES\tNULL\ndealSizeMin\tvarchar\tYES\tNULL\ndealSizeMax\tvarchar\tYES\tNULL\nstageTiming\tjson\tYES\tNULL\nbuyerRoles\tjson\tYES\tNULL\nkeyAccounts\tjson\tYES\tNULL\nexcludeAccounts\tjson\tYES\tNULL\naiSegments\tjson\tYES\tNULL\nonboardingCompleted\ttinyint\tNO\t0\ncreatedAt\ttimestamp\tNO\tCURRENT_TIMESTAMP\nupdatedAt\ttimestamp\tNO\tCURRENT_TIMESTAMP\nassignedBusinessLines\tjson\tYES\tNULL\nsectorFocus\tjson\tYES\tNULL\nsalesMotion\tenum\tYES\tdirect_only\n",
+  "stderr": "",
+  "execution_time_ms": 1796
+}

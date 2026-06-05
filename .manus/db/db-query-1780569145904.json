@@ -1,0 +1,30 @@
+{
+  "query": "\n-- Overall enrichment status breakdown\nSELECT \n  COUNT(*) as totalContacts,\n  SUM(CASE WHEN enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN enrichmentStatus = 'failed' THEN 1 ELSE 0 END) as failed,\n  SUM(CASE WHEN enrichmentStatus = 'not_found' THEN 1 ELSE 0 END) as notFound,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as hasEmail,\n  SUM(CASE WHEN linkedin IS NOT NULL AND linkedin != '' THEN 1 ELSE 0 END) as hasLinkedin,\n  SUM(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 ELSE 0 END) as hasPhone,\n  SUM(CASE WHEN verificationStatus = 'verified' THEN 1 ELSE 0 END) as verified,\n  SUM(CASE WHEN verificationStatus = 'ai_suggested' THEN 1 ELSE 0 END) as aiSuggested\nFROM contacts;\n\n-- Enrichment by source\nSELECT enrichmentSource, COUNT(*) as count \nFROM contacts \nWHERE enrichmentStatus = 'enriched'\nGROUP BY enrichmentSource;\n\n-- Apollo credits used across all pipeline runs\nSELECT SUM(apolloCreditsUsed) as totalApolloCredits, SUM(contactsEnriched) as totalContactsEnriched\nFROM pipelineRuns WHERE status = 'completed';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Overall enrichment status breakdown\nSELECT \n  COUNT(*) as totalContacts,\n  SUM(CASE WHEN enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN enrichmentStatus = 'failed' THEN 1 ELSE 0 END) as failed,\n  SUM(CASE WHEN enrichmentStatus = 'not_found' THEN 1 ELSE 0 END) as notFound,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as hasEmail,\n  SUM(CASE WHEN linkedin IS NOT NULL AND linkedin != '' THEN 1 ELSE 0 END) as hasLinkedin,\n  SUM(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 ELSE 0 END) as hasPhone,\n  SUM(CASE WHEN verificationStatus = 'verified' THEN 1 ELSE 0 END) as verified,\n  SUM(CASE WHEN verificationStatus = 'ai_suggested' THEN 1 ELSE 0 END) as aiSuggested\nFROM contacts;\n\n-- Enrichment by source\nSELECT enrichmentSource, COUNT(*) as count \nFROM contacts \nWHERE enrichmentStatus = 'enriched'\nGROUP BY enrichmentSource;\n\n-- Apollo credits used across all pipeline runs\nSELECT SUM(apolloCreditsUsed) as totalApolloCredits, SUM(contactsEnriched) as totalContactsEnriched\nFROM pipelineRuns WHERE status = 'completed';\n",
+  "rows": [
+    {
+      "totalContacts": "28924",
+      "enriched": "2879",
+      "pending": "4284",
+      "failed": "52",
+      "notFound": "21709",
+      "hasEmail": "28832",
+      "hasLinkedin": "1418",
+      "hasPhone": "25888",
+      "verified": "1662",
+      "aiSuggested": "597"
+    }
+  ],
+  "messages": [
+    "enrichmentSource\tcount",
+    "web_search\t953",
+    "linkedin\t447",
+    "apollo\t889",
+    "llm\t590",
+    "totalApolloCredits\ttotalContactsEnriched",
+    "4074\t47"
+  ],
+  "stdout": "totalContacts\tenriched\tpending\tfailed\tnotFound\thasEmail\thasLinkedin\thasPhone\tverified\taiSuggested\n28924\t2879\t4284\t52\t21709\t28832\t1418\t25888\t1662\t597\nenrichmentSource\tcount\nweb_search\t953\nlinkedin\t447\napollo\t889\nllm\t590\ntotalApolloCredits\ttotalContactsEnriched\n4074\t47\n",
+  "stderr": "",
+  "execution_time_ms": 2411
+}

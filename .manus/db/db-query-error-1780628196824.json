@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT up.territories, up.assignedBusinessLines, up.offerCategories, up.industries, up.repType, up.buyerRoles, up.stageTiming, up.customerTypes\nFROM userProfiles up\nINNER JOIN users u ON u.id = up.userId\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Hansen%'\nLIMIT 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT up.territories, up.assignedBusinessLines, up.offerCategories, up.industries, up.repType, up.buyerRoles, up.stageTiming, up.customerTypes\nFROM userProfiles up\nINNER JOIN users u ON u.id = up.userId\nWHERE u.name LIKE '%Brett%' OR u.name LIKE '%Hansen%'\nLIMIT 1;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'up.reptype' in 'field list'"
+  ]
+}

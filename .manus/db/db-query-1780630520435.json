@@ -1,0 +1,45 @@
+{
+  "query": "\nSELECT id, name, LEFT(keywords, 300) as keywordSample\nFROM businessLines\nORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, LEFT(keywords, 300) as keywordSample\nFROM businessLines\nORDER BY id;\n",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Portable Air",
+      "keywordSample": "[\"compressor\", \"portable air\", \"compressed air\", \"drilling\", \"RC drilling\", \"diamond drilling\", \"blasting\", \"pneumatic\", \"CFM\", \"air compressor\", \"sandblasting\", \"shotcrete\", \"tunnelling\", \"mining equipment\", \"construction equipment\", \"atlas copco\", \"portable compressor\", \"air receiver\", \"aftercoole"
+    },
+    {
+      "id": "2",
+      "name": "Industrial Compressors",
+      "keywordSample": "[\"industrial compressor\", \"stationary compressor\", \"oil-free compressor\", \"screw compressor\", \"centrifugal compressor\", \"manufacturing plant\", \"process air\", \"instrument air\", \"plant air\", \"nitrogen generation\", \"food processing\", \"pharmaceutical\", \"semiconductor\", \"data centre\", \"compressed air sys"
+    },
+    {
+      "id": "3",
+      "name": "PAL",
+      "keywordSample": "[\"generator\", \"power generation\", \"diesel generator\", \"portable generator\", \"lighting tower\", \"light tower\", \"temporary power\", \"standby power\", \"backup power\", \"construction power\", \"mine site power\", \"battery energy storage\", \"BESS\", \"energy storage system\", \"hybrid power\", \"solar hybrid\", \"Zenerg"
+    },
+    {
+      "id": "4",
+      "name": "Vacuum Solutions",
+      "keywordSample": "[\"vacuum pump\", \"vacuum system\", \"semiconductor\", \"food packaging\", \"vacuum technology\", \"dry vacuum\", \"liquid ring\", \"rotary vane\", \"central vacuum\", \"vacuum conveying\", \"packaging line\"]"
+    },
+    {
+      "id": "30001",
+      "name": "Pump (Flow)",
+      "keywordSample": "[\"dewatering pump\", \"submersible pump\", \"wellpoint dewatering\", \"pump station\", \"water pump\", \"mine dewatering\", \"flood pump\", \"centrifugal pump\", \"drainage pump\", \"slurry pump\", \"water management\", \"pit dewatering\", \"water treatment\", \"wastewater\", \"sewage\", \"stormwater\", \"irrigation\", \"desalinatio"
+    },
+    {
+      "id": "30002",
+      "name": "BESS",
+      "keywordSample": "[\"battery energy storage\", \"BESS\", \"energy storage system\", \"battery storage\", \"hybrid power\", \"solar hybrid\", \"ZenergiZe\", \"peak shaving\", \"load management\", \"microgrid\", \"off-grid power\", \"renewable energy storage\", \"lithium battery\", \"containerised power\", \"battery\", \"energy storage\", \"grid scale"
+    },
+    {
+      "id": "90001",
+      "name": "PT All Capital Sales",
+      "keywordSample": "[\"portable air\", \"compressor\", \"pump\", \"dewatering\", \"generator\", \"lighting tower\", \"BESS\", \"battery\", \"PAL\", \"power\", \"PT capital\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tkeywordSample\n1\tPortable Air\t[\"compressor\", \"portable air\", \"compressed air\", \"drilling\", \"RC drilling\", \"diamond drilling\", \"blasting\", \"pneumatic\", \"CFM\", \"air compressor\", \"sandblasting\", \"shotcrete\", \"tunnelling\", \"mining equipment\", \"construction equipment\", \"atlas copco\", \"portable compressor\", \"air receiver\", \"aftercoole\n2\tIndustrial Compressors\t[\"industrial compressor\", \"stationary compressor\", \"oil-free compressor\", \"screw compressor\", \"centrifugal compressor\", \"manufacturing plant\", \"process air\", \"instrument air\", \"plant air\", \"nitrogen generation\", \"food processing\", \"pharmaceutical\", \"semiconductor\", \"data centre\", \"compressed air sys\n3\tPAL\t[\"generator\", \"power generation\", \"diesel generator\", \"portable generator\", \"lighting tower\", \"light tower\", \"temporary power\", \"standby power\", \"backup power\", \"construction power\", \"mine site power\", \"battery energy storage\", \"BESS\", \"energy storage system\", \"hybrid power\", \"solar hybrid\", \"Zenerg\n4\tVacuum Solutions\t[\"vacuum pump\", \"vacuum system\", \"semiconductor\", \"food packaging\", \"vacuum technology\", \"dry vacuum\", \"liquid ring\", \"rotary vane\", \"central vacuum\", \"vacuum conveying\", \"packaging line\"]\n30001\tPump (Flow)\t[\"dewatering pump\", \"submersible pump\", \"wellpoint dewatering\", \"pump station\", \"water pump\", \"mine dewatering\", \"flood pump\", \"centrifugal pump\", \"drainage pump\", \"slurry pump\", \"water management\", \"pit dewatering\", \"water treatment\", \"wastewater\", \"sewage\", \"stormwater\", \"irrigation\", \"desalinatio\n30002\tBESS\t[\"battery energy storage\", \"BESS\", \"energy storage system\", \"battery storage\", \"hybrid power\", \"solar hybrid\", \"ZenergiZe\", \"peak shaving\", \"load management\", \"microgrid\", \"off-grid power\", \"renewable energy storage\", \"lithium battery\", \"containerised power\", \"battery\", \"energy storage\", \"grid scale\n90001\tPT All Capital Sales\t[\"portable air\", \"compressor\", \"pump\", \"dewatering\", \"generator\", \"lighting tower\", \"BESS\", \"battery\", \"PAL\", \"power\", \"PT capital\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1933
+}

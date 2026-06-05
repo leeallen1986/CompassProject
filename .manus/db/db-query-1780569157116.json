@@ -1,0 +1,50 @@
+{
+  "query": "\n-- Priority breakdown of enrichment status\nSELECT \n  priority,\n  COUNT(*) as total,\n  SUM(CASE WHEN enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN enrichmentStatus = 'not_found' THEN 1 ELSE 0 END) as notFound,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as hasEmail\nFROM contacts\nGROUP BY priority;\n\n-- How many contacts were enriched in last 7 days\nSELECT \n  DATE(enrichedAt) as day,\n  COUNT(*) as enrichedCount,\n  enrichmentSource\nFROM contacts\nWHERE enrichedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)\nGROUP BY DATE(enrichedAt), enrichmentSource\nORDER BY day DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Priority breakdown of enrichment status\nSELECT \n  priority,\n  COUNT(*) as total,\n  SUM(CASE WHEN enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN enrichmentStatus = 'not_found' THEN 1 ELSE 0 END) as notFound,\n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as hasEmail\nFROM contacts\nGROUP BY priority;\n\n-- How many contacts were enriched in last 7 days\nSELECT \n  DATE(enrichedAt) as day,\n  COUNT(*) as enrichedCount,\n  enrichmentSource\nFROM contacts\nWHERE enrichedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)\nGROUP BY DATE(enrichedAt), enrichmentSource\nORDER BY day DESC;\n",
+  "rows": [
+    {
+      "priority": "warm",
+      "total": "5498",
+      "enriched": "1200",
+      "pending": "768",
+      "notFound": "3530",
+      "hasEmail": "5491"
+    },
+    {
+      "priority": "hot",
+      "total": "3648",
+      "enriched": "1679",
+      "pending": "252",
+      "notFound": "1665",
+      "hasEmail": "3573"
+    },
+    {
+      "priority": "cold",
+      "total": "19778",
+      "enriched": "0",
+      "pending": "3264",
+      "notFound": "16514",
+      "hasEmail": "19768"
+    }
+  ],
+  "messages": [
+    "day\tenrichedCount\tenrichmentSource",
+    "2026-06-03\t18\tweb_search",
+    "2026-06-03\t10\tllm",
+    "2026-06-03\t14\tlinkedin",
+    "2026-06-03\t22\tapollo",
+    "2026-06-02\t24\tlinkedin",
+    "2026-06-02\t19534\tmanual",
+    "2026-06-02\t53\tllm",
+    "2026-06-02\t27\tweb_search",
+    "2026-06-02\t7\tapollo",
+    "2026-06-01\t9\tllm",
+    "2026-06-01\t26\tapollo",
+    "2026-06-01\t33\tweb_search",
+    "2026-06-01\t24\tlinkedin",
+    "2026-05-30\t4\tapollo"
+  ],
+  "stdout": "priority\ttotal\tenriched\tpending\tnotFound\thasEmail\nwarm\t5498\t1200\t768\t3530\t5491\nhot\t3648\t1679\t252\t1665\t3573\ncold\t19778\t0\t3264\t16514\t19768\nday\tenrichedCount\tenrichmentSource\n2026-06-03\t18\tweb_search\n2026-06-03\t10\tllm\n2026-06-03\t14\tlinkedin\n2026-06-03\t22\tapollo\n2026-06-02\t24\tlinkedin\n2026-06-02\t19534\tmanual\n2026-06-02\t53\tllm\n2026-06-02\t27\tweb_search\n2026-06-02\t7\tapollo\n2026-06-01\t9\tllm\n2026-06-01\t26\tapollo\n2026-06-01\t33\tweb_search\n2026-06-01\t24\tlinkedin\n2026-05-30\t4\tapollo\n",
+  "stderr": "",
+  "execution_time_ms": 1984
+}

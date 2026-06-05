@@ -1,0 +1,13 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' \nAND (COLUMN_NAME LIKE '%value%' OR COLUMN_NAME LIKE '%desc%' OR COLUMN_NAME LIKE '%Value%' OR COLUMN_NAME LIKE '%Desc%')\nORDER BY ORDINAL_POSITION;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' \nAND (COLUMN_NAME LIKE '%value%' OR COLUMN_NAME LIKE '%desc%' OR COLUMN_NAME LIKE '%Value%' OR COLUMN_NAME LIKE '%Desc%')\nORDER BY ORDINAL_POSITION;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "value"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nvalue\n",
+  "stderr": "",
+  "execution_time_ms": 1809
+}

@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  p.location,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReadyContacts,\n  GROUP_CONCAT(DISTINCT CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL THEN CONCAT(c.name, ' (', c.roleBucket, ')') END ORDER BY c.name SEPARATOR ' | ') as contactNames\nFROM projects p\nINNER JOIN contactProjects cp ON cp.projectId = p.id\nINNER JOIN contacts c ON c.id = cp.contactId\nWHERE p.id IN (120006, 120004, 1680006, 1290005, 1740008, 1380025, 1380014, 1350038, 1020016, 840002, 1350012)\nGROUP BY p.id, p.name, p.location\nHAVING sendReadyContacts > 0;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  p.location,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as sendReadyContacts,\n  GROUP_CONCAT(DISTINCT CASE WHEN c.enrichmentStatus = 'enriched' AND c.email IS NOT NULL THEN CONCAT(c.name, ' (', c.roleBucket, ')') END ORDER BY c.name SEPARATOR ' | ') as contactNames\nFROM projects p\nINNER JOIN contactProjects cp ON cp.projectId = p.id\nINNER JOIN contacts c ON c.id = cp.contactId\nWHERE p.id IN (120006, 120004, 1680006, 1290005, 1740008, 1380025, 1380014, 1350038, 1020016, 840002, 1350012)\nGROUP BY p.id, p.name, p.location\nHAVING sendReadyContacts > 0;\n",
+  "rows": [
+    {
+      "id": "1680006",
+      "name": "Remote Fibre Corridor Project",
+      "location": "National",
+      "totalContacts": "11",
+      "sendReadyContacts": "10",
+      "contactNames": "Chandru Ganesan (procurement) | Charles Blennerhassett (procurement) | Fiona Gribbon-Smith (procurement) | Gareth Houston (procurement) | Ian Russell (project_manager) | Kelly Smith (project_manager) | Monica Valdivieso (procurement) | Peter Johnson (other) | Richard Jenkins (operations) | Richard Schuster (fleet_manager)"
+    },
+    {
+      "id": "1350038",
+      "name": "Jinbi Solar Farm",
+      "location": "Pilbara, WA",
+      "totalContacts": "3",
+      "sendReadyContacts": "3",
+      "contactNames": "Aaron Orchard (project_manager) | Jack Holder (other) | Shaun McDonnell (maintenance)"
+    },
+    {
+      "id": "1350012",
+      "name": "Secondary School Upgrade",
+      "location": "Western Sydney, NSW",
+      "totalContacts": "10",
+      "sendReadyContacts": "8",
+      "contactNames": "Adrian Condello (site_manager) | Drew Fensome (project_manager) | Jim Heery (site_manager) | Lucas Bardin (site_manager) | Matthew Wake (site_manager) | Steve Norris (site_manager) | Todd Kinsman (site_manager) | Tyson Foley (site_manager)"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\ttotalContacts\tsendReadyContacts\tcontactNames\n1680006\tRemote Fibre Corridor Project\tNational\t11\t10\tChandru Ganesan (procurement) | Charles Blennerhassett (procurement) | Fiona Gribbon-Smith (procurement) | Gareth Houston (procurement) | Ian Russell (project_manager) | Kelly Smith (project_manager) | Monica Valdivieso (procurement) | Peter Johnson (other) | Richard Jenkins (operations) | Richard Schuster (fleet_manager)\n1350038\tJinbi Solar Farm\tPilbara, WA\t3\t3\tAaron Orchard (project_manager) | Jack Holder (other) | Shaun McDonnell (maintenance)\n1350012\tSecondary School Upgrade\tWestern Sydney, NSW\t10\t8\tAdrian Condello (site_manager) | Drew Fensome (project_manager) | Jim Heery (site_manager) | Lucas Bardin (site_manager) | Matthew Wake (site_manager) | Steve Norris (site_manager) | Todd Kinsman (site_manager) | Tyson Foley (site_manager)\n",
+  "stderr": "",
+  "execution_time_ms": 1804
+}

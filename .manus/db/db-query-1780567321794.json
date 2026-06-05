@@ -1,0 +1,106 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'pipelineRuns' \nORDER BY ORDINAL_POSITION;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'pipelineRuns' \nORDER BY ORDINAL_POSITION;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "runType"
+    },
+    {
+      "COLUMN_NAME": "status"
+    },
+    {
+      "COLUMN_NAME": "startedAt"
+    },
+    {
+      "COLUMN_NAME": "completedAt"
+    },
+    {
+      "COLUMN_NAME": "durationMs"
+    },
+    {
+      "COLUMN_NAME": "feedsFetched"
+    },
+    {
+      "COLUMN_NAME": "feedErrors"
+    },
+    {
+      "COLUMN_NAME": "articlesIngested"
+    },
+    {
+      "COLUMN_NAME": "articlesSkippedKeyword"
+    },
+    {
+      "COLUMN_NAME": "articlesDuplicate"
+    },
+    {
+      "COLUMN_NAME": "articlesExtracted"
+    },
+    {
+      "COLUMN_NAME": "projectsCreated"
+    },
+    {
+      "COLUMN_NAME": "projectsDuplicate"
+    },
+    {
+      "COLUMN_NAME": "drillingCampaignsCreated"
+    },
+    {
+      "COLUMN_NAME": "awardedProjectsCreated"
+    },
+    {
+      "COLUMN_NAME": "austenderContracts"
+    },
+    {
+      "COLUMN_NAME": "dmirsProjects"
+    },
+    {
+      "COLUMN_NAME": "contactsEnriched"
+    },
+    {
+      "COLUMN_NAME": "apolloCreditsUsed"
+    },
+    {
+      "COLUMN_NAME": "errors"
+    },
+    {
+      "COLUMN_NAME": "sourceStats"
+    },
+    {
+      "COLUMN_NAME": "triggeredBy"
+    },
+    {
+      "COLUMN_NAME": "projectoryProjects"
+    },
+    {
+      "COLUMN_NAME": "govProjects"
+    },
+    {
+      "COLUMN_NAME": "aemoProjects"
+    },
+    {
+      "COLUMN_NAME": "icnProjects"
+    },
+    {
+      "COLUMN_NAME": "steps"
+    },
+    {
+      "COLUMN_NAME": "projectoryEnriched"
+    },
+    {
+      "COLUMN_NAME": "lastProgressAt"
+    },
+    {
+      "COLUMN_NAME": "currentStep"
+    },
+    {
+      "COLUMN_NAME": "lastActivityNote"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nrunType\nstatus\nstartedAt\ncompletedAt\ndurationMs\nfeedsFetched\nfeedErrors\narticlesIngested\narticlesSkippedKeyword\narticlesDuplicate\narticlesExtracted\nprojectsCreated\nprojectsDuplicate\ndrillingCampaignsCreated\nawardedProjectsCreated\naustenderContracts\ndmirsProjects\ncontactsEnriched\napolloCreditsUsed\nerrors\nsourceStats\ntriggeredBy\nprojectoryProjects\ngovProjects\naemoProjects\nicnProjects\nsteps\nprojectoryEnriched\nlastProgressAt\ncurrentStep\nlastActivityNote\n",
+  "stderr": "",
+  "execution_time_ms": 1807
+}

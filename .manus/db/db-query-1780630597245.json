@@ -1,0 +1,20 @@
+{
+  "query": "\nSELECT \n  p.priority,\n  COUNT(*) as count,\n  GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ' | ') as projects\nFROM projects p\nWHERE JSON_CONTAINS(p.matchedBusinessLines, '90002')\nAND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\nGROUP BY p.priority;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.priority,\n  COUNT(*) as count,\n  GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ' | ') as projects\nFROM projects p\nWHERE JSON_CONTAINS(p.matchedBusinessLines, '90002')\nAND p.lifecycleStatus NOT IN ('stale', 'cancelled', 'completed')\nGROUP BY p.priority;\n",
+  "rows": [
+    {
+      "priority": "warm",
+      "count": "10",
+      "projects": "Browse LNG Project | Chevron Australia Operations — NWS & Gorgon | Geelong LNG Import Terminal | Gorgon Backfill Fields Development | Ichthys LNG Export Terminal Operations | Ichthys LNG Project Operations | Pluto LNG Facility Operations | Pluto LNG Flaring Technology Upgrade | SA Water network expansion to Wellington East | Viva Energy LNG Terminal"
+    },
+    {
+      "priority": "hot",
+      "count": "4",
+      "projects": "Gorgon and Jansz feed gas pipeline system and wells commissioning | Origin/APLNG Ironbark Expansion | Scarborough Energy Project | Scarborough Gas Project"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tcount\tprojects\nwarm\t10\tBrowse LNG Project | Chevron Australia Operations — NWS & Gorgon | Geelong LNG Import Terminal | Gorgon Backfill Fields Development | Ichthys LNG Export Terminal Operations | Ichthys LNG Project Operations | Pluto LNG Facility Operations | Pluto LNG Flaring Technology Upgrade | SA Water network expansion to Wellington East | Viva Energy LNG Terminal\nhot\t4\tGorgon and Jansz feed gas pipeline system and wells commissioning | Origin/APLNG Ironbark Expansion | Scarborough Energy Project | Scarborough Gas Project\n",
+  "stderr": "",
+  "execution_time_ms": 1744
+}

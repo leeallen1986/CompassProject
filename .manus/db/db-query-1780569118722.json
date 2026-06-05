@@ -1,0 +1,28 @@
+{
+  "query": "\nSHOW TABLES LIKE '%contact%';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSHOW TABLES LIKE '%contact%';\n",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)": "campaignContacts"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)": "campaignStagedContacts"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)": "contactCandidateSlates"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)": "contactProjects"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)": "contactValidationActions"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)": "contacts"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%contact%)\ncampaignContacts\ncampaignStagedContacts\ncontactCandidateSlates\ncontactProjects\ncontactValidationActions\ncontacts\n",
+  "stderr": "",
+  "execution_time_ms": 1811
+}

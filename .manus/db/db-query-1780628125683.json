@@ -1,0 +1,17 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, u.role, u.createdAt\nFROM users u\nWHERE u.name LIKE '%Paul%' OR u.name LIKE '%Lueth%' OR u.email LIKE '%lueth%' OR u.email LIKE '%paul%'\nORDER BY u.createdAt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, u.role, u.createdAt\nFROM users u\nWHERE u.name LIKE '%Paul%' OR u.name LIKE '%Lueth%' OR u.email LIKE '%lueth%' OR u.email LIKE '%paul%'\nORDER BY u.createdAt DESC;\n",
+  "rows": [
+    {
+      "id": "23130008",
+      "name": "Paul Lueth",
+      "email": "paul.lueth@atlascopco.com",
+      "role": "user",
+      "createdAt": "2026-06-05 00:07:48"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tcreatedAt\n23130008\tPaul Lueth\tpaul.lueth@atlascopco.com\tuser\t2026-06-05 00:07:48\n",
+  "stderr": "",
+  "execution_time_ms": 1786
+}

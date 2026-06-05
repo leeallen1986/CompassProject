@@ -1,0 +1,19 @@
+{
+  "query": "\nSELECT up.territories, up.assignedBusinessLines, up.offerCategories, up.industries, up.buyerRoles, up.stageTiming, up.customerTypes\nFROM userProfiles up\nINNER JOIN users u ON u.id = up.userId\nWHERE u.name LIKE '%Brett%'\nLIMIT 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT up.territories, up.assignedBusinessLines, up.offerCategories, up.industries, up.buyerRoles, up.stageTiming, up.customerTypes\nFROM userProfiles up\nINNER JOIN users u ON u.id = up.userId\nWHERE u.name LIKE '%Brett%'\nLIMIT 1;\n",
+  "rows": [
+    {
+      "territories": "[\"WA\", \"NT\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]",
+      "offerCategories": "[\"equipment\", \"rentals\", \"services\"]",
+      "industries": "[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]",
+      "buyerRoles": "[\"procurement\", \"project_manager\", \"engineering\", \"operations\"]",
+      "stageTiming": "[\"early_signal\", \"planning\", \"tendering\", \"awarded_mobilizing\"]",
+      "customerTypes": "[\"principal_contractor\", \"owner_operator\", \"subcontractor\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "territories\tassignedBusinessLines\tofferCategories\tindustries\tbuyerRoles\tstageTiming\tcustomerTypes\n[\"WA\", \"NT\"]\t[\"Portable Air\", \"Pump (Flow)\", \"Dewatering Pumps\"]\t[\"equipment\", \"rentals\", \"services\"]\t[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\"]\t[\"procurement\", \"project_manager\", \"engineering\", \"operations\"]\t[\"early_signal\", \"planning\", \"tendering\", \"awarded_mobilizing\"]\t[\"principal_contractor\", \"owner_operator\", \"subcontractor\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1844
+}

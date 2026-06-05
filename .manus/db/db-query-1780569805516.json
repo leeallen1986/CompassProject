@@ -1,0 +1,74 @@
+{
+  "query": "\nSELECT id, name, location, owner, contractors, suppressionReason\nFROM projects\nWHERE id IN (120006, 120004, 1290005, 1740008, 1380025, 1380014, 1020016, 840002)\nORDER BY id;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, location, owner, contractors, suppressionReason\nFROM projects\nWHERE id IN (120006, 120004, 1290005, 1740008, 1380025, 1380014, 1020016, 840002)\nORDER BY id;\n",
+  "rows": [
+    {
+      "id": "120004",
+      "name": "Australian Submarine Agency — AUKUS Pillar 1",
+      "location": "SA",
+      "owner": "Australian Submarine Agency",
+      "contractors": "[{\"confidence\": 1, \"detail\": \"ICN Gateway project owner\", \"name\": \"Australian Submarine Agency\", \"status\": \"confirmed\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "120006",
+      "name": "Arrow Energy — Surat Gas Project",
+      "location": "QLD",
+      "owner": "Arrow Energy Pty Ltd",
+      "contractors": "[{\"confidence\": 1, \"detail\": \"ICN Gateway project owner\", \"name\": \"Arrow Energy Pty Ltd\", \"status\": \"confirmed\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "840002",
+      "name": "First Nations Microgrids Program",
+      "location": "NT, NT",
+      "owner": "First Nations communities (with ARENA funding)",
+      "contractors": "[{\"confidence\": 85, \"detail\": \"supplier: Pacific Energy has a strong track record of winning energy storage and power generation projects in the Northern Territory, including multiple BESS projects for Alice Springs and Darwin-Katherine power systems. Microgrids often involve battery energy storage and generation components. (enrichment pass)\", \"name\": \"Pacific Energy\", \"status\": \"Confirmed\"}, {\"confidence\": 60, \"detail\": \"consultant: Worley is a global engineering and consulting firm with significant experience in the energy sector, including renewable energy and grid solutions. They are well-positioned to provide design and engineering services for microgrid development in remote areas. (enrichment pass)\", \"name\": \"Worley\", \"status\": \"Predicted\"}, {\"confidence\": 60, \"detail\": \"consultant: Wood is another major engineering and consulting firm with expertise in power generation, transmission, and renewable energy projects. They could provide detailed design and technical advisory services for microgrid implementation. (enrichment pass)\", \"name\": \"Wood\", \"status\": \"Predicted\"}, {\"confidence\": 35, \"detail\": \"epc: Clough has experience in energy infrastructure projects, including power generation. While not explicitly listed for NT microgrids in the database, their general energy EPC capability makes them a potential, albeit less certain, candidate for larger microgrid EPC roles. (enrichment pass)\", \"name\": \"Clough\", \"status\": \"Predicted\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "1020016",
+      "name": "SAMI Bitumen Container Facility Expansion",
+      "location": "Darwin, NT",
+      "owner": "SAMI Bitumen Technologies",
+      "contractors": "[{\"confidence\": 60, \"detail\": \"contractor: Monadelphous has a strong presence in Northern Australia and extensive experience in industrial and infrastructure projects, including bulk liquids and materials handling facilities, which would be relevant for a bitumen container facility expansion. (enrichment pass)\", \"name\": \"Monadelphous\", \"status\": \"Predicted\"}, {\"confidence\": 35, \"detail\": \"contractor: While primarily known for mining and civil, NRW has capabilities in bulk earthworks and infrastructure that could be relevant, especially for site preparation or associated civil works. Their project wins are often in WA, but they have a broad Australian presence. (enrichment pass)\", \"name\": \"NRW Civil & Mining\", \"status\": \"Predicted\"}, {\"confidence\": 35, \"detail\": \"contractor: CPB is a major national contractor with experience in various infrastructure projects. While their recent NT wins are not listed, they have the scale and capability for such an expansion, though perhaps less specialised in bitumen facilities specifically. (enrichment pass)\", \"name\": \"CPB Contractors\", \"status\": \"Predicted\"}, {\"confidence\": 60, \"detail\": \"consultant: Worley is a global engineering and project delivery firm with significant experience in the oil, gas, and chemicals sector, which includes bitumen and related infrastructure. They often provide engineering, procurement, and construction management (EPCM) services for such facilities. (enrichment pass)\", \"name\": \"Worley\", \"status\": \"Predicted\"}, {\"confidence\": 60, \"detail\": \"consultant: Similar to Worley, Wood is a major engineering and consulting firm with expertise in energy, industrial, and infrastructure projects, including bulk liquid storage and handling. They could provide design and engineering services. (enrichment pass)\", \"name\": \"Wood\", \"status\": \"Predicted\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "1290005",
+      "name": "Yindjibarndi Energy Solar Project",
+      "location": "Pilbara, WA",
+      "owner": "Yindjibarndi Energy Corporation (YEC)",
+      "contractors": "[{\"confidence\": 0.85, \"detail\": \"Confirmed via ICN Gateway\", \"name\": \"Arrow Energy\", \"status\": \"confirmed\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "1380014",
+      "name": "Melbourne hyperscale data centre development",
+      "location": "Western Melbourne, VIC",
+      "owner": "Unknown",
+      "contractors": "[{\"confidence\": 0.9, \"detail\": \"Contractor (Projectory)\", \"name\": \"article-id=\\\"41747\\\"\", \"status\": \"confirmed\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "1380025",
+      "name": "Rasp Mine ATA Tailings Dewatering Plant",
+      "location": "Broken Hill, NSW",
+      "owner": "Broken Hill Mines",
+      "contractors": "[{\"confidence\": 1, \"detail\": \"Awarded design-build contract for the tailings dewatering plant.\", \"name\": \"Clean TeQ Water\", \"status\": \"Awarded\"}]",
+      "suppressionReason": "NULL"
+    },
+    {
+      "id": "1740008",
+      "name": "SA Firm Energy Reliability (FER) Battery Projects",
+      "location": "Statewide, SA",
+      "owner": "South Australian Government",
+      "contractors": "[{\"confidence\": 85, \"detail\": \"epc: GenusPlus has been awarded multiple battery energy storage system (BESS) projects in South Australia, including the Koolunga BESS EPC Project, and is explicitly listed as having won contracts for 'Undisclosed six battery energy storage system projects' which are part of the 'SA Firm Energy Reliability (FER) Battery Projects' initiative. (enrichment pass)\", \"name\": \"GenusPlus\", \"status\": \"Confirmed\"}, {\"confidence\": 85, \"detail\": \"epc: GenusPlus Group is explicitly listed as having won contracts for 'Undisclosed six battery energy storage system projects' which are part of the 'SA Firm Energy Reliability (FER) Battery Projects' initiative, and also the Koolunga BESS, indicating strong involvement in SA energy storage. (enrichment pass)\", \"name\": \"GenusPlus Group\", \"status\": \"Confirmed\"}]",
+      "suppressionReason": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlocation\towner\tcontractors\tsuppressionReason\n120004\tAustralian Submarine Agency — AUKUS Pillar 1\tSA\tAustralian Submarine Agency\t[{\"confidence\": 1, \"detail\": \"ICN Gateway project owner\", \"name\": \"Australian Submarine Agency\", \"status\": \"confirmed\"}]\tNULL\n120006\tArrow Energy — Surat Gas Project\tQLD\tArrow Energy Pty Ltd\t[{\"confidence\": 1, \"detail\": \"ICN Gateway project owner\", \"name\": \"Arrow Energy Pty Ltd\", \"status\": \"confirmed\"}]\tNULL\n840002\tFirst Nations Microgrids Program\tNT, NT\tFirst Nations communities (with ARENA funding)\t[{\"confidence\": 85, \"detail\": \"supplier: Pacific Energy has a strong track record of winning energy storage and power generation projects in the Northern Territory, including multiple BESS projects for Alice Springs and Darwin-Katherine power systems. Microgrids often involve battery energy storage and generation components. (enrichment pass)\", \"name\": \"Pacific Energy\", \"status\": \"Confirmed\"}, {\"confidence\": 60, \"detail\": \"consultant: Worley is a global engineering and consulting firm with significant experience in the energy sector, including renewable energy and grid solutions. They are well-positioned to provide design and engineering services for microgrid development in remote areas. (enrichment pass)\", \"name\": \"Worley\", \"status\": \"Predicted\"}, {\"confidence\": 60, \"detail\": \"consultant: Wood is another major engineering and consulting firm with expertise in power generation, transmission, and renewable energy projects. They could provide detailed design and technical advisory services for microgrid implementation. (enrichment pass)\", \"name\": \"Wood\", \"status\": \"Predicted\"}, {\"confidence\": 35, \"detail\": \"epc: Clough has experience in energy infrastructure projects, including power generation. While not explicitly listed for NT microgrids in the database, their general energy EPC capability makes them a potential, albeit less certain, candidate for larger microgrid EPC roles. (enrichment pass)\", \"name\": \"Clough\", \"status\": \"Predicted\"}]\tNULL\n1020016\tSAMI Bitumen Container Facility Expansion\tDarwin, NT\tSAMI Bitumen Technologies\t[{\"confidence\": 60, \"detail\": \"contractor: Monadelphous has a strong presence in Northern Australia and extensive experience in industrial and infrastructure projects, including bulk liquids and materials handling facilities, which would be relevant for a bitumen container facility expansion. (enrichment pass)\", \"name\": \"Monadelphous\", \"status\": \"Predicted\"}, {\"confidence\": 35, \"detail\": \"contractor: While primarily known for mining and civil, NRW has capabilities in bulk earthworks and infrastructure that could be relevant, especially for site preparation or associated civil works. Their project wins are often in WA, but they have a broad Australian presence. (enrichment pass)\", \"name\": \"NRW Civil & Mining\", \"status\": \"Predicted\"}, {\"confidence\": 35, \"detail\": \"contractor: CPB is a major national contractor with experience in various infrastructure projects. While their recent NT wins are not listed, they have the scale and capability for such an expansion, though perhaps less specialised in bitumen facilities specifically. (enrichment pass)\", \"name\": \"CPB Contractors\", \"status\": \"Predicted\"}, {\"confidence\": 60, \"detail\": \"consultant: Worley is a global engineering and project delivery firm with significant experience in the oil, gas, and chemicals sector, which includes bitumen and related infrastructure. They often provide engineering, procurement, and construction management (EPCM) services for such facilities. (enrichment pass)\", \"name\": \"Worley\", \"status\": \"Predicted\"}, {\"confidence\": 60, \"detail\": \"consultant: Similar to Worley, Wood is a major engineering and consulting firm with expertise in energy, industrial, and infrastructure projects, including bulk liquid storage and handling. They could provide design and engineering services. (enrichment pass)\", \"name\": \"Wood\", \"status\": \"Predicted\"}]\tNULL\n1290005\tYindjibarndi Energy Solar Project\tPilbara, WA\tYindjibarndi Energy Corporation (YEC)\t[{\"confidence\": 0.85, \"detail\": \"Confirmed via ICN Gateway\", \"name\": \"Arrow Energy\", \"status\": \"confirmed\"}]\tNULL\n1380014\tMelbourne hyperscale data centre development\tWestern Melbourne, VIC\tUnknown\t[{\"confidence\": 0.9, \"detail\": \"Contractor (Projectory)\", \"name\": \"article-id=\\\"41747\\\"\", \"status\": \"confirmed\"}]\tNULL\n1380025\tRasp Mine ATA Tailings Dewatering Plant\tBroken Hill, NSW\tBroken Hill Mines\t[{\"confidence\": 1, \"detail\": \"Awarded design-build contract for the tailings dewatering plant.\", \"name\": \"Clean TeQ Water\", \"status\": \"Awarded\"}]\tNULL\n1740008\tSA Firm Energy Reliability (FER) Battery Projects\tStatewide, SA\tSouth Australian Government\t[{\"confidence\": 85, \"detail\": \"epc: GenusPlus has been awarded multiple battery energy storage system (BESS) projects in South Australia, including the Koolunga BESS EPC Project, and is explicitly listed as having won contracts for 'Undisclosed six battery energy storage system projects' which are part of the 'SA Firm Energy Reliability (FER) Battery Projects' initiative. (enrichment pass)\", \"name\": \"GenusPlus\", \"status\": \"Confirmed\"}, {\"confidence\": 85, \"detail\": \"epc: GenusPlus Group is explicitly listed as having won contracts for 'Undisclosed six battery energy storage system projects' which are part of the 'SA Firm Energy Reliability (FER) Battery Projects' initiative, and also the Koolunga BESS, indicating strong involvement in SA energy storage. (enrichment pass)\", \"name\": \"GenusPlus Group\", \"status\": \"Confirmed\"}]\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1912
+}

@@ -1,0 +1,46 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'pipelineRuns' AND ORDINAL_POSITION > 20\nORDER BY ORDINAL_POSITION;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'pipelineRuns' AND ORDINAL_POSITION > 20\nORDER BY ORDINAL_POSITION;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "errors"
+    },
+    {
+      "COLUMN_NAME": "sourceStats"
+    },
+    {
+      "COLUMN_NAME": "triggeredBy"
+    },
+    {
+      "COLUMN_NAME": "projectoryProjects"
+    },
+    {
+      "COLUMN_NAME": "govProjects"
+    },
+    {
+      "COLUMN_NAME": "aemoProjects"
+    },
+    {
+      "COLUMN_NAME": "icnProjects"
+    },
+    {
+      "COLUMN_NAME": "steps"
+    },
+    {
+      "COLUMN_NAME": "projectoryEnriched"
+    },
+    {
+      "COLUMN_NAME": "lastProgressAt"
+    },
+    {
+      "COLUMN_NAME": "currentStep"
+    },
+    {
+      "COLUMN_NAME": "lastActivityNote"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nerrors\nsourceStats\ntriggeredBy\nprojectoryProjects\ngovProjects\naemoProjects\nicnProjects\nsteps\nprojectoryEnriched\nlastProgressAt\ncurrentStep\nlastActivityNote\n",
+  "stderr": "",
+  "execution_time_ms": 1704
+}

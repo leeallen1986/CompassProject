@@ -1,0 +1,46 @@
+{
+  "query": "\n-- Check projects columns relevant to contacts join\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' AND COLUMN_NAME IN ('id','title','name','projectId')\nORDER BY ORDINAL_POSITION;\n\n-- Check contacts columns relevant to projects join\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND COLUMN_NAME IN ('projectId','project','project_id','reportId')\nORDER BY ORDINAL_POSITION;\n\n-- Check contactProjects table\nDESCRIBE contactProjects;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check projects columns relevant to contacts join\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' AND COLUMN_NAME IN ('id','title','name','projectId')\nORDER BY ORDINAL_POSITION;\n\n-- Check contacts columns relevant to projects join\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'contacts' AND COLUMN_NAME IN ('projectId','project','project_id','reportId')\nORDER BY ORDINAL_POSITION;\n\n-- Check contactProjects table\nDESCRIBE contactProjects;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "name"
+    },
+    {
+      "COLUMN_NAME": "COLUMN_NAME"
+    },
+    {
+      "COLUMN_NAME": "reportId"
+    },
+    {
+      "COLUMN_NAME": "project"
+    },
+    {
+      "COLUMN_NAME": "Field\tType\tNull\tKey\tDefault\tExtra"
+    },
+    {
+      "COLUMN_NAME": "id\tint\tNO\tPRI\tNULL\tauto_increment"
+    },
+    {
+      "COLUMN_NAME": "contactId\tint\tNO\t\tNULL\t"
+    },
+    {
+      "COLUMN_NAME": "projectId\tint\tNO\t\tNULL\t"
+    },
+    {
+      "COLUMN_NAME": "projectName\tvarchar(512)\tNO\t\tNULL\t"
+    },
+    {
+      "COLUMN_NAME": "relevance\tenum('primary','secondary')\tYES\t\tprimary\t"
+    },
+    {
+      "COLUMN_NAME": "createdAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nname\nCOLUMN_NAME\nreportId\nproject\nField\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\ncontactId\tint\tNO\t\tNULL\t\nprojectId\tint\tNO\t\tNULL\t\nprojectName\tvarchar(512)\tNO\t\tNULL\t\nrelevance\tenum('primary','secondary')\tYES\t\tprimary\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\n",
+  "stderr": "",
+  "execution_time_ms": 2150
+}

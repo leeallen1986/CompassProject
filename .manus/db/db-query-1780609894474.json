@@ -1,0 +1,90 @@
+{
+  "query": "\nSELECT \n  p.id,\n  p.name,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN c.enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN c.enrichmentStatus = 'not_found' THEN 1 ELSE 0 END) as notFound,\n  SUM(CASE WHEN c.enrichmentSource = 'apollo' THEN 1 ELSE 0 END) as fromApollo,\n  SUM(CASE WHEN c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as hasEmail\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.id IN (120006, 120004, 1290005, 1740008, 1380025, 1380014, 1020016, 840002)\nGROUP BY p.id, p.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  p.id,\n  p.name,\n  COUNT(DISTINCT cp.contactId) as totalContacts,\n  SUM(CASE WHEN c.enrichmentStatus = 'enriched' THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN c.enrichmentStatus = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN c.enrichmentStatus = 'not_found' THEN 1 ELSE 0 END) as notFound,\n  SUM(CASE WHEN c.enrichmentSource = 'apollo' THEN 1 ELSE 0 END) as fromApollo,\n  SUM(CASE WHEN c.email IS NOT NULL AND c.email != '' THEN 1 ELSE 0 END) as hasEmail\nFROM projects p\nLEFT JOIN contactProjects cp ON cp.projectId = p.id\nLEFT JOIN contacts c ON c.id = cp.contactId\nWHERE p.id IN (120006, 120004, 1290005, 1740008, 1380025, 1380014, 1020016, 840002)\nGROUP BY p.id, p.name;\n",
+  "rows": [
+    {
+      "id": "120006",
+      "name": "Arrow Energy — Surat Gas Project",
+      "totalContacts": "5",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    },
+    {
+      "id": "120004",
+      "name": "Australian Submarine Agency — AUKUS Pillar 1",
+      "totalContacts": "5",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    },
+    {
+      "id": "1740008",
+      "name": "SA Firm Energy Reliability (FER) Battery Projects",
+      "totalContacts": "1",
+      "enriched": "1",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "1"
+    },
+    {
+      "id": "840002",
+      "name": "First Nations Microgrids Program",
+      "totalContacts": "0",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    },
+    {
+      "id": "1020016",
+      "name": "SAMI Bitumen Container Facility Expansion",
+      "totalContacts": "0",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    },
+    {
+      "id": "1290005",
+      "name": "Yindjibarndi Energy Solar Project",
+      "totalContacts": "0",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    },
+    {
+      "id": "1380014",
+      "name": "Melbourne hyperscale data centre development",
+      "totalContacts": "0",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    },
+    {
+      "id": "1380025",
+      "name": "Rasp Mine ATA Tailings Dewatering Plant",
+      "totalContacts": "0",
+      "enriched": "0",
+      "pending": "0",
+      "notFound": "0",
+      "fromApollo": "0",
+      "hasEmail": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\ttotalContacts\tenriched\tpending\tnotFound\tfromApollo\thasEmail\n120006\tArrow Energy — Surat Gas Project\t5\t0\t0\t0\t0\t0\n120004\tAustralian Submarine Agency — AUKUS Pillar 1\t5\t0\t0\t0\t0\t0\n1740008\tSA Firm Energy Reliability (FER) Battery Projects\t1\t1\t0\t0\t0\t1\n840002\tFirst Nations Microgrids Program\t0\t0\t0\t0\t0\t0\n1020016\tSAMI Bitumen Container Facility Expansion\t0\t0\t0\t0\t0\t0\n1290005\tYindjibarndi Energy Solar Project\t0\t0\t0\t0\t0\t0\n1380014\tMelbourne hyperscale data centre development\t0\t0\t0\t0\t0\t0\n1380025\tRasp Mine ATA Tailings Dewatering Plant\t0\t0\t0\t0\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1776
+}

@@ -1,0 +1,8 @@
+{
+  "query": "\nINSERT INTO userProfiles (\n  userId,\n  territories,\n  assignedBusinessLines,\n  offerCategories,\n  industries,\n  buyerRoles,\n  stageTiming,\n  customerTypes,\n  onboardingCompleted\n) VALUES (\n  23130008,\n  '[\"QLD\", \"NT\"]',\n  '[\"Portable Air\"]',\n  '[\"equipment\", \"rentals\", \"services\"]',\n  '[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\", \"energy\"]',\n  '[\"procurement\", \"project_manager\", \"engineering\", \"operations\"]',\n  '[\"early_signal\", \"planning\", \"tendering\", \"awarded_mobilizing\"]',\n  '[\"principal_contractor\", \"owner_operator\", \"subcontractor\"]',\n  1\n);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nINSERT INTO userProfiles (\n  userId,\n  territories,\n  assignedBusinessLines,\n  offerCategories,\n  industries,\n  buyerRoles,\n  stageTiming,\n  customerTypes,\n  onboardingCompleted\n) VALUES (\n  23130008,\n  '[\"QLD\", \"NT\"]',\n  '[\"Portable Air\"]',\n  '[\"equipment\", \"rentals\", \"services\"]',\n  '[\"mining_exploration\", \"mining_production\", \"oil_gas\", \"infrastructure\", \"energy\"]',\n  '[\"procurement\", \"project_manager\", \"engineering\", \"operations\"]',\n  '[\"early_signal\", \"planning\", \"tendering\", \"awarded_mobilizing\"]',\n  '[\"principal_contractor\", \"owner_operator\", \"subcontractor\"]',\n  1\n);\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1062 (23000) at line 2: Duplicate entry '?' for key 'userProfiles.userProfiles_userId_unique'"
+  ]
+}

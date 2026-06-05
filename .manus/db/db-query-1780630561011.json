@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE userProfiles up\nINNER JOIN users u ON u.id = up.userId\nSET up.assignedBusinessLines = JSON_ARRAY_APPEND(up.assignedBusinessLines, '$', 'Specialty Air')\nWHERE JSON_CONTAINS(up.assignedBusinessLines, '\"Portable Air\"')\nAND NOT JSON_CONTAINS(up.assignedBusinessLines, '\"Specialty Air\"');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nUPDATE userProfiles up\nINNER JOIN users u ON u.id = up.userId\nSET up.assignedBusinessLines = JSON_ARRAY_APPEND(up.assignedBusinessLines, '$', 'Specialty Air')\nWHERE JSON_CONTAINS(up.assignedBusinessLines, '\"Portable Air\"')\nAND NOT JSON_CONTAINS(up.assignedBusinessLines, '\"Specialty Air\"');\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1849
+}
