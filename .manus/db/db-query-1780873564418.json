@@ -1,0 +1,26 @@
+{
+  "query": "\nSELECT id, status, startedAt, completedAt, projectsCreated,\n  TIMESTAMPDIFF(MINUTE, startedAt, completedAt) as durationMins\nFROM pipelineRuns\nWHERE startedAt >= '2026-06-07 00:00:00'\nORDER BY startedAt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, status, startedAt, completedAt, projectsCreated,\n  TIMESTAMPDIFF(MINUTE, startedAt, completedAt) as durationMins\nFROM pipelineRuns\nWHERE startedAt >= '2026-06-07 00:00:00'\nORDER BY startedAt DESC;\n",
+  "rows": [
+    {
+      "id": "1800001",
+      "status": "failed",
+      "startedAt": "2026-06-07 20:10:05",
+      "completedAt": "2026-06-07 21:25:21",
+      "projectsCreated": "0",
+      "durationMins": "75"
+    },
+    {
+      "id": "1770001",
+      "status": "failed",
+      "startedAt": "2026-06-07 12:07:23",
+      "completedAt": "2026-06-07 21:25:21",
+      "projectsCreated": "0",
+      "durationMins": "557"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tprojectsCreated\tdurationMins\n1800001\tfailed\t2026-06-07 20:10:05\t2026-06-07 21:25:21\t0\t75\n1770001\tfailed\t2026-06-07 12:07:23\t2026-06-07 21:25:21\t0\t557\n",
+  "stderr": "",
+  "execution_time_ms": 1813
+}

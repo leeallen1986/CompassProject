@@ -1,0 +1,66 @@
+{
+  "query": "\nSELECT id, status, startedAt, completedAt, projectsCreated\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 8;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, status, startedAt, completedAt, projectsCreated\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 8;\n",
+  "rows": [
+    {
+      "id": "1800001",
+      "status": "failed",
+      "startedAt": "2026-06-07 20:10:05",
+      "completedAt": "2026-06-07 21:25:21",
+      "projectsCreated": "0"
+    },
+    {
+      "id": "1770001",
+      "status": "failed",
+      "startedAt": "2026-06-07 12:07:23",
+      "completedAt": "2026-06-07 21:25:21",
+      "projectsCreated": "0"
+    },
+    {
+      "id": "1740001",
+      "status": "failed",
+      "startedAt": "2026-06-06 20:00:20",
+      "completedAt": "2026-06-06 22:23:45",
+      "projectsCreated": "6"
+    },
+    {
+      "id": "1710001",
+      "status": "completed",
+      "startedAt": "2026-06-05 20:00:09",
+      "completedAt": "2026-06-05 20:37:21",
+      "projectsCreated": "24"
+    },
+    {
+      "id": "1680001",
+      "status": "completed",
+      "startedAt": "2026-06-04 20:00:14",
+      "completedAt": "2026-06-04 20:42:35",
+      "projectsCreated": "36"
+    },
+    {
+      "id": "1650001",
+      "status": "failed",
+      "startedAt": "2026-06-03 20:00:11",
+      "completedAt": "2026-06-04 08:04:21",
+      "projectsCreated": "29"
+    },
+    {
+      "id": "1620001",
+      "status": "completed",
+      "startedAt": "2026-06-02 20:00:09",
+      "completedAt": "2026-06-02 20:38:07",
+      "projectsCreated": "6"
+    },
+    {
+      "id": "1590001",
+      "status": "completed",
+      "startedAt": "2026-06-02 06:45:53",
+      "completedAt": "2026-06-02 07:30:53",
+      "projectsCreated": "25"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tprojectsCreated\n1800001\tfailed\t2026-06-07 20:10:05\t2026-06-07 21:25:21\t0\n1770001\tfailed\t2026-06-07 12:07:23\t2026-06-07 21:25:21\t0\n1740001\tfailed\t2026-06-06 20:00:20\t2026-06-06 22:23:45\t6\n1710001\tcompleted\t2026-06-05 20:00:09\t2026-06-05 20:37:21\t24\n1680001\tcompleted\t2026-06-04 20:00:14\t2026-06-04 20:42:35\t36\n1650001\tfailed\t2026-06-03 20:00:11\t2026-06-04 08:04:21\t29\n1620001\tcompleted\t2026-06-02 20:00:09\t2026-06-02 20:38:07\t6\n1590001\tcompleted\t2026-06-02 06:45:53\t2026-06-02 07:30:53\t25\n",
+  "stderr": "",
+  "execution_time_ms": 1729
+}

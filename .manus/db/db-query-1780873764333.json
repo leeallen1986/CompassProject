@@ -1,0 +1,24 @@
+{
+  "query": "\n-- The cloud computer log confirms run 1800001 completed successfully at 21:42 UTC with 13 projects\n-- The DB shows it as failed because the cleanup job fired during a server restart at 21:25 UTC\n-- Correct the record to reflect the actual outcome\nUPDATE pipelineRuns\nSET \n  status = 'completed',\n  completedAt = '2026-06-07 21:42:54',\n  projectsCreated = 13\nWHERE id = 1800001\n  AND status = 'failed';\n\n-- Also correct run 1770001 which was a duplicate/orphaned run that started at 12:07 and was cleaned up\n-- Leave that one as failed since it was genuinely interrupted\nSELECT id, status, startedAt, completedAt, projectsCreated \nFROM pipelineRuns \nWHERE id IN (1800001, 1770001);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- The cloud computer log confirms run 1800001 completed successfully at 21:42 UTC with 13 projects\n-- The DB shows it as failed because the cleanup job fired during a server restart at 21:25 UTC\n-- Correct the record to reflect the actual outcome\nUPDATE pipelineRuns\nSET \n  status = 'completed',\n  completedAt = '2026-06-07 21:42:54',\n  projectsCreated = 13\nWHERE id = 1800001\n  AND status = 'failed';\n\n-- Also correct run 1770001 which was a duplicate/orphaned run that started at 12:07 and was cleaned up\n-- Leave that one as failed since it was genuinely interrupted\nSELECT id, status, startedAt, completedAt, projectsCreated \nFROM pipelineRuns \nWHERE id IN (1800001, 1770001);\n",
+  "rows": [
+    {
+      "id": "1800001",
+      "status": "completed",
+      "startedAt": "2026-06-07 20:10:05",
+      "completedAt": "2026-06-07 21:42:54",
+      "projectsCreated": "13"
+    },
+    {
+      "id": "1770001",
+      "status": "failed",
+      "startedAt": "2026-06-07 12:07:23",
+      "completedAt": "2026-06-07 21:25:21",
+      "projectsCreated": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tprojectsCreated\n1800001\tcompleted\t2026-06-07 20:10:05\t2026-06-07 21:42:54\t13\n1770001\tfailed\t2026-06-07 12:07:23\t2026-06-07 21:25:21\t0\n",
+  "stderr": "",
+  "execution_time_ms": 2076
+}

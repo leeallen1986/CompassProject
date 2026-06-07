@@ -1710,6 +1710,14 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       // Only critical step failures flip the run to "failed"
       const hasCriticalFailure = steps.some(s => CRITICAL_STEP_NAMES.has(s.name) && s.status === "failed");
 
+      // Force-complete override: if the cleanup job marked this run as 'failed' during a server restart
+      // mid-run, we override it back to 'completed' here since the pipeline actually finished.
+      // We do NOT override if there was a critical step failure — that's a genuine failure.
+      const [currentRunRecord] = await db.select({ status: pipelineRuns.status }).from(pipelineRuns).where(eq(pipelineRuns.id, runId)).limit(1);
+      if (!hasCriticalFailure && currentRunRecord?.status === 'failed') {
+        console.warn(`[DailyPipeline] ⚠ Run ${runId} was marked 'failed' by cleanup (server restart mid-run) but pipeline completed successfully — overriding status to 'completed'`);
+      }
+
       await db.update(pipelineRuns).set({
         status: hasCriticalFailure ? "failed" : "completed",
         completedAt: new Date(),

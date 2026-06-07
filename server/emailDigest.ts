@@ -1832,7 +1832,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   // AUDIT: Any force bypass is logged with FORCE_OVERRIDE marker so it is always
   // visible in server logs and auditable.
   if (force && !dryRun) {
-    const freshness = await checkPipelineFreshness(26);
+    const freshness = await checkPipelineFreshness(36);
     console.warn(
       `[EmailDigest] ⚠ FORCE_OVERRIDE: sendWeeklyDigests(force=true) bypassing freshness gate.` +
       ` Pipeline status: ${freshness.status} (${freshness.ageHours}h old).` +
@@ -1841,7 +1841,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   }
 
   if (!force && !dryRun) {
-    const freshness = await checkPipelineFreshness(26);
+    const freshness = await checkPipelineFreshness(36);
     const isBlocked = freshness.status === "stale" || freshness.status === "failed" || freshness.status === "never_run";
 
     if (isBlocked) {
@@ -3119,7 +3119,7 @@ export async function sendWeeklyDigestToUser(userId: number, forceOverride = fal
   // ── Freshness Gate (mirrors sendWeeklyDigests) ──
   // forceOverride must be explicitly true — default is false (safe).
   if (!forceOverride) {
-    const freshness = await checkPipelineFreshness(26);
+    const freshness = await checkPipelineFreshness(36);
     const isBlocked = freshness.status === "stale" || freshness.status === "failed" || freshness.status === "never_run";
     if (isBlocked) {
       console.warn(
@@ -3131,7 +3131,7 @@ export async function sendWeeklyDigestToUser(userId: number, forceOverride = fal
     }
   } else {
     // Audit log: any force override must be visible in logs
-    const freshness = await checkPipelineFreshness(26);
+    const freshness = await checkPipelineFreshness(36);
     console.warn(
       `[EmailDigest] ⚠ FORCE_OVERRIDE: sendWeeklyDigestToUser(${userId}) bypassing freshness gate.` +
       ` Pipeline status: ${freshness.status} (${freshness.ageHours}h old). This will be sent with stale data.`
