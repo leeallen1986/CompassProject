@@ -112,6 +112,12 @@ export type BestProductAngle =
   | "N2 Membrane"                // Nitrogen membrane system
   | "Booster"                    // High-pressure booster compressor
   | "Package"                    // Combined compressor + dryer / N2 / booster package
+  // Pump product angles (Sykes range)
+  | "Dewatering Pump"            // Sykes MH/HH/XH series — mine dewatering, civil drainage
+  | "High Head Pump"             // Sykes HH/XH series — deep mine, high-pressure dewatering
+  | "Sewage Pump"                // Sykes SW series — sewer bypass, wastewater
+  | "Slurry Pump"                // Slurry/tailings handling
+  | "Submersible Pump"           // Submersible/borehole application
   | "Monitor";                   // No clear product angle yet
 export interface AirOpportunityClassification {
   /** Overall air fit level for this project */
@@ -180,6 +186,12 @@ export interface LaneScoredProject {
    * Matched account-prior canonical name, if any.
    */
   matchedAccountPrior?: string | null;
+  /**
+   * Best Sykes pump product angle for this project.
+   * Only meaningful for pump-lane reps (Brett, Dan Day).
+   * Derived from classifyPumpProductAngle().
+   */
+  bestPumpAngle?: BestProductAngle;
 }
 
 // ── Keyword lists for lane opportunity scoring (Part B) ──
@@ -572,6 +584,35 @@ export function classifyAirOpportunity(
 
   // No credible air signal
   return { airFit: "None", opportunityType: "none", bestProductAngle: "Monitor" };
+}
+
+// ── Part A.2b-pump: Pump Product Angle Classification ──
+
+/**
+ * Classify a project into the best Sykes pump product angle for pump reps.
+ * Maps project text signals to the most relevant pump range.
+ *
+ * Priority order:
+ * 1. Slurry / tailings → Slurry Pump
+ * 2. Sewer / sewage / wastewater bypass → Sewage Pump
+ * 3. Submersible / borehole / wellpoint → Submersible Pump
+ * 4. Deep mine / high-head / shaft / raise bore → High Head Pump
+ * 5. General dewatering / drainage / excavation → Dewatering Pump
+ */
+export function classifyPumpProductAngle(text: string): BestProductAngle {
+  const t = text.toLowerCase();
+  const hasSlurry = /slurry|tailings|paste|concentrate|mineral process/.test(t);
+  const hasSewage = /sewer|sewage|wastewater|waste water|effluent|sewerage|bypass pump/.test(t);
+  const hasSubmersible = /submersible|borehole|wellpoint|bore pump|groundwater bore/.test(t);
+  const hasHighHead = /high.head|shaft sink|raise bore|raise boring|deep mine|underground mine|deep dewater|high pressure pump|hh pump|xh pump|extra high/.test(t);
+  const hasDewatering = /dewater|drainage|site drainage|mine dewater|excavat|flood|dam|cofferdam|trench|sump|wet works|water table|seepage|groundwater control/.test(t);
+
+  if (hasSlurry) return "Slurry Pump";
+  if (hasSewage) return "Sewage Pump";
+  if (hasSubmersible) return "Submersible Pump";
+  if (hasHighHead) return "High Head Pump";
+  if (hasDewatering) return "Dewatering Pump";
+  return "Monitor";
 }
 
 // ── Part A.2b: Portable Air Opportunity Gate ──
@@ -1937,6 +1978,7 @@ export function computePerUserFinalScore(
     accountPriorBoost: accountPriorBoostVal,
     pumpActionMode,
     matchedAccountPrior: accountPriorMatch?.canonicalName ?? null,
+    bestPumpAngle: classifyPumpProductAngle(projectText(project)),
   };
 }
 

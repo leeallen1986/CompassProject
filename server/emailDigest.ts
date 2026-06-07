@@ -339,6 +339,8 @@ interface DigestProject {
   opportunityType?: string;
   /** Best product angle for this project */
   bestProductAngle?: string;
+  /** Best Sykes pump product angle for pump-lane reps */
+  bestPumpAngle?: string;
 }
 
 interface DigestContact {
@@ -1126,12 +1128,17 @@ function renderProjectCard(
     : null
     : null;
   // Three-family air opportunity chip: only show for PA reps (not pump/dewatering reps)
-  const isPrimaryPAOrSpecialtyAirRep = assignedBLs.length === 0 ||
+  const isPrimaryPAOrSpecialtyAirRep =
     assignedBLs.some(bl => ['Portable Air', 'Specialty Air'].includes(bl)) &&
     !assignedBLs.some(bl => ['Pump (Flow)', 'Dewatering Pumps', 'Pump'].includes(bl));
+  const isPumpRep =
+    assignedBLs.some(bl => ['Pump (Flow)', 'Dewatering Pumps', 'Pump'].includes(bl));
+  // PA/Specialty Air reps see air product angle; Pump reps see Sykes pump product angle
   const productAngleChip = isPrimaryPAOrSpecialtyAirRep &&
     p.bestProductAngle && p.bestProductAngle !== "Monitor" && p.airFit && p.airFit !== "None"
     ? `🛠️ ${p.bestProductAngle}`
+    : isPumpRep && p.bestPumpAngle && p.bestPumpAngle !== "Monitor"
+    ? `🔵 ${p.bestPumpAngle}`
     : null;
   const fallbackChip = isFallback ? "⚠️ Contacts need validation" : null;
   const chipParts = [laneFitChip, channelChip, productAngleChip, fallbackChip].filter(Boolean);
@@ -1705,6 +1712,8 @@ export async function scoreAndFilterProjects(
       airFit: laneResultWithTieBreaker.airFit,
       opportunityType: laneResultWithTieBreaker.opportunityType,
       bestProductAngle: laneResultWithTieBreaker.bestProductAngle,
+      // Sykes pump product angle for pump-lane reps
+      bestPumpAngle: laneResultWithTieBreaker.bestPumpAngle,
     };
   });
 
