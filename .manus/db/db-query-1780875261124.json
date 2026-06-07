@@ -1,0 +1,28 @@
+{
+  "query": "\nSELECT id, name, productLane, matchedBusinessLines\nFROM projects\nWHERE id IN (1200066, 1380040, 1380043);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, productLane, matchedBusinessLines\nFROM projects\nWHERE id IN (1200066, 1380040, 1380043);\n",
+  "rows": [
+    {
+      "id": "1200066",
+      "name": "Barossa Gas Project",
+      "productLane": "NULL",
+      "matchedBusinessLines": "[3, 30001]"
+    },
+    {
+      "id": "1380040",
+      "name": "Bellevue Gold Project",
+      "productLane": "NULL",
+      "matchedBusinessLines": "[1, 3, 30001]"
+    },
+    {
+      "id": "1380043",
+      "name": "Finniss Lithium Project restart and underground development",
+      "productLane": "NULL",
+      "matchedBusinessLines": "[1, 3, 30002, 30001]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tproductLane\tmatchedBusinessLines\n1200066\tBarossa Gas Project\tNULL\t[3, 30001]\n1380040\tBellevue Gold Project\tNULL\t[1, 3, 30001]\n1380043\tFinniss Lithium Project restart and underground development\tNULL\t[1, 3, 30002, 30001]\n",
+  "stderr": "",
+  "execution_time_ms": 1727
+}

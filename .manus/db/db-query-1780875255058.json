@@ -1,0 +1,19 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' \nAND COLUMN_NAME IN ('name','title','projectName','productLane','matchedBusinessLines','blScores')\nORDER BY ORDINAL_POSITION;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'projects' \nAND COLUMN_NAME IN ('name','title','projectName','productLane','matchedBusinessLines','blScores')\nORDER BY ORDINAL_POSITION;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "name"
+    },
+    {
+      "COLUMN_NAME": "matchedBusinessLines"
+    },
+    {
+      "COLUMN_NAME": "productLane"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nname\nmatchedBusinessLines\nproductLane\n",
+  "stderr": "",
+  "execution_time_ms": 1726
+}

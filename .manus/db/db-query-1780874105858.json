@@ -1,0 +1,130 @@
+{
+  "query": "\nSELECT digestType, status, scheduledFor, sentAt, error, createdAt\nFROM digestScheduleLog\nORDER BY createdAt DESC\nLIMIT 15;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT digestType, status, scheduledFor, sentAt, error, createdAt\nFROM digestScheduleLog\nORDER BY createdAt DESC\nLIMIT 15;\n",
+  "rows": [
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:09:03",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD",
+      "createdAt": "2026-06-07 23:09:03"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:09:02",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.5h ago (Fri, 05 Jun 2026 20:37:21 GMT)",
+      "createdAt": "2026-06-07 23:09:02"
+    },
+    {
+      "digestType": "monday",
+      "status": "pending",
+      "scheduledFor": "2026-06-07 23:09:01",
+      "sentAt": "NULL",
+      "error": "NULL",
+      "createdAt": "2026-06-07 23:09:01"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:08:49",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD",
+      "createdAt": "2026-06-07 23:08:49"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:08:48",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.5h ago (Fri, 05 Jun 2026 20:37:21 GMT)",
+      "createdAt": "2026-06-07 23:08:48"
+    },
+    {
+      "digestType": "monday",
+      "status": "pending",
+      "scheduledFor": "2026-06-07 23:08:47",
+      "sentAt": "NULL",
+      "error": "NULL",
+      "createdAt": "2026-06-07 23:08:47"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:04:31",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD",
+      "createdAt": "2026-06-07 23:04:30"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:04:30",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.5h ago (Fri, 05 Jun 2026 20:37:21 GMT)",
+      "createdAt": "2026-06-07 23:04:29"
+    },
+    {
+      "digestType": "monday",
+      "status": "pending",
+      "scheduledFor": "2026-06-07 23:04:26",
+      "sentAt": "NULL",
+      "error": "NULL",
+      "createdAt": "2026-06-07 23:04:27"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:02:32",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD",
+      "createdAt": "2026-06-07 23:02:32"
+    },
+    {
+      "digestType": "monday",
+      "status": "failed",
+      "scheduledFor": "2026-06-07 23:02:28",
+      "sentAt": "NULL",
+      "error": "FRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.4h ago (Fri, 05 Jun 2026 20:37:21 GMT)",
+      "createdAt": "2026-06-07 23:02:28"
+    },
+    {
+      "digestType": "monday",
+      "status": "pending",
+      "scheduledFor": "2026-06-07 23:02:28",
+      "sentAt": "NULL",
+      "error": "NULL",
+      "createdAt": "2026-06-07 23:02:28"
+    },
+    {
+      "digestType": "thursday",
+      "status": "sent",
+      "scheduledFor": "2026-06-04 09:06:47",
+      "sentAt": "2026-06-04 09:06:47",
+      "error": "NULL",
+      "createdAt": "2026-06-04 09:06:48"
+    },
+    {
+      "digestType": "thursday",
+      "status": "pending",
+      "scheduledFor": "2026-06-04 08:04:25",
+      "sentAt": "NULL",
+      "error": "NULL",
+      "createdAt": "2026-06-04 08:04:25"
+    },
+    {
+      "digestType": "monday",
+      "status": "sent",
+      "scheduledFor": "2026-06-01 03:54:37",
+      "sentAt": "2026-06-01 03:54:37",
+      "error": "NULL",
+      "createdAt": "2026-06-01 03:54:37"
+    }
+  ],
+  "messages": [],
+  "stdout": "digestType\tstatus\tscheduledFor\tsentAt\terror\tcreatedAt\nmonday\tfailed\t2026-06-07 23:09:03\tNULL\tFRESHNESS_GATE_HELD\t2026-06-07 23:09:03\nmonday\tfailed\t2026-06-07 23:09:02\tNULL\tFRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.5h ago (Fri, 05 Jun 2026 20:37:21 GMT)\t2026-06-07 23:09:02\nmonday\tpending\t2026-06-07 23:09:01\tNULL\tNULL\t2026-06-07 23:09:01\nmonday\tfailed\t2026-06-07 23:08:49\tNULL\tFRESHNESS_GATE_HELD\t2026-06-07 23:08:49\nmonday\tfailed\t2026-06-07 23:08:48\tNULL\tFRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.5h ago (Fri, 05 Jun 2026 20:37:21 GMT)\t2026-06-07 23:08:48\nmonday\tpending\t2026-06-07 23:08:47\tNULL\tNULL\t2026-06-07 23:08:47\nmonday\tfailed\t2026-06-07 23:04:31\tNULL\tFRESHNESS_GATE_HELD\t2026-06-07 23:04:30\nmonday\tfailed\t2026-06-07 23:04:30\tNULL\tFRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.5h ago (Fri, 05 Jun 2026 20:37:21 GMT)\t2026-06-07 23:04:29\nmonday\tpending\t2026-06-07 23:04:26\tNULL\tNULL\t2026-06-07 23:04:27\nmonday\tfailed\t2026-06-07 23:02:32\tNULL\tFRESHNESS_GATE_HELD\t2026-06-07 23:02:32\nmonday\tfailed\t2026-06-07 23:02:28\tNULL\tFRESHNESS_GATE_HELD: Last pipeline run failed. Last successful run: 50.4h ago (Fri, 05 Jun 2026 20:37:21 GMT)\t2026-06-07 23:02:28\nmonday\tpending\t2026-06-07 23:02:28\tNULL\tNULL\t2026-06-07 23:02:28\nthursday\tsent\t2026-06-04 09:06:47\t2026-06-04 09:06:47\tNULL\t2026-06-04 09:06:48\nthursday\tpending\t2026-06-04 08:04:25\tNULL\tNULL\t2026-06-04 08:04:25\nmonday\tsent\t2026-06-01 03:54:37\t2026-06-01 03:54:37\tNULL\t2026-06-01 03:54:37\n",
+  "stderr": "",
+  "execution_time_ms": 1834
+}

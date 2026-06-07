@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, l.status, l.sentAt, l.subject, l.digestType\nFROM users u\nJOIN userEmailSendLog l ON l.userId = u.id\nWHERE u.email IN ('brett.hansen@sykesgroup.com', 'ryan.pemberton@atlascopco.com')\n  AND l.digestType = 'monday'\n  AND l.sentAt >= '2026-06-07 00:00:00'\nORDER BY l.sentAt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, l.status, l.sentAt, l.subject, l.digestType\nFROM users u\nJOIN userEmailSendLog l ON l.userId = u.id\nWHERE u.email IN ('brett.hansen@sykesgroup.com', 'ryan.pemberton@atlascopco.com')\n  AND l.digestType = 'monday'\n  AND l.sentAt >= '2026-06-07 00:00:00'\nORDER BY l.sentAt DESC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'l.subject' in 'field list'"
+  ]
+}

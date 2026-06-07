@@ -905,6 +905,7 @@ function generateMondayDigest(
   weekKey: string,
   userId: number,
   excludeMustActIds?: Set<number>, // cross-rep dedup: project IDs claimed by a higher-scoring rep
+  assignedBLs: string[] = [],
 ): string {
   // ── Brief Readiness Split ──
   const actionReady = matchedProjects.filter(p => p.briefReadiness === "action_ready");
@@ -995,7 +996,7 @@ function generateMondayDigest(
     content += `---\n\n## 🟥 Must Act This Week (${topActions.length})\n\n`;
     for (const p of topActions) {
       const isFallback = !!(p as any).isFallback;
-      content += renderProjectCard(p, weekKey, userId, isFallback ? "discovery_needed" : "action_ready", isFallback);
+      content += renderProjectCard(p, weekKey, userId, isFallback ? "discovery_needed" : "action_ready", isFallback, assignedBLs);
     }
   } else {
     content += `---\n\n## 🟥 Must Act This Week\n\n`;
@@ -1067,7 +1068,7 @@ function generateMondayDigest(
   if (discoveryItems.length > 0) {
     content += `---\n\n## 🔍 Waiting on Contact Discovery (${discoveryItems.length})\n\n`;
     for (const p of discoveryItems) {
-      content += renderProjectCard(p, weekKey, userId, "discovery_needed");
+      content += renderProjectCard(p, weekKey, userId, "discovery_needed", false, assignedBLs);
     }
   }
 
@@ -1104,6 +1105,7 @@ function renderProjectCard(
   userId: number,
   readiness: BriefReadiness,
   isFallback = false,
+  assignedBLs: string[] = [],
 ): string {
   const priorityLabel = p.priority === "hot" ? "🔥 HOT" : p.priority === "warm" ? "🟡 WARM" : "🔵 COLD";
   const newBadge = p.isNew ? " • NEW" : "";
@@ -1123,8 +1125,12 @@ function renderProjectCard(
     : p.channel === "crosssell" ? "Cross-sell / Adjacent"
     : null
     : null;
-  // Three-family air opportunity chip: only show for PA reps when there's a clear product angle
-  const productAngleChip = (p.bestProductAngle && p.bestProductAngle !== "Monitor" && p.airFit && p.airFit !== "None")
+  // Three-family air opportunity chip: only show for PA reps (not pump/dewatering reps)
+  const isPrimaryPAOrSpecialtyAirRep = assignedBLs.length === 0 ||
+    assignedBLs.some(bl => ['Portable Air', 'Specialty Air'].includes(bl)) &&
+    !assignedBLs.some(bl => ['Pump (Flow)', 'Dewatering Pumps', 'Pump'].includes(bl));
+  const productAngleChip = isPrimaryPAOrSpecialtyAirRep &&
+    p.bestProductAngle && p.bestProductAngle !== "Monitor" && p.airFit && p.airFit !== "None"
     ? `🛠️ ${p.bestProductAngle}`
     : null;
   const fallbackChip = isFallback ? "⚠️ Contacts need validation" : null;
@@ -2621,6 +2627,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         weekKey,
         user.id,
         mustActExcludedByRep.get(user.id), // cross-rep dedup exclusion set
+        (profile.assignedBusinessLines as string[] | null) || [],
       );
 
       // ── PT Capital Sales subject line (clean — no BL label in subject) ──
@@ -3368,7 +3375,8 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     freshnessLine,
     weekKey,
     userId,
-    // Note: single-user preview — no cross-rep dedup applied
+    undefined, // Note: single-user preview — no cross-rep dedup applied
+    (profile.assignedBusinessLines as string[] | null) || [],
   );
 
   const territoryLabel = territories.length > 0 ? territories.join("/") : "National";
