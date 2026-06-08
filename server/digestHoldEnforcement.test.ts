@@ -436,3 +436,85 @@ describe("Digest HOLD / Send Enforcement", () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. Week-level dedup — user already received digest this ISO week
+//    This regression test covers the bug where server restarts on different
+//    calendar days within the same ISO week caused duplicate Monday digests.
+//    Root cause: claimDigestSendSlot's INSERT IGNORE only deduplicates within
+//    the same calendar day (unique key: userId+digestType+sentDate). The new
+//    wasEmailSentToUserThisWeek pre-check queries by weekKey instead of sentDate,
+//    blocking re-sends regardless of which calendar day the server restarted on.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("Week-level dedup — already sent this ISO week", () => {
+  it("skips a user and does NOT call claimDigestSendSlot when wasEmailSentToUserThisWeek returns true", async () => {
+    mockCheckPipelineFreshness.mockResolvedValue(FRESH_FRESHNESS);
+
+    // Override the wasEmailSentToUserThisWeek mock for this test
+    const dbModule = await import("./db");
+    vi.spyOn(dbModule, "wasEmailSentToUserThisWeek").mockResolvedValue(true);
+
+    const { sendWeeklyDigests } = await import("./emailDigest");
+    const result = await sendWeeklyDigests(false, false); // live send, not force
+
+    // The key assertion is that claimDigestSendSlot was NOT called for a user
+    // who already has a sent record this week.
+    // (getEmailRecipients returns [] by default so the loop body never runs — that's fine)
+    expect(mockClaimDigestSendSlot).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("skips a user when wasEmailSentToUserThisWeek returns true even if claimDigestSendSlot would succeed", async () => {
+    mockCheckPipelineFreshness.mockResolvedValue(FRESH_FRESHNESS);
+    mockClaimDigestSendSlot.mockResolvedValue(true); // Would succeed if called
+    // Provide a report so the function doesn't return early before the user loop
+    mockGetLatestReport.mockResolvedValue({ id: 1, weekEnding: "2026-W23", createdAt: new Date() });
+
+    // The db mock factory uses the module-level mockGetEmailRecipients variable,
+    // so we must configure that variable (not use spyOn on the module export).
+    const mockUser = { id: 1, name: "Test Rep", email: "test@atlascopco.com", role: "user" as const };
+    const mockProfile = { userId: 1, territories: ["WA"], assignedBusinessLines: [1] };
+    mockGetEmailRecipients.mockResolvedValue([{ user: mockUser, profile: mockProfile }]);
+
+    // Override wasEmailSentToUserThisWeek via spyOn (it's a vi.fn() in the mock factory)
+    const dbModule = await import("./db");
+    vi.spyOn(dbModule, "wasEmailSentToUserThisWeek").mockResolvedValue(true);
+
+    const { sendWeeklyDigests } = await import("./emailDigest");
+    const result = await sendWeeklyDigests(false, false);
+
+    // The week-level check should fire BEFORE claimDigestSendSlot
+    expect(mockClaimDigestSendSlot).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    // alreadySent should be incremented (one user was skipped due to week-level dedup)
+    expect(result.alreadySent).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does NOT skip when force=true even if wasEmailSentToUserThisWeek returns true", async () => {
+    mockCheckPipelineFreshness.mockResolvedValue(FRESH_FRESHNESS);
+
+    const dbModule = await import("./db");
+    vi.spyOn(dbModule, "wasEmailSentToUserThisWeek").mockResolvedValue(true);
+
+    const { sendWeeklyDigests } = await import("./emailDigest");
+    // force=true should bypass the week-level check
+    await sendWeeklyDigests(true, false);
+
+    // wasEmailSentToUserThisWeek should NOT be called when force=true
+    expect(dbModule.wasEmailSentToUserThisWeek).not.toHaveBeenCalled();
+  });
+
+  it("does NOT skip when dryRun=true even if wasEmailSentToUserThisWeek returns true", async () => {
+    mockCheckPipelineFreshness.mockResolvedValue(FRESH_FRESHNESS);
+
+    const dbModule = await import("./db");
+    vi.spyOn(dbModule, "wasEmailSentToUserThisWeek").mockResolvedValue(true);
+
+    const { sendWeeklyDigests } = await import("./emailDigest");
+    // dryRun=true should bypass the week-level check
+    await sendWeeklyDigests(false, true);
+
+    // wasEmailSentToUserThisWeek should NOT be called when dryRun=true
+    expect(dbModule.wasEmailSentToUserThisWeek).not.toHaveBeenCalled();
+  });
+});

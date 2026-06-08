@@ -1,0 +1,90 @@
+{
+  "query": "\nSELECT \n  u.name,\n  COUNT(*) as total_this_week,\n  SUM(CASE WHEN l.sentAt >= '2026-06-08 00:00:00' THEN 1 ELSE 0 END) as sent_today,\n  SUM(CASE WHEN l.status = 'sent' THEN 1 ELSE 0 END) as successful,\n  MIN(l.sentAt) as first_send,\n  MAX(l.sentAt) as last_send\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.weekKey = '2026W23'\n  AND l.digestType = 'monday'\nGROUP BY u.id, u.name\nORDER BY total_this_week DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  COUNT(*) as total_this_week,\n  SUM(CASE WHEN l.sentAt >= '2026-06-08 00:00:00' THEN 1 ELSE 0 END) as sent_today,\n  SUM(CASE WHEN l.status = 'sent' THEN 1 ELSE 0 END) as successful,\n  MIN(l.sentAt) as first_send,\n  MAX(l.sentAt) as last_send\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.weekKey = '2026W23'\n  AND l.digestType = 'monday'\nGROUP BY u.id, u.name\nORDER BY total_this_week DESC;\n",
+  "rows": [
+    {
+      "name": "Kevin Arnandes",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "3",
+      "first_send": "2026-06-01 04:17:01",
+      "last_send": "2026-06-07 23:37:53"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "3",
+      "first_send": "2026-06-01 04:13:24",
+      "last_send": "2026-06-07 23:12:49"
+    },
+    {
+      "name": "Brett Hansen",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "3",
+      "first_send": "2026-06-01 04:13:57",
+      "last_send": "2026-06-07 23:12:59"
+    },
+    {
+      "name": "Dan Day",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "2",
+      "first_send": "2026-06-01 04:15:47",
+      "last_send": "2026-06-07 23:13:09"
+    },
+    {
+      "name": "Egor Ivanov",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "2",
+      "first_send": "2026-06-01 04:16:22",
+      "last_send": "2026-06-07 23:37:09"
+    },
+    {
+      "name": "Daniel Zec",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "3",
+      "first_send": "2026-06-01 04:14:44",
+      "last_send": "2026-06-07 23:13:09"
+    },
+    {
+      "name": "Alexandre Leite",
+      "total_this_week": "3",
+      "sent_today": "0",
+      "successful": "0",
+      "first_send": "2026-06-01 04:17:04",
+      "last_send": "2026-06-07 23:37:59"
+    },
+    {
+      "name": "Leo Williams ",
+      "total_this_week": "2",
+      "sent_today": "0",
+      "successful": "2",
+      "first_send": "2026-06-02 06:47:21",
+      "last_send": "2026-06-07 23:12:39"
+    },
+    {
+      "name": "Amit Bhargava",
+      "total_this_week": "2",
+      "sent_today": "0",
+      "successful": "2",
+      "first_send": "2026-06-01 04:16:15",
+      "last_send": "2026-06-02 06:47:42"
+    },
+    {
+      "name": "Paul Lueth",
+      "total_this_week": "1",
+      "sent_today": "0",
+      "successful": "1",
+      "first_send": "2026-06-07 23:17:01",
+      "last_send": "2026-06-07 23:17:01"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\ttotal_this_week\tsent_today\tsuccessful\tfirst_send\tlast_send\nKevin Arnandes\t3\t0\t3\t2026-06-01 04:17:01\t2026-06-07 23:37:53\nRyan Pemberton\t3\t0\t3\t2026-06-01 04:13:24\t2026-06-07 23:12:49\nBrett Hansen\t3\t0\t3\t2026-06-01 04:13:57\t2026-06-07 23:12:59\nDan Day\t3\t0\t2\t2026-06-01 04:15:47\t2026-06-07 23:13:09\nEgor Ivanov\t3\t0\t2\t2026-06-01 04:16:22\t2026-06-07 23:37:09\nDaniel Zec\t3\t0\t3\t2026-06-01 04:14:44\t2026-06-07 23:13:09\nAlexandre Leite\t3\t0\t0\t2026-06-01 04:17:04\t2026-06-07 23:37:59\nLeo Williams \t2\t0\t2\t2026-06-02 06:47:21\t2026-06-07 23:12:39\nAmit Bhargava\t2\t0\t2\t2026-06-01 04:16:15\t2026-06-02 06:47:42\nPaul Lueth\t1\t0\t1\t2026-06-07 23:17:01\t2026-06-07 23:17:01\n",
+  "stderr": "",
+  "execution_time_ms": 1755
+}

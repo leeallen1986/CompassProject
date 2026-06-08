@@ -2052,8 +2052,25 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
     }
 
     try {
+      // ── Per-user deduplication: week-level pre-send check ──
+      // This guard runs BEFORE claimDigestSendSlot and checks the DB for any 'sent' row
+      // with the same userId + digestType + weekKey, regardless of sentDate.
+      // This prevents duplicate sends across server restarts within the same ISO week
+      // (e.g., server restarted on Mon 1 Jun, Mon 2 Jun, and Sun 7 Jun all in week 2026W23).
+      // The claimDigestSendSlot INSERT IGNORE only deduplicates within the same calendar day
+      // (unique constraint is on userId+digestType+sentDate), so it cannot prevent cross-day
+      // re-sends within the same ISO week.
+      if (!force && !dryRun) {
+        const alreadySentThisWeek = await wasEmailSentToUserThisWeek(user.id, "monday", weekKey);
+        if (alreadySentThisWeek) {
+          results.alreadySent++;
+          console.log(`[EmailDigest] ⏭ Monday digest already sent this week for ${user.name} (${weekKey}), skipping`);
+          continue;
+        }
+      }
+
       // ── Per-user deduplication: atomic claim-before-send (replaces check-then-send race) ──
-      // claimDigestSendSlot uses INSERT IGNORE — only ONE concurrent goroutine wins the slot.
+      // claimDigestSendSlot uses INSERT IGNORE — only ONE concurrent goroutine can win the slot.
       // Dry-run and force mode bypass the claim so previews and manual re-sends still work.
       if (!force && !dryRun) {
         const claimed = await claimDigestSendSlot(user.id, "monday", weekKey);
@@ -2781,6 +2798,18 @@ export async function sendThursdayReminders(force = false, dryRun = false): Prom
     }
 
     try {
+      // ── Per-user deduplication: week-level pre-send check ──
+      // Same pattern as Monday: check DB for any 'sent' row with same userId+digestType+weekKey
+      // before attempting the atomic slot claim. Prevents cross-day re-sends within the same week.
+      if (!force && !dryRun) {
+        const alreadySentThisWeek = await wasEmailSentToUserThisWeek(user.id, "thursday", weekKey);
+        if (alreadySentThisWeek) {
+          results.alreadySent++;
+          console.log(`[EmailDigest] ⏭ Thursday reminder already sent this week for ${user.name} (${weekKey}), skipping`);
+          continue;
+        }
+      }
+
       // ── Per-user deduplication: atomic claim-before-send ──
       if (!force && !dryRun) {
         const claimed = await claimDigestSendSlot(user.id, "thursday", weekKey);

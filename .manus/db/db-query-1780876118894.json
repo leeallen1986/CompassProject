@@ -1,0 +1,106 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  COUNT(*) as emails_sent,\n  MIN(FROM_UNIXTIME(l.sentAt/1000)) as first_sent,\n  MAX(FROM_UNIXTIME(l.sentAt/1000)) as last_sent,\n  GROUP_CONCAT(l.digestType ORDER BY l.sentAt) as digest_types\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.sentAt > UNIX_TIMESTAMP('2026-06-07 20:00:00') * 1000\n  AND l.status = 'sent'\nGROUP BY u.id, u.name, u.email\nORDER BY emails_sent DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  COUNT(*) as emails_sent,\n  MIN(FROM_UNIXTIME(l.sentAt/1000)) as first_sent,\n  MAX(FROM_UNIXTIME(l.sentAt/1000)) as last_sent,\n  GROUP_CONCAT(l.digestType ORDER BY l.sentAt) as digest_types\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.sentAt > UNIX_TIMESTAMP('2026-06-07 20:00:00') * 1000\n  AND l.status = 'sent'\nGROUP BY u.id, u.name, u.email\nORDER BY emails_sent DESC;\n",
+  "rows": [
+    {
+      "name": "Leo Williams ",
+      "email": "leo.williams@atlascopco.com",
+      "emails_sent": "15",
+      "first_sent": "2612-01-11 12:30:40.8390",
+      "last_sent": "2612-01-13 18:27:11.2390",
+      "digest_types": "monday,monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday"
+    },
+    {
+      "name": "Ryan Pemberton",
+      "email": "ryan.pemberton@atlascopco.com",
+      "emails_sent": "15",
+      "first_sent": "2612-01-11 12:30:40.8420",
+      "last_sent": "2612-01-13 18:27:11.2490",
+      "digest_types": "monday,monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday"
+    },
+    {
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "emails_sent": "15",
+      "first_sent": "2612-01-11 12:30:40.8510",
+      "last_sent": "2612-01-13 18:27:14.3260",
+      "digest_types": "monday,monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday"
+    },
+    {
+      "name": "Brett Hansen",
+      "email": "brett.hansen@sykesgroup.com",
+      "emails_sent": "14",
+      "first_sent": "2612-01-11 12:30:40.8440",
+      "last_sent": "2612-01-13 18:27:11.2590",
+      "digest_types": "monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday"
+    },
+    {
+      "name": "Egor Ivanov",
+      "email": "egor.ivanov@atlascopco.com",
+      "emails_sent": "12",
+      "first_sent": "2612-01-11 12:30:40.8530",
+      "last_sent": "2612-01-13 17:34:45.1390",
+      "digest_types": "monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday"
+    },
+    {
+      "name": "Kevin Arnandes",
+      "email": "kevinarnandes@gmail.com",
+      "emails_sent": "11",
+      "first_sent": "2612-01-11 16:41:02.0090",
+      "last_sent": "2612-01-13 18:27:13.7530",
+      "digest_types": "monday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday"
+    },
+    {
+      "name": "Daniel Zec",
+      "email": "daniel.zec@atlascopco.com",
+      "emails_sent": "10",
+      "first_sent": "2612-01-11 12:30:40.8450",
+      "last_sent": "2612-01-13 18:27:11.3090",
+      "digest_types": "monday,monday,thursday,monday,thursday,thursday,monday,monday,thursday,monday"
+    },
+    {
+      "name": "Dan Day",
+      "email": "dan.day@atlascopco.com",
+      "emails_sent": "9",
+      "first_sent": "2612-01-11 12:30:40.8490",
+      "last_sent": "2612-01-13 17:34:43.9200",
+      "digest_types": "monday,monday,thursday,monday,thursday,thursday,monday,monday,thursday"
+    },
+    {
+      "name": "Alexandre Leite",
+      "email": "alexandre.leite@atlascopco.com",
+      "emails_sent": "5",
+      "first_sent": "2612-01-12 16:33:30.5460",
+      "last_sent": "2612-01-13 17:34:50.6440",
+      "digest_types": "thursday,monday,thursday,thursday,thursday"
+    },
+    {
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "emails_sent": "4",
+      "first_sent": "2612-01-11 12:30:40.8370",
+      "last_sent": "2612-01-13 17:50:25.4530",
+      "digest_types": "monday,manager_rollup,manager_rollup,manager_rollup"
+    },
+    {
+      "name": "Tim Oneil-Shaw ",
+      "email": "tim.oneil-shaw@atlascopco.com",
+      "emails_sent": "1",
+      "first_sent": "2612-01-11 12:30:40.8570",
+      "last_sent": "2612-01-11 12:30:40.8570",
+      "digest_types": "monday"
+    },
+    {
+      "name": "Paul Lueth",
+      "email": "paul.lueth@atlascopco.com",
+      "emails_sent": "1",
+      "first_sent": "2612-01-13 18:27:11.7010",
+      "last_sent": "2612-01-13 18:27:11.7010",
+      "digest_types": "monday"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\temails_sent\tfirst_sent\tlast_sent\tdigest_types\nLeo Williams \tleo.williams@atlascopco.com\t15\t2612-01-11 12:30:40.8390\t2612-01-13 18:27:11.2390\tmonday,monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday\nRyan Pemberton\tryan.pemberton@atlascopco.com\t15\t2612-01-11 12:30:40.8420\t2612-01-13 18:27:11.2490\tmonday,monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday\nAmit Bhargava\tamit.bhargava@atlascopco.com\t15\t2612-01-11 12:30:40.8510\t2612-01-13 18:27:14.3260\tmonday,monday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday\nBrett Hansen\tbrett.hansen@sykesgroup.com\t14\t2612-01-11 12:30:40.8440\t2612-01-13 18:27:11.2590\tmonday,monday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday\nEgor Ivanov\tegor.ivanov@atlascopco.com\t12\t2612-01-11 12:30:40.8530\t2612-01-13 17:34:45.1390\tmonday,monday,thursday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday\nKevin Arnandes\tkevinarnandes@gmail.com\t11\t2612-01-11 16:41:02.0090\t2612-01-13 18:27:13.7530\tmonday,monday,monday,thursday,thursday,monday,monday,monday,monday,thursday,monday\nDaniel Zec\tdaniel.zec@atlascopco.com\t10\t2612-01-11 12:30:40.8450\t2612-01-13 18:27:11.3090\tmonday,monday,thursday,monday,thursday,thursday,monday,monday,thursday,monday\nDan Day\tdan.day@atlascopco.com\t9\t2612-01-11 12:30:40.8490\t2612-01-13 17:34:43.9200\tmonday,monday,thursday,monday,thursday,thursday,monday,monday,thursday\nAlexandre Leite\talexandre.leite@atlascopco.com\t5\t2612-01-12 16:33:30.5460\t2612-01-13 17:34:50.6440\tthursday,monday,thursday,thursday,thursday\nLee\tlee.allen@atlascopco.com\t4\t2612-01-11 12:30:40.8370\t2612-01-13 17:50:25.4530\tmonday,manager_rollup,manager_rollup,manager_rollup\nTim Oneil-Shaw \ttim.oneil-shaw@atlascopco.com\t1\t2612-01-11 12:30:40.8570\t2612-01-11 12:30:40.8570\tmonday\nPaul Lueth\tpaul.lueth@atlascopco.com\t1\t2612-01-13 18:27:11.7010\t2612-01-13 18:27:11.7010\tmonday\n",
+  "stderr": "",
+  "execution_time_ms": 1771
+}

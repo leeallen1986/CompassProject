@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  u.name,\n  u.email,\n  COUNT(*) as emails_sent,\n  MIN(FROM_UNIXTIME(l.sentAt/1000)) as first_sent,\n  MAX(FROM_UNIXTIME(l.sentAt/1000)) as last_sent\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.sentAt > UNIX_TIMESTAMP('2026-06-07 20:00:00') * 1000\n  AND l.emailType LIKE '%digest%'\nGROUP BY u.id, u.name, u.email\nORDER BY emails_sent DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  u.name,\n  u.email,\n  COUNT(*) as emails_sent,\n  MIN(FROM_UNIXTIME(l.sentAt/1000)) as first_sent,\n  MAX(FROM_UNIXTIME(l.sentAt/1000)) as last_sent\nFROM userEmailSendLog l\nJOIN users u ON u.id = l.userId\nWHERE l.sentAt > UNIX_TIMESTAMP('2026-06-07 20:00:00') * 1000\n  AND l.emailType LIKE '%digest%'\nGROUP BY u.id, u.name, u.email\nORDER BY emails_sent DESC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'l.emailtype' in 'where clause'"
+  ]
+}

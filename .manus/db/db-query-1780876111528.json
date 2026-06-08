@@ -1,0 +1,40 @@
+{
+  "query": "\nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'userEmailSendLog' \nORDER BY ORDINAL_POSITION;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS \nWHERE TABLE_NAME = 'userEmailSendLog' \nORDER BY ORDINAL_POSITION;\n",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "userId"
+    },
+    {
+      "COLUMN_NAME": "digestType"
+    },
+    {
+      "COLUMN_NAME": "sentDate"
+    },
+    {
+      "COLUMN_NAME": "sentAt"
+    },
+    {
+      "COLUMN_NAME": "status"
+    },
+    {
+      "COLUMN_NAME": "error"
+    },
+    {
+      "COLUMN_NAME": "weekKey"
+    },
+    {
+      "COLUMN_NAME": "itemCount"
+    },
+    {
+      "COLUMN_NAME": "dryRun"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nuserId\ndigestType\nsentDate\nsentAt\nstatus\nerror\nweekKey\nitemCount\ndryRun\n",
+  "stderr": "",
+  "execution_time_ms": 1730
+}
