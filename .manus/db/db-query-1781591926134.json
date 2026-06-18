@@ -1,0 +1,50 @@
+{
+  "query": "\nSELECT id, status, startedAt, completedAt, \n  ROUND((UNIX_TIMESTAMP() * 1000 - completedAt) / 3600000, 1) AS age_hours\nFROM pipelineRuns \nORDER BY startedAt DESC \nLIMIT 5;\n\nSELECT id, weekEnding, createdAt,\n  ROUND((UNIX_TIMESTAMP() * 1000 - createdAt) / 3600000, 1) AS age_hours\nFROM reports\nORDER BY createdAt DESC\nLIMIT 3;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, status, startedAt, completedAt, \n  ROUND((UNIX_TIMESTAMP() * 1000 - completedAt) / 3600000, 1) AS age_hours\nFROM pipelineRuns \nORDER BY startedAt DESC \nLIMIT 5;\n\nSELECT id, weekEnding, createdAt,\n  ROUND((UNIX_TIMESTAMP() * 1000 - createdAt) / 3600000, 1) AS age_hours\nFROM reports\nORDER BY createdAt DESC\nLIMIT 3;\n",
+  "rows": [
+    {
+      "id": "2040001",
+      "status": "completed",
+      "startedAt": "2026-06-15 20:00:09",
+      "completedAt": "2026-06-15 20:38:20",
+      "age_hours": "-5133062.0"
+    },
+    {
+      "id": "2010001",
+      "status": "completed",
+      "startedAt": "2026-06-14 12:03:21",
+      "completedAt": "2026-06-14 13:11:37",
+      "age_hours": "-5133061.7"
+    },
+    {
+      "id": "1980001",
+      "status": "failed",
+      "startedAt": "2026-06-13 20:00:10",
+      "completedAt": "2026-06-14 12:02:07",
+      "age_hours": "-5133061.7"
+    },
+    {
+      "id": "1950001",
+      "status": "completed",
+      "startedAt": "2026-06-12 20:00:08",
+      "completedAt": "2026-06-12 20:45:02",
+      "age_hours": "-5133061.2"
+    },
+    {
+      "id": "1920001",
+      "status": "completed",
+      "startedAt": "2026-06-11 20:00:16",
+      "completedAt": "2026-06-11 20:53:52",
+      "age_hours": "-5133060.9"
+    }
+  ],
+  "messages": [
+    "id\tweekEnding\tcreatedAt\tage_hours",
+    "1680001\t2026-06-15\t2026-06-15 20:00:10\t-5133062.0",
+    "1650001\t2026-06-14\t2026-06-14 21:51:20\t-5133061.7",
+    "1620001\t2026-06-14\t2026-06-14 12:03:21\t-5133061.7"
+  ],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tage_hours\n2040001\tcompleted\t2026-06-15 20:00:09\t2026-06-15 20:38:20\t-5133062.0\n2010001\tcompleted\t2026-06-14 12:03:21\t2026-06-14 13:11:37\t-5133061.7\n1980001\tfailed\t2026-06-13 20:00:10\t2026-06-14 12:02:07\t-5133061.7\n1950001\tcompleted\t2026-06-12 20:00:08\t2026-06-12 20:45:02\t-5133061.2\n1920001\tcompleted\t2026-06-11 20:00:16\t2026-06-11 20:53:52\t-5133060.9\nid\tweekEnding\tcreatedAt\tage_hours\n1680001\t2026-06-15\t2026-06-15 20:00:10\t-5133062.0\n1650001\t2026-06-14\t2026-06-14 21:51:20\t-5133061.7\n1620001\t2026-06-14\t2026-06-14 12:03:21\t-5133061.7\n",
+  "stderr": "",
+  "execution_time_ms": 1991
+}

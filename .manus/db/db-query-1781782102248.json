@@ -1,0 +1,28 @@
+{
+  "query": "\nSHOW COLUMNS FROM projects LIKE '%digest%';\n\n-- Hot projects with no send_ready contact\nSELECT priority, COUNT(*) as total,\n  SUM(CASE WHEN EXISTS (\n    SELECT 1 FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id\n    WHERE cp.projectId = p.id AND c.contactTrustTier = 'send_ready'\n  ) THEN 1 ELSE 0 END) as has_send_ready,\n  SUM(CASE WHEN NOT EXISTS (\n    SELECT 1 FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id\n    WHERE cp.projectId = p.id AND c.contactTrustTier = 'send_ready'\n  ) THEN 1 ELSE 0 END) as no_send_ready\nFROM projects p\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active'\nGROUP BY priority;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSHOW COLUMNS FROM projects LIKE '%digest%';\n\n-- Hot projects with no send_ready contact\nSELECT priority, COUNT(*) as total,\n  SUM(CASE WHEN EXISTS (\n    SELECT 1 FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id\n    WHERE cp.projectId = p.id AND c.contactTrustTier = 'send_ready'\n  ) THEN 1 ELSE 0 END) as has_send_ready,\n  SUM(CASE WHEN NOT EXISTS (\n    SELECT 1 FROM contacts c JOIN contactProjects cp ON cp.contactId = c.id\n    WHERE cp.projectId = p.id AND c.contactTrustTier = 'send_ready'\n  ) THEN 1 ELSE 0 END) as no_send_ready\nFROM projects p\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active'\nGROUP BY priority;\n",
+  "rows": [
+    {
+      "priority": "warm",
+      "total": "516",
+      "has_send_ready": "136",
+      "no_send_ready": "380"
+    },
+    {
+      "priority": "hot",
+      "total": "211",
+      "has_send_ready": "119",
+      "no_send_ready": "92"
+    },
+    {
+      "priority": "cold",
+      "total": "165",
+      "has_send_ready": "39",
+      "no_send_ready": "126"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\ttotal\thas_send_ready\tno_send_ready\nwarm\t516\t136\t380\nhot\t211\t119\t92\ncold\t165\t39\t126\n",
+  "stderr": "",
+  "execution_time_ms": 2039
+}

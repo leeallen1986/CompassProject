@@ -1,0 +1,18 @@
+{
+  "query": "\n-- 1. Contact trust tier breakdown\nSELECT contactTrustTier, COUNT(*) as count\nFROM contacts\nGROUP BY contactTrustTier\nORDER BY count DESC;\n\n-- 2. Enrichment source breakdown\nSELECT enrichmentSource, COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource IS NOT NULL\nGROUP BY enrichmentSource\nORDER BY count DESC;\n\n-- 3. Stale project count (projects with no activity signal recently)\nSELECT \n  SUM(CASE WHEN isStale = 1 THEN 1 ELSE 0 END) as stale_projects,\n  SUM(CASE WHEN isStale = 0 OR isStale IS NULL THEN 1 ELSE 0 END) as active_projects,\n  SUM(CASE WHEN suppressed = 1 THEN 1 ELSE 0 END) as suppressed_projects\nFROM projects;\n\n-- 4. Projects with NO send_ready contacts (blocking digest delivery)\nSELECT COUNT(*) as projects_with_no_send_ready_contact\nFROM projects p\nWHERE (p.suppressed = 0 OR p.suppressed IS NULL)\n  AND p.isStale = 0\n  AND NOT EXISTS (\n    SELECT 1 FROM contacts c\n    JOIN contactProjects cp ON cp.contactId = c.id\n    WHERE cp.projectId = p.id\n    AND c.contactTrustTier = 'send_ready'\n  );\n\n-- 5. DigestSafe promotion status\nSELECT digestSafe, COUNT(*) as count\nFROM projects\nWHERE (suppressed = 0 OR suppressed IS NULL) AND isStale = 0\nGROUP BY digestSafe;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Contact trust tier breakdown\nSELECT contactTrustTier, COUNT(*) as count\nFROM contacts\nGROUP BY contactTrustTier\nORDER BY count DESC;\n\n-- 2. Enrichment source breakdown\nSELECT enrichmentSource, COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource IS NOT NULL\nGROUP BY enrichmentSource\nORDER BY count DESC;\n\n-- 3. Stale project count (projects with no activity signal recently)\nSELECT \n  SUM(CASE WHEN isStale = 1 THEN 1 ELSE 0 END) as stale_projects,\n  SUM(CASE WHEN isStale = 0 OR isStale IS NULL THEN 1 ELSE 0 END) as active_projects,\n  SUM(CASE WHEN suppressed = 1 THEN 1 ELSE 0 END) as suppressed_projects\nFROM projects;\n\n-- 4. Projects with NO send_ready contacts (blocking digest delivery)\nSELECT COUNT(*) as projects_with_no_send_ready_contact\nFROM projects p\nWHERE (p.suppressed = 0 OR p.suppressed IS NULL)\n  AND p.isStale = 0\n  AND NOT EXISTS (\n    SELECT 1 FROM contacts c\n    JOIN contactProjects cp ON cp.contactId = c.id\n    WHERE cp.projectId = p.id\n    AND c.contactTrustTier = 'send_ready'\n  );\n\n-- 5. DigestSafe promotion status\nSELECT digestSafe, COUNT(*) as count\nFROM projects\nWHERE (suppressed = 0 OR suppressed IS NULL) AND isStale = 0\nGROUP BY digestSafe;\n",
+  "returncode": 1,
+  "logs": [
+    "contactTrustTier\tcount",
+    "named_unverified\t26314",
+    "send_ready\t2588",
+    "llm_inferred\t732",
+    "enrichmentSource\tcount",
+    "manual\t25887",
+    "web_search\t1185",
+    "apollo\t1118",
+    "linkedin\t723",
+    "llm\t721",
+    "ERROR 1054 (42S22) at line 16: Unknown column 'isstale' in ''"
+  ]
+}

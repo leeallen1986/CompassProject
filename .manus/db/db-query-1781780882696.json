@@ -1,0 +1,20 @@
+{
+  "query": "\nSELECT \n  (SELECT COUNT(*) FROM projects WHERE suppressed = 0 OR suppressed IS NULL) as active_projects,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'hot' AND (suppressed = 0 OR suppressed IS NULL)) as hot_projects,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'warm' AND (suppressed = 0 OR suppressed IS NULL)) as warm_projects,\n  (SELECT COUNT(*) FROM contacts) as total_contacts,\n  (SELECT COUNT(*) FROM pipelineClaims WHERE status != 'closed') as active_pipeline_claims,\n  (SELECT COUNT(*) FROM userEmailSendLog) as total_emails_sent,\n  (SELECT COUNT(*) FROM campaigns) as total_campaigns,\n  (SELECT COUNT(*) FROM users) as total_users;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  (SELECT COUNT(*) FROM projects WHERE suppressed = 0 OR suppressed IS NULL) as active_projects,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'hot' AND (suppressed = 0 OR suppressed IS NULL)) as hot_projects,\n  (SELECT COUNT(*) FROM projects WHERE priority = 'warm' AND (suppressed = 0 OR suppressed IS NULL)) as warm_projects,\n  (SELECT COUNT(*) FROM contacts) as total_contacts,\n  (SELECT COUNT(*) FROM pipelineClaims WHERE status != 'closed') as active_pipeline_claims,\n  (SELECT COUNT(*) FROM userEmailSendLog) as total_emails_sent,\n  (SELECT COUNT(*) FROM campaigns) as total_campaigns,\n  (SELECT COUNT(*) FROM users) as total_users;\n",
+  "rows": [
+    {
+      "active_projects": "1744",
+      "hot_projects": "471",
+      "warm_projects": "1025",
+      "total_contacts": "29634",
+      "active_pipeline_claims": "34",
+      "total_emails_sent": "278",
+      "total_campaigns": "4",
+      "total_users": "13"
+    }
+  ],
+  "messages": [],
+  "stdout": "active_projects\thot_projects\twarm_projects\ttotal_contacts\tactive_pipeline_claims\ttotal_emails_sent\ttotal_campaigns\ttotal_users\n1744\t471\t1025\t29634\t34\t278\t4\t13\n",
+  "stderr": "",
+  "execution_time_ms": 2398
+}

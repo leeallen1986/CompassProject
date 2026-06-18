@@ -1,0 +1,19 @@
+{
+  "query": "\nSHOW TABLES LIKE '%cache%';\nSHOW TABLES LIKE '%score%';\nSHOW TABLES LIKE '%dashboard%';\nSHOW TABLES LIKE '%week%';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSHOW TABLES LIKE '%cache%';\nSHOW TABLES LIKE '%score%';\nSHOW TABLES LIKE '%dashboard%';\nSHOW TABLES LIKE '%week%';\n",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%cache%)": "projectEnrichmentCache"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%cache%)": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%score%)"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%cache%)": "projectBusinessLineScores"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%cache%)\nprojectEnrichmentCache\nTables_in_3SMu786VMCWdCnmNSx6pxw (%score%)\nprojectBusinessLineScores\n",
+  "stderr": "",
+  "execution_time_ms": 2398
+}

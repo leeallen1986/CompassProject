@@ -1,0 +1,40 @@
+{
+  "query": "\nSELECT id, status, startedAt, completedAt\nFROM pipelineRuns \nORDER BY completedAt DESC \nLIMIT 3;\n\nSELECT COUNT(*) as total_projects,\n  MAX(updatedAt) as most_recent_update,\n  SUM(CASE WHEN priority = 'hot' THEN 1 ELSE 0 END) as hot,\n  SUM(CASE WHEN priority = 'warm' THEN 1 ELSE 0 END) as warm\nFROM projects\nWHERE suppressed = 0 OR suppressed IS NULL;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, status, startedAt, completedAt\nFROM pipelineRuns \nORDER BY completedAt DESC \nLIMIT 3;\n\nSELECT COUNT(*) as total_projects,\n  MAX(updatedAt) as most_recent_update,\n  SUM(CASE WHEN priority = 'hot' THEN 1 ELSE 0 END) as hot,\n  SUM(CASE WHEN priority = 'warm' THEN 1 ELSE 0 END) as warm\nFROM projects\nWHERE suppressed = 0 OR suppressed IS NULL;\n",
+  "rows": [
+    {
+      "id": "2040001",
+      "status": "completed",
+      "startedAt": "2026-06-15 20:00:09",
+      "completedAt": "2026-06-15 20:38:20"
+    },
+    {
+      "id": "2010001",
+      "status": "completed",
+      "startedAt": "2026-06-14 12:03:21",
+      "completedAt": "2026-06-14 13:11:37"
+    },
+    {
+      "id": "1980001",
+      "status": "failed",
+      "startedAt": "2026-06-13 20:00:10",
+      "completedAt": "2026-06-14 12:02:07"
+    },
+    {
+      "id": "total_projects",
+      "status": "most_recent_update",
+      "startedAt": "hot",
+      "completedAt": "warm"
+    },
+    {
+      "id": "1696",
+      "status": "2026-06-15 20:38:19",
+      "startedAt": "456",
+      "completedAt": "1001"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\n2040001\tcompleted\t2026-06-15 20:00:09\t2026-06-15 20:38:20\n2010001\tcompleted\t2026-06-14 12:03:21\t2026-06-14 13:11:37\n1980001\tfailed\t2026-06-13 20:00:10\t2026-06-14 12:02:07\ntotal_projects\tmost_recent_update\thot\twarm\n1696\t2026-06-15 20:38:19\t456\t1001\n",
+  "stderr": "",
+  "execution_time_ms": 2003
+}

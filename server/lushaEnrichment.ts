@@ -351,9 +351,10 @@ export async function lushaEnrichProjectContacts(
 
       if (lushaResult?.email) {
         // Update the contact with Lusha data
+        // NOTE: Phone numbers are intentionally excluded — Lusha phone credits are
+        // expensive and the platform only needs email for outreach. Do NOT add phone back.
         await db.update(contacts).set({
           email: lushaResult.email,
-          phone: lushaResult.phone || contact.phone,
           enrichmentStatus: "enriched",
           enrichmentSource: "lusha",
           enrichedAt: new Date(),

@@ -1,0 +1,76 @@
+{
+  "query": "\n-- Check failed pipeline run details\nSELECT id, status, feedErrors, contactsEnriched, apolloCreditsUsed, startedAt, completedAt\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 6;\n\n-- Check reps without a userProfile (blocking digest)\nSELECT u.id, u.name, u.email, u.role,\n  up.territories, up.assignedBusinessLines\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.role = 'user'\nORDER BY u.name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check failed pipeline run details\nSELECT id, status, feedErrors, contactsEnriched, apolloCreditsUsed, startedAt, completedAt\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 6;\n\n-- Check reps without a userProfile (blocking digest)\nSELECT u.id, u.name, u.email, u.role,\n  up.territories, up.assignedBusinessLines\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.role = 'user'\nORDER BY u.name;\n",
+  "rows": [
+    {
+      "id": "2100001",
+      "status": "failed",
+      "feedErrors": "14",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "20",
+      "startedAt": "2026-06-17 20:00:15",
+      "completedAt": "2026-06-18 00:42:35"
+    },
+    {
+      "id": "2070001",
+      "status": "completed",
+      "feedErrors": "14",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "16",
+      "startedAt": "2026-06-16 20:00:11",
+      "completedAt": "2026-06-16 20:48:38"
+    },
+    {
+      "id": "2040001",
+      "status": "completed",
+      "feedErrors": "14",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "7",
+      "startedAt": "2026-06-15 20:00:09",
+      "completedAt": "2026-06-15 20:38:20"
+    },
+    {
+      "id": "2010001",
+      "status": "completed",
+      "feedErrors": "14",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "0",
+      "startedAt": "2026-06-14 12:03:21",
+      "completedAt": "2026-06-14 13:11:37"
+    },
+    {
+      "id": "1980001",
+      "status": "failed",
+      "feedErrors": "15",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "2",
+      "startedAt": "2026-06-13 20:00:10",
+      "completedAt": "2026-06-14 12:02:07"
+    },
+    {
+      "id": "1950001",
+      "status": "completed",
+      "feedErrors": "14",
+      "contactsEnriched": "2",
+      "apolloCreditsUsed": "17",
+      "startedAt": "2026-06-12 20:00:08",
+      "completedAt": "2026-06-12 20:45:02"
+    }
+  ],
+  "messages": [
+    "id\tname\temail\trole\tterritories\tassignedBusinessLines",
+    "13020010\tAlexandre Leite\talexandre.leite@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"PT All Capital Sales\"]",
+    "3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]",
+    "18360001\tAmit Bhargava\tabhargava1@gmail.com\tuser\tNULL\tNULL",
+    "3630009\tDan Day\tdan.day@atlascopco.com\tuser\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]",
+    "2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\", \"Specialty Air\"]",
+    "4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]",
+    "11580001\tKevin Arnandes\tkevinarnandes@gmail.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\"]",
+    "840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\", \"Specialty Air\"]",
+    "23130008\tPaul Lueth\tpaul.lueth@atlascopco.com\tuser\t[\"QLD\", \"NT\"]\t[\"Portable Air\", \"Specialty Air\"]",
+    "2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\", \"Specialty Air\"]"
+  ],
+  "stdout": "id\tstatus\tfeedErrors\tcontactsEnriched\tapolloCreditsUsed\tstartedAt\tcompletedAt\n2100001\tfailed\t14\t0\t20\t2026-06-17 20:00:15\t2026-06-18 00:42:35\n2070001\tcompleted\t14\t0\t16\t2026-06-16 20:00:11\t2026-06-16 20:48:38\n2040001\tcompleted\t14\t0\t7\t2026-06-15 20:00:09\t2026-06-15 20:38:20\n2010001\tcompleted\t14\t0\t0\t2026-06-14 12:03:21\t2026-06-14 13:11:37\n1980001\tfailed\t15\t0\t2\t2026-06-13 20:00:10\t2026-06-14 12:02:07\n1950001\tcompleted\t14\t2\t17\t2026-06-12 20:00:08\t2026-06-12 20:45:02\nid\tname\temail\trole\tterritories\tassignedBusinessLines\n13020010\tAlexandre Leite\talexandre.leite@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"PT All Capital Sales\"]\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"PAL\", \"BESS\"]\n18360001\tAmit Bhargava\tabhargava1@gmail.com\tuser\tNULL\tNULL\n3630009\tDan Day\tdan.day@atlascopco.com\tuser\t[\"SA\", \"QLD\", \"VIC\", \"NSW\", \"TAS\"]\t[\"Pump (Flow)\", \"Dewatering Pumps\"]\n2820073\tDaniel Zec\tdaniel.zec@atlascopco.com\tuser\t[\"NSW\", \"VIC\", \"SA\", \"TAS\"]\t[\"Portable Air\", \"Specialty Air\"]\n4590008\tEgor Ivanov\tegor.ivanov@atlascopco.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\", \"PAL\", \"Pump (Flow)\"]\n11580001\tKevin Arnandes\tkevinarnandes@gmail.com\tuser\t[\"NATIONAL\"]\t[\"BESS\", \"Portable Air\"]\n840008\tLeo Williams \tleo.williams@atlascopco.com\tuser\t[\"WA\", \"NSW\", \"QLD\", \"VIC\", \"SA\", \"TAS\", \"NT\", \"ACT\"]\t[\"Portable Air\", \"Specialty Air\"]\n23130008\tPaul Lueth\tpaul.lueth@atlascopco.com\tuser\t[\"QLD\", \"NT\"]\t[\"Portable Air\", \"Specialty Air\"]\n2340043\tRyan Pemberton\tryan.pemberton@atlascopco.com\tuser\t[\"WA\"]\t[\"Portable Air\", \"PT Capital Sales\", \"Specialty Air\"]\n",
+  "stderr": "",
+  "execution_time_ms": 2039
+}

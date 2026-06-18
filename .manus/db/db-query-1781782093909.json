@@ -1,0 +1,27 @@
+{
+  "query": "\n-- Check failed pipeline run\nSELECT id, status, startedAt, completedAt, durationMs, feedErrors\nFROM pipelineRuns\nWHERE id = 2100001;\n\n-- Check actual column name for digestSafe in projects\nSHOW COLUMNS FROM projects LIKE '%igest%';\n\n-- Check stale project count using lifecycleStatus\nSELECT lifecycleStatus, suppressed, COUNT(*) as count\nFROM projects\nGROUP BY lifecycleStatus, suppressed\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check failed pipeline run\nSELECT id, status, startedAt, completedAt, durationMs, feedErrors\nFROM pipelineRuns\nWHERE id = 2100001;\n\n-- Check actual column name for digestSafe in projects\nSHOW COLUMNS FROM projects LIKE '%igest%';\n\n-- Check stale project count using lifecycleStatus\nSELECT lifecycleStatus, suppressed, COUNT(*) as count\nFROM projects\nGROUP BY lifecycleStatus, suppressed\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "id": "2100001",
+      "status": "failed",
+      "startedAt": "2026-06-17 20:00:15",
+      "completedAt": "2026-06-18 00:42:35",
+      "durationMs": "NULL",
+      "feedErrors": "14"
+    }
+  ],
+  "messages": [
+    "lifecycleStatus\tsuppressed\tcount",
+    "active\t0\t892",
+    "stale\t0\t850",
+    "stale\t1\t214",
+    "active\t1\t34",
+    "archived\t1\t24",
+    "archived\t0\t2",
+    "completed\t1\t1"
+  ],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tdurationMs\tfeedErrors\n2100001\tfailed\t2026-06-17 20:00:15\t2026-06-18 00:42:35\tNULL\t14\nlifecycleStatus\tsuppressed\tcount\nactive\t0\t892\nstale\t0\t850\nstale\t1\t214\nactive\t1\t34\narchived\t1\t24\narchived\t0\t2\ncompleted\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 2319
+}

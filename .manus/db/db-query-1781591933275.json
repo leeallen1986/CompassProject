@@ -1,0 +1,19 @@
+{
+  "query": "\nSELECT u.id, u.name, u.email, u.role,\n  up.territories, up.assignedBusinessLines, up.updatedAt\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Lee%' OR u.email LIKE '%lee%'\nLIMIT 5;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT u.id, u.name, u.email, u.role,\n  up.territories, up.assignedBusinessLines, up.updatedAt\nFROM users u\nLEFT JOIN userProfiles up ON up.userId = u.id\nWHERE u.name LIKE '%Lee%' OR u.email LIKE '%lee%'\nLIMIT 5;\n",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Lee",
+      "email": "lee.allen@atlascopco.com",
+      "role": "admin",
+      "territories": "[\"WA\"]",
+      "assignedBusinessLines": "[\"Portable Air\", \"Specialty Air\"]",
+      "updatedAt": "2026-06-05 03:36:00"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tterritories\tassignedBusinessLines\tupdatedAt\n1\tLee\tlee.allen@atlascopco.com\tadmin\t[\"WA\"]\t[\"Portable Air\", \"Specialty Air\"]\t2026-06-05 03:36:00\n",
+  "stderr": "",
+  "execution_time_ms": 1821
+}

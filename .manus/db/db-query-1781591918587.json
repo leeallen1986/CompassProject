@@ -1,0 +1,19 @@
+{
+  "query": "SHOW TABLES LIKE '%pipeline%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute SHOW TABLES LIKE '%pipeline%';",
+  "rows": [
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%pipeline%)": "pipelineActivity"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%pipeline%)": "pipelineClaims"
+    },
+    {
+      "Tables_in_3SMu786VMCWdCnmNSx6pxw (%pipeline%)": "pipelineRuns"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_3SMu786VMCWdCnmNSx6pxw (%pipeline%)\npipelineActivity\npipelineClaims\npipelineRuns\n",
+  "stderr": "",
+  "execution_time_ms": 1758
+}
