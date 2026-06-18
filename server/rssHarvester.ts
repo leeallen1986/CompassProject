@@ -151,9 +151,16 @@ async function fetchFeed(source: RssSource): Promise<{ items: FeedItem[]; error?
       signal: controller.signal,
       redirect: "follow",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+        // Use a current Chrome UA — many sites block outdated or bot-like UAs
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        // Broad Accept header — some servers (e.g. Process Online) return 406 without text/html
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, text/html, */*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
+        // Referer and Sec headers help bypass Cloudflare/WAF bot checks
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Cache-Control": "no-cache",
       },
     });
     clearTimeout(timeout);

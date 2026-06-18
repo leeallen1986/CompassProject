@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Quarantine the 4 dead/broken feeds (404, HTML-not-RSS)\nUPDATE rssSources\nSET \n  quarantined = 1,\n  quarantineReason = 'Dead feed: URL returns 404 or HTML instead of RSS — quarantined 2026-06-18',\n  isActive = 0\nWHERE id IN (180004, 150007, 180006, 180010);\n\n-- Reset consecutive error counters on the bot-blocked feeds so they retry tonight\n-- (The harvester fix will add proper User-Agent/Accept headers)\nUPDATE rssSources\nSET consecutiveErrors = 0\nWHERE id IN (150005, 180001, 180002, 180008, 180009, 180003, 5, 150001, 150006, 180007);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Quarantine the 4 dead/broken feeds (404, HTML-not-RSS)\nUPDATE rssSources\nSET \n  quarantined = 1,\n  quarantineReason = 'Dead feed: URL returns 404 or HTML instead of RSS — quarantined 2026-06-18',\n  isActive = 0\nWHERE id IN (180004, 150007, 180006, 180010);\n\n-- Reset consecutive error counters on the bot-blocked feeds so they retry tonight\n-- (The harvester fix will add proper User-Agent/Accept headers)\nUPDATE rssSources\nSET consecutiveErrors = 0\nWHERE id IN (150005, 180001, 180002, 180008, 180009, 180003, 5, 150001, 150006, 180007);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2820
+}

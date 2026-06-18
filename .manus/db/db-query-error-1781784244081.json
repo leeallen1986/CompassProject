@@ -1,0 +1,8 @@
+{
+  "query": "\n-- Check if the gmail account has a profile\nSELECT up.userId, up.territory, up.businessLines, up.digestEnabled\nFROM userProfiles up\nWHERE up.userId = 18360001;\n\n-- Check if the gmail account has received any digests\nSELECT COUNT(*) as digest_count\nFROM digestScheduleLog\nWHERE userId = 18360001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check if the gmail account has a profile\nSELECT up.userId, up.territory, up.businessLines, up.digestEnabled\nFROM userProfiles up\nWHERE up.userId = 18360001;\n\n-- Check if the gmail account has received any digests\nSELECT COUNT(*) as digest_count\nFROM digestScheduleLog\nWHERE userId = 18360001;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'up.territory' in 'field list'"
+  ]
+}

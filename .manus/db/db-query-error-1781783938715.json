@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  id,\n  name,\n  url,\n  consecutiveErrors,\n  errorCount,\n  lastError,\n  lastErrorAt,\n  lastFetchedAt,\n  quarantined,\n  active\nFROM rssSources\nWHERE consecutiveErrors >= 3\n   OR (errorCount > 5 AND (lastFetchedAt IS NULL OR lastFetchedAt < DATE_SUB(NOW(), INTERVAL 7 DAY)))\nORDER BY consecutiveErrors DESC, errorCount DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  id,\n  name,\n  url,\n  consecutiveErrors,\n  errorCount,\n  lastError,\n  lastErrorAt,\n  lastFetchedAt,\n  quarantined,\n  active\nFROM rssSources\nWHERE consecutiveErrors >= 3\n   OR (errorCount > 5 AND (lastFetchedAt IS NULL OR lastFetchedAt < DATE_SUB(NOW(), INTERVAL 7 DAY)))\nORDER BY consecutiveErrors DESC, errorCount DESC\nLIMIT 20;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'url' in 'field list'"
+  ]
+}

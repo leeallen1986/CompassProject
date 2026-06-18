@@ -1,0 +1,26 @@
+{
+  "query": "\n-- Mark the 5 active projects that are 60-180 days old as stale\n-- (pipeline step 23 didn't run because last night's run failed)\nUPDATE projects\nSET \n  lifecycleStatus = 'stale',\n  staleReason = 'No source corroboration for 60+ days (manual catch-up 2026-06-18, pipeline run 2100001 failed)'\nWHERE lifecycleStatus = 'active'\n  AND keepFlag = 0\n  AND COALESCE(sourceLastSeenAt, lastActivityAt, createdAt) < DATE_SUB(NOW(), INTERVAL 60 DAY)\n  AND COALESCE(sourceLastSeenAt, lastActivityAt, createdAt) >= DATE_SUB(NOW(), INTERVAL 180 DAY)\n  AND id NOT IN (SELECT DISTINCT projectId FROM pipelineClaims WHERE status != 'lost');\n\n-- Verify result\nSELECT lifecycleStatus, COUNT(*) as count FROM projects GROUP BY lifecycleStatus ORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Mark the 5 active projects that are 60-180 days old as stale\n-- (pipeline step 23 didn't run because last night's run failed)\nUPDATE projects\nSET \n  lifecycleStatus = 'stale',\n  staleReason = 'No source corroboration for 60+ days (manual catch-up 2026-06-18, pipeline run 2100001 failed)'\nWHERE lifecycleStatus = 'active'\n  AND keepFlag = 0\n  AND COALESCE(sourceLastSeenAt, lastActivityAt, createdAt) < DATE_SUB(NOW(), INTERVAL 60 DAY)\n  AND COALESCE(sourceLastSeenAt, lastActivityAt, createdAt) >= DATE_SUB(NOW(), INTERVAL 180 DAY)\n  AND id NOT IN (SELECT DISTINCT projectId FROM pipelineClaims WHERE status != 'lost');\n\n-- Verify result\nSELECT lifecycleStatus, COUNT(*) as count FROM projects GROUP BY lifecycleStatus ORDER BY count DESC;\n",
+  "rows": [
+    {
+      "lifecycleStatus": "stale",
+      "count": "1064"
+    },
+    {
+      "lifecycleStatus": "active",
+      "count": "926"
+    },
+    {
+      "lifecycleStatus": "archived",
+      "count": "26"
+    },
+    {
+      "lifecycleStatus": "completed",
+      "count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "lifecycleStatus\tcount\nstale\t1064\nactive\t926\narchived\t26\ncompleted\t1\n",
+  "stderr": "",
+  "execution_time_ms": 2024
+}

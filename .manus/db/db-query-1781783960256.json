@@ -1,0 +1,42 @@
+{
+  "query": "\nSELECT \n  id,\n  name,\n  feedUrl,\n  consecutiveErrors,\n  LEFT(lastError, 100) as lastError,\n  lastSuccessAt\nFROM rssSources\nWHERE consecutiveErrors >= 3\n   OR (failureCount > 5 AND (lastSuccessAt IS NULL OR lastSuccessAt < DATE_SUB(NOW(), INTERVAL 14 DAY)))\nORDER BY consecutiveErrors DESC, failureCount DESC\nLIMIT 20\nOFFSET 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  id,\n  name,\n  feedUrl,\n  consecutiveErrors,\n  LEFT(lastError, 100) as lastError,\n  lastSuccessAt\nFROM rssSources\nWHERE consecutiveErrors >= 3\n   OR (failureCount > 5 AND (lastSuccessAt IS NULL OR lastSuccessAt < DATE_SUB(NOW(), INTERVAL 14 DAY)))\nORDER BY consecutiveErrors DESC, failureCount DESC\nLIMIT 20\nOFFSET 10;\n",
+  "rows": [
+    {
+      "id": "5",
+      "name": "Mining Technology",
+      "feedUrl": "https://www.mining-technology.com/feed/",
+      "consecutiveErrors": "21",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-01 05:44:55"
+    },
+    {
+      "id": "150001",
+      "name": "Offshore Technology",
+      "feedUrl": "https://www.offshore-technology.com/feed/",
+      "consecutiveErrors": "21",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-01 05:08:48"
+    },
+    {
+      "id": "150006",
+      "name": "Hydrocarbons Technology",
+      "feedUrl": "https://www.hydrocarbons-technology.com/feed/",
+      "consecutiveErrors": "21",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-01 05:08:59"
+    },
+    {
+      "id": "180007",
+      "name": "Pumps and Systems",
+      "feedUrl": "https://www.pumpsandsystems.com/rss.xml",
+      "consecutiveErrors": "19",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-02 06:50:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tfeedUrl\tconsecutiveErrors\tlastError\tlastSuccessAt\n5\tMining Technology\thttps://www.mining-technology.com/feed/\t21\tHTTP 403: Forbidden\t2026-06-01 05:44:55\n150001\tOffshore Technology\thttps://www.offshore-technology.com/feed/\t21\tHTTP 403: Forbidden\t2026-06-01 05:08:48\n150006\tHydrocarbons Technology\thttps://www.hydrocarbons-technology.com/feed/\t21\tHTTP 403: Forbidden\t2026-06-01 05:08:59\n180007\tPumps and Systems\thttps://www.pumpsandsystems.com/rss.xml\t19\tHTTP 403: Forbidden\t2026-06-02 06:50:02\n",
+  "stderr": "",
+  "execution_time_ms": 1754
+}

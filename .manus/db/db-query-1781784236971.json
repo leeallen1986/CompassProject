@@ -1,0 +1,26 @@
+{
+  "query": "\nSELECT id, name, email, role, authMethod, createdAt\nFROM users\nWHERE name LIKE '%Amit%' OR email LIKE '%bhargava%' OR email LIKE '%amit%'\nORDER BY createdAt;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT id, name, email, role, authMethod, createdAt\nFROM users\nWHERE name LIKE '%Amit%' OR email LIKE '%bhargava%' OR email LIKE '%amit%'\nORDER BY createdAt;\n",
+  "rows": [
+    {
+      "id": "3870014",
+      "name": "Amit Bhargava",
+      "email": "amit.bhargava@atlascopco.com",
+      "role": "user",
+      "authMethod": "email",
+      "createdAt": "2026-03-10 02:03:57"
+    },
+    {
+      "id": "18360001",
+      "name": "Amit Bhargava",
+      "email": "abhargava1@gmail.com",
+      "role": "user",
+      "authMethod": "oauth",
+      "createdAt": "2026-05-11 23:26:27"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tauthMethod\tcreatedAt\n3870014\tAmit Bhargava\tamit.bhargava@atlascopco.com\tuser\temail\t2026-03-10 02:03:57\n18360001\tAmit Bhargava\tabhargava1@gmail.com\tuser\toauth\t2026-05-11 23:26:27\n",
+  "stderr": "",
+  "execution_time_ms": 1959
+}

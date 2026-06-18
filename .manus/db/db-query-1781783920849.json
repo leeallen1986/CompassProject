@@ -1,0 +1,13 @@
+{
+  "query": "\n-- Find the 49 hot projects with only llm_inferred contacts and no send_ready\n-- Reset their projectEnrichmentCache so tonight's pipeline will re-run Apollo search on them\nDELETE FROM projectEnrichmentCache\nWHERE projectId IN (\n  SELECT p.id\n  FROM projects p\n  JOIN contactProjects cp ON cp.projectId = p.id\n  JOIN contacts c ON c.id = cp.contactId\n  WHERE p.priority = 'hot'\n    AND p.lifecycleStatus = 'active'\n    AND p.suppressed = 0\n    AND NOT EXISTS (\n      SELECT 1 FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id\n      WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n    )\n  GROUP BY p.id\n  HAVING SUM(CASE WHEN c.contactTrustTier != 'llm_inferred' THEN 1 ELSE 0 END) = 0\n);\n\n-- Verify how many cache entries were cleared\nSELECT ROW_COUNT() as cache_entries_cleared;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Find the 49 hot projects with only llm_inferred contacts and no send_ready\n-- Reset their projectEnrichmentCache so tonight's pipeline will re-run Apollo search on them\nDELETE FROM projectEnrichmentCache\nWHERE projectId IN (\n  SELECT p.id\n  FROM projects p\n  JOIN contactProjects cp ON cp.projectId = p.id\n  JOIN contacts c ON c.id = cp.contactId\n  WHERE p.priority = 'hot'\n    AND p.lifecycleStatus = 'active'\n    AND p.suppressed = 0\n    AND NOT EXISTS (\n      SELECT 1 FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id\n      WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n    )\n  GROUP BY p.id\n  HAVING SUM(CASE WHEN c.contactTrustTier != 'llm_inferred' THEN 1 ELSE 0 END) = 0\n);\n\n-- Verify how many cache entries were cleared\nSELECT ROW_COUNT() as cache_entries_cleared;\n",
+  "rows": [
+    {
+      "cache_entries_cleared": "84"
+    }
+  ],
+  "messages": [],
+  "stdout": "cache_entries_cleared\n84\n",
+  "stderr": "",
+  "execution_time_ms": 2024
+}

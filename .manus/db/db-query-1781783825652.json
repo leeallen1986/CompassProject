@@ -1,0 +1,74 @@
+{
+  "query": "\n-- Check what contact states exist on hot projects with no send_ready contact\nSELECT \n  c.enrichmentSource,\n  c.enrichmentStatus,\n  c.contactTrustTier,\n  c.crmOrphan,\n  c.rejectionReason IS NOT NULL as has_rejection,\n  COUNT(*) as count\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.priority = 'hot'\n  AND p.lifecycleStatus = 'active'\n  AND p.suppressed = 0\n  AND NOT EXISTS (\n    SELECT 1 FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id\n    WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n  )\nGROUP BY c.enrichmentSource, c.enrichmentStatus, c.contactTrustTier, c.crmOrphan, has_rejection\nORDER BY count DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check what contact states exist on hot projects with no send_ready contact\nSELECT \n  c.enrichmentSource,\n  c.enrichmentStatus,\n  c.contactTrustTier,\n  c.crmOrphan,\n  c.rejectionReason IS NOT NULL as has_rejection,\n  COUNT(*) as count\nFROM contacts c\nJOIN contactProjects cp ON cp.contactId = c.id\nJOIN projects p ON p.id = cp.projectId\nWHERE p.priority = 'hot'\n  AND p.lifecycleStatus = 'active'\n  AND p.suppressed = 0\n  AND NOT EXISTS (\n    SELECT 1 FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id\n    WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n  )\nGROUP BY c.enrichmentSource, c.enrichmentStatus, c.contactTrustTier, c.crmOrphan, has_rejection\nORDER BY count DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "enrichmentSource": "llm",
+      "enrichmentStatus": "enriched",
+      "contactTrustTier": "llm_inferred",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "133"
+    },
+    {
+      "enrichmentSource": "linkedin",
+      "enrichmentStatus": "enriched",
+      "contactTrustTier": "named_unverified",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "14"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "enrichmentStatus": "enriched",
+      "contactTrustTier": "llm_inferred",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "7"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "enrichmentStatus": "enriched",
+      "contactTrustTier": "named_unverified",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "4"
+    },
+    {
+      "enrichmentSource": "apollo",
+      "enrichmentStatus": "enriched",
+      "contactTrustTier": "named_unverified",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "3"
+    },
+    {
+      "enrichmentSource": "web_search",
+      "enrichmentStatus": "not_found",
+      "contactTrustTier": "named_unverified",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "2"
+    },
+    {
+      "enrichmentSource": "llm",
+      "enrichmentStatus": "enriched",
+      "contactTrustTier": "named_unverified",
+      "crmOrphan": "0",
+      "has_rejection": "1",
+      "count": "2"
+    },
+    {
+      "enrichmentSource": "manual",
+      "enrichmentStatus": "not_found",
+      "contactTrustTier": "named_unverified",
+      "crmOrphan": "0",
+      "has_rejection": "0",
+      "count": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentSource\tenrichmentStatus\tcontactTrustTier\tcrmOrphan\thas_rejection\tcount\nllm\tenriched\tllm_inferred\t0\t0\t133\nlinkedin\tenriched\tnamed_unverified\t0\t0\t14\napollo\tenriched\tllm_inferred\t0\t0\t7\nweb_search\tenriched\tnamed_unverified\t0\t0\t4\napollo\tenriched\tnamed_unverified\t0\t0\t3\nweb_search\tnot_found\tnamed_unverified\t0\t0\t2\nllm\tenriched\tnamed_unverified\t0\t1\t2\nmanual\tnot_found\tnamed_unverified\t0\t0\t1\n",
+  "stderr": "",
+  "execution_time_ms": 2015
+}

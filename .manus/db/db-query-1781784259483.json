@@ -1,0 +1,13 @@
+{
+  "query": "\nSELECT COUNT(*) as has_profile FROM userProfiles WHERE userId = 18360001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT COUNT(*) as has_profile FROM userProfiles WHERE userId = 18360001;\n",
+  "rows": [
+    {
+      "has_profile": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "has_profile\n0\n",
+  "stderr": "",
+  "execution_time_ms": 1823
+}

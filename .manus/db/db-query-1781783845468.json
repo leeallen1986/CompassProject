@@ -1,0 +1,25 @@
+{
+  "query": "\n-- Hot projects with no contacts at all\nSELECT COUNT(*) as hot_no_contacts\nFROM projects p\nWHERE p.priority = 'hot'\n  AND p.lifecycleStatus = 'active'\n  AND p.suppressed = 0\n  AND NOT EXISTS (SELECT 1 FROM contactProjects cp WHERE cp.projectId = p.id);\n\n-- llm_inferred email coverage\nSELECT \n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  COUNT(*) as total\nFROM contacts WHERE contactTrustTier = 'llm_inferred';\n\n-- Hot projects with only llm_inferred contacts (no email path available)\nSELECT COUNT(*) as hot_only_llm\nFROM (\n  SELECT p.id\n  FROM projects p\n  JOIN contactProjects cp ON cp.projectId = p.id\n  JOIN contacts c ON c.id = cp.contactId\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND p.suppressed = 0\n    AND NOT EXISTS (\n      SELECT 1 FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id\n      WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n    )\n  GROUP BY p.id\n  HAVING SUM(CASE WHEN c.contactTrustTier != 'llm_inferred' THEN 1 ELSE 0 END) = 0\n) t;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Hot projects with no contacts at all\nSELECT COUNT(*) as hot_no_contacts\nFROM projects p\nWHERE p.priority = 'hot'\n  AND p.lifecycleStatus = 'active'\n  AND p.suppressed = 0\n  AND NOT EXISTS (SELECT 1 FROM contactProjects cp WHERE cp.projectId = p.id);\n\n-- llm_inferred email coverage\nSELECT \n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as has_email,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as no_email,\n  COUNT(*) as total\nFROM contacts WHERE contactTrustTier = 'llm_inferred';\n\n-- Hot projects with only llm_inferred contacts (no email path available)\nSELECT COUNT(*) as hot_only_llm\nFROM (\n  SELECT p.id\n  FROM projects p\n  JOIN contactProjects cp ON cp.projectId = p.id\n  JOIN contacts c ON c.id = cp.contactId\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND p.suppressed = 0\n    AND NOT EXISTS (\n      SELECT 1 FROM contacts c2 JOIN contactProjects cp2 ON cp2.contactId = c2.id\n      WHERE cp2.projectId = p.id AND c2.contactTrustTier = 'send_ready'\n    )\n  GROUP BY p.id\n  HAVING SUM(CASE WHEN c.contactTrustTier != 'llm_inferred' THEN 1 ELSE 0 END) = 0\n) t;\n",
+  "rows": [
+    {
+      "hot_no_contacts": "30"
+    },
+    {
+      "hot_no_contacts": "has_email\tno_email\ttotal"
+    },
+    {
+      "hot_no_contacts": "732\t0\t732"
+    },
+    {
+      "hot_no_contacts": "hot_only_llm"
+    },
+    {
+      "hot_no_contacts": "49"
+    }
+  ],
+  "messages": [],
+  "stdout": "hot_no_contacts\n30\nhas_email\tno_email\ttotal\n732\t0\t732\nhot_only_llm\n49\n",
+  "stderr": "",
+  "execution_time_ms": 2305
+}

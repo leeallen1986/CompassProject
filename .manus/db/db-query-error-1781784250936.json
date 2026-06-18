@@ -1,0 +1,10 @@
+{
+  "query": "\n-- Check if gmail account has a profile\nSELECT COUNT(*) as has_profile FROM userProfiles WHERE userId = 18360001;\n\n-- Check digest history\nSELECT COUNT(*) as digest_count FROM digestScheduleLog WHERE userId = 18360001;\n\n-- Check pipeline claims\nSELECT COUNT(*) as claim_count FROM pipelineClaims WHERE userId = 18360001;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Check if gmail account has a profile\nSELECT COUNT(*) as has_profile FROM userProfiles WHERE userId = 18360001;\n\n-- Check digest history\nSELECT COUNT(*) as digest_count FROM digestScheduleLog WHERE userId = 18360001;\n\n-- Check pipeline claims\nSELECT COUNT(*) as claim_count FROM pipelineClaims WHERE userId = 18360001;\n",
+  "returncode": 1,
+  "logs": [
+    "has_profile",
+    "0",
+    "ERROR 1054 (42S22) at line 6: Unknown column 'userid' in 'where clause'"
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "query": "\nDESCRIBE rssSources;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nDESCRIBE rssSources;\n",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "name",
+      "Type": "varchar(256)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "feedUrl",
+      "Type": "varchar(512)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "category",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "isActive",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "1",
+      "Extra": ""
+    },
+    {
+      "Field": "lastFetchedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lastFetchCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "errorCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "totalArticles",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "successCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "failureCount",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "consecutiveErrors",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "lastError",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lastErrorAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "lastSuccessAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "quarantined",
+      "Type": "tinyint(1)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "quarantineReason",
+      "Type": "varchar(256)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nname\tvarchar(256)\tNO\t\tNULL\t\nfeedUrl\tvarchar(512)\tNO\t\tNULL\t\ncategory\tvarchar(64)\tNO\t\tNULL\t\nisActive\ttinyint(1)\tNO\t\t1\t\nlastFetchedAt\ttimestamp\tYES\t\tNULL\t\nlastFetchCount\tint\tYES\t\t0\t\nerrorCount\tint\tYES\t\t0\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\ntotalArticles\tint\tYES\t\t0\t\nsuccessCount\tint\tYES\t\t0\t\nfailureCount\tint\tYES\t\t0\t\nconsecutiveErrors\tint\tYES\t\t0\t\nlastError\ttext\tYES\t\tNULL\t\nlastErrorAt\ttimestamp\tYES\t\tNULL\t\nlastSuccessAt\ttimestamp\tYES\t\tNULL\t\nquarantined\ttinyint(1)\tYES\t\t0\t\nquarantineReason\tvarchar(256)\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 1746
+}
