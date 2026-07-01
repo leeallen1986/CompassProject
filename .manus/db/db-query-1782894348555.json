@@ -1,0 +1,157 @@
+{
+  "query": "\n-- Feeds confirmed working via live test (return valid RSS XML from sandbox):\n-- mining-technology, offshore-technology, nsenergybusiness, pumpsandsystems, processonline, hydrocarbons-technology\n-- These are failing in the pipeline due to Node.js fetch user-agent being blocked, not the URL itself\n-- Reset their consecutive errors so they retry tonight with the improved UA\n\n-- Also fix waterworld: the feed URL redirects to 404 — need to quarantine it\n-- Also fix iaphworldports: still 403 — quarantine it\n\n-- Reset error counters for feeds that are actually alive\nUPDATE rssSources \nSET consecutiveErrors = 0, lastError = NULL\nWHERE feedUrl IN (\n  'https://www.mining-technology.com/feed/',\n  'https://www.offshore-technology.com/feed/',\n  'https://www.nsenergybusiness.com/feed/',\n  'https://www.pumpsandsystems.com/rss.xml',\n  'https://www.processonline.com.au/feed/',\n  'https://www.hydrocarbons-technology.com/feed/'\n);\n\n-- Quarantine waterworld (404 after redirect) and iaphworldports (persistent 403)\nUPDATE rssSources \nSET isActive = 0, consecutiveErrors = 99, lastError = 'Quarantined: URL dead or persistent 403'\nWHERE feedUrl IN (\n  'https://www.waterworld.com/feed/',\n  'https://www.iaphworldports.org/news/rss'\n);\n\n-- Check final state\nSELECT name, feedUrl, isActive, consecutiveErrors, LEFT(lastError, 60) as err\nFROM rssSources\nWHERE consecutiveErrors > 0 OR isActive = 0\nORDER BY consecutiveErrors DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Feeds confirmed working via live test (return valid RSS XML from sandbox):\n-- mining-technology, offshore-technology, nsenergybusiness, pumpsandsystems, processonline, hydrocarbons-technology\n-- These are failing in the pipeline due to Node.js fetch user-agent being blocked, not the URL itself\n-- Reset their consecutive errors so they retry tonight with the improved UA\n\n-- Also fix waterworld: the feed URL redirects to 404 — need to quarantine it\n-- Also fix iaphworldports: still 403 — quarantine it\n\n-- Reset error counters for feeds that are actually alive\nUPDATE rssSources \nSET consecutiveErrors = 0, lastError = NULL\nWHERE feedUrl IN (\n  'https://www.mining-technology.com/feed/',\n  'https://www.offshore-technology.com/feed/',\n  'https://www.nsenergybusiness.com/feed/',\n  'https://www.pumpsandsystems.com/rss.xml',\n  'https://www.processonline.com.au/feed/',\n  'https://www.hydrocarbons-technology.com/feed/'\n);\n\n-- Quarantine waterworld (404 after redirect) and iaphworldports (persistent 403)\nUPDATE rssSources \nSET isActive = 0, consecutiveErrors = 99, lastError = 'Quarantined: URL dead or persistent 403'\nWHERE feedUrl IN (\n  'https://www.waterworld.com/feed/',\n  'https://www.iaphworldports.org/news/rss'\n);\n\n-- Check final state\nSELECT name, feedUrl, isActive, consecutiveErrors, LEFT(lastError, 60) as err\nFROM rssSources\nWHERE consecutiveErrors > 0 OR isActive = 0\nORDER BY consecutiveErrors DESC;\n",
+  "rows": [
+    {
+      "name": "Ports and Harbors",
+      "feedUrl": "https://www.iaphworldports.org/news/rss",
+      "isActive": "0",
+      "consecutiveErrors": "99",
+      "err": "Quarantined: URL dead or persistent 403"
+    },
+    {
+      "name": "Water World",
+      "feedUrl": "https://www.waterworld.com/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "99",
+      "err": "Quarantined: URL dead or persistent 403"
+    },
+    {
+      "name": "Gas Today Australia",
+      "feedUrl": "https://www.gastoday.com.au/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "38",
+      "err": "Response is HTML, not RSS/Atom XML"
+    },
+    {
+      "name": "Chemical Engineering Australia",
+      "feedUrl": "https://www.chemicalengineering.com.au/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "33",
+      "err": "Response is HTML, not RSS/Atom XML"
+    },
+    {
+      "name": "Maintenance Technology",
+      "feedUrl": "https://www.maintenancetechnology.com/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "33",
+      "err": "Response is HTML, not RSS/Atom XML"
+    },
+    {
+      "name": "Australian Water Association",
+      "feedUrl": "https://www.awa.asn.au/AWA/News/AWA/News/News.aspx?rss=1",
+      "isActive": "0",
+      "consecutiveErrors": "33",
+      "err": "HTTP 404: Not Found"
+    },
+    {
+      "name": "Port Technology International",
+      "feedUrl": "https://www.porttechnology.org/feed/",
+      "isActive": "1",
+      "consecutiveErrors": "15",
+      "err": "HTTP 403: Forbidden"
+    },
+    {
+      "name": "Plant Services",
+      "feedUrl": "https://www.plantservices.com/feed/",
+      "isActive": "1",
+      "consecutiveErrors": "15",
+      "err": "HTTP 404: Not Found"
+    },
+    {
+      "name": "Energy News Bulletin",
+      "feedUrl": "https://www.energynewsbulletin.net/feed/rss",
+      "isActive": "1",
+      "consecutiveErrors": "1",
+      "err": "Timeout (20s)"
+    },
+    {
+      "name": "Construction Equipment Guide",
+      "feedUrl": "https://feeds.feedburner.com/ceg",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Build Australia",
+      "feedUrl": "https://buildaustralia.com.au/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "One Step Off The Grid",
+      "feedUrl": "https://onestepoffthegrid.com.au/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "ABC News - Australia",
+      "feedUrl": "https://www.abc.net.au/news/feed/2942460/rss.xml",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Rigzone News",
+      "feedUrl": "https://www.rigzone.com/news/rss/rigzone_latest.aspx",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Mining Journal",
+      "feedUrl": "https://www.mining-journal.com/feed",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Mining Weekly SA",
+      "feedUrl": "https://www.miningweekly.com/page/home/feed",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Diesel Progress",
+      "feedUrl": "https://dieselnet.com/rss.xml",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "International Mining",
+      "feedUrl": "https://www.mining.com/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Fluid Handling Magazine",
+      "feedUrl": "https://fluidhandlingmag.com/feed/",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "Renewables Now",
+      "feedUrl": "https://renewablesnow.com/news/news_feed/?source=solar",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    },
+    {
+      "name": "The Australian - Business",
+      "feedUrl": "https://www.theaustralian.com.au/business/rss",
+      "isActive": "0",
+      "consecutiveErrors": "0",
+      "err": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tfeedUrl\tisActive\tconsecutiveErrors\terr\nPorts and Harbors\thttps://www.iaphworldports.org/news/rss\t0\t99\tQuarantined: URL dead or persistent 403\nWater World\thttps://www.waterworld.com/feed/\t0\t99\tQuarantined: URL dead or persistent 403\nGas Today Australia\thttps://www.gastoday.com.au/feed/\t0\t38\tResponse is HTML, not RSS/Atom XML\nChemical Engineering Australia\thttps://www.chemicalengineering.com.au/feed/\t0\t33\tResponse is HTML, not RSS/Atom XML\nMaintenance Technology\thttps://www.maintenancetechnology.com/feed/\t0\t33\tResponse is HTML, not RSS/Atom XML\nAustralian Water Association\thttps://www.awa.asn.au/AWA/News/AWA/News/News.aspx?rss=1\t0\t33\tHTTP 404: Not Found\nPort Technology International\thttps://www.porttechnology.org/feed/\t1\t15\tHTTP 403: Forbidden\nPlant Services\thttps://www.plantservices.com/feed/\t1\t15\tHTTP 404: Not Found\nEnergy News Bulletin\thttps://www.energynewsbulletin.net/feed/rss\t1\t1\tTimeout (20s)\nConstruction Equipment Guide\thttps://feeds.feedburner.com/ceg\t0\t0\tNULL\nBuild Australia\thttps://buildaustralia.com.au/feed/\t0\t0\tNULL\nOne Step Off The Grid\thttps://onestepoffthegrid.com.au/feed/\t0\t0\tNULL\nABC News - Australia\thttps://www.abc.net.au/news/feed/2942460/rss.xml\t0\t0\tNULL\nRigzone News\thttps://www.rigzone.com/news/rss/rigzone_latest.aspx\t0\t0\tNULL\nMining Journal\thttps://www.mining-journal.com/feed\t0\t0\tNULL\nMining Weekly SA\thttps://www.miningweekly.com/page/home/feed\t0\t0\tNULL\nDiesel Progress\thttps://dieselnet.com/rss.xml\t0\t0\tNULL\nInternational Mining\thttps://www.mining.com/feed/\t0\t0\tNULL\nFluid Handling Magazine\thttps://fluidhandlingmag.com/feed/\t0\t0\tNULL\nRenewables Now\thttps://renewablesnow.com/news/news_feed/?source=solar\t0\t0\tNULL\nThe Australian - Business\thttps://www.theaustralian.com.au/business/rss\t0\t0\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 2242
+}

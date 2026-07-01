@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE rssSources \nSET isActive = 0, lastError = 'Quarantined: HTTP 404 - URL no longer exists'\nWHERE feedUrl = 'https://www.plantservices.com/feed/';\n\nUPDATE rssSources \nSET isActive = 0, lastError = 'Quarantined: Persistent HTTP 403 - Cloudflare blocking all server IPs'\nWHERE feedUrl = 'https://www.porttechnology.org/feed/';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nUPDATE rssSources \nSET isActive = 0, lastError = 'Quarantined: HTTP 404 - URL no longer exists'\nWHERE feedUrl = 'https://www.plantservices.com/feed/';\n\nUPDATE rssSources \nSET isActive = 0, lastError = 'Quarantined: Persistent HTTP 403 - Cloudflare blocking all server IPs'\nWHERE feedUrl = 'https://www.porttechnology.org/feed/';\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2068
+}

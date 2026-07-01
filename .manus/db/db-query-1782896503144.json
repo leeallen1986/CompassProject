@@ -1,0 +1,16 @@
+{
+  "query": "\n-- Active non-stale projects vs enrichment cache coverage\nSELECT \n  COUNT(*) as totalActiveProjects,\n  SUM(CASE WHEN pec.id IS NULL THEN 1 ELSE 0 END) as neverEnriched,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt <= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiredCache,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as freshCache\nFROM projects p\nLEFT JOIN projectEnrichmentCache pec ON pec.projectId = p.id\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Active non-stale projects vs enrichment cache coverage\nSELECT \n  COUNT(*) as totalActiveProjects,\n  SUM(CASE WHEN pec.id IS NULL THEN 1 ELSE 0 END) as neverEnriched,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt <= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiredCache,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as freshCache\nFROM projects p\nLEFT JOIN projectEnrichmentCache pec ON pec.projectId = p.id\nWHERE p.suppressed = 0 AND p.lifecycleStatus = 'active';\n",
+  "rows": [
+    {
+      "totalActiveProjects": "1668",
+      "neverEnriched": "163",
+      "expiredCache": "1421",
+      "freshCache": "84"
+    }
+  ],
+  "messages": [],
+  "stdout": "totalActiveProjects\tneverEnriched\texpiredCache\tfreshCache\n1668\t163\t1421\t84\n",
+  "stderr": "",
+  "execution_time_ms": 1747
+}

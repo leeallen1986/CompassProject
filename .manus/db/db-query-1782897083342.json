@@ -1,0 +1,22 @@
+{
+  "query": "\n-- Verify deletion and new totals\nSELECT \n  contactTrustTier,\n  COUNT(*) as count\nFROM contacts\nGROUP BY contactTrustTier ORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Verify deletion and new totals\nSELECT \n  contactTrustTier,\n  COUNT(*) as count\nFROM contacts\nGROUP BY contactTrustTier ORDER BY count DESC;\n",
+  "rows": [
+    {
+      "contactTrustTier": "send_ready",
+      "count": "3478"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "count": "762"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "count": "409"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tcount\nsend_ready\t3478\nllm_inferred\t762\nnamed_unverified\t409\n",
+  "stderr": "",
+  "execution_time_ms": 1760
+}

@@ -1,0 +1,16 @@
+{
+  "query": "\n-- Manual named_unverified: email and linkedin coverage\nSELECT \n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as hasEmail,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as noEmail,\n  SUM(CASE WHEN linkedin IS NOT NULL AND linkedin != '' THEN 1 ELSE 0 END) as hasLinkedin,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual' AND contactTrustTier = 'named_unverified';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Manual named_unverified: email and linkedin coverage\nSELECT \n  SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as hasEmail,\n  SUM(CASE WHEN email IS NULL OR email = '' THEN 1 ELSE 0 END) as noEmail,\n  SUM(CASE WHEN linkedin IS NOT NULL AND linkedin != '' THEN 1 ELSE 0 END) as hasLinkedin,\n  COUNT(*) as total\nFROM contacts\nWHERE enrichmentSource = 'manual' AND contactTrustTier = 'named_unverified';\n",
+  "rows": [
+    {
+      "hasEmail": "25722",
+      "noEmail": "11",
+      "hasLinkedin": "0",
+      "total": "25733"
+    }
+  ],
+  "messages": [],
+  "stdout": "hasEmail\tnoEmail\thasLinkedin\ttotal\n25722\t11\t0\t25733\n",
+  "stderr": "",
+  "execution_time_ms": 1860
+}

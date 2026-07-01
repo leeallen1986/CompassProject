@@ -1,0 +1,30 @@
+{
+  "query": "\n-- New contacts created in last night's pipeline run (after 8pm UTC 18 Jun)\nSELECT \n  contactTrustTier,\n  enrichmentSource,\n  COUNT(*) as count\nFROM contacts\nWHERE createdAt >= '2026-06-18 20:00:00'\nGROUP BY contactTrustTier, enrichmentSource\nORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- New contacts created in last night's pipeline run (after 8pm UTC 18 Jun)\nSELECT \n  contactTrustTier,\n  enrichmentSource,\n  COUNT(*) as count\nFROM contacts\nWHERE createdAt >= '2026-06-18 20:00:00'\nGROUP BY contactTrustTier, enrichmentSource\nORDER BY count DESC;\n",
+  "rows": [
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "linkedin",
+      "count": "19"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "count": "12"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "web_search",
+      "count": "9"
+    },
+    {
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "count": "7"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tenrichmentSource\tcount\nnamed_unverified\tlinkedin\t19\nllm_inferred\tllm\t12\nnamed_unverified\tweb_search\t9\nsend_ready\tapollo\t7\n",
+  "stderr": "",
+  "execution_time_ms": 1814
+}

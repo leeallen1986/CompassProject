@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  ROUND(durationMs / 60000, 1) as durationMins,\n  feedsFetched,\n  feedErrors,\n  articlesIngested,\n  articlesExtracted,\n  projectsCreated,\n  projectsDuplicate,\n  contactsEnriched,\n  apolloCreditsUsed,\n  lushaCreditsUsed,\n  digestSafePromoted,\n  contactsPromotedToSendReady\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  ROUND(durationMs / 60000, 1) as durationMins,\n  feedsFetched,\n  feedErrors,\n  articlesIngested,\n  articlesExtracted,\n  projectsCreated,\n  projectsDuplicate,\n  contactsEnriched,\n  apolloCreditsUsed,\n  lushaCreditsUsed,\n  digestSafePromoted,\n  contactsPromotedToSendReady\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'lushacreditsused' in 'field list'"
+  ]
+}

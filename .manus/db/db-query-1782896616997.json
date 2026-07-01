@@ -1,0 +1,19 @@
+{
+  "query": "\n-- Get the step-level JSON from the last completed run\nSELECT id, status, apolloCreditsUsed, \n       JSON_EXTRACT(steps, '$[10]') as step11,\n       JSON_EXTRACT(steps, '$[11]') as step12_gapfill,\n       JSON_EXTRACT(steps, '$[12]') as step13_backfill,\n       JSON_EXTRACT(steps, '$[13]') as step14_manual\nFROM pipelineRuns\nWHERE status = 'completed'\nORDER BY startedAt DESC LIMIT 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Get the step-level JSON from the last completed run\nSELECT id, status, apolloCreditsUsed, \n       JSON_EXTRACT(steps, '$[10]') as step11,\n       JSON_EXTRACT(steps, '$[11]') as step12_gapfill,\n       JSON_EXTRACT(steps, '$[12]') as step13_backfill,\n       JSON_EXTRACT(steps, '$[13]') as step14_manual\nFROM pipelineRuns\nWHERE status = 'completed'\nORDER BY startedAt DESC LIMIT 1;\n",
+  "rows": [
+    {
+      "id": "2460001",
+      "status": "completed",
+      "apolloCreditsUsed": "0",
+      "step11": "{\"completedAt\": \"2026-06-30T20:05:55.879Z\", \"durationMs\": 0, \"error\": \"Runs on Mondays only\", \"name\": \"Projectory Scrape (Legacy)\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"skipped\"}",
+      "step12_gapfill": "{\"completedAt\": \"2026-06-30T20:05:55.879Z\", \"durationMs\": 0, \"error\": \"Runs on Saturdays only\", \"name\": \"ICN Validation\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"skipped\"}",
+      "step13_backfill": "{\"completedAt\": \"2026-06-30T20:05:55.879Z\", \"durationMs\": 0, \"error\": \"Runs on Saturdays only\", \"name\": \"ICN Gateway Scrape (Legacy)\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"skipped\"}",
+      "step14_manual": "{\"completedAt\": \"2026-06-30T20:05:56.487Z\", \"counts\": {\"apolloCreditsUsed\": 0, \"enriched\": 0, \"failed\": 0, \"notFound\": 0, \"processed\": 0}, \"durationMs\": 608, \"name\": \"Contact Enrichment\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"completed\"}"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tapolloCreditsUsed\tstep11\tstep12_gapfill\tstep13_backfill\tstep14_manual\n2460001\tcompleted\t0\t{\"completedAt\": \"2026-06-30T20:05:55.879Z\", \"durationMs\": 0, \"error\": \"Runs on Mondays only\", \"name\": \"Projectory Scrape (Legacy)\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"skipped\"}\t{\"completedAt\": \"2026-06-30T20:05:55.879Z\", \"durationMs\": 0, \"error\": \"Runs on Saturdays only\", \"name\": \"ICN Validation\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"skipped\"}\t{\"completedAt\": \"2026-06-30T20:05:55.879Z\", \"durationMs\": 0, \"error\": \"Runs on Saturdays only\", \"name\": \"ICN Gateway Scrape (Legacy)\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"skipped\"}\t{\"completedAt\": \"2026-06-30T20:05:56.487Z\", \"counts\": {\"apolloCreditsUsed\": 0, \"enriched\": 0, \"failed\": 0, \"notFound\": 0, \"processed\": 0}, \"durationMs\": 608, \"name\": \"Contact Enrichment\", \"startedAt\": \"2026-06-30T20:05:55.879Z\", \"status\": \"completed\"}\n",
+  "stderr": "",
+  "execution_time_ms": 1726
+}

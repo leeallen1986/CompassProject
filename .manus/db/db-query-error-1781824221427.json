@@ -1,0 +1,8 @@
+{
+  "query": "\n-- Last 3 pipeline runs with key stats\nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  TIMESTAMPDIFF(MINUTE, startedAt, completedAt) as durationMins,\n  newProjectsFound,\n  projectsUpdated,\n  contactsEnriched,\n  feedErrors,\n  totalArticlesProcessed,\n  LEFT(errorLog, 300) as errorSummary\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Last 3 pipeline runs with key stats\nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  TIMESTAMPDIFF(MINUTE, startedAt, completedAt) as durationMins,\n  newProjectsFound,\n  projectsUpdated,\n  contactsEnriched,\n  feedErrors,\n  totalArticlesProcessed,\n  LEFT(errorLog, 300) as errorSummary\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'newprojectsfound' in 'field list'"
+  ]
+}

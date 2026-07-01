@@ -1,0 +1,19 @@
+{
+  "query": "\n-- How many projects have been enriched via Apollo cache, and how many are expired/eligible for re-run\nSELECT \n  COUNT(*) as totalCacheEntries,\n  SUM(CASE WHEN enrichedAt > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as freshCache,\n  SUM(CASE WHEN enrichedAt <= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiredCache,\n  SUM(contactsFound) as totalContactsFound,\n  SUM(contactsNew) as totalContactsNew,\n  SUM(apiCallsMade) as totalApiCalls,\n  AVG(contactsFound) as avgContactsPerProject\nFROM projectEnrichmentCache;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- How many projects have been enriched via Apollo cache, and how many are expired/eligible for re-run\nSELECT \n  COUNT(*) as totalCacheEntries,\n  SUM(CASE WHEN enrichedAt > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as freshCache,\n  SUM(CASE WHEN enrichedAt <= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiredCache,\n  SUM(contactsFound) as totalContactsFound,\n  SUM(contactsNew) as totalContactsNew,\n  SUM(apiCallsMade) as totalApiCalls,\n  AVG(contactsFound) as avgContactsPerProject\nFROM projectEnrichmentCache;\n",
+  "rows": [
+    {
+      "totalCacheEntries": "3431",
+      "freshCache": "115",
+      "expiredCache": "3316",
+      "totalContactsFound": "14272",
+      "totalContactsNew": "1823",
+      "totalApiCalls": "17509",
+      "avgContactsPerProject": "4.1597"
+    }
+  ],
+  "messages": [],
+  "stdout": "totalCacheEntries\tfreshCache\texpiredCache\ttotalContactsFound\ttotalContactsNew\ttotalApiCalls\tavgContactsPerProject\n3431\t115\t3316\t14272\t1823\t17509\t4.1597\n",
+  "stderr": "",
+  "execution_time_ms": 1739
+}

@@ -1,0 +1,8 @@
+{
+  "query": "\n-- 1. Apollo usage by day (last 30 days)\nSELECT DATE(FROM_UNIXTIME(createdAt/1000)) as day,\n       COUNT(*) as calls,\n       SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successes,\n       SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failures\nFROM apolloApiLog\nWHERE createdAt > UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY)) * 1000\nGROUP BY day ORDER BY day DESC LIMIT 30;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Apollo usage by day (last 30 days)\nSELECT DATE(FROM_UNIXTIME(createdAt/1000)) as day,\n       COUNT(*) as calls,\n       SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successes,\n       SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failures\nFROM apolloApiLog\nWHERE createdAt > UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY)) * 1000\nGROUP BY day ORDER BY day DESC LIMIT 30;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 3: Table '3smu786vmcwdcnmnsx6pxw.apolloApiLog' doesn't exist"
+  ]
+}

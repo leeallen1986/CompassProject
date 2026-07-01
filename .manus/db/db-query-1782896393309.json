@@ -1,0 +1,40 @@
+{
+  "query": "\n-- 2. Apollo credits per day (correct year)\nSELECT DATE(FROM_UNIXTIME(createdAt/1000)) as day, COUNT(*) as calls, SUM(creditsUsed) as credits\nFROM apolloCreditLog\nGROUP BY day ORDER BY day DESC LIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 2. Apollo credits per day (correct year)\nSELECT DATE(FROM_UNIXTIME(createdAt/1000)) as day, COUNT(*) as calls, SUM(creditsUsed) as credits\nFROM apolloCreditLog\nGROUP BY day ORDER BY day DESC LIMIT 20;\n",
+  "rows": [
+    {
+      "day": "2612-01-14",
+      "calls": "101",
+      "credits": "101"
+    },
+    {
+      "day": "2612-01-13",
+      "calls": "913",
+      "credits": "913"
+    },
+    {
+      "day": "2612-01-12",
+      "calls": "990",
+      "credits": "990"
+    },
+    {
+      "day": "2612-01-11",
+      "calls": "856",
+      "credits": "856"
+    },
+    {
+      "day": "2612-01-10",
+      "calls": "162",
+      "credits": "162"
+    },
+    {
+      "day": "2612-01-09",
+      "calls": "15",
+      "credits": "15"
+    }
+  ],
+  "messages": [],
+  "stdout": "day\tcalls\tcredits\n2612-01-14\t101\t101\n2612-01-13\t913\t913\n2612-01-12\t990\t990\n2612-01-11\t856\t856\n2612-01-10\t162\t162\n2612-01-09\t15\t15\n",
+  "stderr": "",
+  "execution_time_ms": 1730
+}

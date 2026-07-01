@@ -1,0 +1,22 @@
+{
+  "query": "\n-- 1. Enrichment cache — why are projects blocked from Apollo enrichment?\nSELECT enrichmentBlockedReason, COUNT(*) as count\nFROM projects\nWHERE enrichmentBlockedReason IS NOT NULL\nGROUP BY enrichmentBlockedReason ORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Enrichment cache — why are projects blocked from Apollo enrichment?\nSELECT enrichmentBlockedReason, COUNT(*) as count\nFROM projects\nWHERE enrichmentBlockedReason IS NOT NULL\nGROUP BY enrichmentBlockedReason ORDER BY count DESC;\n",
+  "rows": [
+    {
+      "enrichmentBlockedReason": "blocked_government_owner_manual_discovery",
+      "count": "195"
+    },
+    {
+      "enrichmentBlockedReason": "blocked_unknown_owner",
+      "count": "49"
+    },
+    {
+      "enrichmentBlockedReason": "blocked_no_usable_domain",
+      "count": "30"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentBlockedReason\tcount\nblocked_government_owner_manual_discovery\t195\nblocked_unknown_owner\t49\nblocked_no_usable_domain\t30\n",
+  "stderr": "",
+  "execution_time_ms": 1745
+}

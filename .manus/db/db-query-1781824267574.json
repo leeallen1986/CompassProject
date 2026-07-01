@@ -1,0 +1,16 @@
+{
+  "query": "\n-- Current hot project contact coverage\nSELECT \n  SUM(CASE WHEN has_send_ready = 1 THEN 1 ELSE 0 END) as hot_with_send_ready,\n  SUM(CASE WHEN has_send_ready = 0 AND has_any_contact = 1 THEN 1 ELSE 0 END) as hot_no_send_ready_but_has_contacts,\n  SUM(CASE WHEN has_any_contact = 0 THEN 1 ELSE 0 END) as hot_no_contacts_at_all,\n  COUNT(*) as total_hot\nFROM (\n  SELECT \n    p.id,\n    MAX(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) as has_send_ready,\n    MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) as has_any_contact\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND p.suppressed = 0\n  GROUP BY p.id\n) sub;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Current hot project contact coverage\nSELECT \n  SUM(CASE WHEN has_send_ready = 1 THEN 1 ELSE 0 END) as hot_with_send_ready,\n  SUM(CASE WHEN has_send_ready = 0 AND has_any_contact = 1 THEN 1 ELSE 0 END) as hot_no_send_ready_but_has_contacts,\n  SUM(CASE WHEN has_any_contact = 0 THEN 1 ELSE 0 END) as hot_no_contacts_at_all,\n  COUNT(*) as total_hot\nFROM (\n  SELECT \n    p.id,\n    MAX(CASE WHEN c.contactTrustTier = 'send_ready' THEN 1 ELSE 0 END) as has_send_ready,\n    MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) as has_any_contact\n  FROM projects p\n  LEFT JOIN contactProjects cp ON cp.projectId = p.id\n  LEFT JOIN contacts c ON c.id = cp.contactId\n  WHERE p.priority = 'hot' AND p.lifecycleStatus = 'active' AND p.suppressed = 0\n  GROUP BY p.id\n) sub;\n",
+  "rows": [
+    {
+      "hot_with_send_ready": "126",
+      "hot_no_send_ready_but_has_contacts": "64",
+      "hot_no_contacts_at_all": "28",
+      "total_hot": "218"
+    }
+  ],
+  "messages": [],
+  "stdout": "hot_with_send_ready\thot_no_send_ready_but_has_contacts\thot_no_contacts_at_all\ttotal_hot\n126\t64\t28\t218\n",
+  "stderr": "",
+  "execution_time_ms": 1876
+}

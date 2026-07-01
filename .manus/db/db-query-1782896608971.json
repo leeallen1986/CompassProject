@@ -1,0 +1,66 @@
+{
+  "query": "\nSELECT \n  id,\n  DATE(startedAt) as runDate,\n  status,\n  apolloCreditsUsed,\n  contactsEnriched,\n  feedErrors\nFROM pipelineRuns\nORDER BY startedAt DESC LIMIT 7;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  id,\n  DATE(startedAt) as runDate,\n  status,\n  apolloCreditsUsed,\n  contactsEnriched,\n  feedErrors\nFROM pipelineRuns\nORDER BY startedAt DESC LIMIT 7;\n",
+  "rows": [
+    {
+      "id": "2490001",
+      "runDate": "2026-07-01",
+      "status": "running",
+      "apolloCreditsUsed": "0",
+      "contactsEnriched": "0",
+      "feedErrors": "11"
+    },
+    {
+      "id": "2460001",
+      "runDate": "2026-06-30",
+      "status": "completed",
+      "apolloCreditsUsed": "0",
+      "contactsEnriched": "0",
+      "feedErrors": "10"
+    },
+    {
+      "id": "2430001",
+      "runDate": "2026-06-29",
+      "status": "completed",
+      "apolloCreditsUsed": "0",
+      "contactsEnriched": "0",
+      "feedErrors": "10"
+    },
+    {
+      "id": "2400001",
+      "runDate": "2026-06-27",
+      "status": "failed",
+      "apolloCreditsUsed": "0",
+      "contactsEnriched": "0",
+      "feedErrors": "11"
+    },
+    {
+      "id": "2370001",
+      "runDate": "2026-06-26",
+      "status": "completed",
+      "apolloCreditsUsed": "3",
+      "contactsEnriched": "0",
+      "feedErrors": "10"
+    },
+    {
+      "id": "2340001",
+      "runDate": "2026-06-25",
+      "status": "completed",
+      "apolloCreditsUsed": "1",
+      "contactsEnriched": "0",
+      "feedErrors": "11"
+    },
+    {
+      "id": "2310001",
+      "runDate": "2026-06-24",
+      "status": "completed",
+      "apolloCreditsUsed": "0",
+      "contactsEnriched": "0",
+      "feedErrors": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trunDate\tstatus\tapolloCreditsUsed\tcontactsEnriched\tfeedErrors\n2490001\t2026-07-01\trunning\t0\t0\t11\n2460001\t2026-06-30\tcompleted\t0\t0\t10\n2430001\t2026-06-29\tcompleted\t0\t0\t10\n2400001\t2026-06-27\tfailed\t0\t0\t11\n2370001\t2026-06-26\tcompleted\t3\t0\t10\n2340001\t2026-06-25\tcompleted\t1\t0\t11\n2310001\t2026-06-24\tcompleted\t0\t0\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1784
+}

@@ -1,0 +1,13 @@
+{
+  "query": "\n-- Manual contacts with NO link to any active project (pure CRM orphans)\nSELECT COUNT(*) as orphanCount\nFROM contacts c\nWHERE c.enrichmentSource = 'manual' \n  AND c.contactTrustTier = 'named_unverified'\n  AND NOT EXISTS (\n    SELECT 1 FROM contactProjects cp\n    INNER JOIN projects p ON p.id = cp.projectId\n    WHERE cp.contactId = c.id\n      AND p.suppressed = false\n      AND p.lifecycleStatus IN ('active', 'awarded')\n  );\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Manual contacts with NO link to any active project (pure CRM orphans)\nSELECT COUNT(*) as orphanCount\nFROM contacts c\nWHERE c.enrichmentSource = 'manual' \n  AND c.contactTrustTier = 'named_unverified'\n  AND NOT EXISTS (\n    SELECT 1 FROM contactProjects cp\n    INNER JOIN projects p ON p.id = cp.projectId\n    WHERE cp.contactId = c.id\n      AND p.suppressed = false\n      AND p.lifecycleStatus IN ('active', 'awarded')\n  );\n",
+  "rows": [
+    {
+      "orphanCount": "25146"
+    }
+  ],
+  "messages": [],
+  "stdout": "orphanCount\n25146\n",
+  "stderr": "",
+  "execution_time_ms": 1815
+}

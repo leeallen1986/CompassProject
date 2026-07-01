@@ -1,0 +1,20 @@
+{
+  "query": "\n-- Verify promotion — count manual send_ready contacts now\nSELECT contactTrustTier, enrichmentSource, COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual'\nGROUP BY contactTrustTier, enrichmentSource;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Verify promotion — count manual send_ready contacts now\nSELECT contactTrustTier, enrichmentSource, COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual'\nGROUP BY contactTrustTier, enrichmentSource;\n",
+  "rows": [
+    {
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "manual",
+      "count": "741"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "manual",
+      "count": "25146"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tenrichmentSource\tcount\nsend_ready\tmanual\t741\nnamed_unverified\tmanual\t25146\n",
+  "stderr": "",
+  "execution_time_ms": 1834
+}

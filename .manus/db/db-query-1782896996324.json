@@ -1,0 +1,14 @@
+{
+  "query": "\n-- Age distribution of manual contacts\nSELECT \n  CASE \n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 2 YEAR) THEN '2+ years old'\n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN '1-2 years old'\n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 6 MONTH) THEN '6-12 months old'\n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 3 MONTH) THEN '3-6 months old'\n    ELSE 'Under 3 months'\n  END as age_bucket,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual' AND contactTrustTier = 'named_unverified'\nGROUP BY age_bucket ORDER BY count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Age distribution of manual contacts\nSELECT \n  CASE \n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 2 YEAR) THEN '2+ years old'\n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN '1-2 years old'\n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 6 MONTH) THEN '6-12 months old'\n    WHEN createdAt < DATE_SUB(NOW(), INTERVAL 3 MONTH) THEN '3-6 months old'\n    ELSE 'Under 3 months'\n  END as age_bucket,\n  COUNT(*) as count\nFROM contacts\nWHERE enrichmentSource = 'manual' AND contactTrustTier = 'named_unverified'\nGROUP BY age_bucket ORDER BY count DESC;\n",
+  "rows": [
+    {
+      "age_bucket": "3-6 months old",
+      "count": "25733"
+    }
+  ],
+  "messages": [],
+  "stdout": "age_bucket\tcount\n3-6 months old\t25733\n",
+  "stderr": "",
+  "execution_time_ms": 2640
+}

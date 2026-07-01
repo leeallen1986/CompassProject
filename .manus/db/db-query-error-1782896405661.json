@@ -1,0 +1,8 @@
+{
+  "query": "\n-- 3. Lusha enrichment log — all time\nSELECT status, COUNT(*) as calls, SUM(creditsUsed) as credits,\n       MIN(DATE(FROM_UNIXTIME(createdAt/1000))) as firstUse,\n       MAX(DATE(FROM_UNIXTIME(createdAt/1000))) as lastUse\nFROM lushaEnrichmentLog\nGROUP BY status;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 3. Lusha enrichment log — all time\nSELECT status, COUNT(*) as calls, SUM(creditsUsed) as credits,\n       MIN(DATE(FROM_UNIXTIME(createdAt/1000))) as firstUse,\n       MAX(DATE(FROM_UNIXTIME(createdAt/1000))) as lastUse\nFROM lushaEnrichmentLog\nGROUP BY status;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'status' in 'group statement'"
+  ]
+}

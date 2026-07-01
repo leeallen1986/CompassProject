@@ -1,0 +1,108 @@
+{
+  "query": "\n-- Which feeds still errored last night (run 2130001)?\nSELECT name, feedUrl, consecutiveErrors, LEFT(lastError, 80) as lastError, lastSuccessAt\nFROM rssSources\nWHERE consecutiveErrors > 0\nORDER BY consecutiveErrors DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Which feeds still errored last night (run 2130001)?\nSELECT name, feedUrl, consecutiveErrors, LEFT(lastError, 80) as lastError, lastSuccessAt\nFROM rssSources\nWHERE consecutiveErrors > 0\nORDER BY consecutiveErrors DESC;\n",
+  "rows": [
+    {
+      "name": "Gas Today Australia",
+      "feedUrl": "https://www.gastoday.com.au/feed/",
+      "consecutiveErrors": "38",
+      "lastError": "Response is HTML, not RSS/Atom XML",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Chemical Engineering Australia",
+      "feedUrl": "https://www.chemicalengineering.com.au/feed/",
+      "consecutiveErrors": "33",
+      "lastError": "Response is HTML, not RSS/Atom XML",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Maintenance Technology",
+      "feedUrl": "https://www.maintenancetechnology.com/feed/",
+      "consecutiveErrors": "33",
+      "lastError": "Response is HTML, not RSS/Atom XML",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Australian Water Association",
+      "feedUrl": "https://www.awa.asn.au/AWA/News/AWA/News/News.aspx?rss=1",
+      "consecutiveErrors": "33",
+      "lastError": "HTTP 404: Not Found",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Hydrocarbons Technology",
+      "feedUrl": "https://www.hydrocarbons-technology.com/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-01 05:08:59"
+    },
+    {
+      "name": "Process Online Australia",
+      "feedUrl": "https://www.processonline.com.au/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 406: Not Acceptable",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Water World",
+      "feedUrl": "https://www.waterworld.com/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Plant Services",
+      "feedUrl": "https://www.plantservices.com/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Mining Technology",
+      "feedUrl": "https://www.mining-technology.com/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-01 05:44:55"
+    },
+    {
+      "name": "NS Energy Business",
+      "feedUrl": "https://www.nsenergybusiness.com/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Pumps and Systems",
+      "feedUrl": "https://www.pumpsandsystems.com/rss.xml",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-02 06:50:02"
+    },
+    {
+      "name": "Port Technology International",
+      "feedUrl": "https://www.porttechnology.org/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Ports and Harbors",
+      "feedUrl": "https://www.iaphworldports.org/news/rss",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "NULL"
+    },
+    {
+      "name": "Offshore Technology",
+      "feedUrl": "https://www.offshore-technology.com/feed/",
+      "consecutiveErrors": "1",
+      "lastError": "HTTP 403: Forbidden",
+      "lastSuccessAt": "2026-06-01 05:08:48"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tfeedUrl\tconsecutiveErrors\tlastError\tlastSuccessAt\nGas Today Australia\thttps://www.gastoday.com.au/feed/\t38\tResponse is HTML, not RSS/Atom XML\tNULL\nChemical Engineering Australia\thttps://www.chemicalengineering.com.au/feed/\t33\tResponse is HTML, not RSS/Atom XML\tNULL\nMaintenance Technology\thttps://www.maintenancetechnology.com/feed/\t33\tResponse is HTML, not RSS/Atom XML\tNULL\nAustralian Water Association\thttps://www.awa.asn.au/AWA/News/AWA/News/News.aspx?rss=1\t33\tHTTP 404: Not Found\tNULL\nHydrocarbons Technology\thttps://www.hydrocarbons-technology.com/feed/\t1\tHTTP 403: Forbidden\t2026-06-01 05:08:59\nProcess Online Australia\thttps://www.processonline.com.au/feed/\t1\tHTTP 406: Not Acceptable\tNULL\nWater World\thttps://www.waterworld.com/feed/\t1\tHTTP 403: Forbidden\tNULL\nPlant Services\thttps://www.plantservices.com/feed/\t1\tHTTP 403: Forbidden\tNULL\nMining Technology\thttps://www.mining-technology.com/feed/\t1\tHTTP 403: Forbidden\t2026-06-01 05:44:55\nNS Energy Business\thttps://www.nsenergybusiness.com/feed/\t1\tHTTP 403: Forbidden\tNULL\nPumps and Systems\thttps://www.pumpsandsystems.com/rss.xml\t1\tHTTP 403: Forbidden\t2026-06-02 06:50:02\nPort Technology International\thttps://www.porttechnology.org/feed/\t1\tHTTP 403: Forbidden\tNULL\nPorts and Harbors\thttps://www.iaphworldports.org/news/rss\t1\tHTTP 403: Forbidden\tNULL\nOffshore Technology\thttps://www.offshore-technology.com/feed/\t1\tHTTP 403: Forbidden\t2026-06-01 05:08:48\n",
+  "stderr": "",
+  "execution_time_ms": 1799
+}

@@ -1,0 +1,16 @@
+{
+  "query": "\n-- Apollo credits this month\nSELECT \n  SUM(creditsUsed) as monthlyTotal,\n  COUNT(*) as totalCalls,\n  SUM(CASE WHEN action = 'reveal' THEN creditsUsed ELSE 0 END) as revealCredits,\n  SUM(CASE WHEN action = 'verify_email' THEN creditsUsed ELSE 0 END) as verifyCredits\nFROM apolloCreditLog\nWHERE createdAt > DATE_FORMAT(NOW(), '%Y-%m-01');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Apollo credits this month\nSELECT \n  SUM(creditsUsed) as monthlyTotal,\n  COUNT(*) as totalCalls,\n  SUM(CASE WHEN action = 'reveal' THEN creditsUsed ELSE 0 END) as revealCredits,\n  SUM(CASE WHEN action = 'verify_email' THEN creditsUsed ELSE 0 END) as verifyCredits\nFROM apolloCreditLog\nWHERE createdAt > DATE_FORMAT(NOW(), '%Y-%m-01');\n",
+  "rows": [
+    {
+      "monthlyTotal": "27",
+      "totalCalls": "27",
+      "revealCredits": "27",
+      "verifyCredits": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "monthlyTotal\ttotalCalls\trevealCredits\tverifyCredits\n27\t27\t27\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1827
+}

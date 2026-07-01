@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Lusha usage summary\nSELECT lushaStatus, COUNT(*) as calls, SUM(creditsUsed) as credits,\n       SUM(contactPromoted) as promoted\nFROM lushaEnrichmentLog GROUP BY lushaStatus;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Lusha usage summary\nSELECT lushaStatus, COUNT(*) as calls, SUM(creditsUsed) as credits,\n       SUM(contactPromoted) as promoted\nFROM lushaEnrichmentLog GROUP BY lushaStatus;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1722
+}

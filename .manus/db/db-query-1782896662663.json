@@ -1,0 +1,45 @@
+{
+  "query": "\n-- What enrichmentStatus do non-manual contacts on active projects have?\nSELECT c.enrichmentStatus, c.enrichmentSource, COUNT(*) as count\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE (p.suppressed = false OR p.suppressed IS NULL)\n  AND (p.lifecycleStatus = 'active' OR p.lifecycleStatus = 'awarded')\n  AND c.enrichmentSource != 'manual'\nGROUP BY c.enrichmentStatus, c.enrichmentSource\nORDER BY count DESC LIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- What enrichmentStatus do non-manual contacts on active projects have?\nSELECT c.enrichmentStatus, c.enrichmentSource, COUNT(*) as count\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE (p.suppressed = false OR p.suppressed IS NULL)\n  AND (p.lifecycleStatus = 'active' OR p.lifecycleStatus = 'awarded')\n  AND c.enrichmentSource != 'manual'\nGROUP BY c.enrichmentStatus, c.enrichmentSource\nORDER BY count DESC LIMIT 20;\n",
+  "rows": [
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "apollo",
+      "count": "648"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "llm",
+      "count": "305"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "linkedin",
+      "count": "258"
+    },
+    {
+      "enrichmentStatus": "enriched",
+      "enrichmentSource": "web_search",
+      "count": "89"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "apollo",
+      "count": "68"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "linkedin",
+      "count": "5"
+    },
+    {
+      "enrichmentStatus": "not_found",
+      "enrichmentSource": "web_search",
+      "count": "3"
+    }
+  ],
+  "messages": [],
+  "stdout": "enrichmentStatus\tenrichmentSource\tcount\nenriched\tapollo\t648\nenriched\tllm\t305\nenriched\tlinkedin\t258\nenriched\tweb_search\t89\nnot_found\tapollo\t68\nnot_found\tlinkedin\t5\nnot_found\tweb_search\t3\n",
+  "stderr": "",
+  "execution_time_ms": 1798
+}

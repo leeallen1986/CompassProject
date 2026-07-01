@@ -1,0 +1,65 @@
+{
+  "query": "\n-- Full contact trust tier breakdown\nSELECT contactTrustTier, enrichmentSource, COUNT(*) as count\nFROM contacts\nGROUP BY contactTrustTier, enrichmentSource\nORDER BY contactTrustTier, count DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Full contact trust tier breakdown\nSELECT contactTrustTier, enrichmentSource, COUNT(*) as count\nFROM contacts\nGROUP BY contactTrustTier, enrichmentSource\nORDER BY contactTrustTier, count DESC;\n",
+  "rows": [
+    {
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "web_search",
+      "count": "1179"
+    },
+    {
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "apollo",
+      "count": "899"
+    },
+    {
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "linkedin",
+      "count": "659"
+    },
+    {
+      "contactTrustTier": "send_ready",
+      "enrichmentSource": "manual",
+      "count": "154"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "manual",
+      "count": "25733"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "apollo",
+      "count": "313"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "linkedin",
+      "count": "76"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "web_search",
+      "count": "14"
+    },
+    {
+      "contactTrustTier": "named_unverified",
+      "enrichmentSource": "llm",
+      "count": "6"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "llm",
+      "count": "739"
+    },
+    {
+      "contactTrustTier": "llm_inferred",
+      "enrichmentSource": "apollo",
+      "count": "23"
+    }
+  ],
+  "messages": [],
+  "stdout": "contactTrustTier\tenrichmentSource\tcount\nsend_ready\tweb_search\t1179\nsend_ready\tapollo\t899\nsend_ready\tlinkedin\t659\nsend_ready\tmanual\t154\nnamed_unverified\tmanual\t25733\nnamed_unverified\tapollo\t313\nnamed_unverified\tlinkedin\t76\nnamed_unverified\tweb_search\t14\nnamed_unverified\tllm\t6\nllm_inferred\tllm\t739\nllm_inferred\tapollo\t23\n",
+  "stderr": "",
+  "execution_time_ms": 1811
+}

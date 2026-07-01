@@ -1,0 +1,24 @@
+{
+  "query": "\n-- 1. Apollo credit log — total credits used, by action type\nSELECT action, COUNT(*) as calls, SUM(creditsUsed) as totalCredits,\n       MIN(DATE(FROM_UNIXTIME(createdAt/1000))) as firstUse,\n       MAX(DATE(FROM_UNIXTIME(createdAt/1000))) as lastUse\nFROM apolloCreditLog\nGROUP BY action ORDER BY totalCredits DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- 1. Apollo credit log — total credits used, by action type\nSELECT action, COUNT(*) as calls, SUM(creditsUsed) as totalCredits,\n       MIN(DATE(FROM_UNIXTIME(createdAt/1000))) as firstUse,\n       MAX(DATE(FROM_UNIXTIME(createdAt/1000))) as lastUse\nFROM apolloCreditLog\nGROUP BY action ORDER BY totalCredits DESC;\n",
+  "rows": [
+    {
+      "action": "reveal",
+      "calls": "2577",
+      "totalCredits": "2577",
+      "firstUse": "2612-01-09",
+      "lastUse": "2612-01-14"
+    },
+    {
+      "action": "verify_email",
+      "calls": "460",
+      "totalCredits": "460",
+      "firstUse": "2612-01-10",
+      "lastUse": "2612-01-14"
+    }
+  ],
+  "messages": [],
+  "stdout": "action\tcalls\ttotalCredits\tfirstUse\tlastUse\nreveal\t2577\t2577\t2612-01-09\t2612-01-14\nverify_email\t460\t460\t2612-01-10\t2612-01-14\n",
+  "stderr": "",
+  "execution_time_ms": 1756
+}

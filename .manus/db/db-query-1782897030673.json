@@ -1,0 +1,20 @@
+{
+  "query": "\n-- Manual contacts WITH emails linked to hot/warm active projects — worth keeping\nSELECT \n  p.priority,\n  COUNT(DISTINCT c.id) as contactCount,\n  COUNT(DISTINCT p.id) as projectCount\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual' \n  AND c.contactTrustTier = 'named_unverified'\n  AND c.email IS NOT NULL AND c.email != ''\n  AND p.suppressed = false\n  AND p.lifecycleStatus = 'active'\nGROUP BY p.priority;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Manual contacts WITH emails linked to hot/warm active projects — worth keeping\nSELECT \n  p.priority,\n  COUNT(DISTINCT c.id) as contactCount,\n  COUNT(DISTINCT p.id) as projectCount\nFROM contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nWHERE c.enrichmentSource = 'manual' \n  AND c.contactTrustTier = 'named_unverified'\n  AND c.email IS NOT NULL AND c.email != ''\n  AND p.suppressed = false\n  AND p.lifecycleStatus = 'active'\nGROUP BY p.priority;\n",
+  "rows": [
+    {
+      "priority": "hot",
+      "contactCount": "561",
+      "projectCount": "9"
+    },
+    {
+      "priority": "warm",
+      "contactCount": "178",
+      "projectCount": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "priority\tcontactCount\tprojectCount\nhot\t561\t9\nwarm\t178\t4\n",
+  "stderr": "",
+  "execution_time_ms": 1801
+}

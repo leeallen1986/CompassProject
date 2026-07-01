@@ -1,0 +1,52 @@
+{
+  "query": "\nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  ROUND(durationMs / 60000, 1) as durationMins,\n  feedsFetched,\n  feedErrors,\n  articlesIngested,\n  articlesExtracted,\n  projectsCreated,\n  contactsEnriched,\n  apolloCreditsUsed\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \nSELECT \n  id,\n  status,\n  startedAt,\n  completedAt,\n  ROUND(durationMs / 60000, 1) as durationMins,\n  feedsFetched,\n  feedErrors,\n  articlesIngested,\n  articlesExtracted,\n  projectsCreated,\n  contactsEnriched,\n  apolloCreditsUsed\nFROM pipelineRuns\nORDER BY startedAt DESC\nLIMIT 3;\n",
+  "rows": [
+    {
+      "id": "2130001",
+      "status": "completed",
+      "startedAt": "2026-06-18 20:00:12",
+      "completedAt": "2026-06-18 20:45:15",
+      "durationMins": "45.1",
+      "feedsFetched": "33",
+      "feedErrors": "10",
+      "articlesIngested": "146",
+      "articlesExtracted": "26",
+      "projectsCreated": "35",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "8"
+    },
+    {
+      "id": "2100001",
+      "status": "failed",
+      "startedAt": "2026-06-17 20:00:15",
+      "completedAt": "2026-06-18 00:42:35",
+      "durationMins": "NULL",
+      "feedsFetched": "37",
+      "feedErrors": "14",
+      "articlesIngested": "149",
+      "articlesExtracted": "23",
+      "projectsCreated": "23",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "20"
+    },
+    {
+      "id": "2070001",
+      "status": "completed",
+      "startedAt": "2026-06-16 20:00:11",
+      "completedAt": "2026-06-16 20:48:38",
+      "durationMins": "48.5",
+      "feedsFetched": "37",
+      "feedErrors": "14",
+      "articlesIngested": "159",
+      "articlesExtracted": "22",
+      "projectsCreated": "22",
+      "contactsEnriched": "0",
+      "apolloCreditsUsed": "16"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tstartedAt\tcompletedAt\tdurationMins\tfeedsFetched\tfeedErrors\tarticlesIngested\tarticlesExtracted\tprojectsCreated\tcontactsEnriched\tapolloCreditsUsed\n2130001\tcompleted\t2026-06-18 20:00:12\t2026-06-18 20:45:15\t45.1\t33\t10\t146\t26\t35\t0\t8\n2100001\tfailed\t2026-06-17 20:00:15\t2026-06-18 00:42:35\tNULL\t37\t14\t149\t23\t23\t0\t20\n2070001\tcompleted\t2026-06-16 20:00:11\t2026-06-16 20:48:38\t48.5\t37\t14\t159\t22\t22\t0\t16\n",
+  "stderr": "",
+  "execution_time_ms": 1762
+}

@@ -1,0 +1,8 @@
+{
+  "query": "\n-- How many active/hot/warm projects have NO cache entry at all (never enriched)?\nSELECT \n  p.digestSafe,\n  COUNT(*) as projectCount,\n  SUM(CASE WHEN pec.id IS NULL THEN 1 ELSE 0 END) as neverEnriched,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt <= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiredCache,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as freshCache\nFROM projects p\nLEFT JOIN projectEnrichmentCache pec ON pec.projectId = p.id\nWHERE p.isSuppressed = 0 AND p.isStale = 0\nGROUP BY p.digestSafe;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- How many active/hot/warm projects have NO cache entry at all (never enriched)?\nSELECT \n  p.digestSafe,\n  COUNT(*) as projectCount,\n  SUM(CASE WHEN pec.id IS NULL THEN 1 ELSE 0 END) as neverEnriched,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt <= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiredCache,\n  SUM(CASE WHEN pec.id IS NOT NULL AND pec.enrichedAt > DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as freshCache\nFROM projects p\nLEFT JOIN projectEnrichmentCache pec ON pec.projectId = p.id\nWHERE p.isSuppressed = 0 AND p.isStale = 0\nGROUP BY p.digestSafe;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 3: Unknown column 'p.digestsafe' in 'group statement'"
+  ]
+}

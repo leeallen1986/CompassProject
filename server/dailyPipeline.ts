@@ -1062,7 +1062,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   const apolloStep = startStep("Apollo Gap-Fill");
   console.log("[DailyPipeline] Step 12: Running selective Apollo gap-fill...");
   try {
-    const eligibility = await findEligibleProjects(10);
+    const eligibility = await findEligibleProjects(25); // Raised from 10→25 to work through hot-project backlog faster (Jul 2026)
     if (!eligibility.budgetStatus.withinBudget) {
       skipStep(apolloStep, `Budget exhausted — daily: ${eligibility.budgetStatus.dailyUsed}/${eligibility.budgetStatus.dailyCap}, monthly: ${eligibility.budgetStatus.monthlyUsed}/${eligibility.budgetStatus.monthlyCap}`);
       console.log(`[DailyPipeline] Apollo gap-fill skipped: budget exhausted`);

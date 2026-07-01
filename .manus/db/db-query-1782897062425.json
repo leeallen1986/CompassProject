@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Promote manual contacts with emails on hot/warm active projects to send_ready\nUPDATE contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nSET c.contactTrustTier = 'send_ready',\n    c.enrichmentStatus = 'enriched'\nWHERE c.enrichmentSource = 'manual'\n  AND c.contactTrustTier = 'named_unverified'\n  AND c.email IS NOT NULL AND c.email != ''\n  AND p.suppressed = false\n  AND p.lifecycleStatus IN ('active', 'awarded')\n  AND p.priority IN ('hot', 'warm');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user HWMKhVWm4R1gayY.38561a93bc5c --database 3SMu786VMCWdCnmNSx6pxw --execute \n-- Promote manual contacts with emails on hot/warm active projects to send_ready\nUPDATE contacts c\nINNER JOIN contactProjects cp ON cp.contactId = c.id\nINNER JOIN projects p ON p.id = cp.projectId\nSET c.contactTrustTier = 'send_ready',\n    c.enrichmentStatus = 'enriched'\nWHERE c.enrichmentSource = 'manual'\n  AND c.contactTrustTier = 'named_unverified'\n  AND c.email IS NOT NULL AND c.email != ''\n  AND p.suppressed = false\n  AND p.lifecycleStatus IN ('active', 'awarded')\n  AND p.priority IN ('hot', 'warm');\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1872
+}
