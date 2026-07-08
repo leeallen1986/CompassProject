@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import FullPotentialDetailDrawer from "@/components/FullPotentialDetailDrawer";
 
 const STATUS_LABELS: Record<string, string> = {
   active_target: "Active Target",
@@ -134,6 +135,7 @@ export default function FullPotential() {
   const [tier, setTier] = useState("");
   const [rowClass, setRowClass] = useState("");
   const [offset, setOffset] = useState(0);
+  const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
   const limit = 100;
 
   const queryInput = useMemo(() => ({
@@ -279,7 +281,7 @@ export default function FullPotential() {
             <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold text-navy">Account Universe</h2>
-                <p className="text-xs text-muted-foreground">Showing {accounts.length} of {total} records</p>
+                <p className="text-xs text-muted-foreground">Showing {accounts.length} of {total} records. Click a row to review the account logic.</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={!canPrevious} onClick={() => setOffset(Math.max(0, offset - limit))}>Previous</Button>
@@ -314,7 +316,11 @@ export default function FullPotential() {
                   </thead>
                   <tbody>
                     {accounts.map((account: any, index: number) => (
-                      <tr key={account.id} className={`border-t border-border ${index % 2 ? "bg-slate-50/60" : "bg-card"} hover:bg-gold/5 transition-colors`}>
+                      <tr
+                        key={account.id}
+                        className={`border-t border-border ${index % 2 ? "bg-slate-50/60" : "bg-card"} hover:bg-gold/5 transition-colors cursor-pointer`}
+                        onClick={() => setSelectedAccount(account)}
+                      >
                         <td className="px-4 py-3 min-w-[260px]">
                           <div className="font-semibold text-navy">{account.displayName || account.canonicalName}</div>
                           <div className="text-[11px] text-muted-foreground flex flex-wrap gap-1 mt-1">
@@ -373,6 +379,7 @@ export default function FullPotential() {
           </aside>
         </section>
       </main>
+      {selectedAccount && <FullPotentialDetailDrawer account={selectedAccount} onClose={() => setSelectedAccount(null)} />}
     </div>
   );
 }
