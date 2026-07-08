@@ -112,6 +112,24 @@ beforeAll(async () => {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
 
+  // ── Idempotency guard: clean up any stale fixtures from a previous run ──
+  // This can happen when a sandbox reset kills afterAll before it completes.
+  const staleAcct = await db
+    .select({ id: fullPotentialAccounts.id })
+    .from(fullPotentialAccounts)
+    .where(eq(fullPotentialAccounts.stableKey, TEST_STABLEKEY))
+    .limit(1);
+  if (staleAcct[0]) {
+    const staleId = staleAcct[0].id;
+    await db.delete(fullPotentialActions).where(eq(fullPotentialActions.accountId, staleId));
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.accountId, staleId));
+    await db.delete(fullPotentialSignals).where(
+      eq(fullPotentialSignals.signalTitle, `${TEST_PREFIX}Acme Mining expansion project`)
+    );
+    await db.delete(fullPotentialAccountAliases).where(eq(fullPotentialAccountAliases.accountId, staleId));
+    await db.delete(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, staleId));
+  }
+
   // Insert test account
   await db.insert(fullPotentialAccounts).values({
     stableKey: TEST_STABLEKEY,
@@ -464,6 +482,40 @@ describe("fullPotential.matchedSignalsForAccount project actionState (PR #35)", 
   beforeAll(async () => {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+
+    // ── Idempotency guard: clean up stale PR #35 fixtures from a previous run ──
+    const staleAcct35 = await db
+      .select({ id: fullPotentialAccounts.id })
+      .from(fullPotentialAccounts)
+      .where(eq(fullPotentialAccounts.stableKey, `${PR35_PREFIX}acme_mining|account|AU|WA|direct_ape`))
+      .limit(1);
+    if (staleAcct35[0]) {
+      const staleId35 = staleAcct35[0].id;
+      await db.delete(fullPotentialActions).where(eq(fullPotentialActions.accountId, staleId35));
+      // Delete projects whose key starts with PR35_PREFIX
+      const staleProjects = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.projectKey, `${PR35_PREFIX}acme-mining-expansion`));
+      // Broader cleanup: delete any project with owner matching PR35 account
+      const staleProjectsByOwner = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.owner, `${PR35_PREFIX}Acme Mining`));
+      const staleProjectIds = [...staleProjects, ...staleProjectsByOwner].map(r => r.id);
+      if (staleProjectIds.length > 0) {
+        await db.delete(projects).where(inArray(projects.id, staleProjectIds));
+      }
+      await db.delete(fullPotentialAccountAliases).where(eq(fullPotentialAccountAliases.accountId, staleId35));
+      await db.delete(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, staleId35));
+    }
+    // Also clean up stale signals inserted by the both-actions and dueDate tests
+    await db.delete(fullPotentialSignals).where(
+      eq(fullPotentialSignals.signalTitle, `${TEST_PREFIX}Both-actions signal`)
+    );
+    await db.delete(fullPotentialSignals).where(
+      eq(fullPotentialSignals.signalTitle, `${TEST_PREFIX}DueDate signal`)
+    );
 
     // Insert a dedicated account whose displayName matches the project owner
     await db.insert(fullPotentialAccounts).values({
