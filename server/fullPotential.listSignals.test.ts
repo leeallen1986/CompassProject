@@ -39,7 +39,7 @@ import {
   fullPotentialActions,
   fullPotentialAccountAliases,
 } from "../drizzle/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import type { User } from "../drizzle/schema";
 
 // ── Caller context ────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ beforeAll(async () => {
   const staleAccounts = await db
     .select({ id: fullPotentialAccounts.id })
     .from(fullPotentialAccounts)
-    .where(sql`${fullPotentialAccounts.stableKey} IN (${staleKeys.join(", ")})`);
+    .where(inArray(fullPotentialAccounts.stableKey, staleKeys));
 
   for (const acct of staleAccounts) {
     await db.delete(fullPotentialActions).where(eq(fullPotentialActions.accountId, acct.id));
