@@ -769,6 +769,9 @@ export default function ThisWeek() {
           <Link href="/account-attack" className="px-3 py-1.5 rounded-md text-sm font-medium text-gold hover:text-gold-light hover:bg-white/5 transition-colors">
             Account Attack
           </Link>
+          <Link href="/full-potential" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
+            Full Potential
+          </Link>
           <Link href="/account-priors" className="px-3 py-1.5 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
             WA Targets
           </Link>
@@ -819,6 +822,9 @@ export default function ThisWeek() {
                 </Link>
                 <Link href="/account-attack" className="flex items-center gap-2 px-4 py-2 text-sm text-gold hover:text-gold-light hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <Crosshair className="w-4 h-4" /> Account Attack
+                </Link>
+                <Link href="/full-potential" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
+                  <Database className="w-4 h-4" /> Full Potential
                 </Link>
                 <Link href="/account-priors" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10" onClick={() => setShowNavMenu(false)}>
                   <Target className="w-4 h-4" /> WA Targets
