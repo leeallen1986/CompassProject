@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or, and, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -9,6 +9,8 @@ import {
   fullPotentialAccountAliases,
   fullPotentialActions,
   fullPotentialImports,
+  fullPotentialSignals,
+  projects,
 } from "../../drizzle/schema";
 
 const PREFERRED_SHEETS = ["Platform Import v2.4", "Platform Import", "Canonical Universe v2.4"];
@@ -961,6 +963,224 @@ export const fullPotentialRouter = router({
     const [updated] = await db.select().from(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, input.accountId)).limit(1);
     return updated ? toClientAccount(updated) : { success: true };
   }),
+
+  matchedSignalsForAccount: protectedProcedure
+    .input(z.object({ accountId: z.number().int().positive() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // ── 1. Load account + aliases ──────────────────────────────────────────
+      const [account] = await db
+        .select()
+        .from(fullPotentialAccounts)
+        .where(eq(fullPotentialAccounts.id, input.accountId))
+        .limit(1);
+      if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+
+      const aliasRows = await db
+        .select({ aliasName: fullPotentialAccountAliases.aliasName })
+        .from(fullPotentialAccountAliases)
+        .where(eq(fullPotentialAccountAliases.accountId, input.accountId));
+
+      // ── 2. Build normalised match terms ────────────────────────────────────
+      // Strip common corporate suffixes before comparing to reduce false positives.
+      const SUFFIX_STRIP = /\b(pty\s+ltd|pty|ltd|limited|group|australia|aust|holdings|holding|inc|corp|corporation|co)\b/gi;
+      function normName(raw: unknown): string {
+        return normalizeToken(raw).replace(SUFFIX_STRIP, "").replace(/\s+/g, " ").trim();
+      }
+
+      const primaryTerms = [
+        account.canonicalName,
+        account.displayName,
+        account.parentGroup,
+      ]
+        .filter((v): v is string => !!v && v.length > 2)
+        .map(normName)
+        .filter(Boolean);
+
+      const aliasTerms = aliasRows
+        .map(r => normName(r.aliasName))
+        .filter(Boolean);
+
+      const allTerms = Array.from(new Set([...primaryTerms, ...aliasTerms])).filter(t => t.length >= 3);
+      if (allTerms.length === 0) return { account: { id: account.id, canonicalName: account.canonicalName }, matches: [] };
+
+      // ── 3. Confidence scoring helpers ─────────────────────────────────────
+      type Confidence = "high" | "medium" | "low";
+
+      function scoreMatch(
+        targetNorm: string,
+        accountState: string | null | undefined,
+        signalState: string | null | undefined,
+      ): { confidence: Confidence; matchReason: string } | null {
+        if (!targetNorm) return null;
+        // High: exact normalised match against a primary or alias term
+        if (primaryTerms.some(t => t === targetNorm) || aliasTerms.some(t => t === targetNorm)) {
+          return { confidence: "high", matchReason: "Exact name match" };
+        }
+        // Medium: contained match + same state
+        const stateMatch = accountState && signalState &&
+          normalizeToken(accountState) === normalizeToken(signalState);
+        const containedByPrimary = primaryTerms.some(t => t.includes(targetNorm) || targetNorm.includes(t));
+        const containedByAlias = aliasTerms.some(t => t.includes(targetNorm) || targetNorm.includes(t));
+        if ((containedByPrimary || containedByAlias) && stateMatch) {
+          return { confidence: "medium", matchReason: "Name contained + same state" };
+        }
+        // Low: weak contained match only
+        if (containedByPrimary || containedByAlias) {
+          return { confidence: "low", matchReason: "Partial name match" };
+        }
+        return null;
+      }
+
+      type MatchedSignal = {
+        sourceType: string;
+        sourceId: number;
+        title: string;
+        summary: string | null;
+        sourceName: string | null;
+        sourceUrl: string | null;
+        signalDate: string | null;
+        state: string | null;
+        confidence: Confidence;
+        matchReason: string;
+        suggestedAction: string | null;
+      };
+
+      const matches: MatchedSignal[] = [];
+
+      // ── 4a. Direct fullPotentialSignals (accountId already linked) ─────────
+      const directSignals = await db
+        .select()
+        .from(fullPotentialSignals)
+        .where(eq(fullPotentialSignals.accountId, input.accountId))
+        .orderBy(desc(fullPotentialSignals.signalDate));
+
+      for (const sig of directSignals) {
+        const conf = (sig.confidenceLevel === "high" || sig.confidenceLevel === "medium" || sig.confidenceLevel === "low")
+          ? (sig.confidenceLevel as Confidence)
+          : "medium";
+        matches.push({
+          sourceType: "fp_signal",
+          sourceId: sig.id,
+          title: sig.signalTitle,
+          summary: sig.signalSummary ?? null,
+          sourceName: sig.sourceName ?? null,
+          sourceUrl: sig.sourceUrl ?? null,
+          signalDate: sig.signalDate ? new Date(sig.signalDate).toISOString() : null,
+          state: sig.state ?? null,
+          confidence: conf,
+          matchReason: "Directly linked signal",
+          suggestedAction: sig.suggestedAction ?? null,
+        });
+      }
+
+      // ── 4b. Name-matched fullPotentialSignals (unlinked) ──────────────────
+      const unlinkedSignals = await db
+        .select()
+        .from(fullPotentialSignals)
+        .where(
+          and(
+            or(eq(fullPotentialSignals.accountId, -1), sql`${fullPotentialSignals.accountId} IS NULL`),
+            or(
+              ...allTerms.map(t =>
+                sql`LOWER(${fullPotentialSignals.signalTitle}) LIKE ${`%${t}%`}`
+              )
+            )
+          )
+        )
+        .orderBy(desc(fullPotentialSignals.signalDate))
+        .limit(50);
+
+      for (const sig of unlinkedSignals) {
+        const titleNorm = normName(sig.signalTitle);
+        const scored = scoreMatch(titleNorm, account.state, sig.state);
+        if (!scored) continue;
+        matches.push({
+          sourceType: "fp_signal",
+          sourceId: sig.id,
+          title: sig.signalTitle,
+          summary: sig.signalSummary ?? null,
+          sourceName: sig.sourceName ?? null,
+          sourceUrl: sig.sourceUrl ?? null,
+          signalDate: sig.signalDate ? new Date(sig.signalDate).toISOString() : null,
+          state: sig.state ?? null,
+          confidence: scored.confidence,
+          matchReason: scored.matchReason,
+          suggestedAction: sig.suggestedAction ?? null,
+        });
+      }
+
+      // ── 4c. Name-matched projects (cross-reference) ────────────────────────
+      const matchedProjects = await db
+        .select()
+        .from(projects)
+        .where(
+          and(
+            sql`${projects.suppressed} = 0`,
+            or(
+              ...allTerms.map(t =>
+                sql`LOWER(${projects.owner}) LIKE ${`%${t}%`}`
+              )
+            )
+          )
+        )
+        .orderBy(desc(projects.lastActivityAt))
+        .limit(50);
+
+      for (const proj of matchedProjects) {
+        const ownerNorm = normName(proj.owner);
+        const scored = scoreMatch(ownerNorm, account.state, proj.projectState);
+        if (!scored) continue;
+        // Derive a source URL from the first source entry if available
+        const firstSource = Array.isArray(proj.sources) && proj.sources.length > 0 ? proj.sources[0] : null;
+        const sourceUrl = firstSource ? (firstSource as any).url ?? null : null;
+        const sourceName = firstSource ? (firstSource as any).label ?? null : null;
+        const signalDate = proj.lastActivityAt ? new Date(proj.lastActivityAt).toISOString() : null;
+        matches.push({
+          sourceType: "project",
+          sourceId: proj.id,
+          title: proj.name,
+          summary: proj.overview ?? null,
+          sourceName,
+          sourceUrl,
+          signalDate,
+          state: proj.projectState ?? null,
+          confidence: scored.confidence,
+          matchReason: `${scored.matchReason} (project owner: ${proj.owner})`,
+          suggestedAction: null,
+        });
+      }
+
+      // ── 5. De-duplicate, sort, cap ─────────────────────────────────────────
+      const seen = new Set<string>();
+      const deduped = matches.filter(m => {
+        const key = `${m.sourceType}:${m.sourceId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const CONF_ORDER: Record<Confidence, number> = { high: 0, medium: 1, low: 2 };
+      deduped.sort((a, b) => {
+        const cDiff = CONF_ORDER[a.confidence] - CONF_ORDER[b.confidence];
+        if (cDiff !== 0) return cDiff;
+        const aDate = a.signalDate ? new Date(a.signalDate).getTime() : 0;
+        const bDate = b.signalDate ? new Date(b.signalDate).getTime() : 0;
+        return bDate - aDate;
+      });
+
+      return {
+        account: {
+          id: account.id,
+          canonicalName: account.canonicalName,
+          displayName: account.displayName,
+          state: account.state,
+        },
+        matches: deduped.slice(0, 10),
+      };
+    }),
 
   myWeekActions: protectedProcedure.query(async () => {
     const db = await getDb();
