@@ -178,7 +178,7 @@ export default function FullPotentialMyWeekDock() {
   if (!isAuthenticated) return null;
 
   const isAdmin = user?.role === "admin";
-  const canSeeTeam = isAdmin || user?.role === "manager";
+  const canSeeTeam = isAdmin; // schema roles: user | admin | distributor — no manager role
   const effectiveScope: ScopeMode = scope === "all" && !isAdmin ? "mine" : scope === "team" && !canSeeTeam ? "mine" : scope;
   const scopeOptions = BASE_SCOPE_OPTIONS.filter(option => {
     if (option.value === "mine") return true;
