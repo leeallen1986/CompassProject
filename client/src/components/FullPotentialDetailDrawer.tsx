@@ -459,14 +459,14 @@ function SignalConfidenceBadge({ level }: { level: "high" | "medium" | "low" }) 
   );
 }
 
-const ACTION_TYPE_OPTIONS = [
+// c4c_create_update is excluded from this flow — signal promotion is not a C4C workflow
+const PROMOTE_ACTION_TYPE_OPTIONS = [
   { value: "account_review", label: "Account Review" },
   { value: "contact_discovery", label: "Contact Discovery" },
   { value: "customer_call", label: "Customer Call" },
   { value: "site_visit", label: "Site Visit" },
   { value: "channel_handover", label: "Channel Handover" },
   { value: "installed_base_validation", label: "Installed Base Validation" },
-  { value: "c4c_create_update", label: "C4C Create/Update" },
   { value: "proposal_followup", label: "Proposal Follow-up" },
   { value: "manager_review", label: "Manager Review" },
   { value: "other", label: "Other" },
@@ -476,26 +476,31 @@ function PromoteSignalForm({
   accountId,
   sourceType,
   sourceId,
+  defaultRecommendedAction,
   onSuccess,
   onCancel,
 }: {
   accountId: number;
   sourceType: "fp_signal" | "project";
   sourceId: number;
+  defaultRecommendedAction: string;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
   const [actionType, setActionType] = useState("account_review");
+  const [recommendedAction, setRecommendedAction] = useState(defaultRecommendedAction);
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const utils = trpc.useUtils();
 
   const promote = trpc.fullPotential.promoteMatchedSignalToAction.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Action created from signal");
-      utils.fullPotential.actionsForAccount.invalidate({ accountId });
-      utils.fullPotential.myWeekActions.invalidate();
-      utils.fullPotential.matchedSignalsForAccount.invalidate({ accountId });
+      await Promise.all([
+        utils.fullPotential.actionsForAccount.invalidate({ accountId }),
+        utils.fullPotential.myWeekActions.invalidate(),
+        utils.fullPotential.matchedSignalsForAccount.invalidate({ accountId }),
+      ]);
       onSuccess();
     },
     onError: (err: unknown) => {
@@ -508,13 +513,24 @@ function PromoteSignalForm({
     <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
       <div className="text-xs font-semibold text-blue-800 mb-1">Create action from this signal</div>
       <div>
+        <label className="block text-[10px] font-medium text-muted-foreground mb-1">Recommended action</label>
+        <input
+          type="text"
+          value={recommendedAction}
+          onChange={e => setRecommendedAction(e.target.value)}
+          maxLength={512}
+          placeholder="Describe the action..."
+          className="w-full rounded border border-border bg-background text-xs px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
+      </div>
+      <div>
         <label className="block text-[10px] font-medium text-muted-foreground mb-1">Action type</label>
         <select
           value={actionType}
           onChange={e => setActionType(e.target.value)}
           className="w-full rounded border border-border bg-background text-xs px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
         >
-          {ACTION_TYPE_OPTIONS.map(opt => (
+          {PROMOTE_ACTION_TYPE_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -543,7 +559,15 @@ function PromoteSignalForm({
           size="sm"
           className="text-xs h-7 px-3"
           disabled={promote.isPending}
-          onClick={() => promote.mutate({ accountId, sourceType, sourceId, actionType: actionType as any, dueDate: dueDate || undefined, notes: notes || undefined })}
+          onClick={() => promote.mutate({
+            accountId,
+            sourceType,
+            sourceId,
+            actionType: actionType as any,
+            recommendedAction: recommendedAction.trim() || undefined,
+            dueDate: dueDate || undefined,
+            notes: notes || undefined,
+          })}
         >
           {promote.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
           Create action
@@ -558,6 +582,9 @@ function PromoteSignalForm({
 
 function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match: any; idx: number }) {
   const [showForm, setShowForm] = useState(false);
+  const defaultRecommendedAction =
+    match.suggestedAction ||
+    `Follow up matched signal: ${match.title}`;
   return (
     <div key={`${match.sourceType}-${match.sourceId}-${idx}`} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
       <div className="flex items-start justify-between gap-2">
@@ -606,6 +633,7 @@ function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match
           accountId={accountId}
           sourceType={match.sourceType}
           sourceId={match.sourceId}
+          defaultRecommendedAction={defaultRecommendedAction}
           onSuccess={() => setShowForm(false)}
           onCancel={() => setShowForm(false)}
         />

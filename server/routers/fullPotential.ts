@@ -1185,8 +1185,10 @@ export const fullPotentialRouter = router({
   /**
    * Promote a matched signal or project cross-reference into a Full Potential action.
    * Creates a fullPotentialAction with signalId or projectId set.
-   * Duplicate guard: throws BAD_REQUEST if an open action already exists for the
-   * same account+signal or account+project combination.
+   *
+   * Guards:
+   * - Source must be genuinely matched to the account (direct link OR name/state match).
+   * - Duplicate open action blocks; closed duplicate does not block.
    */
   promoteMatchedSignalToAction: protectedProcedure
     .input(z.object({
@@ -1194,25 +1196,59 @@ export const fullPotentialRouter = router({
       sourceType: z.enum(["fp_signal", "project"]),
       sourceId: z.number().int().positive(),
       actionType: z.enum(actionTypeValues).optional().default("account_review"),
-      dueDate: z.string().optional(),
-      notes: z.string().max(4000).optional(),
+      recommendedAction: z.string().max(512).optional(),
+      dueDate: z.string().optional().nullable(),
+      notes: z.string().max(4000).optional().nullable(),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
-      // ── 1. Validate account ────────────────────────────────────────────────
+      // ── 1. Load account + aliases (needed for match validation) ────────────
       const [account] = await db
-        .select({ id: fullPotentialAccounts.id, canonicalName: fullPotentialAccounts.canonicalName })
+        .select()
         .from(fullPotentialAccounts)
         .where(eq(fullPotentialAccounts.id, input.accountId))
         .limit(1);
       if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Full Potential account not found" });
 
-      // ── 2. Validate source and build notes ─────────────────────────────────
+      const aliasRows = await db
+        .select({ aliasName: fullPotentialAccountAliases.aliasName })
+        .from(fullPotentialAccountAliases)
+        .where(eq(fullPotentialAccountAliases.accountId, input.accountId));
+
+      // ── 2. Shared name-matching helpers (mirrors matchedSignalsForAccount) ──
+      const SUFFIX_STRIP_PROMOTE = /\b(pty\s+ltd|pty|ltd|limited|group|australia|aust|holdings|holding|inc|corp|corporation|co)\b/gi;
+      function normNamePromote(raw: unknown): string {
+        return normalizeToken(raw).replace(SUFFIX_STRIP_PROMOTE, "").replace(/\s+/g, " ").trim();
+      }
+      const primaryTerms = [
+        account.canonicalName,
+        account.displayName,
+        account.parentGroup,
+      ]
+        .filter((v): v is string => !!v && v.length > 2)
+        .map(normNamePromote)
+        .filter(Boolean);
+      const aliasTerms = aliasRows.map(r => normNamePromote(r.aliasName)).filter(Boolean);
+      const allTerms = Array.from(new Set([...primaryTerms, ...aliasTerms])).filter(t => t.length >= 3);
+
+      function isNameMatched(targetNorm: string, targetState: string | null | undefined): boolean {
+        if (!targetNorm) return false;
+        const exact = primaryTerms.some(t => t === targetNorm) || aliasTerms.some(t => t === targetNorm);
+        if (exact) return true;
+        const stateMatch = account.state && targetState &&
+          normalizeToken(account.state) === normalizeToken(targetState);
+        const contained = primaryTerms.some(t => t.includes(targetNorm) || targetNorm.includes(t)) ||
+          aliasTerms.some(t => t.includes(targetNorm) || targetNorm.includes(t));
+        return contained && !!stateMatch;
+      }
+
+      // ── 3. Validate source and build notes ─────────────────────────────────
       let signalId: number | null = null;
       let projectId: number | null = null;
       let autoNotes = "";
+      let derivedRecommendedAction = "";
 
       if (input.sourceType === "fp_signal") {
         const [sig] = await db
@@ -1221,30 +1257,68 @@ export const fullPotentialRouter = router({
           .where(eq(fullPotentialSignals.id, input.sourceId))
           .limit(1);
         if (!sig) throw new TRPCError({ code: "NOT_FOUND", message: "Signal not found" });
+
+        // Source-match guard: must be directly linked OR name/state matched
+        const directlyLinked = sig.accountId === input.accountId;
+        const unlinked = sig.accountId === null || sig.accountId === undefined;
+        if (!directlyLinked) {
+          if (!unlinked) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Matched signal is not associated with this account." });
+          }
+          // Unlinked: must pass name/state matching
+          const titleNorm = normNamePromote(sig.signalTitle);
+          if (allTerms.length === 0 || !isNameMatched(titleNorm, sig.state)) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Matched signal is not associated with this account." });
+          }
+        }
+
         signalId = sig.id;
+        derivedRecommendedAction =
+          input.recommendedAction ||
+          sig.suggestedAction ||
+          `Follow up matched signal: ${sig.signalTitle}`;
+
         autoNotes = [
+          `Created from matched signal`,
           `Signal: ${sig.signalTitle}`,
           sig.confidenceLevel ? `Confidence: ${sig.confidenceLevel}` : null,
           sig.sourceName ? `Source: ${sig.sourceName}` : null,
+          sig.sourceUrl ? `URL: ${sig.sourceUrl}` : null,
           sig.suggestedAction ? `Suggested: ${sig.suggestedAction}` : null,
           sig.signalSummary ? `\n${sig.signalSummary}` : null,
         ].filter(Boolean).join(" | ");
       } else {
         const [proj] = await db
-          .select({ id: projects.id, name: projects.name, overview: projects.overview, projectState: projects.projectState })
+          .select()
           .from(projects)
           .where(eq(projects.id, input.sourceId))
           .limit(1);
         if (!proj) throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+
+        // Source-match guard: project owner must pass name/state matching
+        const ownerNorm = normNamePromote(proj.owner);
+        if (allTerms.length === 0 || !isNameMatched(ownerNorm, proj.projectState)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Matched signal is not associated with this account." });
+        }
+
         projectId = proj.id;
+        derivedRecommendedAction =
+          input.recommendedAction ||
+          `Review matched project signal: ${proj.name}`;
+
+        const firstSource = Array.isArray(proj.sources) && proj.sources.length > 0 ? proj.sources[0] : null;
+        const sourceUrl = firstSource ? (firstSource as any).url ?? null : null;
         autoNotes = [
+          `Created from matched project signal`,
           `Project: ${proj.name}`,
+          proj.owner ? `Owner: ${proj.owner}` : null,
           proj.projectState ? `State: ${proj.projectState}` : null,
+          sourceUrl ? `URL: ${sourceUrl}` : null,
           proj.overview ? `\n${proj.overview}` : null,
         ].filter(Boolean).join(" | ");
       }
 
-      // ── 3. Duplicate guard ─────────────────────────────────────────────────
+      // ── 4. Duplicate guard (open only — closed does not block) ─────────────
       const existingActions = await db
         .select({ id: fullPotentialActions.id, status: fullPotentialActions.status, signalId: fullPotentialActions.signalId, projectId: fullPotentialActions.projectId })
         .from(fullPotentialActions)
@@ -1263,9 +1337,9 @@ export const fullPotentialRouter = router({
         });
       }
 
-      // ── 4. Create action ───────────────────────────────────────────────────
+      // ── 5. Create action ───────────────────────────────────────────────────
       const ownerName = ctx.user.name || ctx.user.email || String(ctx.user.id);
-      const dueDate = parseOptionalDate(input.dueDate);
+      const dueDate = parseOptionalDate(input.dueDate ?? undefined);
       const combinedNotes = [autoNotes, input.notes].filter(Boolean).join("\n\n");
 
       await db.insert(fullPotentialActions).values({
@@ -1273,7 +1347,7 @@ export const fullPotentialRouter = router({
         userId: ctx.user.id,
         ownerName,
         actionType: input.actionType,
-        recommendedAction: `Follow up on matched signal: ${account.canonicalName}`,
+        recommendedAction: derivedRecommendedAction,
         dueDate,
         status: "not_started",
         notes: combinedNotes || null,
@@ -1281,10 +1355,15 @@ export const fullPotentialRouter = router({
         projectId: projectId ?? undefined,
       } as any);
 
+      // Deterministic fetch: match by accountId + signalId/projectId, newest first
+      const whereClause = signalId !== null
+        ? and(eq(fullPotentialActions.accountId, input.accountId), eq(fullPotentialActions.signalId, signalId))
+        : and(eq(fullPotentialActions.accountId, input.accountId), eq(fullPotentialActions.projectId, projectId!));
+
       const [created] = await db
         .select()
         .from(fullPotentialActions)
-        .where(eq(fullPotentialActions.accountId, input.accountId))
+        .where(whereClause)
         .orderBy(desc(fullPotentialActions.createdAt))
         .limit(1);
       return created ? toClientAction(created) : { success: true };
