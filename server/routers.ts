@@ -273,6 +273,31 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return updateUserCampaignAccess(input.userId, input.campaignAccess);
       }),
+
+    /**
+     * Admin: pre-seed or override a user's profile fields.
+     * Useful for scoping a new rep to specific territories and business lines
+     * before or after they complete onboarding (e.g. WA + Pump (Flow)).
+     * Does NOT mark onboardingCompleted — the user still goes through the wizard
+     * and can adjust settings, but the pre-seeded values will be their defaults.
+     */
+    setUserProfile: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        territories: z.array(z.string()).optional(),
+        assignedBusinessLines: z.array(z.string()).optional(),
+        industries: z.array(z.string()).optional(),
+        offerCategories: z.array(z.string()).optional(),
+        customerTypes: z.array(z.string()).optional(),
+        sectorFocus: z.array(z.string()).optional(),
+        salesMotion: z.enum(["direct_only", "mixed"]).optional(),
+        onboardingCompleted: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { userId, ...profileFields } = input;
+        await upsertProfile(userId, profileFields);
+        return { success: true };
+      }),
   }),
 
   // ── User Profile / Onboarding endpoints ──
