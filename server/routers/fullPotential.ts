@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { desc, eq, or, and, sql, inArray } from "drizzle-orm";
+import { desc, eq, or, and, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -1003,7 +1003,7 @@ export const fullPotentialRouter = router({
         .map(r => normName(r.aliasName))
         .filter(Boolean);
 
-      const allTerms = Array.from(new Set([...primaryTerms, ...aliasTerms]));
+      const allTerms = Array.from(new Set([...primaryTerms, ...aliasTerms])).filter(t => t.length >= 3);
       if (allTerms.length === 0) return { account: { id: account.id, canonicalName: account.canonicalName }, matches: [] };
 
       // ── 3. Confidence scoring helpers ─────────────────────────────────────
