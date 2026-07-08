@@ -587,19 +587,25 @@ function PromoteSignalForm({
   );
 }
 
-function ActionStateBadge({ actionState }: { actionState?: { hasOpenAction: boolean; hasClosedAction: boolean; openActionStatus?: string; closedActionStatus?: string } }) {
+function ActionStateBadge({ actionState }: { actionState?: { hasOpenAction: boolean; hasClosedAction: boolean; openActionStatus?: string; openActionDueDate?: string | null; closedActionStatus?: string; closedActionCompletedAt?: string | null } }) {
   if (!actionState) return null;
   if (actionState.hasOpenAction) {
+    const duePart = actionState.openActionDueDate
+      ? ` · Due ${formatDate(actionState.openActionDueDate)}`
+      : "";
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-        Open action · {actionState.openActionStatus?.replace(/_/g, " ") ?? "in progress"}
+        Open action · {actionState.openActionStatus?.replace(/_/g, " ") ?? "in progress"}{duePart}
       </span>
     );
   }
   if (actionState.hasClosedAction) {
+    const completedPart = actionState.closedActionCompletedAt
+      ? ` · ${formatDate(actionState.closedActionCompletedAt)}`
+      : "";
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-        Closed · {actionState.closedActionStatus?.replace(/_/g, " ") ?? "done"}
+        Previously actioned · {actionState.closedActionStatus?.replace(/_/g, " ") ?? "done"}{completedPart}
       </span>
     );
   }
@@ -608,7 +614,7 @@ function ActionStateBadge({ actionState }: { actionState?: { hasOpenAction: bool
 
 function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match: any; idx: number }) {
   const [showForm, setShowForm] = useState(false);
-  const actionState = match.actionState as { hasOpenAction: boolean; hasClosedAction: boolean; openActionStatus?: string; closedActionStatus?: string } | undefined;
+  const actionState = match.actionState as { hasOpenAction: boolean; hasClosedAction: boolean; openActionStatus?: string; openActionDueDate?: string | null; closedActionStatus?: string; closedActionCompletedAt?: string | null } | undefined;
   const hasOpenAction = actionState?.hasOpenAction ?? false;
   const hasClosedAction = actionState?.hasClosedAction ?? false;
   const defaultRecommendedAction =
@@ -637,10 +643,13 @@ function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match
       {match.suggestedAction && (
         <p className="text-xs text-navy/80 font-medium">Suggested: {match.suggestedAction}</p>
       )}
-      {/* Action state badge */}
+      {/* Action state badge + explanatory text */}
       {(hasOpenAction || hasClosedAction) && (
-        <div className="pt-0.5">
+        <div className="pt-0.5 space-y-1">
           <ActionStateBadge actionState={actionState} />
+          {hasOpenAction && (
+            <p className="text-[10px] text-amber-700/80 italic">Open action already exists for this signal.</p>
+          )}
         </div>
       )}
       <div className="flex items-center gap-2 flex-wrap">
