@@ -16,11 +16,13 @@ import {
   Upload,
   Users,
   WalletCards,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import FullPotentialDetailDrawer from "@/components/FullPotentialDetailDrawer";
 import FullPotentialImportModal from "@/components/FullPotentialImportModal";
+import FullPotentialSignalImportModal from "@/components/FullPotentialSignalImportModal";
 
 const STATUS_LABELS: Record<string, string> = {
   active_target: "Active Target",
@@ -313,6 +315,7 @@ export default function FullPotential() {
   const [offset, setOffset] = useState(0);
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showSignalImportModal, setShowSignalImportModal] = useState(false);
   const limit = 100;
 
   const queryInput = useMemo(() => ({
@@ -413,6 +416,15 @@ export default function FullPotential() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              disabled={!isAdmin}
+              onClick={() => setShowSignalImportModal(true)}
+              variant="outline"
+              className="border-gold/60 text-gold bg-transparent hover:bg-gold/10 disabled:opacity-60"
+              title={isAdmin ? "Import Portable Air signals" : "Admin only"}
+            >
+              <Zap className="w-4 h-4 mr-2" /> Import Signals
+            </Button>
             <Button
               disabled={!isAdmin}
               onClick={() => setShowImportModal(true)}
@@ -592,6 +604,12 @@ export default function FullPotential() {
       </main>
       {selectedAccount && <FullPotentialDetailDrawer account={selectedAccount} onClose={() => setSelectedAccount(null)} />}
       {showImportModal && <FullPotentialImportModal open={showImportModal} onClose={() => setShowImportModal(false)} />}
+      {showSignalImportModal && (
+        <FullPotentialSignalImportModal
+          open={showSignalImportModal}
+          onClose={() => setShowSignalImportModal(false)}
+        />
+      )}
     </div>
   );
 }
