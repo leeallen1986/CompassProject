@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Building2, Calendar, CheckCircle2, Database, FileText, Layers, Loader2, Plus, Shield, Users, WalletCards, X } from "lucide-react";
+import { AlertCircle, Building2, Calendar, CheckCircle2, Database, ExternalLink, FileText, HelpCircle, Layers, Loader2, Plus, Shield, TrendingUp, Users, WalletCards, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -439,6 +439,92 @@ function AccountActionsSection({ accountId }: { accountId: number }) {
   );
 }
 
+// ── Matched signals (read-only) ─────────────────────────────────────────────
+
+function SignalConfidenceBadge({ level }: { level: "high" | "medium" | "low" }) {
+  const styles = {
+    high: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    medium: "bg-amber-50 text-amber-700 border-amber-200",
+    low: "bg-red-50 text-red-700 border-red-200",
+  };
+  const icons = {
+    high: <CheckCircle2 className="w-2.5 h-2.5" />,
+    medium: <HelpCircle className="w-2.5 h-2.5" />,
+    low: <AlertCircle className="w-2.5 h-2.5" />,
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${styles[level]}`}>
+      {icons[level]} {level.charAt(0).toUpperCase() + level.slice(1)}
+    </span>
+  );
+}
+
+function MatchedSignalsSection({ accountId }: { accountId: number }) {
+  const { data, isLoading, isError } = trpc.fullPotential.matchedSignalsForAccount.useQuery(
+    { accountId },
+    { staleTime: 60_000 }
+  );
+
+  return (
+    <DetailSection title="Matched signals" icon={<TrendingUp className="w-3.5 h-3.5" />}>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading signals...
+        </div>
+      ) : isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          Could not load matched signals.
+        </div>
+      ) : !data || data.matches.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
+          No matched signals found for this account.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {data.matches.map((match: any, idx: number) => (
+            <div key={`${match.sourceType}-${match.sourceId}-${idx}`} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-semibold text-navy text-sm leading-snug">{match.title}</div>
+                <SignalConfidenceBadge level={match.confidence} />
+              </div>
+              {match.summary && (
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{match.summary}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                {match.state && <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{match.state}</span>}
+                {match.signalDate && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(match.signalDate).toLocaleDateString()}
+                  </span>
+                )}
+                {match.sourceName && <span className="text-muted-foreground">{match.sourceName}</span>}
+                <span className="text-muted-foreground italic">{match.matchReason}</span>
+              </div>
+              {match.suggestedAction && (
+                <p className="text-xs text-navy/80 font-medium">Suggested: {match.suggestedAction}</p>
+              )}
+              {match.sourceUrl && (
+                <a
+                  href={match.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] text-teal hover:underline"
+                >
+                  <ExternalLink className="w-3 h-3" /> View source
+                </a>
+              )}
+            </div>
+          ))}
+          <p className="text-[10px] text-muted-foreground italic">
+            Showing up to 10 highest-confidence matches. Signals are matched by account name, aliases, and state.
+          </p>
+        </div>
+      )}
+    </DetailSection>
+  );
+}
+
 // ── Apply approved account update (admin-only) ───────────────────────────────
 
 type ApplyState = {
@@ -669,6 +755,7 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
             <DetailItem label="Next action" value={account.nextAction || "—"} />
           </DetailSection>
 
+          <MatchedSignalsSection accountId={account.id} />
           <AccountUpdateRequestSection account={account} />
           <AccountApplySection account={account} />
           <AccountActionsSection accountId={account.id} />
