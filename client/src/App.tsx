@@ -21,6 +21,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import ContactValidation from "./pages/ContactValidation";
 import WaterfallHealth from "./pages/WaterfallHealth";
 import AccountPriors from "./pages/AccountPriors";
+import FullPotential from "./pages/FullPotential";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -43,6 +44,7 @@ function Router() {
       <Route path={"/account-attack"} component={AccountAttack} />
       <Route path={"/contact-validation"} component={ContactValidation} />
       <Route path={"/account-priors"} component={AccountPriors} />
+      <Route path={"/full-potential"} component={FullPotential} />
       <Route path={"/admin/waterfall"} component={WaterfallHealth} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
