@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Building2, Calendar, CheckCircle2, Clock, Database, FileText, Layers, Loader2, Plus, Shield, Users, WalletCards, X } from "lucide-react";
+import { Building2, Calendar, CheckCircle2, Database, FileText, Layers, Loader2, Plus, Shield, Users, WalletCards, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,34 @@ const ACTION_STATUS_LABELS: Record<string, string> = {
 
 const QUICK_STATUSES = ["in_progress", "contacted", "meeting_booked", "completed", "deferred", "not_relevant"] as const;
 
+type UpdateRequestState = {
+  ownerName: string;
+  channelOwner: string;
+  fpStatus: string;
+  priorityTier: string;
+  platformPushDecision: string;
+  installedBaseStatus: string;
+  installedBaseNotes: string;
+  currentSupplier: string;
+  nextAction: string;
+  nextActionDate: string;
+  notes: string;
+};
+
+const EMPTY_UPDATE_REQUEST: UpdateRequestState = {
+  ownerName: "",
+  channelOwner: "",
+  fpStatus: "",
+  priorityTier: "",
+  platformPushDecision: "",
+  installedBaseStatus: "",
+  installedBaseNotes: "",
+  currentSupplier: "",
+  nextAction: "",
+  nextActionDate: "",
+  notes: "",
+};
+
 function formatCurrency(value?: number | null) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount) || amount === 0) return "—";
@@ -153,6 +181,146 @@ function DetailSection({ title, icon, children }: { title: string; icon: ReactNo
       </div>
       {children}
     </section>
+  );
+}
+
+function FieldInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">{label}</label>
+      <input
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+      />
+    </div>
+  );
+}
+
+function FieldSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: Record<string, string> }) {
+  return (
+    <div>
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+      >
+        <option value="">No change</option>
+        {Object.entries(options).map(([optionValue, labelText]) => <option key={optionValue} value={optionValue}>{labelText}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function buildRequestedChanges(state: UpdateRequestState) {
+  const labels: Record<keyof UpdateRequestState, string> = {
+    ownerName: "Owner",
+    channelOwner: "Channel owner",
+    fpStatus: "FP status",
+    priorityTier: "Priority tier",
+    platformPushDecision: "Platform push decision",
+    installedBaseStatus: "Installed-base status",
+    installedBaseNotes: "Installed-base notes",
+    currentSupplier: "Current supplier",
+    nextAction: "Next action",
+    nextActionDate: "Next action date",
+    notes: "Notes / reason",
+  };
+
+  return Object.entries(state)
+    .filter(([, value]) => String(value ?? "").trim().length > 0)
+    .map(([key, value]) => `- ${labels[key as keyof UpdateRequestState]}: ${value}`);
+}
+
+function AccountUpdateRequestSection({ account }: { account: any }) {
+  const utils = trpc.useUtils();
+  const [request, setRequest] = useState<UpdateRequestState>(EMPTY_UPDATE_REQUEST);
+
+  const createMutation = trpc.fullPotential.createAction.useMutation({
+    onSuccess: async () => {
+      toast.success("Account update request created");
+      setRequest(EMPTY_UPDATE_REQUEST);
+      await utils.fullPotential.actionsForAccount.invalidate({ accountId: account.id });
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  function setField<K extends keyof UpdateRequestState>(key: K, value: UpdateRequestState[K]) {
+    setRequest(current => ({ ...current, [key]: value }));
+  }
+
+  async function submitRequest() {
+    const changes = buildRequestedChanges(request);
+    if (changes.length === 0) {
+      toast.error("Add at least one requested field change");
+      return;
+    }
+
+    const accountName = account.displayName || account.canonicalName;
+    const notes = [
+      `Portable Air FP account update request for ${accountName}`,
+      "",
+      "Requested changes:",
+      ...changes,
+      "",
+      "Current reference values:",
+      `- Owner: ${account.ownerName || "—"}`,
+      `- Channel owner: ${account.channelOwner || "—"}`,
+      `- FP status: ${labelFor(account.fpStatus, STATUS_LABELS)}`,
+      `- Priority tier: ${labelFor(account.priorityTier, TIER_LABELS)}`,
+      `- Platform push decision: ${labelFor(account.platformPushDecision, PUSH_LABELS)}`,
+      `- Installed-base status: ${labelFor(account.installedBaseStatus, INSTALLED_BASE_LABELS)}`,
+      `- Current supplier: ${account.currentSupplier || "—"}`,
+    ].join("\n");
+
+    await createMutation.mutateAsync({
+      accountId: account.id,
+      actionType: "manager_review" as any,
+      recommendedAction: `Review requested Portable Air FP account update for ${accountName}`,
+      dueDate: request.nextActionDate || null,
+      notes,
+    });
+  }
+
+  return (
+    <DetailSection title="Request account update" icon={<FileText className="w-3.5 h-3.5" />}>
+      <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-3">
+        <p className="text-xs text-blue-900/80 leading-relaxed">
+          This creates a manager review action only. It does not directly change Portable Air FP fields, C4C, financial values or importer data.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FieldInput label="Owner" value={request.ownerName} onChange={value => setField("ownerName", value)} placeholder={account.ownerName || "No change"} />
+          <FieldInput label="Channel owner" value={request.channelOwner} onChange={value => setField("channelOwner", value)} placeholder={account.channelOwner || "No change"} />
+          <FieldSelect label="FP status" value={request.fpStatus} onChange={value => setField("fpStatus", value)} options={STATUS_LABELS} />
+          <FieldSelect label="Priority tier" value={request.priorityTier} onChange={value => setField("priorityTier", value)} options={TIER_LABELS} />
+          <FieldSelect label="Platform push decision" value={request.platformPushDecision} onChange={value => setField("platformPushDecision", value)} options={PUSH_LABELS} />
+          <FieldSelect label="Installed-base status" value={request.installedBaseStatus} onChange={value => setField("installedBaseStatus", value)} options={INSTALLED_BASE_LABELS} />
+          <FieldInput label="Current supplier" value={request.currentSupplier} onChange={value => setField("currentSupplier", value)} placeholder={account.currentSupplier || "No change"} />
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Next action date</label>
+            <input type="date" value={request.nextActionDate} onChange={event => setField("nextActionDate", event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Next action</label>
+          <textarea value={request.nextAction} onChange={event => setField("nextAction", event.target.value)} rows={2} placeholder="Requested next action change" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Installed-base notes</label>
+          <textarea value={request.installedBaseNotes} onChange={event => setField("installedBaseNotes", event.target.value)} rows={2} placeholder="Requested installed-base note update" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Notes / reason</label>
+          <textarea value={request.notes} onChange={event => setField("notes", event.target.value)} rows={2} placeholder="Why this update is requested" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <Button onClick={submitRequest} disabled={createMutation.isPending} className="bg-navy text-white hover:bg-navy-light">
+          {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+          Create update request
+        </Button>
+      </div>
+    </DetailSection>
   );
 }
 
@@ -249,7 +417,7 @@ function AccountActionsSection({ accountId }: { accountId: number }) {
                   <div className="mt-1">{action.ownerName || "—"}</div>
                 </div>
               </div>
-              {action.notes && <p className="text-xs text-muted-foreground leading-relaxed">{action.notes}</p>}
+              {action.notes && <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{action.notes}</p>}
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {QUICK_STATUSES.map(status => (
                   <button
@@ -280,7 +448,7 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
         <div className="sticky top-0 bg-card border-b border-border z-10 px-5 py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
-              <Building2 className="w-4 h-4" /> Full Potential account
+              <Building2 className="w-4 h-4" /> Portable Air Full Potential account
             </div>
             <h2 className="text-lg font-bold text-navy leading-tight">{account.displayName || account.canonicalName}</h2>
             {account.parentGroup && <p className="text-xs text-muted-foreground mt-1">Parent group: {account.parentGroup}</p>}
@@ -349,6 +517,7 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
             <DetailItem label="Next action" value={account.nextAction || "—"} />
           </DetailSection>
 
+          <AccountUpdateRequestSection account={account} />
           <AccountActionsSection accountId={account.id} />
 
           <DetailSection title="Import source" icon={<Database className="w-3.5 h-3.5" />}>
