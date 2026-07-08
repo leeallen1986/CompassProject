@@ -32,6 +32,19 @@ const ROUTE_LABELS: Record<string, string> = {
   exclude: "Exclude",
 };
 
+type ScopeMode = "mine" | "team" | "all";
+
+type ScopeOption = {
+  value: ScopeMode;
+  label: string;
+};
+
+const BASE_SCOPE_OPTIONS: ScopeOption[] = [
+  { value: "mine", label: "Mine" },
+  { value: "team", label: "Team" },
+  { value: "all", label: "All" },
+];
+
 function labelFor(value: string | null | undefined, map: Record<string, string>) {
   if (!value) return "—";
   return map[value] || value;
@@ -44,8 +57,36 @@ function formatDate(value?: string | null) {
   return parsed.toLocaleDateString("en-AU", { day: "2-digit", month: "short" });
 }
 
+function normalizeIdentity(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 function fullPotentialSearchHref(accountName: string) {
   return `/full-potential?search=${encodeURIComponent(accountName)}`;
+}
+
+function actionMatchesUser(action: any, user: any) {
+  if (!user) return false;
+  const userId = user.id;
+  if (userId !== undefined && action.userId !== undefined && String(action.userId) === String(userId)) return true;
+
+  const userNames = new Set([
+    normalizeIdentity(user.name),
+    normalizeIdentity(user.email),
+  ].filter(Boolean));
+
+  const actionOwners = [
+    action.ownerName,
+    action.account?.ownerName,
+    action.account?.channelOwner,
+  ].map(normalizeIdentity).filter(Boolean);
+
+  return actionOwners.some(owner => userNames.has(owner));
+}
+
+function filterByScope(actions: any[], scope: ScopeMode, user: any) {
+  if (scope === "mine") return actions.filter(action => actionMatchesUser(action, user));
+  return actions;
 }
 
 function ActionRow({
@@ -117,9 +158,10 @@ function ActionRow({
 }
 
 export default function FullPotentialMyWeekDock() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const utils = trpc.useUtils();
   const [open, setOpen] = useState(true);
+  const [scope, setScope] = useState<ScopeMode>("mine");
   const { data, isLoading } = trpc.fullPotential.myWeekActions.useQuery(undefined, {
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
@@ -135,9 +177,19 @@ export default function FullPotentialMyWeekDock() {
 
   if (!isAuthenticated) return null;
 
-  const overdue = data?.overdueActions ?? [];
-  const due = data?.dueActions ?? [];
-  const upcoming = data?.upcomingActions ?? [];
+  const isAdmin = user?.role === "admin";
+  const canSeeTeam = isAdmin || user?.role === "manager";
+  const effectiveScope: ScopeMode = scope === "all" && !isAdmin ? "mine" : scope === "team" && !canSeeTeam ? "mine" : scope;
+  const scopeOptions = BASE_SCOPE_OPTIONS.filter(option => {
+    if (option.value === "mine") return true;
+    if (option.value === "team") return canSeeTeam;
+    if (option.value === "all") return isAdmin;
+    return false;
+  });
+
+  const overdue = filterByScope(data?.overdueActions ?? [], effectiveScope, user);
+  const due = filterByScope(data?.dueActions ?? [], effectiveScope, user);
+  const upcoming = filterByScope(data?.upcomingActions ?? [], effectiveScope, user);
   const total = overdue.length + due.length;
   const updatingId = updateMutation.variables?.actionId ?? null;
 
@@ -162,13 +214,28 @@ export default function FullPotentialMyWeekDock() {
 
       {open && (
         <div className="max-h-[520px] overflow-y-auto p-3 space-y-3">
+          {scopeOptions.length > 1 && (
+            <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+              {scopeOptions.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setScope(option.value)}
+                  className={`rounded-md px-2 py-1.5 text-[11px] font-bold transition-colors ${effectiveScope === option.value ? "bg-card text-navy shadow-sm" : "text-muted-foreground hover:text-navy"}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {isLoading ? (
             <div className="text-sm text-muted-foreground flex items-center gap-2 px-2 py-4">
               <Clock className="w-4 h-4 animate-pulse" /> Loading Portable Air Full Potential actions...
             </div>
           ) : total === 0 ? (
             <div className="rounded-lg border border-border bg-slate-50/60 p-4 text-sm text-muted-foreground">
-              No due or overdue Portable Air Full Potential actions. Upcoming actions are still visible below if scheduled.
+              No due or overdue Portable Air Full Potential actions in this scope. Upcoming actions are still visible below if scheduled.
             </div>
           ) : null}
 
