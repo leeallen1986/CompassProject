@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Building2, Calendar, CheckCircle2, Database, FileText, Layers, Loader2, Plus, Shield, Users, WalletCards, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -438,6 +439,157 @@ function AccountActionsSection({ accountId }: { accountId: number }) {
   );
 }
 
+// ── Apply approved account update (admin-only) ───────────────────────────────
+
+type ApplyState = {
+  ownerName: string;
+  channelOwner: string;
+  fpStatus: string;
+  priorityTier: string;
+  platformPushDecision: string;
+  installedBaseStatus: string;
+  installedBaseNotes: string;
+  currentSupplier: string;
+  nextAction: string;
+  nextActionDate: string;
+};
+
+function buildApplyState(account: any): ApplyState {
+  function toDateInputValue(value: unknown): string {
+    if (!value) return "";
+    const parsed = new Date(value as string);
+    if (Number.isNaN(parsed.getTime())) return "";
+    return parsed.toISOString().slice(0, 10);
+  }
+  return {
+    ownerName: account.ownerName ?? "",
+    channelOwner: account.channelOwner ?? "",
+    fpStatus: account.fpStatus ?? "",
+    priorityTier: account.priorityTier ?? "",
+    platformPushDecision: account.platformPushDecision ?? "",
+    installedBaseStatus: account.installedBaseStatus ?? "",
+    installedBaseNotes: account.installedBaseNotes ?? "",
+    currentSupplier: account.currentSupplier ?? "",
+    nextAction: account.nextAction ?? "",
+    nextActionDate: toDateInputValue(account.nextActionDate),
+  };
+}
+
+function AccountApplySection({ account }: { account: any }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const utils = trpc.useUtils();
+  const [fields, setFields] = useState<ApplyState>(() => buildApplyState(account));
+  const [resolveActionId, setResolveActionId] = useState<string>("");
+
+  const { data: actions = [] } = trpc.fullPotential.actionsForAccount.useQuery(
+    { accountId: account.id },
+    { enabled: isAdmin && !!account.id },
+  );
+
+  const managerReviewActions = (actions as any[]).filter(
+    (a: any) => a.actionType === "manager_review" && !["completed", "won", "lost", "not_relevant", "deferred"].includes(a.status),
+  );
+
+  const applyMutation = trpc.fullPotential.updateAccountFields.useMutation({
+    onSuccess: async () => {
+      toast.success("Account updated");
+      await Promise.all([
+        utils.fullPotential.list.invalidate(),
+        utils.fullPotential.stats.invalidate(),
+        utils.fullPotential.filterOptions.invalidate(),
+        utils.fullPotential.actionsForAccount.invalidate({ accountId: account.id }),
+      ]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  function setField<K extends keyof ApplyState>(key: K, value: ApplyState[K]) {
+    setFields(current => ({ ...current, [key]: value }));
+  }
+
+  async function handleApply() {
+    const patch: Record<string, unknown> = {};
+    const orig = buildApplyState(account);
+    if (fields.ownerName !== orig.ownerName) patch.ownerName = fields.ownerName || null;
+    if (fields.channelOwner !== orig.channelOwner) patch.channelOwner = fields.channelOwner || null;
+    if (fields.fpStatus !== orig.fpStatus) patch.fpStatus = fields.fpStatus || undefined;
+    if (fields.priorityTier !== orig.priorityTier) patch.priorityTier = fields.priorityTier || undefined;
+    if (fields.platformPushDecision !== orig.platformPushDecision) patch.platformPushDecision = fields.platformPushDecision || undefined;
+    if (fields.installedBaseStatus !== orig.installedBaseStatus) patch.installedBaseStatus = fields.installedBaseStatus || undefined;
+    if (fields.installedBaseNotes !== orig.installedBaseNotes) patch.installedBaseNotes = fields.installedBaseNotes || null;
+    if (fields.currentSupplier !== orig.currentSupplier) patch.currentSupplier = fields.currentSupplier || null;
+    if (fields.nextAction !== orig.nextAction) patch.nextAction = fields.nextAction || null;
+    if (fields.nextActionDate !== orig.nextActionDate) patch.nextActionDate = fields.nextActionDate || null;
+
+    if (Object.keys(patch).length === 0) {
+      toast.error("No fields have changed — edit at least one field before applying");
+      return;
+    }
+
+    await applyMutation.mutateAsync({
+      accountId: account.id,
+      ...patch,
+      resolveActionId: resolveActionId ? Number(resolveActionId) : null,
+    } as any);
+  }
+
+  if (!isAdmin) return null;
+
+  return (
+    <DetailSection title="Apply approved account update" icon={<Shield className="w-3.5 h-3.5" />}>
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 space-y-3">
+        <p className="text-xs text-emerald-900/80 leading-relaxed">
+          Admin only. Directly updates Portable Air FP account fields. Does not write to C4C, financial values, or importer data.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FieldInput label="Owner" value={fields.ownerName} onChange={value => setField("ownerName", value)} placeholder={account.ownerName || "No change"} />
+          <FieldInput label="Channel owner" value={fields.channelOwner} onChange={value => setField("channelOwner", value)} placeholder={account.channelOwner || "No change"} />
+          <FieldSelect label="FP status" value={fields.fpStatus} onChange={value => setField("fpStatus", value)} options={STATUS_LABELS} />
+          <FieldSelect label="Priority tier" value={fields.priorityTier} onChange={value => setField("priorityTier", value)} options={TIER_LABELS} />
+          <FieldSelect label="Platform push decision" value={fields.platformPushDecision} onChange={value => setField("platformPushDecision", value)} options={PUSH_LABELS} />
+          <FieldSelect label="Installed-base status" value={fields.installedBaseStatus} onChange={value => setField("installedBaseStatus", value)} options={INSTALLED_BASE_LABELS} />
+          <FieldInput label="Current supplier" value={fields.currentSupplier} onChange={value => setField("currentSupplier", value)} placeholder={account.currentSupplier || "No change"} />
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Next action date</label>
+            <input type="date" value={fields.nextActionDate} onChange={event => setField("nextActionDate", event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Next action</label>
+          <textarea value={fields.nextAction} onChange={event => setField("nextAction", event.target.value)} rows={2} placeholder="Next action text" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Installed-base notes</label>
+          <textarea value={fields.installedBaseNotes} onChange={event => setField("installedBaseNotes", event.target.value)} rows={2} placeholder="Installed-base notes" className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        {managerReviewActions.length > 0 && (
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Mark manager review action as completed (optional)</label>
+            <select
+              value={resolveActionId}
+              onChange={event => setResolveActionId(event.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+            >
+              <option value="">— None —</option>
+              {managerReviewActions.map((a: any) => (
+                <option key={a.id} value={String(a.id)}>
+                  #{a.id} — {a.recommendedAction?.slice(0, 60) ?? "Manager review"}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <Button onClick={handleApply} disabled={applyMutation.isPending} className="bg-emerald-700 text-white hover:bg-emerald-800">
+          {applyMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+          Apply account update
+        </Button>
+      </div>
+    </DetailSection>
+  );
+}
+
 export default function FullPotentialDetailDrawer({ account, onClose }: { account: any; onClose: () => void }) {
   const applicationPlays = listValues(account?.applicationPlays);
   const evidenceSources = listValues(account?.evidenceSources);
@@ -518,6 +670,7 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
           </DetailSection>
 
           <AccountUpdateRequestSection account={account} />
+          <AccountApplySection account={account} />
           <AccountActionsSection accountId={account.id} />
 
           <DetailSection title="Import source" icon={<Database className="w-3.5 h-3.5" />}>

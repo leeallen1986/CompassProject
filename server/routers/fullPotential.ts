@@ -909,6 +909,59 @@ export const fullPotentialRouter = router({
     return updated ? toClientAction(updated) : { success: true };
   }),
 
+  updateAccountFields: adminProcedure.input(z.object({
+    accountId: z.number().int().positive(),
+    // Allowed editable fields — financial, stableKey, canonicalName, rowClass and C4C fields are intentionally excluded
+    ownerName: z.string().max(256).nullable().optional(),
+    channelOwner: z.string().max(256).nullable().optional(),
+    fpStatus: z.enum(["active_target", "develop", "watch", "qualify", "park", "exclude"]).nullable().optional(),
+    priorityTier: z.enum(["tier_a", "tier_b", "tier_c", "tier_d", "unassigned"]).nullable().optional(),
+    platformPushDecision: z.enum(["push_now", "push_context", "channel_view", "qualify_first", "park_do_not_push"]).nullable().optional(),
+    installedBaseStatus: z.enum(["known", "partial", "unknown", "not_applicable"]).nullable().optional(),
+    installedBaseNotes: z.string().max(4000).nullable().optional(),
+    currentSupplier: z.string().max(256).nullable().optional(),
+    nextAction: z.string().max(512).nullable().optional(),
+    nextActionDate: z.string().max(64).nullable().optional(),
+    // Optionally mark a related manager_review action as completed
+    resolveActionId: z.number().int().positive().nullable().optional(),
+  })).mutation(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const [existing] = await db.select().from(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, input.accountId)).limit(1);
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Full Potential account not found" });
+
+    // Build the update payload — only include fields that were explicitly provided
+    const patch: Record<string, unknown> = {};
+    if (input.ownerName !== undefined) patch.ownerName = input.ownerName ?? null;
+    if (input.channelOwner !== undefined) patch.channelOwner = input.channelOwner ?? null;
+    if (input.fpStatus !== undefined) patch.fpStatus = input.fpStatus ?? existing.fpStatus;
+    if (input.priorityTier !== undefined) patch.priorityTier = input.priorityTier ?? existing.priorityTier;
+    if (input.platformPushDecision !== undefined) patch.platformPushDecision = input.platformPushDecision ?? existing.platformPushDecision;
+    if (input.installedBaseStatus !== undefined) patch.installedBaseStatus = input.installedBaseStatus ?? existing.installedBaseStatus;
+    if (input.installedBaseNotes !== undefined) patch.installedBaseNotes = input.installedBaseNotes ?? null;
+    if (input.currentSupplier !== undefined) patch.currentSupplier = input.currentSupplier ?? null;
+    if (input.nextAction !== undefined) patch.nextAction = input.nextAction ?? null;
+    if (input.nextActionDate !== undefined) patch.nextActionDate = parseOptionalDate(input.nextActionDate);
+
+    if (Object.keys(patch).length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "No allowed fields provided to update" });
+
+    await db.update(fullPotentialAccounts).set(patch as any).where(eq(fullPotentialAccounts.id, input.accountId));
+
+    // Optionally mark the related manager_review action as completed
+    if (input.resolveActionId) {
+      const [actionRow] = await db.select().from(fullPotentialActions).where(eq(fullPotentialActions.id, input.resolveActionId)).limit(1);
+      if (actionRow) {
+        await db.update(fullPotentialActions).set({
+          status: "completed",
+          completedAt: new Date(),
+        } as any).where(eq(fullPotentialActions.id, input.resolveActionId));
+      }
+    }
+
+    const [updated] = await db.select().from(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, input.accountId)).limit(1);
+    return updated ? toClientAccount(updated) : { success: true };
+  }),
+
   myWeekActions: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
