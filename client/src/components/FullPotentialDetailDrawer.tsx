@@ -1,4 +1,8 @@
-import { Building2, Database, FileText, Layers, Shield, Users, WalletCards, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Building2, Calendar, CheckCircle2, Clock, Database, FileText, Layers, Loader2, Plus, Shield, Users, WalletCards, X } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
 
 const STATUS_LABELS: Record<string, string> = {
   active_target: "Active Target",
@@ -66,6 +70,33 @@ const INSTALLED_BASE_LABELS: Record<string, string> = {
   not_applicable: "Not applicable",
 };
 
+const ACTION_TYPE_LABELS: Record<string, string> = {
+  account_review: "Account review",
+  contact_discovery: "Contact discovery",
+  customer_call: "Customer call",
+  site_visit: "Site visit",
+  channel_handover: "Channel handover",
+  installed_base_validation: "Installed-base validation",
+  proposal_followup: "Proposal follow-up",
+  manager_review: "Manager review",
+  other: "Other",
+};
+
+const ACTION_STATUS_LABELS: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  contacted: "Contacted",
+  meeting_booked: "Meeting booked",
+  quoted: "Quoted",
+  won: "Won",
+  lost: "Lost",
+  deferred: "Deferred",
+  not_relevant: "Not relevant",
+  completed: "Completed",
+};
+
+const QUICK_STATUSES = ["in_progress", "contacted", "meeting_booked", "completed", "deferred", "not_relevant"] as const;
+
 function formatCurrency(value?: number | null) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount) || amount === 0) return "—";
@@ -92,18 +123,19 @@ function listValues(value: unknown): string[] {
   return [];
 }
 
-function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "slate" | "blue" | "green" | "red" | "gold" }) {
+function Badge({ children, tone = "slate" }: { children: ReactNode; tone?: "slate" | "blue" | "green" | "red" | "gold" | "amber" }) {
   const toneClass = {
     slate: "bg-slate-100 text-slate-700 border-slate-200",
     blue: "bg-blue-50 text-blue-700 border-blue-200",
     green: "bg-emerald-50 text-emerald-700 border-emerald-200",
     red: "bg-red-50 text-red-700 border-red-200",
     gold: "bg-gold/15 text-gold-dark border-gold/30",
+    amber: "bg-amber-50 text-amber-700 border-amber-200",
   }[tone];
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${toneClass}`}>{children}</span>;
 }
 
-function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</div>
@@ -112,7 +144,7 @@ function DetailItem({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-function DetailSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function DetailSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -121,6 +153,120 @@ function DetailSection({ title, icon, children }: { title: string; icon: React.R
       </div>
       {children}
     </section>
+  );
+}
+
+function AccountActionsSection({ accountId }: { accountId: number }) {
+  const utils = trpc.useUtils();
+  const [actionType, setActionType] = useState("account_review");
+  const [recommendedAction, setRecommendedAction] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const { data: actions = [], isLoading } = trpc.fullPotential.actionsForAccount.useQuery({ accountId }, { enabled: !!accountId });
+
+  const createMutation = trpc.fullPotential.createAction.useMutation({
+    onSuccess: async () => {
+      toast.success("Account action added");
+      setRecommendedAction("");
+      setDueDate("");
+      setNotes("");
+      setActionType("account_review");
+      await utils.fullPotential.actionsForAccount.invalidate({ accountId });
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const updateMutation = trpc.fullPotential.updateActionStatus.useMutation({
+    onSuccess: async () => {
+      toast.success("Action updated");
+      await utils.fullPotential.actionsForAccount.invalidate({ accountId });
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  async function handleCreate() {
+    if (!recommendedAction.trim()) {
+      toast.error("Add a recommended action first");
+      return;
+    }
+    await createMutation.mutateAsync({
+      accountId,
+      actionType: actionType as any,
+      recommendedAction: recommendedAction.trim(),
+      dueDate: dueDate || null,
+      notes: notes.trim() || null,
+    });
+  }
+
+  return (
+    <DetailSection title="Account actions" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+      <div className="rounded-lg border border-border bg-slate-50/60 p-3 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Action type</label>
+            <select value={actionType} onChange={event => setActionType(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+              {Object.entries(ACTION_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Due date</label>
+            <input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Recommended action</label>
+          <textarea value={recommendedAction} onChange={event => setRecommendedAction(event.target.value)} rows={2} placeholder="Example: Call maintenance manager to validate installed base and current supplier." className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Notes</label>
+          <textarea value={notes} onChange={event => setNotes(event.target.value)} rows={2} placeholder="Optional context for the rep or channel owner." className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-navy text-white hover:bg-navy-light">
+          {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+          Add account action
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading actions...</div>
+      ) : actions.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">No account actions recorded yet.</div>
+      ) : (
+        <div className="space-y-3">
+          {actions.map((action: any) => (
+            <div key={action.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-navy text-sm">{action.recommendedAction}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                    <Badge tone="blue">{labelFor(action.actionType, ACTION_TYPE_LABELS)}</Badge>
+                    <Badge tone={action.status === "completed" || action.status === "won" ? "green" : action.status === "deferred" || action.status === "not_relevant" ? "amber" : "slate"}>{labelFor(action.status, ACTION_STATUS_LABELS)}</Badge>
+                  </div>
+                </div>
+                <div className="text-right text-[11px] text-muted-foreground shrink-0">
+                  <div className="flex items-center gap-1 justify-end"><Calendar className="w-3 h-3" /> {formatDate(action.dueDate)}</div>
+                  <div className="mt-1">{action.ownerName || "—"}</div>
+                </div>
+              </div>
+              {action.notes && <p className="text-xs text-muted-foreground leading-relaxed">{action.notes}</p>}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {QUICK_STATUSES.map(status => (
+                  <button
+                    key={status}
+                    disabled={updateMutation.isPending || action.status === status}
+                    onClick={() => updateMutation.mutate({ actionId: action.id, status, notes: action.notes ?? null })}
+                    className="px-2 py-1 rounded border border-border text-[10px] font-semibold text-muted-foreground hover:text-navy hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {labelFor(status, ACTION_STATUS_LABELS)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </DetailSection>
   );
 }
 
@@ -202,6 +348,8 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
             </div>
             <DetailItem label="Next action" value={account.nextAction || "—"} />
           </DetailSection>
+
+          <AccountActionsSection accountId={account.id} />
 
           <DetailSection title="Import source" icon={<Database className="w-3.5 h-3.5" />}>
             <div className="grid grid-cols-2 gap-4">
