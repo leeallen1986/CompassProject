@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import * as XLSX from "xlsx";
-import { adminProcedure, router } from "../_core/trpc";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import {
   fullPotentialAccounts,
@@ -132,13 +132,31 @@ interface ParsedAccountRow {
   sourceRowNumber: number;
 }
 
-const inputSchema = z.object({
+const importInputSchema = z.object({
   fileName: z.string().min(1).max(512),
   fileBase64: z.string().min(1),
   sheetName: z.string().min(1).max(128).optional(),
   dryRun: z.boolean().optional().default(true),
   sourceWorkbookVersion: z.string().max(32).optional(),
   clearBlankValues: z.boolean().optional().default(false),
+});
+
+const listInputSchema = z.object({
+  search: z.string().max(200).optional(),
+  fpStatus: z.string().max(64).optional(),
+  platformPushDecision: z.string().max(64).optional(),
+  routeToMarket: z.string().max(128).optional(),
+  ownerName: z.string().max(256).optional(),
+  segment: z.string().max(128).optional(),
+  state: z.string().max(64).optional(),
+  priorityTier: z.string().max(64).optional(),
+  rowClass: z.string().max(64).optional(),
+  limit: z.number().int().min(1).max(500).optional().default(100),
+  offset: z.number().int().min(0).optional().default(0),
+});
+
+const importHistoryInputSchema = z.object({
+  limit: z.number().int().min(1).max(50).optional().default(10),
 });
 
 const HEADER_ALIASES: Record<string, FieldKey> = {
@@ -280,13 +298,10 @@ function parseDate(value: unknown): Date | undefined {
   const raw = cleanString(value);
   if (!raw) return undefined;
 
-  // Handle Excel serial date numbers (e.g. 46287 = 2026-09-01)
-  // Excel epoch: 1899-12-30 (with Lotus 1-2-3 leap-year bug)
   const asNumber = Number(raw.replace(/[^0-9.]/g, ""));
   if (/^\d{4,6}$/.test(raw.trim()) && asNumber >= 1 && asNumber <= 99999) {
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-    const msPerDay = 86400000;
-    const excelDate = new Date(excelEpoch.getTime() + asNumber * msPerDay);
+    const excelDate = new Date(excelEpoch.getTime() + asNumber * 86400000);
     if (!Number.isNaN(excelDate.getTime())) return excelDate;
   }
 
@@ -575,7 +590,56 @@ function clearUndefinedValues(values: Record<string, unknown>): Record<string, u
   return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value === undefined ? null : value]));
 }
 
-async function importFullPotential(input: z.infer<typeof inputSchema>, user: { id: number; name?: string | null; email?: string | null }): Promise<ImportSummary> {
+function numberValue(value: unknown): number {
+  if (value === null || value === undefined || value === "") return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function addCount(map: Record<string, number>, key: unknown) {
+  const normalized = cleanString(key) ?? "unknown";
+  map[normalized] = (map[normalized] ?? 0) + 1;
+}
+
+function uniqueSorted(values: unknown[]): string[] {
+  return Array.from(new Set(values.map(cleanString).filter((value): value is string => !!value))).sort((a, b) => a.localeCompare(b));
+}
+
+function matchesFilter(value: unknown, filter?: string): boolean {
+  if (!filter || filter === "all") return true;
+  return (cleanString(value) ?? "") === filter;
+}
+
+function accountMatchesSearch(account: any, search?: string): boolean {
+  const token = normalizeToken(search);
+  if (!token) return true;
+  const haystack = normalizeToken([
+    account.canonicalName,
+    account.displayName,
+    account.parentGroup,
+    account.state,
+    account.segment,
+    account.subsegment,
+    account.ownerName,
+    account.channelOwner,
+    account.currentSupplier,
+    ...(Array.isArray(account.applicationPlays) ? account.applicationPlays : []),
+  ].filter(Boolean).join(" "));
+  return haystack.includes(token);
+}
+
+function toClientAccount(account: any) {
+  return {
+    ...account,
+    fullPotentialAud: numberValue(account.fullPotentialAud),
+    currentRevenueAud: numberValue(account.currentRevenueAud),
+    target2026Aud: numberValue(account.target2026Aud),
+    remainingPotentialAud: numberValue(account.remainingPotentialAud),
+    signalCount: 0,
+  };
+}
+
+async function importFullPotential(input: z.infer<typeof importInputSchema>, user: { id: number; name?: string | null; email?: string | null }): Promise<ImportSummary> {
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
@@ -651,10 +715,7 @@ async function importFullPotential(input: z.infer<typeof inputSchema>, user: { i
     if (existing) {
       summary.updatedAccounts++;
       if (!dryRun) {
-        await db
-          .update(fullPotentialAccounts)
-          .set(writeValues)
-          .where(eq(fullPotentialAccounts.id, existing.id));
+        await db.update(fullPotentialAccounts).set(writeValues).where(eq(fullPotentialAccounts.id, existing.id));
       }
     } else {
       summary.createdAccounts++;
@@ -733,9 +794,117 @@ async function importFullPotential(input: z.infer<typeof inputSchema>, user: { i
 
 export const fullPotentialRouter = router({
   import: adminProcedure
-    .input(inputSchema)
+    .input(importInputSchema)
     .mutation(async ({ ctx, input }) => {
       return importFullPotential(input, ctx.user);
+    }),
+
+  list: protectedProcedure
+    .input(listInputSchema)
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const allAccounts = await db.select().from(fullPotentialAccounts);
+      const filtered = allAccounts.filter(account =>
+        accountMatchesSearch(account, input.search)
+        && matchesFilter(account.fpStatus, input.fpStatus)
+        && matchesFilter(account.platformPushDecision, input.platformPushDecision)
+        && matchesFilter(account.routeToMarket, input.routeToMarket)
+        && matchesFilter(account.ownerName, input.ownerName)
+        && matchesFilter(account.segment, input.segment)
+        && matchesFilter(account.state, input.state)
+        && matchesFilter(account.priorityTier, input.priorityTier)
+        && matchesFilter(account.rowClass, input.rowClass)
+      );
+
+      const offset = input.offset ?? 0;
+      const limit = input.limit ?? 100;
+      const page = filtered
+        .sort((a, b) => {
+          const tierOrder: Record<string, number> = { tier_a: 0, tier_b: 1, tier_c: 2, tier_d: 3, unassigned: 4 };
+          const aTier = tierOrder[a.priorityTier ?? "unassigned"] ?? 4;
+          const bTier = tierOrder[b.priorityTier ?? "unassigned"] ?? 4;
+          if (aTier !== bTier) return aTier - bTier;
+          return String(a.canonicalName).localeCompare(String(b.canonicalName));
+        })
+        .slice(offset, offset + limit)
+        .map(toClientAccount);
+
+      return {
+        accounts: page,
+        total: filtered.length,
+        limit,
+        offset,
+      };
+    }),
+
+  stats: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+    const accounts = await db.select().from(fullPotentialAccounts);
+    const byFpStatus: Record<string, number> = {};
+    const byPlatformPushDecision: Record<string, number> = {};
+    const byRouteToMarket: Record<string, number> = {};
+    const byPriorityTier: Record<string, number> = {};
+    const byRowClass: Record<string, number> = {};
+
+    let totalFullPotentialAud = 0;
+    let totalTarget2026Aud = 0;
+    let totalRemainingPotentialAud = 0;
+
+    for (const account of accounts) {
+      addCount(byFpStatus, account.fpStatus);
+      addCount(byPlatformPushDecision, account.platformPushDecision);
+      addCount(byRouteToMarket, account.routeToMarket);
+      addCount(byPriorityTier, account.priorityTier);
+      addCount(byRowClass, account.rowClass);
+      totalFullPotentialAud += numberValue(account.fullPotentialAud);
+      totalTarget2026Aud += numberValue(account.target2026Aud);
+      totalRemainingPotentialAud += numberValue(account.remainingPotentialAud);
+    }
+
+    return {
+      totalAccounts: accounts.length,
+      byFpStatus,
+      byPlatformPushDecision,
+      byRouteToMarket,
+      byPriorityTier,
+      byRowClass,
+      totalFullPotentialAud,
+      totalTarget2026Aud,
+      totalRemainingPotentialAud,
+    };
+  }),
+
+  filterOptions: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+    const accounts = await db.select().from(fullPotentialAccounts);
+    return {
+      fpStatuses: uniqueSorted(accounts.map(account => account.fpStatus)),
+      platformPushDecisions: uniqueSorted(accounts.map(account => account.platformPushDecision)),
+      routeToMarkets: uniqueSorted(accounts.map(account => account.routeToMarket)),
+      ownerNames: uniqueSorted(accounts.map(account => account.ownerName)),
+      segments: uniqueSorted(accounts.map(account => account.segment)),
+      states: uniqueSorted(accounts.map(account => account.state)),
+      priorityTiers: uniqueSorted(accounts.map(account => account.priorityTier)),
+      rowClasses: uniqueSorted(accounts.map(account => account.rowClass)),
+    };
+  }),
+
+  importHistory: protectedProcedure
+    .input(importHistoryInputSchema.optional().default({ limit: 10 }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      return db
+        .select()
+        .from(fullPotentialImports)
+        .orderBy(desc(fullPotentialImports.importedAt))
+        .limit(input.limit ?? 10);
     }),
 });
 
