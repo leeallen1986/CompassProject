@@ -71,6 +71,7 @@ import { accountAttackRouter } from "./routers/accountAttack";
 import { accountPriorsRouter } from "./routers/accountPriors";
 import { accountResearchRouter } from "./routers/accountResearch";
 import { pilotEnrichmentRouter } from "./routers/pilotEnrichment";
+import { fullPotentialRouter } from "./routers/fullPotential";
 import {
   apolloPeopleSearch, enrichSingleContact, enrichProjectContacts,
   revealContactEmail, validateApolloApiKey, inferDomain,
@@ -4432,6 +4433,7 @@ export const appRouter = router({
   accountPriors: accountPriorsRouter,
   accountResearch: accountResearchRouter,
   contactValidation: contactValidationRouter,
+  fullPotential: fullPotentialRouter,
 
   // ── Waterfall Health ──
   waterfall: router({
