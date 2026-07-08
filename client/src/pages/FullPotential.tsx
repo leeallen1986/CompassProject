@@ -156,6 +156,147 @@ function ActionIndicator({ counts }: { counts: ActionCounts }) {
   );
 }
 
+function accountDisplayName(account: any) {
+  return account?.displayName || account?.canonicalName || "Unnamed account";
+}
+
+function ownerLabel(value: unknown) {
+  const cleaned = String(value ?? "").trim();
+  return cleaned || "Unassigned";
+}
+
+function countByOwner(actions: any[]) {
+  const counts: Record<string, number> = {};
+  actions.forEach(action => {
+    const owner = ownerLabel(action.account?.ownerName || action.account?.channelOwner || action.ownerName);
+    counts[owner] = (counts[owner] ?? 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+
+function ManagerHealthPanel({ accounts, myWeekActions, isLoading }: { accounts: any[]; myWeekActions: any; isLoading: boolean }) {
+  const overdueActions = myWeekActions?.overdueActions ?? [];
+  const dueActions = myWeekActions?.dueActions ?? [];
+  const upcomingActions = myWeekActions?.upcomingActions ?? [];
+  const openActionAccountIds = new Set<number>();
+
+  [...overdueActions, ...dueActions, ...upcomingActions].forEach((action: any) => {
+    const accountId = Number(action.account?.id);
+    if (Number.isFinite(accountId)) openActionAccountIds.add(accountId);
+  });
+
+  const managerReviewActions = [...overdueActions, ...dueActions, ...upcomingActions]
+    .filter((action: any) => action.actionType === "manager_review")
+    .slice(0, 6);
+
+  const tierAWithoutOpenAction = accounts
+    .filter(account => account.priorityTier === "tier_a" && !openActionAccountIds.has(Number(account.id)))
+    .slice(0, 6);
+
+  const pushNowWithoutOpenAction = accounts
+    .filter(account => account.platformPushDecision === "push_now" && !openActionAccountIds.has(Number(account.id)))
+    .slice(0, 6);
+
+  const unknownInstalledBaseAccounts = accounts
+    .filter(account => !account.installedBaseStatus || account.installedBaseStatus === "unknown")
+    .slice(0, 6);
+
+  const directApeWithoutOwner = accounts
+    .filter(account => account.routeToMarket === "direct_ape" && !String(account.ownerName ?? "").trim())
+    .slice(0, 6);
+
+  const channelManagedWithoutChannelOwner = accounts
+    .filter(account => account.rowClass === "channel_managed" && !String(account.channelOwner ?? "").trim())
+    .slice(0, 6);
+
+  const overdueByOwner = countByOwner(overdueActions).slice(0, 5);
+  const dueByOwner = countByOwner(dueActions).slice(0, 5);
+
+  const issueCards = [
+    { label: "Manager reviews", value: managerReviewActions.length, tone: "amber" as const },
+    { label: "Tier A no action", value: tierAWithoutOpenAction.length, tone: "red" as const },
+    { label: "Push Now no action", value: pushNowWithoutOpenAction.length, tone: "red" as const },
+    { label: "Unknown IB", value: unknownInstalledBaseAccounts.length, tone: "slate" as const },
+  ];
+
+  return (
+    <div className="bg-card rounded-lg border border-border p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Target className="w-4 h-4 text-navy" />
+        <h3 className="font-bold text-navy text-sm">Manager Health</h3>
+      </div>
+
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground flex items-center gap-2 py-2">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading health signals...
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {issueCards.map(card => (
+              <div key={card.label} className="rounded-lg border border-border bg-slate-50/50 p-2">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{card.label}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-xl font-bold text-navy">{card.value}</span>
+                  {card.value > 0 && <Badge tone={card.tone}>review</Badge>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            <HealthList title="Open manager reviews" items={managerReviewActions.map((action: any) => accountDisplayName(action.account))} />
+            <OwnerCountList title="Overdue by owner" items={overdueByOwner} />
+            <OwnerCountList title="Due this week by owner" items={dueByOwner} />
+            <HealthList title="Tier A without open action" items={tierAWithoutOpenAction.map(accountDisplayName)} />
+            <HealthList title="Push Now without open action" items={pushNowWithoutOpenAction.map(accountDisplayName)} />
+            <HealthList title="Unknown installed base" items={unknownInstalledBaseAccounts.map(accountDisplayName)} />
+            <HealthList title="Direct APE without owner" items={directApeWithoutOwner.map(accountDisplayName)} />
+            <HealthList title="Channel-managed without channel owner" items={channelManagedWithoutChannelOwner.map(accountDisplayName)} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HealthList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">{title}</div>
+      {items.length === 0 ? (
+        <div className="text-xs text-muted-foreground">No issues found.</div>
+      ) : (
+        <ul className="space-y-1">
+          {items.map((item, index) => (
+            <li key={`${title}-${item}-${index}`} className="text-xs text-navy truncate">• {item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function OwnerCountList({ title, items }: { title: string; items: [string, number][] }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">{title}</div>
+      {items.length === 0 ? (
+        <div className="text-xs text-muted-foreground">No actions found.</div>
+      ) : (
+        <ul className="space-y-1">
+          {items.map(([owner, count]) => (
+            <li key={`${title}-${owner}`} className="text-xs text-navy flex justify-between gap-2">
+              <span className="truncate">{owner}</span>
+              <span className="font-bold">{count}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function FullPotential() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -193,6 +334,18 @@ export default function FullPotential() {
   const { data: listData, isLoading: listLoading } = trpc.fullPotential.list.useQuery(queryInput, { enabled: !!user });
   const { data: importHistory } = trpc.fullPotential.importHistory.useQuery({ limit: 5 }, { enabled: !!user });
   const { data: myWeekActions } = trpc.fullPotential.myWeekActions.useQuery(undefined, { enabled: !!user });
+  const healthPage0 = trpc.fullPotential.list.useQuery({ limit: 500, offset: 0 }, { enabled: !!user });
+  const healthPage1 = trpc.fullPotential.list.useQuery({ limit: 500, offset: 500 }, { enabled: !!user });
+  const healthPage2 = trpc.fullPotential.list.useQuery({ limit: 500, offset: 1000 }, { enabled: !!user });
+
+  const healthAccounts = useMemo(() => {
+    const rows = [
+      ...(healthPage0.data?.accounts ?? []),
+      ...(healthPage1.data?.accounts ?? []),
+      ...(healthPage2.data?.accounts ?? []),
+    ];
+    return Array.from(new Map(rows.map((account: any) => [String(account.id), account])).values());
+  }, [healthPage0.data, healthPage1.data, healthPage2.data]);
 
   const actionCountsByAccount = useMemo(() => {
     const map: Record<number, ActionCounts> = {};
@@ -208,6 +361,7 @@ export default function FullPotential() {
   const canPrevious = offset > 0;
   const canNext = offset + limit < total;
   const isAdmin = user?.role === "admin";
+  const isHealthLoading = healthPage0.isLoading || healthPage1.isLoading || healthPage2.isLoading;
 
   function clearFilters() {
     setSearch("");
@@ -327,7 +481,7 @@ export default function FullPotential() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+        <section className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
           <div className="bg-card rounded-lg border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
               <div>
@@ -402,6 +556,7 @@ export default function FullPotential() {
           </div>
 
           <aside className="space-y-4">
+            <ManagerHealthPanel accounts={healthAccounts} myWeekActions={myWeekActions} isLoading={isHealthLoading} />
             <div className="bg-card rounded-lg border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-navy" />
@@ -429,7 +584,7 @@ export default function FullPotential() {
             <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4">
               <h3 className="font-bold text-blue-900 text-sm mb-2">What this page is</h3>
               <p className="text-xs text-blue-900/80 leading-relaxed">
-                Read-only first shell for the imported Portable Air Full Potential universe. Action badges show overdue, due and upcoming Portable Air FP actions from the weekly rhythm. Editing, Account Attack links and signal matching are intentionally left for later sprints.
+                Read-only first shell for the imported Portable Air Full Potential universe. Action badges show overdue, due and upcoming Portable Air FP actions from the weekly rhythm. Manager Health highlights coverage gaps using the current account universe and action feed. Editing, Account Attack links and signal matching are intentionally left for later sprints.
               </p>
             </div>
           </aside>
