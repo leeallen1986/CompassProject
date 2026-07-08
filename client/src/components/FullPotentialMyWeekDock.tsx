@@ -44,6 +44,10 @@ function formatDate(value?: string | null) {
   return parsed.toLocaleDateString("en-AU", { day: "2-digit", month: "short" });
 }
 
+function fullPotentialSearchHref(accountName: string) {
+  return `/full-potential?search=${encodeURIComponent(accountName)}`;
+}
+
 function ActionRow({
   action,
   overdue = false,
@@ -63,7 +67,9 @@ function ActionRow({
     <div className="rounded-lg border border-border bg-card p-3 hover:bg-gold/5 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-semibold text-navy text-sm truncate">{accountName}</div>
+          <Link href={fullPotentialSearchHref(accountName)} className="font-semibold text-navy text-sm truncate hover:text-gold-dark hover:underline underline-offset-2 block">
+            {accountName}
+          </Link>
           <div className="text-[11px] text-muted-foreground mt-0.5 flex flex-wrap gap-1.5">
             <span>{labelFor(action.account?.routeToMarket, ROUTE_LABELS)}</span>
             <span>·</span>
@@ -78,6 +84,7 @@ function ActionRow({
       <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
         <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-semibold">{labelFor(action.actionType, ACTION_TYPE_LABELS)}</span>
         <span>{String(action.status).replace(/_/g, " ")}</span>
+        <Link href={fullPotentialSearchHref(accountName)} className="ml-auto text-gold-dark font-bold hover:underline underline-offset-2">Review</Link>
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         <button

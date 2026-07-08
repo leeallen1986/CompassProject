@@ -70,6 +70,11 @@ const ROW_CLASS_LABELS: Record<string, string> = {
   cluster_signal: "Cluster / Signal",
 };
 
+function getInitialSearch() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("search") ?? "";
+}
+
 function formatCurrency(value?: number | null) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount) || amount === 0) return "—";
@@ -126,7 +131,7 @@ export default function FullPotential() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(getInitialSearch);
   const [fpStatus, setFpStatus] = useState("");
   const [pushDecision, setPushDecision] = useState("");
   const [route, setRoute] = useState("");
@@ -210,9 +215,9 @@ export default function FullPotential() {
             <div className="min-w-0">
               <h1 className="text-lg font-bold flex items-center gap-2">
                 <Target className="w-5 h-5 text-gold" />
-                Full Potential
+                Portable Air Full Potential
               </h1>
-              <p className="text-xs text-slate-300">Account universe, route-to-market, priority and import foundation</p>
+              <p className="text-xs text-slate-300">Portable Air account universe, route-to-market, priority and action rhythm</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -220,7 +225,7 @@ export default function FullPotential() {
               disabled={!isAdmin}
               onClick={() => setShowImportModal(true)}
               className="bg-gold text-navy hover:bg-gold/90 disabled:opacity-60"
-              title={isAdmin ? "Import Full Potential workbook" : "Admin only"}
+              title={isAdmin ? "Import Portable Air Full Potential workbook" : "Admin only"}
             >
               <Upload className="w-4 h-4 mr-2" /> Import
             </Button>
@@ -288,7 +293,7 @@ export default function FullPotential() {
           <div className="bg-card rounded-lg border border-border overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-bold text-navy">Account Universe</h2>
+                <h2 className="font-bold text-navy">Portable Air Account Universe</h2>
                 <p className="text-xs text-muted-foreground">Showing {accounts.length} of {total} records. Click a row to review the account logic.</p>
               </div>
               <div className="flex items-center gap-2">
@@ -303,8 +308,8 @@ export default function FullPotential() {
             ) : accounts.length === 0 ? (
               <div className="p-12 text-center">
                 <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-navy">No Full Potential records found</h3>
-                <p className="text-sm text-muted-foreground">Try changing the filters.</p>
+                <h3 className="text-lg font-bold text-navy">No Portable Air Full Potential records found</h3>
+                <p className="text-sm text-muted-foreground">Try changing the search or filters.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -381,7 +386,7 @@ export default function FullPotential() {
             <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4">
               <h3 className="font-bold text-blue-900 text-sm mb-2">What this page is</h3>
               <p className="text-xs text-blue-900/80 leading-relaxed">
-                Read-only first shell for the imported Full Potential universe. Editing, Account Attack links, My Week actions and signal matching are intentionally left for later sprints.
+                Read-only first shell for the imported Portable Air Full Potential universe. Editing, Account Attack links, My Week actions and signal matching are intentionally left for later sprints.
               </p>
             </div>
           </aside>
