@@ -249,16 +249,7 @@ export default function FullPotentialSignalImportModal({
   const [commitSummary, setCommitSummary] = useState<SignalImportSummary | null>(null);
   const [isReading, setIsReading] = useState(false);
 
-  const importMutation = trpc.fullPotential.importSignals.useMutation({
-    onSuccess: async () => {
-      // Invalidate the matched-signals and account list caches so the
-      // FullPotentialDetailDrawer picks up new signals immediately.
-      await Promise.all([
-        utils.fullPotential.list.invalidate(),
-        utils.fullPotential.stats.invalidate(),
-      ]);
-    },
-  });
+  const importMutation = trpc.fullPotential.importSignals.useMutation();
 
   if (!open) return null;
 
@@ -297,6 +288,13 @@ export default function FullPotentialSignalImportModal({
         }
       } else {
         setCommitSummary(summary);
+        // Invalidate all signal-related caches so the FullPotentialDetailDrawer
+        // and account table pick up the new signals immediately.
+        await Promise.all([
+          utils.fullPotential.matchedSignalsForAccount.invalidate(),
+          utils.fullPotential.list.invalidate(),
+          utils.fullPotential.stats.invalidate(),
+        ]);
         toast.success(
           `Signal import complete: ${summary.createdSignals} signal${summary.createdSignals !== 1 ? "s" : ""} created`
         );
