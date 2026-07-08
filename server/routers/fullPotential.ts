@@ -1114,14 +1114,75 @@ function accountMatchesSearch(account: any, search?: string): boolean {
   return haystack.includes(token);
 }
 
-function toClientAccount(account: any) {
+interface SignalMeta {
+  signalCount: number;
+  latestSignalTitle: string | null;
+  latestSignalDate: string | null;
+  latestSignalUrgency: string | null;
+  latestSignalStatus: string | null;
+}
+
+const EMPTY_SIGNAL_META: SignalMeta = {
+  signalCount: 0,
+  latestSignalTitle: null,
+  latestSignalDate: null,
+  latestSignalUrgency: null,
+  latestSignalStatus: null,
+};
+
+/**
+ * Builds a map of accountId -> SignalMeta from a flat list of directly linked
+ * fullPotentialSignals rows (accountId IS NOT NULL).
+ *
+ * "Latest" is determined by signalDate DESC, then createdAt DESC.
+ * Only direct accountId-linked signals are counted here.
+ * Unlinked/name-matched signals remain visible in the account drawer via
+ * matchedSignalsForAccount and are intentionally excluded from the list view
+ * to avoid expensive fuzzy matching on every page load.
+ */
+function buildSignalMetaByAccount(
+  signals: { id: number; accountId: number | null; signalTitle: string; signalDate: Date | null; urgency: string; status: string; createdAt: Date }[]
+): Record<number, SignalMeta> {
+  const map: Record<number, { count: number; latest: typeof signals[0] | null }> = {};
+  for (const sig of signals) {
+    const aid = sig.accountId;
+    if (aid === null || aid === undefined) continue;
+    const entry = map[aid] ?? { count: 0, latest: null };
+    entry.count += 1;
+    if (!entry.latest) {
+      entry.latest = sig;
+    } else {
+      // Compare by signalDate DESC, then createdAt DESC
+      const aDate = entry.latest.signalDate?.getTime() ?? 0;
+      const bDate = sig.signalDate?.getTime() ?? 0;
+      if (bDate > aDate || (bDate === aDate && sig.createdAt.getTime() > entry.latest.createdAt.getTime())) {
+        entry.latest = sig;
+      }
+    }
+    map[aid] = entry;
+  }
+  const result: Record<number, SignalMeta> = {};
+  for (const [aidStr, entry] of Object.entries(map)) {
+    const aid = Number(aidStr);
+    result[aid] = {
+      signalCount: entry.count,
+      latestSignalTitle: entry.latest?.signalTitle ?? null,
+      latestSignalDate: entry.latest?.signalDate ? entry.latest.signalDate.toISOString().slice(0, 10) : null,
+      latestSignalUrgency: entry.latest?.urgency ?? null,
+      latestSignalStatus: entry.latest?.status ?? null,
+    };
+  }
+  return result;
+}
+
+function toClientAccount(account: any, signalMeta?: SignalMeta) {
   return {
     ...account,
     fullPotentialAud: numberValue(account.fullPotentialAud),
     currentRevenueAud: numberValue(account.currentRevenueAud),
     target2026Aud: numberValue(account.target2026Aud),
     remainingPotentialAud: numberValue(account.remainingPotentialAud),
-    signalCount: 0,
+    ...(signalMeta ?? EMPTY_SIGNAL_META),
   };
 }
 
@@ -1291,13 +1352,34 @@ export const fullPotentialRouter = router({
     );
     const offset = input.offset ?? 0;
     const limit = input.limit ?? 100;
-    const page = filtered.sort((a, b) => {
+    const pageAccounts = filtered.sort((a, b) => {
       const tierOrder: Record<string, number> = { tier_a: 0, tier_b: 1, tier_c: 2, tier_d: 3, unassigned: 4 };
       const aTier = tierOrder[a.priorityTier ?? "unassigned"] ?? 4;
       const bTier = tierOrder[b.priorityTier ?? "unassigned"] ?? 4;
       if (aTier !== bTier) return aTier - bTier;
       return String(a.canonicalName).localeCompare(String(b.canonicalName));
-    }).slice(offset, offset + limit).map(toClientAccount);
+    }).slice(offset, offset + limit);
+
+    // Bulk-fetch direct linked signals for this page only (one query, no N+1).
+    let signalMetaMap: Record<number, SignalMeta> = {};
+    if (pageAccounts.length > 0) {
+      const pageIds = pageAccounts.map(a => a.id);
+      const pageSignals = await db
+        .select({
+          id: fullPotentialSignals.id,
+          accountId: fullPotentialSignals.accountId,
+          signalTitle: fullPotentialSignals.signalTitle,
+          signalDate: fullPotentialSignals.signalDate,
+          urgency: fullPotentialSignals.urgency,
+          status: fullPotentialSignals.status,
+          createdAt: fullPotentialSignals.createdAt,
+        })
+        .from(fullPotentialSignals)
+        .where(inArray(fullPotentialSignals.accountId, pageIds));
+      signalMetaMap = buildSignalMetaByAccount(pageSignals);
+    }
+
+    const page = pageAccounts.map(a => toClientAccount(a, signalMetaMap[a.id]));
     return { accounts: page, total: filtered.length, limit, offset };
   }),
 
