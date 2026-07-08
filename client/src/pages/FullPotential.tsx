@@ -546,8 +546,31 @@ export default function FullPotential() {
                             <div className="text-[11px] text-muted-foreground flex flex-wrap gap-1 mt-1">
                               <Badge>{labelFor(account.priorityTier, TIER_LABELS)}</Badge>
                               <Badge tone="blue">{labelFor(account.rowClass, ROW_CLASS_LABELS)}</Badge>
-                              {account.signalCount > 0 && <Badge tone="gold">{account.signalCount} signals</Badge>}
+                              {account.signalCount > 0 && (
+                                <Badge tone="gold">
+                                  {account.signalCount} {account.signalCount === 1 ? "signal" : "signals"}
+                                </Badge>
+                              )}
                             </div>
+                            {account.signalCount > 0 && (
+                              <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                                {account.latestSignalUrgency && account.latestSignalUrgency !== "unknown" && (
+                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                    account.latestSignalUrgency === "hot" ? "bg-red-50 text-red-700 border-red-200" :
+                                    account.latestSignalUrgency === "warm" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                    "bg-slate-50 text-slate-600 border-slate-200"
+                                  }`}>{account.latestSignalUrgency}</span>
+                                )}
+                                {account.latestSignalTitle && (
+                                  <span className="truncate max-w-[180px]" title={account.latestSignalTitle}>
+                                    {account.latestSignalTitle}
+                                  </span>
+                                )}
+                                {account.latestSignalDate && (
+                                  <span className="text-muted-foreground/70 shrink-0">{account.latestSignalDate}</span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3"><Badge tone={account.fpStatus === "active_target" ? "red" : account.fpStatus === "develop" ? "green" : "slate"}>{labelFor(account.fpStatus, STATUS_LABELS)}</Badge></td>
                           <td className="px-4 py-3"><Badge tone={account.platformPushDecision === "push_now" ? "green" : account.platformPushDecision === "channel_view" ? "blue" : "slate"}>{labelFor(account.platformPushDecision, PUSH_LABELS)}</Badge></td>
