@@ -279,6 +279,17 @@ function parseInteger(value: unknown): number | undefined {
 function parseDate(value: unknown): Date | undefined {
   const raw = cleanString(value);
   if (!raw) return undefined;
+
+  // Handle Excel serial date numbers (e.g. 46287 = 2026-09-01)
+  // Excel epoch: 1899-12-30 (with Lotus 1-2-3 leap-year bug)
+  const asNumber = Number(raw.replace(/[^0-9.]/g, ""));
+  if (/^\d{4,6}$/.test(raw.trim()) && asNumber >= 1 && asNumber <= 99999) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const msPerDay = 86400000;
+    const excelDate = new Date(excelEpoch.getTime() + asNumber * msPerDay);
+    if (!Number.isNaN(excelDate.getTime())) return excelDate;
+  }
+
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return undefined;
   return parsed;
