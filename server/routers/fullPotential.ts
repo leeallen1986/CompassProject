@@ -158,6 +158,479 @@ interface ParsedAccountRow {
   sourceRowNumber: number;
 }
 
+// ── Signal import types ──────────────────────────────────────────────────────
+
+type SignalFieldKey =
+  | "accountId"
+  | "stableKey"
+  | "accountName"
+  | "canonicalName"
+  | "displayName"
+  | "aliasName"
+  | "signalTitle"
+  | "signalSummary"
+  | "signalType"
+  | "sourceName"
+  | "sourceUrl"
+  | "state"
+  | "signalDate"
+  | "confidenceLevel"
+  | "urgency"
+  | "suggestedAction"
+  | "status";
+
+const SIGNAL_HEADER_ALIASES: Record<string, SignalFieldKey> = {
+  // accountId
+  accountid: "accountId",
+  // stableKey
+  stablekey: "stableKey",
+  importkey: "stableKey",
+  // accountName / canonicalName / displayName / aliasName
+  accountname: "accountName",
+  account: "accountName",
+  canonicalname: "canonicalName",
+  canonical: "canonicalName",
+  displayname: "displayName",
+  aliasname: "aliasName",
+  alias: "aliasName",
+  // signalTitle
+  signaltitle: "signalTitle",
+  title: "signalTitle",
+  signal: "signalTitle",
+  signalname: "signalTitle",
+  name: "signalTitle",
+  // signalSummary
+  signalsummary: "signalSummary",
+  summary: "signalSummary",
+  description: "signalSummary",
+  notes: "signalSummary",
+  // signalType
+  signaltype: "signalType",
+  type: "signalType",
+  category: "signalType",
+  // sourceName
+  sourcename: "sourceName",
+  source: "sourceName",
+  publication: "sourceName",
+  // sourceUrl
+  sourceurl: "sourceUrl",
+  url: "sourceUrl",
+  link: "sourceUrl",
+  // state
+  state: "state",
+  territory: "state",
+  // signalDate
+  signaldate: "signalDate",
+  date: "signalDate",
+  publisheddate: "signalDate",
+  published: "signalDate",
+  // confidenceLevel
+  confidencelevel: "confidenceLevel",
+  confidence: "confidenceLevel",
+  // urgency
+  urgency: "urgency",
+  priority: "urgency",
+  heat: "urgency",
+  // suggestedAction
+  suggestedaction: "suggestedAction",
+  action: "suggestedAction",
+  recommendation: "suggestedAction",
+  // status
+  status: "status",
+  signalstatus: "status",
+  reviewstatus: "status",
+};
+
+interface ParsedSignalRow {
+  rowNumber: number;
+  accountId?: number;
+  stableKey?: string;
+  accountName?: string;
+  canonicalName?: string;
+  displayName?: string;
+  aliasName?: string;
+  signalTitle: string;
+  signalSummary?: string;
+  signalType: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  state?: string;
+  signalDate?: Date;
+  confidenceLevel: string;
+  urgency: string;
+  suggestedAction?: string;
+  status: string;
+}
+
+interface SignalImportRowError {
+  rowNumber: number;
+  field?: string;
+  message: string;
+}
+
+interface SignalImportPreviewRow {
+  rowNumber: number;
+  signalTitle: string;
+  accountId: number | null;
+  accountMatchReason: string | null;
+  signalDate: string | null;
+  confidenceLevel: string | null;
+  urgency: string | null;
+  status: string | null;
+}
+
+interface SignalImportSummary {
+  dryRun: boolean;
+  workbookVersion: string | null;
+  rowsParsed: number;
+  rowsValid: number;
+  createdSignals: number;
+  skippedDuplicates: number;
+  linkedAccounts: number;
+  unlinkedSignals: number;
+  errors: SignalImportRowError[];
+  preview: SignalImportPreviewRow[];
+}
+
+const importSignalsInputSchema = z.object({
+  fileName: z.string().min(1).max(512),
+  fileBase64: z.string().min(1),
+  dryRun: z.boolean().optional().default(true),
+  workbookVersion: z.string().max(32).optional(),
+  sheetName: z.string().min(1).max(128).optional(),
+});
+
+const SIGNAL_TYPE_VALUES = new Set([
+  "drilling_campaign",
+  "awarded_project",
+  "live_tender",
+  "shutdown_turnaround",
+  "pipeline_commissioning",
+  "mine_site_activity",
+  "civil_application",
+  "rental_fleet_signal",
+  "competitor_channel_signal",
+  "installed_base_signal",
+  "contact_discovery_signal",
+  "manual",
+  "other",
+]);
+
+const SIGNAL_CONFIDENCE_VALUES = new Set(["high", "medium", "low", "unknown"]);
+const SIGNAL_URGENCY_VALUES = new Set(["hot", "warm", "cold", "unknown"]);
+const SIGNAL_STATUS_VALUES = new Set(["new", "reviewed", "promoted", "dismissed", "archived"]);
+
+function buildSignalHeaderMap(headers: unknown[]): Map<SignalFieldKey, number> {
+  const map = new Map<SignalFieldKey, number>();
+  headers.forEach((header, index) => {
+    const field = SIGNAL_HEADER_ALIASES[normalizeHeader(header)];
+    if (field && !map.has(field)) map.set(field, index);
+  });
+  return map;
+}
+
+function signalRowValue(row: unknown[], headerMap: Map<SignalFieldKey, number>, field: SignalFieldKey): unknown {
+  const index = headerMap.get(field);
+  if (index === undefined) return undefined;
+  return row[index];
+}
+
+function mapSignalType(value: unknown): string {
+  const token = normalizeToken(value);
+  if (!token) return "other";
+  if (token.includes("drill")) return "drilling_campaign";
+  if (token.includes("award")) return "awarded_project";
+  if (token.includes("tender") || token.includes("live tender")) return "live_tender";
+  if (token.includes("shutdown") || token.includes("turnaround")) return "shutdown_turnaround";
+  if (token.includes("pipeline") || token.includes("commission")) return "pipeline_commissioning";
+  if (token.includes("mine site") || token.includes("minesite") || token.includes("mine activity")) return "mine_site_activity";
+  if (token.includes("civil")) return "civil_application";
+  if (token.includes("rental") || token.includes("fleet")) return "rental_fleet_signal";
+  if (token.includes("competitor") || token.includes("channel signal")) return "competitor_channel_signal";
+  if (token.includes("installed base")) return "installed_base_signal";
+  if (token.includes("contact") || token.includes("discovery")) return "contact_discovery_signal";
+  if (token === "manual") return "manual";
+  if (SIGNAL_TYPE_VALUES.has(token)) return token;
+  return "other";
+}
+
+function parseSignalRow(
+  row: unknown[],
+  headers: unknown[],
+  headerMap: Map<SignalFieldKey, number>,
+  rowNumber: number,
+): { parsed?: ParsedSignalRow; error?: SignalImportRowError; blank?: boolean } {
+  if (!row || row.every(cell => !cleanString(cell))) return { blank: true };
+  const signalTitle = cleanString(signalRowValue(row, headerMap, "signalTitle"));
+  if (!signalTitle) return { error: { rowNumber, field: "signalTitle", message: "Missing or blank signalTitle" } };
+
+  const rawAccountId = cleanString(signalRowValue(row, headerMap, "accountId"));
+  const parsedAccountId = rawAccountId ? parseInteger(rawAccountId) : undefined;
+
+  const rawDate = signalRowValue(row, headerMap, "signalDate");
+  let signalDate: Date | undefined;
+  if (rawDate !== undefined && cleanString(rawDate)) {
+    signalDate = parseDate(rawDate);
+    if (!signalDate) return { error: { rowNumber, field: "signalDate", message: `Invalid signalDate: ${cleanString(rawDate)}` } };
+  }
+
+  const rawConfidence = cleanString(signalRowValue(row, headerMap, "confidenceLevel"));
+  const confidenceLevel = rawConfidence && SIGNAL_CONFIDENCE_VALUES.has(normalizeToken(rawConfidence))
+    ? normalizeToken(rawConfidence)
+    : "unknown";
+
+  const rawUrgency = cleanString(signalRowValue(row, headerMap, "urgency"));
+  const urgency = rawUrgency && SIGNAL_URGENCY_VALUES.has(normalizeToken(rawUrgency))
+    ? normalizeToken(rawUrgency)
+    : "unknown";
+
+  const rawStatus = cleanString(signalRowValue(row, headerMap, "status"));
+  const status = rawStatus && SIGNAL_STATUS_VALUES.has(normalizeToken(rawStatus))
+    ? normalizeToken(rawStatus)
+    : "new";
+
+  const parsed: ParsedSignalRow = {
+    rowNumber,
+    accountId: parsedAccountId,
+    stableKey: cleanString(signalRowValue(row, headerMap, "stableKey")),
+    accountName: cleanString(signalRowValue(row, headerMap, "accountName")),
+    canonicalName: cleanString(signalRowValue(row, headerMap, "canonicalName")),
+    displayName: cleanString(signalRowValue(row, headerMap, "displayName")),
+    aliasName: cleanString(signalRowValue(row, headerMap, "aliasName")),
+    signalTitle,
+    signalSummary: cleanString(signalRowValue(row, headerMap, "signalSummary")),
+    signalType: mapSignalType(signalRowValue(row, headerMap, "signalType")),
+    sourceName: cleanString(signalRowValue(row, headerMap, "sourceName")),
+    sourceUrl: cleanString(signalRowValue(row, headerMap, "sourceUrl")),
+    state: cleanString(signalRowValue(row, headerMap, "state")),
+    signalDate,
+    confidenceLevel,
+    urgency,
+    suggestedAction: cleanString(signalRowValue(row, headerMap, "suggestedAction")),
+    status,
+  };
+  return { parsed };
+}
+
+function buildSignalDuplicateKey(
+  accountId: number | null,
+  signalTitle: string,
+  sourceUrl: string | undefined,
+  sourceName: string | undefined,
+  signalDate: Date | undefined,
+): string {
+  const accountPart = accountId !== null && accountId !== undefined ? String(accountId) : "unlinked";
+  const titlePart = normalizeToken(signalTitle);
+  const sourcePart = sourceUrl ? normalizeToken(sourceUrl) : sourceName ? normalizeToken(sourceName) : "no-source";
+  const datePart = signalDate ? signalDate.toISOString().slice(0, 10) : "no-date";
+  return `${accountPart}::${titlePart}::${sourcePart}::${datePart}`;
+}
+
+async function resolveSignalAccountId(
+  db: Awaited<ReturnType<typeof getDb>>,
+  parsed: ParsedSignalRow,
+): Promise<{ accountId: number | null; matchReason: string | null }> {
+  if (!db) return { accountId: null, matchReason: null };
+
+  // Rule 1: explicit accountId
+  if (parsed.accountId !== undefined) {
+    const [row] = await db.select({ id: fullPotentialAccounts.id }).from(fullPotentialAccounts)
+      .where(eq(fullPotentialAccounts.id, parsed.accountId)).limit(1);
+    if (row) return { accountId: row.id, matchReason: "account_id" };
+  }
+
+  // Rule 2: stableKey
+  if (parsed.stableKey) {
+    const [row] = await db.select({ id: fullPotentialAccounts.id }).from(fullPotentialAccounts)
+      .where(eq(fullPotentialAccounts.stableKey, parsed.stableKey)).limit(1);
+    if (row) return { accountId: row.id, matchReason: "stable_key" };
+  }
+
+  // Rule 3: canonicalName / accountName / displayName (exact normalised match)
+  const nameCandidates = [parsed.canonicalName, parsed.accountName, parsed.displayName].filter((v): v is string => !!v);
+  for (const candidate of nameCandidates) {
+    const normCandidate = normalizeToken(candidate);
+    const [row] = await db.select({ id: fullPotentialAccounts.id, canonicalName: fullPotentialAccounts.canonicalName, displayName: fullPotentialAccounts.displayName })
+      .from(fullPotentialAccounts)
+      .where(
+        or(
+          sql`LOWER(${fullPotentialAccounts.canonicalName}) = ${normCandidate}`,
+          sql`LOWER(${fullPotentialAccounts.displayName}) = ${normCandidate}`,
+        )
+      ).limit(1);
+    if (row) {
+      const reason = normalizeToken(row.canonicalName) === normCandidate ? "canonical_name" : "display_name";
+      return { accountId: row.id, matchReason: reason };
+    }
+  }
+
+  // Rule 4: aliasName
+  if (parsed.aliasName) {
+    const normAlias = normalizeToken(parsed.aliasName);
+    const [aliasRow] = await db.select({ accountId: fullPotentialAccountAliases.accountId })
+      .from(fullPotentialAccountAliases)
+      .where(sql`LOWER(${fullPotentialAccountAliases.aliasName}) = ${normAlias}`)
+      .limit(1);
+    if (aliasRow) return { accountId: aliasRow.accountId, matchReason: "alias" };
+  }
+
+  return { accountId: null, matchReason: "unlinked" };
+}
+
+async function importSignals(input: z.infer<typeof importSignalsInputSchema>, user: { id: number; name?: string | null; email?: string | null }): Promise<SignalImportSummary> {
+  const db = await getDb();
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+  const dryRun = input.dryRun ?? true;
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = decodeWorkbook(input.fileName, input.fileBase64);
+  } catch (error) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+  }
+  let selectedSheet: string;
+  let sheet: XLSX.WorkSheet;
+  try {
+    ({ selectedSheet, sheet } = selectWorkbookSheet(workbook, input.sheetName));
+  } catch (error) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
+  }
+  const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", blankrows: false, raw: false });
+  if (allRows.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Selected sheet is empty" });
+
+  // Detect header row by looking for signalTitle alias
+  let headerRowIndex = 0;
+  const maxScan = Math.min(allRows.length, 15);
+  for (let i = 0; i < maxScan; i++) {
+    const normalized = (allRows[i] ?? []).map(normalizeHeader);
+    if (normalized.some(h => SIGNAL_HEADER_ALIASES[h] === "signalTitle")) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  const headers = allRows[headerRowIndex] ?? [];
+  const headerMap = buildSignalHeaderMap(headers);
+  const dataRows = allRows.slice(headerRowIndex + 1);
+
+  const summary: SignalImportSummary = {
+    dryRun,
+    workbookVersion: input.workbookVersion ?? null,
+    rowsParsed: dataRows.length,
+    rowsValid: 0,
+    createdSignals: 0,
+    skippedDuplicates: 0,
+    linkedAccounts: 0,
+    unlinkedSignals: 0,
+    errors: [],
+    preview: [],
+  };
+
+  // Track duplicate keys seen within this upload
+  const seenDuplicateKeys = new Set<string>();
+
+  // Pre-load existing signal duplicate keys from DB for fast lookup
+  const existingSignals = await db.select({
+    accountId: fullPotentialSignals.accountId,
+    signalTitle: fullPotentialSignals.signalTitle,
+    sourceUrl: fullPotentialSignals.sourceUrl,
+    sourceName: fullPotentialSignals.sourceName,
+    signalDate: fullPotentialSignals.signalDate,
+  }).from(fullPotentialSignals);
+
+  const existingDuplicateKeys = new Set<string>(
+    existingSignals.map(s =>
+      buildSignalDuplicateKey(
+        s.accountId ?? null,
+        s.signalTitle,
+        s.sourceUrl ?? undefined,
+        s.sourceName ?? undefined,
+        s.signalDate ? new Date(s.signalDate) : undefined,
+      )
+    )
+  );
+
+  for (let index = 0; index < dataRows.length; index++) {
+    const rowNumber = headerRowIndex + index + 2;
+    const result = parseSignalRow(dataRows[index], headers, headerMap, rowNumber);
+    if (result.blank) continue;
+    if (result.error || !result.parsed) {
+      if (summary.errors.length < MAX_ROW_ERRORS && result.error) summary.errors.push(result.error);
+      continue;
+    }
+    const parsed = result.parsed;
+
+    // Resolve account linkage
+    const { accountId: resolvedAccountId, matchReason } = await resolveSignalAccountId(db, parsed);
+
+    // Build duplicate key
+    const dupKey = buildSignalDuplicateKey(
+      resolvedAccountId,
+      parsed.signalTitle,
+      parsed.sourceUrl,
+      parsed.sourceName,
+      parsed.signalDate,
+    );
+
+    // Check for within-upload duplicate
+    if (seenDuplicateKeys.has(dupKey)) {
+      summary.skippedDuplicates++;
+      continue;
+    }
+    seenDuplicateKeys.add(dupKey);
+
+    // Check for DB duplicate
+    if (existingDuplicateKeys.has(dupKey)) {
+      summary.skippedDuplicates++;
+      continue;
+    }
+
+    summary.rowsValid++;
+    if (resolvedAccountId !== null) {
+      summary.linkedAccounts++;
+    } else {
+      summary.unlinkedSignals++;
+    }
+
+    // Add to preview (capped at 20)
+    if (summary.preview.length < 20) {
+      summary.preview.push({
+        rowNumber,
+        signalTitle: parsed.signalTitle,
+        accountId: resolvedAccountId,
+        accountMatchReason: matchReason,
+        signalDate: parsed.signalDate ? parsed.signalDate.toISOString() : null,
+        confidenceLevel: parsed.confidenceLevel,
+        urgency: parsed.urgency,
+        status: parsed.status,
+      });
+    }
+
+    if (!dryRun) {
+      await db.insert(fullPotentialSignals).values({
+        accountId: resolvedAccountId ?? undefined,
+        signalType: parsed.signalType as any,
+        signalTitle: parsed.signalTitle,
+        signalSummary: parsed.signalSummary ?? null,
+        sourceName: parsed.sourceName ?? null,
+        sourceUrl: parsed.sourceUrl ?? null,
+        signalDate: parsed.signalDate ?? null,
+        state: parsed.state ?? null,
+        confidenceLevel: parsed.confidenceLevel as any,
+        urgency: parsed.urgency as any,
+        suggestedAction: parsed.suggestedAction ?? null,
+        status: parsed.status as any,
+      } as any);
+      summary.createdSignals++;
+    }
+  }
+
+  if (summary.rowsValid === 0 && summary.errors.length === 0 && summary.skippedDuplicates === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "No usable signal rows found in the selected sheet" });
+  }
+
+  return summary;
+}
+
 const importInputSchema = z.object({
   fileName: z.string().min(1).max(512),
   fileBase64: z.string().min(1),
@@ -793,6 +1266,8 @@ async function importFullPotential(input: z.infer<typeof importInputSchema>, use
 
 export const fullPotentialRouter = router({
   import: adminProcedure.input(importInputSchema).mutation(async ({ ctx, input }) => importFullPotential(input, ctx.user)),
+
+  importSignals: adminProcedure.input(importSignalsInputSchema).mutation(async ({ ctx, input }) => importSignals(input, ctx.user)),
 
   list: protectedProcedure.input(listInputSchema).query(async ({ input }) => {
     const db = await getDb();
