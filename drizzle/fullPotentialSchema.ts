@@ -36,11 +36,10 @@ export const fullPotentialAccounts = mysqlTable("fullPotentialAccounts", {
   subsegment: varchar("subsegment", { length: 128 }),
   applicationPlays: json("applicationPlays").$type<string[]>(),
 
-  // Route-to-market and ownership
+  // Route-to-market and ownership.
+  // Keep route values role/channel based; individual rep assignment belongs in ownerName/userId.
   routeToMarket: mysqlEnum("routeToMarket", [
-    "direct_ape_ryan",
-    "direct_ape_paul_lueth",
-    "direct_ape_dan",
+    "direct_ape",
     "cea",
     "cp_aps",
     "cp_blastone",
@@ -56,13 +55,13 @@ export const fullPotentialAccounts = mysqlTable("fullPotentialAccounts", {
   ownerName: varchar("ownerName", { length: 256 }),
   channelOwner: varchar("channelOwner", { length: 256 }),
 
-  // Full Potential operating status
+  // Full Potential operating status.
+  // Channel ownership is expressed by rowClass + routeToMarket, not fpStatus.
   fpStatus: mysqlEnum("fpStatus", [
     "active_target",
     "develop",
     "watch",
     "qualify",
-    "channel_managed",
     "park",
     "exclude",
   ]).notNull().default("qualify"),
