@@ -1,5 +1,5 @@
 /**
- * Tests for fullPotential.matchedSignalsForAccount (PR #27 + PR #30 patch)
+ * Tests for fullPotential.matchedSignalsForAccount (PR #27 + PR #30 + PR #35)
  *
  * Uses the same appRouter.createCaller pattern as auth.logout.test.ts.
  *
@@ -22,6 +22,17 @@
  * 14. actionState is present on every match in the result
  * 15. actionState.hasOpenAction is false for a signal with no linked action
  * 16. actionState.hasClosedAction is false for a signal with no linked action
+ *
+ * PR #35 additions:
+ * 17. project match actionState.hasOpenAction/hasClosedAction correct when no action exists
+ * 18. project match hasOpenAction=true and openActionId populated when open action exists
+ * 19. project match openActionDueDate is a valid ISO string when dueDate is set
+ * 20. project match hasOpenAction=false and hasClosedAction=true after action is closed
+ * 21. project match closedActionCompletedAt is a valid ISO string when completedAt is set
+ * 22. fp_signal with both open and closed actions: both flags true, open fields not overwritten
+ * 23. project with both open and closed actions: open beats closed in display fields
+ * 24. fp_signal openActionDueDate is populated when dueDate is set
+ * 25. matchedSignalsForAccount remains read-only (no actions created) — project variant
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -33,8 +44,9 @@ import {
   fullPotentialAccountAliases,
   fullPotentialSignals,
   fullPotentialActions,
+  projects,
 } from "../drizzle/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 import type { User } from "../drizzle/schema";
 
 // ── tRPC caller context ───────────────────────────────────────────────────────
@@ -88,6 +100,13 @@ let testAccountId: number;
 let directSignalId: number;
 const insertedSignalIds: number[] = [];
 const insertedActionIds: number[] = [];
+
+// ── PR #35 project-match test state ──────────────────────────────────────────
+const PR35_PREFIX = "PR35_EP_TEST_";
+let pr35AccountId: number;
+let pr35ProjectId: number;
+const pr35ActionIds: number[] = [];
+const pr35ProjectIds: number[] = [];
 
 beforeAll(async () => {
   const db = await getDb();
@@ -204,6 +223,21 @@ afterAll(async () => {
   if (testAccountId) {
     await db.delete(fullPotentialAccountAliases).where(eq(fullPotentialAccountAliases.accountId, testAccountId));
     await db.delete(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, testAccountId));
+  }
+
+  // PR #35 cleanup
+  if (pr35ActionIds.length > 0) {
+    await db.delete(fullPotentialActions).where(inArray(fullPotentialActions.id, pr35ActionIds));
+  }
+  if (pr35AccountId) {
+    await db.delete(fullPotentialActions).where(eq(fullPotentialActions.accountId, pr35AccountId));
+  }
+  if (pr35ProjectIds.length > 0) {
+    await db.delete(projects).where(inArray(projects.id, pr35ProjectIds));
+  }
+  if (pr35AccountId) {
+    await db.delete(fullPotentialAccountAliases).where(eq(fullPotentialAccountAliases.accountId, pr35AccountId));
+    await db.delete(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, pr35AccountId));
   }
 });
 
@@ -415,5 +449,356 @@ describe("fullPotential.matchedSignalsForAccount actionState (PR #30)", () => {
       m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
     );
     expect(directMatch?.actionState?.closedActionStatus).toBe("completed");
+  });
+});
+
+// ── PR #35: project actionState, due date, open+closed coexistence ────────────
+// NOTE: These tests share a single describe block and rely on a specific
+// execution order within it (action is created, then closed, then a second
+// action is added). This ordering dependency is intentional and isolated
+// entirely within this describe block. Tests in other describe blocks are
+// fully independent.
+
+describe("fullPotential.matchedSignalsForAccount project actionState (PR #35)", () => {
+  // ── Setup: insert a dedicated account + project for PR #35 tests ──────────
+  beforeAll(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // Insert a dedicated account whose displayName matches the project owner
+    await db.insert(fullPotentialAccounts).values({
+      stableKey: `${PR35_PREFIX}acme_mining|account|AU|WA|direct_ape`,
+      canonicalName: `${PR35_PREFIX}Acme Mining Pty Ltd`,
+      displayName: `${PR35_PREFIX}Acme Mining`,
+      state: "WA",
+      rowClass: "account",
+      routeToMarket: "direct_ape",
+      fpStatus: "active_target",
+      priorityTier: "tier_a",
+      platformPushDecision: "push_now",
+      installedBaseStatus: "unknown",
+      c4cStatus: "unknown",
+      confidenceLevel: "unknown",
+    } as any);
+
+    const [acct] = await db
+      .select()
+      .from(fullPotentialAccounts)
+      .where(eq(fullPotentialAccounts.stableKey, `${PR35_PREFIX}acme_mining|account|AU|WA|direct_ape`))
+      .limit(1);
+    pr35AccountId = acct.id;
+
+    // Insert a project whose owner matches the account name (triggers name-match)
+    const uniqueReportId = 999800 + Math.floor(Math.random() * 100);
+    await db.insert(projects).values({
+      reportId: uniqueReportId,
+      projectKey: `${PR35_PREFIX}acme-mining-expansion-${uniqueReportId}`,
+      name: `${PR35_PREFIX}Acme Mining Expansion`,
+      location: "WA",
+      value: "$5M",
+      owner: `${PR35_PREFIX}Acme Mining`,   // normalises to match account displayName
+      priority: "hot",
+      opportunityRoute: "Direct CAPEX",
+      sector: "mining",
+      isNew: false,
+      projectState: "WA",                   // same state as account → medium confidence
+    } as any);
+
+    const [proj] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.projectKey, `${PR35_PREFIX}acme-mining-expansion-${uniqueReportId}`))
+      .limit(1);
+    pr35ProjectId = proj.id;
+    pr35ProjectIds.push(proj.id);
+  });
+
+  it("project match has actionState with hasOpenAction=false and hasClosedAction=false when no action exists", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+    const projMatch = result.matches.find(
+      m => m.sourceType === "project" && m.sourceId === pr35ProjectId
+    );
+    expect(projMatch).toBeDefined();
+    expect(projMatch?.actionState?.hasOpenAction).toBe(false);
+    expect(projMatch?.actionState?.hasClosedAction).toBe(false);
+  });
+
+  it("project match has hasOpenAction=true and openActionId populated when an open action exists", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // +7 days
+    await db.insert(fullPotentialActions).values({
+      accountId: pr35AccountId,
+      userId: 1,
+      projectId: pr35ProjectId,
+      actionType: "account_review",
+      status: "not_started",
+      recommendedAction: "PR35 project open action",
+      ownerName: "PR35 Test User",
+      dueDate,
+    } as any);
+
+    const [newAction] = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(
+        and(
+          eq(fullPotentialActions.accountId, pr35AccountId),
+          eq(fullPotentialActions.projectId, pr35ProjectId)
+        )
+      )
+      .limit(1);
+    if (newAction) pr35ActionIds.push(newAction.id);
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+    const projMatch = result.matches.find(
+      m => m.sourceType === "project" && m.sourceId === pr35ProjectId
+    );
+    expect(projMatch?.actionState?.hasOpenAction).toBe(true);
+    expect(projMatch?.actionState?.openActionId).toBe(newAction?.id);
+    expect(projMatch?.actionState?.openActionStatus).toBe("not_started");
+  });
+
+  it("project match openActionDueDate is a valid ISO string when dueDate is set", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+    const projMatch = result.matches.find(
+      m => m.sourceType === "project" && m.sourceId === pr35ProjectId
+    );
+    expect(projMatch?.actionState?.openActionDueDate).toBeTruthy();
+    const parsed = new Date(projMatch!.actionState!.openActionDueDate!);
+    expect(Number.isNaN(parsed.getTime())).toBe(false);
+  });
+
+  it("project match has hasOpenAction=false and hasClosedAction=true after action is closed", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    if (pr35ActionIds.length > 0) {
+      const completedAt = new Date();
+      await db
+        .update(fullPotentialActions)
+        .set({ status: "completed", completedAt } as any)
+        .where(eq(fullPotentialActions.id, pr35ActionIds[0]));
+    }
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+    const projMatch = result.matches.find(
+      m => m.sourceType === "project" && m.sourceId === pr35ProjectId
+    );
+    expect(projMatch?.actionState?.hasOpenAction).toBe(false);
+    expect(projMatch?.actionState?.hasClosedAction).toBe(true);
+    expect(projMatch?.actionState?.closedActionStatus).toBe("completed");
+  });
+
+  it("project match closedActionCompletedAt is a valid ISO string when completedAt is set", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+    const projMatch = result.matches.find(
+      m => m.sourceType === "project" && m.sourceId === pr35ProjectId
+    );
+    expect(projMatch?.actionState?.closedActionCompletedAt).toBeTruthy();
+    const parsed = new Date(projMatch!.actionState!.closedActionCompletedAt!);
+    expect(Number.isNaN(parsed.getTime())).toBe(false);
+  });
+
+  it("fp_signal with both open and closed actions: hasOpenAction=true, hasClosedAction=true, open fields not overwritten", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // Insert a dedicated signal for this test so it is independent of PR #30 ordering
+    await db.insert(fullPotentialSignals).values({
+      accountId: testAccountId,
+      signalTitle: `${TEST_PREFIX}Both-actions signal`,
+      signalSummary: "Signal used for open+closed coexistence test",
+      sourceName: "Test",
+      state: "WA",
+      confidenceLevel: "high",
+      signalType: "other",
+      urgency: "warm",
+      status: "new",
+    } as any);
+    const [bothSig] = await db
+      .select({ id: fullPotentialSignals.id })
+      .from(fullPotentialSignals)
+      .where(eq(fullPotentialSignals.signalTitle, `${TEST_PREFIX}Both-actions signal`))
+      .limit(1);
+    if (bothSig) insertedSignalIds.push(bothSig.id);
+
+    // Insert a closed action first
+    await db.insert(fullPotentialActions).values({
+      accountId: testAccountId,
+      userId: 1,
+      signalId: bothSig.id,
+      actionType: "account_review",
+      status: "completed",
+      recommendedAction: "PR35 both-actions closed",
+      ownerName: "PR35 Test User",
+      completedAt: new Date(),
+    } as any);
+    // Insert an open action after (newer createdAt → appears first in desc order)
+    await db.insert(fullPotentialActions).values({
+      accountId: testAccountId,
+      userId: 1,
+      signalId: bothSig.id,
+      actionType: "customer_call",
+      status: "in_progress",
+      recommendedAction: "PR35 both-actions open",
+      ownerName: "PR35 Test User",
+    } as any);
+
+    // Collect both action IDs for cleanup
+    const bothActionRows = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(
+        and(
+          eq(fullPotentialActions.accountId, testAccountId),
+          eq(fullPotentialActions.signalId, bothSig.id)
+        )
+      );
+    for (const r of bothActionRows) insertedActionIds.push(r.id);
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const match = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.sourceId === bothSig.id
+    );
+    expect(match).toBeDefined();
+    expect(match?.actionState?.hasOpenAction).toBe(true);
+    expect(match?.actionState?.hasClosedAction).toBe(true);
+    // Open fields must reflect the open action, not the closed one
+    expect(match?.actionState?.openActionStatus).toBe("in_progress");
+    // Closed fields must reflect the closed action
+    expect(match?.actionState?.closedActionStatus).toBe("completed");
+    // Open and closed IDs must differ
+    expect(match?.actionState?.openActionId).not.toBe(match?.actionState?.closedActionId);
+  });
+
+  it("project with both open and closed actions: open action takes priority in display fields", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // The project already has a closed action from the earlier test.
+    // Insert a new open action for the same project.
+    await db.insert(fullPotentialActions).values({
+      accountId: pr35AccountId,
+      userId: 1,
+      projectId: pr35ProjectId,
+      actionType: "customer_call",
+      status: "in_progress",
+      recommendedAction: "PR35 project follow-up open",
+      ownerName: "PR35 Test User",
+    } as any);
+
+    const [newOpenAction] = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(
+        and(
+          eq(fullPotentialActions.accountId, pr35AccountId),
+          eq(fullPotentialActions.projectId, pr35ProjectId),
+          eq(fullPotentialActions.status, "in_progress")
+        )
+      )
+      .limit(1);
+    if (newOpenAction) pr35ActionIds.push(newOpenAction.id);
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+    const projMatch = result.matches.find(
+      m => m.sourceType === "project" && m.sourceId === pr35ProjectId
+    );
+    expect(projMatch?.actionState?.hasOpenAction).toBe(true);
+    expect(projMatch?.actionState?.hasClosedAction).toBe(true);
+    // Open action fields must reflect the open action
+    expect(projMatch?.actionState?.openActionStatus).toBe("in_progress");
+    // Closed action fields must still reflect the closed action
+    expect(projMatch?.actionState?.closedActionStatus).toBe("completed");
+    // Open and closed IDs must differ
+    expect(projMatch?.actionState?.openActionId).not.toBe(projMatch?.actionState?.closedActionId);
+  });
+
+  it("fp_signal openActionDueDate is populated when dueDate is set", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // Insert a dedicated signal with a known dueDate on its action
+    await db.insert(fullPotentialSignals).values({
+      accountId: testAccountId,
+      signalTitle: `${TEST_PREFIX}DueDate signal`,
+      signalSummary: "Signal for due date assertion",
+      sourceName: "Test",
+      state: "WA",
+      confidenceLevel: "high",
+      signalType: "other",
+      urgency: "warm",
+      status: "new",
+    } as any);
+    const [dueSig] = await db
+      .select({ id: fullPotentialSignals.id })
+      .from(fullPotentialSignals)
+      .where(eq(fullPotentialSignals.signalTitle, `${TEST_PREFIX}DueDate signal`))
+      .limit(1);
+    if (dueSig) insertedSignalIds.push(dueSig.id);
+
+    const expectedDue = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // +14 days
+    await db.insert(fullPotentialActions).values({
+      accountId: testAccountId,
+      userId: 1,
+      signalId: dueSig.id,
+      actionType: "account_review",
+      status: "not_started",
+      recommendedAction: "PR35 due date test",
+      ownerName: "PR35 Test User",
+      dueDate: expectedDue,
+    } as any);
+    const [dueAction] = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(
+        and(
+          eq(fullPotentialActions.accountId, testAccountId),
+          eq(fullPotentialActions.signalId, dueSig.id)
+        )
+      )
+      .limit(1);
+    if (dueAction) insertedActionIds.push(dueAction.id);
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const match = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.sourceId === dueSig.id
+    );
+    expect(match?.actionState?.hasOpenAction).toBe(true);
+    expect(match?.actionState?.openActionDueDate).toBeTruthy();
+    const parsed = new Date(match!.actionState!.openActionDueDate!);
+    expect(Number.isNaN(parsed.getTime())).toBe(false);
+    // Date should be within 1 day of expected
+    expect(Math.abs(parsed.getTime() - expectedDue.getTime())).toBeLessThan(24 * 60 * 60 * 1000);
+  });
+
+  it("matchedSignalsForAccount remains read-only for project matches (no actions created)", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    const beforeRows = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(eq(fullPotentialActions.accountId, pr35AccountId));
+
+    const caller = appRouter.createCaller(createUserContext());
+    await caller.fullPotential.matchedSignalsForAccount({ accountId: pr35AccountId });
+
+    const afterRows = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(eq(fullPotentialActions.accountId, pr35AccountId));
+
+    expect(afterRows.length).toBe(beforeRows.length);
   });
 });
