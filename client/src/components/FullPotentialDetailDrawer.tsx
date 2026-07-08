@@ -459,6 +459,161 @@ function SignalConfidenceBadge({ level }: { level: "high" | "medium" | "low" }) 
   );
 }
 
+const ACTION_TYPE_OPTIONS = [
+  { value: "account_review", label: "Account Review" },
+  { value: "contact_discovery", label: "Contact Discovery" },
+  { value: "customer_call", label: "Customer Call" },
+  { value: "site_visit", label: "Site Visit" },
+  { value: "channel_handover", label: "Channel Handover" },
+  { value: "installed_base_validation", label: "Installed Base Validation" },
+  { value: "c4c_create_update", label: "C4C Create/Update" },
+  { value: "proposal_followup", label: "Proposal Follow-up" },
+  { value: "manager_review", label: "Manager Review" },
+  { value: "other", label: "Other" },
+];
+
+function PromoteSignalForm({
+  accountId,
+  sourceType,
+  sourceId,
+  onSuccess,
+  onCancel,
+}: {
+  accountId: number;
+  sourceType: "fp_signal" | "project";
+  sourceId: number;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const [actionType, setActionType] = useState("account_review");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const utils = trpc.useUtils();
+
+  const promote = trpc.fullPotential.promoteMatchedSignalToAction.useMutation({
+    onSuccess: () => {
+      toast.success("Action created from signal");
+      utils.fullPotential.actionsForAccount.invalidate({ accountId });
+      utils.fullPotential.myWeekActions.invalidate();
+      utils.fullPotential.matchedSignalsForAccount.invalidate({ accountId });
+      onSuccess();
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Failed to create action";
+      toast.error(msg);
+    },
+  });
+
+  return (
+    <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
+      <div className="text-xs font-semibold text-blue-800 mb-1">Create action from this signal</div>
+      <div>
+        <label className="block text-[10px] font-medium text-muted-foreground mb-1">Action type</label>
+        <select
+          value={actionType}
+          onChange={e => setActionType(e.target.value)}
+          className="w-full rounded border border-border bg-background text-xs px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
+          {ACTION_TYPE_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-[10px] font-medium text-muted-foreground mb-1">Due date (optional)</label>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={e => setDueDate(e.target.value)}
+          className="w-full rounded border border-border bg-background text-xs px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
+      </div>
+      <div>
+        <label className="block text-[10px] font-medium text-muted-foreground mb-1">Notes (optional)</label>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={2}
+          placeholder="Additional context..."
+          className="w-full rounded border border-border bg-background text-xs px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          className="text-xs h-7 px-3"
+          disabled={promote.isPending}
+          onClick={() => promote.mutate({ accountId, sourceType, sourceId, actionType: actionType as any, dueDate: dueDate || undefined, notes: notes || undefined })}
+        >
+          {promote.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+          Create action
+        </Button>
+        <Button size="sm" variant="outline" className="text-xs h-7 px-3" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match: any; idx: number }) {
+  const [showForm, setShowForm] = useState(false);
+  return (
+    <div key={`${match.sourceType}-${match.sourceId}-${idx}`} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-semibold text-navy text-sm leading-snug">{match.title}</div>
+        <SignalConfidenceBadge level={match.confidence} />
+      </div>
+      {match.summary && (
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{match.summary}</p>
+      )}
+      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+        {match.state && <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{match.state}</span>}
+        {match.signalDate && (
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {new Date(match.signalDate).toLocaleDateString()}
+          </span>
+        )}
+        {match.sourceName && <span className="text-muted-foreground">{match.sourceName}</span>}
+        <span className="text-muted-foreground italic">{match.matchReason}</span>
+      </div>
+      {match.suggestedAction && (
+        <p className="text-xs text-navy/80 font-medium">Suggested: {match.suggestedAction}</p>
+      )}
+      <div className="flex items-center gap-2 flex-wrap">
+        {match.sourceUrl && (
+          <a
+            href={match.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[10px] text-teal hover:underline"
+          >
+            <ExternalLink className="w-3 h-3" /> View source
+          </a>
+        )}
+        {!showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+          >
+            <Plus className="w-3 h-3" /> Create action
+          </button>
+        )}
+      </div>
+      {showForm && (
+        <PromoteSignalForm
+          accountId={accountId}
+          sourceType={match.sourceType}
+          sourceId={match.sourceId}
+          onSuccess={() => setShowForm(false)}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 function MatchedSignalsSection({ accountId }: { accountId: number }) {
   const { data, isLoading, isError } = trpc.fullPotential.matchedSignalsForAccount.useQuery(
     { accountId },
@@ -482,39 +637,7 @@ function MatchedSignalsSection({ accountId }: { accountId: number }) {
       ) : (
         <div className="space-y-3">
           {data.matches.map((match: any, idx: number) => (
-            <div key={`${match.sourceType}-${match.sourceId}-${idx}`} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="font-semibold text-navy text-sm leading-snug">{match.title}</div>
-                <SignalConfidenceBadge level={match.confidence} />
-              </div>
-              {match.summary && (
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{match.summary}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-                {match.state && <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{match.state}</span>}
-                {match.signalDate && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(match.signalDate).toLocaleDateString()}
-                  </span>
-                )}
-                {match.sourceName && <span className="text-muted-foreground">{match.sourceName}</span>}
-                <span className="text-muted-foreground italic">{match.matchReason}</span>
-              </div>
-              {match.suggestedAction && (
-                <p className="text-xs text-navy/80 font-medium">Suggested: {match.suggestedAction}</p>
-              )}
-              {match.sourceUrl && (
-                <a
-                  href={match.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] text-teal hover:underline"
-                >
-                  <ExternalLink className="w-3 h-3" /> View source
-                </a>
-              )}
-            </div>
+            <MatchedSignalCard key={`${match.sourceType}-${match.sourceId}-${idx}`} accountId={accountId} match={match} idx={idx} />
           ))}
           <p className="text-[10px] text-muted-foreground italic">
             Showing up to 10 highest-confidence matches. Signals are matched by account name, aliases, and state.
