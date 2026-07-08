@@ -1,5 +1,5 @@
 /**
- * Tests for fullPotential.matchedSignalsForAccount (PR #27)
+ * Tests for fullPotential.matchedSignalsForAccount (PR #27 + PR #30 patch)
  *
  * Uses the same appRouter.createCaller pattern as auth.logout.test.ts.
  *
@@ -12,6 +12,16 @@
  * 6. Results are capped at 10
  * 7. Unknown accountId throws NOT_FOUND
  * 8. No fullPotentialActions are created by the procedure
+ *
+ * PR #30 additions:
+ * 9.  actionState.hasOpenAction is true when an open action exists for the signal
+ * 10. actionState.hasClosedAction is false when only an open action exists
+ * 11. actionState.hasOpenAction is false and hasClosedAction is true after action is closed
+ * 12. actionState.openActionStatus matches the action's status
+ * 13. actionState is { hasOpenAction: false, hasClosedAction: false } when no action exists
+ * 14. actionState is present on every match in the result
+ * 15. actionState.hasOpenAction is false for a signal with no linked action
+ * 16. actionState.hasClosedAction is false for a signal with no linked action
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -75,7 +85,9 @@ const TEST_CANONICAL = `${TEST_PREFIX}Acme Mining Pty Ltd`;
 const TEST_STABLEKEY = `${TEST_PREFIX}acme_mining|account|AU|WA|direct_ape`;
 
 let testAccountId: number;
+let directSignalId: number;
 const insertedSignalIds: number[] = [];
+const insertedActionIds: number[] = [];
 
 beforeAll(async () => {
   const db = await getDb();
@@ -123,6 +135,7 @@ beforeAll(async () => {
     .from(fullPotentialSignals)
     .where(eq(fullPotentialSignals.accountId, testAccountId))
     .limit(1);
+  directSignalId = sig1.id;
   insertedSignalIds.push(sig1.id);
 
   // Signal 2: unlinked, name-matched (medium confidence — same state WA)
@@ -173,6 +186,14 @@ beforeAll(async () => {
 afterAll(async () => {
   const db = await getDb();
   if (!db) return;
+  // Clean up actions first (FK constraint)
+  if (insertedActionIds.length > 0) {
+    await db.delete(fullPotentialActions).where(inArray(fullPotentialActions.id, insertedActionIds));
+  }
+  // Clean up any remaining actions for the test account
+  if (testAccountId) {
+    await db.delete(fullPotentialActions).where(eq(fullPotentialActions.accountId, testAccountId));
+  }
   if (insertedSignalIds.length > 0) {
     await db.delete(fullPotentialSignals).where(inArray(fullPotentialSignals.id, insertedSignalIds));
   }
@@ -282,5 +303,117 @@ describe("fullPotential.matchedSignalsForAccount endpoint (PR #27)", () => {
       .where(eq(fullPotentialActions.accountId, testAccountId));
 
     expect(afterCount.length).toBe(beforeCount.length);
+  });
+});
+
+// ── PR #30: actionState assertions ───────────────────────────────────────────
+
+describe("fullPotential.matchedSignalsForAccount actionState (PR #30)", () => {
+  it("actionState is present on every match", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    for (const match of result.matches) {
+      expect(match).toHaveProperty("actionState");
+      expect(match.actionState).not.toBeNull();
+      expect(match.actionState).not.toBeUndefined();
+    }
+  });
+
+  it("actionState.hasOpenAction is false when no action exists for a signal", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch).toBeDefined();
+    expect(directMatch?.actionState?.hasOpenAction).toBe(false);
+  });
+
+  it("actionState.hasClosedAction is false when no action exists for a signal", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch).toBeDefined();
+    expect(directMatch?.actionState?.hasClosedAction).toBe(false);
+  });
+
+  it("actionState.hasOpenAction is true when an open action exists for the signal", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // Create an open action linked to the direct signal
+    await db.insert(fullPotentialActions).values({
+      accountId: testAccountId,
+      userId: 1,
+      signalId: directSignalId,
+      actionType: "account_review",
+      status: "not_started",
+      recommendedAction: "PR30 test open action",
+      ownerName: "PR30 Test User",
+    } as any);
+
+    const [newAction] = await db
+      .select({ id: fullPotentialActions.id })
+      .from(fullPotentialActions)
+      .where(eq(fullPotentialActions.signalId, directSignalId))
+      .limit(1);
+    if (newAction) insertedActionIds.push(newAction.id);
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch?.actionState?.hasOpenAction).toBe(true);
+  });
+
+  it("actionState.hasClosedAction is false when only an open action exists", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch?.actionState?.hasClosedAction).toBe(false);
+  });
+
+  it("actionState.openActionStatus matches the action status", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch?.actionState?.openActionStatus).toBe("not_started");
+  });
+
+  it("actionState.hasOpenAction is false and hasClosedAction is true after action is closed", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+
+    // Close the open action
+    if (insertedActionIds.length > 0) {
+      await db
+        .update(fullPotentialActions)
+        .set({ status: "completed" } as any)
+        .where(eq(fullPotentialActions.id, insertedActionIds[0]));
+    }
+
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch?.actionState?.hasOpenAction).toBe(false);
+    expect(directMatch?.actionState?.hasClosedAction).toBe(true);
+  });
+
+  it("actionState.closedActionStatus matches the closed action status", async () => {
+    const caller = appRouter.createCaller(createUserContext());
+    const result = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const directMatch = result.matches.find(
+      m => m.sourceType === "fp_signal" && m.matchReason === "Directly linked signal"
+    );
+    expect(directMatch?.actionState?.closedActionStatus).toBe("completed");
   });
 });

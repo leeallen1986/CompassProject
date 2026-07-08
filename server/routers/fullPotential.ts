@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { desc, eq, or, and, sql } from "drizzle-orm";
+import { desc, eq, or, and, sql, inArray } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
@@ -1034,7 +1034,21 @@ export const fullPotentialRouter = router({
         return null;
       }
 
-      type MatchedSignal = {
+      const OPEN_STATUSES = new Set(["not_started", "in_progress", "contacted", "meeting_booked", "quoted"]);
+      const CLOSED_STATUSES = new Set(["completed", "won", "lost", "deferred", "not_relevant"]);
+
+      type ActionState = {
+        hasOpenAction: boolean;
+        hasClosedAction: boolean;
+        openActionId?: number;
+        openActionStatus?: string;
+        openActionDueDate?: string | null;
+        closedActionId?: number;
+        closedActionStatus?: string;
+        closedActionCompletedAt?: string | null;
+      };
+
+      type MatchedSignalBase = {
         sourceType: string;
         sourceId: number;
         title: string;
@@ -1048,7 +1062,9 @@ export const fullPotentialRouter = router({
         suggestedAction: string | null;
       };
 
-      const matches: MatchedSignal[] = [];
+      type MatchedSignal = MatchedSignalBase & { actionState: ActionState };
+
+      const matches: MatchedSignalBase[] = [];
 
       // ── 4a. Direct fullPotentialSignals (accountId already linked) ─────────
       const directSignals = await db
@@ -1153,9 +1169,18 @@ export const fullPotentialRouter = router({
         });
       }
 
+      // ── 4d. Attach empty actionState placeholder (will be filled in step 6) ──
+      const matchesWithState = matches.map(m => ({
+        ...m,
+        actionState: {
+          hasOpenAction: false,
+          hasClosedAction: false,
+        } as ActionState,
+      }));
+
       // ── 5. De-duplicate, sort, cap ─────────────────────────────────────────
       const seen = new Set<string>();
-      const deduped = matches.filter(m => {
+      const deduped = matchesWithState.filter(m => {
         const key = `${m.sourceType}:${m.sourceId}`;
         if (seen.has(key)) return false;
         seen.add(key);
@@ -1171,6 +1196,68 @@ export const fullPotentialRouter = router({
         return bDate - aDate;
       });
 
+      const capped = deduped.slice(0, 10);
+
+      // ── 6. Bulk-load action state for capped matches ───────────────────────
+      const signalIds = capped.filter(m => m.sourceType === "fp_signal").map(m => m.sourceId);
+      const projectIds = capped.filter(m => m.sourceType === "project").map(m => m.sourceId);
+
+      if (signalIds.length > 0 || projectIds.length > 0) {
+        const actionConditions = [];
+        if (signalIds.length > 0) {
+          actionConditions.push(
+            and(
+              eq(fullPotentialActions.accountId, input.accountId),
+              inArray(fullPotentialActions.signalId, signalIds)
+            )
+          );
+        }
+        if (projectIds.length > 0) {
+          actionConditions.push(
+            and(
+              eq(fullPotentialActions.accountId, input.accountId),
+              inArray(fullPotentialActions.projectId, projectIds)
+            )
+          );
+        }
+
+        const relatedActions = await db
+          .select({
+            id: fullPotentialActions.id,
+            status: fullPotentialActions.status,
+            signalId: fullPotentialActions.signalId,
+            projectId: fullPotentialActions.projectId,
+            dueDate: fullPotentialActions.dueDate,
+            completedAt: fullPotentialActions.completedAt,
+            createdAt: fullPotentialActions.createdAt,
+          })
+          .from(fullPotentialActions)
+          .where(or(...actionConditions))
+          .orderBy(desc(fullPotentialActions.createdAt));
+
+        for (const match of capped) {
+          const matchActions = relatedActions.filter(a =>
+            match.sourceType === "fp_signal"
+              ? a.signalId === match.sourceId
+              : a.projectId === match.sourceId
+          );
+
+          const openAction = matchActions.find(a => OPEN_STATUSES.has(a.status ?? ""));
+          const closedAction = matchActions.find(a => CLOSED_STATUSES.has(a.status ?? ""));
+
+          match.actionState = {
+            hasOpenAction: !!openAction,
+            hasClosedAction: !!closedAction,
+            openActionId: openAction?.id,
+            openActionStatus: openAction?.status ?? undefined,
+            openActionDueDate: openAction?.dueDate ? new Date(openAction.dueDate).toISOString() : null,
+            closedActionId: closedAction?.id,
+            closedActionStatus: closedAction?.status ?? undefined,
+            closedActionCompletedAt: closedAction?.completedAt ? new Date(closedAction.completedAt).toISOString() : null,
+          };
+        }
+      }
+
       return {
         account: {
           id: account.id,
@@ -1178,7 +1265,7 @@ export const fullPotentialRouter = router({
           displayName: account.displayName,
           state: account.state,
         },
-        matches: deduped.slice(0, 10),
+        matches: capped,
       };
     }),
 

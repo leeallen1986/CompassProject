@@ -477,6 +477,7 @@ function PromoteSignalForm({
   sourceType,
   sourceId,
   defaultRecommendedAction,
+  isFollowUp,
   onSuccess,
   onCancel,
 }: {
@@ -484,12 +485,18 @@ function PromoteSignalForm({
   sourceType: "fp_signal" | "project";
   sourceId: number;
   defaultRecommendedAction: string;
+  isFollowUp?: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
   const [actionType, setActionType] = useState("account_review");
   const [recommendedAction, setRecommendedAction] = useState(defaultRecommendedAction);
-  const [dueDate, setDueDate] = useState("");
+  // Default due date: 7 days from today
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
   const [notes, setNotes] = useState("");
   const utils = trpc.useUtils();
 
@@ -570,7 +577,7 @@ function PromoteSignalForm({
           })}
         >
           {promote.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-          Create action
+          {isFollowUp ? "Create follow-up" : "Create action"}
         </Button>
         <Button size="sm" variant="outline" className="text-xs h-7 px-3" onClick={onCancel}>
           Cancel
@@ -580,8 +587,30 @@ function PromoteSignalForm({
   );
 }
 
+function ActionStateBadge({ actionState }: { actionState?: { hasOpenAction: boolean; hasClosedAction: boolean; openActionStatus?: string; closedActionStatus?: string } }) {
+  if (!actionState) return null;
+  if (actionState.hasOpenAction) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+        Open action · {actionState.openActionStatus?.replace(/_/g, " ") ?? "in progress"}
+      </span>
+    );
+  }
+  if (actionState.hasClosedAction) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+        Closed · {actionState.closedActionStatus?.replace(/_/g, " ") ?? "done"}
+      </span>
+    );
+  }
+  return null;
+}
+
 function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match: any; idx: number }) {
   const [showForm, setShowForm] = useState(false);
+  const actionState = match.actionState as { hasOpenAction: boolean; hasClosedAction: boolean; openActionStatus?: string; closedActionStatus?: string } | undefined;
+  const hasOpenAction = actionState?.hasOpenAction ?? false;
+  const hasClosedAction = actionState?.hasClosedAction ?? false;
   const defaultRecommendedAction =
     match.suggestedAction ||
     `Follow up matched signal: ${match.title}`;
@@ -608,6 +637,12 @@ function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match
       {match.suggestedAction && (
         <p className="text-xs text-navy/80 font-medium">Suggested: {match.suggestedAction}</p>
       )}
+      {/* Action state badge */}
+      {(hasOpenAction || hasClosedAction) && (
+        <div className="pt-0.5">
+          <ActionStateBadge actionState={actionState} />
+        </div>
+      )}
       <div className="flex items-center gap-2 flex-wrap">
         {match.sourceUrl && (
           <a
@@ -619,12 +654,13 @@ function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match
             <ExternalLink className="w-3 h-3" /> View source
           </a>
         )}
-        {!showForm && (
+        {/* Hide Create action when there is an open action; show Create follow-up when closed */}
+        {!hasOpenAction && !showForm && (
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
           >
-            <Plus className="w-3 h-3" /> Create action
+            <Plus className="w-3 h-3" /> {hasClosedAction ? "Create follow-up" : "Create action"}
           </button>
         )}
       </div>
@@ -634,6 +670,7 @@ function MatchedSignalCard({ accountId, match, idx }: { accountId: number; match
           sourceType={match.sourceType}
           sourceId={match.sourceId}
           defaultRecommendedAction={defaultRecommendedAction}
+          isFollowUp={hasClosedAction}
           onSuccess={() => setShowForm(false)}
           onCancel={() => setShowForm(false)}
         />
