@@ -70,6 +70,15 @@ const ROW_CLASS_LABELS: Record<string, string> = {
   cluster_signal: "Cluster / Signal",
 };
 
+type ActionCounts = {
+  overdue: number;
+  due: number;
+  upcoming: number;
+  total: number;
+};
+
+const EMPTY_ACTION_COUNTS: ActionCounts = { overdue: 0, due: 0, upcoming: 0, total: 0 };
+
 function getInitialSearch() {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("search") ?? "";
@@ -127,6 +136,26 @@ function FilterSelect({
   );
 }
 
+function addActionCount(map: Record<number, ActionCounts>, action: any, bucket: keyof Omit<ActionCounts, "total">) {
+  const accountId = Number(action.account?.id);
+  if (!Number.isFinite(accountId)) return;
+  const current = map[accountId] ?? { overdue: 0, due: 0, upcoming: 0, total: 0 };
+  current[bucket] += 1;
+  current.total += 1;
+  map[accountId] = current;
+}
+
+function ActionIndicator({ counts }: { counts: ActionCounts }) {
+  if (!counts.total) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <div className="flex flex-wrap gap-1 justify-start">
+      {counts.overdue > 0 && <Badge tone="red">{counts.overdue} overdue</Badge>}
+      {counts.due > 0 && <Badge tone="green">{counts.due} due</Badge>}
+      {counts.upcoming > 0 && <Badge tone="slate">{counts.upcoming} upcoming</Badge>}
+    </div>
+  );
+}
+
 export default function FullPotential() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -163,6 +192,15 @@ export default function FullPotential() {
   const { data: filterOptions } = trpc.fullPotential.filterOptions.useQuery(undefined, { enabled: !!user });
   const { data: listData, isLoading: listLoading } = trpc.fullPotential.list.useQuery(queryInput, { enabled: !!user });
   const { data: importHistory } = trpc.fullPotential.importHistory.useQuery({ limit: 5 }, { enabled: !!user });
+  const { data: myWeekActions } = trpc.fullPotential.myWeekActions.useQuery(undefined, { enabled: !!user });
+
+  const actionCountsByAccount = useMemo(() => {
+    const map: Record<number, ActionCounts> = {};
+    (myWeekActions?.overdueActions ?? []).forEach((action: any) => addActionCount(map, action, "overdue"));
+    (myWeekActions?.dueActions ?? []).forEach((action: any) => addActionCount(map, action, "due"));
+    (myWeekActions?.upcomingActions ?? []).forEach((action: any) => addActionCount(map, action, "upcoming"));
+    return map;
+  }, [myWeekActions]);
 
   const accounts = listData?.accounts ?? [];
   const total = listData?.total ?? 0;
@@ -294,7 +332,7 @@ export default function FullPotential() {
             <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold text-navy">Portable Air Account Universe</h2>
-                <p className="text-xs text-muted-foreground">Showing {accounts.length} of {total} records. Click a row to review the account logic.</p>
+                <p className="text-xs text-muted-foreground">Showing {accounts.length} of {total} records. Click a row to review the account logic and actions.</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={!canPrevious} onClick={() => setOffset(Math.max(0, offset - limit))}>Previous</Button>
@@ -323,35 +361,40 @@ export default function FullPotential() {
                       <th className="text-left px-4 py-3 text-xs uppercase tracking-wider">Owner</th>
                       <th className="text-left px-4 py-3 text-xs uppercase tracking-wider">Segment</th>
                       <th className="text-left px-4 py-3 text-xs uppercase tracking-wider">State</th>
+                      <th className="text-left px-4 py-3 text-xs uppercase tracking-wider">Actions</th>
                       <th className="text-right px-4 py-3 text-xs uppercase tracking-wider">FP</th>
                       <th className="text-right px-4 py-3 text-xs uppercase tracking-wider">2026</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {accounts.map((account: any, index: number) => (
-                      <tr
-                        key={account.id}
-                        className={`border-t border-border ${index % 2 ? "bg-slate-50/60" : "bg-card"} hover:bg-gold/5 transition-colors cursor-pointer`}
-                        onClick={() => setSelectedAccount(account)}
-                      >
-                        <td className="px-4 py-3 min-w-[260px]">
-                          <div className="font-semibold text-navy">{account.displayName || account.canonicalName}</div>
-                          <div className="text-[11px] text-muted-foreground flex flex-wrap gap-1 mt-1">
-                            <Badge>{labelFor(account.priorityTier, TIER_LABELS)}</Badge>
-                            <Badge tone="blue">{labelFor(account.rowClass, ROW_CLASS_LABELS)}</Badge>
-                            {account.signalCount > 0 && <Badge tone="gold">{account.signalCount} signals</Badge>}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3"><Badge tone={account.fpStatus === "active_target" ? "red" : account.fpStatus === "develop" ? "green" : "slate"}>{labelFor(account.fpStatus, STATUS_LABELS)}</Badge></td>
-                        <td className="px-4 py-3"><Badge tone={account.platformPushDecision === "push_now" ? "green" : account.platformPushDecision === "channel_view" ? "blue" : "slate"}>{labelFor(account.platformPushDecision, PUSH_LABELS)}</Badge></td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{labelFor(account.routeToMarket, ROUTE_LABELS)}</td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{account.ownerName || account.channelOwner || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground min-w-[180px]">{account.segment || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{account.state || "—"}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-navy whitespace-nowrap">{formatCurrency(account.fullPotentialAud)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-navy whitespace-nowrap">{formatCurrency(account.target2026Aud)}</td>
-                      </tr>
-                    ))}
+                    {accounts.map((account: any, index: number) => {
+                      const actionCounts = actionCountsByAccount[Number(account.id)] ?? EMPTY_ACTION_COUNTS;
+                      return (
+                        <tr
+                          key={account.id}
+                          className={`border-t border-border ${index % 2 ? "bg-slate-50/60" : "bg-card"} hover:bg-gold/5 transition-colors cursor-pointer`}
+                          onClick={() => setSelectedAccount(account)}
+                        >
+                          <td className="px-4 py-3 min-w-[260px]">
+                            <div className="font-semibold text-navy">{account.displayName || account.canonicalName}</div>
+                            <div className="text-[11px] text-muted-foreground flex flex-wrap gap-1 mt-1">
+                              <Badge>{labelFor(account.priorityTier, TIER_LABELS)}</Badge>
+                              <Badge tone="blue">{labelFor(account.rowClass, ROW_CLASS_LABELS)}</Badge>
+                              {account.signalCount > 0 && <Badge tone="gold">{account.signalCount} signals</Badge>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3"><Badge tone={account.fpStatus === "active_target" ? "red" : account.fpStatus === "develop" ? "green" : "slate"}>{labelFor(account.fpStatus, STATUS_LABELS)}</Badge></td>
+                          <td className="px-4 py-3"><Badge tone={account.platformPushDecision === "push_now" ? "green" : account.platformPushDecision === "channel_view" ? "blue" : "slate"}>{labelFor(account.platformPushDecision, PUSH_LABELS)}</Badge></td>
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{labelFor(account.routeToMarket, ROUTE_LABELS)}</td>
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{account.ownerName || account.channelOwner || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground min-w-[180px]">{account.segment || "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{account.state || "—"}</td>
+                          <td className="px-4 py-3 min-w-[150px]"><ActionIndicator counts={actionCounts} /></td>
+                          <td className="px-4 py-3 text-right font-semibold text-navy whitespace-nowrap">{formatCurrency(account.fullPotentialAud)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-navy whitespace-nowrap">{formatCurrency(account.target2026Aud)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -386,7 +429,7 @@ export default function FullPotential() {
             <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4">
               <h3 className="font-bold text-blue-900 text-sm mb-2">What this page is</h3>
               <p className="text-xs text-blue-900/80 leading-relaxed">
-                Read-only first shell for the imported Portable Air Full Potential universe. Editing, Account Attack links, My Week actions and signal matching are intentionally left for later sprints.
+                Read-only first shell for the imported Portable Air Full Potential universe. Action badges show overdue, due and upcoming Portable Air FP actions from the weekly rhythm. Editing, Account Attack links and signal matching are intentionally left for later sprints.
               </p>
             </div>
           </aside>
