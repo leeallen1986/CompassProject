@@ -1757,3 +1757,8 @@ export const accountPriors = mysqlTable("accountPriors", {
 });
 export type AccountPrior = typeof accountPriors.$inferSelect;
 export type InsertAccountPrior = typeof accountPriors.$inferInsert;
+
+// ─── Full Potential module ────────────────────────────────────────────────────
+// Kept in a separate file for readability; re-exported here so Drizzle Kit
+// discovers all tables through the single drizzle.config.ts entrypoint.
+export * from "./fullPotentialSchema";
