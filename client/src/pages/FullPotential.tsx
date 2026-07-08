@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import FullPotentialDetailDrawer from "@/components/FullPotentialDetailDrawer";
+import FullPotentialImportModal from "@/components/FullPotentialImportModal";
 
 const STATUS_LABELS: Record<string, string> = {
   active_target: "Active Target",
@@ -136,6 +137,7 @@ export default function FullPotential() {
   const [rowClass, setRowClass] = useState("");
   const [offset, setOffset] = useState(0);
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const limit = 100;
 
   const queryInput = useMemo(() => ({
@@ -162,6 +164,7 @@ export default function FullPotential() {
   const hasFilters = !!(search || fpStatus || pushDecision || route || owner || segment || state || tier || rowClass);
   const canPrevious = offset > 0;
   const canNext = offset + limit < total;
+  const isAdmin = user?.role === "admin";
 
   function clearFilters() {
     setSearch("");
@@ -213,8 +216,13 @@ export default function FullPotential() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button disabled className="bg-gold text-navy hover:bg-gold/90 disabled:opacity-60">
-              <Upload className="w-4 h-4 mr-2" /> Import UI next
+            <Button
+              disabled={!isAdmin}
+              onClick={() => setShowImportModal(true)}
+              className="bg-gold text-navy hover:bg-gold/90 disabled:opacity-60"
+              title={isAdmin ? "Import Full Potential workbook" : "Admin only"}
+            >
+              <Upload className="w-4 h-4 mr-2" /> Import
             </Button>
           </div>
         </div>
@@ -373,13 +381,14 @@ export default function FullPotential() {
             <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4">
               <h3 className="font-bold text-blue-900 text-sm mb-2">What this page is</h3>
               <p className="text-xs text-blue-900/80 leading-relaxed">
-                Read-only first shell for the imported Full Potential universe. Editing, import upload UI, Account Attack links, My Week actions and signal matching are intentionally left for later sprints.
+                Read-only first shell for the imported Full Potential universe. Editing, Account Attack links, My Week actions and signal matching are intentionally left for later sprints.
               </p>
             </div>
           </aside>
         </section>
       </main>
       {selectedAccount && <FullPotentialDetailDrawer account={selectedAccount} onClose={() => setSelectedAccount(null)} />}
+      {showImportModal && <FullPotentialImportModal open={showImportModal} onClose={() => setShowImportModal(false)} />}
     </div>
   );
 }
