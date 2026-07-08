@@ -40,6 +40,8 @@ const actionStatusValues = [
   "completed",
 ] as const;
 
+const openActionStatuses = new Set(["not_started", "in_progress", "contacted", "meeting_booked", "quoted"]);
+
 type RowClass = "account" | "site_context" | "channel_managed" | "competitor_watch" | "cluster_signal";
 type RouteToMarket =
   | "direct_ape"
@@ -333,6 +335,12 @@ function parseOptionalDate(value?: string | null): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function startOfDay(value: Date): Date {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
 function mapRowClass(value: unknown): RowClass | undefined {
@@ -647,6 +655,34 @@ function toClientAction(action: any) {
   };
 }
 
+function toClientActionWithAccount(action: any, account: any) {
+  return {
+    ...toClientAction(action),
+    account: {
+      id: account.id,
+      canonicalName: account.canonicalName,
+      displayName: account.displayName,
+      parentGroup: account.parentGroup,
+      state: account.state,
+      segment: account.segment,
+      routeToMarket: account.routeToMarket,
+      ownerName: account.ownerName,
+      channelOwner: account.channelOwner,
+      fpStatus: account.fpStatus,
+      priorityTier: account.priorityTier,
+      platformPushDecision: account.platformPushDecision,
+      fullPotentialAud: numberValue(account.fullPotentialAud),
+      target2026Aud: numberValue(account.target2026Aud),
+    },
+  };
+}
+
+function sortByDueDateAsc(a: any, b: any) {
+  const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+  const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+  return aTime - bTime;
+}
+
 async function importFullPotential(input: z.infer<typeof importInputSchema>, user: { id: number; name?: string | null; email?: string | null }): Promise<ImportSummary> {
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
@@ -730,9 +766,7 @@ async function importFullPotential(input: z.infer<typeof importInputSchema>, use
         }
         summary.aliasesCreated++;
         existingAliasSet.add(normalized);
-        if (!dryRun && accountId) {
-          await db.insert(fullPotentialAccountAliases).values({ accountId, aliasName: alias, aliasType: "other", source: "full_potential_import", confidenceLevel: "unknown" });
-        }
+        if (!dryRun && accountId) await db.insert(fullPotentialAccountAliases).values({ accountId, aliasName: alias, aliasType: "other", source: "full_potential_import", confidenceLevel: "unknown" });
       }
     }
     summary.rowsProcessed++;
@@ -775,16 +809,13 @@ export const fullPotentialRouter = router({
     );
     const offset = input.offset ?? 0;
     const limit = input.limit ?? 100;
-    const page = filtered
-      .sort((a, b) => {
-        const tierOrder: Record<string, number> = { tier_a: 0, tier_b: 1, tier_c: 2, tier_d: 3, unassigned: 4 };
-        const aTier = tierOrder[a.priorityTier ?? "unassigned"] ?? 4;
-        const bTier = tierOrder[b.priorityTier ?? "unassigned"] ?? 4;
-        if (aTier !== bTier) return aTier - bTier;
-        return String(a.canonicalName).localeCompare(String(b.canonicalName));
-      })
-      .slice(offset, offset + limit)
-      .map(toClientAccount);
+    const page = filtered.sort((a, b) => {
+      const tierOrder: Record<string, number> = { tier_a: 0, tier_b: 1, tier_c: 2, tier_d: 3, unassigned: 4 };
+      const aTier = tierOrder[a.priorityTier ?? "unassigned"] ?? 4;
+      const bTier = tierOrder[b.priorityTier ?? "unassigned"] ?? 4;
+      if (aTier !== bTier) return aTier - bTier;
+      return String(a.canonicalName).localeCompare(String(b.canonicalName));
+    }).slice(offset, offset + limit).map(toClientAccount);
     return { accounts: page, total: filtered.length, limit, offset };
   }),
 
@@ -876,6 +907,47 @@ export const fullPotentialRouter = router({
     } as any).where(eq(fullPotentialActions.id, input.actionId));
     const [updated] = await db.select().from(fullPotentialActions).where(eq(fullPotentialActions.id, input.actionId)).limit(1);
     return updated ? toClientAction(updated) : { success: true };
+  }),
+
+  myWeekActions: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const actions = await db.select().from(fullPotentialActions).orderBy(desc(fullPotentialActions.createdAt));
+    const accounts = await db.select().from(fullPotentialAccounts);
+    const accountById = new Map(accounts.map(account => [account.id, account]));
+    const today = startOfDay(new Date());
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const openActions = actions
+      .filter(action => openActionStatuses.has(String(action.status)))
+      .map(action => {
+        const account = accountById.get(action.accountId);
+        return account ? toClientActionWithAccount(action, account) : null;
+      })
+      .filter((action): action is NonNullable<typeof action> => !!action && !!action.dueDate);
+    const overdueActions = openActions
+      .filter(action => startOfDay(new Date(action.dueDate)) < today)
+      .sort(sortByDueDateAsc);
+    const dueActions = openActions
+      .filter(action => {
+        const due = startOfDay(new Date(action.dueDate));
+        return due >= today && due <= nextWeek;
+      })
+      .sort(sortByDueDateAsc);
+    const upcomingActions = openActions
+      .filter(action => startOfDay(new Date(action.dueDate)) > nextWeek)
+      .sort(sortByDueDateAsc)
+      .slice(0, 10);
+    return {
+      overdueActions,
+      dueActions,
+      upcomingActions,
+      stats: {
+        overdue: overdueActions.length,
+        dueThisWeek: dueActions.length,
+        upcoming: upcomingActions.length,
+      },
+    };
   }),
 });
 
