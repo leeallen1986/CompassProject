@@ -67,7 +67,7 @@ export default function FullPotentialImportModal({ open, onClose }: { open: bool
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const [file, setFile] = useState<File | null>(null);
-  const [sourceWorkbookVersion, setSourceWorkbookVersion] = useState("v2.4-ui");
+  const [sourceWorkbookVersion, setSourceWorkbookVersion] = useState("portable-air-v2.4-ui");
   const [clearBlankValues, setClearBlankValues] = useState(false);
   const [dryRunSummary, setDryRunSummary] = useState<ImportSummary | null>(null);
   const [liveSummary, setLiveSummary] = useState<ImportSummary | null>(null);
@@ -110,11 +110,11 @@ export default function FullPotentialImportModal({ open, onClose }: { open: bool
       if (dryRun) {
         setDryRunSummary(summary);
         setLiveSummary(null);
-        if (summary.errorCount === 0) toast.success(`Dry-run clean: ${summary.rowsProcessed} rows processed`);
+        if (summary.errorCount === 0) toast.success(`Dry-run clean: ${summary.rowsProcessed} Portable Air rows processed`);
         else toast.warning(`Dry-run finished with ${summary.errorCount} errors`);
       } else {
         setLiveSummary(summary);
-        toast.success(`Import complete: ${summary.rowsProcessed} rows processed`);
+        toast.success(`Portable Air import complete: ${summary.rowsProcessed} rows processed`);
       }
     } catch (error) {
       toast.error((error as Error).message || "Import failed");
@@ -131,8 +131,8 @@ export default function FullPotentialImportModal({ open, onClose }: { open: bool
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
               <Upload className="w-4 h-4" /> Admin import
             </div>
-            <h2 className="text-lg font-bold text-navy">Full Potential workbook import</h2>
-            <p className="text-xs text-muted-foreground mt-1">Run dry-run first. Live import writes accounts, aliases and the import audit row only.</p>
+            <h2 className="text-lg font-bold text-navy">Portable Air Full Potential workbook import</h2>
+            <p className="text-xs text-muted-foreground mt-1">Run dry-run first. Live import writes Portable Air accounts, aliases and the import audit row only.</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors">
             <X className="w-5 h-5 text-muted-foreground" />
@@ -143,7 +143,7 @@ export default function FullPotentialImportModal({ open, onClose }: { open: bool
           {!isAdmin && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5" />
-              Full Potential imports are admin-only.
+              Portable Air Full Potential imports are admin-only.
             </div>
           )}
 
