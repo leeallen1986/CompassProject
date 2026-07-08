@@ -96,6 +96,10 @@ function buildXlsx(rows: (string | number | null)[][]): string {
 
 const HEADERS = ["signalTitle", "signalSummary", "signalType", "sourceName", "sourceUrl", "state", "signalDate", "confidenceLevel", "urgency", "suggestedAction", "status", "accountId", "stableKey", "accountName"];
 
+// Extended headers that include canonicalName, displayName, and aliasName columns
+// Used by PR #40 tests for the three additional account-resolution paths
+const HEADERS_EXTENDED = [...HEADERS, "canonicalName", "displayName", "aliasName"];
+
 function buildRow(overrides: Partial<Record<typeof HEADERS[number], string | number | null>> = {}): (string | number | null)[] {
   const defaults: Record<string, string | number | null> = {
     signalTitle: `${PR39} Acme Mining Expansion`,
@@ -515,6 +519,195 @@ describe("fullPotential.importSignals", () => {
     const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: true });
     expect(result.rowsValid).toBe(25);
     expect(result.preview.length).toBeLessThanOrEqual(20);
+  });
+
+  // ── PR #40 Group 17: aliasName → accountId ───────────────────────────────────
+  //
+  // The aliasName column in the XLSX resolves to the alias account via
+  // TRIM(REGEXP_REPLACE(LOWER(aliasName), '[^a-z0-9]+', ' ')) = normalizeToken(candidate)
+  // This also validates that punctuation differences (e.g. hyphens, dots) do not break matching.
+
+  it("17. aliasName column resolves to accountId via alias table", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const caller = appRouter.createCaller(createContext("admin"));
+    const title = `${PR39} AliasName Resolve Signal`;
+    // Use the exact aliasName inserted in beforeAll: "PR39SIGNAL Alias Corp Trading Name"
+    const aliasName = `${PR39} Alias Corp Trading Name`;
+    // Build a row using HEADERS_EXTENDED so aliasName column is present
+    const extRow: (string | number | null)[] = [
+      title,                    // signalTitle
+      "Test signal summary",    // signalSummary
+      "mine_site_activity",     // signalType
+      "Mining Weekly",          // sourceName
+      null,                     // sourceUrl
+      "QLD",                    // state
+      "2025-07-10",             // signalDate
+      "medium",                 // confidenceLevel
+      "warm",                   // urgency
+      "Follow up",              // suggestedAction
+      "new",                    // status
+      null,                     // accountId
+      null,                     // stableKey
+      null,                     // accountName
+      null,                     // canonicalName
+      null,                     // displayName
+      aliasName,                // aliasName
+    ];
+    const fileBase64 = buildXlsx([HEADERS_EXTENDED, extRow]);
+    const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: false });
+    expect(result.createdSignals).toBe(1);
+    expect(result.linkedAccounts).toBe(1);
+    const preview = result.preview.find(p => p.signalTitle === title);
+    expect(preview?.accountMatchReason).toBe("alias");
+    expect(preview?.accountId).toBe(testAliasAccountId);
+    const [row] = await db.select().from(fullPotentialSignals)
+      .where(eq(fullPotentialSignals.signalTitle, title)).limit(1);
+    expect(row).toBeDefined();
+    expect(row.accountId).toBe(testAliasAccountId);
+    // cleanup
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.signalTitle, title));
+  });
+
+  it("17b. aliasName with punctuation difference still resolves (normalizeToken parity)", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const caller = appRouter.createCaller(createContext("admin"));
+    const title = `${PR39} AliasName Punct Signal`;
+    // The stored alias is "PR39SIGNAL Alias Corp Trading Name"
+    // We upload "PR39SIGNAL Alias Corp. Trading-Name" — punctuation differs
+    // normalizeToken() strips [^a-z0-9]+ to spaces on both sides, so they should match
+    const aliasNameWithPunct = `${PR39} Alias Corp. Trading-Name`;
+    const extRow: (string | number | null)[] = [
+      title, "Test", "mine_site_activity", "Mining Weekly", null, "QLD",
+      "2025-07-11", "medium", "warm", "Follow up", "new",
+      null, null, null, null, null, aliasNameWithPunct,
+    ];
+    const fileBase64 = buildXlsx([HEADERS_EXTENDED, extRow]);
+    const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: false });
+    expect(result.createdSignals).toBe(1);
+    const preview = result.preview.find(p => p.signalTitle === title);
+    expect(preview?.accountMatchReason).toBe("alias");
+    expect(preview?.accountId).toBe(testAliasAccountId);
+    // cleanup
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.signalTitle, title));
+  });
+
+  // ── PR #40 Group 18: displayName → accountId ─────────────────────────────────
+
+  it("18. displayName column resolves to accountId via display_name match", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const caller = appRouter.createCaller(createContext("admin"));
+    const title = `${PR39} DisplayName Resolve Signal`;
+    // testAccount has displayName: "PR39SIGNALAcme Mining"
+    const displayName = `${PR39}Acme Mining`;
+    const extRow: (string | number | null)[] = [
+      title, "Test", "mine_site_activity", "Mining Weekly", null, "WA",
+      "2025-07-12", "high", "hot", "Call", "new",
+      null, null, null, null, displayName, null,
+    ];
+    const fileBase64 = buildXlsx([HEADERS_EXTENDED, extRow]);
+    const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: false });
+    expect(result.createdSignals).toBe(1);
+    const preview = result.preview.find(p => p.signalTitle === title);
+    expect(preview?.accountMatchReason).toBe("display_name");
+    expect(preview?.accountId).toBe(testAccountId);
+    const [row] = await db.select().from(fullPotentialSignals)
+      .where(eq(fullPotentialSignals.signalTitle, title)).limit(1);
+    expect(row?.accountId).toBe(testAccountId);
+    // cleanup
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.signalTitle, title));
+  });
+
+  it("18b. displayName with punctuation difference still resolves", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const caller = appRouter.createCaller(createContext("admin"));
+    const title = `${PR39} DisplayName Punct Signal`;
+    // Stored displayName: "PR39SIGNALAcme Mining" — upload with trailing period: "PR39SIGNALAcme Mining."
+    // normalizeToken() strips trailing punctuation so both normalise to "pr39signalacme mining"
+    const displayNameWithPunct = `${PR39}Acme Mining.`;
+    const extRow: (string | number | null)[] = [
+      title, "Test", "mine_site_activity", "Mining Weekly", null, "WA",
+      "2025-07-13", "high", "hot", "Call", "new",
+      null, null, null, null, displayNameWithPunct, null,
+    ];
+    const fileBase64 = buildXlsx([HEADERS_EXTENDED, extRow]);
+    const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: false });
+    expect(result.createdSignals).toBe(1);
+    const preview = result.preview.find(p => p.signalTitle === title);
+    // Should resolve to display_name (or canonical_name if both match) — either is acceptable
+    expect(["display_name", "canonical_name"]).toContain(preview?.accountMatchReason);
+    expect(preview?.accountId).toBe(testAccountId);
+    // cleanup
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.signalTitle, title));
+  });
+
+  // ── PR #40 Group 19: canonicalName field (separate from accountName) ──────────
+  //
+  // The spec supports a dedicated "canonicalName" column in the XLSX (distinct from "accountName").
+  // This tests that the canonicalName column is parsed and used for account resolution.
+
+  it("19. canonicalName column (separate from accountName) resolves to accountId", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const caller = appRouter.createCaller(createContext("admin"));
+    const title = `${PR39} CanonicalName Field Signal`;
+    // testAccount has canonicalName: "PR39SIGNALAcme Mining Pty Ltd"
+    const canonicalName = `${PR39}Acme Mining Pty Ltd`;
+    const extRow: (string | number | null)[] = [
+      title, "Test", "mine_site_activity", "Mining Weekly", null, "WA",
+      "2025-07-14", "high", "hot", "Call", "new",
+      null, null, null, canonicalName, null, null,
+    ];
+    const fileBase64 = buildXlsx([HEADERS_EXTENDED, extRow]);
+    const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: false });
+    expect(result.createdSignals).toBe(1);
+    const preview = result.preview.find(p => p.signalTitle === title);
+    expect(preview?.accountMatchReason).toBe("canonical_name");
+    expect(preview?.accountId).toBe(testAccountId);
+    const [row] = await db.select().from(fullPotentialSignals)
+      .where(eq(fullPotentialSignals.signalTitle, title)).limit(1);
+    expect(row?.accountId).toBe(testAccountId);
+    // cleanup
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.signalTitle, title));
+  });
+
+  // ── PR #40 Group 20: True unlinked name-match visibility ─────────────────────
+  //
+  // A signal imported with no account linkage (accountId=null) can still appear in
+  // matchedSignalsForAccount if its signalTitle contains the account's normalised name terms.
+  // The matchedSignalsForAccount endpoint uses:
+  //   LOWER(signalTitle) LIKE '%{normName(account.canonicalName)}%'
+  // So the signal title must contain the account's canonical name terms.
+
+  it("20. unlinked signal with account name in title appears via name-match in matchedSignalsForAccount", async () => {
+    const db = await getDb();
+    if (!db) throw new Error("DB unavailable");
+    const caller = appRouter.createCaller(createContext("admin"));
+    // Title contains the canonicalName terms of testAccount ("PR39SIGNALAcme Mining Pty Ltd")
+    // After normName() stripping "pty ltd", the search term is "pr39signalacme mining"
+    // The title must contain that term (case-insensitive)
+    const title = `${PR39}Acme Mining Expansion Signal Unlinked`;
+    const fileBase64 = buildXlsx([
+      HEADERS,
+      buildRow({ signalTitle: title, accountId: null, stableKey: null, accountName: null, signalDate: "2025-07-15" }),
+    ]);
+    const result = await caller.fullPotential.importSignals({ fileName: "test.xlsx", fileBase64, dryRun: false });
+    expect(result.createdSignals).toBe(1);
+    expect(result.unlinkedSignals).toBe(1);
+    const [row] = await db.select().from(fullPotentialSignals)
+      .where(eq(fullPotentialSignals.signalTitle, title)).limit(1);
+    expect(row).toBeDefined();
+    expect(row.accountId).toBeNull();
+    // Now verify it appears in matchedSignalsForAccount via name-match
+    const matchResult = await caller.fullPotential.matchedSignalsForAccount({ accountId: testAccountId });
+    const found = matchResult.matches.find(m => m.title === title);
+    expect(found).toBeDefined();
+    expect(found?.sourceType).toBe("fp_signal");
+    // cleanup
+    await db.delete(fullPotentialSignals).where(eq(fullPotentialSignals.signalTitle, title));
   });
 
 });

@@ -446,7 +446,12 @@ async function resolveSignalAccountId(
     if (row) return { accountId: row.id, matchReason: "stable_key" };
   }
 
-  // Rule 3: canonicalName / accountName / displayName (exact normalised match)
+  // Rule 3: canonicalName / accountName / displayName (normalised match)
+  // Both sides are normalised using the same logic as normalizeToken():
+  //   uploaded candidate: normalizeToken(candidate)  → strips [^a-z0-9]+ to spaces, lowercases
+  //   DB side: REGEXP_REPLACE(LOWER(col), '[^a-z0-9]+', ' ') → same transformation in MySQL
+  // This ensures punctuation, hyphens, ampersands, and extra whitespace differences do not
+  // cause false negatives (e.g. "BHP Iron-Ore" matches "BHP Iron Ore").
   const nameCandidates = [parsed.canonicalName, parsed.accountName, parsed.displayName].filter((v): v is string => !!v);
   for (const candidate of nameCandidates) {
     const normCandidate = normalizeToken(candidate);
@@ -454,8 +459,8 @@ async function resolveSignalAccountId(
       .from(fullPotentialAccounts)
       .where(
         or(
-          sql`LOWER(${fullPotentialAccounts.canonicalName}) = ${normCandidate}`,
-          sql`LOWER(${fullPotentialAccounts.displayName}) = ${normCandidate}`,
+          sql`TRIM(REGEXP_REPLACE(LOWER(${fullPotentialAccounts.canonicalName}), '[^a-z0-9]+', ' ')) = ${normCandidate}`,
+          sql`TRIM(REGEXP_REPLACE(LOWER(${fullPotentialAccounts.displayName}), '[^a-z0-9]+', ' ')) = ${normCandidate}`,
         )
       ).limit(1);
     if (row) {
@@ -464,12 +469,12 @@ async function resolveSignalAccountId(
     }
   }
 
-  // Rule 4: aliasName
+  // Rule 4: aliasName (normalised match — same REGEXP_REPLACE approach)
   if (parsed.aliasName) {
     const normAlias = normalizeToken(parsed.aliasName);
     const [aliasRow] = await db.select({ accountId: fullPotentialAccountAliases.accountId })
       .from(fullPotentialAccountAliases)
-      .where(sql`LOWER(${fullPotentialAccountAliases.aliasName}) = ${normAlias}`)
+      .where(sql`TRIM(REGEXP_REPLACE(LOWER(${fullPotentialAccountAliases.aliasName}), '[^a-z0-9]+', ' ')) = ${normAlias}`)
       .limit(1);
     if (aliasRow) return { accountId: aliasRow.accountId, matchReason: "alias" };
   }
