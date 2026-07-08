@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Calendar, ChevronDown, ChevronUp, Clock, Target } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronDown, ChevronUp, Clock, PauseCircle, Target, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 
@@ -43,9 +44,21 @@ function formatDate(value?: string | null) {
   return parsed.toLocaleDateString("en-AU", { day: "2-digit", month: "short" });
 }
 
-function ActionRow({ action, overdue = false }: { action: any; overdue?: boolean }) {
+function ActionRow({
+  action,
+  overdue = false,
+  updatingId,
+  onStatusUpdate,
+}: {
+  action: any;
+  overdue?: boolean;
+  updatingId?: number | null;
+  onStatusUpdate: (actionId: number, status: "completed" | "deferred" | "not_relevant", notes?: string | null) => void;
+}) {
   const accountName = action.account?.displayName || action.account?.canonicalName || "Unknown account";
   const owner = action.account?.ownerName || action.account?.channelOwner || action.ownerName || "—";
+  const isUpdating = updatingId === action.id;
+
   return (
     <div className="rounded-lg border border-border bg-card p-3 hover:bg-gold/5 transition-colors">
       <div className="flex items-start justify-between gap-3">
@@ -66,16 +79,51 @@ function ActionRow({ action, overdue = false }: { action: any; overdue?: boolean
         <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-semibold">{labelFor(action.actionType, ACTION_TYPE_LABELS)}</span>
         <span>{String(action.status).replace(/_/g, " ")}</span>
       </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          disabled={isUpdating}
+          onClick={() => onStatusUpdate(action.id, "completed", action.notes ?? null)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-emerald-200 bg-emerald-50 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <CheckCircle2 className="w-3 h-3" /> Done
+        </button>
+        <button
+          type="button"
+          disabled={isUpdating}
+          onClick={() => onStatusUpdate(action.id, "deferred", action.notes ?? null)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-amber-200 bg-amber-50 text-[10px] font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <PauseCircle className="w-3 h-3" /> Defer
+        </button>
+        <button
+          type="button"
+          disabled={isUpdating}
+          onClick={() => onStatusUpdate(action.id, "not_relevant", action.notes ?? null)}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <XCircle className="w-3 h-3" /> Not relevant
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function FullPotentialMyWeekDock() {
   const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
   const [open, setOpen] = useState(true);
   const { data, isLoading } = trpc.fullPotential.myWeekActions.useQuery(undefined, {
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
+  });
+
+  const updateMutation = trpc.fullPotential.updateActionStatus.useMutation({
+    onSuccess: async () => {
+      toast.success("Portable Air FP action updated");
+      await utils.fullPotential.myWeekActions.invalidate();
+    },
+    onError: error => toast.error(error.message),
   });
 
   if (!isAuthenticated) return null;
@@ -84,6 +132,11 @@ export default function FullPotentialMyWeekDock() {
   const due = data?.dueActions ?? [];
   const upcoming = data?.upcomingActions ?? [];
   const total = overdue.length + due.length;
+  const updatingId = updateMutation.variables?.actionId ?? null;
+
+  const handleStatusUpdate = (actionId: number, status: "completed" | "deferred" | "not_relevant", notes?: string | null) => {
+    updateMutation.mutate({ actionId, status, notes: notes ?? null });
+  };
 
   return (
     <div className="fixed bottom-4 right-4 z-40 w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
@@ -115,21 +168,27 @@ export default function FullPotentialMyWeekDock() {
           {overdue.length > 0 && (
             <section className="space-y-2">
               <div className="text-[10px] uppercase tracking-wider font-bold text-red-700">Overdue</div>
-              {overdue.slice(0, 5).map((action: any) => <ActionRow key={action.id} action={action} overdue />)}
+              {overdue.slice(0, 5).map((action: any) => (
+                <ActionRow key={action.id} action={action} overdue updatingId={updatingId} onStatusUpdate={handleStatusUpdate} />
+              ))}
             </section>
           )}
 
           {due.length > 0 && (
             <section className="space-y-2">
               <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">Due this week</div>
-              {due.slice(0, 5).map((action: any) => <ActionRow key={action.id} action={action} />)}
+              {due.slice(0, 5).map((action: any) => (
+                <ActionRow key={action.id} action={action} updatingId={updatingId} onStatusUpdate={handleStatusUpdate} />
+              ))}
             </section>
           )}
 
           {upcoming.length > 0 && (
             <section className="space-y-2">
               <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Upcoming</div>
-              {upcoming.slice(0, 3).map((action: any) => <ActionRow key={action.id} action={action} />)}
+              {upcoming.slice(0, 3).map((action: any) => (
+                <ActionRow key={action.id} action={action} updatingId={updatingId} onStatusUpdate={handleStatusUpdate} />
+              ))}
             </section>
           )}
 
