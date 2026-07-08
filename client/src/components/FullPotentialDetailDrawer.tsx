@@ -129,8 +129,11 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
   const evidenceSources = listValues(account?.evidenceSources);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-navy/25" onClick={onClose}>
-      <aside className="h-full w-full max-w-[560px] bg-card border-l border-border shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-navy/25"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <aside className="h-full w-full max-w-[560px] bg-card border-l border-border shadow-2xl overflow-y-auto">
         <div className="sticky top-0 bg-card border-b border-border z-10 px-5 py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
