@@ -1182,6 +1182,114 @@ export const fullPotentialRouter = router({
       };
     }),
 
+  /**
+   * Promote a matched signal or project cross-reference into a Full Potential action.
+   * Creates a fullPotentialAction with signalId or projectId set.
+   * Duplicate guard: throws BAD_REQUEST if an open action already exists for the
+   * same account+signal or account+project combination.
+   */
+  promoteMatchedSignalToAction: protectedProcedure
+    .input(z.object({
+      accountId: z.number().int().positive(),
+      sourceType: z.enum(["fp_signal", "project"]),
+      sourceId: z.number().int().positive(),
+      actionType: z.enum(actionTypeValues).optional().default("account_review"),
+      dueDate: z.string().optional(),
+      notes: z.string().max(4000).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // ── 1. Validate account ────────────────────────────────────────────────
+      const [account] = await db
+        .select({ id: fullPotentialAccounts.id, canonicalName: fullPotentialAccounts.canonicalName })
+        .from(fullPotentialAccounts)
+        .where(eq(fullPotentialAccounts.id, input.accountId))
+        .limit(1);
+      if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Full Potential account not found" });
+
+      // ── 2. Validate source and build notes ─────────────────────────────────
+      let signalId: number | null = null;
+      let projectId: number | null = null;
+      let autoNotes = "";
+
+      if (input.sourceType === "fp_signal") {
+        const [sig] = await db
+          .select()
+          .from(fullPotentialSignals)
+          .where(eq(fullPotentialSignals.id, input.sourceId))
+          .limit(1);
+        if (!sig) throw new TRPCError({ code: "NOT_FOUND", message: "Signal not found" });
+        signalId = sig.id;
+        autoNotes = [
+          `Signal: ${sig.signalTitle}`,
+          sig.confidenceLevel ? `Confidence: ${sig.confidenceLevel}` : null,
+          sig.sourceName ? `Source: ${sig.sourceName}` : null,
+          sig.suggestedAction ? `Suggested: ${sig.suggestedAction}` : null,
+          sig.signalSummary ? `\n${sig.signalSummary}` : null,
+        ].filter(Boolean).join(" | ");
+      } else {
+        const [proj] = await db
+          .select({ id: projects.id, name: projects.name, overview: projects.overview, projectState: projects.projectState })
+          .from(projects)
+          .where(eq(projects.id, input.sourceId))
+          .limit(1);
+        if (!proj) throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        projectId = proj.id;
+        autoNotes = [
+          `Project: ${proj.name}`,
+          proj.projectState ? `State: ${proj.projectState}` : null,
+          proj.overview ? `\n${proj.overview}` : null,
+        ].filter(Boolean).join(" | ");
+      }
+
+      // ── 3. Duplicate guard ─────────────────────────────────────────────────
+      const existingActions = await db
+        .select({ id: fullPotentialActions.id, status: fullPotentialActions.status, signalId: fullPotentialActions.signalId, projectId: fullPotentialActions.projectId })
+        .from(fullPotentialActions)
+        .where(eq(fullPotentialActions.accountId, input.accountId));
+
+      const hasDuplicate = existingActions.some(a => {
+        if (!openActionStatuses.has(a.status ?? "")) return false;
+        if (signalId !== null && a.signalId === signalId) return true;
+        if (projectId !== null && a.projectId === projectId) return true;
+        return false;
+      });
+      if (hasDuplicate) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "An open action already exists for this account and signal/project",
+        });
+      }
+
+      // ── 4. Create action ───────────────────────────────────────────────────
+      const ownerName = ctx.user.name || ctx.user.email || String(ctx.user.id);
+      const dueDate = parseOptionalDate(input.dueDate);
+      const combinedNotes = [autoNotes, input.notes].filter(Boolean).join("\n\n");
+
+      await db.insert(fullPotentialActions).values({
+        accountId: input.accountId,
+        userId: ctx.user.id,
+        ownerName,
+        actionType: input.actionType,
+        recommendedAction: `Follow up on matched signal: ${account.canonicalName}`,
+        dueDate,
+        status: "not_started",
+        notes: combinedNotes || null,
+        signalId: signalId ?? undefined,
+        projectId: projectId ?? undefined,
+      } as any);
+
+      const [created] = await db
+        .select()
+        .from(fullPotentialActions)
+        .where(eq(fullPotentialActions.accountId, input.accountId))
+        .orderBy(desc(fullPotentialActions.createdAt))
+        .limit(1);
+      return created ? toClientAction(created) : { success: true };
+    }),
+
   myWeekActions: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
