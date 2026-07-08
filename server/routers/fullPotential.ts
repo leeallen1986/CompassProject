@@ -1,22 +1,44 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import {
   fullPotentialAccounts,
   fullPotentialAccountAliases,
+  fullPotentialActions,
   fullPotentialImports,
 } from "../../drizzle/schema";
 
-const PREFERRED_SHEETS = [
-  "Platform Import v2.4",
-  "Platform Import",
-  "Canonical Universe v2.4",
-];
-
+const PREFERRED_SHEETS = ["Platform Import v2.4", "Platform Import", "Canonical Universe v2.4"];
 const MAX_ROW_ERRORS = 100;
+
+const actionTypeValues = [
+  "account_review",
+  "contact_discovery",
+  "customer_call",
+  "site_visit",
+  "channel_handover",
+  "installed_base_validation",
+  "c4c_create_update",
+  "proposal_followup",
+  "manager_review",
+  "other",
+] as const;
+
+const actionStatusValues = [
+  "not_started",
+  "in_progress",
+  "contacted",
+  "meeting_booked",
+  "quoted",
+  "won",
+  "lost",
+  "deferred",
+  "not_relevant",
+  "completed",
+] as const;
 
 type RowClass = "account" | "site_context" | "channel_managed" | "competitor_watch" | "cluster_signal";
 type RouteToMarket =
@@ -159,6 +181,20 @@ const importHistoryInputSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(10),
 });
 
+const createActionInputSchema = z.object({
+  accountId: z.number().int().positive(),
+  actionType: z.enum(actionTypeValues).optional().default("account_review"),
+  recommendedAction: z.string().min(1).max(512),
+  dueDate: z.string().max(64).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+});
+
+const updateActionStatusInputSchema = z.object({
+  actionId: z.number().int().positive(),
+  status: z.enum(actionStatusValues),
+  notes: z.string().max(2000).nullable().optional(),
+});
+
 const HEADER_ALIASES: Record<string, FieldKey> = {
   stablekey: "stableKey",
   importkey: "stableKey",
@@ -234,28 +270,16 @@ const HEADER_ALIASES: Record<string, FieldKey> = {
 
 function cleanString(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
-  const cleaned = String(value)
-    .replace(/[\u0000-\u001F\u007F]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const cleaned = String(value).replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
   return cleaned || undefined;
 }
 
 function normalizeHeader(value: unknown): string {
-  return (cleanString(value) ?? "")
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "")
-    .trim();
+  return (cleanString(value) ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "").trim();
 }
 
 function normalizeToken(value: unknown): string {
-  return (cleanString(value) ?? "")
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (cleanString(value) ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function normalizeKeyPart(value: unknown): string {
@@ -269,10 +293,7 @@ function normalizeAlias(value: string): string {
 function splitList(value: unknown): string[] | undefined {
   const raw = cleanString(value);
   if (!raw) return undefined;
-  const parts = raw
-    .split(/[;,|]/g)
-    .map(p => cleanString(p))
-    .filter((p): p is string => !!p);
+  const parts = raw.split(/[;,|]/g).map(p => cleanString(p)).filter((p): p is string => !!p);
   const unique = Array.from(new Set(parts));
   return unique.length ? unique : undefined;
 }
@@ -297,17 +318,21 @@ function parseInteger(value: unknown): number | undefined {
 function parseDate(value: unknown): Date | undefined {
   const raw = cleanString(value);
   if (!raw) return undefined;
-
   const asNumber = Number(raw.replace(/[^0-9.]/g, ""));
   if (/^\d{4,6}$/.test(raw.trim()) && asNumber >= 1 && asNumber <= 99999) {
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
     const excelDate = new Date(excelEpoch.getTime() + asNumber * 86400000);
     if (!Number.isNaN(excelDate.getTime())) return excelDate;
   }
-
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return undefined;
   return parsed;
+}
+
+function parseOptionalDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function mapRowClass(value: unknown): RowClass | undefined {
@@ -401,13 +426,7 @@ function mapC4cStatus(value: unknown): C4cStatus {
 }
 
 function generateStableKey(row: Pick<ParsedAccountRow, "canonicalName" | "rowClass" | "country" | "state" | "routeToMarket">): string {
-  return [
-    normalizeKeyPart(row.canonicalName),
-    normalizeKeyPart(row.rowClass),
-    normalizeKeyPart(row.country),
-    normalizeKeyPart(row.state),
-    normalizeKeyPart(row.routeToMarket),
-  ].join("|");
+  return [normalizeKeyPart(row.canonicalName), normalizeKeyPart(row.rowClass), normalizeKeyPart(row.country), normalizeKeyPart(row.state), normalizeKeyPart(row.routeToMarket)].join("|");
 }
 
 function selectWorkbookSheet(workbook: XLSX.WorkBook, requested?: string): { selectedSheet: string; sheet: XLSX.WorkSheet } {
@@ -416,12 +435,10 @@ function selectWorkbookSheet(workbook: XLSX.WorkBook, requested?: string): { sel
     if (!requestedMatch) throw new Error(`Sheet "${requested}" not found`);
     return { selectedSheet: requestedMatch, sheet: workbook.Sheets[requestedMatch] };
   }
-
   for (const preferred of PREFERRED_SHEETS) {
     const match = workbook.SheetNames.find(name => name.toLowerCase() === preferred.toLowerCase());
     if (match) return { selectedSheet: match, sheet: workbook.Sheets[match] };
   }
-
   const first = workbook.SheetNames[0];
   if (!first) throw new Error("Workbook has no sheets");
   return { selectedSheet: first, sheet: workbook.Sheets[first] };
@@ -429,17 +446,11 @@ function selectWorkbookSheet(workbook: XLSX.WorkBook, requested?: string): { sel
 
 function decodeWorkbook(fileName: string, fileBase64: string): XLSX.WorkBook {
   const lower = fileName.toLowerCase();
-  if (!lower.endsWith(".xlsx") && !lower.endsWith(".xls") && !lower.endsWith(".csv")) {
-    throw new Error("Unsupported file type. Use .xlsx, .xls or .csv");
-  }
-
+  if (!lower.endsWith(".xlsx") && !lower.endsWith(".xls") && !lower.endsWith(".csv")) throw new Error("Unsupported file type. Use .xlsx, .xls or .csv");
   const cleanBase64 = fileBase64.replace(/^data:.*?;base64,/, "");
   const buffer = Buffer.from(cleanBase64, "base64");
   if (!buffer.length) throw new Error("Uploaded file is empty");
-
-  if (lower.endsWith(".csv")) {
-    return XLSX.read(buffer.toString("utf8"), { type: "string" });
-  }
+  if (lower.endsWith(".csv")) return XLSX.read(buffer.toString("utf8"), { type: "string" });
   return XLSX.read(buffer, { type: "buffer" });
 }
 
@@ -477,31 +488,19 @@ function buildRawRecord(headers: unknown[], row: unknown[]): Record<string, unkn
   return raw;
 }
 
-function parseAccountRow(
-  row: unknown[],
-  headers: unknown[],
-  headerMap: Map<FieldKey, number>,
-  rowNumber: number,
-  selectedSheet: string,
-): { parsed?: ParsedAccountRow; error?: ImportRowError; blank?: boolean } {
+function parseAccountRow(row: unknown[], headers: unknown[], headerMap: Map<FieldKey, number>, rowNumber: number, selectedSheet: string): { parsed?: ParsedAccountRow; error?: ImportRowError; blank?: boolean } {
   if (!row || row.every(cell => !cleanString(cell))) return { blank: true };
-
   const raw = buildRawRecord(headers, row);
   const canonicalName = cleanString(rowValue(row, headerMap, "canonicalName"));
   if (!canonicalName) return { error: { rowNumber, reason: "Missing canonicalName", raw } };
-
   const rowClass = mapRowClass(rowValue(row, headerMap, "rowClass"));
   if (!rowClass) return { error: { rowNumber, reason: "Missing or unmapped rowClass", raw } };
-
   const routeToMarket = mapRoute(rowValue(row, headerMap, "routeToMarket"));
   if (!routeToMarket) return { error: { rowNumber, reason: "Missing or unmapped routeToMarket", raw } };
-
   const fpStatus = mapFpStatus(rowValue(row, headerMap, "fpStatus"));
   if (!fpStatus) return { error: { rowNumber, reason: "Missing or unmapped fpStatus", raw } };
-
   const platformPushDecision = mapPlatformPushDecision(rowValue(row, headerMap, "platformPushDecision"));
   if (!platformPushDecision) return { error: { rowNumber, reason: "Missing or unmapped platformPushDecision", raw } };
-
   const country = cleanString(rowValue(row, headerMap, "country")) ?? "AU";
   const parsed: ParsedAccountRow = {
     rowNumber,
@@ -539,7 +538,6 @@ function parseAccountRow(
     sourceSheet: cleanString(rowValue(row, headerMap, "sourceSheet")) ?? selectedSheet,
     sourceRowNumber: parseInteger(rowValue(row, headerMap, "sourceRowNumber")) ?? rowNumber,
   };
-
   parsed.stableKey = parsed.stableKey || generateStableKey(parsed);
   return { parsed };
 }
@@ -639,20 +637,27 @@ function toClientAccount(account: any) {
   };
 }
 
+function toClientAction(action: any) {
+  return {
+    ...action,
+    dueDate: action.dueDate ? new Date(action.dueDate).toISOString() : null,
+    createdAt: action.createdAt ? new Date(action.createdAt).toISOString() : null,
+    updatedAt: action.updatedAt ? new Date(action.updatedAt).toISOString() : null,
+    completedAt: action.completedAt ? new Date(action.completedAt).toISOString() : null,
+  };
+}
+
 async function importFullPotential(input: z.infer<typeof importInputSchema>, user: { id: number; name?: string | null; email?: string | null }): Promise<ImportSummary> {
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-
   const dryRun = input.dryRun ?? true;
   const clearBlankValues = input.clearBlankValues ?? false;
-
   let workbook: XLSX.WorkBook;
   try {
     workbook = decodeWorkbook(input.fileName, input.fileBase64);
   } catch (error) {
     throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
   }
-
   let selectedSheet: string;
   let sheet: XLSX.WorkSheet;
   try {
@@ -660,15 +665,12 @@ async function importFullPotential(input: z.infer<typeof importInputSchema>, use
   } catch (error) {
     throw new TRPCError({ code: "BAD_REQUEST", message: (error as Error).message });
   }
-
   const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", blankrows: false, raw: false });
   if (allRows.length === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Selected sheet is empty" });
-
   const headerRowIndex = detectHeaderRow(allRows);
   const headers = allRows[headerRowIndex] ?? [];
   const headerMap = buildHeaderMap(headers);
   const dataRows = allRows.slice(headerRowIndex + 1);
-
   const summary: ImportSummary = {
     dryRun,
     fileName: input.fileName,
@@ -684,65 +686,42 @@ async function importFullPotential(input: z.infer<typeof importInputSchema>, use
     errorCount: 0,
     errors: [],
   };
-
   for (let index = 0; index < dataRows.length; index++) {
     const rowNumber = headerRowIndex + index + 2;
     const result = parseAccountRow(dataRows[index], headers, headerMap, rowNumber, selectedSheet);
-
     if (result.blank) {
       summary.skippedRows++;
       continue;
     }
-
     if (result.error || !result.parsed) {
       summary.skippedRows++;
       summary.errorCount++;
       if (summary.errors.length < MAX_ROW_ERRORS && result.error) summary.errors.push(result.error);
       continue;
     }
-
     const parsed = result.parsed;
-    const [existing] = await db
-      .select()
-      .from(fullPotentialAccounts)
-      .where(eq(fullPotentialAccounts.stableKey, parsed.stableKey))
-      .limit(1);
-
+    const [existing] = await db.select().from(fullPotentialAccounts).where(eq(fullPotentialAccounts.stableKey, parsed.stableKey)).limit(1);
     const accountValues = buildAccountValues(parsed, input.sourceWorkbookVersion);
     const writeValues = clearBlankValues ? clearUndefinedValues(accountValues) : removeUndefinedValues(accountValues);
-
     let accountId = existing?.id;
     if (existing) {
       summary.updatedAccounts++;
-      if (!dryRun) {
-        await db.update(fullPotentialAccounts).set(writeValues).where(eq(fullPotentialAccounts.id, existing.id));
-      }
+      if (!dryRun) await db.update(fullPotentialAccounts).set(writeValues).where(eq(fullPotentialAccounts.id, existing.id));
     } else {
       summary.createdAccounts++;
       if (!dryRun) {
         await db.insert(fullPotentialAccounts).values(removeUndefinedValues(accountValues) as any);
-        const [created] = await db
-          .select({ id: fullPotentialAccounts.id })
-          .from(fullPotentialAccounts)
-          .where(eq(fullPotentialAccounts.stableKey, parsed.stableKey))
-          .limit(1);
+        const [created] = await db.select({ id: fullPotentialAccounts.id }).from(fullPotentialAccounts).where(eq(fullPotentialAccounts.stableKey, parsed.stableKey)).limit(1);
         accountId = created?.id;
       }
     }
-
-    const uniqueAliases = Array.from(new Map(parsed.aliases.map(alias => [normalizeAlias(alias), alias])).values())
-      .filter(alias => normalizeAlias(alias) && normalizeAlias(alias) !== normalizeAlias(parsed.canonicalName));
-
+    const uniqueAliases = Array.from(new Map(parsed.aliases.map(alias => [normalizeAlias(alias), alias])).values()).filter(alias => normalizeAlias(alias) && normalizeAlias(alias) !== normalizeAlias(parsed.canonicalName));
     if (uniqueAliases.length > 0) {
       const existingAliasSet = new Set<string>();
       if (existing?.id || accountId) {
-        const aliasRows = await db
-          .select({ aliasName: fullPotentialAccountAliases.aliasName })
-          .from(fullPotentialAccountAliases)
-          .where(eq(fullPotentialAccountAliases.accountId, (existing?.id ?? accountId)!));
+        const aliasRows = await db.select({ aliasName: fullPotentialAccountAliases.aliasName }).from(fullPotentialAccountAliases).where(eq(fullPotentialAccountAliases.accountId, (existing?.id ?? accountId)!));
         aliasRows.forEach(aliasRow => existingAliasSet.add(normalizeAlias(aliasRow.aliasName)));
       }
-
       for (const alias of uniqueAliases) {
         const normalized = normalizeAlias(alias);
         if (existingAliasSet.has(normalized)) {
@@ -752,28 +731,13 @@ async function importFullPotential(input: z.infer<typeof importInputSchema>, use
         summary.aliasesCreated++;
         existingAliasSet.add(normalized);
         if (!dryRun && accountId) {
-          await db.insert(fullPotentialAccountAliases).values({
-            accountId,
-            aliasName: alias,
-            aliasType: "other",
-            source: "full_potential_import",
-            confidenceLevel: "unknown",
-          });
+          await db.insert(fullPotentialAccountAliases).values({ accountId, aliasName: alias, aliasType: "other", source: "full_potential_import", confidenceLevel: "unknown" });
         }
       }
     }
-
     summary.rowsProcessed++;
   }
-
-  if (summary.rowsProcessed === 0) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "No usable Full Potential rows found in the selected sheet",
-      cause: summary,
-    });
-  }
-
+  if (summary.rowsProcessed === 0) throw new TRPCError({ code: "BAD_REQUEST", message: "No usable Full Potential rows found in the selected sheet", cause: summary });
   if (!dryRun) {
     await db.insert(fullPotentialImports).values({
       workbookVersion: input.sourceWorkbookVersion ?? "unknown",
@@ -788,72 +752,54 @@ async function importFullPotential(input: z.infer<typeof importInputSchema>, use
       importSummary: summary as unknown as Record<string, unknown>,
     });
   }
-
   return summary;
 }
 
 export const fullPotentialRouter = router({
-  import: adminProcedure
-    .input(importInputSchema)
-    .mutation(async ({ ctx, input }) => {
-      return importFullPotential(input, ctx.user);
-    }),
+  import: adminProcedure.input(importInputSchema).mutation(async ({ ctx, input }) => importFullPotential(input, ctx.user)),
 
-  list: protectedProcedure
-    .input(listInputSchema)
-    .query(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-
-      const allAccounts = await db.select().from(fullPotentialAccounts);
-      const filtered = allAccounts.filter(account =>
-        accountMatchesSearch(account, input.search)
-        && matchesFilter(account.fpStatus, input.fpStatus)
-        && matchesFilter(account.platformPushDecision, input.platformPushDecision)
-        && matchesFilter(account.routeToMarket, input.routeToMarket)
-        && matchesFilter(account.ownerName, input.ownerName)
-        && matchesFilter(account.segment, input.segment)
-        && matchesFilter(account.state, input.state)
-        && matchesFilter(account.priorityTier, input.priorityTier)
-        && matchesFilter(account.rowClass, input.rowClass)
-      );
-
-      const offset = input.offset ?? 0;
-      const limit = input.limit ?? 100;
-      const page = filtered
-        .sort((a, b) => {
-          const tierOrder: Record<string, number> = { tier_a: 0, tier_b: 1, tier_c: 2, tier_d: 3, unassigned: 4 };
-          const aTier = tierOrder[a.priorityTier ?? "unassigned"] ?? 4;
-          const bTier = tierOrder[b.priorityTier ?? "unassigned"] ?? 4;
-          if (aTier !== bTier) return aTier - bTier;
-          return String(a.canonicalName).localeCompare(String(b.canonicalName));
-        })
-        .slice(offset, offset + limit)
-        .map(toClientAccount);
-
-      return {
-        accounts: page,
-        total: filtered.length,
-        limit,
-        offset,
-      };
-    }),
+  list: protectedProcedure.input(listInputSchema).query(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const allAccounts = await db.select().from(fullPotentialAccounts);
+    const filtered = allAccounts.filter(account =>
+      accountMatchesSearch(account, input.search)
+      && matchesFilter(account.fpStatus, input.fpStatus)
+      && matchesFilter(account.platformPushDecision, input.platformPushDecision)
+      && matchesFilter(account.routeToMarket, input.routeToMarket)
+      && matchesFilter(account.ownerName, input.ownerName)
+      && matchesFilter(account.segment, input.segment)
+      && matchesFilter(account.state, input.state)
+      && matchesFilter(account.priorityTier, input.priorityTier)
+      && matchesFilter(account.rowClass, input.rowClass)
+    );
+    const offset = input.offset ?? 0;
+    const limit = input.limit ?? 100;
+    const page = filtered
+      .sort((a, b) => {
+        const tierOrder: Record<string, number> = { tier_a: 0, tier_b: 1, tier_c: 2, tier_d: 3, unassigned: 4 };
+        const aTier = tierOrder[a.priorityTier ?? "unassigned"] ?? 4;
+        const bTier = tierOrder[b.priorityTier ?? "unassigned"] ?? 4;
+        if (aTier !== bTier) return aTier - bTier;
+        return String(a.canonicalName).localeCompare(String(b.canonicalName));
+      })
+      .slice(offset, offset + limit)
+      .map(toClientAccount);
+    return { accounts: page, total: filtered.length, limit, offset };
+  }),
 
   stats: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-
     const accounts = await db.select().from(fullPotentialAccounts);
     const byFpStatus: Record<string, number> = {};
     const byPlatformPushDecision: Record<string, number> = {};
     const byRouteToMarket: Record<string, number> = {};
     const byPriorityTier: Record<string, number> = {};
     const byRowClass: Record<string, number> = {};
-
     let totalFullPotentialAud = 0;
     let totalTarget2026Aud = 0;
     let totalRemainingPotentialAud = 0;
-
     for (const account of accounts) {
       addCount(byFpStatus, account.fpStatus);
       addCount(byPlatformPushDecision, account.platformPushDecision);
@@ -864,24 +810,12 @@ export const fullPotentialRouter = router({
       totalTarget2026Aud += numberValue(account.target2026Aud);
       totalRemainingPotentialAud += numberValue(account.remainingPotentialAud);
     }
-
-    return {
-      totalAccounts: accounts.length,
-      byFpStatus,
-      byPlatformPushDecision,
-      byRouteToMarket,
-      byPriorityTier,
-      byRowClass,
-      totalFullPotentialAud,
-      totalTarget2026Aud,
-      totalRemainingPotentialAud,
-    };
+    return { totalAccounts: accounts.length, byFpStatus, byPlatformPushDecision, byRouteToMarket, byPriorityTier, byRowClass, totalFullPotentialAud, totalTarget2026Aud, totalRemainingPotentialAud };
   }),
 
   filterOptions: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-
     const accounts = await db.select().from(fullPotentialAccounts);
     return {
       fpStatuses: uniqueSorted(accounts.map(account => account.fpStatus)),
@@ -895,17 +829,54 @@ export const fullPotentialRouter = router({
     };
   }),
 
-  importHistory: protectedProcedure
-    .input(importHistoryInputSchema.optional().default({ limit: 10 }))
-    .query(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-      return db
-        .select()
-        .from(fullPotentialImports)
-        .orderBy(desc(fullPotentialImports.importedAt))
-        .limit(input.limit ?? 10);
-    }),
+  importHistory: protectedProcedure.input(importHistoryInputSchema.optional().default({ limit: 10 })).query(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    return db.select().from(fullPotentialImports).orderBy(desc(fullPotentialImports.importedAt)).limit(input.limit ?? 10);
+  }),
+
+  actionsForAccount: protectedProcedure.input(z.object({ accountId: z.number().int().positive() })).query(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const actions = await db.select().from(fullPotentialActions).where(eq(fullPotentialActions.accountId, input.accountId)).orderBy(desc(fullPotentialActions.createdAt));
+    return actions.map(toClientAction);
+  }),
+
+  createAction: protectedProcedure.input(createActionInputSchema).mutation(async ({ ctx, input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const [account] = await db.select({ id: fullPotentialAccounts.id }).from(fullPotentialAccounts).where(eq(fullPotentialAccounts.id, input.accountId)).limit(1);
+    if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Full Potential account not found" });
+    const ownerName = ctx.user.name || ctx.user.email || String(ctx.user.id);
+    const dueDate = parseOptionalDate(input.dueDate);
+    await db.insert(fullPotentialActions).values({
+      accountId: input.accountId,
+      userId: ctx.user.id,
+      ownerName,
+      actionType: input.actionType,
+      recommendedAction: input.recommendedAction,
+      dueDate,
+      status: "not_started",
+      notes: input.notes ?? null,
+    } as any);
+    const [created] = await db.select().from(fullPotentialActions).where(eq(fullPotentialActions.accountId, input.accountId)).orderBy(desc(fullPotentialActions.createdAt)).limit(1);
+    return created ? toClientAction(created) : { success: true };
+  }),
+
+  updateActionStatus: protectedProcedure.input(updateActionStatusInputSchema).mutation(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const [existing] = await db.select().from(fullPotentialActions).where(eq(fullPotentialActions.id, input.actionId)).limit(1);
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Full Potential action not found" });
+    const isClosed = ["completed", "won", "lost", "not_relevant", "deferred"].includes(input.status);
+    await db.update(fullPotentialActions).set({
+      status: input.status,
+      notes: input.notes ?? existing.notes,
+      completedAt: isClosed ? new Date() : null,
+    } as any).where(eq(fullPotentialActions.id, input.actionId));
+    const [updated] = await db.select().from(fullPotentialActions).where(eq(fullPotentialActions.id, input.actionId)).limit(1);
+    return updated ? toClientAction(updated) : { success: true };
+  }),
 });
 
 export type FullPotentialImportSummary = ImportSummary;
