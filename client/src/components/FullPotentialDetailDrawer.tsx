@@ -112,6 +112,13 @@ function formatDate(value?: string | Date | null) {
   return parsed.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function toDateInputValue(value?: string | Date | null) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
 function labelFor(value: string | null | undefined, map: Record<string, string>) {
   if (!value) return "—";
   return map[value] || value;
@@ -121,6 +128,15 @@ function listValues(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(v => String(v)).filter(Boolean);
   if (typeof value === "string" && value.trim()) return value.split(/[;,|]/).map(v => v.trim()).filter(Boolean);
   return [];
+}
+
+function cleanFormValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function displayFormValue(value: unknown) {
+  const cleaned = cleanFormValue(value);
+  return cleaned || "—";
 }
 
 function Badge({ children, tone = "slate" }: { children: ReactNode; tone?: "slate" | "blue" | "green" | "red" | "gold" | "amber" }) {
@@ -270,6 +286,151 @@ function AccountActionsSection({ accountId }: { accountId: number }) {
   );
 }
 
+function AccountUpdateRequestSection({ account }: { account: any }) {
+  const utils = trpc.useUtils();
+  const accountName = account.displayName || account.canonicalName || "this account";
+  const [ownerName, setOwnerName] = useState(cleanFormValue(account.ownerName));
+  const [channelOwner, setChannelOwner] = useState(cleanFormValue(account.channelOwner));
+  const [fpStatus, setFpStatus] = useState(cleanFormValue(account.fpStatus));
+  const [priorityTier, setPriorityTier] = useState(cleanFormValue(account.priorityTier));
+  const [platformPushDecision, setPlatformPushDecision] = useState(cleanFormValue(account.platformPushDecision));
+  const [installedBaseStatus, setInstalledBaseStatus] = useState(cleanFormValue(account.installedBaseStatus));
+  const [installedBaseNotes, setInstalledBaseNotes] = useState(cleanFormValue(account.installedBaseNotes));
+  const [currentSupplier, setCurrentSupplier] = useState(cleanFormValue(account.currentSupplier));
+  const [nextAction, setNextAction] = useState(cleanFormValue(account.nextAction));
+  const [nextActionDate, setNextActionDate] = useState(toDateInputValue(account.nextActionDate));
+  const [reviewDueDate, setReviewDueDate] = useState("");
+  const [reason, setReason] = useState("");
+
+  const createMutation = trpc.fullPotential.createAction.useMutation({
+    onSuccess: async () => {
+      toast.success("Account update request created");
+      setReason("");
+      setReviewDueDate("");
+      await utils.fullPotential.actionsForAccount.invalidate({ accountId: account.id });
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const requestedFields = [
+    { label: "Owner", current: account.ownerName, requested: ownerName },
+    { label: "Channel owner", current: account.channelOwner, requested: channelOwner },
+    { label: "FP status", current: account.fpStatus, requested: fpStatus },
+    { label: "Priority tier", current: account.priorityTier, requested: priorityTier },
+    { label: "Platform push decision", current: account.platformPushDecision, requested: platformPushDecision },
+    { label: "Installed-base status", current: account.installedBaseStatus, requested: installedBaseStatus },
+    { label: "Installed-base notes", current: account.installedBaseNotes, requested: installedBaseNotes },
+    { label: "Current supplier", current: account.currentSupplier, requested: currentSupplier },
+    { label: "Next action", current: account.nextAction, requested: nextAction },
+    { label: "Next action date", current: toDateInputValue(account.nextActionDate), requested: nextActionDate },
+  ].filter(field => cleanFormValue(field.current) !== cleanFormValue(field.requested));
+
+  async function submitUpdateRequest() {
+    if (requestedFields.length === 0 && !reason.trim()) {
+      toast.error("Change at least one field or add a reason before submitting");
+      return;
+    }
+
+    const changes = requestedFields.length
+      ? requestedFields.map(field => `- ${field.label}: ${displayFormValue(field.current)} → ${displayFormValue(field.requested)}`).join("\n")
+      : "- No field value change captured; review note only.";
+
+    const notes = [
+      "Portable Air Full Potential account update request",
+      `Account: ${accountName}`,
+      `Stable key: ${account.stableKey || "—"}`,
+      "",
+      "Requested changes:",
+      changes,
+      "",
+      "Reason / context:",
+      reason.trim() || "—",
+      "",
+      "Scope note: this request does not update C4C and does not directly change the account record.",
+    ].join("\n");
+
+    await createMutation.mutateAsync({
+      accountId: account.id,
+      actionType: "manager_review" as any,
+      recommendedAction: `Review requested Portable Air FP account update for ${accountName}`,
+      dueDate: reviewDueDate || null,
+      notes,
+    });
+  }
+
+  return (
+    <DetailSection title="Request account update" icon={<FileText className="w-3.5 h-3.5" />}>
+      <div className="rounded-lg border border-border bg-amber-50/50 p-3 space-y-3">
+        <p className="text-xs text-amber-900/80 leading-relaxed">
+          Creates a manager-review action only. This does not directly edit the account, update C4C, or change any financial fields.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Owner</label>
+            <input value={ownerName} onChange={event => setOwnerName(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Channel owner</label>
+            <input value={channelOwner} onChange={event => setChannelOwner(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">FP status</label>
+            <select value={fpStatus} onChange={event => setFpStatus(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+              {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Priority tier</label>
+            <select value={priorityTier} onChange={event => setPriorityTier(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+              {Object.entries(TIER_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Platform push decision</label>
+            <select value={platformPushDecision} onChange={event => setPlatformPushDecision(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+              {Object.entries(PUSH_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Installed-base status</label>
+            <select value={installedBaseStatus} onChange={event => setInstalledBaseStatus(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40">
+              {Object.entries(INSTALLED_BASE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Current supplier</label>
+            <input value={currentSupplier} onChange={event => setCurrentSupplier(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Next action date</label>
+            <input type="date" value={nextActionDate} onChange={event => setNextActionDate(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Manager review due date</label>
+            <input type="date" value={reviewDueDate} onChange={event => setReviewDueDate(event.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Installed-base notes</label>
+          <textarea value={installedBaseNotes} onChange={event => setInstalledBaseNotes(event.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Next action</label>
+          <textarea value={nextAction} onChange={event => setNextAction(event.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">Notes / reason</label>
+          <textarea value={reason} onChange={event => setReason(event.target.value)} rows={3} placeholder="Explain why this change is needed." className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+        </div>
+        <Button onClick={submitUpdateRequest} disabled={createMutation.isPending} className="bg-gold text-navy hover:bg-gold/90">
+          {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+          Submit update request
+        </Button>
+      </div>
+    </DetailSection>
+  );
+}
+
 export default function FullPotentialDetailDrawer({ account, onClose }: { account: any; onClose: () => void }) {
   const applicationPlays = listValues(account?.applicationPlays);
   const evidenceSources = listValues(account?.evidenceSources);
@@ -280,7 +441,7 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
         <div className="sticky top-0 bg-card border-b border-border z-10 px-5 py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
-              <Building2 className="w-4 h-4" /> Full Potential account
+              <Building2 className="w-4 h-4" /> Portable Air Full Potential account
             </div>
             <h2 className="text-lg font-bold text-navy leading-tight">{account.displayName || account.canonicalName}</h2>
             {account.parentGroup && <p className="text-xs text-muted-foreground mt-1">Parent group: {account.parentGroup}</p>}
@@ -349,6 +510,7 @@ export default function FullPotentialDetailDrawer({ account, onClose }: { accoun
             <DetailItem label="Next action" value={account.nextAction || "—"} />
           </DetailSection>
 
+          <AccountUpdateRequestSection account={account} />
           <AccountActionsSection accountId={account.id} />
 
           <DetailSection title="Import source" icon={<Database className="w-3.5 h-3.5" />}>
