@@ -93,7 +93,7 @@ export default function FullPotentialMyWeekDock() {
       >
         <Target className="w-4 h-4 text-gold shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm">Full Potential actions</div>
+          <div className="font-bold text-sm">Portable Air FP actions</div>
           <div className="text-[11px] text-slate-300">{isLoading ? "Loading..." : `${overdue.length} overdue · ${due.length} due this week`}</div>
         </div>
         {total > 0 && <span className="rounded-full bg-gold text-navy text-xs font-bold px-2 py-0.5">{total}</span>}
@@ -104,11 +104,11 @@ export default function FullPotentialMyWeekDock() {
         <div className="max-h-[520px] overflow-y-auto p-3 space-y-3">
           {isLoading ? (
             <div className="text-sm text-muted-foreground flex items-center gap-2 px-2 py-4">
-              <Clock className="w-4 h-4 animate-pulse" /> Loading Full Potential actions...
+              <Clock className="w-4 h-4 animate-pulse" /> Loading Portable Air Full Potential actions...
             </div>
           ) : total === 0 ? (
             <div className="rounded-lg border border-border bg-slate-50/60 p-4 text-sm text-muted-foreground">
-              No due or overdue Full Potential actions. Upcoming actions are still visible below if scheduled.
+              No due or overdue Portable Air Full Potential actions. Upcoming actions are still visible below if scheduled.
             </div>
           ) : null}
 
@@ -134,7 +134,7 @@ export default function FullPotentialMyWeekDock() {
           )}
 
           <Link href="/full-potential" className="block text-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-navy transition-colors">
-            Open Full Potential
+            Open Portable Air Full Potential
           </Link>
         </div>
       )}
