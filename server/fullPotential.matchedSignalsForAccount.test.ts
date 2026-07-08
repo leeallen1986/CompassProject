@@ -102,7 +102,11 @@ const insertedSignalIds: number[] = [];
 const insertedActionIds: number[] = [];
 
 // ── PR #35 project-match test state ──────────────────────────────────────────
-const PR35_PREFIX = "PR35_EP_TEST_";
+// NOTE: prefix must not contain underscores — normalizeToken() replaces [^a-z0-9]+ with
+// spaces, so "PR35_EP_TEST_Acme Mining" normalises to "pr35 ep test acme mining" while the
+// DB stores "PR35_EP_TEST_Acme Mining" (underscores intact). The LIKE query then fails to
+// match. Using a purely alphanumeric prefix avoids this.
+const PR35_PREFIX = "PR35EPTEST";
 let pr35AccountId: number;
 let pr35ProjectId: number;
 const pr35ActionIds: number[] = [];
