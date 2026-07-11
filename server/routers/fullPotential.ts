@@ -1652,7 +1652,10 @@ export const fullPotentialRouter = router({
 
   updateAccountFields: adminProcedure.input(z.object({
     accountId: z.number().int().positive(),
-    // Allowed editable fields — financial, stableKey, canonicalName, rowClass and C4C fields are intentionally excluded
+    // Allowed editable fields — financial, stableKey, canonicalName and C4C fields are intentionally excluded
+    // rowClass and routeToMarket are permitted for admin data-quality corrections only
+    rowClass: z.enum(["account", "site_context", "channel_managed", "competitor_watch", "cluster_signal"]).optional(),
+    routeToMarket: z.enum(["direct_ape", "cea", "cp_aps", "cp_blastone", "cp_pneumatic_engineering", "cp_more_air", "nz_distributor", "png_oceania", "hybrid_strategic", "product_support", "manual_review", "exclude"]).optional(),
     ownerName: z.string().max(256).nullable().optional(),
     channelOwner: z.string().max(256).nullable().optional(),
     fpStatus: z.enum(["active_target", "develop", "watch", "qualify", "park", "exclude"]).nullable().optional(),
@@ -1673,6 +1676,8 @@ export const fullPotentialRouter = router({
 
     // Build the update payload — only include fields that were explicitly provided
     const patch: Record<string, unknown> = {};
+    if (input.rowClass !== undefined) patch.rowClass = input.rowClass;
+    if (input.routeToMarket !== undefined) patch.routeToMarket = input.routeToMarket;
     if (input.ownerName !== undefined) patch.ownerName = input.ownerName ?? null;
     if (input.channelOwner !== undefined) patch.channelOwner = input.channelOwner ?? null;
     if (input.fpStatus !== undefined) patch.fpStatus = input.fpStatus ?? existing.fpStatus;
