@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import DeploymentProvenanceBadge from "./components/DeploymentProvenanceBadge";
 import FullPotentialDataQualityLink from "./components/FullPotentialDataQualityLink";
+import FullPotentialRentalHireLink from "./components/FullPotentialRentalHireLink";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ThisWeek from "./pages/ThisWeekWithFullPotential";
@@ -68,6 +69,7 @@ function App() {
           <Toaster />
           <Router />
           <FullPotentialDataQualityLink />
+          <FullPotentialRentalHireLink />
           <DeploymentProvenanceBadge />
         </TooltipProvider>
       </ThemeProvider>
