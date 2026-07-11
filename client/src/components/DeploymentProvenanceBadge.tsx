@@ -14,21 +14,21 @@ export default function DeploymentProvenanceBadge() {
   if (!isAdmin || !diagnostics.data) return null;
 
   const { provenance } = diagnostics.data;
-  const presentation = provenance.syncState === "aligned"
+  const presentation = provenance.githubSyncState === "aligned"
     ? {
         icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-        label: "Aligned",
+        label: "GitHub aligned",
         className: "border-emerald-200 bg-emerald-50 text-emerald-700",
       }
-    : provenance.syncState === "out_of_sync"
+    : provenance.githubSyncState === "out_of_sync"
       ? {
           icon: <XCircle className="h-3.5 w-3.5" />,
-          label: "Out of sync",
+          label: "GitHub mismatch",
           className: "border-red-200 bg-red-50 text-red-700",
         }
       : {
           icon: <AlertTriangle className="h-3.5 w-3.5" />,
-          label: "Metadata missing",
+          label: "GitHub not verified",
           className: "border-amber-200 bg-amber-50 text-amber-700",
         };
 
@@ -36,11 +36,11 @@ export default function DeploymentProvenanceBadge() {
     <a
       href="/admin/deployment"
       className={`fixed bottom-3 left-3 z-40 hidden items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm transition-shadow hover:shadow-md sm:inline-flex ${presentation.className}`}
-      title={`Open deployment diagnostics · Manus checkpoint ${provenance.manusCheckpointId}`}
+      title={`GitHub source ${provenance.githubSourceRevisionShort} · Manus internal ${provenance.manusInternalRevisionShort} · Checkpoint ${provenance.manusCheckpointId}`}
     >
       {presentation.icon}
       <GitCommitHorizontal className="h-3.5 w-3.5" />
-      <span>{provenance.deployedGitShaShort}</span>
+      <span>GitHub {provenance.githubSourceRevisionShort}</span>
       <span className="opacity-70">·</span>
       <span>{presentation.label}</span>
     </a>
