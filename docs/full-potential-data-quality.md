@@ -13,7 +13,7 @@ The API authenticates the existing session cookie and returns `401` when no vali
 
 ## Core completeness fields
 
-Each account receives a completeness score across the applicable fields below:
+Each record receives a completeness score across the fields applicable to its row class:
 
 1. Route resolved (`manual_review` is incomplete)
 2. Segment
@@ -33,7 +33,14 @@ Each account receives a completeness score across the applicable fields below:
 16. Evidence sources
 17. Evidence confidence
 
-A direct account is not penalised for having no channel owner. A channel account is expected to have one.
+Applicability is row-class aware:
+
+- `account` and `channel_managed` rows are execution records and are assessed for owner, priority, revenue, financial potential, C4C and next activity.
+- `channel_managed` rows and channel-routed accounts are additionally assessed for channel owner.
+- `competitor_watch` rows are assessed for supplier and installed-base evidence, but not for sales execution fields.
+- `site_context` and `cluster_signal` rows are assessed for classification, application and evidence fields, but are not penalised for missing owner, financial, C4C or action data.
+
+This prevents context and intelligence rows from creating false sales-execution gaps.
 
 ## Action-aware activity coverage
 
@@ -110,7 +117,7 @@ Run:
 ```bash
 pnpm tsc --noEmit
 pnpm build
-pnpm exec vitest run server/fullPotentialDataQuality.test.ts
+pnpm exec vitest run server/fullPotentialDataQuality.test.ts server/fullPotentialDataQuality.rowClass.test.ts
 ```
 
 Then smoke-test with an authenticated user:
