@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { getDb } from "./db";
-import { sdk } from "./_core/sdk";
 import { fullPotentialAccounts, fullPotentialActions } from "../drizzle/schema";
+import { sdk } from "./_core/sdk";
+import { getDb } from "./db";
 
 export const FULL_POTENTIAL_QUALITY_ISSUE_KEYS = [
   "missing_owner",
@@ -22,109 +22,33 @@ export const FULL_POTENTIAL_QUALITY_ISSUE_KEYS = [
 
 export type FullPotentialQualityIssueKey = typeof FULL_POTENTIAL_QUALITY_ISSUE_KEYS[number];
 
+type IssueSeverity = "critical" | "warning" | "info";
+
 export const FULL_POTENTIAL_QUALITY_ISSUES: ReadonlyArray<{
   key: FullPotentialQualityIssueKey;
   label: string;
   description: string;
-  severity: "critical" | "warning" | "info";
+  severity: IssueSeverity;
 }> = [
-  {
-    key: "missing_owner",
-    label: "No responsible owner",
-    description: "Neither a sales owner nor channel owner is assigned.",
-    severity: "critical",
-  },
-  {
-    key: "channel_owner_missing",
-    label: "Channel account without channel owner",
-    description: "A channel-managed account has no named channel owner.",
-    severity: "critical",
-  },
-  {
-    key: "tier_a_no_next_action",
-    label: "Tier A without next action",
-    description: "Tier A account has neither a recorded next action nor an open workflow action.",
-    severity: "critical",
-  },
-  {
-    key: "push_now_no_activity",
-    label: "Push Now without activity",
-    description: "Push Now account has neither a recorded next action nor an open workflow action.",
-    severity: "critical",
-  },
-  {
-    key: "installed_base_unknown",
-    label: "Installed base unknown",
-    description: "Installed-base status is blank or unknown.",
-    severity: "warning",
-  },
-  {
-    key: "supplier_missing",
-    label: "Current supplier missing",
-    description: "No current compressor or solution supplier is recorded.",
-    severity: "warning",
-  },
-  {
-    key: "financial_potential_missing",
-    label: "Financial potential missing",
-    description: "Full Potential, 2026 target and remaining potential are all blank or zero.",
-    severity: "warning",
-  },
-  {
-    key: "evidence_missing",
-    label: "Evidence missing",
-    description: "No evidence source is attached to the account record.",
-    severity: "warning",
-  },
-  {
-    key: "confidence_unknown",
-    label: "Confidence unknown",
-    description: "Evidence confidence has not been assessed.",
-    severity: "info",
-  },
-  {
-    key: "c4c_unknown",
-    label: "C4C status unknown",
-    description: "The account's current C4C position has not been confirmed.",
-    severity: "warning",
-  },
-  {
-    key: "priority_unassigned",
-    label: "Priority unassigned",
-    description: "The account has not been placed into a priority tier.",
-    severity: "warning",
-  },
-  {
-    key: "segment_missing",
-    label: "Segment missing",
-    description: "No market segment is recorded.",
-    severity: "info",
-  },
-  {
-    key: "state_missing",
-    label: "State missing",
-    description: "No state or territory is recorded.",
-    severity: "info",
-  },
+  { key: "missing_owner", label: "No responsible owner", description: "Neither a sales owner nor channel owner is assigned.", severity: "critical" },
+  { key: "channel_owner_missing", label: "Channel account without channel owner", description: "A channel-managed account has no named channel owner.", severity: "critical" },
+  { key: "tier_a_no_next_action", label: "Tier A without next action", description: "Tier A account has neither a recorded next action nor an open workflow action.", severity: "critical" },
+  { key: "push_now_no_activity", label: "Push Now without activity", description: "Push Now account has neither a recorded next action nor an open workflow action.", severity: "critical" },
+  { key: "installed_base_unknown", label: "Installed base unknown", description: "Installed-base status is blank or unknown.", severity: "warning" },
+  { key: "supplier_missing", label: "Current supplier missing", description: "No current compressor or solution supplier is recorded.", severity: "warning" },
+  { key: "financial_potential_missing", label: "Financial potential missing", description: "Full Potential, 2026 target and remaining potential are all blank or zero.", severity: "warning" },
+  { key: "evidence_missing", label: "Evidence missing", description: "No evidence source is attached to the account record.", severity: "warning" },
+  { key: "confidence_unknown", label: "Confidence unknown", description: "Evidence confidence has not been assessed.", severity: "info" },
+  { key: "c4c_unknown", label: "C4C status unknown", description: "The account's current C4C position has not been confirmed.", severity: "warning" },
+  { key: "priority_unassigned", label: "Priority unassigned", description: "The account has not been placed into a priority tier.", severity: "warning" },
+  { key: "segment_missing", label: "Segment missing", description: "No market segment is recorded.", severity: "info" },
+  { key: "state_missing", label: "State missing", description: "No state or territory is recorded.", severity: "info" },
 ] as const;
 
-const OPEN_ACTION_STATUSES = new Set([
-  "not_started",
-  "in_progress",
-  "contacted",
-  "meeting_booked",
-  "quoted",
-]);
-
-const CHANNEL_ROUTES = new Set([
-  "cea",
-  "cp_aps",
-  "cp_blastone",
-  "cp_pneumatic_engineering",
-  "cp_more_air",
-  "nz_distributor",
-  "png_oceania",
-]);
+const OPEN_ACTION_STATUSES = new Set(["not_started", "in_progress", "contacted", "meeting_booked", "quoted"]);
+const CHANNEL_ROUTES = new Set(["cea", "cp_aps", "cp_blastone", "cp_pneumatic_engineering", "cp_more_air", "nz_distributor", "png_oceania"]);
+const EXECUTION_ROW_CLASSES = new Set(["account", "channel_managed"]);
+const SUPPLIER_ROW_CLASSES = new Set(["account", "channel_managed", "competitor_watch"]);
 
 const QUALITY_FIELD_DEFINITIONS = [
   { key: "routeResolved", label: "Route resolved" },
@@ -132,7 +56,7 @@ const QUALITY_FIELD_DEFINITIONS = [
   { key: "subsegment", label: "Subsegment" },
   { key: "state", label: "State / territory" },
   { key: "responsibleOwner", label: "Responsible owner" },
-  { key: "channelOwner", label: "Channel owner", conditional: true },
+  { key: "channelOwner", label: "Channel owner" },
   { key: "priorityTier", label: "Priority tier" },
   { key: "applicationPlays", label: "Application plays" },
   { key: "currentSupplier", label: "Current supplier" },
@@ -147,21 +71,16 @@ const QUALITY_FIELD_DEFINITIONS = [
 ] as const;
 
 type QualityFieldKey = typeof QUALITY_FIELD_DEFINITIONS[number]["key"];
-
 type AccountLike = Record<string, unknown> & { id: number };
 type ActionLike = Record<string, unknown> & { accountId?: number | null; status?: string | null };
-
-type ActionCoverage = {
-  hasOpenAction: boolean;
-  hasDatedOpenAction: boolean;
-};
+type FieldState = { applicable: boolean; complete: boolean };
+type ActionCoverage = { hasOpenAction: boolean; hasDatedOpenAction: boolean };
 
 type AccountQuality = {
   account: AccountLike;
   responsibleOwner: string;
-  isChannelManaged: boolean;
   score: number;
-  fields: Record<QualityFieldKey, { applicable: boolean; complete: boolean }>;
+  fields: Record<QualityFieldKey, FieldState>;
   issues: FullPotentialQualityIssueKey[];
 };
 
@@ -200,16 +119,23 @@ function numberValue(value: unknown): number {
 }
 
 function hasNumericValue(value: unknown): boolean {
-  if (value === null || value === undefined || value === "") return false;
-  return Number.isFinite(Number(value));
+  return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
 }
 
 function hasListValue(value: unknown): boolean {
-  return Array.isArray(value) && value.some(item => clean(item));
+  return Array.isArray(value) && value.some(item => Boolean(clean(item)));
+}
+
+function isExecutionRow(account: AccountLike): boolean {
+  return EXECUTION_ROW_CLASSES.has(clean(account.rowClass));
 }
 
 function isChannelManaged(account: AccountLike): boolean {
   return clean(account.rowClass) === "channel_managed" || CHANNEL_ROUTES.has(clean(account.routeToMarket));
+}
+
+function hasSupplierApplicability(account: AccountLike): boolean {
+  return SUPPLIER_ROW_CLASSES.has(clean(account.rowClass));
 }
 
 function responsibleOwner(account: AccountLike): string {
@@ -230,7 +156,9 @@ function buildActionCoverage(actions: ActionLike[]): Map<number, ActionCoverage>
 }
 
 function accountFields(account: AccountLike, actionCoverage: ActionCoverage): AccountQuality["fields"] {
+  const executionRow = isExecutionRow(account);
   const channelManaged = isChannelManaged(account);
+  const supplierApplicable = hasSupplierApplicability(account);
   const financialPotential = numberValue(account.fullPotentialAud) > 0
     || numberValue(account.target2026Aud) > 0
     || numberValue(account.remainingPotentialAud) > 0;
@@ -242,38 +170,35 @@ function accountFields(account: AccountLike, actionCoverage: ActionCoverage): Ac
     segment: { applicable: true, complete: Boolean(clean(account.segment)) },
     subsegment: { applicable: true, complete: Boolean(clean(account.subsegment)) },
     state: { applicable: true, complete: Boolean(clean(account.state)) },
-    responsibleOwner: { applicable: true, complete: responsibleOwner(account) !== "Unassigned" },
+    responsibleOwner: { applicable: executionRow, complete: !executionRow || responsibleOwner(account) !== "Unassigned" },
     channelOwner: { applicable: channelManaged, complete: !channelManaged || Boolean(clean(account.channelOwner)) },
-    priorityTier: { applicable: true, complete: Boolean(clean(account.priorityTier)) && clean(account.priorityTier) !== "unassigned" },
+    priorityTier: { applicable: executionRow, complete: !executionRow || (Boolean(clean(account.priorityTier)) && clean(account.priorityTier) !== "unassigned") },
     applicationPlays: { applicable: true, complete: hasListValue(account.applicationPlays) },
-    currentSupplier: { applicable: true, complete: Boolean(clean(account.currentSupplier)) },
-    installedBase: { applicable: true, complete: Boolean(clean(account.installedBaseStatus)) && clean(account.installedBaseStatus) !== "unknown" },
-    currentRevenue: { applicable: true, complete: hasNumericValue(account.currentRevenueAud) },
-    financialPotential: { applicable: true, complete: financialPotential },
-    c4c: { applicable: true, complete: Boolean(clean(account.c4cStatus)) && clean(account.c4cStatus) !== "unknown" },
-    nextActivity: { applicable: true, complete: nextActivity },
-    nextActivityDate: { applicable: true, complete: nextActivityDate },
+    currentSupplier: { applicable: supplierApplicable, complete: !supplierApplicable || Boolean(clean(account.currentSupplier)) },
+    installedBase: { applicable: supplierApplicable, complete: !supplierApplicable || (Boolean(clean(account.installedBaseStatus)) && clean(account.installedBaseStatus) !== "unknown") },
+    currentRevenue: { applicable: executionRow, complete: !executionRow || hasNumericValue(account.currentRevenueAud) },
+    financialPotential: { applicable: executionRow, complete: !executionRow || financialPotential },
+    c4c: { applicable: executionRow, complete: !executionRow || (Boolean(clean(account.c4cStatus)) && clean(account.c4cStatus) !== "unknown") },
+    nextActivity: { applicable: executionRow, complete: !executionRow || nextActivity },
+    nextActivityDate: { applicable: executionRow, complete: !executionRow || nextActivityDate },
     evidenceSources: { applicable: true, complete: hasListValue(account.evidenceSources) },
     confidenceLevel: { applicable: true, complete: Boolean(clean(account.confidenceLevel)) && clean(account.confidenceLevel) !== "unknown" },
   };
 }
 
-function qualityIssues(
-  account: AccountLike,
-  fields: AccountQuality["fields"],
-): FullPotentialQualityIssueKey[] {
+function qualityIssues(account: AccountLike, fields: AccountQuality["fields"]): FullPotentialQualityIssueKey[] {
   const issues: FullPotentialQualityIssueKey[] = [];
-  if (!fields.responsibleOwner.complete) issues.push("missing_owner");
+  if (fields.responsibleOwner.applicable && !fields.responsibleOwner.complete) issues.push("missing_owner");
   if (fields.channelOwner.applicable && !fields.channelOwner.complete) issues.push("channel_owner_missing");
-  if (clean(account.priorityTier) === "tier_a" && !fields.nextActivity.complete) issues.push("tier_a_no_next_action");
-  if (clean(account.platformPushDecision) === "push_now" && !fields.nextActivity.complete) issues.push("push_now_no_activity");
-  if (!fields.installedBase.complete) issues.push("installed_base_unknown");
-  if (!fields.currentSupplier.complete) issues.push("supplier_missing");
-  if (!fields.financialPotential.complete) issues.push("financial_potential_missing");
+  if (fields.nextActivity.applicable && clean(account.priorityTier) === "tier_a" && !fields.nextActivity.complete) issues.push("tier_a_no_next_action");
+  if (fields.nextActivity.applicable && clean(account.platformPushDecision) === "push_now" && !fields.nextActivity.complete) issues.push("push_now_no_activity");
+  if (fields.installedBase.applicable && !fields.installedBase.complete) issues.push("installed_base_unknown");
+  if (fields.currentSupplier.applicable && !fields.currentSupplier.complete) issues.push("supplier_missing");
+  if (fields.financialPotential.applicable && !fields.financialPotential.complete) issues.push("financial_potential_missing");
   if (!fields.evidenceSources.complete) issues.push("evidence_missing");
   if (!fields.confidenceLevel.complete) issues.push("confidence_unknown");
-  if (!fields.c4c.complete) issues.push("c4c_unknown");
-  if (!fields.priorityTier.complete) issues.push("priority_unassigned");
+  if (fields.c4c.applicable && !fields.c4c.complete) issues.push("c4c_unknown");
+  if (fields.priorityTier.applicable && !fields.priorityTier.complete) issues.push("priority_unassigned");
   if (!fields.segment.complete) issues.push("segment_missing");
   if (!fields.state.complete) issues.push("state_missing");
   return issues;
@@ -282,8 +207,7 @@ function qualityIssues(
 function scoreFields(fields: AccountQuality["fields"]): number {
   const applicable = Object.values(fields).filter(field => field.applicable);
   if (applicable.length === 0) return 0;
-  const complete = applicable.filter(field => field.complete).length;
-  return Math.round((complete / applicable.length) * 100);
+  return Math.round((applicable.filter(field => field.complete).length / applicable.length) * 100);
 }
 
 function qualityForAccount(account: AccountLike, actionCoverage: ActionCoverage): AccountQuality {
@@ -291,7 +215,6 @@ function qualityForAccount(account: AccountLike, actionCoverage: ActionCoverage)
   return {
     account,
     responsibleOwner: responsibleOwner(account),
-    isChannelManaged: isChannelManaged(account),
     score: scoreFields(fields),
     fields,
     issues: qualityIssues(account, fields),
@@ -319,6 +242,7 @@ function uniqueSorted(values: string[]): string[] {
 
 function accountSummary(row: AccountQuality) {
   const account = row.account;
+  const nextActionDate = account.nextActionDate ? new Date(account.nextActionDate as Date | string).toISOString() : null;
   return {
     id: account.id,
     stableKey: clean(account.stableKey),
@@ -342,7 +266,7 @@ function accountSummary(row: AccountQuality) {
     installedBaseStatus: clean(account.installedBaseStatus) || null,
     c4cStatus: clean(account.c4cStatus) || null,
     nextAction: clean(account.nextAction) || null,
-    nextActionDate: account.nextActionDate ? new Date(account.nextActionDate as any).toISOString() : null,
+    nextActionDate,
     currentRevenueAud: numberValue(account.currentRevenueAud),
     fullPotentialAud: numberValue(account.fullPotentialAud),
     target2026Aud: numberValue(account.target2026Aud),
@@ -370,6 +294,10 @@ function sortIssueRows(left: AccountQuality, right: AccountQuality): number {
   return clean(left.account.canonicalName).localeCompare(clean(right.account.canonicalName));
 }
 
+function isCriticalIssue(issue: FullPotentialQualityIssueKey): boolean {
+  return FULL_POTENTIAL_QUALITY_ISSUES.find(definition => definition.key === issue)?.severity === "critical";
+}
+
 function buildDimension(rows: AccountQuality[], valueFor: (row: AccountQuality) => string) {
   const groups = new Map<string, AccountQuality[]>();
   for (const row of rows) {
@@ -379,38 +307,25 @@ function buildDimension(rows: AccountQuality[], valueFor: (row: AccountQuality) 
     groups.set(value, group);
   }
 
-  return Array.from(groups.entries()).map(([value, group]) => {
-    const criticalIssueAccounts = group.filter(row => row.issues.some(issue => {
-      const definition = FULL_POTENTIAL_QUALITY_ISSUES.find(item => item.key === issue);
-      return definition?.severity === "critical";
-    })).length;
-    return {
-      value,
-      count: group.length,
-      averageCompletenessPct: Math.round(group.reduce((sum, row) => sum + row.score, 0) / group.length),
-      criticalIssueAccounts,
-      missingOwner: group.filter(row => row.issues.includes("missing_owner")).length,
-      missingNextActivity: group.filter(row => row.issues.includes("tier_a_no_next_action") || row.issues.includes("push_now_no_activity")).length,
-      unknownInstalledBase: group.filter(row => row.issues.includes("installed_base_unknown")).length,
-      missingSupplier: group.filter(row => row.issues.includes("supplier_missing")).length,
-      missingFinancialPotential: group.filter(row => row.issues.includes("financial_potential_missing")).length,
-    };
-  }).sort((left, right) => right.count - left.count || left.value.localeCompare(right.value));
+  return Array.from(groups.entries()).map(([value, group]) => ({
+    value,
+    count: group.length,
+    averageCompletenessPct: Math.round(group.reduce((sum, row) => sum + row.score, 0) / group.length),
+    criticalIssueAccounts: group.filter(row => row.issues.some(isCriticalIssue)).length,
+    missingOwner: group.filter(row => row.issues.includes("missing_owner")).length,
+    missingNextActivity: group.filter(row => row.issues.includes("tier_a_no_next_action") || row.issues.includes("push_now_no_activity")).length,
+    unknownInstalledBase: group.filter(row => row.issues.includes("installed_base_unknown")).length,
+    missingSupplier: group.filter(row => row.issues.includes("supplier_missing")).length,
+    missingFinancialPotential: group.filter(row => row.issues.includes("financial_potential_missing")).length,
+  })).sort((left, right) => right.count - left.count || left.value.localeCompare(right.value));
 }
 
-export function buildFullPotentialDataQuality(
-  accounts: AccountLike[],
-  actions: ActionLike[],
-  input: FullPotentialDataQualityInput = {},
-) {
+export function buildFullPotentialDataQuality(accounts: AccountLike[], actions: ActionLike[], input: FullPotentialDataQualityInput = {}) {
   const issue = input.issue ?? "missing_owner";
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
   const offset = Math.max(input.offset ?? 0, 0);
   const actionCoverage = buildActionCoverage(actions);
-  const allRows = accounts.map(account => qualityForAccount(account, actionCoverage.get(account.id) ?? {
-    hasOpenAction: false,
-    hasDatedOpenAction: false,
-  }));
+  const allRows = accounts.map(account => qualityForAccount(account, actionCoverage.get(account.id) ?? { hasOpenAction: false, hasDatedOpenAction: false }));
   const rows = filterQualityRows(allRows, input);
 
   const fieldCoverage = QUALITY_FIELD_DEFINITIONS.map(definition => {
@@ -427,23 +342,13 @@ export function buildFullPotentialDataQuality(
     };
   });
 
-  const issueDefinitions = FULL_POTENTIAL_QUALITY_ISSUES.map(definition => {
+  const issues = FULL_POTENTIAL_QUALITY_ISSUES.map(definition => {
     const affected = rows.filter(row => row.issues.includes(definition.key)).sort(sortIssueRows);
-    return {
-      ...definition,
-      count: affected.length,
-      sampleAccounts: affected.slice(0, 6).map(accountSummary),
-    };
+    return { ...definition, count: affected.length, sampleAccounts: affected.slice(0, 6).map(accountSummary) };
   });
 
   const selectedIssueRows = rows.filter(row => row.issues.includes(issue)).sort(sortIssueRows);
-  const issueAccounts = selectedIssueRows.slice(offset, offset + limit).map(accountSummary);
-  const averageCompletenessPct = rows.length > 0
-    ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
-    : 0;
-  const criticalKeys = new Set(FULL_POTENTIAL_QUALITY_ISSUES
-    .filter(definition => definition.severity === "critical")
-    .map(definition => definition.key));
+  const averageCompletenessPct = rows.length > 0 ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length) : 0;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -452,14 +357,14 @@ export function buildFullPotentialDataQuality(
       averageCompletenessPct,
       accountsAtLeast80Pct: rows.filter(row => row.score >= 80).length,
       accountsAtLeast90Pct: rows.filter(row => row.score >= 90).length,
-      criticalGapAccounts: rows.filter(row => row.issues.some(issueKey => criticalKeys.has(issueKey))).length,
+      criticalGapAccounts: rows.filter(row => row.issues.some(isCriticalIssue)).length,
       accountsWithOpenActions: rows.filter(row => actionCoverage.get(row.account.id)?.hasOpenAction).length,
       totalFullPotentialAud: rows.reduce((sum, row) => sum + numberValue(row.account.fullPotentialAud), 0),
     },
     fieldCoverage,
-    issues: issueDefinitions,
+    issues,
     selectedIssue: issue,
-    issueAccounts,
+    issueAccounts: selectedIssueRows.slice(offset, offset + limit).map(accountSummary),
     issueAccountTotal: selectedIssueRows.length,
     limit,
     offset,
@@ -499,8 +404,7 @@ export async function handleFullPotentialDataQuality(req: Request, res: Response
   res.setHeader("Cache-Control", "private, no-store");
 
   try {
-    const user = await sdk.authenticateRequest(req);
-    if (!user) return res.status(401).json({ error: "Authentication required" });
+    await sdk.authenticateRequest(req);
   } catch {
     return res.status(401).json({ error: "Authentication required" });
   }
@@ -527,11 +431,7 @@ export async function handleFullPotentialDataQuality(req: Request, res: Response
   try {
     const [accounts, actions] = await Promise.all([
       db.select().from(fullPotentialAccounts),
-      db.select({
-        accountId: fullPotentialActions.accountId,
-        status: fullPotentialActions.status,
-        dueDate: fullPotentialActions.dueDate,
-      }).from(fullPotentialActions),
+      db.select({ accountId: fullPotentialActions.accountId, status: fullPotentialActions.status, dueDate: fullPotentialActions.dueDate }).from(fullPotentialActions),
     ]);
     return res.json(buildFullPotentialDataQuality(accounts as AccountLike[], actions as ActionLike[], parsed.data));
   } catch (error) {
