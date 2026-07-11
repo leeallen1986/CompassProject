@@ -34,14 +34,31 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm tsc --noEmit
+        id: typecheck
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm tsc --noEmit 2>&1 | tee pr44-tsc-errors.txt
+
+      - name: Publish typecheck diagnostics
+        if: steps.typecheck.outcome == 'failure'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pr44-tsc-errors.txt
+          git commit -m "chore: capture PR44 typecheck diagnostics"
+          git push origin HEAD:feature/portable-air-fp-signal-review-queue
 
       - name: Commit assembled changes
+        if: steps.typecheck.outcome == 'success'
         shell: bash
         run: |
           rm -f .github/workflows/pr44-build.yml
           rm -f .github/workflows/pr44-pr-build.yml
           rm -f scripts/pr44_patch.py
+          rm -f pr44-tsc-errors.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
