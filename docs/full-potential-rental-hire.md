@@ -252,8 +252,29 @@ Run:
 ```bash
 pnpm tsc --noEmit
 pnpm build
-pnpm exec vitest run server/fullPotentialRentalHire.test.ts server/fullPotentialRentalRemediation.test.ts
+pnpm exec vitest run \
+  server/fullPotentialRentalHire.test.ts \
+  server/fullPotentialRentalRemediation.test.ts \
+  server/fullPotentialRentalRemediation.handler.test.ts
 ```
+
+The three suites cover:
+
+- 13 existing Rental Hire workspace tests
+- 14 ownership-exception and remediation-planning tests
+- 9 HTTP-handler tests using mocked authentication and database dependencies
+
+The handler suite must prove:
+
+1. unauthenticated requests return `401` before database access
+2. invalid payloads return `400`
+3. past dates return `400`
+4. more than 100 account IDs are rejected
+5. authenticated distributor dry-run returns a preview with zero inserts
+6. duplicate account IDs are deduplicated
+7. an existing open matching action is reported as already managed
+8. confirmed writes insert eligible actions only, with the authenticated creator and stable remediation marker
+9. insert failures return `500`
 
 Validate with an authenticated production-scale preview:
 
@@ -266,9 +287,9 @@ Validate with an authenticated production-scale preview:
 7. All fourteen focus views return correct counts.
 8. Remediation coverage counts match open generated actions.
 9. Preview returns eligible, already-managed, not-eligible, not-rental and not-found results accurately.
-10. Confirmation creates only eligible actions.
+10. Confirmation creates only eligible actions in mocked handler validation; live validation remains dry-run only.
 11. A second identical request creates no duplicates.
 12. Closed matching actions do not block a new remediation action.
 13. Past due dates are rejected.
 14. Standard user, admin and distributor access matches the existing Full Potential action policy.
-15. Account, alias, signal and import counts remain unchanged; action count changes only by the confirmed eligible total.
+15. Account, alias, signal and import counts remain unchanged; live action count changes only after an explicitly approved production confirmation.
