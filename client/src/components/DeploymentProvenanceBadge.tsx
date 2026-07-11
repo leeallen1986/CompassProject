@@ -35,8 +35,8 @@ export default function DeploymentProvenanceBadge() {
   return (
     <a
       href="/admin/deployment"
-      className={`fixed bottom-3 right-3 z-40 hidden items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm transition-shadow hover:shadow-md sm:inline-flex ${presentation.className}`}
-      title="Open deployment diagnostics"
+      className={`fixed bottom-3 left-3 z-40 hidden items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm transition-shadow hover:shadow-md sm:inline-flex ${presentation.className}`}
+      title={`Open deployment diagnostics · Manus checkpoint ${provenance.manusCheckpointId}`}
     >
       {presentation.icon}
       <GitCommitHorizontal className="h-3.5 w-3.5" />
