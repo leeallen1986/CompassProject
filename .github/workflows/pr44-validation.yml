@@ -90,13 +90,13 @@ jobs:
       - name: Signal promotion regression tests
         run: pnpm exec vitest run server/fullPotential.promoteMatchedSignalToAction.test.ts
 
-      - name: Commit confidence filter and remove temporary workflows
+      - name: Commit confidence filter and remove temporary files
         shell: bash
         run: |
-          rm -f .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml
+          rm -f .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml .github/pr44-finalize-trigger.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add client/src/components/FullPotentialSignalReviewQueue.tsx .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml
+          git add client/src/components/FullPotentialSignalReviewQueue.tsx .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml .github/pr44-finalize-trigger.txt
           git diff --cached --quiet && exit 0
           git commit -m "fix(fp): expose confidence filter in signal review queue"
           git push origin HEAD:feature/portable-air-fp-signal-review-queue
