@@ -1,9 +1,9 @@
 name: Validate PR44 signal review queue
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/portable-air-fp-signal-review-queue
+      - main
 
 permissions:
   contents: read
