@@ -1,0 +1,51 @@
+name: Assemble PR44 on pull request
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/portable-air-fp-signal-review-queue
+          fetch-depth: 0
+
+      - name: Assemble PR44 changes
+        run: python scripts/pr44_patch.py
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm tsc --noEmit
+
+      - name: Commit assembled changes
+        shell: bash
+        run: |
+          rm -f .github/workflows/pr44-build.yml
+          rm -f .github/workflows/pr44-pr-build.yml
+          rm -f scripts/pr44_patch.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(fp): add Portable Air signal review queue"
+          git push origin HEAD:feature/portable-air-fp-signal-review-queue
