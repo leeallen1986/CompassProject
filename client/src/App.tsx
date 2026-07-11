@@ -26,6 +26,7 @@ import DeploymentDiagnostics from "./pages/DeploymentDiagnostics";
 import AccountPriors from "./pages/AccountPriors";
 import FullPotential from "./pages/FullPotential";
 import FullPotentialDataQuality from "./pages/FullPotentialDataQuality";
+import FullPotentialRentalHire from "./pages/FullPotentialRentalHire";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -51,6 +52,7 @@ function Router() {
       <Route path={"/contact-validation"} component={ContactValidation} />
       <Route path={"/account-priors"} component={AccountPriors} />
       <Route path={"/full-potential/data-quality"} component={FullPotentialDataQuality} />
+      <Route path={"/full-potential/rental-hire"} component={FullPotentialRentalHire} />
       <Route path={"/full-potential"} component={FullPotential} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
