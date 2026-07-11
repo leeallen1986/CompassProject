@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Loader2, PlayCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -85,10 +85,20 @@ export default function FullPotentialRentalRemediationPanel({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const selectionKey = useMemo(
+    () => [...selectedAccountIds].sort((left, right) => left - right).join(","),
+    [selectedAccountIds],
+  );
   const selectedDefinition = useMemo(
     () => catalog.find(item => item.type === remediationType),
     [catalog, remediationType],
   );
+
+  useEffect(() => {
+    setPreview(null);
+    setError(null);
+    setSuccess(null);
+  }, [selectionKey]);
 
   async function runPreview() {
     if (selectedAccountIds.length === 0) return;
@@ -150,7 +160,7 @@ export default function FullPotentialRentalRemediationPanel({
             <ClipboardCheck className="h-4 w-4 text-blue-700" /> Managed remediation actions
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Select visible accounts, preview eligibility and create deduplicated Full Potential actions with a due date.
+            Select visible accounts, preview eligibility and create deduplicated Full Potential actions with a due date. Actions are assigned to the authenticated creator under the existing Full Potential action model.
           </p>
         </div>
         <div className="rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-bold text-blue-800">
