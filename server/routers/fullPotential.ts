@@ -1335,6 +1335,183 @@ export const fullPotentialRouter = router({
 
   importSignals: adminProcedure.input(importSignalsInputSchema).mutation(async ({ ctx, input }) => importSignals(input, ctx.user)),
 
+  listSignals: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().max(200).optional(),
+        status: z.enum(["new", "reviewed", "promoted", "dismissed", "archived"]).optional(),
+        urgency: z.enum(["hot", "warm", "cold", "unknown"]).optional(),
+        confidenceLevel: z.enum(["high", "medium", "low", "unknown"]).optional(),
+        signalType: z.enum([
+          "drilling_campaign",
+          "awarded_project",
+          "live_tender",
+          "shutdown_turnaround",
+          "pipeline_commissioning",
+          "mine_site_activity",
+          "civil_application",
+          "rental_fleet_signal",
+          "competitor_channel_signal",
+          "installed_base_signal",
+          "contact_discovery_signal",
+          "manual",
+          "other",
+        ]).optional(),
+        state: z.string().max(64).optional(),
+        linked: z.enum(["all", "linked", "unlinked"]).optional().default("all"),
+        actionState: z.enum(["any", "open", "closed", "none"]).optional().default("any"),
+        limit: z.number().int().min(1).max(200).optional().default(50),
+        offset: z.number().int().min(0).optional().default(0),
+      }).optional().default({ linked: "all", actionState: "any", limit: 50, offset: 0 }),
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const allSignals = await db.select().from(fullPotentialSignals);
+      const accountIds = Array.from(new Set(
+        allSignals
+          .map(signal => signal.accountId)
+          .filter((accountId): accountId is number => accountId !== null && accountId !== undefined),
+      ));
+      const signalIds = allSignals.map(signal => signal.id);
+
+      const accountRows = accountIds.length > 0
+        ? await db.select().from(fullPotentialAccounts).where(inArray(fullPotentialAccounts.id, accountIds))
+        : [];
+      const actionRows = signalIds.length > 0
+        ? await db
+          .select()
+          .from(fullPotentialActions)
+          .where(inArray(fullPotentialActions.signalId, signalIds))
+          .orderBy(desc(fullPotentialActions.createdAt))
+        : [];
+
+      const accountMap = new Map(accountRows.map(account => [account.id, account]));
+      const actionMetaMap = new Map<number, { openAction: any | null; closedAction: any | null }>();
+      for (const action of actionRows) {
+        if (!action.signalId) continue;
+        const current = actionMetaMap.get(action.signalId) ?? { openAction: null, closedAction: null };
+        if (openActionStatuses.has(action.status)) {
+          if (!current.openAction) current.openAction = action;
+        } else if (!current.closedAction) {
+          current.closedAction = action;
+        }
+        actionMetaMap.set(action.signalId, current);
+      }
+
+      const searchToken = normalizeToken(input.search);
+      const linkedFilter = input.linked ?? "all";
+      const actionFilter = input.actionState ?? "any";
+      const filteredSignals = allSignals.filter(signal => {
+        const account = signal.accountId ? accountMap.get(signal.accountId) : undefined;
+        const actionMeta = actionMetaMap.get(signal.id);
+        const hasOpenAction = !!actionMeta?.openAction;
+        const hasClosedAction = !!actionMeta?.closedAction;
+
+        if (input.status && signal.status !== input.status) return false;
+        if (input.urgency && signal.urgency !== input.urgency) return false;
+        if (input.confidenceLevel && signal.confidenceLevel !== input.confidenceLevel) return false;
+        if (input.signalType && signal.signalType !== input.signalType) return false;
+        if (input.state && signal.state !== input.state) return false;
+        if (linkedFilter === "linked" && !signal.accountId) return false;
+        if (linkedFilter === "unlinked" && signal.accountId) return false;
+        if (actionFilter === "open" && !hasOpenAction) return false;
+        if (actionFilter === "closed" && !hasClosedAction) return false;
+        if (actionFilter === "none" && (hasOpenAction || hasClosedAction)) return false;
+
+        if (searchToken) {
+          const haystack = normalizeToken([
+            signal.signalTitle,
+            signal.signalSummary,
+            signal.sourceName,
+            signal.sourceUrl,
+            signal.state,
+            signal.signalType,
+            signal.suggestedAction,
+            account?.canonicalName,
+            account?.displayName,
+            account?.parentGroup,
+            account?.ownerName,
+            account?.channelOwner,
+            account?.segment,
+          ].filter(Boolean).join(" "));
+          if (!haystack.includes(searchToken)) return false;
+        }
+
+        return true;
+      });
+
+      const urgencyOrder: Record<string, number> = { hot: 0, warm: 1, cold: 2, unknown: 3 };
+      filteredSignals.sort((left, right) => {
+        const urgencyDifference = (urgencyOrder[left.urgency] ?? 3) - (urgencyOrder[right.urgency] ?? 3);
+        if (urgencyDifference !== 0) return urgencyDifference;
+        const leftDate = (left.signalDate ?? left.createdAt).getTime();
+        const rightDate = (right.signalDate ?? right.createdAt).getTime();
+        if (leftDate !== rightDate) return rightDate - leftDate;
+        return right.id - left.id;
+      });
+
+      const offset = input.offset ?? 0;
+      const limit = input.limit ?? 50;
+      const pageSignals = filteredSignals.slice(offset, offset + limit).map(signal => {
+        const account = signal.accountId ? accountMap.get(signal.accountId) : undefined;
+        const actionMeta = actionMetaMap.get(signal.id) ?? { openAction: null, closedAction: null };
+        const openAction = actionMeta.openAction;
+        const closedAction = actionMeta.closedAction;
+
+        return {
+          ...signal,
+          signalDate: signal.signalDate ? new Date(signal.signalDate).toISOString() : null,
+          createdAt: signal.createdAt ? new Date(signal.createdAt).toISOString() : null,
+          updatedAt: signal.updatedAt ? new Date(signal.updatedAt).toISOString() : null,
+          account: account ? toClientAccount(account) : null,
+          actionState: {
+            hasOpenAction: !!openAction,
+            hasClosedAction: !!closedAction,
+            openActionId: openAction?.id ?? null,
+            openActionStatus: openAction?.status ?? null,
+            openActionDueDate: openAction?.dueDate ? new Date(openAction.dueDate).toISOString() : null,
+            closedActionId: closedAction?.id ?? null,
+            closedActionStatus: closedAction?.status ?? null,
+            closedActionCompletedAt: closedAction?.completedAt ? new Date(closedAction.completedAt).toISOString() : null,
+          },
+        };
+      });
+
+      const summary = {
+        total: allSignals.length,
+        new: allSignals.filter(signal => signal.status === "new").length,
+        hot: allSignals.filter(signal => signal.urgency === "hot").length,
+        unlinked: allSignals.filter(signal => !signal.accountId).length,
+        reviewed: allSignals.filter(signal => signal.status === "reviewed").length,
+        promoted: allSignals.filter(signal => signal.status === "promoted").length,
+        dismissed: allSignals.filter(signal => signal.status === "dismissed").length,
+        archived: allSignals.filter(signal => signal.status === "archived").length,
+        withOpenAction: allSignals.filter(signal => !!actionMetaMap.get(signal.id)?.openAction).length,
+        withoutAction: allSignals.filter(signal => {
+          const meta = actionMetaMap.get(signal.id);
+          return !meta?.openAction && !meta?.closedAction;
+        }).length,
+      };
+
+      return {
+        signals: pageSignals,
+        total: filteredSignals.length,
+        limit,
+        offset,
+        summary,
+        filterOptions: {
+          statuses: uniqueSorted(allSignals.map(signal => signal.status)),
+          urgencies: uniqueSorted(allSignals.map(signal => signal.urgency)),
+          confidenceLevels: uniqueSorted(allSignals.map(signal => signal.confidenceLevel)),
+          signalTypes: uniqueSorted(allSignals.map(signal => signal.signalType)),
+          states: uniqueSorted(allSignals.map(signal => signal.state)),
+          sourceNames: uniqueSorted(allSignals.map(signal => signal.sourceName)),
+        },
+      };
+    }),
+
   list: protectedProcedure.input(listInputSchema).query(async ({ input }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });

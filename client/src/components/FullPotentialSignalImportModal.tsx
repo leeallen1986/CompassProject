@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  BookOpen,
   CheckCircle2,
+  Download,
   FileSpreadsheet,
   Loader2,
   Upload,
@@ -248,6 +250,7 @@ export default function FullPotentialSignalImportModal({
   const [dryRunSummary, setDryRunSummary] = useState<SignalImportSummary | null>(null);
   const [commitSummary, setCommitSummary] = useState<SignalImportSummary | null>(null);
   const [isReading, setIsReading] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const importMutation = trpc.fullPotential.importSignals.useMutation();
 
@@ -373,6 +376,41 @@ export default function FullPotentialSignalImportModal({
               onChange={handleFileChange}
             />
           </label>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="/templates/portable-air-signals-template.csv"
+              download
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-navy transition-colors hover:border-gold/50 hover:bg-gold/5"
+            >
+              <Download className="w-4 h-4" /> Download CSV template
+            </a>
+            <button
+              type="button"
+              onClick={() => setShowGuide(value => !value)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-navy transition-colors hover:border-gold/50 hover:bg-gold/5"
+            >
+              <BookOpen className="w-4 h-4" /> {showGuide ? "Hide field guide" : "View field guide"}
+            </button>
+          </div>
+
+          {showGuide && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4 text-xs text-blue-950 space-y-3">
+              <div>
+                <div className="font-bold">Required</div>
+                <div className="mt-1">Only <code>signalTitle</code> is mandatory. Add source, date, type, confidence, urgency and suggested action wherever possible.</div>
+              </div>
+              <div>
+                <div className="font-bold">Account linking priority</div>
+                <div className="mt-1">accountId → stableKey → canonicalName / accountName / displayName → aliasName → unlinked.</div>
+              </div>
+              <div>
+                <div className="font-bold">Recommended values</div>
+                <div className="mt-1">Urgency: hot, warm, cold or unknown. Confidence: high, medium, low or unknown. Status normally starts as new.</div>
+              </div>
+              <div>Run dry-run first. The importer skips duplicates and never creates an action automatically.</div>
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3">

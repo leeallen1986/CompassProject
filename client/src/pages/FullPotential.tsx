@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import {
+  Activity,
   AlertTriangle,
   ArrowLeft,
   Database,
@@ -23,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import FullPotentialDetailDrawer from "@/components/FullPotentialDetailDrawer";
 import FullPotentialImportModal from "@/components/FullPotentialImportModal";
 import FullPotentialSignalImportModal from "@/components/FullPotentialSignalImportModal";
+import FullPotentialSignalReviewQueue from "@/components/FullPotentialSignalReviewQueue";
 
 const STATUS_LABELS: Record<string, string> = {
   active_target: "Active Target",
@@ -316,6 +318,7 @@ export default function FullPotential() {
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSignalImportModal, setShowSignalImportModal] = useState(false);
+  const [showSignalReviewModal, setShowSignalReviewModal] = useState(false);
   const limit = 100;
 
   const queryInput = useMemo(() => ({
@@ -416,6 +419,14 @@ export default function FullPotential() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowSignalReviewModal(true)}
+              variant="outline"
+              className="border-white/30 text-white bg-transparent hover:bg-white/10"
+              title="Review Portable Air signals"
+            >
+              <Activity className="w-4 h-4 mr-2" /> Review Signals
+            </Button>
             <Button
               disabled={!isAdmin}
               onClick={() => setShowSignalImportModal(true)}
@@ -627,6 +638,16 @@ export default function FullPotential() {
       </main>
       {selectedAccount && <FullPotentialDetailDrawer account={selectedAccount} onClose={() => setSelectedAccount(null)} />}
       {showImportModal && <FullPotentialImportModal open={showImportModal} onClose={() => setShowImportModal(false)} />}
+      {showSignalReviewModal && (
+        <FullPotentialSignalReviewQueue
+          open={showSignalReviewModal}
+          onClose={() => setShowSignalReviewModal(false)}
+          onOpenAccount={account => {
+            setShowSignalReviewModal(false);
+            setSelectedAccount(account);
+          }}
+        />
+      )}
       {showSignalImportModal && (
         <FullPotentialSignalImportModal
           open={showSignalImportModal}
