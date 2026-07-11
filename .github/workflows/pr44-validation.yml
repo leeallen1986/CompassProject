@@ -55,7 +55,28 @@ jobs:
         run: pnpm tsc --noEmit
 
       - name: Signal review queue tests
-        run: pnpm test -- server/fullPotential.listSignalQueue.test.ts
+        id: queue_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          pnpm test -- server/fullPotential.listSignalQueue.test.ts > pr44-queue-test.log 2>&1
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          tail -n 250 pr44-queue-test.log
+          exit "$exit_code"
+
+      - name: Upload queue test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr44-queue-test-log
+          path: pr44-queue-test.log
+          if-no-files-found: error
+
+      - name: Stop after queue test failure
+        if: steps.queue_tests.outputs.exit_code != '0'
+        run: exit 1
 
       - name: Signal import regression tests
         run: pnpm test -- server/fullPotential.importSignals.test.ts
