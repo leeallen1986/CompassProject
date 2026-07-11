@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
+import {
+  buildDeploymentDiagnostics,
+  buildPublicDeploymentHealth,
+} from "../deploymentMetadata";
 
 export const systemRouter = router({
   health: publicProcedure
@@ -12,6 +16,10 @@ export const systemRouter = router({
     .query(() => ({
       ok: true,
     })),
+
+  deploymentHealth: publicProcedure.query(() => buildPublicDeploymentHealth()),
+
+  deploymentDiagnostics: adminProcedure.query(() => buildDeploymentDiagnostics()),
 
   notifyOwner: adminProcedure
     .input(
