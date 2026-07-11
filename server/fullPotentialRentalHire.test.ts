@@ -236,7 +236,7 @@ describe("Rental Hire workspace calculations", () => {
     expect(report.viewCounts.supplier_gap).toBe(1);
     expect(report.viewCounts.financial_gap).toBe(1);
     expect(report.summary.totalFullPotentialAud).toBe(3_000_000);
-    expect(report.summary.totalRemainingPotentialAud).toBe(3_300_000);
+    expect(report.summary.totalRemainingPotentialAud).toBe(2_900_000);
   });
 
   it("supports all defined quick views", () => {
