@@ -56,6 +56,23 @@ function createAdminContext(): TrpcContext {
   };
 }
 
+function buildUniqueDryRunCsv(): string {
+  const template = readFileSync(TEMPLATE_PATH, "utf8").trim();
+  const [header, ...rows] = template.split(/\r?\n/);
+  const runToken = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const uniqueRows = rows.map((row, index) => {
+    const cells = row.split(",");
+    cells[0] = `${cells[0]} ${runToken}-${index + 1}`;
+    if (cells[4]) {
+      cells[4] = `${cells[4]}?templateTest=${runToken}-${index + 1}`;
+    }
+    return cells.join(",");
+  });
+
+  return [header, ...uniqueRows].join("\n");
+}
+
 describe("Portable Air signal import template", () => {
   it("keeps the supported signal import headers in the expected order", () => {
     const csv = readFileSync(TEMPLATE_PATH, "utf8");
@@ -65,12 +82,12 @@ describe("Portable Air signal import template", () => {
   });
 
   it("passes the live importSignals dry-run without writing signals", async () => {
-    const csv = readFileSync(TEMPLATE_PATH);
+    const csv = buildUniqueDryRunCsv();
     const caller = appRouter.createCaller(createAdminContext());
 
     const result = await caller.fullPotential.importSignals({
       fileName: "portable-air-signals-template.csv",
-      fileBase64: csv.toString("base64"),
+      fileBase64: Buffer.from(csv, "utf8").toString("base64"),
       dryRun: true,
     });
 
