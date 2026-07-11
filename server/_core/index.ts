@@ -13,6 +13,7 @@ import { storagePut } from "../storage";
 import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
 import { handleScheduledQueueRun } from "../scheduledQueueRun";
 import { handleWarmup, startOperationsReliability } from "../operationsReliability";
+import { handleFullPotentialDataQuality } from "../fullPotentialDataQuality";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -83,6 +84,8 @@ async function startServer() {
 
   // Lightweight health ping — used by pipeline keepalive to prevent CloudRun container recycling
   app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+  // Authenticated, read-only Full Potential data-quality dashboard feed
+  app.get("/api/full-potential/data-quality", handleFullPotentialDataQuality);
   // Temporary debug: check if PIPELINE_SECRET is set in production runtime
   app.get("/api/debug-env", (_req, res) => res.json({
     hasPipelineSecret: !!(process.env.PIPELINE_SECRET),
@@ -137,7 +140,7 @@ async function startServer() {
     // Start the daily pipeline scheduler (runs at 20:00 UTC — 3h before Monday digest)
     startDailyScheduler();
     // Register SIGTERM handler so in-flight pipeline runs are marked failed
-    // when CloudRun shuts down the container. Must be called after server starts.
+    // when CloudRun shuts down. Must be called after server starts.
     registerSigtermHandler();
     // Start the persistent email digest scheduler (recovers from restarts)
     // Must start AFTER startDailyScheduler so pipeline is always wired first.

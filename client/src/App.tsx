@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import DeploymentProvenanceBadge from "./components/DeploymentProvenanceBadge";
+import FullPotentialDataQualityLink from "./components/FullPotentialDataQualityLink";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ThisWeek from "./pages/ThisWeekWithFullPotential";
@@ -24,6 +25,7 @@ import WaterfallHealth from "./pages/WaterfallHealth";
 import DeploymentDiagnostics from "./pages/DeploymentDiagnostics";
 import AccountPriors from "./pages/AccountPriors";
 import FullPotential from "./pages/FullPotential";
+import FullPotentialDataQuality from "./pages/FullPotentialDataQuality";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -48,6 +50,7 @@ function Router() {
       <Route path={"/account-attack"} component={AccountAttack} />
       <Route path={"/contact-validation"} component={ContactValidation} />
       <Route path={"/account-priors"} component={AccountPriors} />
+      <Route path={"/full-potential/data-quality"} component={FullPotentialDataQuality} />
       <Route path={"/full-potential"} component={FullPotential} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
@@ -62,6 +65,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <FullPotentialDataQualityLink />
           <DeploymentProvenanceBadge />
         </TooltipProvider>
       </ThemeProvider>
