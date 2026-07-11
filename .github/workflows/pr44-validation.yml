@@ -1,3 +1,4 @@
+# Temporary PR44 validation workflow; removed by the finalizer after the confidence-filter patch.
 name: Validate PR44 signal review queue
 
 on:
