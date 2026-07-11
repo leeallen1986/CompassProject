@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import DeploymentProvenanceBadge from "./components/DeploymentProvenanceBadge";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ThisWeek from "./pages/ThisWeekWithFullPotential";
@@ -20,6 +21,7 @@ import AccountAttack from "./pages/AccountAttack";
 import ProjectDetail from "./pages/ProjectDetail";
 import ContactValidation from "./pages/ContactValidation";
 import WaterfallHealth from "./pages/WaterfallHealth";
+import DeploymentDiagnostics from "./pages/DeploymentDiagnostics";
 import AccountPriors from "./pages/AccountPriors";
 import FullPotential from "./pages/FullPotential";
 
@@ -37,6 +39,8 @@ function Router() {
       <Route path={"/onboarding"} component={Onboarding} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/pipeline"} component={Pipeline} />
+      <Route path={"/admin/deployment"} component={DeploymentDiagnostics} />
+      <Route path={"/admin/waterfall"} component={WaterfallHealth} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/my-profile"} component={MyProfile} />
       <Route path={"/collateral"} component={CollateralLibrary} />
@@ -45,7 +49,6 @@ function Router() {
       <Route path={"/contact-validation"} component={ContactValidation} />
       <Route path={"/account-priors"} component={AccountPriors} />
       <Route path={"/full-potential"} component={FullPotential} />
-      <Route path={"/admin/waterfall"} component={WaterfallHealth} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -59,6 +62,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <DeploymentProvenanceBadge />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
