@@ -21,7 +21,9 @@ jobs:
           fetch-depth: 0
 
       - name: Assemble PR44 changes
-        run: python scripts/pr44_patch.py
+        run: |
+          python scripts/pr44_patch.py
+          python scripts/pr44_fix_types.py
 
       - uses: pnpm/action-setup@v4
 
@@ -58,6 +60,7 @@ jobs:
           rm -f .github/workflows/pr44-build.yml
           rm -f .github/workflows/pr44-pr-build.yml
           rm -f scripts/pr44_patch.py
+          rm -f scripts/pr44_fix_types.py
           rm -f pr44-tsc-errors.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
