@@ -26,20 +26,20 @@ function formatTimestamp(value: string) {
 function syncStatePresentation(state: "aligned" | "out_of_sync" | "unknown") {
   if (state === "aligned") {
     return {
-      label: "Aligned",
+      label: "GitHub source aligned",
       className: "border-emerald-200 bg-emerald-50 text-emerald-700",
       icon: <CheckCircle2 className="h-4 w-4" />,
     };
   }
   if (state === "out_of_sync") {
     return {
-      label: "Out of sync",
+      label: "GitHub source mismatch",
       className: "border-red-200 bg-red-50 text-red-700",
       icon: <XCircle className="h-4 w-4" />,
     };
   }
   return {
-    label: "Unknown",
+    label: "GitHub source not verified",
     className: "border-amber-200 bg-amber-50 text-amber-700",
     icon: <AlertTriangle className="h-4 w-4" />,
   };
@@ -47,7 +47,7 @@ function syncStatePresentation(state: "aligned" | "out_of_sync" | "unknown") {
 
 function DetailRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="grid gap-1 border-b border-border py-3 last:border-b-0 sm:grid-cols-[220px_1fr] sm:gap-4">
+    <div className="grid gap-1 border-b border-border py-3 last:border-b-0 sm:grid-cols-[240px_1fr] sm:gap-4">
       <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`break-all text-sm text-navy ${mono ? "font-mono" : "font-medium"}`}>{value}</div>
     </div>
@@ -107,7 +107,7 @@ export default function DeploymentDiagnostics() {
   }
 
   const data = diagnostics.data;
-  const sync = data ? syncStatePresentation(data.provenance.syncState) : null;
+  const sync = data ? syncStatePresentation(data.provenance.githubSyncState) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,7 +121,7 @@ export default function DeploymentDiagnostics() {
               <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight">
                 <ServerCog className="h-5 w-5 text-gold" /> Deployment Diagnostics
               </h1>
-              <p className="text-xs text-slate-400">GitHub, Manus and runtime provenance</p>
+              <p className="text-xs text-slate-400">GitHub source record, Manus runtime and safe configuration checks</p>
             </div>
           </div>
           <Button
@@ -161,10 +161,10 @@ export default function DeploymentDiagnostics() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <CardTitle className="flex items-center gap-2 text-navy">
-                      <GitBranch className="h-5 w-5 text-gold" /> Source alignment
+                      <GitBranch className="h-5 w-5 text-gold" /> GitHub source record
                     </CardTitle>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Compares the deployed revision supplied by the deployment with the expected GitHub main revision.
+                      Compares the explicit GitHub source SHA recorded for this deployment with the explicit GitHub main SHA approved for release.
                     </p>
                   </div>
                   <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${sync.className}`}>
@@ -174,10 +174,10 @@ export default function DeploymentDiagnostics() {
               </CardHeader>
               <CardContent>
                 <DetailRow label="Source repository" value={`${data.provenance.sourceRepository} · ${data.provenance.sourceBranch}`} />
-                <DetailRow label="Deployed Git SHA" value={data.provenance.deployedGitSha} mono />
-                <DetailRow label="Expected GitHub main SHA" value={data.provenance.expectedMainSha} mono />
+                <DetailRow label="Recorded GitHub source SHA" value={data.provenance.githubSourceRevision} mono />
+                <DetailRow label="Expected GitHub main SHA" value={data.provenance.githubExpectedRevision} mono />
                 <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-                  A mismatch only proves that the two supplied revisions differ. This panel does not infer which commit is newer or inspect Git history at runtime.
+                  This is a comparison of deployment metadata recorded at release time. The application does not call GitHub at runtime, inspect commit ancestry or claim that GitHub main has not moved since deployment.
                 </div>
               </CardContent>
             </Card>
@@ -186,14 +186,18 @@ export default function DeploymentDiagnostics() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-navy">
-                    <Clock3 className="h-5 w-5 text-gold" /> Build provenance
+                    <Clock3 className="h-5 w-5 text-gold" /> Manus runtime provenance
                   </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    The Manus internal revision is platform-generated from its S3-backed project repository and is not a GitHub commit SHA.
+                  </p>
                 </CardHeader>
                 <CardContent>
+                  <DetailRow label="Manus internal revision" value={data.provenance.manusInternalRevision} mono />
+                  <DetailRow label="Manus checkpoint" value={data.provenance.manusCheckpointId} mono />
                   <DetailRow label="Application" value={data.provenance.appName} />
                   <DetailRow label="Version" value={data.provenance.appVersion} />
                   <DetailRow label="Environment" value={data.provenance.deploymentEnvironment} />
-                  <DetailRow label="Manus checkpoint" value={data.provenance.manusCheckpointId} mono />
                   <DetailRow label="Build timestamp" value={formatTimestamp(data.provenance.buildTimestamp)} />
                   <DetailRow label="Schema version" value={data.provenance.schemaVersion} mono />
                   <DetailRow label="Last checked" value={formatTimestamp(data.provenance.checkedAt)} />
@@ -211,7 +215,9 @@ export default function DeploymentDiagnostics() {
                   <ConfigurationRow label="Database configuration" configured={data.configuration.databaseConfigured} />
                   <ConfigurationRow label="Authentication configuration" configured={data.configuration.authenticationConfigured} />
                   <ConfigurationRow label="Published site URL" configured={data.configuration.appSiteUrlConfigured} />
-                  <ConfigurationRow label="Required provenance metadata" configured={data.configuration.requiredMetadataConfigured} />
+                  <ConfigurationRow label="Manus runtime revision" configured={data.configuration.manusRuntimeRevisionAvailable} />
+                  <ConfigurationRow label="GitHub provenance metadata" configured={data.configuration.githubProvenanceConfigured} />
+                  <ConfigurationRow label="Required deployment metadata" configured={data.configuration.requiredMetadataConfigured} />
                 </CardContent>
               </Card>
             </div>
