@@ -92,10 +92,10 @@ export default function FullPotentialSignalReviewQueue({
   onOpenAccount,
 }: SignalReviewQueueProps) {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [urgency, setUrgency] = useState("");
-  const [confidenceLevel, setConfidenceLevel] = useState("");
-  const [signalType, setSignalType] = useState("");
+  const [status, setStatus] = useState<"" | "new" | "reviewed" | "promoted" | "dismissed" | "archived">("");
+  const [urgency, setUrgency] = useState<"" | "hot" | "warm" | "cold" | "unknown">("");
+  const [confidenceLevel, setConfidenceLevel] = useState<"" | "high" | "medium" | "low" | "unknown">("");
+  const [signalType, setSignalType] = useState<"" | "drilling_campaign" | "awarded_project" | "live_tender" | "shutdown_turnaround" | "pipeline_commissioning" | "mine_site_activity" | "civil_application" | "rental_fleet_signal" | "competitor_channel_signal" | "installed_base_signal" | "contact_discovery_signal" | "manual" | "other">("");
   const [state, setState] = useState("");
   const [linked, setLinked] = useState<"all" | "linked" | "unlinked">("all");
   const [actionState, setActionState] = useState<"any" | "open" | "closed" | "none">("any");
@@ -147,7 +147,7 @@ export default function FullPotentialSignalReviewQueue({
     if (kind === "new") setStatus("new");
     if (kind === "hot") setUrgency("hot");
     if (kind === "unlinked") setLinked("unlinked");
-    if (["reviewed", "promoted", "dismissed"].includes(kind)) setStatus(kind);
+    if (kind === "reviewed" || kind === "promoted" || kind === "dismissed") setStatus(kind);
   }
 
   const quickFilters = [
@@ -206,15 +206,15 @@ export default function FullPotentialSignalReviewQueue({
                   className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
                 />
               </div>
-              <select value={status} onChange={event => { setStatus(event.target.value); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <select value={status} onChange={event => { setStatus(event.target.value as typeof status); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
                 <option value="">All statuses</option>
                 {(filters?.statuses ?? []).map((value: string) => <option key={value} value={value}>{STATUS_LABELS[value] ?? value}</option>)}
               </select>
-              <select value={urgency} onChange={event => { setUrgency(event.target.value); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <select value={urgency} onChange={event => { setUrgency(event.target.value as typeof urgency); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
                 <option value="">All urgency</option>
                 {(filters?.urgencies ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
               </select>
-              <select value={signalType} onChange={event => { setSignalType(event.target.value); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <select value={signalType} onChange={event => { setSignalType(event.target.value as typeof signalType); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
                 <option value="">All signal types</option>
                 {(filters?.signalTypes ?? []).map((value: string) => <option key={value} value={value}>{SIGNAL_TYPE_LABELS[value] ?? value}</option>)}
               </select>

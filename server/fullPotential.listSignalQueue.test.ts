@@ -207,10 +207,10 @@ describe("fullPotential.listSignals — Signal Review Queue", () => {
     expect(result.total).toBe(4);
     const hot = result.signals.find((signal: any) => signal.id === hotSignalId);
     expect(hot).toBeDefined();
-    expect(hot.account.id).toBe(accountAId);
-    expect(hot.account.ownerName).toBe("Ryan Pemberton");
-    expect(hot.account.routeToMarket).toBe("direct_ape");
-    expect(hot.account.priorityTier).toBe("tier_a");
+    expect(hot?.account?.id).toBe(accountAId);
+    expect(hot?.account?.ownerName).toBe("Ryan Pemberton");
+    expect(hot?.account?.routeToMarket).toBe("direct_ape");
+    expect(hot?.account?.priorityTier).toBe("tier_a");
   });
 
   it("2. filters by status and urgency", async () => {
