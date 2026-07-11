@@ -1,0 +1,1 @@
+Trigger the registered PR44 validation workflow after its finalization logic was updated.
