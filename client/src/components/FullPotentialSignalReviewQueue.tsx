@@ -214,6 +214,10 @@ export default function FullPotentialSignalReviewQueue({
                 <option value="">All urgency</option>
                 {(filters?.urgencies ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
               </select>
+              <select value={confidenceLevel} onChange={event => { setConfidenceLevel(event.target.value as typeof confidenceLevel); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+                <option value="">All confidence</option>
+                {(filters?.confidenceLevels ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
+              </select>
               <select value={signalType} onChange={event => { setSignalType(event.target.value as typeof signalType); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
                 <option value="">All signal types</option>
                 {(filters?.signalTypes ?? []).map((value: string) => <option key={value} value={value}>{SIGNAL_TYPE_LABELS[value] ?? value}</option>)}
