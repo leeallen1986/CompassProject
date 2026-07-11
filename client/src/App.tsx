@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import DeploymentProvenanceBadge from "./components/DeploymentProvenanceBadge";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ThisWeek from "./pages/ThisWeekWithFullPotential";
@@ -61,6 +62,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <DeploymentProvenanceBadge />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
