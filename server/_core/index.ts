@@ -14,7 +14,7 @@ import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
 import { handleScheduledQueueRun } from "../scheduledQueueRun";
 import { handleWarmup, startOperationsReliability } from "../operationsReliability";
 import { handleFullPotentialDataQuality } from "../fullPotentialDataQuality";
-import { handleFullPotentialRentalHire } from "../fullPotentialRentalHire";
+import { handleFullPotentialRentalHire, handleFullPotentialRentalRemediation } from "../fullPotentialRentalHire";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -87,8 +87,9 @@ async function startServer() {
   app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
   // Authenticated, read-only Full Potential data-quality dashboard feed
   app.get("/api/full-potential/data-quality", handleFullPotentialDataQuality);
-  // Authenticated, read-only Rental Hire segment workspace feed
+  // Authenticated Rental Hire segment workspace and explicit remediation workflow
   app.get("/api/full-potential/rental-hire", handleFullPotentialRentalHire);
+  app.post("/api/full-potential/rental-hire/remediation", handleFullPotentialRentalRemediation);
   // Temporary debug: check if PIPELINE_SECRET is set in production runtime
   app.get("/api/debug-env", (_req, res) => res.json({
     hasPipelineSecret: !!(process.env.PIPELINE_SECRET),
