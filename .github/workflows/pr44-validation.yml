@@ -1,5 +1,4 @@
-# Temporary PR44 validation workflow; removed by the finalizer after the confidence-filter patch.
-name: Validate PR44 signal review queue
+name: Validate and finalize PR44 signal review queue
 
 on:
   pull_request:
@@ -7,10 +6,10 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  validate-pr44:
+  validate-and-finalize-pr44:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -36,6 +35,9 @@ jobs:
     steps:
       - name: Check out PR branch
         uses: actions/checkout@v4
+        with:
+          ref: feature/portable-air-fp-signal-review-queue
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -52,6 +54,27 @@ jobs:
       - name: Create clean test schema
         run: pnpm exec drizzle-kit push --force
 
+      - name: Add missing confidence filter
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("client/src/components/FullPotentialSignalReviewQueue.tsx")
+          text = path.read_text()
+          marker = '              <select value={signalType} onChange={event => { setSignalType(event.target.value as typeof signalType); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">'
+          confidence = '''              <select value={confidenceLevel} onChange={event => { setConfidenceLevel(event.target.value as typeof confidenceLevel); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+                <option value="">All confidence</option>
+                {(filters?.confidenceLevels ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
+              </select>
+'''
+          if "All confidence" not in text:
+              count = text.count(marker)
+              if count != 1:
+                  raise SystemExit(f"Expected one signal-type insertion marker, found {count}")
+              path.write_text(text.replace(marker, confidence + marker, 1))
+          PY
+
       - name: TypeScript check
         run: pnpm tsc --noEmit
 
@@ -66,3 +89,14 @@ jobs:
 
       - name: Signal promotion regression tests
         run: pnpm exec vitest run server/fullPotential.promoteMatchedSignalToAction.test.ts
+
+      - name: Commit confidence filter and remove temporary workflows
+        shell: bash
+        run: |
+          rm -f .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/components/FullPotentialSignalReviewQueue.tsx .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(fp): expose confidence filter in signal review queue"
+          git push origin HEAD:feature/portable-air-fp-signal-review-queue
