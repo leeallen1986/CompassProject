@@ -1,0 +1,76 @@
+name: Finalize PR44 signal review queue
+
+on:
+  push:
+    branches:
+      - feature/portable-air-fp-signal-review-queue
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-pr44:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/portable-air-fp-signal-review-queue
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Add missing confidence filter
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("client/src/components/FullPotentialSignalReviewQueue.tsx")
+          text = path.read_text()
+          old = '''              <select value={urgency} onChange={event => { setUrgency(event.target.value as typeof urgency); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+                <option value="">All urgency</option>
+                {(filters?.urgencies ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <select value={signalType} onChange={event => { setSignalType(event.target.value as typeof signalType); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">'''
+          new = '''              <select value={urgency} onChange={event => { setUrgency(event.target.value as typeof urgency); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+                <option value="">All urgency</option>
+                {(filters?.urgencies ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <select value={confidenceLevel} onChange={event => { setConfidenceLevel(event.target.value as typeof confidenceLevel); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+                <option value="">All confidence</option>
+                {(filters?.confidenceLevels ?? []).map((value: string) => <option key={value} value={value}>{value}</option>)}
+              </select>
+              <select value={signalType} onChange={event => { setSignalType(event.target.value as typeof signalType); setOffset(0); }} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">'''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f"Expected one confidence-filter insertion point, found {count}")
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
+
+      - name: Remove temporary validation workflows and commit
+        shell: bash
+        run: |
+          rm -f .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/components/FullPotentialSignalReviewQueue.tsx .github/workflows/pr44-validation.yml .github/workflows/pr44-finalize.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(fp): expose confidence filter in signal review queue"
+          git push origin HEAD:feature/portable-air-fp-signal-review-queue
