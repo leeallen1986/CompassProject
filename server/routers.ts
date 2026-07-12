@@ -25,6 +25,7 @@ import {
   classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
   getEmailRecipients,
   getProjectById, getContactsForProject, getPipelineClaimsForProject,
+  createFpPipelineClaim, getPipelineClaimsByAccount, advanceClaimStage,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -473,7 +474,7 @@ export const appRouter = router({
           : "pipeline_status_changed" as const;
         await trackActivity(ctx.user.id, actionType, {
           claimId: input.claimId,
-          projectId: claim.projectId,
+          projectId: claim.projectId ?? undefined,
           metadata: { fromStatus, toStatus: input.status },
         });
         return { success: true };
@@ -509,6 +510,79 @@ export const appRouter = router({
       .input(z.object({ claimId: z.number() }))
       .query(async ({ input }) => {
         return getActivityByClaimId(input.claimId);
+      }),
+
+    // ── Sprint 2A: FP-sourced pipeline attribution ──────────────────────────
+
+    /** Create (or idempotently return) a pipeline claim from a Full Potential account. */
+    claimFromFP: protectedProcedure
+      .input(z.object({
+        sourceAccountId: z.number(),
+        productFamily: z.string().max(64),
+        application: z.string().max(128).optional(),
+        contactId: z.number().optional(),
+        contactName: z.string().max(256).optional(),
+        contactRole: z.string().max(128).optional(),
+        estimatedValueAud: z.string().max(64).optional(),
+        closeDate: z.date().optional(),
+        nextAction: z.string().max(512).optional(),
+        nextActionDate: z.date().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await createFpPipelineClaim({
+          userId: ctx.user.id,
+          sourceAccountId: input.sourceAccountId,
+          productFamily: input.productFamily,
+          application: input.application ?? null,
+          contactId: input.contactId ?? null,
+          contactName: input.contactName ?? null,
+          contactRole: input.contactRole ?? null,
+          estimatedValueAud: input.estimatedValueAud ?? null,
+          closeDate: input.closeDate ?? null,
+          nextAction: input.nextAction ?? null,
+          nextActionDate: input.nextActionDate ?? null,
+          notes: input.notes ?? null,
+        });
+        return result;
+      }),
+
+    /** Advance a claim through a stage gate with validation. */
+    advanceStage: protectedProcedure
+      .input(z.object({
+        claimId: z.number(),
+        toStatus: z.enum(["identified", "contacted", "meeting_booked", "qualified", "quoted", "won", "lost", "deferred", "not_relevant"]),
+        note: z.string().optional(),
+        contactName: z.string().max(256).optional(),
+        contactRole: z.string().max(128).optional(),
+        estimatedValueAud: z.string().max(64).optional(),
+        closeDate: z.date().optional(),
+        nextAction: z.string().max(512).optional(),
+        nextActionDate: z.date().optional(),
+        metadataJson: z.record(z.string(), z.unknown()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await advanceClaimStage({
+          claimId: input.claimId,
+          userId: ctx.user.id,
+          toStatus: input.toStatus,
+          note: input.note,
+          contactName: input.contactName,
+          contactRole: input.contactRole,
+          estimatedValueAud: input.estimatedValueAud,
+          closeDate: input.closeDate,
+          nextAction: input.nextAction,
+          nextActionDate: input.nextActionDate,
+          metadataJson: input.metadataJson,
+        });
+        return { success: true };
+      }),
+
+    /** Return all claims for a given FP account (across all users). */
+    byAccount: protectedProcedure
+      .input(z.object({ sourceAccountId: z.number() }))
+      .query(async ({ input }) => {
+        return getPipelineClaimsByAccount(input.sourceAccountId);
       }),
   }),
 

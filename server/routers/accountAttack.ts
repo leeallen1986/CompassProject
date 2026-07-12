@@ -652,8 +652,8 @@ const loadAccountData = protectedProcedure
 
       pipelineClaimRows = claims.map(c => ({
         id: c.id,
-        projectId: c.projectId,
-        projectName: projectNameMap.get(c.projectId) || `Project #${c.projectId}`,
+        projectId: c.projectId ?? 0,
+        projectName: projectNameMap.get(c.projectId ?? 0) || `Project #${c.projectId ?? 0}`,
         userId: c.userId,
         status: c.status,
         notes: c.notes,

@@ -397,14 +397,35 @@ export type InsertAwardedProject = typeof awardedProjects.$inferInsert;
 export const pipelineClaims = mysqlTable("pipelineClaims", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  projectId: int("projectId").notNull(),
-  reportId: int("reportId").notNull(),
-  status: mysqlEnum("status", ["identified", "contacted", "meeting_booked", "quoted", "won", "lost"]).notNull().default("identified"),
+  // Project-sourced claims link here; FP/signal-sourced claims leave these null
+  projectId: int("projectId"),
+  reportId: int("reportId"),
+  /** Origin of the claim — drives attribution reporting */
+  sourceType: mysqlEnum("sourceType", ["project", "full_potential", "signal", "ai_recommendation", "manual", "legacy"]).notNull().default("project"),
+  /** FK → fullPotentialAccounts.id (Sprint 2A) */
+  sourceAccountId: int("sourceAccountId"),
+  /** FK → fullPotentialSignals.id (future Sprint 2B) */
+  sourceSignalId: int("sourceSignalId"),
+  /** Stable key for AI recommendation deduplication */
+  sourceRecommendationKey: varchar("sourceRecommendationKey", { length: 128 }),
+  /** Product family being pursued (e.g. "portable_air_<600cfm") */
+  productFamily: varchar("productFamily", { length: 64 }),
+  /** Application context (e.g. "drilling", "construction") */
+  application: varchar("application", { length: 128 }),
+  status: mysqlEnum("status", ["identified", "contacted", "meeting_booked", "qualified", "quoted", "won", "lost", "deferred", "not_relevant"]).notNull().default("identified"),
   notes: text("notes"),
   estimatedValue: varchar("estimatedValue", { length: 64 }),
+  /** AUD value string for FP-sourced claims (Sprint 2A) */
+  estimatedValueAud: decimal("estimatedValueAud", { precision: 14, scale: 2 }),
   nextAction: varchar("nextAction", { length: 512 }),
   nextActionDate: timestamp("nextActionDate"),
   contactName: varchar("contactName", { length: 256 }),
+  /** FK → contacts.id */
+  contactId: int("contactId"),
+  contactRole: varchar("contactRole", { length: 128 }),
+  closeDate: timestamp("closeDate"),
+  /** Set when claim advances to qualified stage */
+  qualifiedAt: timestamp("qualifiedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -422,6 +443,10 @@ export const pipelineActivity = mysqlTable("pipelineActivity", {
   fromStatus: varchar("fromStatus", { length: 32 }),
   toStatus: varchar("toStatus", { length: 32 }).notNull(),
   note: text("note"),
+  /** Structured event type for analytics (e.g. "stage_advance", "note_added") */
+  eventType: varchar("eventType", { length: 64 }),
+  /** Arbitrary JSON payload for event-specific metadata */
+  metadataJson: json("metadataJson").$type<Record<string, unknown>>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -602,6 +627,10 @@ export const outreachEmails = mysqlTable("outreachEmails", {
   contactEmail: varchar("contactEmail", { length: 320 }),
   projectId: int("projectId"),
   projectName: varchar("projectName", { length: 512 }),
+  /** FK → pipelineClaims.id — links email to a pipeline claim for attribution (Sprint 2A) */
+  claimId: int("claimId"),
+  /** FK → fullPotentialAccounts.id — links email to FP account for attribution (Sprint 2A) */
+  sourceAccountId: int("sourceAccountId"),
   subject: varchar("subject", { length: 512 }).notNull(),
   body: text("body").notNull(),
   tone: mysqlEnum("tone", ["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).notNull(),

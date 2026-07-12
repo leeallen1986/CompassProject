@@ -759,6 +759,10 @@ export async function saveOutreachEmail(params: {
   contactEmail?: string;
   projectId?: number;
   projectName?: string;
+  /** Optional: link this email to a pipeline claim (Sprint 2A attribution) */
+  claimId?: number;
+  /** Optional: link this email to a Full Potential account (Sprint 2A attribution) */
+  sourceAccountId?: number;
   subject: string;
   body: string;
   tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
@@ -774,6 +778,8 @@ export async function saveOutreachEmail(params: {
     contactEmail: params.contactEmail ?? null,
     projectId: params.projectId ?? null,
     projectName: params.projectName ?? null,
+    claimId: params.claimId ?? null,
+    sourceAccountId: params.sourceAccountId ?? null,
     subject: params.subject,
     body: params.body,
     tone: params.tone,

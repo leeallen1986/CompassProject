@@ -20,6 +20,7 @@ import {
   systemKv,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { fullPotentialAccounts } from '../drizzle/fullPotentialSchema';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -2791,4 +2792,142 @@ export async function setSystemKv(key: string, value: string): Promise<void> {
     .insert(systemKv)
     .values({ key, value })
     .onDuplicateKeyUpdate({ set: { value, updatedAt: new Date() } });
+}
+
+// ── Sprint 2A: Pipeline Attribution Spine ─────────────────────────────────────
+
+/**
+ * Create a pipeline claim sourced from a Full Potential account.
+ * Idempotent: if a claim already exists for the same (userId, sourceAccountId,
+ * productFamily) triple, returns the existing claimId with alreadyExists=true.
+ */
+export async function createFpPipelineClaim(data: {
+  userId: number;
+  sourceAccountId: number;
+  productFamily: string;
+  application?: string | null;
+  contactId?: number | null;
+  contactName?: string | null;
+  contactRole?: string | null;
+  estimatedValueAud?: string | null;
+  closeDate?: Date | null;
+  nextAction?: string | null;
+  nextActionDate?: Date | null;
+  notes?: string | null;
+}): Promise<{ claimId: number; alreadyExists: boolean }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Idempotency check
+  const existing = await db.select({ id: pipelineClaims.id })
+    .from(pipelineClaims)
+    .where(and(
+      eq(pipelineClaims.userId, data.userId),
+      eq(pipelineClaims.sourceAccountId, data.sourceAccountId),
+      eq(pipelineClaims.productFamily, data.productFamily),
+    ))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return { claimId: existing[0].id, alreadyExists: true };
+  }
+
+  const result = await db.insert(pipelineClaims).values({
+    userId: data.userId,
+    projectId: null,
+    reportId: null,
+    sourceType: "full_potential",
+    sourceAccountId: data.sourceAccountId,
+    productFamily: data.productFamily,
+    application: data.application ?? null,
+    status: "identified",
+    contactId: data.contactId ?? null,
+    contactName: data.contactName ?? null,
+    contactRole: data.contactRole ?? null,
+    estimatedValueAud: data.estimatedValueAud ?? null,
+    closeDate: data.closeDate ?? null,
+    nextAction: data.nextAction ?? null,
+    nextActionDate: data.nextActionDate ?? null,
+    notes: data.notes ?? null,
+  });
+
+  return { claimId: Number(result[0].insertId), alreadyExists: false };
+}
+
+/**
+ * Get all pipeline claims for a given FP account, across all users.
+ */
+export async function getPipelineClaimsByAccount(sourceAccountId: number): Promise<PipelineClaim[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(pipelineClaims)
+    .where(eq(pipelineClaims.sourceAccountId, sourceAccountId))
+    .orderBy(desc(pipelineClaims.updatedAt));
+}
+
+/**
+ * Advance a claim through a stage gate.
+ * Validates required gate fields before allowing the transition.
+ * Returns { success: true } or throws with the missing field name.
+ */
+export async function advanceClaimStage(params: {
+  claimId: number;
+  userId: number;
+  toStatus: PipelineClaim["status"];
+  note?: string;
+  // Gate fields (only required for specific transitions)
+  contactName?: string;
+  contactRole?: string;
+  estimatedValueAud?: string;
+  closeDate?: Date;
+  nextAction?: string;
+  nextActionDate?: Date;
+  eventType?: string;
+  metadataJson?: Record<string, unknown>;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const claim = await getPipelineClaimById(params.claimId);
+  if (!claim) throw new Error("Claim not found");
+  if (claim.userId !== params.userId) throw new Error("Not your claim");
+
+  // Stage gate validation
+  const to = params.toStatus;
+  if (to === "contacted" && !params.contactName && !claim.contactName) {
+    throw new Error("Gate: contactName required to advance to contacted");
+  }
+  if (to === "qualified") {
+    if (!params.estimatedValueAud && !claim.estimatedValueAud) {
+      throw new Error("Gate: estimatedValueAud required to advance to qualified");
+    }
+    if (!params.nextAction && !claim.nextAction) {
+      throw new Error("Gate: nextAction required to advance to qualified");
+    }
+  }
+  if (to === "quoted" && !params.closeDate && !claim.closeDate) {
+    throw new Error("Gate: closeDate required to advance to quoted");
+  }
+
+  const patch: Partial<InsertPipelineClaim> = { status: to };
+  if (params.contactName !== undefined) patch.contactName = params.contactName;
+  if (params.contactRole !== undefined) patch.contactRole = params.contactRole;
+  if (params.estimatedValueAud !== undefined) patch.estimatedValueAud = params.estimatedValueAud;
+  if (params.closeDate !== undefined) patch.closeDate = params.closeDate;
+  if (params.nextAction !== undefined) patch.nextAction = params.nextAction;
+  if (params.nextActionDate !== undefined) patch.nextActionDate = params.nextActionDate;
+  if (to === "qualified") patch.qualifiedAt = new Date();
+
+  await db.update(pipelineClaims).set(patch).where(eq(pipelineClaims.id, params.claimId));
+
+  await db.insert(pipelineActivity).values({
+    claimId: params.claimId,
+    userId: params.userId,
+    fromStatus: claim.status,
+    toStatus: to,
+    note: params.note ?? `Advanced to ${to}`,
+    eventType: params.eventType ?? null,
+    metadataJson: params.metadataJson ?? null,
+  });
 }
