@@ -49,6 +49,10 @@ export interface TransitionPayload {
   metadataJson?: Record<string, unknown>;
 }
 
+/**
+ * Strict attributed-opportunity flow used by Full Potential, signal, AI and
+ * manual source-neutral opportunities.
+ */
 export const ALLOWED_TRANSITIONS: Record<
   PipelineStatus,
   readonly PipelineStatus[]
@@ -63,6 +67,31 @@ export const ALLOWED_TRANSITIONS: Record<
   deferred: ["identified", "contacted"],
   not_relevant: [],
 };
+
+/**
+ * Compatibility flow for the existing project tracker. The current project UI
+ * predates the `qualified` stage and the new qualification-specific fields, so
+ * it must remain able to follow its established sequence until that UI is
+ * deliberately upgraded.
+ */
+export const LEGACY_PROJECT_TRANSITIONS: Record<
+  PipelineStatus,
+  readonly PipelineStatus[]
+> = {
+  identified: ["contacted", "deferred", "not_relevant"],
+  contacted: ["meeting_booked", "quoted", "deferred", "not_relevant"],
+  meeting_booked: ["quoted", "deferred", "not_relevant"],
+  qualified: ["quoted", "lost", "deferred"],
+  quoted: ["won", "lost", "deferred"],
+  won: [],
+  lost: [],
+  deferred: ["identified", "contacted"],
+  not_relevant: [],
+};
+
+function isLegacyProjectClaim(claim: PipelineClaim): boolean {
+  return claim.sourceType === "project" || claim.sourceType === "legacy";
+}
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -111,7 +140,7 @@ export function normalizePositiveAud(
   return numeric.toFixed(2);
 }
 
-function validateTransitionGates(
+function validateLegacyProjectGates(
   toStatus: PipelineStatus,
   payload: TransitionPayload,
   existing: PipelineClaim,
@@ -130,6 +159,152 @@ function validateTransitionGates(
   const nextAction = resolvedText(
     payload.nextAction,
     existing.nextAction,
+  );
+  const activityEvidence = text(payload.note);
+
+  let estimatedValueAud: string | undefined;
+
+  switch (toStatus) {
+    case "contacted":
+      if (!contactName && !contactRole) {
+        requireText("", "contactName or contactRole", toStatus);
+      }
+      requireText(
+        activityEvidence,
+        "note (activity evidence)",
+        toStatus,
+      );
+      break;
+
+    case "meeting_booked":
+      if (!contactName && !contactRole) {
+        requireText("", "contactName or contactRole", toStatus);
+      }
+      if (!payload.nextActionDate) {
+        requireText(
+          "",
+          "nextActionDate (meeting date)",
+          toStatus,
+        );
+      }
+      requireText(
+        activityEvidence,
+        "note (meeting objective)",
+        toStatus,
+      );
+      break;
+
+    case "qualified": {
+      const rawValue =
+        payload.estimatedValueAud ??
+        (
+          existing.estimatedValueAud === null
+            ? undefined
+            : String(existing.estimatedValueAud)
+        );
+      if (!rawValue) {
+        requireText("", "estimatedValueAud", toStatus);
+      }
+      estimatedValueAud = normalizePositiveAud(
+        rawValue as string,
+        "estimatedValueAud",
+      );
+      requireText(nextAction, "nextAction", toStatus);
+      if (!payload.nextActionDate) {
+        requireText("", "nextActionDate", toStatus);
+      }
+      break;
+    }
+
+    case "quoted": {
+      const legacyValue = resolvedText(
+        payload.estimatedValue,
+        existing.estimatedValue,
+      );
+      const rawAud =
+        payload.estimatedValueAud ??
+        (
+          existing.estimatedValueAud === null
+            ? undefined
+            : String(existing.estimatedValueAud)
+        );
+
+      if (!legacyValue && !rawAud) {
+        requireText(
+          "",
+          "estimatedValue or estimatedValueAud",
+          toStatus,
+        );
+      }
+      if (rawAud) {
+        estimatedValueAud = normalizePositiveAud(
+          rawAud,
+          "estimatedValueAud",
+        );
+      }
+
+      requireText(nextAction, "nextAction", toStatus);
+      if (
+        !payload.nextActionDate &&
+        !payload.closeDate &&
+        !existing.closeDate
+      ) {
+        requireText(
+          "",
+          "nextActionDate or closeDate",
+          toStatus,
+        );
+      }
+      break;
+    }
+
+    case "deferred":
+      requireText(
+        activityEvidence,
+        "note (defer reason)",
+        toStatus,
+      );
+      if (!payload.nextActionDate) {
+        requireText(
+          "",
+          "nextActionDate (re-engagement date)",
+          toStatus,
+        );
+      }
+      break;
+
+    case "won":
+    case "lost":
+    case "not_relevant":
+      requireText(
+        activityEvidence,
+        "note (outcome reason)",
+        toStatus,
+      );
+      break;
+
+    default:
+      break;
+  }
+
+  return { estimatedValueAud };
+}
+
+function validateAttributedGates(
+  toStatus: PipelineStatus,
+  payload: TransitionPayload,
+  existing: PipelineClaim,
+): {
+  estimatedValueAud?: string;
+  quoteValueAud?: string;
+} {
+  const contactName = resolvedText(
+    payload.contactName,
+    existing.contactName,
+  );
+  const contactRole = resolvedText(
+    payload.contactRole,
+    existing.contactRole,
   );
   const application = resolvedText(
     payload.application,
@@ -162,17 +337,19 @@ function validateTransitionGates(
 
   switch (toStatus) {
     case "identified":
-      if (existing.sourceType === "full_potential") {
-        requireText(application, "application", toStatus);
-        requireText(
-          commercialHypothesis,
-          "commercialHypothesis",
-          toStatus,
-        );
-        requireText(nextAction, "nextAction", toStatus);
-        if (!payload.nextActionDate && !existing.nextActionDate) {
-          requireText("", "nextActionDate", toStatus);
-        }
+      requireText(application, "application", toStatus);
+      requireText(
+        commercialHypothesis,
+        "commercialHypothesis",
+        toStatus,
+      );
+      requireText(
+        resolvedText(payload.nextAction, existing.nextAction),
+        "nextAction",
+        toStatus,
+      );
+      if (!payload.nextActionDate && !existing.nextActionDate) {
+        requireText("", "nextActionDate", toStatus);
       }
       break;
 
@@ -191,7 +368,7 @@ function validateTransitionGates(
       if (!contactName && !contactRole) {
         requireText("", "contactName or contactRole", toStatus);
       }
-      if (!payload.nextActionDate && !existing.nextActionDate) {
+      if (!payload.nextActionDate) {
         requireText(
           "",
           "nextActionDate (meeting date)",
@@ -199,7 +376,7 @@ function validateTransitionGates(
         );
       }
       requireText(
-        meetingObjective,
+        text(payload.meetingObjective) || meetingObjective,
         "meetingObjective",
         toStatus,
       );
@@ -227,33 +404,34 @@ function validateTransitionGates(
         "competitivePosition",
         toStatus,
       );
-      requireText(nextAction, "nextAction", toStatus);
-      if (!payload.nextActionDate && !existing.nextActionDate) {
+      requireText(
+        text(payload.nextAction),
+        "nextAction",
+        toStatus,
+      );
+      if (!payload.nextActionDate) {
         requireText("", "nextActionDate", toStatus);
       }
       break;
     }
 
     case "quoted": {
-      const rawQuote =
-        payload.quoteValueAud ??
-        (
-          existing.quoteValueAud === null
-            ? undefined
-            : String(existing.quoteValueAud)
-        );
-      if (!rawQuote) {
+      if (!payload.quoteValueAud) {
         requireText("", "quoteValueAud", toStatus);
       }
       quoteValueAud = normalizePositiveAud(
-        rawQuote as string,
+        payload.quoteValueAud as string,
         "quoteValueAud",
       );
-      if (!payload.closeDate && !existing.closeDate) {
+      if (!payload.closeDate) {
         requireText("", "closeDate", toStatus);
       }
-      requireText(nextAction, "nextAction", toStatus);
-      if (!payload.nextActionDate && !existing.nextActionDate) {
+      requireText(
+        text(payload.nextAction),
+        "nextAction",
+        toStatus,
+      );
+      if (!payload.nextActionDate) {
         requireText("", "nextActionDate", toStatus);
       }
       break;
@@ -265,7 +443,6 @@ function validateTransitionGates(
         "note (defer reason)",
         toStatus,
       );
-      // Always require a fresh re-engagement date in the payload when deferring
       if (!payload.nextActionDate) {
         requireText(
           "",
@@ -340,7 +517,11 @@ export async function advancePipelineStage(
     }
 
     const fromStatus = claim.status as PipelineStatus;
-    const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? [];
+    const transitionMatrix = isLegacyProjectClaim(claim)
+      ? LEGACY_PROJECT_TRANSITIONS
+      : ALLOWED_TRANSITIONS;
+    const allowed = transitionMatrix[fromStatus] ?? [];
+
     if (!allowed.includes(payload.toStatus)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -350,11 +531,17 @@ export async function advancePipelineStage(
       });
     }
 
-    const normalized = validateTransitionGates(
-      payload.toStatus,
-      payload,
-      claim,
-    );
+    const normalized = isLegacyProjectClaim(claim)
+      ? validateLegacyProjectGates(
+          payload.toStatus,
+          payload,
+          claim,
+        )
+      : validateAttributedGates(
+          payload.toStatus,
+          payload,
+          claim,
+        );
 
     const patch: Partial<InsertPipelineClaim> = {
       status: payload.toStatus,
