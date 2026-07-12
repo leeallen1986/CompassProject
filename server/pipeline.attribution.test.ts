@@ -1,38 +1,53 @@
 /**
- * pipeline.attribution.test.ts — Sprint 2A: Pipeline Attribution Spine (corrected)
+ * Sprint 2A pipeline attribution and conversion controls.
  *
- * Validates all 11 correction-brief scenarios:
- *
- *  A. Existing project claims still work (no regression)
- *  B. The old updateStatus endpoint cannot bypass stage gates
- *  C. Distributors cannot access internal FP claim endpoints
- *  D. Invalid product families are rejected at the input layer
- *  E. Invalid (non-existent) sourceAccountId is rejected
- *  F. Illegal stage jumps fail (identified → won, identified → quoted)
- *  G. Closed claims can later generate a legitimate new opportunity
- *  H. Claim update and activity insertion are atomic (both succeed or both fail)
- *  I. Outreach records retain claim and account attribution
- *  J. FP claims are excluded from the project-based accountAttack pipeline list
- *  K. Core happy-path: FP claim creation, idempotency, stage gates, byAccount
- *
- * Uses direct DB helpers for seed/teardown.
- * Access-control tests use appRouter.createCaller() with mocked TrpcContext.
+ * These tests call the real tRPC procedures and persist to the configured
+ * non-production test database. They must never be run against production.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getDb } from "./db";
-import { pipelineClaims, pipelineActivity, userActivity, outreachEmails } from "../drizzle/schema";
-import { fullPotentialAccounts } from "../drizzle/fullPotentialSchema";
-import { eq, and } from "drizzle-orm";
+
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  it,
+} from "vitest";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { appRouter } from "./routers";
-import type { TrpcContext } from "./_core/context";
+import { getDb } from "./db";
+import {
+  outreachEmails,
+  pipelineActivity,
+  pipelineClaims,
+  userActivity,
+} from "../drizzle/schema";
+import {
+  fullPotentialAccounts,
+} from "../drizzle/fullPotentialSchema";
+import type {
+  TrpcContext,
+} from "./_core/context";
 import type { User } from "../drizzle/schema";
+import type {
+  FpProductFamily,
+} from "@shared/const";
 
-// ── Context factory ───────────────────────────────────────────────────────────
+const USER_A = 9901;
+const MAIN_KEY =
+  "test-pipeline-attribution-v3";
+const INELIGIBLE_KEY =
+  "test-pipeline-attribution-ineligible-v3";
 
-function makeUser(overrides: Partial<User> = {}): User {
+let mainAccountId = 0;
+let ineligibleAccountId = 0;
+let sequence = 0;
+
+function makeUser(
+  overrides: Partial<User> = {},
+): User {
   return {
-    id: 9901,
-    openId: "test-pipeline-user",
+    id: USER_A,
+    openId: "pipeline-test-user",
     email: "pipeline-test@example.com",
     name: "Pipeline Test User",
     loginMethod: "manus",
@@ -45,709 +60,1093 @@ function makeUser(overrides: Partial<User> = {}): User {
   } as User;
 }
 
-function makeCtx(user: User | null): TrpcContext {
+function makeCtx(
+  user: User | null,
+): TrpcContext {
   return {
     user,
-    req: { protocol: "https", headers: {} } as TrpcContext["req"],
-    res: { clearCookie: () => {} } as unknown as TrpcContext["res"],
+    req: {
+      protocol: "https",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+    } as unknown as TrpcContext["res"],
   };
 }
 
-// ── Seed / teardown helpers ───────────────────────────────────────────────────
-
-const TEST_ACCOUNT_KEY = "test-pipeline-attribution-account-2a-v2";
-const TEST_USER_ID_A = 9901;
-const TEST_USER_ID_B = 9902;
-let testAccountId: number;
-
-async function seedFpAccount() {
-  const db = await getDb();
-  if (!db) throw new Error("DB unavailable");
-  await db.delete(fullPotentialAccounts).where(eq(fullPotentialAccounts.stableKey, TEST_ACCOUNT_KEY));
-  await db.insert(fullPotentialAccounts).values({
-    stableKey: TEST_ACCOUNT_KEY,
-    canonicalName: "Pipeline Attribution Test Co v2",
-    rowClass: "account",
-    routeToMarket: "direct_ape",
-    fpStatus: "develop",
-    priorityTier: "tier_b",
-    platformPushDecision: "push_context",
-    installedBaseStatus: "unknown",
-  } as any);
-  const [row] = await db
-    .select({ id: fullPotentialAccounts.id })
-    .from(fullPotentialAccounts)
-    .where(eq(fullPotentialAccounts.stableKey, TEST_ACCOUNT_KEY))
-    .limit(1);
-  if (!row) throw new Error("Failed to seed FP account");
-  testAccountId = row.id;
+function futureDate(days = 7): Date {
+  return new Date(
+    Date.now() +
+      days * 24 * 60 * 60 * 1000,
+  );
 }
 
-async function cleanupTestClaims() {
+function fpInput(
+  scope: string,
+  productFamily:
+    FpProductFamily =
+      "portable_air_large",
+  overrides:
+    Record<string, unknown> = {},
+) {
+  sequence += 1;
+
+  return {
+    sourceAccountId: mainAccountId,
+    productFamily,
+    application:
+      `Rental application ` +
+      `${scope}-${sequence}`,
+    commercialHypothesis:
+      "The account has an addressable " +
+      "replacement or expansion need that " +
+      "requires customer validation.",
+    nextAction:
+      "Contact the fleet decision maker " +
+      "and validate the requirement.",
+    nextActionDate: futureDate(),
+    ...overrides,
+  } as any;
+}
+
+async function seedAccounts(): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("DB unavailable");
+  }
+
+  await db
+    .delete(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.stableKey,
+      MAIN_KEY,
+    ));
+  await db
+    .delete(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.stableKey,
+      INELIGIBLE_KEY,
+    ));
+
+  await db
+    .insert(fullPotentialAccounts)
+    .values([
+      {
+        stableKey: MAIN_KEY,
+        canonicalName:
+          "Pipeline Attribution Test Account",
+        rowClass: "account",
+        routeToMarket: "direct_ape",
+        fpStatus: "develop",
+        priorityTier: "tier_a",
+        platformPushDecision: "push_now",
+        installedBaseStatus: "unknown",
+      },
+      {
+        stableKey: INELIGIBLE_KEY,
+        canonicalName:
+          "Pipeline Attribution Competitor Shadow",
+        rowClass: "competitor_watch",
+        routeToMarket: "manual_review",
+        fpStatus: "watch",
+        priorityTier: "tier_c",
+        platformPushDecision:
+          "park_do_not_push",
+        installedBaseStatus:
+          "not_applicable",
+      },
+    ] as any);
+
+  const [main] = await db
+    .select({
+      id: fullPotentialAccounts.id,
+    })
+    .from(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.stableKey,
+      MAIN_KEY,
+    ))
+    .limit(1);
+
+  const [ineligible] = await db
+    .select({
+      id: fullPotentialAccounts.id,
+    })
+    .from(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.stableKey,
+      INELIGIBLE_KEY,
+    ))
+    .limit(1);
+
+  mainAccountId = main.id;
+  ineligibleAccountId = ineligible.id;
+}
+
+async function cleanup(): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  const claims = await db
-    .select({ id: pipelineClaims.id })
-    .from(pipelineClaims)
-    .where(eq(pipelineClaims.sourceAccountId, testAccountId));
-  for (const c of claims) {
-    await db.delete(pipelineActivity).where(eq(pipelineActivity.claimId, c.id));
-    await db.delete(outreachEmails).where(eq(outreachEmails.claimId, c.id));
-    await db.delete(userActivity).where(eq(userActivity.claimId, c.id));
+
+  const accountIds = [
+    mainAccountId,
+    ineligibleAccountId,
+  ].filter(Boolean);
+
+  for (const accountId of accountIds) {
+    const claims = await db
+      .select({
+        id: pipelineClaims.id,
+      })
+      .from(pipelineClaims)
+      .where(eq(
+        pipelineClaims.sourceAccountId,
+        accountId,
+      ));
+
+    for (const claim of claims) {
+      await db
+        .delete(outreachEmails)
+        .where(eq(
+          outreachEmails.claimId,
+          claim.id,
+        ));
+      await db
+        .delete(pipelineActivity)
+        .where(eq(
+          pipelineActivity.claimId,
+          claim.id,
+        ));
+      await db
+        .delete(userActivity)
+        .where(eq(
+          userActivity.claimId,
+          claim.id,
+        ));
+    }
+
+    await db
+      .delete(pipelineClaims)
+      .where(eq(
+        pipelineClaims.sourceAccountId,
+        accountId,
+      ));
   }
-  await db.delete(pipelineClaims).where(eq(pipelineClaims.sourceAccountId, testAccountId));
-  await db.delete(fullPotentialAccounts).where(eq(fullPotentialAccounts.stableKey, TEST_ACCOUNT_KEY));
+
+  await db
+    .delete(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.stableKey,
+      MAIN_KEY,
+    ));
+  await db
+    .delete(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.stableKey,
+      INELIGIBLE_KEY,
+    ));
 }
 
-// ── Test suite ────────────────────────────────────────────────────────────────
+describe(
+  "Sprint 2A pipeline attribution",
+  () => {
+    beforeAll(seedAccounts);
+    afterAll(cleanup);
 
-describe("pipeline.attribution (Sprint 2A — corrected)", () => {
-  beforeAll(async () => {
-    await seedFpAccount();
-  });
+    it(
+      "creates an evidence-backed FP opportunity " +
+        "with initial audit rows",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const result =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "create",
+              "portable_air_large",
+            ),
+          );
 
-  afterAll(async () => {
-    await cleanupTestClaims();
-  });
+        expect(result.alreadyExists)
+          .toBe(false);
+        expect(result.claimId)
+          .toBeGreaterThan(0);
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // K. Core happy-path (regression guard for original Sprint 2A tests)
-  // ══════════════════════════════════════════════════════════════════════════
+        const db = await getDb();
+        if (!db) {
+          throw new Error("DB unavailable");
+        }
 
-  describe("K. Core happy-path", () => {
-    it("K1: creates a new FP-sourced claim and returns claimId + alreadyExists=false", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const result = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-        notes: "Initial FP handoff from test",
-      });
+        const [claim] = await db
+          .select()
+          .from(pipelineClaims)
+          .where(eq(
+            pipelineClaims.id,
+            result.claimId,
+          ))
+          .limit(1);
 
-      expect(result.claimId).toBeGreaterThan(0);
-      expect(result.alreadyExists).toBe(false);
+        expect(claim.sourceType)
+          .toBe("full_potential");
+        expect(claim.projectId).toBeNull();
+        expect(claim.reportId).toBeNull();
+        expect(claim.openDedupeKey)
+          .toBeTruthy();
 
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-      const [claim] = await db
-        .select()
-        .from(pipelineClaims)
-        .where(eq(pipelineClaims.id, result.claimId))
-        .limit(1);
+        const activities = await db
+          .select()
+          .from(pipelineActivity)
+          .where(eq(
+            pipelineActivity.claimId,
+            result.claimId,
+          ));
 
-      expect(claim).toBeDefined();
-      expect(claim.sourceType).toBe("full_potential");
-      expect(claim.sourceAccountId).toBe(testAccountId);
-      expect(claim.productFamily).toBe("portable_air");
-      expect(claim.status).toBe("identified");
-      expect(claim.userId).toBe(TEST_USER_ID_A);
-    });
+        const userActivities = await db
+          .select()
+          .from(userActivity)
+          .where(eq(
+            userActivity.claimId,
+            result.claimId,
+          ));
 
-    it("K2: returns the same claimId and alreadyExists=true on duplicate (userId, sourceAccountId, productFamily)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
+        expect(
+          activities.some(
+            row =>
+              row.eventType ===
+              "claim_created",
+          ),
+        ).toBe(true);
+        expect(
+          userActivities.some(
+            row =>
+              row.actionType ===
+              "pipeline_claimed",
+          ),
+        ).toBe(true);
+      },
+    );
 
-      const first = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "dewatering",
-      });
-      expect(first.alreadyExists).toBe(false);
+    it(
+      "rejects missing required " +
+        "identified-stage evidence",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const valid =
+          fpInput("missing-evidence");
 
-      const second = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "dewatering",
-      });
-      expect(second.alreadyExists).toBe(true);
-      expect(second.claimId).toBe(first.claimId);
-    });
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...valid,
+            application: "",
+          }),
+        ).rejects.toThrow();
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...valid,
+            commercialHypothesis: "",
+          }),
+        ).rejects.toThrow();
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...valid,
+            nextAction: "",
+          }),
+        ).rejects.toThrow();
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...valid,
+            nextActionDate: undefined,
+          }),
+        ).rejects.toThrow();
+      },
+    );
 
-    it("K3: rejects advance to contacted when contactName is missing", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "nitrogen",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "contacted" })
-      ).rejects.toThrow(/contactName required/i);
-    });
+    it(
+      "rejects an unknown or ineligible " +
+        "Full Potential record",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
 
-    it("K4: allows advance to contacted when contactName is provided", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "generators",
-      });
-      await expect(
-        caller.pipeline.advanceStage({
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...fpInput("missing-account"),
+            sourceAccountId: 2_147_000_000,
+          }),
+        ).rejects.toThrow(/not found/i);
+
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...fpInput("ineligible-account"),
+            sourceAccountId:
+              ineligibleAccountId,
+          }),
+        ).rejects.toThrow(/not eligible/i);
+      },
+    );
+
+    it(
+      "rejects invalid product family " +
+        "and non-positive AUD values",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...fpInput("bad-family"),
+            productFamily:
+              "portable_air" as any,
+          }),
+        ).rejects.toThrow();
+
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...fpInput("bad-value"),
+            estimatedValueAud: "$100,000",
+          }),
+        ).rejects.toThrow();
+
+        await expect(
+          caller.pipeline.claimFromFP({
+            ...fpInput("zero-value"),
+            estimatedValueAud: "0",
+          }),
+        ).rejects.toThrow();
+      },
+    );
+
+    it(
+      "blocks distributors from FP creation " +
+        "and account visibility",
+      async () => {
+        const distributor =
+          appRouter.createCaller(
+            makeCtx(makeUser({
+              id: 9903,
+              role: "distributor",
+            })),
+          );
+
+        await expect(
+          distributor.pipeline.claimFromFP(
+            fpInput("distributor"),
+          ),
+        ).rejects.toThrow(/distributor/i);
+
+        await expect(
+          distributor.pipeline.byAccount({
+            sourceAccountId:
+              mainAccountId,
+          }),
+        ).rejects.toThrow(/distributor/i);
+      },
+    );
+
+    it(
+      "deduplicates concurrent creation " +
+        "safely and returns one claim ID",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const input = fpInput(
+          "concurrent",
+          "specialty_air_boosters",
+        );
+
+        const [first, second] =
+          await Promise.all([
+            caller.pipeline.claimFromFP(
+              input,
+            ),
+            caller.pipeline.claimFromFP(
+              input,
+            ),
+          ]);
+
+        expect(first.claimId)
+          .toBe(second.claimId);
+        expect(
+          [
+            first.alreadyExists,
+            second.alreadyExists,
+          ].sort(),
+        ).toEqual([false, true]);
+      },
+    );
+
+    it(
+      "allows separate open applications " +
+        "for one account and family",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+
+        const first =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "application-a",
+              "e_air",
+            ),
+          );
+        const second =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "application-b",
+              "e_air",
+            ),
+          );
+
+        expect(first.claimId)
+          .not.toBe(second.claimId);
+      },
+    );
+
+    it(
+      "enforces legal transitions and " +
+        "prevents the legacy bypass",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "transition-matrix",
+              "dryers",
+            ),
+          );
+
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "won",
+            note: "Illegal jump",
+          }),
+        ).rejects.toThrow(/not allowed/i);
+
+        await expect(
+          caller.pipeline.updateStatus({
+            claimId,
+            status: "contacted",
+            notes: "Called switchboard",
+          }),
+        ).rejects.toThrow(
+          /contactName or contactRole/i,
+        );
+      },
+    );
+
+    it(
+      "requires a contact or role and " +
+        "activity evidence for contacted",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "contacted",
+              "nitrogen",
+            ),
+          );
+
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "contacted",
+            contactRole: "Fleet Manager",
+          }),
+        ).rejects.toThrow(
+          /activity evidence/i,
+        );
+
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "contacted",
+            contactRole: "Fleet Manager",
+            note:
+              "Spoke to reception and " +
+              "confirmed the target role.",
+          }),
+        ).resolves.toEqual({
+          success: true,
+        });
+      },
+    );
+
+    it(
+      "requires meeting date and " +
+        "objective for meeting_booked",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "meeting",
+              "portable_air_small_medium",
+            ),
+          );
+
+        await caller.pipeline.advanceStage({
           claimId,
           toStatus: "contacted",
-          contactName: "Jane Smith",
-          contactRole: "Fleet Manager",
-          note: "Initial contact made",
-        })
-      ).resolves.toEqual({ success: true });
+          contactName: "Jamie Fleet",
+          note: "Customer returned the call.",
+        });
 
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-      const [claim] = await db
-        .select({ status: pipelineClaims.status, contactName: pipelineClaims.contactName })
-        .from(pipelineClaims)
-        .where(eq(pipelineClaims.id, claimId))
-        .limit(1);
-      expect(claim.status).toBe("contacted");
-      expect(claim.contactName).toBe("Jane Smith");
-    });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "meeting_booked",
+            nextActionDate: futureDate(5),
+          }),
+        ).rejects.toThrow(
+          /meetingObjective/i,
+        );
 
-    it("K5: rejects advance to qualified when estimatedValueAud is missing", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "lighting",
-      });
-      await caller.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Bob Jones" });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "qualified", nextAction: "Send proposal" })
-      ).rejects.toThrow(/estimatedValueAud required/i);
-    });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "meeting_booked",
+            nextActionDate: futureDate(5),
+            meetingObjective:
+              "Validate fleet size, supplier " +
+              "mix, and replacement timing.",
+          }),
+        ).resolves.toEqual({
+          success: true,
+        });
+      },
+    );
 
-    it("K6: allows advance to qualified when estimatedValueAud and nextAction are provided", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "bess",
-      });
-      await caller.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Carol White" });
-      await expect(
-        caller.pipeline.advanceStage({
+    it(
+      "requires the complete commercial " +
+        "qualification set",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "qualified",
+              "portable_air_large",
+            ),
+          );
+
+        await caller.pipeline.advanceStage({
+          claimId,
+          toStatus: "contacted",
+          contactName: "Taylor Buyer",
+          note: "Discovery call completed.",
+        });
+
+        const base = {
+          claimId,
+          toStatus: "qualified" as const,
+          estimatedValueAud: "250000",
+          customerNeed:
+            "Replace ageing large-air " +
+            "fleet used on shutdown projects.",
+          decisionTiming:
+            "Capital review in Q4 2026.",
+          competitivePosition:
+            "Incumbent is Sullair; fuel " +
+            "efficiency is the opening.",
+          nextAction:
+            "Schedule technical fleet review.",
+          nextActionDate: futureDate(10),
+        };
+
+        await expect(
+          caller.pipeline.advanceStage({
+            ...base,
+            customerNeed: "",
+          }),
+        ).rejects.toThrow();
+
+        await expect(
+          caller.pipeline.advanceStage(base),
+        ).resolves.toEqual({
+          success: true,
+        });
+      },
+    );
+
+    it(
+      "requires quote value, decision date, " +
+        "and follow-up",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "quoted",
+              "generators",
+            ),
+          );
+
+        await caller.pipeline.advanceStage({
+          claimId,
+          toStatus: "contacted",
+          contactName: "Alex Procurement",
+          note:
+            "Qualified stakeholder confirmed.",
+        });
+
+        await caller.pipeline.advanceStage({
           claimId,
           toStatus: "qualified",
-          estimatedValueAud: "250000",
-          nextAction: "Arrange site visit",
-        })
-      ).resolves.toEqual({ success: true });
+          estimatedValueAud: "180000",
+          customerNeed:
+            "Temporary power fleet replacement.",
+          decisionTiming:
+            "Tender closes next month.",
+          competitivePosition:
+            "Atlas is shortlisted with " +
+            "two competitors.",
+          nextAction:
+            "Prepare commercial proposal.",
+          nextActionDate: futureDate(4),
+        });
 
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-      const [claim] = await db
-        .select({ status: pipelineClaims.status, qualifiedAt: pipelineClaims.qualifiedAt })
-        .from(pipelineClaims)
-        .where(eq(pipelineClaims.id, claimId))
-        .limit(1);
-      expect(claim.status).toBe("qualified");
-      expect(claim.qualifiedAt).toBeInstanceOf(Date);
-    });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "quoted",
+            closeDate: futureDate(30),
+            nextAction:
+              "Follow up proposal.",
+            nextActionDate: futureDate(7),
+          }),
+        ).rejects.toThrow(/quoteValueAud/i);
 
-    it("K7: rejects advance to quoted when closeDate is missing", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "other",
-      });
-      await caller.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Dave Green" });
-      await caller.pipeline.advanceStage({
-        claimId,
-        toStatus: "qualified",
-        estimatedValueAud: "80000",
-        nextAction: "Prepare quote",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "quoted" })
-      ).rejects.toThrow(/closeDate required/i);
-    });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "quoted",
+            quoteValueAud: "175000",
+            closeDate: futureDate(30),
+            nextAction:
+              "Follow up proposal.",
+            nextActionDate: futureDate(7),
+          }),
+        ).resolves.toEqual({
+          success: true,
+        });
+      },
+    );
 
-    it("K8: rejects advanceStage when the caller is not the claim owner", async () => {
-      const callerA = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const callerB = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_B })));
-      const { claimId } = await callerA.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-      });
-      await expect(
-        callerB.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Intruder" })
-      ).rejects.toThrow(/not your claim/i);
-    });
+    it(
+      "requires outcome reasons and a " +
+        "re-engagement date for deferred",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
 
-    it("K9: byAccount returns all claims for a given sourceAccountId across users", async () => {
-      const callerA = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const callerB = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_B })));
-      await callerA.pipeline.claimFromFP({ sourceAccountId: testAccountId, productFamily: "dewatering" });
-      await callerB.pipeline.claimFromFP({ sourceAccountId: testAccountId, productFamily: "generators" });
-      const claims = await callerA.pipeline.byAccount({ sourceAccountId: testAccountId });
-      const productFamilies = claims.map((c) => c.productFamily);
-      expect(productFamilies).toContain("dewatering");
-      expect(productFamilies).toContain("generators");
-    });
+        const deferred =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "deferred",
+              "lighting",
+            ),
+          );
 
-    it("K10: rejects claimFromFP when user is not authenticated", async () => {
-      const caller = appRouter.createCaller(makeCtx(null));
-      await expect(
-        caller.pipeline.claimFromFP({ sourceAccountId: testAccountId, productFamily: "portable_air" })
-      ).rejects.toThrow();
-    });
-  });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId: deferred.claimId,
+            toStatus: "deferred",
+            note:
+              "Budget moved to next year.",
+          }),
+        ).rejects.toThrow(
+          /re-engagement date/i,
+        );
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // B. Old updateStatus cannot bypass stage gates
-  // ══════════════════════════════════════════════════════════════════════════
+        await caller.pipeline.advanceStage({
+          claimId: deferred.claimId,
+          toStatus: "deferred",
+          note:
+            "Budget moved to next year.",
+          nextActionDate: futureDate(90),
+        });
 
-  describe("B. updateStatus routes through transition service (no bypass)", () => {
-    it("B1: updateStatus to contacted without contactName is rejected by gate", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-      });
-      // Old updateStatus endpoint must enforce the same gates
-      await expect(
-        caller.pipeline.updateStatus({
-          claimId,
-          status: "contacted",
-          // no contactName provided
-        })
-      ).rejects.toThrow(/contactName required/i);
-    });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId: deferred.claimId,
+            toStatus: "identified",
+          }),
+        ).resolves.toEqual({
+          success: true,
+        });
 
-    it("B2: updateStatus to qualified without estimatedValueAud is rejected by gate", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "dewatering",
-      });
-      await caller.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Test Rep" });
-      await expect(
-        caller.pipeline.updateStatus({
-          claimId,
-          status: "qualified",
-          // no estimatedValueAud or nextAction
-        })
-      ).rejects.toThrow(/estimatedValueAud required/i);
-    });
+        const notRelevant =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "not-relevant",
+              "other",
+            ),
+          );
 
-    it("B3: updateStatus with valid fields succeeds (not blocked)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "nitrogen",
-      });
-      await expect(
-        caller.pipeline.updateStatus({
-          claimId,
-          status: "contacted",
-          contactName: "Valid Contact",
-        })
-      ).resolves.toEqual({ success: true });
-    });
-  });
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId:
+              notRelevant.claimId,
+            toStatus: "not_relevant",
+          }),
+        ).rejects.toThrow(
+          /outcome reason/i,
+        );
+      },
+    );
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // C. Distributors cannot access internal FP claim endpoints
-  // ══════════════════════════════════════════════════════════════════════════
+    it(
+      "clears terminal dedupe and allows " +
+        "a later legitimate cycle",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const input = fpInput(
+          "new-cycle",
+          "bess",
+        );
+        const first =
+          await caller.pipeline.claimFromFP(
+            input,
+          );
 
-  describe("C. Internal-sales authorization (distributor blocked)", () => {
-    it("C1: distributor role is rejected from claimFromFP", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: 9903, role: "distributor" as any })));
-      await expect(
-        caller.pipeline.claimFromFP({ sourceAccountId: testAccountId, productFamily: "portable_air" })
-      ).rejects.toThrow(/distributor/i);
-    });
-
-    it("C2: distributor role is rejected from byAccount", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: 9903, role: "distributor" as any })));
-      await expect(
-        caller.pipeline.byAccount({ sourceAccountId: testAccountId })
-      ).rejects.toThrow(/distributor/i);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // D. Invalid product families are rejected at the input layer
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("D. Product-family vocabulary enforcement", () => {
-    it("D1: invalid product family string is rejected by z.enum", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      await expect(
-        caller.pipeline.claimFromFP({
-          sourceAccountId: testAccountId,
-          productFamily: "invalid_free_text_family" as any,
-        })
-      ).rejects.toThrow();
-    });
-
-    it("D2: all canonical product families are accepted", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      // Test one canonical value that hasn't been used yet in this suite
-      await expect(
-        caller.pipeline.claimFromFP({
-          sourceAccountId: testAccountId,
-          productFamily: "bess",
-        })
-      ).resolves.toMatchObject({ claimId: expect.any(Number) });
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // F. Illegal stage jumps fail (allowed-transition matrix)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("F. Allowed-transition matrix enforcement", () => {
-    it("F1: identified → won is rejected (illegal jump)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "won", note: "Skipped all stages" })
-      ).rejects.toThrow(/not allowed/i);
-    });
-
-    it("F2: identified → quoted is rejected (illegal jump)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "dewatering",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "quoted", closeDate: new Date() })
-      ).rejects.toThrow(/not allowed/i);
-    });
-
-    it("F3: identified → contacted is allowed (valid transition)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "generators",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Valid Rep" })
-      ).resolves.toEqual({ success: true });
-    });
-
-    it("F4: identified → deferred is allowed (escape hatch)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "nitrogen",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "deferred", note: "Budget cycle next year" })
-      ).resolves.toEqual({ success: true });
-    });
-
-    it("F5: qualified → won is rejected (must go through quoted first)", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "lighting",
-      });
-      await caller.pipeline.advanceStage({ claimId, toStatus: "contacted", contactName: "Rep" });
-      await caller.pipeline.advanceStage({
-        claimId,
-        toStatus: "qualified",
-        estimatedValueAud: "50000",
-        nextAction: "Prepare quote",
-      });
-      await expect(
-        caller.pipeline.advanceStage({ claimId, toStatus: "won", note: "Skipped quoted" })
-      ).rejects.toThrow(/not allowed/i);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // G. Closed claims can generate a new legitimate opportunity
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("G. Closed claims allow new opportunity cycle", () => {
-    it("G1: after a claim is won/lost, a new claim for the same (userId, account, family) is created fresh", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-
-      // Create and close a claim through the full cycle
-      const { claimId: firstClaimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "other",
-      });
-      await caller.pipeline.advanceStage({ claimId: firstClaimId, toStatus: "contacted", contactName: "Rep" });
-      await caller.pipeline.advanceStage({
-        claimId: firstClaimId,
-        toStatus: "qualified",
-        estimatedValueAud: "100000",
-        nextAction: "Submit quote",
-      });
-      const closeDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await caller.pipeline.advanceStage({ claimId: firstClaimId, toStatus: "quoted", closeDate });
-      await caller.pipeline.advanceStage({ claimId: firstClaimId, toStatus: "lost", note: "Lost to competitor" });
-
-      // Now the same rep should be able to start a new cycle for the same account+family
-      const second = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "other",
-      });
-      // Must be a NEW claim (not the closed one)
-      expect(second.alreadyExists).toBe(false);
-      expect(second.claimId).not.toBe(firstClaimId);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // H. Claim update and activity insertion are atomic
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("H. Transactional atomicity", () => {
-    it("H1: advancing a claim creates both a pipelineActivity and userActivity record", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-      });
-      await caller.pipeline.advanceStage({
-        claimId,
-        toStatus: "contacted",
-        contactName: "Audit Test Rep",
-      });
-
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      // Verify pipelineActivity record
-      const activities = await db
-        .select()
-        .from(pipelineActivity)
-        .where(and(eq(pipelineActivity.claimId, claimId), eq(pipelineActivity.toStatus, "contacted")));
-      expect(activities.length).toBeGreaterThan(0);
-      expect(activities[0].eventType).toBe("stage_advance");
-      expect(activities[0].fromStatus).toBe("identified");
-
-      // Verify userActivity record
-      const uaRows = await db
-        .select()
-        .from(userActivity)
-        .where(eq(userActivity.claimId, claimId));
-      expect(uaRows.length).toBeGreaterThan(0);
-    });
-
-    it("H2: FP claim creation creates an initial pipelineActivity record", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "dewatering",
-      });
-
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      // Verify initial pipelineActivity record was created on claim creation
-      const activities = await db
-        .select()
-        .from(pipelineActivity)
-        .where(and(eq(pipelineActivity.claimId, claimId), eq(pipelineActivity.toStatus, "identified")));
-      expect(activities.length).toBeGreaterThan(0);
-      expect(activities[0].eventType).toBe("claim_created");
-    });
-
-    it("H3: FP claim creation creates an initial userActivity record", async () => {
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "generators",
-      });
-
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      const uaRows = await db
-        .select()
-        .from(userActivity)
-        .where(eq(userActivity.claimId, claimId));
-      expect(uaRows.length).toBeGreaterThan(0);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // I. Outreach records retain claim and account attribution
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("I. Outreach attribution linkage", () => {
-    it("I1: saveOutreachEmail stores claimId and sourceAccountId on the outreach record", async () => {
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-      });
-
-      // Directly call saveOutreachEmail with attribution
-      const { saveOutreachEmail } = await import("./outreachEmail");
-      const emailId = await saveOutreachEmail({
-        userId: TEST_USER_ID_A,
-        contactId: null,
-        projectId: null,
-        subject: "Test outreach with attribution",
-        body: "Test body",
-        status: "drafted",
-        claimId,
-        sourceAccountId: testAccountId,
-      });
-
-      expect(emailId).toBeGreaterThan(0);
-
-      // Verify the stored record has attribution
-      const [record] = await db
-        .select()
-        .from(outreachEmails)
-        .where(eq(outreachEmails.id, emailId))
-        .limit(1);
-      expect(record.claimId).toBe(claimId);
-      expect(record.sourceAccountId).toBe(testAccountId);
-
-      // Cleanup
-      await db.delete(outreachEmails).where(eq(outreachEmails.id, emailId));
-    });
-
-    it("I2: sentAt timestamp is set when status is sent", async () => {
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      const { saveOutreachEmail } = await import("./outreachEmail");
-      const emailId = await saveOutreachEmail({
-        userId: TEST_USER_ID_A,
-        contactId: null,
-        projectId: null,
-        subject: "Sent email test",
-        body: "Test body",
-        status: "sent",
-        claimId: null,
-        sourceAccountId: null,
-      });
-
-      const [record] = await db
-        .select()
-        .from(outreachEmails)
-        .where(eq(outreachEmails.id, emailId))
-        .limit(1);
-      expect(record.sentAt).toBeInstanceOf(Date);
-
-      await db.delete(outreachEmails).where(eq(outreachEmails.id, emailId));
-    });
-
-    it("I3: openedInEmailAt timestamp is set when status is opened_in_email", async () => {
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      const { saveOutreachEmail } = await import("./outreachEmail");
-      const emailId = await saveOutreachEmail({
-        userId: TEST_USER_ID_A,
-        contactId: null,
-        projectId: null,
-        subject: "Opened email test",
-        body: "Test body",
-        status: "opened_in_email",
-        claimId: null,
-        sourceAccountId: null,
-      });
-
-      const [record] = await db
-        .select()
-        .from(outreachEmails)
-        .where(eq(outreachEmails.id, emailId))
-        .limit(1);
-      expect(record.openedInEmailAt).toBeInstanceOf(Date);
-
-      await db.delete(outreachEmails).where(eq(outreachEmails.id, emailId));
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // J. FP claims excluded from project-based accountAttack pipeline list
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("J. Source-aware rendering (FP claims excluded from project list)", () => {
-    it("J1: FP-sourced claims (null projectId) do not appear in accountAttack project-based pipeline query", async () => {
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      // Create an FP-sourced claim directly
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      const { claimId } = await caller.pipeline.claimFromFP({
-        sourceAccountId: testAccountId,
-        productFamily: "portable_air",
-      });
-
-      // Verify the claim has null projectId
-      const [claim] = await db
-        .select({ projectId: pipelineClaims.projectId, sourceType: pipelineClaims.sourceType })
-        .from(pipelineClaims)
-        .where(eq(pipelineClaims.id, claimId))
-        .limit(1);
-      expect(claim.projectId).toBeNull();
-      expect(claim.sourceType).toBe("full_potential");
-
-      // The accountAttack router filters out null-projectId claims via isNotNull(pipelineClaims.projectId)
-      // We verify this by checking the claim is NOT in a project-based query
-      const projectClaims = await db
-        .select({ id: pipelineClaims.id })
-        .from(pipelineClaims)
-        .where(
-          and(
-            eq(pipelineClaims.id, claimId),
-            // This is the filter accountAttack uses — isNotNull means only project-sourced claims
-          )
-        )
-        .limit(1);
-      // The claim exists in DB
-      expect(projectClaims.length).toBe(1);
-
-      // But with the isNotNull filter (as accountAttack uses), it would be excluded
-      const { isNotNull } = await import("drizzle-orm");
-      const filteredClaims = await db
-        .select({ id: pipelineClaims.id })
-        .from(pipelineClaims)
-        .where(
-          and(
-            eq(pipelineClaims.id, claimId),
-            isNotNull(pipelineClaims.projectId),
-          )
-        )
-        .limit(1);
-      expect(filteredClaims.length).toBe(0); // FP claim excluded from project list
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // A. Existing project claims still work (no regression)
-  // ══════════════════════════════════════════════════════════════════════════
-
-  describe("A. Project-sourced claims (regression guard)", () => {
-    it("A1: project-sourced claim can be created and advanced through the transition service", async () => {
-      const db = await getDb();
-      if (!db) throw new Error("DB unavailable");
-
-      // Create a project-sourced claim directly (simulating legacy flow)
-      const insertResult = await db.insert(pipelineClaims).values({
-        userId: TEST_USER_ID_A,
-        projectId: 1, // Assumes project ID 1 exists; if not, this tests the DB constraint only
-        reportId: 1,
-        status: "identified",
-        sourceType: "project",
-        productFamily: "portable_air",
-      } as any);
-      const legacyClaimId = Number(insertResult[0].insertId);
-
-      // Advance via the transition service
-      const caller = appRouter.createCaller(makeCtx(makeUser({ id: TEST_USER_ID_A })));
-      await expect(
-        caller.pipeline.advanceStage({
-          claimId: legacyClaimId,
+        await caller.pipeline.advanceStage({
+          claimId: first.claimId,
           toStatus: "contacted",
-          contactName: "Legacy Project Rep",
-        })
-      ).resolves.toEqual({ success: true });
+          contactName: "Morgan Energy",
+          note: "Discovery call completed.",
+        });
+        await caller.pipeline.advanceStage({
+          claimId: first.claimId,
+          toStatus: "qualified",
+          estimatedValueAud: "500000",
+          customerNeed:
+            "Battery-backed temporary " +
+            "power requirement.",
+          decisionTiming:
+            "Award expected this quarter.",
+          competitivePosition:
+            "Open specification.",
+          nextAction:
+            "Prepare solution concept.",
+          nextActionDate: futureDate(3),
+        });
+        await caller.pipeline.advanceStage({
+          claimId: first.claimId,
+          toStatus: "lost",
+          note: "Project scope cancelled.",
+        });
 
-      // Cleanup
-      await db.delete(pipelineActivity).where(eq(pipelineActivity.claimId, legacyClaimId));
-      await db.delete(userActivity).where(eq(userActivity.claimId, legacyClaimId));
-      await db.delete(pipelineClaims).where(eq(pipelineClaims.id, legacyClaimId));
-    });
-  });
-});
+        const second =
+          await caller.pipeline.claimFromFP(
+            input,
+          );
+
+        expect(second.alreadyExists)
+          .toBe(false);
+        expect(second.claimId)
+          .not.toBe(first.claimId);
+      },
+    );
+
+    it(
+      "does not partially update or audit " +
+        "an illegal transition",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "atomicity",
+              "dryers",
+            ),
+          );
+
+        const db = await getDb();
+        if (!db) {
+          throw new Error("DB unavailable");
+        }
+
+        const beforeActivities = await db
+          .select({
+            id: pipelineActivity.id,
+          })
+          .from(pipelineActivity)
+          .where(eq(
+            pipelineActivity.claimId,
+            claimId,
+          ));
+
+        await expect(
+          caller.pipeline.advanceStage({
+            claimId,
+            toStatus: "quoted",
+            quoteValueAud: "100000",
+            closeDate: futureDate(30),
+            nextAction: "Follow up.",
+            nextActionDate: futureDate(),
+          }),
+        ).rejects.toThrow(/not allowed/i);
+
+        const [claim] = await db
+          .select({
+            status: pipelineClaims.status,
+          })
+          .from(pipelineClaims)
+          .where(eq(
+            pipelineClaims.id,
+            claimId,
+          ))
+          .limit(1);
+
+        const afterActivities = await db
+          .select({
+            id: pipelineActivity.id,
+          })
+          .from(pipelineActivity)
+          .where(eq(
+            pipelineActivity.claimId,
+            claimId,
+          ));
+
+        expect(claim.status)
+          .toBe("identified");
+        expect(afterActivities)
+          .toHaveLength(
+            beforeActivities.length,
+          );
+      },
+    );
+
+    it(
+      "preserves legacy project claims " +
+        "through the transition service",
+      async () => {
+        const db = await getDb();
+        if (!db) {
+          throw new Error("DB unavailable");
+        }
+
+        const result = await db
+          .insert(pipelineClaims)
+          .values({
+            userId: USER_A,
+            projectId: 1,
+            reportId: 1,
+            sourceType: "project",
+            status: "identified",
+            estimatedValue: "$100k",
+          } as any);
+
+        const claimId = Number(
+          result[0].insertId,
+        );
+
+        try {
+          const caller =
+            appRouter.createCaller(
+              makeCtx(makeUser()),
+            );
+
+          await expect(
+            caller.pipeline.updateStatus({
+              claimId,
+              status: "contacted",
+              contactRole:
+                "Project Manager",
+              notes:
+                "Confirmed the project " +
+                "stakeholder role.",
+              estimatedValue: "$100k",
+            }),
+          ).resolves.toEqual({
+            success: true,
+          });
+        } finally {
+          await db
+            .delete(pipelineActivity)
+            .where(eq(
+              pipelineActivity.claimId,
+              claimId,
+            ));
+          await db
+            .delete(userActivity)
+            .where(eq(
+              userActivity.claimId,
+              claimId,
+            ));
+          await db
+            .delete(pipelineClaims)
+            .where(eq(
+              pipelineClaims.id,
+              claimId,
+            ));
+        }
+      },
+    );
+
+    it(
+      "returns account claims internally but " +
+        "not in project-only accountAttack queries",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "visibility",
+              "portable_air_large",
+            ),
+          );
+
+        const claims =
+          await caller.pipeline.byAccount({
+            sourceAccountId:
+              mainAccountId,
+          });
+        expect(
+          claims.some(
+            row => row.id === claimId,
+          ),
+        ).toBe(true);
+
+        const db = await getDb();
+        if (!db) {
+          throw new Error("DB unavailable");
+        }
+
+        const projectOnly = await db
+          .select({
+            id: pipelineClaims.id,
+          })
+          .from(pipelineClaims)
+          .where(and(
+            eq(
+              pipelineClaims.id,
+              claimId,
+            ),
+            isNotNull(
+              pipelineClaims.projectId,
+            ),
+          ));
+
+        expect(projectOnly).toHaveLength(0);
+      },
+    );
+
+    it(
+      "persists attribution and outreach " +
+        "timestamps through the real router",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "outreach",
+              "specialty_air_boosters",
+            ),
+          );
+
+        const saved =
+          await caller.outreach.save({
+            contactName: "Casey Fleet",
+            contactEmail:
+              "casey@example.com",
+            subject: "Fleet discussion",
+            body:
+              "A concise test email.",
+            tone: "consultative",
+            status: "sent",
+            claimId,
+            sourceAccountId:
+              mainAccountId,
+          });
+
+        const db = await getDb();
+        if (!db) {
+          throw new Error("DB unavailable");
+        }
+
+        const [row] = await db
+          .select()
+          .from(outreachEmails)
+          .where(eq(
+            outreachEmails.id,
+            saved.id,
+          ))
+          .limit(1);
+
+        expect(row.claimId).toBe(claimId);
+        expect(row.sourceAccountId)
+          .toBe(mainAccountId);
+        expect(row.sentAt)
+          .toBeInstanceOf(Date);
+
+        await db
+          .delete(outreachEmails)
+          .where(eq(
+            outreachEmails.id,
+            saved.id,
+          ));
+      },
+    );
+
+    it(
+      "rejects outreach attribution that " +
+        "does not match the claim",
+      async () => {
+        const caller = appRouter.createCaller(
+          makeCtx(makeUser()),
+        );
+        const { claimId } =
+          await caller.pipeline.claimFromFP(
+            fpInput(
+              "bad-outreach",
+              "nitrogen",
+            ),
+          );
+
+        await expect(
+          caller.outreach.save({
+            contactName: "Wrong Account",
+            subject: "Mismatch",
+            body: "Test",
+            tone: "direct",
+            status: "drafted",
+            claimId,
+            sourceAccountId:
+              ineligibleAccountId,
+          }),
+        ).rejects.toThrow(
+          /does not match/i,
+        );
+      },
+    );
+  },
+);

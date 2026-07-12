@@ -1,209 +1,476 @@
 /**
- * pipelineTransitionService.ts — Sprint 2A: Pipeline Attribution Spine
+ * Single source of truth for pipeline stage transitions.
  *
- * Single source of truth for all pipeline stage transitions.
- * Used by BOTH pipeline.updateStatus (project-sourced) and pipeline.advanceStage (FP-sourced).
- * No bypass path exists — all status changes flow through this service.
- *
- * Design decisions:
- *  - Allowed-transition matrix is enforced before gate validation.
- *  - Gate validation checks required fields for each target stage.
- *  - The update, pipelineActivity insert, and userActivity insert are wrapped in a single transaction.
- *  - Caller is responsible for ownership checks before calling this service.
+ * Both the legacy project pipeline endpoint and the Full Potential endpoint
+ * call this service. Stage updates, pipeline audit rows, and user activity rows
+ * are committed atomically.
  */
 
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "./db";
 import {
-  pipelineClaims, pipelineActivity,
+  pipelineClaims,
+  pipelineActivity,
   userActivity,
 } from "../drizzle/schema";
-import type { InsertPipelineClaim, PipelineClaim } from "../drizzle/schema";
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-export type PipelineStatus =
-  | "identified"
-  | "contacted"
-  | "meeting_booked"
-  | "qualified"
-  | "quoted"
-  | "won"
-  | "lost"
-  | "deferred"
-  | "not_relevant";
+import type {
+  InsertPipelineClaim,
+  PipelineClaim,
+  User,
+} from "../drizzle/schema";
+import type { PipelineStatus } from "@shared/const";
 
 export interface TransitionPayload {
-  /** The claim being advanced */
   claimId: number;
-  /** The user performing the transition */
   userId: number;
-  /** Target status */
+  callerRole?: User["role"];
   toStatus: PipelineStatus;
-  /** Optional human-readable note */
   note?: string;
-  // ── Gate fields (required for specific target stages) ──
+
+  // Backward-compatible project-claim field.
+  estimatedValue?: string;
+
   contactName?: string;
   contactRole?: string;
   estimatedValueAud?: string;
+  quoteValueAud?: string;
   closeDate?: Date;
   nextAction?: string;
   nextActionDate?: Date;
-  /** Structured event type for analytics */
+  application?: string;
+  commercialHypothesis?: string;
+  meetingObjective?: string;
+  customerNeed?: string;
+  decisionTiming?: string;
+  competitivePosition?: string;
+
   eventType?: string;
-  /** Arbitrary JSON metadata */
   metadataJson?: Record<string, unknown>;
 }
 
-// ── Allowed-transition matrix ─────────────────────────────────────────────────
-/**
- * Maps each source status to the set of valid target statuses.
- * Transitions not listed here are rejected with FORBIDDEN.
- */
-const ALLOWED_TRANSITIONS: Record<PipelineStatus, PipelineStatus[]> = {
-  identified:    ["contacted", "deferred", "not_relevant"],
-  contacted:     ["meeting_booked", "qualified", "deferred", "not_relevant"],
-  meeting_booked:["qualified", "deferred", "not_relevant"],
-  qualified:     ["quoted", "lost", "deferred"],
-  quoted:        ["won", "lost", "deferred"],
-  // Terminal states — no forward transitions
-  won:           [],
-  lost:          [],
-  deferred:      ["identified", "contacted"],  // allow re-engagement
-  not_relevant:  [],
+export const ALLOWED_TRANSITIONS: Record<
+  PipelineStatus,
+  readonly PipelineStatus[]
+> = {
+  identified: ["contacted", "deferred", "not_relevant"],
+  contacted: ["meeting_booked", "qualified", "deferred", "not_relevant"],
+  meeting_booked: ["qualified", "deferred", "not_relevant"],
+  qualified: ["quoted", "lost", "deferred"],
+  quoted: ["won", "lost", "deferred"],
+  won: [],
+  lost: [],
+  deferred: ["identified", "contacted"],
+  not_relevant: [],
 };
 
-// ── Gate validation ───────────────────────────────────────────────────────────
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
 
-function assertGates(
-  to: PipelineStatus,
-  payload: TransitionPayload,
-  existing: PipelineClaim
+function resolvedText(
+  incoming: string | undefined,
+  existing: unknown,
+): string {
+  return text(incoming !== undefined ? incoming : existing);
+}
+
+function requireText(
+  value: string,
+  field: string,
+  status: PipelineStatus,
 ): void {
-  const missing = (field: string): never => {
+  if (!value) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Gate: ${field} required to advance to ${to}`,
+      message: `Gate: ${field} required to advance to ${status}`,
     });
-  };
+  }
+}
 
-  switch (to) {
+export function normalizePositiveAud(
+  raw: string,
+  field: string,
+): string {
+  const cleaned = raw.trim().replace(/,/g, "");
+  if (!/^\d{1,12}(?:\.\d{1,2})?$/.test(cleaned)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        `Gate: ${field} must be a positive AUD amount ` +
+        "with no currency symbols",
+    });
+  }
+  const numeric = Number(cleaned);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Gate: ${field} must be greater than zero`,
+    });
+  }
+  return numeric.toFixed(2);
+}
+
+function validateTransitionGates(
+  toStatus: PipelineStatus,
+  payload: TransitionPayload,
+  existing: PipelineClaim,
+): {
+  estimatedValueAud?: string;
+  quoteValueAud?: string;
+} {
+  const contactName = resolvedText(
+    payload.contactName,
+    existing.contactName,
+  );
+  const contactRole = resolvedText(
+    payload.contactRole,
+    existing.contactRole,
+  );
+  const nextAction = resolvedText(
+    payload.nextAction,
+    existing.nextAction,
+  );
+  const application = resolvedText(
+    payload.application,
+    existing.application,
+  );
+  const commercialHypothesis = resolvedText(
+    payload.commercialHypothesis,
+    existing.commercialHypothesis,
+  );
+  const meetingObjective = resolvedText(
+    payload.meetingObjective,
+    existing.meetingObjective,
+  );
+  const customerNeed = resolvedText(
+    payload.customerNeed,
+    existing.customerNeed,
+  );
+  const decisionTiming = resolvedText(
+    payload.decisionTiming,
+    existing.decisionTiming,
+  );
+  const competitivePosition = resolvedText(
+    payload.competitivePosition,
+    existing.competitivePosition,
+  );
+  const activityEvidence = text(payload.note);
+
+  let estimatedValueAud: string | undefined;
+  let quoteValueAud: string | undefined;
+
+  switch (toStatus) {
+    case "identified":
+      if (existing.sourceType === "full_potential") {
+        requireText(application, "application", toStatus);
+        requireText(
+          commercialHypothesis,
+          "commercialHypothesis",
+          toStatus,
+        );
+        requireText(nextAction, "nextAction", toStatus);
+        if (!payload.nextActionDate && !existing.nextActionDate) {
+          requireText("", "nextActionDate", toStatus);
+        }
+      }
+      break;
+
     case "contacted":
-      if (!payload.contactName && !existing.contactName) missing("contactName");
+      if (!contactName && !contactRole) {
+        requireText("", "contactName or contactRole", toStatus);
+      }
+      requireText(
+        activityEvidence,
+        "note (activity evidence)",
+        toStatus,
+      );
       break;
 
     case "meeting_booked":
-      // Must have a named contact and a next-action date (meeting date)
-      if (!payload.contactName && !existing.contactName) missing("contactName");
-      if (!payload.nextActionDate && !existing.nextActionDate) missing("nextActionDate (meeting date)");
-      break;
-
-    case "qualified":
-      if (!payload.estimatedValueAud && !existing.estimatedValueAud) missing("estimatedValueAud");
-      if (Number(payload.estimatedValueAud ?? existing.estimatedValueAud ?? "0") <= 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Gate: estimatedValueAud must be a positive number to advance to qualified" });
+      if (!contactName && !contactRole) {
+        requireText("", "contactName or contactRole", toStatus);
       }
-      if (!payload.nextAction && !existing.nextAction) missing("nextAction");
+      if (!payload.nextActionDate && !existing.nextActionDate) {
+        requireText(
+          "",
+          "nextActionDate (meeting date)",
+          toStatus,
+        );
+      }
+      requireText(
+        meetingObjective,
+        "meetingObjective",
+        toStatus,
+      );
       break;
 
-    case "quoted":
-      if (!payload.closeDate && !existing.closeDate) missing("closeDate");
+    case "qualified": {
+      const rawValue =
+        payload.estimatedValueAud ??
+        (
+          existing.estimatedValueAud === null
+            ? undefined
+            : String(existing.estimatedValueAud)
+        );
+      if (!rawValue) {
+        requireText("", "estimatedValueAud", toStatus);
+      }
+      estimatedValueAud = normalizePositiveAud(
+        rawValue as string,
+        "estimatedValueAud",
+      );
+      requireText(customerNeed, "customerNeed", toStatus);
+      requireText(decisionTiming, "decisionTiming", toStatus);
+      requireText(
+        competitivePosition,
+        "competitivePosition",
+        toStatus,
+      );
+      requireText(nextAction, "nextAction", toStatus);
+      if (!payload.nextActionDate && !existing.nextActionDate) {
+        requireText("", "nextActionDate", toStatus);
+      }
+      break;
+    }
+
+    case "quoted": {
+      const rawQuote =
+        payload.quoteValueAud ??
+        (
+          existing.quoteValueAud === null
+            ? undefined
+            : String(existing.quoteValueAud)
+        );
+      if (!rawQuote) {
+        requireText("", "quoteValueAud", toStatus);
+      }
+      quoteValueAud = normalizePositiveAud(
+        rawQuote as string,
+        "quoteValueAud",
+      );
+      if (!payload.closeDate && !existing.closeDate) {
+        requireText("", "closeDate", toStatus);
+      }
+      requireText(nextAction, "nextAction", toStatus);
+      if (!payload.nextActionDate && !existing.nextActionDate) {
+        requireText("", "nextActionDate", toStatus);
+      }
+      break;
+    }
+
+    case "deferred":
+      requireText(
+        activityEvidence,
+        "note (defer reason)",
+        toStatus,
+      );
+      // Always require a fresh re-engagement date in the payload when deferring
+      if (!payload.nextActionDate) {
+        requireText(
+          "",
+          "nextActionDate (re-engagement date)",
+          toStatus,
+        );
+      }
       break;
 
     case "won":
     case "lost":
-    case "deferred":
     case "not_relevant":
-      // Outcome reason is captured in the note field
-      if (!payload.note) missing("note (outcome reason)");
+      requireText(
+        activityEvidence,
+        "note (outcome reason)",
+        toStatus,
+      );
       break;
 
     default:
       break;
   }
+
+  return { estimatedValueAud, quoteValueAud };
 }
 
-// ── Main transition function ──────────────────────────────────────────────────
-
-/**
- * Advance a pipeline claim to a new status.
- *
- * Validates:
- *  1. Claim exists
- *  2. Caller owns the claim (or is admin — caller must pass ownership check before calling)
- *  3. Transition is in the allowed matrix
- *  4. All gate fields are present
- *
- * Then atomically:
- *  - Updates pipelineClaims
- *  - Inserts pipelineActivity row
- *  - Inserts userActivity row
- */
-export async function advancePipelineStage(payload: TransitionPayload): Promise<void> {
+export async function advancePipelineStage(
+  payload: TransitionPayload,
+): Promise<void> {
   const db = await getDb();
-  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
-
-  // ── 1. Load claim ──
-  const rows = await db
-    .select()
-    .from(pipelineClaims)
-    .where(eq(pipelineClaims.id, payload.claimId))
-    .limit(1);
-  if (rows.length === 0) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Claim not found" });
-  }
-  const claim = rows[0];
-
-  // ── 2. Ownership check (caller must validate before calling, but we double-check) ──
-  if (claim.userId !== payload.userId) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Not your claim" });
-  }
-
-  // ── 3. Allowed-transition check ──
-  const fromStatus = claim.status as PipelineStatus;
-  const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? [];
-  if (!allowed.includes(payload.toStatus)) {
+  if (!db) {
     throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Transition from '${fromStatus}' to '${payload.toStatus}' is not allowed`,
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Database unavailable",
     });
   }
 
-  // ── 4. Gate validation ──
-  assertGates(payload.toStatus, payload, claim);
+  await db.transaction(async tx => {
+    const [claim] = await tx
+      .select()
+      .from(pipelineClaims)
+      .where(eq(pipelineClaims.id, payload.claimId))
+      .limit(1);
 
-  // ── 5. Build patch ──
-  const patch: Partial<InsertPipelineClaim> = { status: payload.toStatus };
-  if (payload.contactName !== undefined) patch.contactName = payload.contactName;
-  if (payload.contactRole !== undefined) patch.contactRole = payload.contactRole;
-  if (payload.estimatedValueAud !== undefined) patch.estimatedValueAud = payload.estimatedValueAud;
-  if (payload.closeDate !== undefined) patch.closeDate = payload.closeDate;
-  if (payload.nextAction !== undefined) patch.nextAction = payload.nextAction;
-  if (payload.nextActionDate !== undefined) patch.nextActionDate = payload.nextActionDate;
-  if (payload.toStatus === "qualified") patch.qualifiedAt = new Date();
+    if (!claim) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Claim not found",
+      });
+    }
 
-  // ── 6. Transactional update + audit ──
-  await db.transaction(async (tx) => {
-    // Update claim
-    await tx.update(pipelineClaims).set(patch).where(eq(pipelineClaims.id, payload.claimId));
+    if (
+      claim.sourceType === "full_potential" &&
+      payload.callerRole === "distributor"
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "Distributor accounts cannot access " +
+          "Full Potential pipeline claims",
+      });
+    }
 
-    // Insert pipeline activity row
+    if (
+      claim.userId !== payload.userId &&
+      payload.callerRole !== "admin"
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Not your claim",
+      });
+    }
+
+    const fromStatus = claim.status as PipelineStatus;
+    const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? [];
+    if (!allowed.includes(payload.toStatus)) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          `Transition from '${fromStatus}' ` +
+          `to '${payload.toStatus}' is not allowed`,
+      });
+    }
+
+    const normalized = validateTransitionGates(
+      payload.toStatus,
+      payload,
+      claim,
+    );
+
+    const patch: Partial<InsertPipelineClaim> = {
+      status: payload.toStatus,
+    };
+
+    if (payload.note !== undefined) {
+      patch.notes = payload.note.trim();
+    }
+    if (payload.estimatedValue !== undefined) {
+      patch.estimatedValue = payload.estimatedValue.trim();
+    }
+    if (payload.contactName !== undefined) {
+      patch.contactName = payload.contactName.trim();
+    }
+    if (payload.contactRole !== undefined) {
+      patch.contactRole = payload.contactRole.trim();
+    }
+    if (payload.application !== undefined) {
+      patch.application = payload.application.trim();
+    }
+    if (payload.commercialHypothesis !== undefined) {
+      patch.commercialHypothesis =
+        payload.commercialHypothesis.trim();
+    }
+    if (payload.meetingObjective !== undefined) {
+      patch.meetingObjective = payload.meetingObjective.trim();
+    }
+    if (payload.customerNeed !== undefined) {
+      patch.customerNeed = payload.customerNeed.trim();
+    }
+    if (payload.decisionTiming !== undefined) {
+      patch.decisionTiming = payload.decisionTiming.trim();
+    }
+    if (payload.competitivePosition !== undefined) {
+      patch.competitivePosition =
+        payload.competitivePosition.trim();
+    }
+    if (normalized.estimatedValueAud !== undefined) {
+      patch.estimatedValueAud =
+        normalized.estimatedValueAud;
+    }
+    if (normalized.quoteValueAud !== undefined) {
+      patch.quoteValueAud = normalized.quoteValueAud;
+    }
+    if (payload.closeDate !== undefined) {
+      patch.closeDate = payload.closeDate;
+    }
+    if (payload.nextAction !== undefined) {
+      patch.nextAction = payload.nextAction.trim();
+    }
+    if (payload.nextActionDate !== undefined) {
+      patch.nextActionDate = payload.nextActionDate;
+    }
+    if (
+      payload.toStatus === "qualified" &&
+      !claim.qualifiedAt
+    ) {
+      patch.qualifiedAt = new Date();
+    }
+    if (
+      payload.toStatus === "won" ||
+      payload.toStatus === "lost" ||
+      payload.toStatus === "not_relevant"
+    ) {
+      patch.openDedupeKey = null;
+    }
+
+    const updateResult = await tx
+      .update(pipelineClaims)
+      .set(patch)
+      .where(
+        and(
+          eq(pipelineClaims.id, payload.claimId),
+          eq(pipelineClaims.status, fromStatus),
+        ),
+      );
+
+    const affectedRows = Number(
+      (
+        updateResult[0] as unknown as {
+          affectedRows?: number;
+        }
+      ).affectedRows ?? 0,
+    );
+    if (affectedRows !== 1) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message:
+          "Claim changed during transition; reload and try again",
+      });
+    }
+
+    const eventType = payload.eventType ?? "stage_advance";
     await tx.insert(pipelineActivity).values({
       claimId: payload.claimId,
       userId: payload.userId,
       fromStatus,
       toStatus: payload.toStatus,
-      note: payload.note ?? `Advanced from ${fromStatus} to ${payload.toStatus}`,
-      eventType: payload.eventType ?? "stage_advance",
-      metadataJson: payload.metadataJson ?? null,
+      note:
+        payload.note?.trim() ||
+        `Advanced from ${fromStatus} ` +
+          `to ${payload.toStatus}`,
+      eventType,
+      metadataJson: {
+        sourceType: claim.sourceType,
+        sourceAccountId: claim.sourceAccountId ?? null,
+        ...(payload.metadataJson ?? {}),
+      },
     });
 
-    // Insert user activity row
     const actionType =
-      payload.toStatus === "meeting_booked" ? "pipeline_meeting_logged" as const
-      : payload.toStatus === "quoted"        ? "pipeline_quote_uploaded" as const
-      : "pipeline_stage_advanced" as const;
+      payload.toStatus === "meeting_booked"
+        ? "pipeline_meeting_logged"
+        : payload.toStatus === "quoted"
+          ? "pipeline_quote_uploaded"
+          : "pipeline_stage_advanced";
 
     await tx.insert(userActivity).values({
       userId: payload.userId,
@@ -214,7 +481,8 @@ export async function advancePipelineStage(payload: TransitionPayload): Promise<
         fromStatus,
         toStatus: payload.toStatus,
         sourceType: claim.sourceType,
-        sourceAccountId: claim.sourceAccountId ?? null,
+        sourceAccountId:
+          claim.sourceAccountId ?? null,
       },
     });
   });

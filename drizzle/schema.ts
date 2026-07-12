@@ -397,35 +397,80 @@ export type InsertAwardedProject = typeof awardedProjects.$inferInsert;
 export const pipelineClaims = mysqlTable("pipelineClaims", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  // Project-sourced claims link here; FP/signal-sourced claims leave these null
+
+  // Project-sourced claims link here; account/signal/AI claims leave these null.
   projectId: int("projectId"),
   reportId: int("reportId"),
-  /** Origin of the claim — drives attribution reporting */
-  sourceType: mysqlEnum("sourceType", ["project", "full_potential", "signal", "ai_recommendation", "manual", "legacy"]).notNull().default("project"),
-  /** FK → fullPotentialAccounts.id (Sprint 2A) */
+
+  sourceType: mysqlEnum("sourceType", [
+    "project",
+    "full_potential",
+    "signal",
+    "ai_recommendation",
+    "manual",
+    "legacy",
+  ]).notNull().default("project"),
+
+  // Logical references are validated in the service layer.
   sourceAccountId: int("sourceAccountId"),
-  /** FK → fullPotentialSignals.id (future Sprint 2B) */
   sourceSignalId: int("sourceSignalId"),
-  /** Stable key for AI recommendation deduplication */
-  sourceRecommendationKey: varchar("sourceRecommendationKey", { length: 128 }),
-  /** Product family being pursued (e.g. "portable_air_<600cfm") */
+  sourceRecommendationKey: varchar("sourceRecommendationKey", {
+    length: 128,
+  }),
+
   productFamily: varchar("productFamily", { length: 64 }),
-  /** Application context (e.g. "drilling", "construction") */
   application: varchar("application", { length: 128 }),
-  status: mysqlEnum("status", ["identified", "contacted", "meeting_booked", "qualified", "quoted", "won", "lost", "deferred", "not_relevant"]).notNull().default("identified"),
+  commercialHypothesis: text("commercialHypothesis"),
+
+  status: mysqlEnum("status", [
+    "identified",
+    "contacted",
+    "meeting_booked",
+    "qualified",
+    "quoted",
+    "won",
+    "lost",
+    "deferred",
+    "not_relevant",
+  ]).notNull().default("identified"),
+
   notes: text("notes"),
+
+  // Legacy free-text value is retained for historic project claims.
   estimatedValue: varchar("estimatedValue", { length: 64 }),
-  /** AUD value string for FP-sourced claims (Sprint 2A) */
-  estimatedValueAud: decimal("estimatedValueAud", { precision: 14, scale: 2 }),
+  estimatedValueAud: decimal("estimatedValueAud", {
+    precision: 14,
+    scale: 2,
+  }),
+  quoteValueAud: decimal("quoteValueAud", {
+    precision: 14,
+    scale: 2,
+  }),
+
   nextAction: varchar("nextAction", { length: 512 }),
   nextActionDate: timestamp("nextActionDate"),
+
   contactName: varchar("contactName", { length: 256 }),
-  /** FK → contacts.id */
   contactId: int("contactId"),
   contactRole: varchar("contactRole", { length: 128 }),
+
+  meetingObjective: text("meetingObjective"),
+  customerNeed: text("customerNeed"),
+  decisionTiming: varchar("decisionTiming", { length: 256 }),
+  competitivePosition: text("competitivePosition"),
+
   closeDate: timestamp("closeDate"),
-  /** Set when claim advances to qualified stage */
   qualifiedAt: timestamp("qualifiedAt"),
+
+  /**
+   * Non-null only while an FP opportunity cycle is active or deferred.
+   * The unique constraint makes concurrent duplicate creation safe.
+   * Terminal transitions clear this key, allowing a later legitimate cycle.
+   */
+  openDedupeKey: varchar("openDedupeKey", {
+    length: 512,
+  }).unique(),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
