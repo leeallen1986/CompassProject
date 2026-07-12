@@ -1,7 +1,14 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import {
+  COOKIE_NAME,
+  ONE_YEAR_MS,
+  FP_PRODUCT_FAMILIES,
+  PIPELINE_STATUSES,
+  ATTRIBUTED_SOURCE_TYPES,
+  ATTRIBUTED_RELEASE_ERR_MSG,
+} from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, internalSalesProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   getLatestReport, getAllReports, getReportById, createReport,
@@ -13,7 +20,7 @@ import {
   upsertFeedback, getFeedbackByUserAndReport,
   createPipelineClaim, getPipelineClaimById, getPipelineClaimsByUser,
   getPipelineClaimsByProject, getAllPipelineClaims,
-  updatePipelineClaim, deletePipelineClaim,
+  deletePipelineClaim,
   createPipelineActivityEntry, getActivityByClaimId,
   getEmailDigestPrefs, upsertEmailDigestPrefs,
   updateProjectLifecycle, bulkUpdateProjectLifecycle, markStaleProjects, touchProjectActivity,
@@ -25,6 +32,7 @@ import {
   classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
   getEmailRecipients,
   getProjectById, getContactsForProject, getPipelineClaimsForProject,
+  createFpPipelineClaim, getPipelineClaimsByAccount, advanceClaimStage,
 } from "./db";
 import {
   getAllBusinessLines, getActiveBusinessLines, getBusinessLineById,
@@ -166,6 +174,21 @@ import {
   type ExportMode,
   type ExportDefaults,
 } from "./emarsysExport";
+
+const positiveAudInput = z
+  .string()
+  .trim()
+  .regex(
+    /^\d{1,12}(?:\.\d{1,2})?$/,
+    "Enter a positive AUD amount without currency symbols",
+  )
+  .refine(
+    value => Number(value) > 0,
+    "AUD amount must be greater than zero",
+  );
+
+const requiredPipelineText = (max: number) =>
+  z.string().trim().min(3).max(max);
 
 export const appRouter = router({
   system: systemRouter,
@@ -415,6 +438,11 @@ export const appRouter = router({
           fromStatus: null,
           toStatus: "identified",
           note: input.notes ?? "Project claimed",
+          eventType: "claim_created",
+          metadataJson: {
+            sourceType: "project",
+            projectId: input.projectId,
+          },
         });
 
         // Track activity
@@ -429,53 +457,81 @@ export const appRouter = router({
       }),
     updateStatus: protectedProcedure
       .input(z.object({
-        claimId: z.number(),
-        status: z.enum(["identified", "contacted", "meeting_booked", "quoted", "won", "lost"]),
-        notes: z.string().optional(),
-        estimatedValue: z.string().optional(),
-        nextAction: z.string().optional(),
+        claimId: z.number().int().positive(),
+        status: z.enum(PIPELINE_STATUSES),
+        notes: z.string().trim().min(3).optional(),
+        estimatedValue: z.string().max(64).optional(),
+        estimatedValueAud: positiveAudInput.optional(),
+        quoteValueAud: positiveAudInput.optional(),
+        nextAction:
+          requiredPipelineText(512).optional(),
         nextActionDate: z.date().optional(),
-        contactName: z.string().optional(),
+        contactName:
+          requiredPipelineText(256).optional(),
+        contactRole:
+          requiredPipelineText(128).optional(),
+        closeDate: z.date().optional(),
+        application:
+          requiredPipelineText(128).optional(),
+        commercialHypothesis:
+          requiredPipelineText(2000).optional(),
+        meetingObjective:
+          requiredPipelineText(2000).optional(),
+        customerNeed:
+          requiredPipelineText(2000).optional(),
+        decisionTiming:
+          requiredPipelineText(256).optional(),
+        competitivePosition:
+          requiredPipelineText(2000).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const claim = await getPipelineClaimById(input.claimId);
-        if (!claim) throw new Error("Claim not found");
-        if (claim.userId !== ctx.user.id) throw new Error("Not your claim");
+        const { advancePipelineStage } =
+          await import("./pipelineTransitionService");
 
-        const fromStatus = claim.status;
-
-        await updatePipelineClaim(input.claimId, {
-          status: input.status,
-          notes: input.notes ?? claim.notes,
-          estimatedValue: input.estimatedValue ?? claim.estimatedValue,
-          nextAction: input.nextAction ?? claim.nextAction,
-          nextActionDate: input.nextActionDate ?? claim.nextActionDate,
-          contactName: input.contactName ?? claim.contactName,
-        });
-
-        await createPipelineActivityEntry({
+        await advancePipelineStage({
           claimId: input.claimId,
           userId: ctx.user.id,
-          fromStatus,
+          callerRole: ctx.user.role,
           toStatus: input.status,
-          note: input.notes ?? `Status changed from ${fromStatus} to ${input.status}`,
+          note: input.notes,
+          estimatedValue: input.estimatedValue,
+          estimatedValueAud:
+            input.estimatedValueAud,
+          quoteValueAud: input.quoteValueAud,
+          nextAction: input.nextAction,
+          nextActionDate: input.nextActionDate,
+          contactName: input.contactName,
+          contactRole: input.contactRole,
+          closeDate: input.closeDate,
+          application: input.application,
+          commercialHypothesis:
+            input.commercialHypothesis,
+          meetingObjective:
+            input.meetingObjective,
+          customerNeed: input.customerNeed,
+          decisionTiming: input.decisionTiming,
+          competitivePosition:
+            input.competitivePosition,
         });
 
-          if (input.status === "won" || input.status === "lost") {
+        if (
+          input.status === "won" ||
+          input.status === "lost"
+        ) {
           await notifyOwner({
-            title: `Pipeline: Project ${input.status === "won" ? "Won" : "Lost"}`,
-            content: `Claim #${input.claimId} status changed to ${input.status}. ${input.notes || ""}`,
+            title:
+              `Pipeline: Opportunity ` +
+              `${
+                input.status === "won"
+                  ? "Won"
+                  : "Lost"
+              }`,
+            content:
+              `Claim #${input.claimId} status changed ` +
+              `to ${input.status}. ${input.notes || ""}`,
           });
         }
-        // Track pipeline status change
-        const actionType = input.status === "meeting_booked" ? "pipeline_meeting_logged" as const
-          : input.status === "quoted" ? "pipeline_quote_uploaded" as const
-          : "pipeline_status_changed" as const;
-        await trackActivity(ctx.user.id, actionType, {
-          claimId: input.claimId,
-          projectId: claim.projectId,
-          metadata: { fromStatus, toStatus: input.status },
-        });
+
         return { success: true };
       }),
     release: protectedProcedure
@@ -485,6 +541,17 @@ export const appRouter = router({
         if (!claim) throw new Error("Claim not found");
         if (claim.userId !== ctx.user.id && ctx.user.role !== "admin") {
           throw new Error("Not authorized to release this claim");
+        }
+
+        // Attributed opportunities must be closed through an audited
+        // outcome (won / lost / not_relevant) rather than deleted, so
+        // that the pipeline audit trail is preserved.
+        if (
+          (ATTRIBUTED_SOURCE_TYPES as readonly string[]).includes(
+            claim.sourceType,
+          )
+        ) {
+          throw new Error(ATTRIBUTED_RELEASE_ERR_MSG);
         }
 
         await deletePipelineClaim(input.claimId);
@@ -501,14 +568,154 @@ export const appRouter = router({
         return getPipelineClaimsByProject(input.projectId);
       }),
 
-    team: protectedProcedure.query(async () => {
-      return getAllPipelineClaims();
+    team: protectedProcedure.query(async ({ ctx }) => {
+      // Distributors receive only project/legacy claims; attributed
+      // opportunities are filtered out server-side.
+      return getAllPipelineClaims(ctx.user.role);
     }),
 
     activity: protectedProcedure
       .input(z.object({ claimId: z.number() }))
-      .query(async ({ input }) => {
-        return getActivityByClaimId(input.claimId);
+      .query(async ({ ctx, input }) => {
+        // Distributor access to attributed claim activity is rejected
+        // inside getActivityByClaimId.
+        return getActivityByClaimId(input.claimId, ctx.user.role);
+      }),
+    // ── Sprint 2A: FP-sourced pipeline attribution ──────────────────────────
+
+    claimFromFP: internalSalesProcedure
+      .input(z.object({
+        sourceAccountId:
+          z.number().int().positive(),
+        productFamily:
+          z.enum(FP_PRODUCT_FAMILIES),
+        application:
+          requiredPipelineText(128),
+        commercialHypothesis:
+          requiredPipelineText(2000),
+        nextAction:
+          requiredPipelineText(512),
+        nextActionDate: z.date(),
+        contactId:
+          z.number().int().positive().optional(),
+        contactName:
+          requiredPipelineText(256).optional(),
+        contactRole:
+          requiredPipelineText(128).optional(),
+        estimatedValueAud:
+          positiveAudInput.optional(),
+        closeDate: z.date().optional(),
+        notes:
+          z.string().trim().max(4000).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return createFpPipelineClaim({
+          userId: ctx.user.id,
+          sourceAccountId:
+            input.sourceAccountId,
+          productFamily:
+            input.productFamily,
+          application: input.application,
+          commercialHypothesis:
+            input.commercialHypothesis,
+          nextAction: input.nextAction,
+          nextActionDate:
+            input.nextActionDate,
+          contactId: input.contactId ?? null,
+          contactName:
+            input.contactName ?? null,
+          contactRole:
+            input.contactRole ?? null,
+          estimatedValueAud:
+            input.estimatedValueAud ?? null,
+          closeDate: input.closeDate ?? null,
+          notes: input.notes ?? null,
+        });
+      }),
+
+    advanceStage: protectedProcedure
+      .input(z.object({
+        claimId: z.number().int().positive(),
+        toStatus: z.enum(PIPELINE_STATUSES),
+        note:
+          z.string().trim().min(3).optional(),
+        estimatedValue:
+          z.string().max(64).optional(),
+        contactName:
+          requiredPipelineText(256).optional(),
+        contactRole:
+          requiredPipelineText(128).optional(),
+        estimatedValueAud:
+          positiveAudInput.optional(),
+        quoteValueAud:
+          positiveAudInput.optional(),
+        closeDate: z.date().optional(),
+        nextAction:
+          requiredPipelineText(512).optional(),
+        nextActionDate: z.date().optional(),
+        application:
+          requiredPipelineText(128).optional(),
+        commercialHypothesis:
+          requiredPipelineText(2000).optional(),
+        meetingObjective:
+          requiredPipelineText(2000).optional(),
+        customerNeed:
+          requiredPipelineText(2000).optional(),
+        decisionTiming:
+          requiredPipelineText(256).optional(),
+        competitivePosition:
+          requiredPipelineText(2000).optional(),
+        metadataJson:
+          z.record(
+            z.string(),
+            z.unknown(),
+          ).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await advanceClaimStage({
+          claimId: input.claimId,
+          userId: ctx.user.id,
+          callerRole: ctx.user.role,
+          toStatus: input.toStatus,
+          note: input.note,
+          estimatedValue:
+            input.estimatedValue,
+          contactName: input.contactName,
+          contactRole: input.contactRole,
+          estimatedValueAud:
+            input.estimatedValueAud,
+          quoteValueAud:
+            input.quoteValueAud,
+          closeDate: input.closeDate,
+          nextAction: input.nextAction,
+          nextActionDate:
+            input.nextActionDate,
+          application: input.application,
+          commercialHypothesis:
+            input.commercialHypothesis,
+          meetingObjective:
+            input.meetingObjective,
+          customerNeed: input.customerNeed,
+          decisionTiming:
+            input.decisionTiming,
+          competitivePosition:
+            input.competitivePosition,
+          metadataJson: input.metadataJson,
+        });
+
+        return { success: true };
+      }),
+
+    byAccount: internalSalesProcedure
+      .input(z.object({
+        sourceAccountId:
+          z.number().int().positive(),
+      }))
+      .query(async ({ ctx, input }) => {
+        return getPipelineClaimsByAccount(
+          input.sourceAccountId,
+          ctx.user.role,
+        );
       }),
   }),
 
@@ -2485,6 +2692,8 @@ export const appRouter = router({
         matchedBusinessLines: z.array(z.string()),
         tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
         style: z.enum(["standard", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).optional(),
+        claimId: z.number().int().positive().optional(),
+        sourceAccountId: z.number().int().positive().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         // Load user's assigned BLs to personalise the outreach
@@ -2497,7 +2706,13 @@ export const appRouter = router({
         });
         // Track outreach drafted
         await trackActivity(ctx.user.id, "outreach_drafted", {
-          metadata: { contactName: input.contactName, projectName: input.projectName, tone: input.tone },
+          metadata: {
+            contactName: input.contactName,
+            projectName: input.projectName,
+            tone: input.tone,
+            claimId: input.claimId ?? null,
+            sourceAccountId: input.sourceAccountId ?? null,
+          },
         });
         return result;
       }),
@@ -2509,6 +2724,8 @@ export const appRouter = router({
         contactEmail: z.string().optional(),
         projectId: z.number().optional(),
         projectName: z.string().optional(),
+        claimId: z.number().int().positive().optional(),
+        sourceAccountId: z.number().int().positive().optional(),
         subject: z.string(),
         body: z.string(),
         tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
@@ -2548,6 +2765,8 @@ export const appRouter = router({
         contactId: z.number().optional(),
         projectId: z.number().optional(),
         projectName: z.string().optional(),
+        claimId: z.number().int().positive().optional(),
+        sourceAccountId: z.number().int().positive().optional(),
         tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
         collateralName: z.string().optional(),
       }))
@@ -2581,6 +2800,8 @@ export const appRouter = router({
           contactEmail: input.contactEmail,
           projectId: input.projectId,
           projectName: input.projectName,
+          claimId: input.claimId,
+          sourceAccountId: input.sourceAccountId,
           subject: input.subject,
           body: input.body,
           tone: input.tone,

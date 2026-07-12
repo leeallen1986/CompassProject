@@ -12,7 +12,7 @@ import {
   pipelineClaims, outreachEmails,
   collateralItems, collateralProjectMatches,
 } from "../../drizzle/schema";
-import { eq, and, sql, desc, inArray, like, or, isNull } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, like, or, isNull, isNotNull } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 
 // ── Dirty-owner patterns (Fix 2) ──
@@ -645,15 +645,20 @@ const loadAccountData = protectedProcedure
       const claims = await db
         .select()
         .from(pipelineClaims)
-        .where(inArray(pipelineClaims.projectId, projectIds))
+        .where(and(
+          // Only include project-sourced claims — FP-sourced claims have null projectId
+          // and are rendered separately via the FP workspace, not here.
+          isNotNull(pipelineClaims.projectId),
+          inArray(pipelineClaims.projectId, projectIds),
+        ))
         .orderBy(desc(pipelineClaims.createdAt));
 
       const projectNameMap = new Map(accountProjects.map(p => [p.id, p.name]));
 
       pipelineClaimRows = claims.map(c => ({
         id: c.id,
-        projectId: c.projectId,
-        projectName: projectNameMap.get(c.projectId) || `Project #${c.projectId}`,
+        projectId: c.projectId!,
+        projectName: projectNameMap.get(c.projectId!) || `Project #${c.projectId}`,
         userId: c.userId,
         status: c.status,
         notes: c.notes,

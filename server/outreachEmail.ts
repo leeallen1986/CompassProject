@@ -14,7 +14,7 @@
  */
 import { invokeLLM } from "./_core/llm";
 import { getDb } from "./db";
-import { outreachEmails } from "../drizzle/schema";
+import { outreachEmails, pipelineClaims } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 export interface OutreachInput {
@@ -754,31 +754,99 @@ Return your response as JSON with this exact structure:
  */
 export async function saveOutreachEmail(params: {
   userId: number;
-  contactId?: number;
+  contactId?: number | null;
   contactName: string;
-  contactEmail?: string;
-  projectId?: number;
-  projectName?: string;
+  contactEmail?: string | null;
+  projectId?: number | null;
+  projectName?: string | null;
+  claimId?: number | null;
+  sourceAccountId?: number | null;
   subject: string;
   body: string;
-  tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
+  tone:
+    | "professional"
+    | "consultative"
+    | "direct"
+    | "contractor_focused"
+    | "owner_epc_focused"
+    | "procurement_led"
+    | "engineering_led"
+    | "first_touch";
   status: "drafted" | "opened_in_email" | "sent";
 }): Promise<{ id: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(outreachEmails).values({
-    userId: params.userId,
-    contactId: params.contactId ?? null,
-    contactName: params.contactName,
-    contactEmail: params.contactEmail ?? null,
-    projectId: params.projectId ?? null,
-    projectName: params.projectName ?? null,
-    subject: params.subject,
-    body: params.body,
-    tone: params.tone,
-    status: params.status,
-  });
+  let resolvedSourceAccountId =
+    params.sourceAccountId ?? null;
+
+  if (
+    params.claimId !== undefined &&
+    params.claimId !== null
+  ) {
+    const [claim] = await db
+      .select({
+        id: pipelineClaims.id,
+        userId: pipelineClaims.userId,
+        sourceAccountId:
+          pipelineClaims.sourceAccountId,
+      })
+      .from(pipelineClaims)
+      .where(eq(pipelineClaims.id, params.claimId))
+      .limit(1);
+
+    if (!claim) {
+      throw new Error("Pipeline claim not found");
+    }
+    if (claim.userId !== params.userId) {
+      throw new Error(
+        "Cannot attach outreach to another user's " +
+        "pipeline claim",
+      );
+    }
+    if (
+      resolvedSourceAccountId !== null &&
+      claim.sourceAccountId !==
+        resolvedSourceAccountId
+    ) {
+      throw new Error(
+        "sourceAccountId does not match " +
+        "the pipeline claim",
+      );
+    }
+    resolvedSourceAccountId =
+      claim.sourceAccountId;
+  } else if (resolvedSourceAccountId !== null) {
+    throw new Error(
+      "sourceAccountId requires a linked pipeline claim",
+    );
+  }
+
+  const now = new Date();
+  const result = await db
+    .insert(outreachEmails)
+    .values({
+      userId: params.userId,
+      contactId: params.contactId ?? null,
+      contactName: params.contactName.trim(),
+      contactEmail:
+        params.contactEmail?.trim() || null,
+      projectId: params.projectId ?? null,
+      projectName:
+        params.projectName?.trim() || null,
+      claimId: params.claimId ?? null,
+      sourceAccountId: resolvedSourceAccountId,
+      subject: params.subject.trim(),
+      body: params.body,
+      tone: params.tone,
+      status: params.status,
+      sentAt:
+        params.status === "sent" ? now : null,
+      openedInEmailAt:
+        params.status === "opened_in_email"
+          ? now
+          : null,
+    });
 
   return { id: Number(result[0].insertId) };
 }

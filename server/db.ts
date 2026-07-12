@@ -1,5 +1,6 @@
-import { eq, desc, and, ne, lt, sql, inArray, isNull, or } from "drizzle-orm";
+import { eq, desc, and, ne, lt, sql, inArray, notInArray, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { TRPCError } from "@trpc/server";
 import {
   InsertUser, users,
   reports, InsertReport, Report,
@@ -11,6 +12,7 @@ import {
   projectFeedback, InsertProjectFeedback,
   pipelineClaims, InsertPipelineClaim, PipelineClaim,
   pipelineActivity, InsertPipelineActivity,
+  userActivity,
   emailDigestPrefs, InsertEmailDigestPref, EmailDigestPref,
   projectBusinessLineScores,
   projectActions, InsertProjectAction, ProjectAction,
@@ -20,6 +22,9 @@ import {
   systemKv,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { fullPotentialAccounts } from '../drizzle/fullPotentialSchema';
+import type { FpProductFamily } from "@shared/const";
+import { ATTRIBUTED_SOURCE_TYPES } from "@shared/const";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -697,18 +702,34 @@ export async function getPipelineClaimsByProject(projectId: number) {
     .where(eq(pipelineClaims.projectId, projectId));
 }
 
-export async function getAllPipelineClaims() {
+export async function getAllPipelineClaims(
+  callerRole?: string,
+) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select({
+  const query = db.select({
     claim: pipelineClaims,
     userName: users.name,
     userEmail: users.email,
   })
     .from(pipelineClaims)
-    .leftJoin(users, eq(pipelineClaims.userId, users.id))
-    .orderBy(desc(pipelineClaims.updatedAt));
+    .leftJoin(users, eq(pipelineClaims.userId, users.id));
+
+  // Distributors may only see project and legacy claims — attributed
+  // opportunities (FP, signal, AI, manual) are internal-sales data.
+  if (callerRole === "distributor") {
+    return query
+      .where(
+        notInArray(
+          pipelineClaims.sourceType,
+          [...ATTRIBUTED_SOURCE_TYPES],
+        ),
+      )
+      .orderBy(desc(pipelineClaims.updatedAt));
+  }
+
+  return query.orderBy(desc(pipelineClaims.updatedAt));
 }
 
 export async function updatePipelineClaim(
@@ -738,9 +759,35 @@ export async function createPipelineActivityEntry(data: InsertPipelineActivity):
   await db.insert(pipelineActivity).values(data);
 }
 
-export async function getActivityByClaimId(claimId: number) {
+export async function getActivityByClaimId(
+  claimId: number,
+  callerRole?: string,
+) {
   const db = await getDb();
   if (!db) return [];
+
+  // Distributors must not read activity for attributed claims.
+  if (callerRole === "distributor") {
+    const [claim] = await db
+      .select({ sourceType: pipelineClaims.sourceType })
+      .from(pipelineClaims)
+      .where(eq(pipelineClaims.id, claimId))
+      .limit(1);
+
+    if (
+      claim &&
+      (ATTRIBUTED_SOURCE_TYPES as readonly string[]).includes(
+        claim.sourceType,
+      )
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "Distributor accounts cannot access " +
+          "attributed pipeline activity (10004)",
+      });
+    }
+  }
 
   return db.select().from(pipelineActivity)
     .where(eq(pipelineActivity.claimId, claimId))
@@ -2791,4 +2838,331 @@ export async function setSystemKv(key: string, value: string): Promise<void> {
     .insert(systemKv)
     .values({ key, value })
     .onDuplicateKeyUpdate({ set: { value, updatedAt: new Date() } });
+}
+
+// ── Sprint 2A: Pipeline Attribution Spine ─────────────────────────────────────
+
+function normalizeRequiredFpText(
+  value: string,
+  field: string,
+): string {
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        `${field} is required for a ` +
+        "Full Potential opportunity",
+    });
+  }
+  return normalized;
+}
+
+function normalizeOptionalFpAud(
+  raw: string | null | undefined,
+): string | null {
+  if (
+    raw === undefined ||
+    raw === null ||
+    raw.trim() === ""
+  ) {
+    return null;
+  }
+
+  const cleaned = raw.trim().replace(/,/g, "");
+  if (!/^\d{1,12}(?:\.\d{1,2})?$/.test(cleaned)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "estimatedValueAud must be a positive AUD " +
+        "amount with no currency symbols",
+    });
+  }
+  const numeric = Number(cleaned);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "estimatedValueAud must be greater than zero",
+    });
+  }
+  return numeric.toFixed(2);
+}
+
+function buildFpOpenDedupeKey(data: {
+  userId: number;
+  sourceAccountId: number;
+  productFamily: string;
+  application: string;
+}): string {
+  const scope = data.application
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 160);
+
+  return [
+    "fp",
+    data.userId,
+    data.sourceAccountId,
+    data.productFamily,
+    scope || "general",
+  ].join(":");
+}
+
+/**
+ * Create a Full Potential-sourced opportunity.
+ *
+ * A unique openDedupeKey protects concurrent calls. When the unique key already
+ * exists, LAST_INSERT_ID(id) returns the existing claim ID and no duplicate
+ * audit rows are written. Won/lost/not-relevant transitions clear the key.
+ */
+export async function createFpPipelineClaim(data: {
+  userId: number;
+  sourceAccountId: number;
+  productFamily: FpProductFamily;
+  application: string;
+  commercialHypothesis: string;
+  nextAction: string;
+  nextActionDate: Date;
+  contactId?: number | null;
+  contactName?: string | null;
+  contactRole?: string | null;
+  estimatedValueAud?: string | null;
+  closeDate?: Date | null;
+  notes?: string | null;
+}): Promise<{
+  claimId: number;
+  alreadyExists: boolean;
+}> {
+  const db = await getDb();
+  if (!db) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Database not available",
+    });
+  }
+
+  const [account] = await db
+    .select({
+      id: fullPotentialAccounts.id,
+      rowClass: fullPotentialAccounts.rowClass,
+      fpStatus: fullPotentialAccounts.fpStatus,
+      routeToMarket: fullPotentialAccounts.routeToMarket,
+      platformPushDecision:
+        fullPotentialAccounts.platformPushDecision,
+    })
+    .from(fullPotentialAccounts)
+    .where(eq(
+      fullPotentialAccounts.id,
+      data.sourceAccountId,
+    ))
+    .limit(1);
+
+  if (!account) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Full Potential account not found",
+    });
+  }
+
+  if (
+    account.rowClass !== "account" ||
+    account.fpStatus === "exclude" ||
+    account.fpStatus === "park" ||
+    account.routeToMarket === "exclude" ||
+    account.platformPushDecision === "park_do_not_push"
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "This Full Potential record is not eligible " +
+        "to create an opportunity",
+    });
+  }
+
+  const application = normalizeRequiredFpText(
+    data.application,
+    "application",
+  );
+  const commercialHypothesis =
+    normalizeRequiredFpText(
+      data.commercialHypothesis,
+      "commercialHypothesis",
+    );
+  const nextAction = normalizeRequiredFpText(
+    data.nextAction,
+    "nextAction",
+  );
+
+  if (
+    !(data.nextActionDate instanceof Date) ||
+    Number.isNaN(data.nextActionDate.getTime())
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "nextActionDate is required for a " +
+        "Full Potential opportunity",
+    });
+  }
+
+  const estimatedValueAud =
+    normalizeOptionalFpAud(data.estimatedValueAud);
+
+  const openDedupeKey = buildFpOpenDedupeKey({
+    userId: data.userId,
+    sourceAccountId: data.sourceAccountId,
+    productFamily: data.productFamily,
+    application,
+  });
+
+  let claimId = 0;
+  let alreadyExists = false;
+
+  await db.transaction(async tx => {
+    // Use SELECT … FOR UPDATE to serialize concurrent inserts on the same
+    // openDedupeKey. The first caller finds no row and proceeds to insert;
+    // the second caller blocks until the first commits, then finds the row
+    // and returns alreadyExists=true without inserting.
+    const [existingRow] = await tx
+      .select({ id: pipelineClaims.id })
+      .from(pipelineClaims)
+      .where(eq(
+        pipelineClaims.openDedupeKey,
+        openDedupeKey,
+      ))
+      .for("update")
+      .limit(1);
+
+    if (existingRow) {
+      claimId = existingRow.id;
+      alreadyExists = true;
+      return;
+    }
+
+    const result = await tx
+      .insert(pipelineClaims)
+      .values({
+        userId: data.userId,
+        projectId: null,
+        reportId: null,
+        sourceType: "full_potential",
+        sourceAccountId: data.sourceAccountId,
+        productFamily: data.productFamily,
+        application,
+        commercialHypothesis,
+        status: "identified",
+        contactId: data.contactId ?? null,
+        contactName: data.contactName?.trim() || null,
+        contactRole: data.contactRole?.trim() || null,
+        estimatedValueAud,
+        closeDate: data.closeDate ?? null,
+        nextAction,
+        nextActionDate: data.nextActionDate,
+        notes: data.notes?.trim() || null,
+        openDedupeKey,
+      });
+
+    const header = result[0] as unknown as {
+      insertId?: number | string | bigint;
+    };
+    claimId = Number(header.insertId ?? 0);
+    if (!claimId) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message:
+          "Unable to create the new opportunity",
+      });
+    }
+    alreadyExists = false;
+
+    await tx.insert(pipelineActivity).values({
+      claimId,
+      userId: data.userId,
+      fromStatus: null,
+      toStatus: "identified",
+      note:
+        "Opportunity created from " +
+        "Full Potential account",
+      eventType: "claim_created",
+      metadataJson: {
+        sourceType: "full_potential",
+        sourceAccountId: data.sourceAccountId,
+        productFamily: data.productFamily,
+        application,
+      },
+    });
+
+    await tx.insert(userActivity).values({
+      userId: data.userId,
+      actionType: "pipeline_claimed",
+      claimId,
+      projectId: null,
+      metadata: {
+        sourceType: "full_potential",
+        sourceAccountId: data.sourceAccountId,
+        productFamily: data.productFamily,
+        application,
+      },
+    });
+  });
+
+  return { claimId, alreadyExists };
+}
+
+export async function getPipelineClaimsByAccount(
+  sourceAccountId: number,
+  callerRole: string,
+): Promise<PipelineClaim[]> {
+  if (callerRole === "distributor") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Distributor accounts cannot view " +
+        "Full Potential pipeline claims",
+    });
+  }
+
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(pipelineClaims)
+    .where(eq(
+      pipelineClaims.sourceAccountId,
+      sourceAccountId,
+    ))
+    .orderBy(desc(pipelineClaims.updatedAt));
+}
+
+export async function advanceClaimStage(params: {
+  claimId: number;
+  userId: number;
+  callerRole?: "user" | "admin" | "distributor";
+  toStatus: PipelineClaim["status"];
+  note?: string;
+  estimatedValue?: string;
+  contactName?: string;
+  contactRole?: string;
+  estimatedValueAud?: string;
+  quoteValueAud?: string;
+  closeDate?: Date;
+  nextAction?: string;
+  nextActionDate?: Date;
+  application?: string;
+  commercialHypothesis?: string;
+  meetingObjective?: string;
+  customerNeed?: string;
+  decisionTiming?: string;
+  competitivePosition?: string;
+  eventType?: string;
+  metadataJson?: Record<string, unknown>;
+}): Promise<void> {
+  const { advancePipelineStage } =
+    await import("./pipelineTransitionService");
+
+  await advancePipelineStage(params);
 }
