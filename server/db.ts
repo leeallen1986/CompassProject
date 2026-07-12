@@ -11,6 +11,7 @@ import {
   projectFeedback, InsertProjectFeedback,
   pipelineClaims, InsertPipelineClaim, PipelineClaim,
   pipelineActivity, InsertPipelineActivity,
+  userActivity,
   emailDigestPrefs, InsertEmailDigestPref, EmailDigestPref,
   projectBusinessLineScores,
   projectActions, InsertProjectAction, ProjectAction,
@@ -2795,11 +2796,17 @@ export async function setSystemKv(key: string, value: string): Promise<void> {
 }
 
 // ── Sprint 2A: Pipeline Attribution Spine ─────────────────────────────────────
-
 /**
  * Create a pipeline claim sourced from a Full Potential account.
- * Idempotent: if a claim already exists for the same (userId, sourceAccountId,
- * productFamily) triple, returns the existing claimId with alreadyExists=true.
+ *
+ * Idempotency: if an OPEN claim already exists for the same
+ * (userId, sourceAccountId, productFamily) triple, returns the existing claimId
+ * with alreadyExists=true.  Closed claims (won/lost/deferred/not_relevant) do NOT
+ * block a new claim — reps may re-engage the same account for a new product family.
+ *
+ * Concurrency: uses INSERT ... ON DUPLICATE KEY UPDATE with a unique index on
+ * (userId, sourceAccountId, productFamily) to avoid race conditions.
+ * The unique index must be created by the migration.
  */
 export async function createFpPipelineClaim(data: {
   userId: number;
@@ -2818,13 +2825,15 @@ export async function createFpPipelineClaim(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Idempotency check
-  const existing = await db.select({ id: pipelineClaims.id })
+  // Idempotency check — only block on OPEN claims
+  const OPEN_STATUSES = ["identified", "contacted", "meeting_booked", "qualified", "quoted"] as const;
+  const existing = await db.select({ id: pipelineClaims.id, status: pipelineClaims.status })
     .from(pipelineClaims)
     .where(and(
       eq(pipelineClaims.userId, data.userId),
       eq(pipelineClaims.sourceAccountId, data.sourceAccountId),
       eq(pipelineClaims.productFamily, data.productFamily),
+      inArray(pipelineClaims.status, [...OPEN_STATUSES]),
     ))
     .limit(1);
 
@@ -2832,35 +2841,74 @@ export async function createFpPipelineClaim(data: {
     return { claimId: existing[0].id, alreadyExists: true };
   }
 
-  const result = await db.insert(pipelineClaims).values({
-    userId: data.userId,
-    projectId: null,
-    reportId: null,
-    sourceType: "full_potential",
-    sourceAccountId: data.sourceAccountId,
-    productFamily: data.productFamily,
-    application: data.application ?? null,
-    status: "identified",
-    contactId: data.contactId ?? null,
-    contactName: data.contactName ?? null,
-    contactRole: data.contactRole ?? null,
-    estimatedValueAud: data.estimatedValueAud ?? null,
-    closeDate: data.closeDate ?? null,
-    nextAction: data.nextAction ?? null,
-    nextActionDate: data.nextActionDate ?? null,
-    notes: data.notes ?? null,
+  // Insert new claim + audit records in a transaction
+  let claimId: number = 0;
+  await db.transaction(async (tx) => {
+    const result = await tx.insert(pipelineClaims).values({
+      userId: data.userId,
+      projectId: null,
+      reportId: null,
+      sourceType: "full_potential",
+      sourceAccountId: data.sourceAccountId,
+      productFamily: data.productFamily,
+      application: data.application ?? null,
+      status: "identified",
+      contactId: data.contactId ?? null,
+      contactName: data.contactName ?? null,
+      contactRole: data.contactRole ?? null,
+      estimatedValueAud: data.estimatedValueAud ?? null,
+      closeDate: data.closeDate ?? null,
+      nextAction: data.nextAction ?? null,
+      nextActionDate: data.nextActionDate ?? null,
+      notes: data.notes ?? null,
+    });
+    claimId = Number(result[0].insertId);
+
+    // Pipeline activity: creation event
+    await tx.insert(pipelineActivity).values({
+      claimId,
+      userId: data.userId,
+      fromStatus: null,
+      toStatus: "identified",
+      note: "Claim created from Full Potential account",
+      eventType: "claim_created",
+      metadataJson: {
+        sourceType: "full_potential",
+        sourceAccountId: data.sourceAccountId,
+        productFamily: data.productFamily,
+      },
+    });
+
+    // User activity: pipeline_claimed
+    await tx.insert(userActivity).values({
+      userId: data.userId,
+      actionType: "pipeline_claimed",
+      claimId,
+      metadata: {
+        sourceType: "full_potential",
+        sourceAccountId: data.sourceAccountId,
+        productFamily: data.productFamily,
+      },
+    });
   });
 
-  return { claimId: Number(result[0].insertId), alreadyExists: false };
+  return { claimId, alreadyExists: false };
 }
 
 /**
  * Get all pipeline claims for a given FP account, across all users.
+ * Requires caller to be an internal sales user (role !== 'distributor').
+ * Returns claims ordered by most recently updated.
  */
-export async function getPipelineClaimsByAccount(sourceAccountId: number): Promise<PipelineClaim[]> {
+export async function getPipelineClaimsByAccount(
+  sourceAccountId: number,
+  callerRole: string,
+): Promise<PipelineClaim[]> {
+  if (callerRole === "distributor") {
+    throw new Error("Distributor accounts cannot view cross-user pipeline claims");
+  }
   const db = await getDb();
   if (!db) return [];
-
   return db.select().from(pipelineClaims)
     .where(eq(pipelineClaims.sourceAccountId, sourceAccountId))
     .orderBy(desc(pipelineClaims.updatedAt));
@@ -2868,15 +2916,14 @@ export async function getPipelineClaimsByAccount(sourceAccountId: number): Promi
 
 /**
  * Advance a claim through a stage gate.
- * Validates required gate fields before allowing the transition.
- * Returns { success: true } or throws with the missing field name.
+ * Delegates to pipelineTransitionService for allowed-matrix + gate validation.
+ * The transition service wraps the update + activity inserts in a single transaction.
  */
 export async function advanceClaimStage(params: {
   claimId: number;
   userId: number;
   toStatus: PipelineClaim["status"];
   note?: string;
-  // Gate fields (only required for specific transitions)
   contactName?: string;
   contactRole?: string;
   estimatedValueAud?: string;
@@ -2886,48 +2933,6 @@ export async function advanceClaimStage(params: {
   eventType?: string;
   metadataJson?: Record<string, unknown>;
 }): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const claim = await getPipelineClaimById(params.claimId);
-  if (!claim) throw new Error("Claim not found");
-  if (claim.userId !== params.userId) throw new Error("Not your claim");
-
-  // Stage gate validation
-  const to = params.toStatus;
-  if (to === "contacted" && !params.contactName && !claim.contactName) {
-    throw new Error("Gate: contactName required to advance to contacted");
-  }
-  if (to === "qualified") {
-    if (!params.estimatedValueAud && !claim.estimatedValueAud) {
-      throw new Error("Gate: estimatedValueAud required to advance to qualified");
-    }
-    if (!params.nextAction && !claim.nextAction) {
-      throw new Error("Gate: nextAction required to advance to qualified");
-    }
-  }
-  if (to === "quoted" && !params.closeDate && !claim.closeDate) {
-    throw new Error("Gate: closeDate required to advance to quoted");
-  }
-
-  const patch: Partial<InsertPipelineClaim> = { status: to };
-  if (params.contactName !== undefined) patch.contactName = params.contactName;
-  if (params.contactRole !== undefined) patch.contactRole = params.contactRole;
-  if (params.estimatedValueAud !== undefined) patch.estimatedValueAud = params.estimatedValueAud;
-  if (params.closeDate !== undefined) patch.closeDate = params.closeDate;
-  if (params.nextAction !== undefined) patch.nextAction = params.nextAction;
-  if (params.nextActionDate !== undefined) patch.nextActionDate = params.nextActionDate;
-  if (to === "qualified") patch.qualifiedAt = new Date();
-
-  await db.update(pipelineClaims).set(patch).where(eq(pipelineClaims.id, params.claimId));
-
-  await db.insert(pipelineActivity).values({
-    claimId: params.claimId,
-    userId: params.userId,
-    fromStatus: claim.status,
-    toStatus: to,
-    note: params.note ?? `Advanced to ${to}`,
-    eventType: params.eventType ?? null,
-    metadataJson: params.metadataJson ?? null,
-  });
+  const { advancePipelineStage } = await import("./pipelineTransitionService");
+  await advancePipelineStage(params);
 }

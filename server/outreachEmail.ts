@@ -771,6 +771,7 @@ export async function saveOutreachEmail(params: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const now = new Date();
   const result = await db.insert(outreachEmails).values({
     userId: params.userId,
     contactId: params.contactId ?? null,
@@ -784,6 +785,9 @@ export async function saveOutreachEmail(params: {
     body: params.body,
     tone: params.tone,
     status: params.status,
+    // Populate audit timestamps based on the initial status
+    sentAt: params.status === 'sent' ? now : null,
+    openedInEmailAt: params.status === 'opened_in_email' ? now : null,
   });
 
   return { id: Number(result[0].insertId) };

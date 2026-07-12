@@ -635,6 +635,10 @@ export const outreachEmails = mysqlTable("outreachEmails", {
   body: text("body").notNull(),
   tone: mysqlEnum("tone", ["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]).notNull(),
   status: mysqlEnum("status", ["drafted", "opened_in_email", "sent"]).notNull().default("drafted"),
+  /** Timestamp when the email was opened in the mail client (Sprint 2A) */
+  openedInEmailAt: timestamp("openedInEmailAt"),
+  /** Timestamp when the email was marked as sent (Sprint 2A) */
+  sentAt: timestamp("sentAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -970,6 +974,7 @@ export const userActivity = mysqlTable("userActivity", {
     "outreach_drafted",
     "outreach_sent",
     "pipeline_claimed",
+    "pipeline_stage_advanced",
     "pipeline_status_changed",
     "pipeline_meeting_logged",
     "pipeline_quote_uploaded",

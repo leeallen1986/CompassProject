@@ -1,7 +1,7 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS, PRODUCT_FAMILIES } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, internalSalesProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   getLatestReport, getAllReports, getReportById, createReport,
@@ -428,55 +428,43 @@ export const appRouter = router({
 
         return { claimId, alreadyClaimed: false };
       }),
-    updateStatus: protectedProcedure
+        updateStatus: protectedProcedure
       .input(z.object({
         claimId: z.number(),
-        status: z.enum(["identified", "contacted", "meeting_booked", "quoted", "won", "lost"]),
+        // Expanded to include all statuses supported by the transition service
+        status: z.enum(["identified", "contacted", "meeting_booked", "qualified", "quoted", "won", "lost", "deferred", "not_relevant"]),
         notes: z.string().optional(),
         estimatedValue: z.string().optional(),
+        estimatedValueAud: z.string().optional(),
         nextAction: z.string().optional(),
         nextActionDate: z.date().optional(),
         contactName: z.string().optional(),
+        contactRole: z.string().optional(),
+        closeDate: z.date().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const claim = await getPipelineClaimById(input.claimId);
-        if (!claim) throw new Error("Claim not found");
-        if (claim.userId !== ctx.user.id) throw new Error("Not your claim");
-
-        const fromStatus = claim.status;
-
-        await updatePipelineClaim(input.claimId, {
-          status: input.status,
-          notes: input.notes ?? claim.notes,
-          estimatedValue: input.estimatedValue ?? claim.estimatedValue,
-          nextAction: input.nextAction ?? claim.nextAction,
-          nextActionDate: input.nextActionDate ?? claim.nextActionDate,
-          contactName: input.contactName ?? claim.contactName,
-        });
-
-        await createPipelineActivityEntry({
+        // Delegate entirely to the shared transition service so gate logic
+        // is not duplicated between updateStatus and advanceStage.
+        const { advancePipelineStage } = await import("./pipelineTransitionService");
+        await advancePipelineStage({
           claimId: input.claimId,
           userId: ctx.user.id,
-          fromStatus,
           toStatus: input.status,
-          note: input.notes ?? `Status changed from ${fromStatus} to ${input.status}`,
+          note: input.notes,
+          contactName: input.contactName,
+          contactRole: input.contactRole,
+          estimatedValueAud: input.estimatedValueAud ?? input.estimatedValue,
+          closeDate: input.closeDate,
+          nextAction: input.nextAction,
+          nextActionDate: input.nextActionDate,
         });
-
-          if (input.status === "won" || input.status === "lost") {
+        // Won/Lost owner notification (kept here for backward compatibility)
+        if (input.status === "won" || input.status === "lost") {
           await notifyOwner({
             title: `Pipeline: Project ${input.status === "won" ? "Won" : "Lost"}`,
             content: `Claim #${input.claimId} status changed to ${input.status}. ${input.notes || ""}`,
           });
         }
-        // Track pipeline status change
-        const actionType = input.status === "meeting_booked" ? "pipeline_meeting_logged" as const
-          : input.status === "quoted" ? "pipeline_quote_uploaded" as const
-          : "pipeline_status_changed" as const;
-        await trackActivity(ctx.user.id, actionType, {
-          claimId: input.claimId,
-          projectId: claim.projectId ?? undefined,
-          metadata: { fromStatus, toStatus: input.status },
-        });
         return { success: true };
       }),
     release: protectedProcedure
@@ -515,10 +503,10 @@ export const appRouter = router({
     // ── Sprint 2A: FP-sourced pipeline attribution ──────────────────────────
 
     /** Create (or idempotently return) a pipeline claim from a Full Potential account. */
-    claimFromFP: protectedProcedure
+    claimFromFP: internalSalesProcedure
       .input(z.object({
         sourceAccountId: z.number(),
-        productFamily: z.string().max(64),
+        productFamily: z.enum(PRODUCT_FAMILIES),
         application: z.string().max(128).optional(),
         contactId: z.number().optional(),
         contactName: z.string().max(256).optional(),
@@ -579,10 +567,10 @@ export const appRouter = router({
       }),
 
     /** Return all claims for a given FP account (across all users). */
-    byAccount: protectedProcedure
+    byAccount: internalSalesProcedure
       .input(z.object({ sourceAccountId: z.number() }))
-      .query(async ({ input }) => {
-        return getPipelineClaimsByAccount(input.sourceAccountId);
+      .query(async ({ ctx, input }) => {
+        return getPipelineClaimsByAccount(input.sourceAccountId, ctx.user.role);
       }),
   }),
 

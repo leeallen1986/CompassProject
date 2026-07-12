@@ -44,6 +44,34 @@ export const adminProcedure = t.procedure.use(
   }),
 );
 
+/**
+ * Internal-sales procedure: blocks distributor accounts from accessing
+ * FP pipeline attribution endpoints (cross-user claim visibility, etc.).
+ */
+export const internalSalesProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    if (ctx.user.role === 'distributor') {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: 'Distributor accounts cannot access internal sales pipeline data',
+      });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
 /** Campaign procedure: restricted to admin users OR users with campaignAccess=true in the database */
 export const campaignProcedure = t.procedure.use(
   t.middleware(async opts => {
