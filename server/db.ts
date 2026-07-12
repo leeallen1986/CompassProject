@@ -1,4 +1,4 @@
-import { eq, desc, and, ne, lt, sql, inArray, isNull, or } from "drizzle-orm";
+import { eq, desc, and, ne, lt, sql, inArray, notInArray, isNull, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { TRPCError } from "@trpc/server";
 import {
@@ -24,6 +24,7 @@ import {
 import { ENV } from './_core/env';
 import { fullPotentialAccounts } from '../drizzle/fullPotentialSchema';
 import type { FpProductFamily } from "@shared/const";
+import { ATTRIBUTED_SOURCE_TYPES } from "@shared/const";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -701,18 +702,34 @@ export async function getPipelineClaimsByProject(projectId: number) {
     .where(eq(pipelineClaims.projectId, projectId));
 }
 
-export async function getAllPipelineClaims() {
+export async function getAllPipelineClaims(
+  callerRole?: string,
+) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select({
+  const query = db.select({
     claim: pipelineClaims,
     userName: users.name,
     userEmail: users.email,
   })
     .from(pipelineClaims)
-    .leftJoin(users, eq(pipelineClaims.userId, users.id))
-    .orderBy(desc(pipelineClaims.updatedAt));
+    .leftJoin(users, eq(pipelineClaims.userId, users.id));
+
+  // Distributors may only see project and legacy claims — attributed
+  // opportunities (FP, signal, AI, manual) are internal-sales data.
+  if (callerRole === "distributor") {
+    return query
+      .where(
+        notInArray(
+          pipelineClaims.sourceType,
+          [...ATTRIBUTED_SOURCE_TYPES],
+        ),
+      )
+      .orderBy(desc(pipelineClaims.updatedAt));
+  }
+
+  return query.orderBy(desc(pipelineClaims.updatedAt));
 }
 
 export async function updatePipelineClaim(
@@ -742,9 +759,35 @@ export async function createPipelineActivityEntry(data: InsertPipelineActivity):
   await db.insert(pipelineActivity).values(data);
 }
 
-export async function getActivityByClaimId(claimId: number) {
+export async function getActivityByClaimId(
+  claimId: number,
+  callerRole?: string,
+) {
   const db = await getDb();
   if (!db) return [];
+
+  // Distributors must not read activity for attributed claims.
+  if (callerRole === "distributor") {
+    const [claim] = await db
+      .select({ sourceType: pipelineClaims.sourceType })
+      .from(pipelineClaims)
+      .where(eq(pipelineClaims.id, claimId))
+      .limit(1);
+
+    if (
+      claim &&
+      (ATTRIBUTED_SOURCE_TYPES as readonly string[]).includes(
+        claim.sourceType,
+      )
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "Distributor accounts cannot access " +
+          "attributed pipeline activity (10004)",
+      });
+    }
+  }
 
   return db.select().from(pipelineActivity)
     .where(eq(pipelineActivity.claimId, claimId))

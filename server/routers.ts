@@ -1,4 +1,11 @@
-import { COOKIE_NAME, ONE_YEAR_MS, FP_PRODUCT_FAMILIES, PIPELINE_STATUSES } from "@shared/const";
+import {
+  COOKIE_NAME,
+  ONE_YEAR_MS,
+  FP_PRODUCT_FAMILIES,
+  PIPELINE_STATUSES,
+  ATTRIBUTED_SOURCE_TYPES,
+  ATTRIBUTED_RELEASE_ERR_MSG,
+} from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, internalSalesProcedure, router } from "./_core/trpc";
@@ -536,6 +543,17 @@ export const appRouter = router({
           throw new Error("Not authorized to release this claim");
         }
 
+        // Attributed opportunities must be closed through an audited
+        // outcome (won / lost / not_relevant) rather than deleted, so
+        // that the pipeline audit trail is preserved.
+        if (
+          (ATTRIBUTED_SOURCE_TYPES as readonly string[]).includes(
+            claim.sourceType,
+          )
+        ) {
+          throw new Error(ATTRIBUTED_RELEASE_ERR_MSG);
+        }
+
         await deletePipelineClaim(input.claimId);
         return { success: true };
       }),
@@ -550,14 +568,18 @@ export const appRouter = router({
         return getPipelineClaimsByProject(input.projectId);
       }),
 
-    team: protectedProcedure.query(async () => {
-      return getAllPipelineClaims();
+    team: protectedProcedure.query(async ({ ctx }) => {
+      // Distributors receive only project/legacy claims; attributed
+      // opportunities are filtered out server-side.
+      return getAllPipelineClaims(ctx.user.role);
     }),
 
     activity: protectedProcedure
       .input(z.object({ claimId: z.number() }))
-      .query(async ({ input }) => {
-        return getActivityByClaimId(input.claimId);
+      .query(async ({ ctx, input }) => {
+        // Distributor access to attributed claim activity is rejected
+        // inside getActivityByClaimId.
+        return getActivityByClaimId(input.claimId, ctx.user.role);
       }),
     // ── Sprint 2A: FP-sourced pipeline attribution ──────────────────────────
 

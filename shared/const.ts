@@ -81,3 +81,24 @@ export type PipelineStatus = typeof PIPELINE_STATUSES[number];
 // ── Internal Sales Guard ─────────────────────────────────────────────────────
 export const NOT_INTERNAL_SALES_ERR_MSG =
   "Full Potential pipeline access requires internal sales access (10003)";
+
+// ── Attributed Source Types ──────────────────────────────────────────────────
+/**
+ * Source types that carry full attribution metadata and must be closed through
+ * an audited outcome (won / lost / not_relevant). Distributor callers must not
+ * see these claims through generic team or activity endpoints.
+ */
+export const ATTRIBUTED_SOURCE_TYPES = [
+  "full_potential",
+  "signal",
+  "ai_recommendation",
+  "manual",
+] as const;
+export type AttributedSourceType =
+  typeof ATTRIBUTED_SOURCE_TYPES[number];
+
+export const DISTRIBUTOR_TEAM_FILTER_ERR_MSG =
+  "Distributor accounts cannot access attributed pipeline data (10004)";
+export const ATTRIBUTED_RELEASE_ERR_MSG =
+  "Attributed opportunities must be closed through an audited outcome " +
+  "(won / lost / not_relevant), not deleted (10005)";
