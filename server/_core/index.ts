@@ -15,6 +15,17 @@ import { handleScheduledQueueRun } from "../scheduledQueueRun";
 import { handleWarmup, startOperationsReliability } from "../operationsReliability";
 import { handleFullPotentialDataQuality } from "../fullPotentialDataQuality";
 import { handleFullPotentialRentalHire, handleFullPotentialRentalRemediation } from "../fullPotentialRentalHire";
+import {
+  handleAddFullPotentialEvidence,
+  handleCreateFullPotentialModelDraft,
+  handleGetFullPotentialCommercialWorkspace,
+  handleRemoveFullPotentialModelLine,
+  handleReviewFullPotentialEvidence,
+  handleReviewFullPotentialModel,
+  handleSubmitFullPotentialModel,
+  handleUpdateFullPotentialRelationship,
+  handleUpsertFullPotentialModelLine,
+} from "../fullPotentialCommercialModel.http";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -28,9 +39,7 @@ function isPortAvailable(port: number): Promise<boolean> {
 
 async function findAvailablePort(startPort: number = 3000): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
+    if (await isPortAvailable(port)) return port;
   }
   throw new Error(`No available port found starting from ${startPort}`);
 }
@@ -38,20 +47,15 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // File upload endpoint for campaign CSV/Excel imports
   app.post("/api/upload-campaign-file", express.raw({ type: "*/*", limit: "20mb" }), async (req, res) => {
     try {
       const filename = (req.headers["x-filename"] as string) || "upload.csv";
       const buffer = req.body as Buffer;
-      if (!buffer || buffer.length === 0) {
-        return res.status(400).json({ error: "No file data received" });
-      }
+      if (!buffer || buffer.length === 0) return res.status(400).json({ error: "No file data received" });
       const suffix = Math.random().toString(36).slice(2, 10);
       const key = `campaign-imports/${Date.now()}-${suffix}-${filename}`;
       const contentType = (req.headers["content-type"] as string) || "application/octet-stream";
@@ -63,14 +67,11 @@ async function startServer() {
     }
   });
 
-  // Image upload endpoint for email template editor
   app.post("/api/upload-template-image", express.raw({ type: "*/*", limit: "10mb" }), async (req, res) => {
     try {
       const filename = (req.headers["x-filename"] as string) || "image.png";
       const buffer = req.body as Buffer;
-      if (!buffer || buffer.length === 0) {
-        return res.status(400).json({ error: "No file data received" });
-      }
+      if (!buffer || buffer.length === 0) return res.status(400).json({ error: "No file data received" });
       const suffix = Math.random().toString(36).slice(2, 10);
       const ext = filename.split(".").pop() || "png";
       const key = `template-images/${Date.now()}-${suffix}.${ext}`;
@@ -83,73 +84,47 @@ async function startServer() {
     }
   });
 
-  // Lightweight health ping — used by pipeline keepalive to prevent CloudRun container recycling
   app.get("/api/ping", (_req, res) => res.json({ ok: true, ts: Date.now() }));
-  // Authenticated, read-only Full Potential data-quality dashboard feed
   app.get("/api/full-potential/data-quality", handleFullPotentialDataQuality);
-  // Authenticated Rental Hire segment workspace and explicit remediation workflow
   app.get("/api/full-potential/rental-hire", handleFullPotentialRentalHire);
   app.post("/api/full-potential/rental-hire/remediation", handleFullPotentialRentalRemediation);
-  // Temporary debug: check if PIPELINE_SECRET is set in production runtime
-  app.get("/api/debug-env", (_req, res) => res.json({
-    hasPipelineSecret: !!(process.env.PIPELINE_SECRET),
-    pipelineSecretLen: process.env.PIPELINE_SECRET?.length ?? 0,
-    nodeEnv: process.env.NODE_ENV,
-  }));
-  // Warm-up endpoint — called by scheduled task 2-3 min before pipeline trigger
-  // Wakes the container from hibernation and returns readiness state
+
+  app.get("/api/full-potential/commercial-model/:accountId", handleGetFullPotentialCommercialWorkspace);
+  app.post("/api/full-potential/commercial-model/:accountId/draft", handleCreateFullPotentialModelDraft);
+  app.post("/api/full-potential/commercial-model/evidence", handleAddFullPotentialEvidence);
+  app.post("/api/full-potential/commercial-model/evidence/:evidenceId/review", handleReviewFullPotentialEvidence);
+  app.put("/api/full-potential/commercial-model/line", handleUpsertFullPotentialModelLine);
+  app.delete("/api/full-potential/commercial-model/line/:lineId", handleRemoveFullPotentialModelLine);
+  app.post("/api/full-potential/commercial-model/:modelId/submit", handleSubmitFullPotentialModel);
+  app.post("/api/full-potential/commercial-model/:modelId/review", handleReviewFullPotentialModel);
+  app.put("/api/full-potential/commercial-model/account/:accountId/relationship", handleUpdateFullPotentialRelationship);
+
   app.get("/api/warmup", handleWarmup);
-
-  // External pipeline trigger — called by cloud computer cron and Manus scheduled task
-  // NOTE: /api/scheduled/* is blocked by Cloudflare WAF at the platform level.
-  // This endpoint uses /api/pipeline/trigger to bypass that restriction.
-  // Auth: X-Pipeline-Secret header (no OAuth required)
-  // Idempotent: returns 200 already_ran if completed within 4h, 409 if currently running
   app.post("/api/pipeline/trigger", handleScheduledPipelineTrigger);
-  // Legacy path kept for backward compatibility — redirects to new path
   app.post("/api/scheduled/pipeline", handleScheduledPipelineTrigger);
-
-  // Nightly discovery queue run — called by Manus scheduled task after midnight UTC
-  // Runs one batch of 10 projects through the contact discovery waterfall
-  // Returns NDJSON stream with before/after stats and batch summary
-  // Auth: scheduled-task cookie (role=user) OR admin session
   app.post("/api/scheduled/queue-run", handleScheduledQueueRun);
-  // Also expose queue-run on non-blocked path
   app.post("/api/pipeline/queue-run", handleScheduledQueueRun);
 
-  // tRPC API
   app.use(
     "/api/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext,
-    })
+    }),
   );
-  // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+
+  if (process.env.NODE_ENV === "development") await setupVite(app, server);
+  else serveStatic(app);
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
+  if (port !== preferredPort) console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Start the daily pipeline scheduler (runs at 20:00 UTC — 3h before Monday digest)
     startDailyScheduler();
-    // Register SIGTERM handler so in-flight pipeline runs are marked failed
-    // when CloudRun shuts down. Must be called after server starts.
     registerSigtermHandler();
-    // Start the persistent email digest scheduler (recovers from restarts)
-    // Must start AFTER startDailyScheduler so pipeline is always wired first.
     startPersistentScheduler();
-    // Start operations reliability systems (self-healing retry, missed-run alerts)
     startOperationsReliability();
   });
 }
