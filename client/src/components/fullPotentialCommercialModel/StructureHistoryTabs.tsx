@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GitBranch, History, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,22 @@ export function StructureTab({ workspace, isAdmin, refresh }: {
     countsTowardPotential: workspace.account.countsTowardPotential,
   });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      parentAccountId: workspace.account.parentAccountId ? String(workspace.account.parentAccountId) : "",
+      mergedIntoAccountId: workspace.account.mergedIntoAccountId ? String(workspace.account.mergedIntoAccountId) : "",
+      relationshipType: workspace.account.relationshipType,
+      recordStatus: workspace.account.recordStatus,
+      countsTowardPotential: workspace.account.countsTowardPotential,
+    });
+  }, [
+    workspace.account.parentAccountId,
+    workspace.account.mergedIntoAccountId,
+    workspace.account.relationshipType,
+    workspace.account.recordStatus,
+    workspace.account.countsTowardPotential,
+  ]);
 
   async function save() {
     setBusy(true);
