@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import DeploymentProvenanceBadge from "./components/DeploymentProvenanceBadge";
+import FullPotentialCommercialModelLink from "./components/FullPotentialCommercialModelLink";
 import FullPotentialDataQualityLink from "./components/FullPotentialDataQualityLink";
 import FullPotentialRentalHireLink from "./components/FullPotentialRentalHireLink";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -26,6 +27,7 @@ import WaterfallHealth from "./pages/WaterfallHealth";
 import DeploymentDiagnostics from "./pages/DeploymentDiagnostics";
 import AccountPriors from "./pages/AccountPriors";
 import FullPotential from "./pages/FullPotential";
+import FullPotentialCommercialModel from "./pages/FullPotentialCommercialModel";
 import FullPotentialDataQuality from "./pages/FullPotentialDataQuality";
 import FullPotentialRentalHire from "./pages/FullPotentialRentalHire";
 
@@ -52,6 +54,7 @@ function Router() {
       <Route path={"/account-attack"} component={AccountAttack} />
       <Route path={"/contact-validation"} component={ContactValidation} />
       <Route path={"/account-priors"} component={AccountPriors} />
+      <Route path={"/full-potential/commercial-model"} component={FullPotentialCommercialModel} />
       <Route path={"/full-potential/data-quality"} component={FullPotentialDataQuality} />
       <Route path={"/full-potential/rental-hire"} component={FullPotentialRentalHire} />
       <Route path={"/full-potential"} component={FullPotential} />
@@ -70,6 +73,7 @@ function App() {
           <Router />
           <FullPotentialDataQualityLink />
           <FullPotentialRentalHireLink />
+          <FullPotentialCommercialModelLink />
           <DeploymentProvenanceBadge />
         </TooltipProvider>
       </ThemeProvider>
