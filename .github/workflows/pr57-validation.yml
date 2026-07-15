@@ -1,0 +1,30 @@
+name: PR57 validation
+
+on:
+  push:
+    branches:
+      - feat/full-potential-top-five-pilot
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - run: >-
+          pnpm exec vitest run
+          client/src/lib/fullPotentialCommercialModel.test.ts
+          client/src/lib/fullPotentialPilot.test.ts
