@@ -1,9 +1,9 @@
 name: PR56 UI validation
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/full-potential-v1-commercial-model-ui
+      - main
   workflow_dispatch:
 
 permissions:
