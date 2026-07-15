@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Pencil, Plus, Save, Send, Trash2, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -107,21 +107,27 @@ export default function ModelTab({ workspace, isAdmin, refresh }: {
   const submission = modelSubmissionReadiness(latest, workspace.lines, workspace.evidenceLinks);
   const approval = modelApprovalReadiness(latest, workspace.lines, workspace.evidenceLinks, workspace.evidence);
 
+  useEffect(() => {
+    setAssumptionsSummary(latest?.assumptionsSummary ?? "");
+    setManagerNote("");
+  }, [latest?.id, latest?.assumptionsSummary]);
+
   function resetForm() {
     setForm(emptyForm(workspace.account.routeToMarket));
     setShowForm(false);
     setEditingLineId(null);
   }
 
-  async function perform(key: string, operation: () => Promise<unknown>, success: string) {
+  async function perform(key: string, operation: () => Promise<unknown>, success: string): Promise<boolean> {
     setBusy(key);
     try {
       await operation();
       toast.success(success);
       await refresh();
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Commercial model update failed");
-      throw error;
+      return false;
     } finally {
       setBusy("");
     }
@@ -170,12 +176,8 @@ export default function ModelTab({ workspace, isAdmin, refresh }: {
   async function saveLine() {
     const value = payload();
     if (!value) return;
-    try {
-      await perform("line", () => commercialModelApi.upsertLine(value), editingLineId ? "Model line updated" : "Model line added");
-      resetForm();
-    } catch {
-      // The operation already surfaced the error.
-    }
+    const saved = await perform("line", () => commercialModelApi.upsertLine(value), editingLineId ? "Model line updated" : "Model line added");
+    if (saved) resetForm();
   }
 
   async function removeLine(line: CommercialModelLine) {
@@ -196,8 +198,8 @@ export default function ModelTab({ workspace, isAdmin, refresh }: {
       toast.error("Add a manager review note");
       return;
     }
-    await perform(`model-${decision}`, () => commercialModelApi.reviewModel(latest.id, decision, managerNote.trim()), decision === "approve" ? "Model approved" : "Model returned");
-    setManagerNote("");
+    const reviewed = await perform(`model-${decision}`, () => commercialModelApi.reviewModel(latest.id, decision, managerNote.trim()), decision === "approve" ? "Model approved" : "Model returned");
+    if (reviewed) setManagerNote("");
   }
 
   if (!latest) {
