@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feat/full-potential-top-five-pilot
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
