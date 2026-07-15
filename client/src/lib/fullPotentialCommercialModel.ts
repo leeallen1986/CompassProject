@@ -131,6 +131,12 @@ export interface CommercialAccount {
   id: number;
   canonicalName: string;
   displayName?: string | null;
+  ownerName?: string | null;
+  channelOwner?: string | null;
+  segment?: string | null;
+  state?: string | null;
+  priorityTier?: string | null;
+  platformPushDecision?: string | null;
   rowClass: string;
   routeToMarket: FpRouteToMarket;
   fpStatus: string;
@@ -327,9 +333,7 @@ async function requestJson<T>(path: string, init: RequestInit = {}): Promise<T> 
     | null;
 
   if (!response.ok) {
-    const errorPayload = payload && typeof payload === "object"
-      ? payload as { error?: string; code?: string; details?: unknown }
-      : null;
+    const errorPayload = payload && typeof payload === "object" ? payload as { error?: string; code?: string; details?: unknown } : null;
     throw new CommercialModelApiError(
       errorPayload?.error || `Commercial model request failed (${response.status})`,
       response.status,
