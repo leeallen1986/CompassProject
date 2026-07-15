@@ -1,0 +1,49 @@
+name: Materialize Drizzle 0090 snapshot on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.head_ref == 'fix/add-0090-snapshot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out correction branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/add-0090-snapshot
+          fetch-depth: 0
+
+      - name: Extract, materialize and verify snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '/^H4sIAEv3VmoC/{capture=1} /^SNAPSHOT_B64$/{capture=0} capture' \
+            .github/workflows/materialize-0090-snapshot.yml \
+            > /tmp/0090_snapshot.json.gz.b64
+          base64 --decode /tmp/0090_snapshot.json.gz.b64 > /tmp/0090_snapshot.json.gz
+          gzip --decompress --stdout /tmp/0090_snapshot.json.gz > drizzle/meta/0090_snapshot.json
+          echo "1029dce0391915479e7c66e164fa22eabb9e8b1cb32f0f369b4f84c7a9c7abea  drizzle/meta/0090_snapshot.json" | sha256sum --check --strict
+          python -m json.tool drizzle/meta/0090_snapshot.json >/dev/null
+
+      - name: Commit exact snapshot and remove temporary workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add drizzle/meta/0090_snapshot.json
+          git rm .github/workflows/materialize-0090-snapshot.yml
+          git rm .github/workflows/materialize-0090-on-pr.yml
+          git diff --cached --name-only
+          git commit -m "fix(db): add exact Drizzle 0090 snapshot"
+          git push origin HEAD:fix/add-0090-snapshot
