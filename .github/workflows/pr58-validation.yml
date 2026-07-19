@@ -24,7 +24,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Materialise hardened application tree
-        run: python3 scripts/pr58_harden.py
+        run: |
+          python3 scripts/pr58_harden.py
+          python3 scripts/pr58_harden_followup.py
       - run: pnpm tsc --noEmit
       - run: pnpm build
       - run: >-
