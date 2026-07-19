@@ -250,4 +250,40 @@ describe("Full Potential daily activation", () => {
     expect(sorted[0].disposition).toBe("pending");
     expect(sorted[0].accountId).toBe(1);
   });
+
+  it("does not create a second generic recommendation while an open FP commitment exists", () => {
+    const openAction: DailyActivationAction = {
+      id: 202,
+      accountId: 269,
+      userId: 42,
+      ownerName: "Ryan Pemberton",
+      actionType: "customer_call",
+      recommendedAction: "Confirm supplier and fleet age.",
+      dueDate: "2026-07-25T00:00:00.000Z",
+      status: "not_started",
+      createdAt: "2026-07-19T00:00:00.000Z",
+    };
+
+    expect(buildDailyRecommendation(context({ actions: [openAction] }))).toBeNull();
+  });
+
+  it("suppresses a recently rejected generic recommendation across week boundaries", () => {
+    const rejected: DailyActivationAction = {
+      id: 203,
+      accountId: 269,
+      userId: 42,
+      ownerName: "Ryan Pemberton",
+      actionType: "account_review",
+      recommendedAction: "Capture evidence.",
+      dueDate: null,
+      status: "not_relevant",
+      notes: "[fp_daily:fp-2026-07-13-269-capture_evidence-account-0]\nFP daily decision: rejected",
+      createdAt: "2026-07-15T00:00:00.000Z",
+    };
+
+    const recommendation = buildDailyRecommendation(context({ actions: [rejected] }));
+    expect(recommendation?.kind).toBe("capture_evidence");
+    expect(recommendation?.disposition).toBe("rejected");
+  });
+
 });

@@ -241,7 +241,7 @@ async function loadActivationBundle(user: User, now = new Date()): Promise<Activ
   const [aliases, actions, signals, evidence, models, modelLines, claims, recentProjects] = await Promise.all([
     db.select().from(fullPotentialAccountAliases).where(inArray(fullPotentialAccountAliases.accountId, accountIds)),
     db.select().from(fullPotentialActions).where(inArray(fullPotentialActions.accountId, accountIds)).orderBy(desc(fullPotentialActions.createdAt)),
-    db.select().from(fullPotentialSignals).where(inArray(fullPotentialSignals.accountId, accountIds)).orderBy(desc(fullPotentialSignals.signalDate)),
+    db.select().from(fullPotentialSignals).orderBy(desc(fullPotentialSignals.signalDate)),
     db.select().from(fullPotentialEvidence).where(inArray(fullPotentialEvidence.accountId, accountIds)).orderBy(desc(fullPotentialEvidence.createdAt)),
     db.select().from(fullPotentialModels).where(inArray(fullPotentialModels.accountId, accountIds)).orderBy(desc(fullPotentialModels.versionNumber)),
     db.select().from(fullPotentialModelLines).where(inArray(fullPotentialModelLines.accountId, accountIds)),
@@ -319,27 +319,53 @@ async function loadActivationBundle(user: User, now = new Date()): Promise<Activ
   const directSignalsByAccount = new Map<number, DailyActivationSignal[]>();
   for (const signal of signals) {
     if (["dismissed", "archived"].includes(signal.status)) continue;
-    const relatedActions = actionsByAccount.get(signal.accountId ?? -1) ?? [];
-    const list = directSignalsByAccount.get(signal.accountId ?? -1) ?? [];
-    list.push({
-      sourceType: "fp_signal",
-      sourceId: signal.id,
-      accountId: signal.accountId!,
-      title: signal.signalTitle,
-      summary: signal.signalSummary,
-      sourceName: signal.sourceName,
-      sourceUrl: signal.sourceUrl,
-      signalDate: signal.signalDate ?? signal.createdAt,
-      urgency: signal.urgency,
-      confidence: signal.confidenceLevel,
-      matchReason: "Directly linked Full Potential signal",
-      suggestedAction: signal.suggestedAction,
-      productHints: [signal.applicationPlay].filter(Boolean) as string[],
-      actionState: {
-        hasOpenAction: relatedActions.some(action => action.signalId === signal.id && OPEN_ACTION_STATUSES.has(action.status)),
-      },
-    } as DailyActivationSignal);
-    directSignalsByAccount.set(signal.accountId!, list);
+
+    let matches: Array<{ accountId: number; matchReason: string }> = [];
+    if (signal.accountId && accountById.has(signal.accountId)) {
+      matches = [{ accountId: signal.accountId, matchReason: "Directly linked Full Potential signal" }];
+    } else if (signal.accountId === null || signal.accountId === undefined) {
+      const title = normalizeCorporateName(signal.signalTitle);
+      if (!title) continue;
+      const exact = eligibleAccounts
+        .filter(account => (termsByAccount.get(account.id) ?? []).some(term => term === title))
+        .map(account => ({ accountId: account.id, matchReason: "Exact unlinked-signal name match" }));
+      matches = exact.length > 0
+        ? exact
+        : partialCandidates
+            .filter(account => {
+              const stateCompatible = !account.state || !signal.state || normalizeActivationIdentity(account.state) === normalizeActivationIdentity(signal.state);
+              return stateCompatible && (termsByAccount.get(account.id) ?? []).some(term => term.length >= 5 && (title.includes(term) || term.includes(title)));
+            })
+            .slice(0, 3)
+            .map(account => ({ accountId: account.id, matchReason: "Unlinked signal name match with compatible state" }));
+    }
+
+    for (const match of matches) {
+      const relatedActions = actionsByAccount.get(match.accountId) ?? [];
+      const matchingActions = relatedActions.filter(action => action.signalId === signal.id);
+      const list = directSignalsByAccount.get(match.accountId) ?? [];
+      if (list.length >= 8) continue;
+      list.push({
+        sourceType: "fp_signal",
+        sourceId: signal.id,
+        accountId: match.accountId,
+        title: signal.signalTitle,
+        summary: signal.signalSummary,
+        sourceName: signal.sourceName,
+        sourceUrl: signal.sourceUrl,
+        signalDate: signal.signalDate ?? signal.createdAt,
+        urgency: signal.urgency,
+        confidence: signal.confidenceLevel,
+        matchReason: match.matchReason,
+        suggestedAction: signal.suggestedAction,
+        productHints: [signal.applicationPlay].filter(Boolean) as string[],
+        actionState: {
+          hasOpenAction: matchingActions.some(action => OPEN_ACTION_STATUSES.has(action.status)),
+          hasClosedAction: matchingActions.some(action => !OPEN_ACTION_STATUSES.has(action.status)),
+        },
+      });
+      directSignalsByAccount.set(match.accountId, list);
+    }
   }
 
   const evidenceByAccount = new Map<number, DailyActivationEvidence[]>();
@@ -382,6 +408,7 @@ async function loadActivationBundle(user: User, now = new Date()): Promise<Activ
       ...signal,
       actionState: {
         hasOpenAction: accountActions.some(action => action.projectId === signal.sourceId && OPEN_ACTION_STATUSES.has(action.status)),
+        hasClosedAction: accountActions.some(action => action.projectId === signal.sourceId && !OPEN_ACTION_STATUSES.has(action.status)),
       },
     })) as DailyActivationSignal[];
     const recommendation = buildDailyRecommendation({
@@ -412,9 +439,6 @@ async function loadActivationBundle(user: User, now = new Date()): Promise<Activ
   });
   const counts = dispositionCounts(allRecommendations);
 
-  const feedbackActions = (actions as unknown as DailyActivationAction[]).filter(action =>
-    isWithin(action.createdAt, weekStart) && !!markerKey(action),
-  );
   const ownerStats = new Map<string, { recommendations: number; pending: number; responded: number; stalled: number }>();
   for (const recommendation of allRecommendations) {
     const account = accountById.get(recommendation.accountId)!;
@@ -638,9 +662,7 @@ export async function generateFullPotentialDailyAiBrief(accountId: number, user:
       generatedBy: "ai",
       ...parsed,
       productFamilyHypothesis: {
-        productFamily: recommendation.productHypothesis.productFamily && parsed.productFamilyHypothesis.productFamily === recommendation.productHypothesis.productFamily
-          ? recommendation.productHypothesis.productFamily
-          : recommendation.productHypothesis.productFamily,
+        productFamily: recommendation.productHypothesis.productFamily,
         application: parsed.productFamilyHypothesis.application ?? recommendation.productHypothesis.application,
         rationale: parsed.productFamilyHypothesis.rationale,
         confidence: parsed.productFamilyHypothesis.confidence,

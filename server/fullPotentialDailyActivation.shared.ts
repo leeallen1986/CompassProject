@@ -79,6 +79,10 @@ export interface DailyActivationSignal {
   matchReason: string;
   suggestedAction?: string | null;
   productHints?: string[] | null;
+  actionState?: {
+    hasOpenAction: boolean;
+    hasClosedAction?: boolean;
+  };
 }
 
 export interface DailyActivationEvidence {
@@ -323,6 +327,32 @@ function feedbackAction(actions: DailyActivationAction[], recommendationKey: str
     .sort((left, right) => dateValue(right.createdAt) - dateValue(left.createdAt))[0] ?? null;
 }
 
+function markerFromNotes(notes: string | null | undefined): string | null {
+  return notes?.match(/\[fp_daily:([^\]]+)\]/)?.[1] ?? null;
+}
+
+function recentRecommendationDisposition(
+  actions: DailyActivationAction[],
+  accountId: number,
+  kind: RecommendationKind,
+  now: Date,
+): DailyRecommendation["disposition"] | null {
+  const identity = `-${accountId}-${kind}-`;
+  const candidates = [...actions]
+    .filter(action => action.notes?.includes("[fp_daily:fp-") && action.notes.includes(identity))
+    .map(action => ({
+      action,
+      decision: actionDecision(action.notes, markerFromNotes(action.notes) ?? ""),
+    }))
+    .filter(item => item.decision === "rejected" || item.decision === "not_relevant")
+    .sort((left, right) => dateValue(right.action.createdAt) - dateValue(left.action.createdAt));
+  const latest = candidates[0];
+  if (!latest?.decision) return null;
+  const ageDays = (now.getTime() - dateValue(latest.action.createdAt)) / 86_400_000;
+  const suppressionDays = latest.decision === "not_relevant" ? 90 : 28;
+  return ageDays >= 0 && ageDays <= suppressionDays ? latest.decision : null;
+}
+
 export function inferProductFamilyHypothesis(context: DailyRecommendationContext): ProductFamilyHypothesis {
   const approved = approvedModel(context.models);
   if (approved) {
@@ -506,7 +536,7 @@ export function buildDailyRecommendation(context: DailyRecommendationContext): D
     actionType = (overdue.actionType as DailyRecommendation["actionType"]) || "account_review";
     confidence = "high";
     dueDays = 1;
-  } else if (signal && !signal.actionState?.hasOpenAction) {
+  } else if (signal && !signal.actionState?.hasOpenAction && !signal.actionState?.hasClosedAction) {
     kind = "fresh_signal";
     score = (signal.urgency === "hot" ? 100 : 88) + baseScore(account) + confidenceRank(signal.confidence) * 2;
     recommendedAction = signal.suggestedAction?.trim() || `Validate “${signal.title}” with the account owner or customer and capture what it changes commercially.`;
@@ -585,9 +615,32 @@ export function buildDailyRecommendation(context: DailyRecommendationContext): D
     dueDays = 10;
   }
 
+  const currentKindIdentity = `-${account.id}-${kind}-`;
+  const hasCurrentDecisionAction = openActions.some(action =>
+    action.notes?.includes(`[fp_daily:fp-${context.weekLabel}-`) &&
+    action.notes.includes(currentKindIdentity),
+  );
+  const highPriorityCanCoexist = [
+    "overdue_action",
+    "returned_model",
+    "manager_review",
+    "fresh_signal",
+    "advance_pursuit",
+  ].includes(kind);
+  if (openActions.length > 0 && !hasCurrentDecisionAction && !highPriorityCanCoexist) {
+    // Existing commitments stay in the dedicated FP action dock. Do not
+    // create a second generic commitment for the same account.
+    return null;
+  }
+
   const recommendationKey = `fp-${context.weekLabel}-${account.id}-${kind}-${sourceType ?? "account"}-${sourceId ?? 0}`;
   const recorded = feedbackAction(context.actions, recommendationKey);
-  const disposition = recorded ? actionDecision(recorded.notes, recommendationKey) ?? (CLOSED_RECOMMENDATION_STATUSES.has(recorded.status) ? "rejected" : "accepted") : "pending";
+  const recentDisposition = recorded
+    ? null
+    : recentRecommendationDisposition(context.actions, account.id, kind, now);
+  const disposition = recorded
+    ? actionDecision(recorded.notes, recommendationKey) ?? (CLOSED_RECOMMENDATION_STATUSES.has(recorded.status) ? "rejected" : "accepted")
+    : recentDisposition ?? "pending";
   const modelForSource = latest ?? approved;
   const sources = buildSources(context, signal, modelForSource, overdue);
   if (sources.length === 0) {
