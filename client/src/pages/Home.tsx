@@ -25,6 +25,9 @@ import OutreachEmailModal from "@/components/OutreachEmailModal";
 import AIProjectSearch from "@/components/AIProjectSearch";
 import ApolloContactSearch from "@/components/ApolloContactSearch";
 import ContractorPatterns from "@/components/ContractorPatterns";
+import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
+import { useAwardedProjectFullPotentialContexts, useFullPotentialProjectContexts } from "@/hooks/useFullPotentialProjectContexts";
+import { summarizeProjectAccountContexts } from "@/lib/fullPotentialProjectContext";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -799,6 +802,19 @@ export default function Home() {
     { enabled: isAuthenticated }
    );
 
+  const dashboardProjectIds = useMemo(
+    () => ((fullReport?.projects ?? []) as Array<{ id: number }>).map(project => Number(project.id)),
+    [fullReport?.projects],
+  );
+  const { contextsByProjectId } = useFullPotentialProjectContexts(
+    dashboardProjectIds,
+    isAuthenticated && !!fullReport,
+  );
+  const { contextsByAwardedProjectId } = useAwardedProjectFullPotentialContexts(
+    isAuthenticated && !!fullReport,
+    500,
+  );
+
   // Once data loads and we have a pending project, scroll to it
   useEffect(() => {
     if (!pendingProjectId || reportLoading || !fullReport) return;
@@ -888,6 +904,10 @@ export default function Home() {
   if (reportLoading || !fullReport) return <LoadingPage />;
 
   const { report, projects, contacts, drillingCampaigns, awardedProjects, lifecycleCounts } = fullReport;
+  const projectsWithAccountContext = (projects as ProjectData[]).map(project => ({
+    ...project,
+    fullPotentialContext: contextsByProjectId.get(project.id) ?? null,
+  }));
 
   const actionItems: string[] = (report.actionItems as string[]) ?? [];
 
@@ -920,7 +940,7 @@ export default function Home() {
   );
 
   const personalizedProjects = scoreAndRankProjects(
-    projects as ProjectData[],
+    projectsWithAccountContext,
     profileData,
     feedbackData,
     blNameToIdMap
@@ -1031,6 +1051,9 @@ export default function Home() {
   const hotProjects = laneFiltered.filter((p: ProjectData) => p.priority === "hot");
   const warmProjects = laneFiltered.filter((p: ProjectData) => p.priority === "warm");
   const coldProjects = laneFiltered.filter((p: ProjectData) => p.priority === "cold");
+  const accountRouteMetrics = summarizeProjectAccountContexts(
+    laneFiltered.map((project: ProjectData) => project.fullPotentialContext),
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -1467,12 +1490,12 @@ export default function Home() {
               <p className="text-sm text-foreground/70">{report.executiveSummaryChanges}</p>
             </div>
 
-            {/* KPI Cards — 4 focused metrics */}
+            {/* KPI Cards — buying-account route metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <KPICard value={businessLineFiltered.length} label="Your Projects" accent="teal" />
-              <KPICard value={tier1Count} label="Action Now" accent="hot" />
-              <KPICard value={hotProjects.length} label="Hot Priority" accent="gold" />
-              <KPICard value={businessLineFiltered.filter((p: any) => p.isNew).length} label="New This Week" accent="warm" />
+              <KPICard value={accountRouteMetrics.matchedAccounts} label="Matched Buying Accounts" accent="teal" />
+              <KPICard value={accountRouteMetrics.confirmedRoutes} label="Confirmed Account Routes" accent="gold" />
+              <KPICard value={accountRouteMetrics.likelyRoutes} label="Likely Routes to Validate" accent="warm" />
+              <KPICard value={accountRouteMetrics.unresolvedRoutes} label="Needs Account Resolution" accent="hot" />
             </div>
 
             {/* Closing Soon — Live Tenders summary in overview */}
@@ -1597,6 +1620,7 @@ export default function Home() {
                     <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Project</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Value</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Winning Contractor</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Full Potential Account</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Location</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Stage</th>
                     <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Opportunity</th>
@@ -1611,6 +1635,13 @@ export default function Home() {
                         <td className="px-4 py-3 font-semibold text-navy">{ap.project}</td>
                         <td className="px-4 py-3 font-medium">{ap.value}</td>
                         <td className="px-4 py-3">{ap.winningContractor}</td>
+                        <td className="px-4 py-3 min-w-[250px]">
+                          <FullPotentialAccountContext
+                            context={contextsByAwardedProjectId.get(Number(ap.id))}
+                            compact
+                            showEmpty
+                          />
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">{ap.location}</td>
                         <td className="px-4 py-3 text-muted-foreground">{ap.stage}</td>
                         <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${oppClass}`}>{ap.opportunity}</span></td>

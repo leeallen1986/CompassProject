@@ -21,6 +21,8 @@ import { Separator } from "@/components/ui/separator";
 import { getLoginUrl } from "@/const";
 import ScopeBar, { type ScopeMode } from "@/components/ScopeBar";
 import { LaneBadge } from "@/components/LaneBadge";
+import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
+import { useFullPotentialProjectContexts } from "@/hooks/useFullPotentialProjectContexts";
 
 // ── Sykes Pump Range Section ──
 const SYKES_SERIES_LABELS: Record<string, { short: string; color: string; models: string }> = {
@@ -449,6 +451,8 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
         {project?.name || action.projectName || action.title}
       </h3>
 
+      <FullPotentialAccountContext context={project?.fullPotentialContext} compact />
+
       {/* Short pitch */}
       <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{pitch}</p>
 
@@ -524,6 +528,7 @@ function CompactProjectRow({
             {project.overview.slice(0, 80)}
           </div>
         )}
+        <FullPotentialAccountContext context={project.fullPotentialContext} compact />
       </div>
 
       {/* Location */}
@@ -653,8 +658,24 @@ export default function ThisWeek() {
     { enabled: isAuthenticated, staleTime: 10 * 60 * 1000 }
   );
 
+  const accountContextProjectIds = useMemo(() => [
+    ...((summary?.topProjects ?? []) as Array<{ id: number }>).map(project => Number(project.id)),
+    ...((closingSoonProjects ?? []) as Array<{ id: number }>).map(project => Number(project.id)),
+  ], [summary?.topProjects, closingSoonProjects]);
+  const { contextsByProjectId } = useFullPotentialProjectContexts(
+    accountContextProjectIds,
+    isAuthenticated,
+  );
+
   // ── Destructure summary ──
-  const topProjects: any[] = summary?.topProjects ?? [];
+  const rawTopProjects: any[] = summary?.topProjects ?? [];
+  const topProjects = useMemo(
+    () => rawTopProjects.map(project => ({
+      ...project,
+      fullPotentialContext: contextsByProjectId.get(Number(project.id)) ?? null,
+    })),
+    [rawTopProjects, contextsByProjectId],
+  );
   const suggestedActions: any[] = summary?.suggestedActions ?? [];
   const stats = summary?.stats ?? {
     totalInScope: 0, hotCount: 0, warmCount: 0,
@@ -702,10 +723,13 @@ export default function ThisWeek() {
   }, [scopedProjects]);
 
   const closingSoon = useMemo(() => {
-    return (closingSoonProjects ?? []).filter((p: any) =>
-      p.priority === "hot" || p.priority === "warm"
-    );
-  }, [closingSoonProjects]);
+    return (closingSoonProjects ?? [])
+      .filter((p: any) => p.priority === "hot" || p.priority === "warm")
+      .map((project: any) => ({
+        ...project,
+        fullPotentialContext: contextsByProjectId.get(Number(project.id)) ?? null,
+      }));
+  }, [closingSoonProjects, contextsByProjectId]);
 
   // Top 3 Actions — from suggestedActions, enriched with project data
   const topActions = useMemo(() => {
