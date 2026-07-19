@@ -654,7 +654,7 @@ export function resolveFullPotentialCandidate(
 
   const relationScore = relationshipConfidence(candidate);
   const exactMatch = Boolean(exact);
-  const method = exactMatch ? termMethod(selected.term) : selected.method;
+  const method: FullPotentialMatchMethod = "method" in selected ? selected.method as FullPotentialMatchMethod : termMethod(selected.term);
   const certainty = certaintyFor(selected.score, relationScore, exactMatch);
   const accountRuntime = index.runtimeByAccountId.get(account.id) ?? {};
 
