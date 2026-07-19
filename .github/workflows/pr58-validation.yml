@@ -23,6 +23,23 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Materialise hardened application tree
+        run: python3 scripts/pr58_harden.py
       - run: pnpm tsc --noEmit
       - run: pnpm build
-      - run: pnpm exec vitest run server/fullPotentialDailyActivation.shared.test.ts
+      - run: >-
+          pnpm exec vitest run
+          server/fullPotentialDailyActivation.shared.test.ts
+          server/fullPotentialDailyActivation.http.test.ts
+      - name: Package hardened source files
+        run: |
+          mkdir -p /tmp/pr58-hardened/server
+          cp server/fullPotentialDailyActivation.shared.ts /tmp/pr58-hardened/server/
+          cp server/fullPotentialDailyActivation.ts /tmp/pr58-hardened/server/
+          cp server/fullPotentialDailyActivation.shared.test.ts /tmp/pr58-hardened/server/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr58-hardened-source
+          path: /tmp/pr58-hardened
+          if-no-files-found: error
+          retention-days: 1
