@@ -1052,7 +1052,7 @@ export default function Home() {
   const warmProjects = laneFiltered.filter((p: ProjectData) => p.priority === "warm");
   const coldProjects = laneFiltered.filter((p: ProjectData) => p.priority === "cold");
   const accountRouteMetrics = summarizeProjectAccountContexts(
-    laneFiltered.map((project: ProjectData) => project.fullPotentialContext),
+    filteredProjects.map((project: ProjectData) => project.fullPotentialContext),
   );
 
   return (
@@ -1639,7 +1639,6 @@ export default function Home() {
                           <FullPotentialAccountContext
                             context={contextsByAwardedProjectId.get(Number(ap.id))}
                             compact
-                            showEmpty
                           />
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{ap.location}</td>
