@@ -26,6 +26,12 @@ import {
   handleUpdateFullPotentialRelationship,
   handleUpsertFullPotentialModelLine,
 } from "../fullPotentialCommercialModel.http";
+import {
+  handleFullPotentialAccountNameMatch,
+  handleFullPotentialAwardedProjectMatches,
+  handleFullPotentialProjectMatch,
+  handleFullPotentialProjectMatches,
+} from "../fullPotentialAccountMatching.http";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -98,6 +104,12 @@ async function startServer() {
   app.post("/api/full-potential/commercial-model/:modelId/submit", handleSubmitFullPotentialModel);
   app.post("/api/full-potential/commercial-model/:modelId/review", handleReviewFullPotentialModel);
   app.put("/api/full-potential/commercial-model/account/:accountId/relationship", handleUpdateFullPotentialRelationship);
+
+  // Read-only bridge between project/contractor intelligence and the canonical Full Potential account universe.
+  app.get("/api/full-potential/project-match/:projectId", handleFullPotentialProjectMatch);
+  app.get("/api/full-potential/project-matches", handleFullPotentialProjectMatches);
+  app.get("/api/full-potential/awarded-project-matches", handleFullPotentialAwardedProjectMatches);
+  app.get("/api/full-potential/account-match", handleFullPotentialAccountNameMatch);
 
   app.get("/api/warmup", handleWarmup);
   app.post("/api/pipeline/trigger", handleScheduledPipelineTrigger);
