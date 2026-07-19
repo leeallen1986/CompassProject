@@ -3,6 +3,7 @@ import {
   activationWeekLabel,
   buildDailyRecommendation,
   buildDeterministicAiBrief,
+  mergeGroundedAiBrief,
   inferProductFamilyHypothesis,
   ownerMatchesActivationUser,
   sortDailyRecommendations,
@@ -284,6 +285,54 @@ describe("Full Potential daily activation", () => {
     const recommendation = buildDailyRecommendation(context({ actions: [rejected] }));
     expect(recommendation?.kind).toBe("capture_evidence");
     expect(recommendation?.disposition).toBe("rejected");
+  });
+
+
+  it("does not create a generic rep recommendation while a submitted model awaits a manager", () => {
+    const submitted = approvedModel({ status: "submitted", approvedAt: null });
+    expect(buildDailyRecommendation(context({ models: [submitted] }))).toBeNull();
+  });
+
+  it("does not add another pursuit action while an existing FP commitment is open", () => {
+    const openAction: DailyActivationAction = {
+      id: 204,
+      accountId: 269,
+      userId: 42,
+      ownerName: "Ryan Pemberton",
+      actionType: "customer_call",
+      recommendedAction: "Validate the current pursuit with procurement.",
+      dueDate: "2026-07-25T00:00:00.000Z",
+      status: "not_started",
+      createdAt: "2026-07-19T00:00:00.000Z",
+    };
+    const claim = {
+      id: 301,
+      accountId: 269,
+      userId: 42,
+      status: "identified",
+      nextAction: "Confirm the decision process.",
+      createdAt: "2026-07-18T00:00:00.000Z",
+      updatedAt: "2026-07-18T00:00:00.000Z",
+    };
+
+    expect(buildDailyRecommendation(context({ actions: [openAction], claims: [claim] }))).toBeNull();
+  });
+
+  it("keeps AI narrative from changing deterministic commercial facts", () => {
+    const recommendation = buildDailyRecommendation(context())!;
+    const brief = mergeGroundedAiBrief(recommendation, {
+      accountBrief: "Ask the customer to validate the unknown evidence.",
+      questionsToAsk: ["What equipment is in the fleet?"],
+    });
+
+    expect(brief.generatedBy).toBe("ai");
+    expect(brief.accountBrief).toMatch(/validate the unknown evidence/i);
+    expect(brief.whyNow).toBe(recommendation.whyNow);
+    expect(brief.evidenceGaps).toEqual(recommendation.uncertainties);
+    expect(brief.productFamilyHypothesis).toEqual(recommendation.productHypothesis);
+    expect(brief.recommendedAction).toBe(recommendation.recommendedAction);
+    expect(brief.expectedOutcome).toBe(recommendation.expectedOutcome);
+    expect(brief.sources).toEqual(recommendation.sources);
   });
 
 });

@@ -164,12 +164,12 @@ export default function RecommendationCard({
       <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-3">
         <button
           type="button"
-          disabled={briefBusy}
+          disabled={briefBusy || !!brief}
           onClick={onGenerateBrief}
           className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
         >
           {briefBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
-          {brief ? "Refresh brief" : "AI brief"}
+          {brief ? "Brief ready" : "AI brief"}
         </button>
 
         {recommendation.disposition === "pending" ? (

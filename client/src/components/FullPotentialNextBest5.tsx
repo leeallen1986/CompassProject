@@ -133,7 +133,7 @@ export default function FullPotentialNextBest5() {
   if (!isAuthenticated || user?.role === "distributor") return null;
 
   return (
-    <div className="fixed bottom-20 left-4 z-40 w-[440px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl lg:bottom-4">
+    <div className="fixed bottom-20 left-4 z-40 w-[440px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl lg:bottom-16">
       <button
         type="button"
         onClick={() => setOpen(value => !value)}

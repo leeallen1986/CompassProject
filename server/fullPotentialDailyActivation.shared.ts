@@ -546,6 +546,10 @@ export function buildDailyRecommendation(context: DailyRecommendationContext): D
     sourceType = signal.sourceType;
     sourceId = signal.sourceId;
     dueDays = signal.urgency === "hot" ? 3 : 7;
+  } else if (latest?.status === "submitted") {
+    // The rep has completed the modelling step. A submitted model is now a
+    // manager decision, not another generic rep commitment.
+    return null;
   } else if (approved && activeClaims.length === 0) {
     kind = "activate_approved_model";
     score = 86 + baseScore(account);
@@ -625,7 +629,6 @@ export function buildDailyRecommendation(context: DailyRecommendationContext): D
     "returned_model",
     "manager_review",
     "fresh_signal",
-    "advance_pursuit",
   ].includes(kind);
   if (openActions.length > 0 && !hasCurrentDecisionAction && !highPriorityCanCoexist) {
     // Existing commitments stay in the dedicated FP action dock. Do not
@@ -705,6 +708,22 @@ export function sortDailyRecommendations(items: DailyRecommendation[]): DailyRec
     if (right.score !== left.score) return right.score - left.score;
     return left.accountName.localeCompare(right.accountName);
   });
+}
+
+export function mergeGroundedAiBrief(
+  recommendation: DailyRecommendation,
+  narrative: { accountBrief: string; questionsToAsk: string[] },
+): GroundedAiBrief {
+  const fallback = buildDeterministicAiBrief(recommendation);
+  return {
+    ...fallback,
+    generatedBy: "ai",
+    accountBrief: narrative.accountBrief.trim() || fallback.accountBrief,
+    questionsToAsk: narrative.questionsToAsk
+      .map(question => question.trim())
+      .filter(Boolean)
+      .slice(0, 7),
+  };
 }
 
 export function buildDeterministicAiBrief(recommendation: DailyRecommendation): GroundedAiBrief {
