@@ -1,0 +1,46 @@
+name: PR58 hardening v2
+
+on:
+  push:
+    branches:
+      - feat/full-potential-ai-daily-activation
+    paths:
+      - .github/workflows/pr58-hardening-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/full-potential-ai-daily-activation
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: python3 scripts/pr58_harden.py
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - run: >-
+          pnpm exec vitest run
+          server/fullPotentialDailyActivation.shared.test.ts
+          server/fullPotentialDailyActivation.http.test.ts
+      - name: Commit hardening
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server/fullPotentialDailyActivation.shared.ts \
+                  server/fullPotentialDailyActivation.ts \
+                  server/fullPotentialDailyActivation.shared.test.ts \
+                  server/fullPotentialDailyActivation.augmentation.d.ts
+          git commit -m "fix(fp): prevent repeated and duplicate recommendations" || true
+          git pull --rebase origin feat/full-potential-ai-daily-activation
+          git push origin HEAD:feat/full-potential-ai-daily-activation
