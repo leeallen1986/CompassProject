@@ -1,9 +1,9 @@
 name: PR60 Full Potential account matching validation
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/full-potential-project-account-matching
+      - main
 
 permissions:
   contents: read
