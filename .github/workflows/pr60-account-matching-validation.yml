@@ -1,16 +1,15 @@
 name: PR60 Full Potential account matching validation
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/full-potential-project-account-matching
+      - main
 
 permissions:
   contents: write
 
 jobs:
   validate-and-fix:
-    if: github.event.head_commit.message != 'fix(fp): narrow exact and fuzzy match result types'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -31,9 +30,10 @@ jobs:
           text = path.read_text()
           old = '  const method = exactMatch ? termMethod(selected.term) : selected.method;\n'
           new = '  const method = "method" in selected ? selected.method : termMethod(selected.term);\n'
-          if text.count(old) != 1:
-              raise SystemExit('expected matcher line was not found exactly once')
-          path.write_text(text.replace(old, new, 1))
+          if old in text:
+              path.write_text(text.replace(old, new, 1))
+          elif new not in text:
+              raise SystemExit('matcher type-narrowing location was not found')
           PY
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
@@ -45,6 +45,10 @@ jobs:
           server/fullPotentialAccountMatching.http.test.ts
       - name: Commit validated type fix
         run: |
+          if git diff --quiet -- server/fullPotentialAccountMatching.shared.ts; then
+            echo "Validated matcher already contains the type fix"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server/fullPotentialAccountMatching.shared.ts
