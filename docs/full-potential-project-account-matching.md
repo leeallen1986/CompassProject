@@ -64,7 +64,7 @@ The API uses four explicit states:
 
 The system never silently selects between equally plausible canonical accounts. Ambiguous candidates include the possible account IDs for review.
 
-Generic phrases such as “National Equipment Hire” are not fuzzy-matched or treated as an exact identity merely because an account adds a trailing geography such as “Australia”. Fuzzy matching requires distinctive company identity tokens and a clear score margin.
+Generic phrases such as “National Equipment Hire” are not fuzzy-matched to longer operational descriptions. Legal-suffix and trailing-geography variants can still resolve as an exact identity when they represent the same recorded company name. Fuzzy matching otherwise requires distinctive company identity tokens and a clear score margin.
 
 ## Account context returned
 
