@@ -1,4 +1,4 @@
-name: PR60 Full Potential account matching validation
+name: PR60 final account matching validation
 
 on:
   pull_request:
