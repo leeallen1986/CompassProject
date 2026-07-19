@@ -1,0 +1,28 @@
+name: PR58 validation
+
+on:
+  push:
+    branches:
+      - feat/full-potential-ai-daily-activation
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - run: pnpm exec vitest run server/fullPotentialDailyActivation.shared.test.ts
