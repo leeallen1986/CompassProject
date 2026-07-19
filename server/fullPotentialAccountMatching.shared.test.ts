@@ -180,7 +180,7 @@ describe("Full Potential canonical account resolution", () => {
   it("refuses to fuzzy-match a generic company phrase", () => {
     const result = resolveFullPotentialCandidate(
       {
-        name: "National Equipment Hire",
+        name: "National Equipment Hire WA Operations",
         source: "project_contractor",
         role: "contractor",
         relationshipEvidence: "predicted",
