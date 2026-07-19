@@ -25,18 +25,41 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Apply matcher type narrowing
+      - name: Apply validated matcher safeguards
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('server/fullPotentialAccountMatching.shared.ts')
           text = path.read_text()
-          old = '  const method = exactMatch ? termMethod(selected.term) : selected.method;\n'
-          new = '  const method: FullPotentialMatchMethod = "method" in selected ? selected.method as FullPotentialMatchMethod : termMethod(selected.term);\n'
-          if old in text:
-              path.write_text(text.replace(old, new, 1))
-          elif new not in text:
+
+          old_method = '  const method = exactMatch ? termMethod(selected.term) : selected.method;\n'
+          new_method = '  const method: FullPotentialMatchMethod = "method" in selected ? selected.method as FullPotentialMatchMethod : termMethod(selected.term);\n'
+          if old_method in text:
+              text = text.replace(old_method, new_method, 1)
+          elif new_method not in text:
               raise SystemExit('matcher type-narrowing location was not found')
+
+          old_loop = '''  const bestByAccount = new Map<number, { term: FullPotentialMatchTerm; score: number }>();
+  for (const term of matches) {
+    const account = index.accountsById.get(term.canonicalAccountId);
+    if (!account) continue;
+    const score = clamp(96 + TERM_KIND_BONUS[term.kind] + stateScore(candidate.state, account.state));
+'''
+          new_loop = '''  const bestByAccount = new Map<number, { term: FullPotentialMatchTerm; score: number }>();
+  const exactCandidateName = normalizeCompanyName(candidate.name);
+  const candidateHasDistinctiveIdentity = significantCompanyTokens(exactCandidateName).length > 0;
+  for (const term of matches) {
+    const account = index.accountsById.get(term.canonicalAccountId);
+    if (!account) continue;
+    if (!candidateHasDistinctiveIdentity && normalizeCompanyName(term.value) !== exactCandidateName) continue;
+    const score = clamp(96 + TERM_KIND_BONUS[term.kind] + stateScore(candidate.state, account.state));
+'''
+          if old_loop in text:
+              text = text.replace(old_loop, new_loop, 1)
+          elif new_loop not in text:
+              raise SystemExit('generic-name exact-match safeguard location was not found')
+
+          path.write_text(text)
           PY
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
@@ -55,16 +78,16 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           exit 0
       - if: steps.tests.outputs.status == '0'
-        name: Commit validated type fix
+        name: Commit validated matcher safeguards
         run: |
           if git diff --quiet -- server/fullPotentialAccountMatching.shared.ts; then
-            echo "Validated matcher already contains the type fix"
+            echo "Validated matcher already contains the safeguards"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server/fullPotentialAccountMatching.shared.ts
-          git commit -m "fix(fp): narrow exact and fuzzy match result types"
+          git commit -m "fix(fp): harden canonical account matching safeguards"
           git push origin HEAD:feat/full-potential-project-account-matching
 
   test-diagnostics:
