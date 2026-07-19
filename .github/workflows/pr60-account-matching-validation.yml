@@ -12,9 +12,6 @@ jobs:
   validate-and-fix:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      tsc_status: ${{ steps.tsc.outputs.status }}
-      tsc_output: ${{ steps.tsc.outputs.text }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,36 +29,21 @@ jobs:
           path = Path('server/fullPotentialAccountMatching.shared.ts')
           text = path.read_text()
           old = '  const method = exactMatch ? termMethod(selected.term) : selected.method;\n'
-          new = '  const method = "method" in selected ? selected.method : termMethod(selected.term);\n'
+          new = '  const method: FullPotentialMatchMethod = "method" in selected ? selected.method as FullPotentialMatchMethod : termMethod(selected.term);\n'
           if old in text:
               path.write_text(text.replace(old, new, 1))
           elif new not in text:
               raise SystemExit('matcher type-narrowing location was not found')
           PY
       - run: pnpm install --frozen-lockfile
-      - id: tsc
-        shell: bash
-        run: |
-          set +e
-          OUTPUT="$(pnpm tsc --noEmit 2>&1)"
-          STATUS=$?
-          {
-            echo "status=$STATUS"
-            echo "text<<EOF"
-            echo "$OUTPUT"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          exit 0
-      - if: steps.tsc.outputs.status == '0'
-        run: pnpm build
-      - if: steps.tsc.outputs.status == '0'
-        run: >-
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - run: >-
           pnpm exec vitest run
           server/testDatabaseSafety.test.ts
           server/fullPotentialAccountMatching.shared.test.ts
           server/fullPotentialAccountMatching.http.test.ts
-      - if: steps.tsc.outputs.status == '0'
-        name: Commit validated type fix
+      - name: Commit validated type fix
         run: |
           if git diff --quiet -- server/fullPotentialAccountMatching.shared.ts; then
             echo "Validated matcher already contains the type fix"
@@ -72,15 +54,3 @@ jobs:
           git add server/fullPotentialAccountMatching.shared.ts
           git commit -m "fix(fp): narrow exact and fuzzy match result types"
           git push origin HEAD:feat/full-potential-project-account-matching
-
-  typecheck-diagnostics:
-    needs: validate-and-fix
-    if: needs.validate-and-fix.outputs.tsc_status != '0'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print TypeScript errors
-        run: |
-          cat <<'EOF'
-          ${{ needs.validate-and-fix.outputs.tsc_output }}
-          EOF
-          exit 1
