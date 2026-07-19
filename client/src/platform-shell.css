@@ -1,0 +1,22 @@
+.platform-page-content.platform-hide-legacy-header > .min-h-screen > header:first-child {
+  display: none;
+}
+
+.platform-page-content.platform-hide-legacy-header > .min-h-screen {
+  min-height: calc(100vh - 4rem);
+}
+
+.platform-page-content.platform-pursuits-toolbar > .min-h-screen > header:first-child > .container > :first-child {
+  display: none;
+}
+
+.platform-page-content.platform-pursuits-toolbar > .min-h-screen > header:first-child > .container {
+  justify-content: flex-end;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.platform-page-content.platform-pursuits-toolbar > .min-h-screen > header:first-child {
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: none;
+}

@@ -9,58 +9,59 @@ import FullPotentialPilotLink from "./components/FullPotentialPilotLink";
 import FullPotentialRentalHireLink from "./components/FullPotentialRentalHireLink";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ThisWeek from "./pages/ThisWeekWithFullPotential";
-import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import Settings from "./pages/Settings";
-import Pipeline from "./pages/Pipeline";
 import Admin from "./pages/Admin";
 import MyProfile from "./pages/MyProfile";
 import CollateralLibrary from "./pages/CollateralLibrary";
 import Campaigns from "./pages/Campaigns";
-import AccountAttack from "./pages/AccountAttack";
 import ProjectDetail from "./pages/ProjectDetail";
 import ContactValidation from "./pages/ContactValidation";
 import WaterfallHealth from "./pages/WaterfallHealth";
 import DeploymentDiagnostics from "./pages/DeploymentDiagnostics";
-import AccountPriors from "./pages/AccountPriors";
-import FullPotential from "./pages/FullPotential";
-import FullPotentialCommercialModel from "./pages/FullPotentialCommercialModel";
-import FullPotentialDataQuality from "./pages/FullPotentialDataQuality";
-import FullPotentialPilot from "./pages/FullPotentialPilot";
-import FullPotentialRentalHire from "./pages/FullPotentialRentalHire";
+import {
+  AccountIntelligenceRoute,
+  ExploreProjectsRoute,
+  FullPotentialCommercialModelRoute,
+  FullPotentialDataQualityRoute,
+  FullPotentialPilotRoute,
+  FullPotentialRentalHireRoute,
+  FullPotentialRoute,
+  PumpTargetsRoute,
+  PursuitsRoute,
+  ThisWeekRoute,
+} from "./pages/PlatformSalesRoutes";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={ThisWeek} />
-      <Route path={"/this-week"} component={ThisWeek} />
+      <Route path={"/"} component={ThisWeekRoute} />
+      <Route path={"/this-week"} component={ThisWeekRoute} />
       <Route path={"/project/:id"} component={ProjectDetail} />
-      <Route path={"/dashboard"} component={Home} />
+      <Route path={"/dashboard"} component={ExploreProjectsRoute} />
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
       <Route path={"/reset-password"} component={ResetPassword} />
       <Route path={"/onboarding"} component={Onboarding} />
       <Route path={"/settings"} component={Settings} />
-      <Route path={"/pipeline"} component={Pipeline} />
+      <Route path={"/pipeline"} component={PursuitsRoute} />
       <Route path={"/admin/deployment"} component={DeploymentDiagnostics} />
       <Route path={"/admin/waterfall"} component={WaterfallHealth} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/my-profile"} component={MyProfile} />
       <Route path={"/collateral"} component={CollateralLibrary} />
       <Route path={"/campaigns"} component={Campaigns} />
-      <Route path={"/account-attack"} component={AccountAttack} />
+      <Route path={"/account-attack"} component={AccountIntelligenceRoute} />
       <Route path={"/contact-validation"} component={ContactValidation} />
-      <Route path={"/account-priors"} component={AccountPriors} />
-      <Route path={"/full-potential/pilot"} component={FullPotentialPilot} />
-      <Route path={"/full-potential/commercial-model"} component={FullPotentialCommercialModel} />
-      <Route path={"/full-potential/data-quality"} component={FullPotentialDataQuality} />
-      <Route path={"/full-potential/rental-hire"} component={FullPotentialRentalHire} />
-      <Route path={"/full-potential"} component={FullPotential} />
+      <Route path={"/account-priors"} component={PumpTargetsRoute} />
+      <Route path={"/full-potential/pilot"} component={FullPotentialPilotRoute} />
+      <Route path={"/full-potential/commercial-model"} component={FullPotentialCommercialModelRoute} />
+      <Route path={"/full-potential/data-quality"} component={FullPotentialDataQualityRoute} />
+      <Route path={"/full-potential/rental-hire"} component={FullPotentialRentalHireRoute} />
+      <Route path={"/full-potential"} component={FullPotentialRoute} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
