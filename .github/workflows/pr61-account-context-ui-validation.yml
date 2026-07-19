@@ -29,6 +29,8 @@ jobs:
           else
             python scripts/apply_pr61_account_context_ui.py
           fi
+      - name: Apply final account-context safeguards
+        run: python scripts/finalize_pr61_account_context_ui.py
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
@@ -53,5 +55,5 @@ jobs:
             client/src/components/ProjectCard.tsx \
             client/src/pages/Home.tsx \
             client/src/pages/ThisWeek.tsx
-          git commit -m "feat(fp): connect project cards to Full Potential accounts"
+          git commit -m "fix(fp): align account metrics and unavailable-context states"
           git push origin HEAD:feat/full-potential-account-context-ui
