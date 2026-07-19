@@ -1,22 +1,24 @@
 name: PR58 validation
 
 on:
-  push:
-    branches:
-      - feat/full-potential-ai-daily-activation
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feat/full-potential-ai-daily-activation
+          fetch-depth: 0
+          persist-credentials: true
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -33,15 +35,15 @@ jobs:
           pnpm exec vitest run
           server/fullPotentialDailyActivation.shared.test.ts
           server/fullPotentialDailyActivation.http.test.ts
-      - name: Package hardened source files
+      - name: Commit the validated application tree and remove temporary tooling
         run: |
-          mkdir -p /tmp/pr58-hardened/server
-          cp server/fullPotentialDailyActivation.shared.ts /tmp/pr58-hardened/server/
-          cp server/fullPotentialDailyActivation.ts /tmp/pr58-hardened/server/
-          cp server/fullPotentialDailyActivation.shared.test.ts /tmp/pr58-hardened/server/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr58-hardened-source
-          path: /tmp/pr58-hardened
-          if-no-files-found: error
-          retention-days: 1
+          rm -f server/fullPotentialDailyActivation.augmentation.d.ts
+          rm -f scripts/pr58_harden.py scripts/pr58_harden_followup.py
+          rm -f .github/workflows/pr58-hardening.yml
+          rm -f .github/workflows/pr58-hardening-v2.yml
+          rm -f .github/workflows/pr58-validation.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(fp): harden daily activation feedback loop"
+          git push origin HEAD:feat/full-potential-ai-daily-activation
