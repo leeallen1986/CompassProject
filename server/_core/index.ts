@@ -26,6 +26,11 @@ import {
   handleUpdateFullPotentialRelationship,
   handleUpsertFullPotentialModelLine,
 } from "../fullPotentialCommercialModel.http";
+import {
+  handleGenerateFullPotentialDailyBrief,
+  handleGetFullPotentialDailyActivation,
+  handleRespondFullPotentialDailyActivation,
+} from "../fullPotentialDailyActivation.http";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -98,6 +103,10 @@ async function startServer() {
   app.post("/api/full-potential/commercial-model/:modelId/submit", handleSubmitFullPotentialModel);
   app.post("/api/full-potential/commercial-model/:modelId/review", handleReviewFullPotentialModel);
   app.put("/api/full-potential/commercial-model/account/:accountId/relationship", handleUpdateFullPotentialRelationship);
+
+  app.get("/api/full-potential/daily-activation", handleGetFullPotentialDailyActivation);
+  app.post("/api/full-potential/daily-activation/respond", handleRespondFullPotentialDailyActivation);
+  app.post("/api/full-potential/daily-activation/brief", handleGenerateFullPotentialDailyBrief);
 
   app.get("/api/warmup", handleWarmup);
   app.post("/api/pipeline/trigger", handleScheduledPipelineTrigger);
