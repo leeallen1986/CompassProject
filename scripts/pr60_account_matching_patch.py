@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ROUTERS = ROOT / "server" / "routers.ts"
+SHARED = ROOT / "server" / "fullPotentialAccountMatching.shared.ts"
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -79,5 +80,19 @@ new_report = '''        // Apply ML ranking if user is authenticated
 '''
 
 text = replace_once(text, old_report, new_report, "report full account context")
-
 ROUTERS.write_text(text)
+
+shared = SHARED.read_text()
+shared = replace_once(
+    shared,
+    '    const score = clamp(96 + TERM_KIND_BONUS[term.kind] + stateScore(candidate.state, account.state));\n',
+    '    const score = 91 + TERM_KIND_BONUS[term.kind] + stateScore(candidate.state, account.state);\n',
+    "state-aware exact score",
+)
+shared = replace_once(
+    shared,
+    '  if (exact && nameScore >= 96 && relationScore >= 85) return "confirmed";\n',
+    '  if (exact && nameScore >= 94 && relationScore >= 85) return "confirmed";\n',
+    "confirmed exact threshold",
+)
+SHARED.write_text(shared)
