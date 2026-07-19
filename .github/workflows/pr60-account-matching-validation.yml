@@ -12,6 +12,9 @@ jobs:
   validate-and-fix:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      test_status: ${{ steps.tests.outputs.status }}
+      test_output: ${{ steps.tests.outputs.text }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,12 +41,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
-      - run: >-
-          pnpm exec vitest run
-          server/testDatabaseSafety.test.ts
-          server/fullPotentialAccountMatching.shared.test.ts
-          server/fullPotentialAccountMatching.http.test.ts
-      - name: Commit validated type fix
+      - id: tests
+        shell: bash
+        run: |
+          set +e
+          OUTPUT="$(pnpm exec vitest run server/testDatabaseSafety.test.ts server/fullPotentialAccountMatching.shared.test.ts server/fullPotentialAccountMatching.http.test.ts 2>&1)"
+          STATUS=$?
+          {
+            echo "status=$STATUS"
+            echo "text<<EOF"
+            echo "$OUTPUT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+      - if: steps.tests.outputs.status == '0'
+        name: Commit validated type fix
         run: |
           if git diff --quiet -- server/fullPotentialAccountMatching.shared.ts; then
             echo "Validated matcher already contains the type fix"
@@ -54,3 +66,15 @@ jobs:
           git add server/fullPotentialAccountMatching.shared.ts
           git commit -m "fix(fp): narrow exact and fuzzy match result types"
           git push origin HEAD:feat/full-potential-project-account-matching
+
+  test-diagnostics:
+    needs: validate-and-fix
+    if: needs.validate-and-fix.outputs.test_status != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print test failures
+        run: |
+          cat <<'EOF'
+          ${{ needs.validate-and-fix.outputs.test_output }}
+          EOF
+          exit 1
