@@ -12,6 +12,9 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      tsc_status: ${{ steps.tsc.outputs.status }}
+      tsc_output: ${{ steps.tsc.outputs.text }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -20,10 +23,36 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tsc --noEmit
-      - run: pnpm build
-      - run: >-
+      - id: tsc
+        shell: bash
+        run: |
+          set +e
+          OUTPUT="$(pnpm tsc --noEmit 2>&1)"
+          STATUS=$?
+          {
+            echo "status=$STATUS"
+            echo "text<<EOF"
+            echo "$OUTPUT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+      - if: steps.tsc.outputs.status == '0'
+        run: pnpm build
+      - if: steps.tsc.outputs.status == '0'
+        run: >-
           pnpm exec vitest run
           server/testDatabaseSafety.test.ts
           server/fullPotentialAccountMatching.shared.test.ts
           server/fullPotentialAccountMatching.http.test.ts
+
+  typecheck-diagnostics:
+    needs: validate
+    if: needs.validate.outputs.tsc_status != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print TypeScript errors
+        run: |
+          cat <<'EOF'
+          ${{ needs.validate.outputs.tsc_output }}
+          EOF
+          exit 1
