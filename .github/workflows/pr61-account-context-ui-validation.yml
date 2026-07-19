@@ -1,16 +1,15 @@
 name: PR61 account context UI validation
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/full-potential-account-context-ui
+      - main
 
 permissions:
   contents: write
 
 jobs:
   validate-and-materialise:
-    if: github.event.head_commit.message != 'feat(fp): connect project cards to Full Potential accounts'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -23,8 +22,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Apply deterministic UI patch
-        run: python scripts/apply_pr61_account_context_ui.py
+      - name: Apply deterministic UI patch when needed
+        run: |
+          if grep -q 'FullPotentialAccountContext from' client/src/components/ProjectCard.tsx; then
+            echo "PR61 application patch is already materialised"
+          else
+            python scripts/apply_pr61_account_context_ui.py
+          fi
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
@@ -36,6 +40,13 @@ jobs:
           client/src/lib/fullPotentialPilot.test.ts
       - name: Commit validated application files
         run: |
+          if git diff --quiet -- \
+            client/src/components/ProjectCard.tsx \
+            client/src/pages/Home.tsx \
+            client/src/pages/ThisWeek.tsx; then
+            echo "Validated application files are already committed"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
