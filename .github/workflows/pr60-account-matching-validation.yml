@@ -1,0 +1,29 @@
+name: PR60 Full Potential account matching validation
+
+on:
+  push:
+    branches:
+      - feat/full-potential-project-account-matching
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - run: >-
+          pnpm exec vitest run
+          server/testDatabaseSafety.test.ts
+          server/fullPotentialAccountMatching.shared.test.ts
+          server/fullPotentialAccountMatching.http.test.ts
