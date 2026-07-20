@@ -26,7 +26,18 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Apply deterministic guardrail patch
-        run: python scripts/apply_pr63_commercial_truth_guardrails.py
+        run: |
+          if ! python scripts/apply_pr63_commercial_truth_guardrails.py > /tmp/pr63-patch.log 2>&1; then
+            cat /tmp/pr63-patch.log
+            cp /tmp/pr63-patch.log docs/.pr63-patch-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr63-patch-error
+            git commit -m "ci: record PR63 patch failure"
+            git push origin HEAD:fix/commercial-truth-guardrails
+            exit 1
+          fi
+          cat /tmp/pr63-patch.log
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
@@ -42,6 +53,7 @@ jobs:
           rm -f scripts/apply_pr63_commercial_truth_guardrails.py
           rm -f .github/workflows/pr63-commercial-truth-guardrails.yml
           rm -f .github/workflows/pr62-explore-projects-validation.yml
+          rm -f docs/.pr63-patch-error
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
