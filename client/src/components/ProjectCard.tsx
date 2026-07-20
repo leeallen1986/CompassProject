@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { sanitizeContractorName, deriveWhyNow } from "@shared/utils";
+import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
+import type { ProjectFullPotentialContext } from "@/lib/fullPotentialProjectContext";
 
 // DB project shape from the API
 export interface ProjectData {
@@ -58,6 +60,7 @@ export interface ProjectData {
   // Pump lane action mode (from laneScoring.ts)
   pumpActionMode?: 'direct_pursue' | 'map_package' | 'find_site_contact' | 'watch_incumbent' | 'account_nurture' | 'reference_only';
   matchedAccountPrior?: string | null;
+  fullPotentialContext?: ProjectFullPotentialContext | null;
 }
 
 // ── Priority config ──
@@ -970,6 +973,8 @@ export default function ProjectCard({
           )}
         </div>
 
+        <FullPotentialAccountContext context={project.fullPotentialContext} compact />
+
         {/* Row 4: Why now */}
         <p className="text-xs text-foreground/70 leading-relaxed mb-3 line-clamp-2">
           {whyNow}
@@ -1062,6 +1067,10 @@ export default function ProjectCard({
             className="overflow-hidden"
           >
             <div className="px-4 sm:px-5 pb-5 border-t border-border space-y-5 pt-4">
+
+              {project.fullPotentialContext && (
+                <FullPotentialAccountContext context={project.fullPotentialContext} showEmpty />
+              )}
 
               {/* 1. Contacts — moved to top */}
               <div>
