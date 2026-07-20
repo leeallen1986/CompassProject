@@ -1,0 +1,46 @@
+name: PR63 review fixes validation
+
+on:
+  push:
+    branches:
+      - fix/commercial-truth-guardrails
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-materialise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/commercial-truth-guardrails
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply review fixes
+        run: python scripts/apply_pr63_review_fixes.py
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Guardrail and regression tests
+        run: >-
+          pnpm exec vitest run
+          server/commercialTruthGuardrails.test.ts
+          server/fullPotentialAccountMatching.composites.test.ts
+          server/fullPotentialAccountMatching.shared.test.ts
+          server/laneScoring.test.ts
+      - name: Commit clean validated tree
+        run: |
+          rm -f scripts/apply_pr63_review_fixes.py
+          rm -f .github/workflows/pr63-review-fixes.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(intelligence): tighten territory and accommodation guardrails"
+          git push origin HEAD:fix/commercial-truth-guardrails
