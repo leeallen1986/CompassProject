@@ -40,6 +40,22 @@ jobs:
               "'[\\\\b(residential|townhouse|housing estate|retirement village|social housing|affordable housing)\\\\b/",
               "'[/\\\\b(residential|townhouse|housing estate|retirement village|social housing|affordable housing)\\\\b/",
           )
+          old_initials = '''function companyInitials(value: string): string {
+            return significantCompanyTokens(value).map(token => token[0]).join("").toLowerCase();
+          }'''
+          new_initials = '''function companyInitials(value: string): string {
+            const words = String(value).match(/[A-Za-z0-9]+/g) ?? [];
+            const initials: string[] = [];
+            for (const word of words) {
+              if (/^(and|the)$/i.test(word)) continue;
+              if (/^[A-Z0-9]{2,5}$/.test(word)) initials.push(...word.toLowerCase().split(""));
+              else initials.push(word[0].toLowerCase());
+            }
+            return initials.join("");
+          }'''
+          if old_initials not in text:
+              raise SystemExit('companyInitials patch target not found')
+          text = text.replace(old_initials, new_initials, 1)
           path.write_text(text)
           PY
           if ! python scripts/apply_pr63_commercial_truth_guardrails.py > /tmp/pr63-patch.log 2>&1; then
