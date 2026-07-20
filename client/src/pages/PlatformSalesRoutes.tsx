@@ -5,6 +5,7 @@ import { hasPumpTargetAccess } from "@/lib/platformNavigation";
 import { trpc } from "@/lib/trpc";
 import AccountAttack from "./AccountAttack";
 import AccountPriors from "./AccountPriors";
+import ExploreProjects from "./ExploreProjects";
 import FullPotential from "./FullPotential";
 import FullPotentialCommercialModel from "./FullPotentialCommercialModel";
 import FullPotentialDataQuality from "./FullPotentialDataQuality";
@@ -24,9 +25,17 @@ export function ThisWeekRoute() {
 
 export function ExploreProjectsRoute() {
   return (
+    <PlatformPageShell>
+      <ExploreProjects />
+    </PlatformPageShell>
+  );
+}
+
+export function AllIntelligenceRoute() {
+  return (
     <PlatformPageShell
-      title="Explore Projects"
-      description="Project, contractor, awarded-work and tender intelligence for your territory and selling lane."
+      title="All Intelligence"
+      description="Broad project, contact, drilling, contractor and source research. Return to Explore Projects for the lane-gated sales board."
       legacyHeader="hide"
     >
       <Home />
