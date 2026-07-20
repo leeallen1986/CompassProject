@@ -228,10 +228,22 @@ export function closingWindowLabel(
 ): string {
   if (!value) return "Close date not confirmed";
   const closeDate = value instanceof Date ? value : new Date(value);
-  const time = closeDate.getTime();
-  if (Number.isNaN(time)) return "Close date not confirmed";
+  if (Number.isNaN(closeDate.getTime()) || Number.isNaN(now.getTime())) {
+    return "Close date not confirmed";
+  }
 
-  const days = Math.ceil((time - now.getTime()) / (24 * 60 * 60 * 1000));
+  const closeDay = Date.UTC(
+    closeDate.getUTCFullYear(),
+    closeDate.getUTCMonth(),
+    closeDate.getUTCDate(),
+  );
+  const currentDay = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+  const days = Math.round((closeDay - currentDay) / (24 * 60 * 60 * 1000));
+
   if (days < 0) return "Closed";
   if (days === 0) return "Closes today";
   if (days === 1) return "Closes tomorrow";
