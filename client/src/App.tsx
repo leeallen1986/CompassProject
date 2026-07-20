@@ -24,6 +24,7 @@ import WaterfallHealth from "./pages/WaterfallHealth";
 import DeploymentDiagnostics from "./pages/DeploymentDiagnostics";
 import {
   AccountIntelligenceRoute,
+  AllIntelligenceRoute,
   ExploreProjectsRoute,
   FullPotentialCommercialModelRoute,
   FullPotentialDataQualityRoute,
@@ -41,6 +42,7 @@ function Router() {
       <Route path={"/"} component={ThisWeekRoute} />
       <Route path={"/this-week"} component={ThisWeekRoute} />
       <Route path={"/project/:id"} component={ProjectDetail} />
+      <Route path={"/dashboard/intelligence"} component={AllIntelligenceRoute} />
       <Route path={"/dashboard"} component={ExploreProjectsRoute} />
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
