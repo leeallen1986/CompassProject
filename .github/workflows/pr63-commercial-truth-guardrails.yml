@@ -1,6 +1,9 @@
 name: PR63 commercial truth guardrails
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - fix/commercial-truth-guardrails
