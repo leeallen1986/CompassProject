@@ -695,7 +695,7 @@ export function portableAirOpportunityGate(
   // ── Hard suppression: generic accommodation ──
   // AI-inferred equipmentSignals cannot rescue building-only accommodation work.
   // A separately stated compressed-air package in project text may proceed.
-  const accommodationProjectPattern = /\b(student accommodation|student housing|university accommodation|university housing|dormitory|dormitories|apartment development|residential accommodation)\b/i;
+  const accommodationProjectPattern = /\b(student accommodation|student housing|university accommodation|university housing|dormitory|dormitories|apartment development|residential accommodation|residential development|townhouse|housing estate|retirement village|social housing|affordable housing)\b/i;
   const explicitAccommodationAirPackage = /\b(compressed air package|portable air package|air compressor package|compressor package|portable compressor|\d{2,4}\s*(?:cfm|psi)|pneumatic work package|abrasive blasting package)\b/i.test(textWithoutEquipment);
   if (accommodationProjectPattern.test(textWithoutEquipment) && !explicitAccommodationAirPackage) {
     return { pass: false, reason: "student/residential accommodation — no explicit portable air package", suppressionLevel: "suppress" };
@@ -712,7 +712,6 @@ export function portableAirOpportunityGate(
     // University/college: only suppress if name contains it (not just overview)
     // We check nameText separately below
     [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility|ambulance station)\b/, "health/community facility — no portable air demand"],
-    [/\b(residential|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no portable air demand"],
     [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre)\b/, "community/civic facility — no portable air demand"],
     // Sports / recreation venues — lighting upgrades, pool pumps, HVAC, fitout have no portable air path
     [/\b(arena|stadium|velodrome|aquatic centre|swimming pool|sports complex|oval upgrade|grandstand)\b/, "sports/recreation venue — no portable air demand"],

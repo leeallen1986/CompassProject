@@ -411,7 +411,7 @@ function hasDistinctiveIdentity(value: string): boolean {
 function normalizeStateSet(value: unknown): Set<string> {
   const normalized = normalizeCompanyName(value);
   if (!normalized) return new Set();
-  if (/\b(national|nationwide|australia|multi state|all states)\b/.test(normalized)) {
+  if (/^(national|nationwide|australia|australia wide|across australia|multi state|all states)$/.test(normalized)) {
     return new Set(["NATIONAL"]);
   }
   const aliases: Array<[RegExp, string]> = [

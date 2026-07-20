@@ -161,4 +161,20 @@ describe("composite contractor matching guardrails", () => {
     expect(candidates.map(candidate => candidate.name)).toContain("Metro Trains Melbourne");
     expect(candidates.some(candidate => candidate.name.startsWith("Alliance comprising"))).toBe(false);
   });
+
+  it("uses Western Australia as WA context rather than national context", () => {
+    const waAccount = { ...account(501, "Regional Mining Services"), state: "WA" };
+    const nswAccount = { ...account(502, "Regional Mining Services"), state: "NSW" };
+    const result = resolveFullPotentialCandidate({
+      name: "Regional Mining Services",
+      source: "project_contractor",
+      role: "contractor",
+      relationshipEvidence: "confirmed",
+      confidence: 95,
+      state: "Western Australia",
+    }, buildFullPotentialMatchIndex([waAccount, nswAccount], []));
+
+    expect(result.match?.accountId).toBe(501);
+    expect(result.unresolved).toBeNull();
+  });
 });
