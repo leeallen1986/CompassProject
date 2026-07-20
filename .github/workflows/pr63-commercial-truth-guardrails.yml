@@ -27,7 +27,7 @@ jobs:
           cache: pnpm
       - name: Apply deterministic guardrail patch
         run: |
-          rm -f docs/.pr63-patch-error
+          rm -f docs/.pr63-patch-error docs/.pr63-test-error
           python - <<'PY'
           from pathlib import Path
           path = Path('scripts/apply_pr63_commercial_truth_guardrails.py')
@@ -57,18 +57,28 @@ jobs:
       - run: pnpm tsc --noEmit
       - run: pnpm build
       - name: Guardrail and regression tests
-        run: >-
-          pnpm exec vitest run
-          server/commercialTruthGuardrails.test.ts
-          server/fullPotentialAccountMatching.composites.test.ts
-          server/fullPotentialAccountMatching.shared.test.ts
-          server/laneScoring.test.ts
+        run: |
+          if ! pnpm exec vitest run \
+            server/commercialTruthGuardrails.test.ts \
+            server/fullPotentialAccountMatching.composites.test.ts \
+            server/fullPotentialAccountMatching.shared.test.ts \
+            server/laneScoring.test.ts > /tmp/pr63-tests.log 2>&1; then
+            cat /tmp/pr63-tests.log
+            cp /tmp/pr63-tests.log docs/.pr63-test-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr63-test-error
+            git commit -m "ci: record PR63 test failure"
+            git push origin HEAD:fix/commercial-truth-guardrails
+            exit 1
+          fi
+          cat /tmp/pr63-tests.log
       - name: Commit validated application tree
         run: |
           rm -f scripts/apply_pr63_commercial_truth_guardrails.py
           rm -f .github/workflows/pr63-commercial-truth-guardrails.yml
           rm -f .github/workflows/pr62-explore-projects-validation.yml
-          rm -f docs/.pr63-patch-error
+          rm -f docs/.pr63-patch-error docs/.pr63-test-error
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
