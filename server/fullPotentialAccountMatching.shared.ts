@@ -166,7 +166,7 @@ export interface UnresolvedFullPotentialCandidate {
   candidateSource: FullPotentialCandidateSource;
   candidateRole: FullPotentialCandidateRole;
   relationshipEvidence: FullPotentialRelationshipEvidence;
-  reason: "no_match" | "ambiguous_match" | "weak_match";
+  reason: "no_match" | "ambiguous_match" | "weak_match" | "composite_name";
   possibleAccountIds: number[];
   bestScore: number;
 }
@@ -223,6 +223,16 @@ const GENERIC_COMPANY_TOKENS = new Set([
   "systems",
   "resources",
   "operations",
+  "joint",
+  "venture",
+  "jv",
+  "alliance",
+  "comprising",
+  "package",
+  "packages",
+  "consortium",
+  "partner",
+  "partners",
   "the",
   "and",
 ]);
@@ -306,6 +316,91 @@ export function significantCompanyTokens(value: unknown): string[] {
   return normalizeCompanyName(value)
     .split(" ")
     .filter(token => token.length >= 3 && !GENERIC_COMPANY_TOKENS.has(token));
+}
+
+export interface ParsedContractorIdentity {
+  originalName: string;
+  isComposite: boolean;
+  operatingNames: string[];
+  parentNames: string[];
+}
+
+function companyInitials(value: string): string {
+  const words = String(value).match(/[A-Za-z0-9]+/g) ?? [];
+  const initials: string[] = [];
+  for (const word of words) {
+    if (/^(and|the)$/i.test(word)) continue;
+    if (/^[A-Z0-9]{2,5}$/.test(word)) initials.push(...word.toLowerCase().split(""));
+    else initials.push(word[0].toLowerCase());
+  }
+  return initials.join("");
+}
+
+function splitParentheticalIdentity(value: string): {
+  operatingName: string;
+  parentName: string | null;
+} {
+  const match = value.trim().match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+  if (!match) return { operatingName: value.trim(), parentName: null };
+  const base = match[1].trim();
+  const inside = match[2].trim();
+  const normalisedInside = normalizeCompanyName(inside);
+  const normalisedBase = normalizeCompanyName(base);
+  const metadata = /^asx\s*:/i.test(inside)
+    || normalisedBase.includes(normalisedInside)
+    || (normalisedInside.length >= 2
+      && normalisedInside.length <= 8
+      && !normalisedInside.includes(" ")
+      && companyInitials(base) === normalisedInside);
+  return metadata
+    ? { operatingName: base, parentName: null }
+    : { operatingName: base, parentName: inside };
+}
+
+function cleanContractorParticipant(value: string): string {
+  return value
+    .replace(/^\s*(?:alliance\s+comprising|consortium\s+comprising|comprising)\s+/i, "")
+    .replace(/^\s*(?:and|the)\s+/i, "")
+    .replace(/\b(?:joint venture|consortium|alliance)\b\s*$/i, "")
+    .replace(/^[,;\s]+|[,;\s]+$/g, "")
+    .trim();
+}
+
+/**
+ * Split multi-party contractor labels before account matching. Parent/group text is
+ * retained as lower-confidence context and the whole composite is never fuzzy-matched.
+ */
+export function parseContractorIdentity(value: unknown): ParsedContractorIdentity {
+  const originalName = String(value ?? "").trim();
+  if (!originalName) return { originalName, isComposite: false, operatingNames: [], parentNames: [] };
+
+  const hasCompositeMarker = /\b(joint venture|\bjv\b|alliance|consortium|comprising)\b/i.test(originalName)
+    || /[,;]/.test(originalName)
+    || /[–—]/.test(originalName);
+  const stripped = originalName
+    .replace(/^\s*(?:alliance\s+comprising|consortium\s+comprising|comprising)\s+/i, "")
+    .replace(/\b(?:joint venture|consortium|alliance)\b\s*$/i, "")
+    .trim();
+  const rawParts = hasCompositeMarker
+    ? stripped.split(/\s*,\s*|\s*;\s*|\s*[–—]\s*|\s+and\s+/i)
+    : [stripped];
+
+  const operatingNames: string[] = [];
+  const parentNames: string[] = [];
+  for (const rawPart of rawParts) {
+    const participant = cleanContractorParticipant(rawPart);
+    if (!participant) continue;
+    const parsed = splitParentheticalIdentity(participant);
+    if (parsed.operatingName && !operatingNames.includes(parsed.operatingName)) operatingNames.push(parsed.operatingName);
+    if (parsed.parentName && !parentNames.includes(parsed.parentName)) parentNames.push(parsed.parentName);
+  }
+
+  return {
+    originalName,
+    isComposite: hasCompositeMarker || parentNames.length > 0 || operatingNames.length > 1,
+    operatingNames,
+    parentNames,
+  };
 }
 
 function hasDistinctiveIdentity(value: string): boolean {
@@ -573,6 +668,21 @@ export function resolveFullPotentialCandidate(
   index: FullPotentialMatchIndex,
 ): { match: FullPotentialAccountMatch | null; unresolved: UnresolvedFullPotentialCandidate | null } {
   const normalizedCandidate = normalizeCompanyName(candidate.name);
+  const parsedIdentity = parseContractorIdentity(candidate.name);
+  if (parsedIdentity.isComposite) {
+    return {
+      match: null,
+      unresolved: {
+        candidateName: candidate.name,
+        candidateSource: candidate.source,
+        candidateRole: candidate.role,
+        relationshipEvidence: candidate.relationshipEvidence,
+        reason: "composite_name",
+        possibleAccountIds: [],
+        bestScore: 0,
+      },
+    };
+  }
   if (normalizedCandidate.length < 2) {
     return {
       match: null,
@@ -716,6 +826,34 @@ function dedupeCandidates(candidates: FullPotentialAccountCandidate[]): FullPote
   return [...byKey.values()].sort((a, b) => candidateQuality(b) - candidateQuality(a));
 }
 
+function pushParsedContractorCandidates(
+  candidates: FullPotentialAccountCandidate[],
+  name: string,
+  template: Omit<FullPotentialAccountCandidate, "name">,
+): void {
+  const parsed = parseContractorIdentity(name);
+  const operatingNames = parsed.operatingNames.length > 0 ? parsed.operatingNames : [name.trim()];
+  for (const operatingName of operatingNames) {
+    candidates.push({
+      ...template,
+      name: operatingName,
+      detail: parsed.isComposite
+        ? `${template.detail ?? "Contractor evidence"}; operating participant parsed from “${name}”`
+        : template.detail,
+    });
+  }
+  for (const parentName of parsed.parentNames) {
+    candidates.push({
+      ...template,
+      name: parentName,
+      role: "unknown",
+      relationshipEvidence: "historical",
+      confidence: Math.min(Number(template.confidence ?? 55), 60),
+      detail: `Parent/group context parsed from “${name}”; validate the operating buying entity`,
+    });
+  }
+}
+
 export function extractProjectAccountCandidates(
   project: ProjectLikeForFullPotentialMatching,
   options: {
@@ -728,8 +866,7 @@ export function extractProjectAccountCandidates(
   const candidates: FullPotentialAccountCandidate[] = [];
 
   if (options.awardedContractor?.trim()) {
-    candidates.push({
-      name: options.awardedContractor.trim(),
+    pushParsedContractorCandidates(candidates, options.awardedContractor.trim(), {
       source: "awarded_project",
       role: "winning_contractor",
       relationshipEvidence: "confirmed",
@@ -740,32 +877,23 @@ export function extractProjectAccountCandidates(
   }
 
   for (const linked of options.linkedContractors ?? []) {
-    candidates.push({
-      name: linked.name,
-      source: "contractor_registry",
+    const template = {
+      source: "contractor_registry" as const,
       role: normalizeRole(linked.role),
       relationshipEvidence: normalizeRelationshipEvidence(linked.status),
       confidence: linked.confidence ?? null,
       state,
       detail: linked.detail ?? null,
-    });
+    };
+    pushParsedContractorCandidates(candidates, linked.name, template);
     for (const alias of linked.aliases ?? []) {
-      candidates.push({
-        name: alias,
-        source: "contractor_registry",
-        role: normalizeRole(linked.role),
-        relationshipEvidence: normalizeRelationshipEvidence(linked.status),
-        confidence: linked.confidence ?? null,
-        state,
-        detail: linked.detail ?? null,
-      });
+      pushParsedContractorCandidates(candidates, alias, template);
     }
   }
 
   for (const contractor of project.contractors ?? []) {
     if (!contractor.name?.trim()) continue;
-    candidates.push({
-      name: contractor.name.trim(),
+    pushParsedContractorCandidates(candidates, contractor.name.trim(), {
       source: "project_contractor",
       role: normalizeRole(contractor.role ?? contractor.detail ?? "contractor"),
       relationshipEvidence: normalizeRelationshipEvidence(contractor.status),

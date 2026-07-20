@@ -23,6 +23,7 @@ import { getActiveBusinessLines } from "./pipelineDb";
 import { isAustralianRelevant } from "./geoFilter";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
 import { resolveTerritories, resolveBusinessLines, getPrimaryDimension } from "./canonicalMappings";
+import { hasConfiguredTerritoryInput, scopeProjectsToResolvedTerritories } from "./commercialTruthGuardrails";
 
 // ── Types ──
 
@@ -128,6 +129,9 @@ export interface UserContext {
   assignedBusinessLines: string[];
   sectorFocus: string[];
   hasPreferences: boolean;
+  /** Personalised recommendations fail closed when profile territory cannot be resolved. */
+  scopeResolved: boolean;
+  scopeIssue: "missing_profile" | "territory_not_configured" | "profile_lookup_failed" | "database_unavailable" | null;
   /** Rep name for rep-gated signal logic (e.g. portable_air_blasting_signal) */
   repName?: string | null;
 }
@@ -328,43 +332,60 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     assignedBusinessLines: [],
     sectorFocus: [],
     hasPreferences: false,
+    scopeResolved: !userId,
+    scopeIssue: userId ? "missing_profile" : null,
   };
   let userProfile: any = null;
   let userRepName: string | null = null;
-  if (userId && db) {
-    try {
-      userProfile = await getProfileByUserId(userId);
-      // Fetch user name for rep-gated signal logic
-      const userRow = await getUserById(userId);
-      userRepName = userRow?.name || null;
-      if (userProfile) {
-        // Use canonical resolver for territories and BLs
-        const resolvedTerritories = resolveTerritories(
-          userProfile.territories as string[] | string | null,
-          userProfile.sectorFocus as string[] | string | null
-        );
-        const resolvedBLs = resolveBusinessLines(
-          userProfile.assignedBusinessLines as string[] | string | null
-        );
-        userContext = {
-          territories: resolvedTerritories,
-          assignedBusinessLines: resolvedBLs,
-          sectorFocus: (userProfile.sectorFocus as string[]) || [],
-          hasPreferences:
-            resolvedTerritories.length > 0 || resolvedBLs.length > 0,
-          repName: userRepName,
-        };
+  if (userId) {
+    if (!db) {
+      userContext.scopeIssue = "database_unavailable";
+    } else {
+      try {
+        userProfile = await getProfileByUserId(userId);
+        const userRow = await getUserById(userId);
+        userRepName = userRow?.name || null;
+        if (userProfile) {
+          const territoryConfigured = hasConfiguredTerritoryInput(userProfile.territories);
+          const resolvedTerritories = territoryConfigured
+            ? resolveTerritories(
+                userProfile.territories as string[] | string | null,
+                userProfile.sectorFocus as string[] | string | null,
+              )
+            : [];
+          const resolvedBLs = resolveBusinessLines(
+            userProfile.assignedBusinessLines as string[] | string | null,
+          );
+          const scopeResolved = territoryConfigured && resolvedTerritories.length > 0;
+          userContext = {
+            territories: resolvedTerritories,
+            assignedBusinessLines: resolvedBLs,
+            sectorFocus: (userProfile.sectorFocus as string[]) || [],
+            hasPreferences: scopeResolved || resolvedBLs.length > 0,
+            scopeResolved,
+            scopeIssue: scopeResolved ? null : "territory_not_configured",
+            repName: userRepName,
+          };
+        }
+      } catch {
+        userContext.scopeResolved = false;
+        userContext.scopeIssue = "profile_lookup_failed";
       }
-    } catch { /* continue without preferences */ }
+    }
   }
 
   // ── 1. Top Priority Projects ──
   // Filter to Tier 1 and hot/warm Tier 2, then rank
-  const actionableProjects = activeProjects.filter(p => {
+  const baseActionableProjects = activeProjects.filter(p => {
     const tier = (p as any).actionTier as ActionTier | null;
     const priority = p.priority as "hot" | "warm" | "cold";
     return shouldIncludeInBrief(tier ?? "tier3_monitor", priority);
   });
+  const actionableProjects = scopeProjectsToResolvedTerritories(
+    baseActionableProjects,
+    userContext.territories,
+    !userId || userContext.scopeResolved,
+  );
 
   // ── Lane-aware scoring (laneScoring.ts — single source of truth) ──
   // Replaces mlRanker as the main ranker. mlRanker is now a ±5 pt tie-breaker only.
@@ -508,39 +529,9 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       return scoreB - scoreA;
     });
 
-  // ── Hard-filter by user's territory and assigned business lines ──
-  // Only apply when user has explicit preferences set
-  const stateKeywords: Record<string, string[]> = {
-    WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland", "newman", "geraldton", "bunbury", "broome"],
-    QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "rockhampton", "cairns", "bowen basin", "moranbah", "emerald"],
-    NSW: ["new south wales", "nsw", "sydney", "newcastle", "hunter valley", "wollongong", "broken hill", "orange", "dubbo", "mudgee"],
-    VIC: ["victoria", "vic", "melbourne", "geelong", "ballarat", "bendigo", "latrobe valley"],
-    SA: ["south australia", "sa", "adelaide", "olympic dam", "whyalla", "port augusta"],
-    NT: ["northern territory", "nt", "darwin", "alice springs", "tennant creek", "katherine"],
-    TAS: ["tasmania", "tas", "hobart", "launceston"],
-    ACT: ["australian capital territory", "act", "canberra"],
-    NATIONAL: ["national", "australia", "multi-state", "nationwide"],
-    OFFSHORE: ["offshore", "fpso", "nwshelf", "north west shelf", "browse", "timor sea", "bass strait"],
-  };
-
-  const locationMatchesTerritories = (location: string, territories: string[]): boolean => {
-    const loc = location.toLowerCase();
-    return territories.some(t => {
-      if (t.toUpperCase() === "NATIONAL") return true; // NATIONAL users see everything
-      const keywords = stateKeywords[t.toUpperCase()] || [t.toLowerCase()];
-      return keywords.some(kw => {
-        // Short keywords (<=3 chars) need word-boundary matching to avoid
-        // substring false positives (e.g. 'Orara Way' matching 'wa')
-        if (kw.length <= 3) {
-          const re = new RegExp(`\\b${kw}\\b`, "i");
-          return re.test(loc);
-        }
-        return loc.includes(kw);
-      });
-    });
-  };
-
-  if (userContext.territories.length > 0 || userContext.assignedBusinessLines.length > 0) {
+  // ── Hard-filter by assigned business lines ──
+  // Territory scope was applied before scoring so out-of-scope projects never influence rank.
+  if (userContext.assignedBusinessLines.length > 0) {
     // Build BL name → ID map for matching
     let blNameToId: Record<string, number> = {};
     try {
@@ -557,14 +548,6 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     );
 
     rankedProjects = rankedProjects.filter(p => {
-      // Territory check: resolved territories already expanded NATIONAL to all states
-      if (userContext.territories.length > 0 && userContext.territories.length < 9) {
-        // Only filter if not effectively national (< 9 states = not all of AU)
-        if (!locationMatchesTerritories(p.location, userContext.territories)) {
-          return false;
-        }
-      }
-
       // BL check: if user has assigned BLs and project has BL data, at least one must match
       if (userBLIds.size > 0) {
         const projectBLs = (p as any).matchedBusinessLines as number[] | null;

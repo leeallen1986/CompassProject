@@ -692,6 +692,15 @@ export function portableAirOpportunityGate(
   // For all other projects: use full text including equipment signals
   const text = isRenewableEnergyProject ? textWithoutEquipment : textWithEquipment;
 
+  // ── Hard suppression: generic accommodation ──
+  // AI-inferred equipmentSignals cannot rescue building-only accommodation work.
+  // A separately stated compressed-air package in project text may proceed.
+  const accommodationProjectPattern = /\b(student accommodation|student housing|university accommodation|university housing|dormitory|dormitories|apartment development|residential accommodation)\b/i;
+  const explicitAccommodationAirPackage = /\b(compressed air package|portable air package|air compressor package|compressor package|portable compressor|\d{2,4}\s*(?:cfm|psi)|pneumatic work package|abrasive blasting package)\b/i.test(textWithoutEquipment);
+  if (accommodationProjectPattern.test(textWithoutEquipment) && !explicitAccommodationAirPackage) {
+    return { pass: false, reason: "student/residential accommodation — no explicit portable air package", suppressionLevel: "suppress" };
+  }
+
   // ── Hard suppression: negative signals ──
   // These project types have no credible portable air direct-sale path.
   // IMPORTANT: Education/health patterns only fire if the project NAME contains the keyword,
@@ -703,7 +712,7 @@ export function portableAirOpportunityGate(
     // University/college: only suppress if name contains it (not just overview)
     // We check nameText separately below
     [/\b(hospital|aged care|nursing home|medical centre|community health|mental health facility|ambulance station)\b/, "health/community facility — no portable air demand"],
-    [/\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no portable air demand"],
+    [/\b(residential|townhouse|housing estate|retirement village|social housing|affordable housing)\b/, "residential development — no portable air demand"],
     [/\b(community centre|recreation centre|sports centre|library|museum|art gallery|cultural centre|civic centre)\b/, "community/civic facility — no portable air demand"],
     // Sports / recreation venues — lighting upgrades, pool pumps, HVAC, fitout have no portable air path
     [/\b(arena|stadium|velodrome|aquatic centre|swimming pool|sports complex|oval upgrade|grandstand)\b/, "sports/recreation venue — no portable air demand"],
@@ -741,7 +750,7 @@ export function portableAirOpportunityGate(
   }
   // University/college: only suppress if the project NAME itself is a university/college project
   // (not just because a university is mentioned as a partner in the overview)
-  if (/\b(university|college)\b/.test(nameText)) {
+  if (/\b(university|college)\b/.test(nameText) && !explicitAccommodationAirPackage) {
     return { pass: false, reason: 'university/college project — no portable air demand', suppressionLevel: 'suppress' };
   }
   // Health facility: also check name for 'health' to catch 'Osborne Park Health Campus' etc.
