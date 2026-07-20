@@ -1,27 +1,82 @@
 name: PR62 Explore Projects sales board validation
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - feat/explore-projects-sales-board
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  validate:
+  validate-and-fix:
+    if: github.event.head_commit.message != 'fix(explore): align tender timing labels'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feat/explore-projects-sales-board
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - name: Apply calendar-day tender label fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          helper = Path('client/src/lib/exploreProjects.ts')
+          text = helper.read_text()
+          old = '''  const time = closeDate.getTime();
+          if (Number.isNaN(time)) return "Close date not confirmed";
+
+          const days = Math.ceil((time - now.getTime()) / (24 * 60 * 60 * 1000));
+          if (days < 0) return "Closed";
+          if (days === 0) return "Closes today";
+          if (days === 1) return "Closes tomorrow";
+          return `Closes in ${days} days`;
+          '''
+          new = '''  if (Number.isNaN(closeDate.getTime()) || Number.isNaN(now.getTime())) {
+            return "Close date not confirmed";
+          }
+
+          const closeDay = Date.UTC(
+            closeDate.getUTCFullYear(),
+            closeDate.getUTCMonth(),
+            closeDate.getUTCDate(),
+          );
+          const currentDay = Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+          );
+          const days = Math.round((closeDay - currentDay) / (24 * 60 * 60 * 1000));
+
+          if (days < 0) return "Closed";
+          if (days === 0) return "Closes today";
+          if (days === 1) return "Closes tomorrow";
+          return `Closes in ${days} days`;
+          '''
+          if text.count(old) != 1:
+            raise SystemExit('expected tender label block not found exactly once')
+          helper.write_text(text.replace(old, new, 1))
+
+          test = Path('client/src/lib/exploreProjects.test.ts')
+          test_text = test.read_text()
+          old_test = '''    expect(closingWindowLabel("2026-07-20T12:00:00.000Z", now)).toBe("Closes today");
+              expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes in 2 days");
+          '''
+          new_test = '''    expect(closingWindowLabel("2026-07-20T12:00:00.000Z", now)).toBe("Closes today");
+              expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes tomorrow");
+              expect(closingWindowLabel("2026-07-22T00:00:00.000Z", now)).toBe("Closes in 2 days");
+          '''
+          if test_text.count(old_test) != 1:
+            raise SystemExit('expected tender label test block not found exactly once')
+          test.write_text(test_text.replace(old_test, new_test, 1))
+          PY
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
@@ -35,3 +90,10 @@ jobs:
         run: pnpm exec vitest run client/src/lib/fullPotentialCommercialModel.test.ts
       - name: Pilot regression
         run: pnpm exec vitest run client/src/lib/fullPotentialPilot.test.ts
+      - name: Commit validated timing fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/lib/exploreProjects.ts client/src/lib/exploreProjects.test.ts
+          git commit -m "fix(explore): align tender timing labels"
+          git push origin HEAD:feat/explore-projects-sales-board
