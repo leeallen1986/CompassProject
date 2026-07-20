@@ -1,6 +1,9 @@
 name: PR62 Explore Projects sales board validation
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - feat/explore-projects-sales-board
@@ -10,7 +13,7 @@ permissions:
 
 jobs:
   validate-and-fix:
-    if: github.event.head_commit.message != 'fix(explore): align tender timing labels'
+    if: github.event_name == 'pull_request' || github.event.head_commit.message != 'fix(explore): align tender timing labels'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -61,18 +64,20 @@ jobs:
           if (days === 1) return "Closes tomorrow";
           return `Closes in ${days} days`;'''
           text, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
+          if count == 1:
+            helper.write_text(text)
+          elif 'const closeDay = Date.UTC(' not in text:
             raise SystemExit(f'expected tender label block once, found {count}')
-          helper.write_text(text)
 
           test = Path('client/src/lib/exploreProjects.test.ts')
           test_text = test.read_text()
           old_line = '    expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes in 2 days");'
           new_lines = '''    expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes tomorrow");
               expect(closingWindowLabel("2026-07-22T00:00:00.000Z", now)).toBe("Closes in 2 days");'''
-          if test_text.count(old_line) != 1:
-            raise SystemExit(f'expected tender timing assertion once, found {test_text.count(old_line)}')
-          test.write_text(test_text.replace(old_line, new_lines, 1))
+          if old_line in test_text:
+            test.write_text(test_text.replace(old_line, new_lines, 1))
+          elif 'Closes tomorrow' not in test_text:
+            raise SystemExit('expected tender timing assertion was not found')
           PY
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
@@ -89,6 +94,10 @@ jobs:
         run: pnpm exec vitest run client/src/lib/fullPotentialPilot.test.ts
       - name: Commit validated timing fix
         run: |
+          if git diff --quiet -- client/src/lib/exploreProjects.ts client/src/lib/exploreProjects.test.ts; then
+            echo "Tender timing fix already committed"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/lib/exploreProjects.ts client/src/lib/exploreProjects.test.ts
