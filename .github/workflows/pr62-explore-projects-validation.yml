@@ -27,19 +27,20 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           helper = Path('client/src/lib/exploreProjects.ts')
           text = helper.read_text()
-          old = '''  const time = closeDate.getTime();
-          if (Number.isNaN(time)) return "Close date not confirmed";
-
-          const days = Math.ceil((time - now.getTime()) / (24 * 60 * 60 * 1000));
-          if (days < 0) return "Closed";
-          if (days === 0) return "Closes today";
-          if (days === 1) return "Closes tomorrow";
-          return `Closes in ${days} days`;
-          '''
-          new = '''  if (Number.isNaN(closeDate.getTime()) || Number.isNaN(now.getTime())) {
+          pattern = re.compile(
+              r'  const time = closeDate\.getTime\(\);\n'
+              r'  if \(Number\.isNaN\(time\)\) return "Close date not confirmed";\n\n'
+              r'  const days = Math\.ceil\(\(time - now\.getTime\(\)\) / \(24 \* 60 \* 60 \* 1000\)\);\n'
+              r'  if \(days < 0\) return "Closed";\n'
+              r'  if \(days === 0\) return "Closes today";\n'
+              r'  if \(days === 1\) return "Closes tomorrow";\n'
+              r'  return `Closes in \$\{days\} days`;'
+          )
+          replacement = '''  if (Number.isNaN(closeDate.getTime()) || Number.isNaN(now.getTime())) {
             return "Close date not confirmed";
           }
 
@@ -58,24 +59,20 @@ jobs:
           if (days < 0) return "Closed";
           if (days === 0) return "Closes today";
           if (days === 1) return "Closes tomorrow";
-          return `Closes in ${days} days`;
-          '''
-          if text.count(old) != 1:
-            raise SystemExit('expected tender label block not found exactly once')
-          helper.write_text(text.replace(old, new, 1))
+          return `Closes in ${days} days`;'''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+            raise SystemExit(f'expected tender label block once, found {count}')
+          helper.write_text(text)
 
           test = Path('client/src/lib/exploreProjects.test.ts')
           test_text = test.read_text()
-          old_test = '''    expect(closingWindowLabel("2026-07-20T12:00:00.000Z", now)).toBe("Closes today");
-              expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes in 2 days");
-          '''
-          new_test = '''    expect(closingWindowLabel("2026-07-20T12:00:00.000Z", now)).toBe("Closes today");
-              expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes tomorrow");
-              expect(closingWindowLabel("2026-07-22T00:00:00.000Z", now)).toBe("Closes in 2 days");
-          '''
-          if test_text.count(old_test) != 1:
-            raise SystemExit('expected tender label test block not found exactly once')
-          test.write_text(test_text.replace(old_test, new_test, 1))
+          old_line = '    expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes in 2 days");'
+          new_lines = '''    expect(closingWindowLabel("2026-07-21T12:00:00.000Z", now)).toBe("Closes tomorrow");
+              expect(closingWindowLabel("2026-07-22T00:00:00.000Z", now)).toBe("Closes in 2 days");'''
+          if test_text.count(old_line) != 1:
+            raise SystemExit(f'expected tender timing assertion once, found {test_text.count(old_line)}')
+          test.write_text(test_text.replace(old_line, new_lines, 1))
           PY
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
