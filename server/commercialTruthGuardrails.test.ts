@@ -18,8 +18,17 @@ describe("commercial truth territory scope", () => {
   it("uses location only when projectState is missing or unparseable", () => {
     expect(projectMatchesResolvedTerritories({ projectState: null, location: "Karratha, Western Australia" }, ["WA"]))
       .toBe(true);
+    expect(projectMatchesResolvedTerritories({ projectState: null, location: "Karratha, Western Australia" }, ["NSW"]))
+      .toBe(false);
     expect(projectMatchesResolvedTerritories({ projectState: "unknown", location: "Newcastle, NSW" }, ["WA"]))
       .toBe(false);
+  });
+
+  it("does not confuse a named Australian state with national scope", () => {
+    expect(territoryCodesFromValue("Western Australia")).toEqual(["WA"]);
+    expect(territoryCodesFromValue("New South Wales, Australia")).toEqual(["NSW"]);
+    expect(territoryCodesFromValue("Australia")).toContain("WA");
+    expect(territoryCodesFromValue("Australia")).toContain("NSW");
   });
 
   it("recognises offshore scope without treating it as every Australian territory", () => {
@@ -66,14 +75,32 @@ describe("Portable Air accommodation guardrail", () => {
     }
   });
 
-  it("allows a separately evidenced compressed-air work package", () => {
+  it("suppresses generic residential work without an explicit package", () => {
     const result = portableAirOpportunityGate({
+      ...base,
+      name: "Residential Apartment Development",
+      overview: "Multi-storey apartment construction.",
+      equipmentSignals: ["portable compressor"],
+    }, 90);
+
+    expect(result.pass).toBe(false);
+  });
+
+  it("allows a separately evidenced compressed-air work package", () => {
+    const student = portableAirOpportunityGate({
       ...base,
       name: "Student Accommodation Development — Compressed Air Package",
       overview: "Tender includes a specified 900 CFM portable compressor package for piling works.",
       equipmentSignals: [],
     }, 90);
+    const residential = portableAirOpportunityGate({
+      ...base,
+      name: "Residential Apartment Development — Compressor Package",
+      overview: "A separately scoped 900 CFM portable compressor package is specified for piling works.",
+      equipmentSignals: [],
+    }, 90);
 
-    expect(result.pass).toBe(true);
+    expect(student.pass).toBe(true);
+    expect(residential.pass).toBe(true);
   });
 });
