@@ -9,6 +9,8 @@ const NATIONAL_TOKENS = new Set([
   "national",
   "nationwide",
   "australia",
+  "australia wide",
+  "across australia",
   "all states",
   "multi state",
 ]);
@@ -49,9 +51,7 @@ export function hasConfiguredTerritoryInput(value: unknown): boolean {
 export function territoryCodesFromValue(value: unknown): AUState[] {
   const text = normaliseTerritoryInput(value);
   if (!text) return [];
-  if ([...NATIONAL_TOKENS].some(token => text === token || text.includes(token))) {
-    return [...ALL_AU_STATES];
-  }
+  if (NATIONAL_TOKENS.has(text)) return [...ALL_AU_STATES];
 
   const found = new Set<AUState>();
   for (const [state, patterns] of TERRITORY_PATTERNS) {
