@@ -58,7 +58,7 @@ Awarded-project records in the rep's territory, joined to Full Potential through
 
 ### Live Tenders
 
-Tenders closing within 14 days that pass the existing server-side lane and territory gate.
+Tenders closing within 14 days that pass the existing server-side lane and territory gate. Human-readable close labels use UTC calendar days so work closing later today is still shown as **Closes today** rather than **Closes tomorrow**.
 
 ### All Intelligence
 
@@ -140,7 +140,9 @@ pnpm build
 pnpm exec vitest run \
   client/src/lib/exploreProjects.test.ts \
   client/src/lib/fullPotentialProjectContext.test.ts \
-  client/src/lib/platformNavigation.test.ts
+  client/src/lib/platformNavigation.test.ts \
+  client/src/lib/fullPotentialCommercialModel.test.ts \
+  client/src/lib/fullPotentialPilot.test.ts
 ```
 
 Production smoke testing must remain read-only. Do not invoke project claim, outreach, contact discovery, Full Potential action, evidence, model or pursuit mutations.
