@@ -25,10 +25,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
-      - run: >-
-          pnpm exec vitest run
-          client/src/lib/exploreProjects.test.ts
-          client/src/lib/fullPotentialProjectContext.test.ts
-          client/src/lib/platformNavigation.test.ts
-          client/src/lib/fullPotentialCommercialModel.test.ts
-          client/src/lib/fullPotentialPilot.test.ts
+      - name: Explore Projects helpers
+        run: pnpm exec vitest run client/src/lib/exploreProjects.test.ts
+      - name: Full Potential account context regression
+        run: pnpm exec vitest run client/src/lib/fullPotentialProjectContext.test.ts
+      - name: Platform navigation regression
+        run: pnpm exec vitest run client/src/lib/platformNavigation.test.ts
+      - name: Commercial model regression
+        run: pnpm exec vitest run client/src/lib/fullPotentialCommercialModel.test.ts
+      - name: Pilot regression
+        run: pnpm exec vitest run client/src/lib/fullPotentialPilot.test.ts
