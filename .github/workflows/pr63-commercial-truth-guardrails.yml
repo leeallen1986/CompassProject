@@ -27,6 +27,21 @@ jobs:
           cache: pnpm
       - name: Apply deterministic guardrail patch
         run: |
+          rm -f docs/.pr63-patch-error
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/apply_pr63_commercial_truth_guardrails.py')
+          text = path.read_text()
+          text = text.replace(
+              "'[\\\\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\\\\b/",
+              "'[/\\\\b(residential|apartment|townhouse|housing estate|retirement village|social housing|affordable housing)\\\\b/",
+          )
+          text = text.replace(
+              "'[\\\\b(residential|townhouse|housing estate|retirement village|social housing|affordable housing)\\\\b/",
+              "'[/\\\\b(residential|townhouse|housing estate|retirement village|social housing|affordable housing)\\\\b/",
+          )
+          path.write_text(text)
+          PY
           if ! python scripts/apply_pr63_commercial_truth_guardrails.py > /tmp/pr63-patch.log 2>&1; then
             cat /tmp/pr63-patch.log
             cp /tmp/pr63-patch.log docs/.pr63-patch-error
