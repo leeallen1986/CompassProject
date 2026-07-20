@@ -1,0 +1,47 @@
+name: PR63 commercial truth guardrails
+
+on:
+  push:
+    branches:
+      - fix/commercial-truth-guardrails
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-materialise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/commercial-truth-guardrails
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply deterministic guardrail patch
+        run: python scripts/apply_pr63_commercial_truth_guardrails.py
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Guardrail and regression tests
+        run: >-
+          pnpm exec vitest run
+          server/commercialTruthGuardrails.test.ts
+          server/fullPotentialAccountMatching.composites.test.ts
+          server/fullPotentialAccountMatching.shared.test.ts
+          server/laneScoring.test.ts
+      - name: Commit validated application tree
+        run: |
+          rm -f scripts/apply_pr63_commercial_truth_guardrails.py
+          rm -f .github/workflows/pr63-commercial-truth-guardrails.yml
+          rm -f .github/workflows/pr62-explore-projects-validation.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(intelligence): harden territory and contractor truth"
+          git push origin HEAD:fix/commercial-truth-guardrails
