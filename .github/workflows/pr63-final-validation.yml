@@ -1,0 +1,35 @@
+name: PR63 final validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - fix/commercial-truth-guardrails
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Commercial truth guardrails
+        run: pnpm exec vitest run server/commercialTruthGuardrails.test.ts
+      - name: Composite contractor guardrails
+        run: pnpm exec vitest run server/fullPotentialAccountMatching.composites.test.ts
+      - name: Account matching regression
+        run: pnpm exec vitest run server/fullPotentialAccountMatching.shared.test.ts
+      - name: Lane scoring regression
+        run: pnpm exec vitest run server/laneScoring.test.ts
