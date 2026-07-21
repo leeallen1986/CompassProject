@@ -153,7 +153,7 @@ describe("evidence precedence", () => {
 });
 
 describe("contact disposition", () => {
-  it("clears an exact historic generated email only when no later evidence exists", () => {
+  it("demotes but preserves an exact historic generated email when no later evidence exists", () => {
     const row = contact({
       email: "jane.smith@examplemining.com.au",
       emailVerified: false,
@@ -164,9 +164,27 @@ describe("contact disposition", () => {
       contact: row,
       evidence: deriveContactTrustEvidence({ contact: row, hunterLogs: [], apolloLogs: [], validationActions: [] }),
     }));
-    expect(result.disposition).toBe("safe_clear_generated_email");
-    expect(result.expectedAfter.email).toBeNull();
+    expect(result.disposition).toBe("safe_demote");
+    expect(result.expectedAfter.email).toBe("jane.smith@examplemining.com.au");
     expect(result.expectedAfter.contactTrustTier).toBe("named_unverified");
+    expect(result.reviewFlags).toContain("historic_generated_email_fingerprint");
+  });
+
+  it("sends generated-email records with conflicting verified flags to manual review", () => {
+    const row = contact({
+      email: "jane.smith@examplemining.com.au",
+      emailVerified: true,
+      contactTrustTier: "send_ready",
+      enrichmentSource: "web_search",
+      verificationStatus: "verified",
+    });
+    const result = classifyContactTrustDisposition(context({
+      contact: row,
+      evidence: deriveContactTrustEvidence({ contact: row, hunterLogs: [], apolloLogs: [], validationActions: [] }),
+    }));
+    expect(result.disposition).toBe("manual_review");
+    expect(result.expectedAfter.email).toBe(row.email);
+    expect(result.reviewFlags).toContain("historic_generated_email_verified_state_conflict");
   });
 
   it("retains a provider-verified address even when its format matches the historic pattern", () => {
