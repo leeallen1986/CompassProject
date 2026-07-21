@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const CONTACT_TRUST_MANIFEST_VERSION = 1 as const;
+export const CONTACT_TRUST_MANIFEST_VERSION = 2 as const;
 
 export const CONTACT_TRUST_DISPOSITIONS = [
   "safe_keep",
@@ -22,6 +22,10 @@ export const APPLYABLE_CONTACT_TRUST_DISPOSITIONS = [
 ] as const satisfies readonly ContactTrustDisposition[];
 
 export type ApplyableContactTrustDisposition = (typeof APPLYABLE_CONTACT_TRUST_DISPOSITIONS)[number];
+
+export function dispositionInvalidatesCandidateSlates(disposition: ContactTrustDisposition): boolean {
+  return (APPLYABLE_CONTACT_TRUST_DISPOSITIONS as readonly ContactTrustDisposition[]).includes(disposition);
+}
 
 export interface ContactTrustContactSnapshot {
   id: number;
@@ -522,11 +526,31 @@ export function classifyContactTrustDisposition(context: ContactTrustContext): C
     && (contact.enrichmentSource === "linkedin" || contact.enrichmentSource === "web_search")
     && !evidence.strongEmailEvidence;
   if (generatedByHistoricPath) {
+    reviewFlags.push("historic_generated_email_fingerprint");
+    if (contact.emailVerified || contact.verificationStatus === "verified") {
+      reviewFlags.push("historic_generated_email_verified_state_conflict");
+      return correctionResult(
+        context,
+        "manual_review",
+        "The address matches the historic generator, but persisted verification flags conflict with the missing evidence trail; automatic clearing is unsafe.",
+        unchangedExpectedState(contact),
+        reviewFlags,
+      );
+    }
+    if (contact.contactTrustTier === "send_ready") {
+      return correctionResult(
+        context,
+        "safe_demote",
+        "The address matches the historic generator and lacks later evidence; demote trust but preserve the address for review or re-verification.",
+        { ...unchangedExpectedState(contact), emailVerified: false, contactTrustTier: "named_unverified", verificationStatus: "unverified" },
+        reviewFlags,
+      );
+    }
     return correctionResult(
       context,
-      "safe_clear_generated_email",
-      "Stored email exactly matches the historic deterministic generator and has no later provider or human verification.",
-      { email: null, emailVerified: false, contactTrustTier: "named_unverified", verificationStatus: "unverified", linkProjectId: null, linkProjectName: null },
+      "manual_review",
+      "The address matches the historic generator but is not currently send-ready; retain it for review rather than deleting contact data automatically.",
+      unchangedExpectedState(contact),
       reviewFlags,
     );
   }

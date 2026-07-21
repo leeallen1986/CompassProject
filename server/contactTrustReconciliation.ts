@@ -1,6 +1,7 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import {
   apolloCreditLog,
+  contactCandidateSlates,
   contactProjects,
   contacts,
   contactValidationActions,
@@ -14,6 +15,7 @@ import {
   buildManifestSummary,
   classifyContactTrustDisposition,
   deriveContactTrustEvidence,
+  dispositionInvalidatesCandidateSlates,
   normaliseEmail,
   normaliseIdentityText,
   normaliseLinkedinUrl,
@@ -36,6 +38,7 @@ import {
 type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 type ContactRow = typeof contacts.$inferSelect;
 type ContactProjectRow = typeof contactProjects.$inferSelect;
+type CandidateSlateRow = typeof contactCandidateSlates.$inferSelect;
 type ProjectRow = typeof projects.$inferSelect;
 type HunterRow = typeof hunterVerificationLog.$inferSelect;
 type ApolloRow = typeof apolloCreditLog.$inferSelect;
@@ -44,6 +47,7 @@ type ValidationRow = typeof contactValidationActions.$inferSelect;
 export interface ContactTrustDataset {
   contacts: ContactRow[];
   contactProjects: ContactProjectRow[];
+  contactCandidateSlates: CandidateSlateRow[];
   projects: ProjectRow[];
   hunterLogs: HunterRow[];
   apolloLogs: ApolloRow[];
@@ -76,6 +80,8 @@ export interface ContactTrustApplyResult {
   before: ContactTrustApplySnapshot[];
   after: ContactTrustApplySnapshot[];
   dispositionCounts: Record<string, number>;
+  staleSlateIds: number[];
+  staleSlateCount: number;
 }
 
 function iso(value: Date | null | undefined): string | null {
@@ -202,6 +208,20 @@ function relevantFingerprintData(dataset: Omit<ContactTrustDataset, "databaseFin
         createdAt: row.createdAt,
       }))
       .sort((a, b) => a.id - b.id),
+    contactCandidateSlates: dataset.contactCandidateSlates
+      .map(row => ({
+        id: row.id,
+        projectId: row.projectId,
+        primaryContactId: row.primaryContactId,
+        backup1ContactId: row.backup1ContactId,
+        backup2ContactId: row.backup2ContactId,
+        commercialContactId: row.commercialContactId,
+        technicalContactId: row.technicalContactId,
+        isStale: row.isStale,
+        staleSince: row.staleSince,
+        updatedAt: row.updatedAt,
+      }))
+      .sort((a, b) => a.id - b.id),
     projects: dataset.projects
       .map(row => ({
         id: row.id,
@@ -252,9 +272,10 @@ export async function loadContactTrustDataset(dbOverride?: Db): Promise<ContactT
   const db = dbOverride || await getDb();
   if (!db) throw new Error("Database unavailable");
 
-  const [contactRows, linkRows, projectRows, hunterRows, apolloRows, validationRows] = await Promise.all([
+  const [contactRows, linkRows, slateRows, projectRows, hunterRows, apolloRows, validationRows] = await Promise.all([
     db.select().from(contacts),
     db.select().from(contactProjects),
+    db.select().from(contactCandidateSlates),
     db.select().from(projects),
     db.select().from(hunterVerificationLog),
     db.select().from(apolloCreditLog),
@@ -264,6 +285,7 @@ export async function loadContactTrustDataset(dbOverride?: Db): Promise<ContactT
   const raw = {
     contacts: contactRows,
     contactProjects: linkRows,
+    contactCandidateSlates: slateRows,
     projects: projectRows,
     hunterLogs: hunterRows,
     apolloLogs: apolloRows,
@@ -437,6 +459,25 @@ export async function applyContactTrustManifest(
   const selectedIds = selectedRows.map(row => row.contactId);
   const currentSnapshots = await readSelectedSnapshots(db, selectedIds);
   const snapshotById = new Map(currentSnapshots.map(snapshot => [snapshot.contactId, snapshot]));
+  const linkProjectIds = Array.from(new Set(selectedRows
+    .filter(row => row.disposition === "safe_link_to_project")
+    .map(row => row.expectedAfter.linkProjectId)
+    .filter((value): value is number => value !== null)));
+  const staleRows = selectedRows.filter(row => dispositionInvalidatesCandidateSlates(row.disposition));
+  const staleContactIds = staleRows.map(row => row.contactId);
+  const slateConditions: any[] = staleContactIds.length ? [
+    inArray(contactCandidateSlates.primaryContactId, staleContactIds),
+    inArray(contactCandidateSlates.backup1ContactId, staleContactIds),
+    inArray(contactCandidateSlates.backup2ContactId, staleContactIds),
+    inArray(contactCandidateSlates.commercialContactId, staleContactIds),
+    inArray(contactCandidateSlates.technicalContactId, staleContactIds),
+  ] : [];
+  if (linkProjectIds.length) slateConditions.push(inArray(contactCandidateSlates.projectId, linkProjectIds));
+  const affectedSlateRows = slateConditions.length
+    ? await db.select().from(contactCandidateSlates).where(or(...slateConditions))
+    : [];
+  const staleSlateIds = Array.from(new Set(affectedSlateRows.map(row => row.id))).sort((a, b) => a - b);
+  const allAffectedSlatesStale = affectedSlateRows.every(row => !!row.isStale);
 
   if (currentManifest.databaseIdentity !== manifest.databaseIdentity) {
     throw new Error("Manifest belongs to a different database");
@@ -450,7 +491,7 @@ export async function applyContactTrustManifest(
       && snapshot.contactTrustTier === row.expectedAfter.contactTrustTier
       && snapshot.verificationStatus === row.expectedAfter.verificationStatus
       && (row.expectedAfter.linkProjectId === null || snapshot.linkedProjectIds.includes(row.expectedAfter.linkProjectId));
-  });
+  }) && allAffectedSlatesStale;
 
   if (alreadyApplied) {
     return {
@@ -464,6 +505,8 @@ export async function applyContactTrustManifest(
       before: currentSnapshots,
       after: currentSnapshots,
       dispositionCounts: Object.fromEntries(selectedRows.map(row => [row.disposition, 0])),
+      staleSlateIds,
+      staleSlateCount: staleSlateIds.length,
     };
   }
 
@@ -520,6 +563,12 @@ export async function applyContactTrustManifest(
 
       throw new Error(`Contact ${row.contactId}: non-applyable disposition ${row.disposition} reached apply`);
     }
+    if (staleSlateIds.length) {
+      await tx.update(contactCandidateSlates).set({
+        isStale: true,
+        staleSince: new Date(),
+      }).where(inArray(contactCandidateSlates.id, staleSlateIds));
+    }
   });
 
   const after = await readSelectedSnapshots(db, selectedIds);
@@ -534,6 +583,15 @@ export async function applyContactTrustManifest(
     }
   }
 
+  if (staleSlateIds.length) {
+    const postSlates = await db.select({ id: contactCandidateSlates.id, isStale: contactCandidateSlates.isStale })
+      .from(contactCandidateSlates)
+      .where(inArray(contactCandidateSlates.id, staleSlateIds));
+    if (postSlates.length !== staleSlateIds.length || postSlates.some(row => !row.isStale)) {
+      throw new Error("Affected contact candidate slates were not marked stale");
+    }
+  }
+
   return {
     manifestHash: manifest.manifestHash,
     databaseFingerprintBefore: currentManifest.databaseFingerprint,
@@ -545,6 +603,8 @@ export async function applyContactTrustManifest(
     before,
     after,
     dispositionCounts,
+    staleSlateIds,
+    staleSlateCount: staleSlateIds.length,
   };
 }
 

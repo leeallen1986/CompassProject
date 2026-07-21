@@ -151,3 +151,12 @@ No contact is deleted or merged. No provider is called. No email is sent. No pro
 5. Apply the sealed canary manifest.
 6. Verify contact counts remain unchanged, link counts change only for approved link rows, and This Week/Next Best 5 project ordering is unchanged.
 7. Expand only after the canary evidence matches the manifest exactly.
+
+
+## PR69 consistency correction
+
+Manifests generated before schema version 2 are invalid and must be regenerated. An exact first.last mailbox fingerprint is not proof that the address is fabricated. The reconciliation now preserves the address and demotes only its trust state when the mailbox is unverified. Conflicting persisted verification flags go to manual review.
+
+Every applied trust, email or deterministic-link correction atomically marks affected `contactCandidateSlates` stale and reports the stale slate IDs. This prevents cached slate snapshots from continuing to show an old email or trust tier.
+
+`safe_keep` rows are not canary changes and must never be used as an apply shortlist. Canary review lists must contain only approved, applyable dispositions.
