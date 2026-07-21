@@ -147,6 +147,11 @@ const BL_TO_DIMENSIONS: Record<string, ScoringDimension[]> = {
   "Nitrogen": ["Nitrogen"],
   "Booster": ["Booster"],
 
+  // Specialty Air is a profile label, not a persisted scoring dimension.
+  // It expands to the two existing specialty opportunity dimensions while
+  // leaving Portable Air primary when both profile labels are assigned.
+  "Specialty Air": ["Nitrogen", "Booster"],
+
   // Pump / Flow / Dewatering variants → all map to "Pump/Dewatering"
   "Pump (Flow)": ["Pump/Dewatering"],
   "Pump/Flow": ["Pump/Dewatering"],
