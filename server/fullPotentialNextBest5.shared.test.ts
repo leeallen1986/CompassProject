@@ -34,7 +34,7 @@ function project(
     priority: "hot",
     sector: "mining",
     stage: "construction",
-    overview: "Confirmed drilling program requiring a 900 CFM portable compressor package.",
+    overview: "Confirmed blast-hole drilling program requiring a 900 CFM portable compressor package.",
     actionTier: "tier1_actionable",
     tierLabel: "Tier 1",
     isNew: true,
@@ -89,7 +89,7 @@ function persisted(
     lifecycleStatus: "active",
     stageCode: "construction",
     sourcePurpose: "contractor_path",
-    overview: "Confirmed drilling program requiring a 900 CFM portable compressor package.",
+    overview: "Confirmed blast-hole drilling program requiring a 900 CFM portable compressor package.",
     opportunityNote: "Contractor fleet procurement expected during mobilisation.",
     opportunityRoute: "Fleet CAPEX",
     equipmentSignals: ["portable air compressors"],
@@ -206,6 +206,15 @@ describe("read-only Next Best 5 eligibility", () => {
     }))).toEqual([]);
   });
 
+  it("does not treat generic shutdown, hydrotest, piling or surface preparation as explicit air evidence", () => {
+    expect(explicitAirEvidence(persisted(3, {
+      overview: "Plant shutdown, hydrotest, piling and surface preparation works.",
+      opportunityNote: null,
+      opportunityRoute: "Fleet CAPEX",
+      equipmentSignals: [],
+    }))).toEqual([]);
+  });
+
   it("preserves the server order and never fills beyond five", () => {
     const result = buildReadOnlyNextBest5(
       [input(8), input(2), input(9), input(1), input(7), input(4)],
@@ -271,6 +280,18 @@ describe("read-only Next Best 5 eligibility", () => {
         },
       },
     }), USER, NOW)).toBe("owner_mismatch");
+  });
+
+  it("rejects project-owner fallback unless the route is explicit Direct CAPEX", () => {
+    expect(exclusionReason(input(1, {
+      persisted: { opportunityRoute: "Fleet CAPEX", sourcePurpose: "contractor_path" },
+      match: { candidateRole: "project_owner", candidateSource: "project_owner" },
+    }), USER, NOW)).toBe("weak_account_route");
+
+    expect(exclusionReason(input(2, {
+      persisted: { opportunityRoute: "Direct CAPEX", sourcePurpose: "project_signal" },
+      match: { candidateRole: "project_owner", candidateSource: "project_owner" },
+    }), USER, NOW)).toBeNull();
   });
 
   it("requires a confirmed or likely-high canonical buying route", () => {

@@ -119,12 +119,12 @@ export interface NextBest5Response {
 
 const EXPLICIT_AIR_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\b(?:compressed air|portable air|air compressor|compressor package|portable compressor)\b/i, label: "portable compressed-air package" },
-  { pattern: /\b(?:cfm|psi|bar pressure)\b/i, label: "specified air capacity or pressure" },
-  { pattern: /\b(?:drilling|blast hole|blasthole|aircore|air core|dth|down-the-hole|rock drill|borehole)\b/i, label: "drilling and blasting air demand" },
-  { pattern: /\b(?:piling|pile driving|micropile|pneumatic tool|jackhammer|rock breaking)\b/i, label: "piling or pneumatic civil works" },
-  { pattern: /\b(?:abrasive blasting|sandblast|grit blast|shot blast|surface preparation)\b/i, label: "abrasive-blasting air demand" },
-  { pattern: /\b(?:commissioning air|temporary plant air|shutdown|turnaround|instrument air|control air)\b/i, label: "temporary or commissioning air" },
-  { pattern: /\b(?:pressure test|pressure testing|pneumatic test|pipeline testing|hydrotest|leak testing)\b/i, label: "pressure-testing requirement" },
+  { pattern: /\b(?:\d{2,4}\s*(?:cfm|psi)|\d{1,3}\s*bar(?:\s+air)?)\b/i, label: "specified air capacity or pressure" },
+  { pattern: /\b(?:exploration drilling|production drilling|drilling campaign|drill(?:ing)? program|blast[- ]hole|blasthole|aircore|air core|rc drill|reverse circulation|dth|down-the-hole|rock drill|borehole)\b/i, label: "drilling and blasting air demand" },
+  { pattern: /(?:\b(?:compressed air|portable compressor)\b.{0,60}\b(?:piling|pile driving|micropile)\b|\b(?:piling|pile driving|micropile)\b.{0,60}\b(?:compressed air|portable compressor)\b|\b(?:pneumatic tool|jackhammer|rock breaking)\b)/i, label: "piling or pneumatic civil works" },
+  { pattern: /\b(?:abrasive blasting|sandblast|grit blast|shot blast)\b/i, label: "abrasive-blasting air demand" },
+  { pattern: /(?:\b(?:commissioning air|temporary plant air|instrument air|control air)\b|\b(?:shutdown|turnaround)\b.{0,80}\b(?:compressor|compressed air|portable air|plant air)\b|\b(?:compressor|compressed air|portable air|plant air)\b.{0,80}\b(?:shutdown|turnaround)\b)/i, label: "temporary or commissioning air" },
+  { pattern: /(?:\b(?:pneumatic test|air pressure test|pipeline pressure test|gas pressure test)\b|\bcompressed air\b.{0,50}\b(?:test|testing|leak test|leak testing)\b|\b(?:leak test|leak testing)\b.{0,50}\b(?:compressed air|air|gas)\b)/i, label: "pressure-testing requirement" },
   { pattern: /\b(?:nitrogen|n2 membrane|purging|inerting|dry-out|dryout|pipeline drying)\b/i, label: "specialty-air or nitrogen requirement" },
   { pattern: /\b(?:booster compressor|air booster|gas booster|high pressure booster)\b/i, label: "booster requirement" },
   { pattern: /\b(?:air dryer|desiccant dryer|refrigerant dryer|aftercooler|dew point)\b/i, label: "air-treatment requirement" },
@@ -211,85 +211,62 @@ function productHypothesis(
   project: ThisWeekProject,
   persistedProject: NextBest5PersistedProject,
 ): NextBest5ProductHypothesis {
-  // Product guidance is derived from persisted source text, not AI-inferred
-  // equipmentSignals or a downstream classifier that may have consumed them.
+  // Product guidance is derived from the same persisted-text evidence that
+  // admitted the project. Inferred equipmentSignals cannot choose the product.
   const text = sourceText(persistedProject).toLowerCase();
-  const evidenceCount = explicitAirEvidence(persistedProject).length;
-  const confidence: NextBest5Confidence = evidenceCount >= 2
-    || /\d{2,4}\s*(?:cfm|psi)|\b\d{1,3}\s*bar\b/i.test(text)
+  const evidence = explicitAirEvidence(persistedProject);
+  const confidence: NextBest5Confidence = evidence.length >= 2
+    || /\d{2,4}\s*(?:cfm|psi)|\b\d{1,3}\s*bar(?:\s+air)?\b/i.test(text)
     ? "high"
     : "medium";
 
-  if (/\b(?:booster compressor|air booster|gas booster|high pressure booster)\b/i.test(text)) {
-    return {
-      label: "Specialty Air — Booster",
-      application: "High-pressure air or gas boosting",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("booster requirement")) {
+    return { label: "Specialty Air — Booster", application: "High-pressure air or gas boosting", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:nitrogen|n2 membrane|purging|inerting|dry-out|dryout|pipeline drying)\b/i.test(text)) {
-    return {
-      label: "Specialty Air — Nitrogen",
-      application: "Purging, inerting, nitrogen membrane or dry-out duty",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("specialty-air or nitrogen requirement")) {
+    return { label: "Specialty Air — Nitrogen", application: "Purging, inerting, nitrogen membrane or dry-out duty", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:air dryer|desiccant dryer|refrigerant dryer|aftercooler|dew point|instrument air|control air)\b/i.test(text)) {
-    return {
-      label: "Air Treatment",
-      application: "Dryer, aftercooler or instrument-quality air",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("air-treatment requirement")) {
+    return { label: "Air Treatment", application: "Dryer, aftercooler or instrument-quality air", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:pressure test|pressure testing|pneumatic test|pipeline testing|hydrotest|leak testing)\b/i.test(text)) {
-    return {
-      label: "Portable Air package",
-      application: "Pressure testing and pipeline preparation",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("pressure-testing requirement")) {
+    return { label: "Portable Air package", application: "Pneumatic or compressed-air pressure testing", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:drilling|blast hole|blasthole|aircore|air core|dth|down-the-hole|rock drill|borehole)\b/i.test(text)) {
-    return {
-      label: "Portable Air",
-      application: "Drilling and blasting",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("drilling and blasting air demand")) {
+    return { label: "Portable Air", application: "Drilling and blasting", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:piling|pile driving|micropile|pneumatic tool|jackhammer|rock breaking)\b/i.test(text)) {
-    return {
-      label: "Portable Air",
-      application: "Piling or pneumatic civil works",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("piling or pneumatic civil works")) {
+    return { label: "Portable Air", application: "Piling or pneumatic civil works", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:abrasive blasting|sandblast|grit blast|shot blast|surface preparation)\b/i.test(text)) {
-    return {
-      label: "Portable Air",
-      application: "Abrasive blasting and surface preparation",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("abrasive-blasting air demand")) {
+    return { label: "Portable Air", application: "Abrasive blasting and surface preparation", confidence, basis: "explicit_project_evidence" };
   }
-  if (/\b(?:commissioning air|temporary plant air|shutdown|turnaround)\b/i.test(text)) {
-    return {
-      label: "Portable Air",
-      application: "Temporary plant air or commissioning",
-      confidence,
-      basis: "explicit_project_evidence",
-    };
+  if (evidence.includes("temporary or commissioning air")) {
+    return { label: "Portable Air", application: "Temporary plant air or commissioning", confidence, basis: "explicit_project_evidence" };
   }
-  return {
-    label: "Portable Air",
-    application: "Evidence-backed compressed-air requirement",
-    confidence,
-    basis: "explicit_project_evidence",
-  };
+  return { label: "Portable Air", application: "Evidence-backed compressed-air requirement", confidence, basis: "explicit_project_evidence" };
+}
+
+const DIRECT_BUYING_ROLES = new Set([
+  "winning_contractor",
+  "epc",
+  "contractor",
+  "subcontractor",
+  "rental",
+  "supplier",
+]);
+
+function hasCredibleBuyingRole(
+  match: FullPotentialAccountMatch,
+  project: NextBest5PersistedProject,
+): boolean {
+  if (DIRECT_BUYING_ROLES.has(match.candidateRole)) return true;
+  if (match.candidateRole !== "project_owner") return false;
+
+  // Project-owner fallback is eligible only for an explicitly direct CAPEX path.
+  // It cannot substitute for a missing contractor on Fleet CAPEX intelligence.
+  return normalizeIdentity(project.opportunityRoute) === "direct capex"
+    && normalizeIdentity(project.sourcePurpose) !== "contractor path";
 }
 
 function routeUncertainty(match: FullPotentialAccountMatch): string[] {
@@ -398,6 +375,7 @@ export function exclusionReason(
   const match = context.primaryMatch;
   if (!match) return "no_account_route";
   if (!["confirmed", "likely_high"].includes(match.certainty)) return "weak_account_route";
+  if (!hasCredibleBuyingRole(match, persistedProject)) return "weak_account_route";
   if ((match.account.activePursuitCount ?? 0) > 0 || (match.account.openActionCount ?? 0) > 0) {
     return "already_managed";
   }

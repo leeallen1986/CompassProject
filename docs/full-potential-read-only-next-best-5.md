@@ -26,6 +26,7 @@ A project is eligible only when all of the following are true:
 - at least one persisted source URL is present
 - the persisted project text contains explicit compressed-air evidence
 - the canonical buying route is confirmed or likely-high
+- linked to a contractor, EPC, subcontractor, rental, supplier or awarded-contractor buying role; project-owner fallback is allowed only for explicit Direct CAPEX
 - the matched account has no open Full Potential action
 - the matched account has no active attributed pursuit
 - the account is owned by the authenticated rep, unless the caller is an admin
