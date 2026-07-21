@@ -305,7 +305,7 @@ export async function verifyContactWithHunter(
 
       emailToProcess = hunterResult.email;
 
-      // accept_all is common on enterprise/mining domains — include if confidence ≥70
+      // An accept-all domain does not verify the named person's mailbox.
       const shouldPromote = shouldPromoteHunterResult({
         status: hunterResult.status,
         score: hunterResult.score,

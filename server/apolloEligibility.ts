@@ -608,7 +608,7 @@ function makeIneligible(
 // ── Exports for testing ──
 
 export const _config = {
-  APOLLO_DAILY_CREDIT_CAP,
+  DAILY_CREDIT_CAP: APOLLO_DAILY_CREDIT_CAP,
   PER_PROJECT_CREDIT_CAP,
   MIN_CONTACTS_THRESHOLD,
   MONTHLY_BUDGET_CAP,

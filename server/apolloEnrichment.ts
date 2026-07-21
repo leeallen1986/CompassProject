@@ -25,7 +25,6 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { cleanContactName } from "./nameUtils";
-import { APOLLO_DAILY_CREDIT_CAP } from "./intelligenceTrustPolicy";
 
 // ── Configuration ──
 
