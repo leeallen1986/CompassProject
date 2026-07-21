@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  validate-and-materialise:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -25,8 +25,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Apply deterministic Explore patch
-        run: python scripts/apply_pr65_explore_truth_alignment.py
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
@@ -36,13 +34,12 @@ jobs:
           client/src/lib/exploreProjects.test.ts
           client/src/lib/fullPotentialProjectContext.test.ts
           client/src/lib/platformNavigation.test.ts
-      - name: Commit clean validated application tree
+      - name: Remove temporary validation workflow
         run: |
-          rm -f scripts/apply_pr65_explore_truth_alignment.py
           rm -f .github/workflows/pr65-explore-truth-alignment.yml
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "fix(explore): preserve server rank and visible route metrics"
+          git commit -m "chore: remove PR65 validation workflow"
           git push origin HEAD:fix/explore-server-order-visible-metrics
