@@ -1,9 +1,9 @@
 name: PR67 intelligence and contact trust hardening
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/intelligence-contact-trust-hardening
+      - main
 
 permissions:
   contents: write
