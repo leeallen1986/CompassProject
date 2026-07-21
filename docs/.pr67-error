@@ -1,2 +1,0 @@
-server/contactEnrichment.ts(594,26): error TS2304: Cannot find name 'inferEmail'.
-server/contactEnrichment.ts(604,26): error TS2304: Cannot find name 'inferEmail'.

@@ -25,12 +25,12 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { cleanContactName } from "./nameUtils";
+import { APOLLO_DAILY_CREDIT_CAP } from "./intelligenceTrustPolicy";
 
 // ── Configuration ──
 
 const APOLLO_BASE_URL = "https://api.apollo.io/api/v1";
 const DELAY_BETWEEN_CALLS_MS = 500;
-const DAILY_ENRICHMENT_CAP = 200; // Apollo credits per day
 const SEARCH_RESULTS_PER_PAGE = 25;
 const MAX_CONTACTS_PER_COMPANY = 5;
 

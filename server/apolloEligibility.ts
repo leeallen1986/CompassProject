@@ -26,11 +26,12 @@ import {
   contacts,
   pipelineClaims,
   apolloCreditLog,
+  contactProjects,
 } from "../drizzle/schema";
+import { APOLLO_DAILY_CREDIT_CAP, hasCredibleBuyingRoute } from "./intelligenceTrustPolicy";
 
 // ── Configuration ──
 
-const DAILY_CREDIT_CAP = 500;          // Raised from 300→500 to clear hot-project backlog faster (Jul 2026)
 const PER_PROJECT_CREDIT_CAP = 10;     // Max credits per project per auto-enrichment run
 const MIN_CONTACTS_THRESHOLD = 3;      // Projects with fewer contacts are eligible for gap-fill
 const MONTHLY_BUDGET_CAP = 3500;       // Monthly budget limit raised (= ~160 × 22 working days; Apollo plan: 5000/mo, keep 1500 buffer)
@@ -141,12 +142,12 @@ export async function getBudgetStatus(): Promise<{
 
   return {
     dailyUsed,
-    dailyRemaining: Math.max(0, DAILY_CREDIT_CAP - dailyUsed),
-    dailyCap: DAILY_CREDIT_CAP,
+    dailyRemaining: Math.max(0, APOLLO_DAILY_CREDIT_CAP - dailyUsed),
+    dailyCap: APOLLO_DAILY_CREDIT_CAP,
     monthlyUsed,
     monthlyRemaining: Math.max(0, MONTHLY_BUDGET_CAP - monthlyUsed),
     monthlyCap: MONTHLY_BUDGET_CAP,
-    withinBudget: dailyUsed < DAILY_CREDIT_CAP && monthlyUsed < MONTHLY_BUDGET_CAP,
+    withinBudget: dailyUsed < APOLLO_DAILY_CREDIT_CAP && monthlyUsed < MONTHLY_BUDGET_CAP,
   };
 }
 
@@ -182,28 +183,7 @@ export async function analyzeContactGaps(projectId: number): Promise<{
     };
   }
 
-  // Get project name
-  const [project] = await db
-    .select({ name: projects.name })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-
-  if (!project) {
-    return {
-      totalContacts: 0,
-      contactsWithEmail: 0,
-      contactsWithVerifiedEmail: 0,
-      contactsFromApollo: 0,
-      contactsFromWebSearch: 0,
-      contactsFromLLM: 0,
-      needsMoreContacts: true,
-      needsEmailVerification: false,
-      contactsMissingEmail: [],
-    };
-  }
-
-  // Get all contacts for this project
+  // Get all contacts through the canonical contactProjects junction.
   const projectContacts = await db
     .select({
       id: contacts.id,
@@ -213,8 +193,9 @@ export async function analyzeContactGaps(projectId: number): Promise<{
       emailVerified: contacts.emailVerified,
       enrichmentSource: contacts.enrichmentSource,
     })
-    .from(contacts)
-    .where(sql`${contacts.project} = ${project.name}`);
+    .from(contactProjects)
+    .innerJoin(contacts, eq(contactProjects.contactId, contacts.id))
+    .where(eq(contactProjects.projectId, projectId));
 
   const totalContacts = projectContacts.length;
   const contactsWithEmail = projectContacts.filter(c => c.email).length;
@@ -269,6 +250,10 @@ export async function checkApolloEligibility(
       lifecycleStatus: projects.lifecycleStatus,
       suppressed: projects.suppressed,
       projectType: projects.projectType,
+      owner: projects.owner,
+      opportunityRoute: projects.opportunityRoute,
+      contractors: projects.contractors,
+      actionTier: projects.actionTier,
     })
     .from(projects)
     .where(eq(projects.id, projectId))
@@ -294,6 +279,22 @@ export async function checkApolloEligibility(
       `Project "${project.name}" is suppressed (projectType: ${project.projectType || 'unknown'}) — Apollo enrichment blocked to conserve credits`,
       emptyGapAnalysis(),
       emptyBudget()
+    );
+  }
+
+  if (!options?.explicitRequest && project.lifecycleStatus !== "active") {
+    return makeIneligible(
+      `Project "${project.name}" is not active (${project.lifecycleStatus || "unset"}) — automatic paid enrichment blocked`,
+      emptyGapAnalysis(),
+      emptyBudget(),
+    );
+  }
+
+  if (!options?.explicitRequest && !hasCredibleBuyingRoute(project)) {
+    return makeIneligible(
+      `Project "${project.name}" has no confirmed buying route — automatic paid enrichment blocked`,
+      emptyGapAnalysis(),
+      emptyBudget(),
     );
   }
 
@@ -337,7 +338,7 @@ export async function checkApolloEligibility(
   // Budget check for auto-enrichment
   if (!budgetStatus.withinBudget) {
     return makeIneligible(
-      `Budget exhausted — daily: ${budgetStatus.dailyUsed}/${DAILY_CREDIT_CAP}, monthly: ${budgetStatus.monthlyUsed}/${MONTHLY_BUDGET_CAP}`,
+      `Budget exhausted — daily: ${budgetStatus.dailyUsed}/${APOLLO_DAILY_CREDIT_CAP}, monthly: ${budgetStatus.monthlyUsed}/${MONTHLY_BUDGET_CAP}`,
       gapResult,
       budgetResult
     );
@@ -353,7 +354,7 @@ export async function checkApolloEligibility(
   }
 
   // Rule 1: Hot priority projects
-  if (project.priority === "hot") {
+  if (project.priority === "hot" && project.actionTier === "tier1_actionable") {
     return {
       eligible: true,
       reason: "hot_priority",
@@ -485,7 +486,7 @@ export async function findEligibleProjects(
       eligible: [],
       totalEligible: 0,
       budgetStatus: {
-        dailyUsed: 0, dailyRemaining: 0, dailyCap: DAILY_CREDIT_CAP,
+        dailyUsed: 0, dailyRemaining: 0, dailyCap: APOLLO_DAILY_CREDIT_CAP,
         monthlyUsed: 0, monthlyRemaining: 0, monthlyCap: MONTHLY_BUDGET_CAP,
         withinBudget: false,
       },
@@ -607,7 +608,7 @@ function makeIneligible(
 // ── Exports for testing ──
 
 export const _config = {
-  DAILY_CREDIT_CAP,
+  APOLLO_DAILY_CREDIT_CAP,
   PER_PROJECT_CREDIT_CAP,
   MIN_CONTACTS_THRESHOLD,
   MONTHLY_BUDGET_CAP,

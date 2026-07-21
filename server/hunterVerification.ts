@@ -22,12 +22,12 @@ import { getDb } from "./db";
 import { contacts, hunterVerificationLog } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { inferCompanyDomains } from "./domainInference";
+import { shouldPromoteHunterResult } from "./intelligenceTrustPolicy";
 
 
 // ── Configuration ──
 
 const HUNTER_BASE_URL = "https://api.hunter.io/v2";
-const HUNTER_MIN_CONFIDENCE_FOR_PROMOTION = 70;
 const DELAY_MS = 300; // rate-limit friendly delay between calls
 
 // ── Types ──
@@ -226,12 +226,13 @@ export async function verifyContactWithHunter(
         apiCreditsUsed: 1,
       });
 
-      // accept_all is common on enterprise/mining domains (BHP, Worley, etc.) — include if confidence ≥70
-      const shouldPromote =
-        (verifyResult.status === "valid" || verifyResult.status === "accept_all") &&
-        verifyResult.score >= HUNTER_MIN_CONFIDENCE_FOR_PROMOTION &&
-        !verifyResult.disposable &&
-        !verifyResult.block;
+      // accept-all domains do not verify an individual mailbox and remain named_unverified
+      const shouldPromote = shouldPromoteHunterResult({
+        status: verifyResult.status,
+        score: verifyResult.score,
+        disposable: verifyResult.disposable,
+        block: verifyResult.block,
+      });
 
       if (shouldPromote) {
         await db.update(contacts).set({
@@ -305,16 +306,16 @@ export async function verifyContactWithHunter(
       emailToProcess = hunterResult.email;
 
       // accept_all is common on enterprise/mining domains — include if confidence ≥70
-      const shouldPromote =
-        (hunterResult.status === "valid" || hunterResult.status === "accept_all") &&
-        hunterResult.score >= HUNTER_MIN_CONFIDENCE_FOR_PROMOTION;
+      const shouldPromote = shouldPromoteHunterResult({
+        status: hunterResult.status,
+        score: hunterResult.score,
+      });
 
       if (shouldPromote) {
         await db.update(contacts).set({
           email: hunterResult.email,
           emailVerified: true,
           contactTrustTier: "send_ready",
-          enrichmentSource: "apollo", // keep existing source, just mark verified
         }).where(eq(contacts.id, contactId));
 
         await db.update(hunterVerificationLog).set({

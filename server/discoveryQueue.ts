@@ -30,6 +30,7 @@ import { enrichContactsForProject, generateAndEnrichContacts } from "./contactEn
 import { generateAndSaveLLMContacts } from "./llmContactFallback";
 import { verifyProjectContactsWithHunter } from "./hunterVerification";
 import { ENV } from "./_core/env";
+import { checkApolloEligibility } from "./apolloEligibility";
 
 // ── Constants ──
 
@@ -57,7 +58,7 @@ AND (
     AND c.email NOT LIKE '%no-reply%'
   )
 )
-AND c.enrichmentSource != 'manual'`;
+AND c.rejectionReason IS NULL`;
 
 // ── Types ──
 
@@ -295,13 +296,18 @@ async function runDiscoveryForProject(
     // ── Route by owner type ──
 
     if (ownerType === "private") {
-      // Step 1: Apollo waterfall (search → enrich)
+      // Step 1: Paid Apollo enrichment only after the central commercial/budget gate.
       try {
-        const apolloResult = await enrichProjectContacts(project.id, reportId, {
-          enrichEmails: true,
-          maxPerCompany: 5,
-        });
-        if (apolloResult.people.length > 0) providersUsed.push("apollo");
+        const eligibility = await checkApolloEligibility(project.id);
+        if (eligibility.eligible) {
+          const apolloResult = await enrichProjectContacts(project.id, reportId, {
+            enrichEmails: true,
+            maxPerCompany: Math.min(5, eligibility.maxCreditsAllowed),
+          });
+          if (apolloResult.people.length > 0) providersUsed.push("apollo");
+        } else {
+          console.log(`[Discovery] Apollo skipped for project ${project.id}: ${eligibility.details}`);
+        }
       } catch (e: any) {
         console.warn(`[Discovery] Apollo failed for project ${project.id}: ${e.message}`);
       }
@@ -392,24 +398,7 @@ async function runDiscoveryForProject(
       }
     }
 
-    // ── Also enrich principal contractor if known ──
-    if (project.contractors && Array.isArray(project.contractors) && project.contractors.length > 0) {
-      const principalContractor = project.contractors[0];
-      if (principalContractor?.name && classifyOwnerType(principalContractor.name) === "private") {
-        try {
-          // Apollo search on contractor
-          const contractorResult = await enrichProjectContacts(project.id, reportId, {
-            enrichEmails: true,
-            maxPerCompany: 3,
-          });
-          if (contractorResult.people.length > 0 && !providersUsed.includes("apollo")) {
-            providersUsed.push("apollo_contractor");
-          }
-        } catch (e: any) {
-          console.warn(`[Discovery] Contractor enrichment failed for project ${project.id}: ${e.message}`);
-        }
-      }
-    }
+    // Owner and all contractors were already handled by the single gated project-level pass.
 
     // ── Assess final contact state ──
     const contactState = await assessContactState(db, project.id);
