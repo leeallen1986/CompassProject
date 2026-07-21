@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/contact-trust-slate-consistency
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -41,6 +44,7 @@ jobs:
           grep -q 'staleSlateIds' server/contactTrustReconciliation.ts
           grep -q 'safe_keep rows are not canary changes' docs/contact-trust-reconciliation-runbook.md
       - name: Commit clean validated tree
+        if: github.event_name == 'push'
         run: |
           rm -f .github/workflows/pr69-contact-trust-consistency.yml
           rm -f .github/scripts/pr69_contact_trust_consistency.py
