@@ -121,17 +121,19 @@ export function filterExploreProjects<T extends ExploreProjectLike>(
   projects: readonly T[],
   view: ExploreProjectsView,
 ): T[] {
-  const sorted = sortExploreProjects(projects);
+  // This Week owns the operating rank. Explore Projects may filter that array,
+  // but must not silently create a second client-side ordering truth.
+  const ordered = [...projects];
   if (view === "confirmed") {
-    return sorted.filter(project => certaintyForProject(project) === "confirmed");
+    return ordered.filter(project => certaintyForProject(project) === "confirmed");
   }
   if (view === "likely") {
-    return sorted.filter(project => {
+    return ordered.filter(project => {
       const certainty = certaintyForProject(project);
       return certainty === "likely_high" || certainty === "likely_medium";
     });
   }
-  return sorted;
+  return ordered;
 }
 
 export function searchExploreProjects<T extends ExploreProjectLike>(

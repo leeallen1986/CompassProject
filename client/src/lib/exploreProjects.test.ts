@@ -8,7 +8,6 @@ import {
   locationMatchesExploreTerritories,
   parseExploreProjectsLocation,
   searchExploreProjects,
-  sortExploreProjects,
   type ExploreProjectLike,
 } from "./exploreProjects";
 
@@ -100,12 +99,20 @@ describe("Explore Projects sales board", () => {
     });
   });
 
-  it("keeps server visibility and relevance as the ordering truth", () => {
-    expect(sortExploreProjects([
-      project(1, 99, null, { visibilityTier: "monitor_only", priority: "hot" }),
-      project(2, 70, null, { visibilityTier: "must_act_candidate", priority: "warm" }),
-      project(3, 80, null, { visibilityTier: "must_act_candidate", priority: "cold" }),
-    ]).map(item => item.id)).toEqual([3, 2, 1]);
+  it("preserves the server order in For You and account-route filters", () => {
+    const serverOrdered = [
+      project(9, 70, match(269, "confirmed")),
+      project(2, 99, match(270, "likely_high")),
+      project(7, 80, match(271, "confirmed")),
+      project(4, 75, unresolved()),
+    ];
+
+    expect(filterExploreProjects(serverOrdered, "for-you").map(item => item.id))
+      .toEqual([9, 2, 7, 4]);
+    expect(filterExploreProjects(serverOrdered, "confirmed").map(item => item.id))
+      .toEqual([9, 7]);
+    expect(filterExploreProjects(serverOrdered, "likely").map(item => item.id))
+      .toEqual([2]);
   });
 
   it("searches account, owner and route context", () => {
