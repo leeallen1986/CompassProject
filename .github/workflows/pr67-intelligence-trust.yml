@@ -57,16 +57,50 @@ jobs:
           fi
           cat /tmp/pr67.log
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tsc --noEmit
-      - run: pnpm build
+      - name: TypeScript
+        run: |
+          if ! pnpm tsc --noEmit > /tmp/pr67-gate.log 2>&1; then
+            cat /tmp/pr67-gate.log
+            cp /tmp/pr67-gate.log docs/.pr67-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr67-error
+            git commit -m "ci: record PR67 TypeScript failure"
+            git push origin HEAD:fix/intelligence-contact-trust-hardening
+            exit 1
+          fi
+          cat /tmp/pr67-gate.log
+      - name: Build
+        run: |
+          if ! pnpm build > /tmp/pr67-gate.log 2>&1; then
+            cat /tmp/pr67-gate.log
+            cp /tmp/pr67-gate.log docs/.pr67-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr67-error
+            git commit -m "ci: record PR67 build failure"
+            git push origin HEAD:fix/intelligence-contact-trust-hardening
+            exit 1
+          fi
+          cat /tmp/pr67-gate.log
       - name: Trust and regression tests
-        run: >-
-          pnpm exec vitest run
-          server/intelligenceTrustPolicy.test.ts
-          server/discoveryQueue.test.ts
-          server/fullPotentialNextBest5.shared.test.ts
-          server/fullPotentialAccountMatching.shared.test.ts
-          server/commercialTruthGuardrails.test.ts
+        run: |
+          if ! pnpm exec vitest run \
+            server/intelligenceTrustPolicy.test.ts \
+            server/discoveryQueue.test.ts \
+            server/fullPotentialNextBest5.shared.test.ts \
+            server/fullPotentialAccountMatching.shared.test.ts \
+            server/commercialTruthGuardrails.test.ts > /tmp/pr67-gate.log 2>&1; then
+            cat /tmp/pr67-gate.log
+            cp /tmp/pr67-gate.log docs/.pr67-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr67-error
+            git commit -m "ci: record PR67 test failure"
+            git push origin HEAD:fix/intelligence-contact-trust-hardening
+            exit 1
+          fi
+          cat /tmp/pr67-gate.log
       - name: Commit clean validated application tree
         run: |
           rm -f scripts/apply_pr67_intelligence_trust.py
