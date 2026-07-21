@@ -1526,50 +1526,32 @@ export const appRouter = router({
           .orderBy(projectsTable.tenderCloseDate)
           .limit(50); // fetch more, then filter
 
-        // Load user profile for lane gate + territory filter
+        // Load user profile for lane gate + territory filter. Personalised
+        // tender recommendations fail closed when profile scope is unavailable.
         let profile: any = null;
         try {
           profile = await getProfileByUserId(ctx.user.id);
-        } catch { /* continue without profile */ }
+        } catch {
+          return [];
+        }
 
-        if (!profile) return rows.slice(0, 10); // no profile = return raw top 10
+        const { hasConfiguredTerritoryInput, projectMatchesResolvedTerritories } = await import("./commercialTruthGuardrails");
+        if (!profile || !hasConfiguredTerritoryInput(profile.territories)) return [];
 
         const resolved = resolveUserProfile({
           territories: profile.territories,
           assignedBusinessLines: profile.assignedBusinessLines,
           sectorFocus: profile.sectorFocus,
         });
-
-        // Territory filter helper
-        const stateKeywords: Record<string, string[]> = {
-          WA: ["western australia", "wa", "perth", "pilbara", "kalgoorlie", "karratha", "port hedland", "newman", "geraldton"],
-          QLD: ["queensland", "qld", "brisbane", "townsville", "mackay", "gladstone", "rockhampton", "cairns", "bowen basin", "moranbah"],
-          NSW: ["new south wales", "nsw", "sydney", "newcastle", "hunter valley", "wollongong", "broken hill"],
-          VIC: ["victoria", "vic", "melbourne", "geelong", "ballarat", "latrobe valley"],
-          SA: ["south australia", "sa", "adelaide", "olympic dam", "whyalla", "port augusta"],
-          NT: ["northern territory", "nt", "darwin", "alice springs", "tennant creek"],
-          TAS: ["tasmania", "tas", "hobart", "launceston"],
-          ACT: ["australian capital territory", "act", "canberra"],
-          OFFSHORE_AU: ["offshore", "fpso", "nwshelf", "north west shelf", "browse", "timor sea", "bass strait"],
-        };
-        const locationMatchesTerritories = (location: string, territories: string[]): boolean => {
-          if (territories.length >= 8) return true; // national
-          const loc = location.toLowerCase();
-          return territories.some(t => {
-            const keywords = stateKeywords[t.toUpperCase()] || [t.toLowerCase()];
-            return keywords.some(kw => {
-              if (kw.length <= 3) return new RegExp(`\\b${kw}\\b`, "i").test(loc);
-              return loc.includes(kw);
-            });
-          });
-        };
+        if (resolved.territories.length === 0) return [];
 
         // Apply territory + lane gate
         const filtered = rows.filter(p => {
-          // Territory filter (skip if national)
-          if (resolved.territories.length > 0 && resolved.territories.length < 8) {
-            if (!locationMatchesTerritories(p.location, resolved.territories)) return false;
-          }
+          // Project state is authoritative; location is a controlled fallback.
+          if (!projectMatchesResolvedTerritories({
+            projectState: (p as any).projectState ?? null,
+            location: p.location,
+          }, resolved.territories)) return false;
           // Lane opportunity gate
           const gateResult = laneOpportunityGate(
             {
