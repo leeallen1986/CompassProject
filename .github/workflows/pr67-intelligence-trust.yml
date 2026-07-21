@@ -23,7 +23,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Apply trust hardening
-        run: python scripts/apply_pr67_intelligence_trust.py
+        run: |
+          rm -f docs/.pr67-error
+          if ! python scripts/apply_pr67_intelligence_trust.py > /tmp/pr67.log 2>&1; then
+            cat /tmp/pr67.log
+            cp /tmp/pr67.log docs/.pr67-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr67-error
+            git commit -m "ci: record PR67 materialisation failure"
+            git push origin HEAD:fix/intelligence-contact-trust-hardening
+            exit 1
+          fi
+          cat /tmp/pr67.log
       - run: pnpm install --frozen-lockfile
       - run: pnpm tsc --noEmit
       - run: pnpm build
@@ -39,6 +51,7 @@ jobs:
         run: |
           rm -f scripts/apply_pr67_intelligence_trust.py
           rm -f .github/workflows/pr67-intelligence-trust.yml
+          rm -f docs/.pr67-error
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
