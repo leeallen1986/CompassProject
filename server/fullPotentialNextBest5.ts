@@ -37,6 +37,7 @@ function emptyResponse(
       weak_account_route: 0,
       already_managed: 0,
       owner_mismatch: 0,
+      duplicate_account: 0,
     },
     crmBoundary: CRM_BOUNDARY,
   };

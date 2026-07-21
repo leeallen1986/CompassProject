@@ -16,7 +16,8 @@ export type NextBest5ExclusionReason =
   | "no_account_route"
   | "weak_account_route"
   | "already_managed"
-  | "owner_mismatch";
+  | "owner_mismatch"
+  | "duplicate_account";
 
 export interface NextBest5User {
   id: number;
@@ -206,50 +207,87 @@ function accountOwnerMatchesUser(
   );
 }
 
-function productHypothesis(project: ThisWeekProject): NextBest5ProductHypothesis {
-  const angle = String(project.bestProductAngle ?? "").toLowerCase();
-  const opportunity = String(project.opportunityType ?? "").toLowerCase();
+function productHypothesis(
+  project: ThisWeekProject,
+  persistedProject: NextBest5PersistedProject,
+): NextBest5ProductHypothesis {
+  // Product guidance is derived from persisted source text, not AI-inferred
+  // equipmentSignals or a downstream classifier that may have consumed them.
+  const text = sourceText(persistedProject).toLowerCase();
+  const evidenceCount = explicitAirEvidence(persistedProject).length;
+  const confidence: NextBest5Confidence = evidenceCount >= 2
+    || /\d{2,4}\s*(?:cfm|psi)|\b\d{1,3}\s*bar\b/i.test(text)
+    ? "high"
+    : "medium";
 
-  if (angle.includes("booster") || opportunity.includes("booster")) {
+  if (/\b(?:booster compressor|air booster|gas booster|high pressure booster)\b/i.test(text)) {
     return {
       label: "Specialty Air — Booster",
       application: "High-pressure air or gas boosting",
-      confidence: project.airFit === "High" ? "high" : "medium",
+      confidence,
       basis: "explicit_project_evidence",
     };
   }
-  if (angle.includes("n2") || angle.includes("nitrogen") || opportunity.includes("purging")) {
+  if (/\b(?:nitrogen|n2 membrane|purging|inerting|dry-out|dryout|pipeline drying)\b/i.test(text)) {
     return {
       label: "Specialty Air — Nitrogen",
-      application: "Purging, inerting or nitrogen membrane duty",
-      confidence: project.airFit === "High" ? "high" : "medium",
+      application: "Purging, inerting, nitrogen membrane or dry-out duty",
+      confidence,
       basis: "explicit_project_evidence",
     };
   }
-  if (angle.includes("dryer") || opportunity.includes("air_treatment")) {
+  if (/\b(?:air dryer|desiccant dryer|refrigerant dryer|aftercooler|dew point|instrument air|control air)\b/i.test(text)) {
     return {
       label: "Air Treatment",
       application: "Dryer, aftercooler or instrument-quality air",
-      confidence: project.airFit === "High" ? "high" : "medium",
+      confidence,
       basis: "explicit_project_evidence",
     };
   }
-  if (angle.includes("package")) {
+  if (/\b(?:pressure test|pressure testing|pneumatic test|pipeline testing|hydrotest|leak testing)\b/i.test(text)) {
     return {
-      label: opportunity.includes("specialty") || opportunity.includes("pipeline")
-        ? "Specialty Air package"
-        : "Portable Air package",
-      application: project.opportunityType.replace(/_/g, " "),
-      confidence: project.airFit === "High" ? "high" : "medium",
+      label: "Portable Air package",
+      application: "Pressure testing and pipeline preparation",
+      confidence,
+      basis: "explicit_project_evidence",
+    };
+  }
+  if (/\b(?:drilling|blast hole|blasthole|aircore|air core|dth|down-the-hole|rock drill|borehole)\b/i.test(text)) {
+    return {
+      label: "Portable Air",
+      application: "Drilling and blasting",
+      confidence,
+      basis: "explicit_project_evidence",
+    };
+  }
+  if (/\b(?:piling|pile driving|micropile|pneumatic tool|jackhammer|rock breaking)\b/i.test(text)) {
+    return {
+      label: "Portable Air",
+      application: "Piling or pneumatic civil works",
+      confidence,
+      basis: "explicit_project_evidence",
+    };
+  }
+  if (/\b(?:abrasive blasting|sandblast|grit blast|shot blast|surface preparation)\b/i.test(text)) {
+    return {
+      label: "Portable Air",
+      application: "Abrasive blasting and surface preparation",
+      confidence,
+      basis: "explicit_project_evidence",
+    };
+  }
+  if (/\b(?:commissioning air|temporary plant air|shutdown|turnaround)\b/i.test(text)) {
+    return {
+      label: "Portable Air",
+      application: "Temporary plant air or commissioning",
+      confidence,
       basis: "explicit_project_evidence",
     };
   }
   return {
     label: "Portable Air",
-    application: project.opportunityType
-      ? project.opportunityType.replace(/_/g, " ")
-      : "Evidence-backed compressed-air requirement",
-    confidence: project.airFit === "High" ? "high" : "medium",
+    application: "Evidence-backed compressed-air requirement",
+    confidence,
     basis: "explicit_project_evidence",
   };
 }
@@ -374,7 +412,7 @@ export function buildNextBest5Recommendation(
   const { project, persistedProject, context, serverPosition } = input;
   const match = context.primaryMatch;
   if (!match) throw new Error("A primary account match is required");
-  const hypothesis = productHypothesis(project);
+  const hypothesis = productHypothesis(project, persistedProject);
   const action = recommendationAction(match, project, hypothesis);
   const explicitEvidence = explicitAirEvidence(persistedProject);
   const accountName = match.displayName || match.canonicalName;
@@ -441,13 +479,29 @@ export function buildReadOnlyNextBest5(
     weak_account_route: 0,
     already_managed: 0,
     owner_mismatch: 0,
+    duplicate_account: 0,
   } satisfies Record<NextBest5ExclusionReason, number>;
 
   const eligible: NextBest5Input[] = [];
+  const seenAccountIds = new Set<number>();
   for (const input of inputs) {
     const reason = exclusionReason(input, user, now);
-    if (reason) exclusions[reason] += 1;
-    else eligible.push(input);
+    if (reason) {
+      exclusions[reason] += 1;
+      continue;
+    }
+
+    const accountId = input.context.primaryMatch?.accountId;
+    if (!accountId) {
+      exclusions.no_account_route += 1;
+      continue;
+    }
+    if (seenAccountIds.has(accountId)) {
+      exclusions.duplicate_account += 1;
+      continue;
+    }
+    seenAccountIds.add(accountId);
+    eligible.push(input);
   }
 
   return {

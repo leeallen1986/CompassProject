@@ -220,6 +220,19 @@ describe("read-only Next Best 5 eligibility", () => {
       .toEqual([1, 2, 3, 4, 5]);
   });
 
+  it("deduplicates canonical accounts while preserving the first server-ranked project", () => {
+    const sharedAccount = match(99);
+    const result = buildReadOnlyNextBest5([
+      input(8, { match: sharedAccount }),
+      input(2, { match: sharedAccount }),
+      input(9),
+    ], USER, { now: NOW });
+
+    expect(result.recommendations.map(item => item.projectId)).toEqual([8, 9]);
+    expect(result.exclusions.duplicate_account).toBe(1);
+    expect(result.eligibleCount).toBe(2);
+  });
+
   it("returns fewer than five rather than filling with lower-quality projects", () => {
     const result = buildReadOnlyNextBest5([
       input(1),
@@ -324,6 +337,25 @@ describe("read-only Next Best 5 recommendation content", () => {
 
     expect(recommendation.recommendedAction).toContain("start an attributed pursuit only if");
     expect(recommendation.expectedOutcome).toContain("C4C");
+  });
+
+  it("does not let inferred product fields override the persisted source evidence", () => {
+    const result = buildReadOnlyNextBest5([
+      input(1, {
+        project: {
+          bestProductAngle: "N2 Membrane",
+          opportunityType: "purging_inerting",
+          equipmentSignals: ["nitrogen membrane"],
+        },
+        persisted: {
+          overview: "Confirmed blast-hole drilling requires a portable compressor.",
+          opportunityNote: "Drilling contractor is mobilising.",
+        },
+      }),
+    ], USER, { now: NOW });
+
+    expect(result.recommendations[0].productHypothesis.label).toBe("Portable Air");
+    expect(result.recommendations[0].productHypothesis.application).toBe("Drilling and blasting");
   });
 
   it("maps explicit specialty-air evidence without inventing a financial value", () => {
