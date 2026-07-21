@@ -1,10 +1,2 @@
-server/apolloEligibility.ts(31,10): error TS2724: '"./intelligenceTrustPolicy"' has no exported member named 'APOLLO_APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_DAILY_CREDIT_CAP'?
-server/apolloEligibility.ts(145,33): error TS2552: Cannot find name 'APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_APOLLO_DAILY_CREDIT_CAP'?
-server/apolloEligibility.ts(146,15): error TS2552: Cannot find name 'APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_APOLLO_DAILY_CREDIT_CAP'?
-server/apolloEligibility.ts(150,31): error TS2552: Cannot find name 'APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_APOLLO_DAILY_CREDIT_CAP'?
-server/apolloEligibility.ts(341,62): error TS2552: Cannot find name 'APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_APOLLO_DAILY_CREDIT_CAP'?
-server/apolloEligibility.ts(489,52): error TS2552: Cannot find name 'APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_APOLLO_DAILY_CREDIT_CAP'?
-server/apolloEligibility.ts(611,3): error TS2552: Cannot find name 'APOLLO_DAILY_CREDIT_CAP'. Did you mean 'APOLLO_APOLLO_DAILY_CREDIT_CAP'?
 server/contactEnrichment.ts(594,26): error TS2304: Cannot find name 'inferEmail'.
 server/contactEnrichment.ts(604,26): error TS2304: Cannot find name 'inferEmail'.
-server/webStakeholderDiscovery.ts(717,3): error TS2304: Cannot find name 'inferEmail'.
