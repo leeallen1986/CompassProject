@@ -1,0 +1,52 @@
+name: PR69 contact trust consistency
+
+on:
+  push:
+    branches:
+      - fix/contact-trust-slate-consistency
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-materialise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/contact-trust-slate-consistency
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply PR69 consistency patch
+        run: python3 .github/scripts/pr69_contact_trust_consistency.py
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Focused regressions
+        run: >-
+          pnpm exec vitest run
+          server/contactTrustReconciliation.shared.test.ts
+          server/contactTrustReconciliation.consistency.test.ts
+          server/intelligenceTrustPolicy.test.ts
+          server/apolloEligibility.test.ts
+      - name: Static consistency assertions
+        run: |
+          grep -q 'historic_generated_email_verified_state_conflict' server/contactTrustReconciliation.shared.ts
+          grep -q 'contactCandidateSlates' server/contactTrustReconciliation.ts
+          grep -q 'staleSlateIds' server/contactTrustReconciliation.ts
+          grep -q 'safe_keep rows are not canary changes' docs/contact-trust-reconciliation-runbook.md
+      - name: Commit clean validated tree
+        run: |
+          rm -f .github/workflows/pr69-contact-trust-consistency.yml
+          rm -f .github/scripts/pr69_contact_trust_consistency.py
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(trust): preserve emails and invalidate contact slates"
+          git push origin HEAD:fix/contact-trust-slate-consistency
