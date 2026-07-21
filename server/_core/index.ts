@@ -32,6 +32,7 @@ import {
   handleFullPotentialProjectMatch,
   handleFullPotentialProjectMatches,
 } from "../fullPotentialAccountMatching.http";
+import { handleReadOnlyNextBest5 } from "../fullPotentialNextBest5.http";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -110,6 +111,9 @@ async function startServer() {
   app.get("/api/full-potential/project-matches", handleFullPotentialProjectMatches);
   app.get("/api/full-potential/awarded-project-matches", handleFullPotentialAwardedProjectMatches);
   app.get("/api/full-potential/account-match", handleFullPotentialAccountNameMatch);
+
+  // Read-only, evidence-backed recommendation layer. No mutation route is exposed.
+  app.get("/api/full-potential/next-best-5", handleReadOnlyNextBest5);
 
   app.get("/api/warmup", handleWarmup);
   app.post("/api/pipeline/trigger", handleScheduledPipelineTrigger);
