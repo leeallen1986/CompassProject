@@ -24,11 +24,12 @@ jobs:
           cache: pnpm
       - name: Apply final commercial guardrails
         run: |
-          rm -f docs/.pr66-final-error
+          rm -f docs/.pr66-final-error docs/.pr66-test-error
           python - <<'PY'
           from pathlib import Path
           path = Path("scripts/apply_pr66_final_guardrails.py")
           text = path.read_text()
+          text = text.replace("blast hole|blasthole", "blast[- ]hole|blasthole")
           text = text.replace(
               "'''- linked to a confirmed or likely-high canonical account route\n- owned by the authenticated rep'''",
               "'''- the canonical buying route is confirmed or likely-high\n- the matched account has no open Full Potential action'''",
@@ -54,18 +55,28 @@ jobs:
       - run: pnpm tsc --noEmit
       - run: pnpm build
       - name: Read-only recommendation and regression tests
-        run: >-
-          pnpm exec vitest run
-          server/fullPotentialNextBest5.shared.test.ts
-          server/fullPotentialNextBest5.http.test.ts
-          server/commercialTruthGuardrails.test.ts
-          server/fullPotentialAccountMatching.shared.test.ts
-          client/src/lib/exploreProjects.test.ts
+        run: |
+          if ! pnpm exec vitest run \
+            server/fullPotentialNextBest5.shared.test.ts \
+            server/fullPotentialNextBest5.http.test.ts \
+            server/commercialTruthGuardrails.test.ts \
+            server/fullPotentialAccountMatching.shared.test.ts \
+            client/src/lib/exploreProjects.test.ts > /tmp/pr66-tests.log 2>&1; then
+            cat /tmp/pr66-tests.log
+            cp /tmp/pr66-tests.log docs/.pr66-test-error
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/.pr66-test-error
+            git commit -m "ci: record PR66 final test failure"
+            git push origin HEAD:feat/read-only-next-best-5
+            exit 1
+          fi
+          cat /tmp/pr66-tests.log
       - name: Commit clean validated application tree
         run: |
           rm -f scripts/apply_pr66_final_guardrails.py
           rm -f .github/workflows/pr66-final-guardrails.yml
-          rm -f docs/.pr66-final-error
+          rm -f docs/.pr66-final-error docs/.pr66-test-error
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
