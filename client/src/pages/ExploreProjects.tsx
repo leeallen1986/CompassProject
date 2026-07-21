@@ -33,6 +33,7 @@ import {
   locationMatchesExploreTerritories,
   parseExploreProjectsLocation,
   searchExploreProjects,
+  type ExploreProjectLike,
   type ExploreProjectsView,
 } from "@/lib/exploreProjects";
 import { trpc } from "@/lib/trpc";
@@ -169,7 +170,6 @@ export default function ExploreProjects() {
     });
   }, [closingSoonQuery.data, tenderContextQuery.contextsByProjectId, topProjectsById]);
 
-  const routeMetrics = useMemo(() => buildExploreRouteMetrics(topProjects), [topProjects]);
   const laneProjects = useMemo(() => {
     const filtered = filterExploreProjects(topProjects, activeView);
     return searchExploreProjects(filtered, search);
@@ -193,6 +193,29 @@ export default function ExploreProjects() {
   const visibleTenders = useMemo(
     () => searchExploreProjects(tenderProjects, search),
     [search, tenderProjects],
+  );
+
+  const metricProjects = useMemo<ExploreProjectLike[]>(() => {
+    if (activeView === "awarded") {
+      return awardedRows.map(row => ({
+        id: Number(row.id),
+        name: String(row.project ?? row.winningContractor ?? `Awarded project ${row.id}`),
+        fullPotentialContext:
+          awardedContextQuery.contextsByAwardedProjectId.get(Number(row.id)) ?? null,
+      }));
+    }
+    if (activeView === "tenders") return visibleTenders;
+    return laneProjects;
+  }, [
+    activeView,
+    awardedContextQuery.contextsByAwardedProjectId,
+    awardedRows,
+    laneProjects,
+    visibleTenders,
+  ]);
+  const routeMetrics = useMemo(
+    () => buildExploreRouteMetrics(metricProjects),
+    [metricProjects],
   );
 
   const confirmedCount = filterExploreProjects(topProjects, "confirmed").length;
