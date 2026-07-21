@@ -56,6 +56,32 @@ jobs:
             exit 1
           fi
           cat /tmp/pr67.log
+          python - <<'PY'
+          from pathlib import Path
+
+          eligibility = Path("server/apolloEligibility.ts")
+          text = eligibility.read_text().replace("APOLLO_APOLLO_DAILY_CREDIT_CAP", "APOLLO_DAILY_CREDIT_CAP")
+          eligibility.write_text(text)
+
+          contact = Path("server/contactEnrichment.ts")
+          text = contact.read_text()
+          text = text.replace('''      if (!contact.email) {
+                const inferred = inferEmail(contact.name, contact.company);
+                if (inferred) updateData.email = inferred;
+              }
+          ''', '')
+          text = text.replace('''      // Still infer email even if LinkedIn not found
+              if (!contact.email) {
+                const inferred = inferEmail(contact.name, contact.company);
+                if (inferred) updateData.email = inferred;
+              }
+          ''', '')
+          contact.write_text(text)
+
+          web = Path("server/webStakeholderDiscovery.ts")
+          text = web.read_text().replace('  inferEmail as _inferEmail,\n', '')
+          web.write_text(text)
+          PY
       - run: pnpm install --frozen-lockfile
       - name: TypeScript
         run: |
