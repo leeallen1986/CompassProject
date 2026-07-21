@@ -22,6 +22,7 @@ import { getLoginUrl } from "@/const";
 import ScopeBar, { type ScopeMode } from "@/components/ScopeBar";
 import { LaneBadge } from "@/components/LaneBadge";
 import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
+import FullPotentialNextBest5 from "@/components/FullPotentialNextBest5";
 import { useFullPotentialProjectContexts } from "@/hooks/useFullPotentialProjectContexts";
 
 // ── Sykes Pump Range Section ──
@@ -897,6 +898,8 @@ export default function ThisWeek() {
           waitingOnDiscoveryCount={waitingOnDiscovery.length}
           closingSoonCount={closingSoon.length}
         />
+
+        <FullPotentialNextBest5 />
 
         {/* ── Top 3 Actions ── */}
         <section id="top3" ref={top3Ref}>
