@@ -1,0 +1,59 @@
+name: PR70 contact trust slate invalidation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    if: github.head_ref == 'fix/contact-trust-slate-invalidation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/contact-trust-slate-invalidation
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Materialise integration
+        run: python server/scripts/pr70_materialize.py
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Trust slate and reconciliation regressions
+        run: >-
+          pnpm exec vitest run
+          server/contactTrustSlateInvalidation.test.ts
+          server/contactTrustReconciliation.shared.test.ts
+          server/intelligenceTrustPolicy.test.ts
+          server/apolloEligibility.test.ts
+          server/webStakeholderDiscovery.test.ts
+          server/discoveryQueue.test.ts
+      - name: Static transaction and boundary assertions
+        run: |
+          grep -q 'contactCandidateSlates' server/contactTrustReconciliation.ts
+          grep -q 'buildContactTrustSlateInvalidationPlan' server/contactTrustReconciliation.ts
+          grep -q 'isStale: true' server/contactTrustReconciliation.ts
+          grep -q 'staleSince: staleAt' server/contactTrustReconciliation.ts
+          grep -q 'await assertMatchedSlatesAreStale' server/contactTrustReconciliation.ts
+          grep -q 'slateInvalidation: result.slateInvalidation' server/scripts/contactTrustReconcile.ts
+          ! grep -q 'invokeLLM\|callDataApi\|hunter.io\|api.apollo.io' server/contactTrustSlateInvalidation.ts
+      - name: Commit clean validated tree
+        run: |
+          rm -f .github/workflows/pr69-contact-trust-slate-validation.yml
+          rm -f .github/workflows/pr70-pull-request-validation.yml
+          rm -f server/scripts/pr70_materialize.py
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(trust): invalidate candidate slates atomically"
+          git push origin HEAD:fix/contact-trust-slate-invalidation
