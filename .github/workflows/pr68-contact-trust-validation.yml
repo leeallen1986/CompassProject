@@ -1,0 +1,53 @@
+name: PR68 contact trust reconciliation validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/contact-trust-reconciliation
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Trust reconciliation tests
+        run: >-
+          pnpm exec vitest run
+          server/contactTrustReconciliation.shared.test.ts
+          server/intelligenceTrustPolicy.test.ts
+          server/apolloEligibility.test.ts
+          server/webStakeholderDiscovery.test.ts
+          server/discoveryQueue.test.ts
+      - name: CLI remains dry-run by default
+        run: pnpm exec tsx server/scripts/contactTrustReconcile.ts --help
+      - name: Static safety assertions
+        run: |
+          grep -q 'mode: "generate" | "seal" | "apply"' server/scripts/contactTrustReconcile.ts
+          grep -q 'apply requires --confirm-hash' server/scripts/contactTrustReconcile.ts
+          grep -q 'Database snapshot differs from the sealed manifest' server/contactTrustReconciliation.ts
+          grep -q 'manifest row changed outside the approved flag' server/contactTrustReconciliation.shared.ts
+          ! grep -q 'invokeLLM\|callDataApi\|hunter.io\|api.apollo.io' server/contactTrustReconciliation.ts
+      - name: Commit clean validated tree
+        run: |
+          rm -f .github/workflows/pr68-contact-trust-validation.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test(trust): validate guarded contact reconciliation"
+          git push origin HEAD:fix/contact-trust-reconciliation
