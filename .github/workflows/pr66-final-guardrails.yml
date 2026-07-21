@@ -1,9 +1,9 @@
 name: PR66 final commercial guardrails
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/read-only-next-best-5
+      - main
 
 permissions:
   contents: write
