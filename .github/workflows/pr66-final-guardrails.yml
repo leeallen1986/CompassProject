@@ -25,6 +25,20 @@ jobs:
       - name: Apply final commercial guardrails
         run: |
           rm -f docs/.pr66-final-error
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/apply_pr66_final_guardrails.py")
+          text = path.read_text()
+          text = text.replace(
+              "'''- linked to a confirmed or likely-high canonical account route\n- owned by the authenticated rep'''",
+              "'''- the canonical buying route is confirmed or likely-high\n- the matched account has no open Full Potential action'''",
+          )
+          text = text.replace(
+              "'''- linked to a confirmed or likely-high canonical account route\n- linked to a contractor, EPC, subcontractor, rental, supplier or awarded-contractor buying role; project-owner fallback is allowed only for explicit Direct CAPEX\n- owned by the authenticated rep'''",
+              "'''- the canonical buying route is confirmed or likely-high\n- linked to a contractor, EPC, subcontractor, rental, supplier or awarded-contractor buying role; project-owner fallback is allowed only for explicit Direct CAPEX\n- the matched account has no open Full Potential action'''",
+          )
+          path.write_text(text)
+          PY
           if ! python scripts/apply_pr66_final_guardrails.py > /tmp/pr66-final.log 2>&1; then
             cat /tmp/pr66-final.log
             cp /tmp/pr66-final.log docs/.pr66-final-error
