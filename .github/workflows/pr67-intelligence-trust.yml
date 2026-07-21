@@ -1,0 +1,47 @@
+name: PR67 intelligence and contact trust hardening
+
+on:
+  push:
+    branches:
+      - fix/intelligence-contact-trust-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-materialise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/intelligence-contact-trust-hardening
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply trust hardening
+        run: python scripts/apply_pr67_intelligence_trust.py
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Trust and regression tests
+        run: >-
+          pnpm exec vitest run
+          server/intelligenceTrustPolicy.test.ts
+          server/discoveryQueue.test.ts
+          server/fullPotentialNextBest5.shared.test.ts
+          server/fullPotentialAccountMatching.shared.test.ts
+          server/commercialTruthGuardrails.test.ts
+      - name: Commit clean validated application tree
+        run: |
+          rm -f scripts/apply_pr67_intelligence_trust.py
+          rm -f .github/workflows/pr67-intelligence-trust.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(intelligence): harden contractor and contact trust"
+          git push origin HEAD:fix/intelligence-contact-trust-hardening
