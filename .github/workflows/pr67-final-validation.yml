@@ -1,0 +1,55 @@
+name: PR67 final trust validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-materialise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/intelligence-contact-trust-hardening
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply final compatibility fixes
+        run: python scripts/apply_pr67_final_compat.py
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tsc --noEmit
+      - run: pnpm build
+      - name: Trust and compatibility regressions
+        run: >-
+          pnpm exec vitest run
+          server/intelligenceTrustPolicy.test.ts
+          server/apolloEligibility.test.ts
+          server/webStakeholderDiscovery.test.ts
+          server/discoveryQueue.test.ts
+          server/fullPotentialNextBest5.shared.test.ts
+          server/fullPotentialAccountMatching.shared.test.ts
+          server/commercialTruthGuardrails.test.ts
+      - name: Static trust assertions
+        run: |
+          ! grep -n "inferEmail(" server/contactEnrichment.ts server/webStakeholderDiscovery.ts server/secondPassContactSearch.ts
+          ! grep -n 'status: c.confidence === "high" ? "Confirmed"' server/contractorEnrichmentPass.ts
+          ! grep -n 'status === "accept_all"' server/hunterVerification.ts
+          grep -n 'DAILY_CREDIT_CAP: APOLLO_DAILY_CREDIT_CAP' server/apolloEligibility.ts
+      - name: Commit clean validated application tree
+        run: |
+          rm -f scripts/apply_pr67_final_compat.py
+          rm -f .github/workflows/pr67-final-validation.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test(intelligence): preserve trust-policy compatibility"
+          git push origin HEAD:fix/intelligence-contact-trust-hardening
