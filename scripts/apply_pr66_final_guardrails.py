@@ -114,16 +114,14 @@ text = text.replace(
 )
 shared.write_text(text)
 
-replace_once(
-    "server/fullPotentialNextBest5.shared.test.ts",
-    'overview: "Confirmed drilling program requiring a 900 CFM portable compressor package.",',
-    'overview: "Confirmed blast-hole drilling program requiring a 900 CFM portable compressor package.",',
-)
-replace_once(
-    "server/fullPotentialNextBest5.shared.test.ts",
-    'overview: "Confirmed drilling program requiring a 900 CFM portable compressor package.",',
-    'overview: "Confirmed blast-hole drilling program requiring a 900 CFM portable compressor package.",',
-)
+test_path = Path("server/fullPotentialNextBest5.shared.test.ts")
+test_text = test_path.read_text()
+overview_old = 'overview: "Confirmed drilling program requiring a 900 CFM portable compressor package.",'
+overview_new = 'overview: "Confirmed blast-hole drilling program requiring a 900 CFM portable compressor package.",'
+if test_text.count(overview_old) != 2:
+    raise SystemExit(f"expected two test overview fixtures, found {test_text.count(overview_old)}")
+test_path.write_text(test_text.replace(overview_old, overview_new))
+
 replace_once(
     "server/fullPotentialNextBest5.shared.test.ts",
     '''  it("requires a confirmed or likely-high canonical buying route", () => {''',
