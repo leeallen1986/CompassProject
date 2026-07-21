@@ -31,7 +31,7 @@ A project is eligible only when all of the following are true:
 - the matched account has no active attributed pursuit
 - the account is owned by the authenticated rep, unless the caller is an admin
 
-The service returns fewer than five recommendations when fewer than five projects clear the full bar. It does not fill the list with lower-quality records.
+The service returns fewer than five recommendations when fewer than five projects clear the full bar. It does not fill the list with lower-quality records. Only the first eligible project for each canonical account is retained, preserving the server order while avoiding five recommendations for one account.
 
 ## Evidence policy
 
@@ -41,14 +41,16 @@ Supported evidence includes explicit references to:
 
 - portable or compressed-air equipment
 - compressor packages, CFM or pressure requirements
-- drilling, blasting or aircore work
-- piling or pneumatic-tool packages
+- exploration or production drilling, blast-hole, aircore, RC or DTH work
+- piling tied to compressed air, or explicit pneumatic-tool packages
 - abrasive blasting
 - temporary plant air or commissioning air
-- pressure testing
+- pneumatic or compressed-air pressure testing
 - purging, inerting, nitrogen or dry-out work
 - booster duty
 - dryers or instrument-quality air
+
+Generic references to shutdowns, hydrotests, piling or surface preparation do not qualify without a separate air-use statement.
 
 ## Recommendation card
 
@@ -65,7 +67,7 @@ Each card displays:
 - a recommended evidence-generating action
 - expected commercial outcome
 
-Likely account routes are presented as validation work, not confirmed facts.
+Likely account routes are presented as validation work, not confirmed facts. Product-family guidance is derived from the same persisted text that passed the evidence gate; inferred equipment tags cannot select the product hypothesis.
 
 ## CRM boundary
 
