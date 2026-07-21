@@ -42,7 +42,7 @@ jobs:
           grep -q 'historic_generated_email_verified_state_conflict' server/contactTrustReconciliation.shared.ts
           grep -q 'contactCandidateSlates' server/contactTrustReconciliation.ts
           grep -q 'staleSlateIds' server/contactTrustReconciliation.ts
-          grep -q 'safe_keep rows are not canary changes' docs/contact-trust-reconciliation-runbook.md
+          grep -q 'PR69 consistency correction' docs/contact-trust-reconciliation-runbook.md
       - name: Commit clean validated tree
         if: github.event_name == 'push'
         run: |
