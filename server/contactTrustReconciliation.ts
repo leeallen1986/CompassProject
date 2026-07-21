@@ -1,6 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import {
   apolloCreditLog,
+  contactCandidateSlates,
   contactProjects,
   contacts,
   contactValidationActions,
@@ -8,6 +9,11 @@ import {
   projects,
 } from "../drizzle/schema";
 import { getDb } from "./db";
+import {
+  buildContactTrustSlateInvalidationPlan,
+  type ContactTrustSlateInvalidationPlan,
+  type ContactTrustSlateRecord,
+} from "./contactTrustSlateInvalidation";
 import {
   CONTACT_TRUST_MANIFEST_VERSION,
   buildContactDuplicateIndex,
@@ -65,6 +71,14 @@ export interface ContactTrustApplySnapshot {
   linkedProjectIds: number[];
 }
 
+export interface ContactTrustSlateInvalidationSummary {
+  matched: number;
+  markedStale: number;
+  alreadyStale: number;
+  slateIds: number[];
+  projectIds: number[];
+}
+
 export interface ContactTrustApplyResult {
   manifestHash: string;
   databaseFingerprintBefore: string;
@@ -76,6 +90,7 @@ export interface ContactTrustApplyResult {
   before: ContactTrustApplySnapshot[];
   after: ContactTrustApplySnapshot[];
   dispositionCounts: Record<string, number>;
+  slateInvalidation: ContactTrustSlateInvalidationSummary;
 }
 
 function iso(value: Date | null | undefined): string | null {
@@ -414,6 +429,43 @@ async function readSelectedSnapshots(db: Db, contactIds: number[]): Promise<Cont
     .sort((a, b) => a.contactId - b.contactId);
 }
 
+async function readSlateInvalidationPlan(
+  db: Db,
+  selectedRows: readonly ContactTrustManifestRow[],
+): Promise<ContactTrustSlateInvalidationPlan> {
+  const slateRows = await db.select().from(contactCandidateSlates);
+  return buildContactTrustSlateInvalidationPlan(
+    slateRows as ContactTrustSlateRecord[],
+    selectedRows,
+  );
+}
+
+function toSlateInvalidationSummary(
+  plan: ContactTrustSlateInvalidationPlan,
+  markedStale: number,
+): ContactTrustSlateInvalidationSummary {
+  return {
+    matched: plan.matchedSlateIds.length,
+    markedStale,
+    alreadyStale: plan.alreadyStaleSlateIds.length,
+    slateIds: plan.matchedSlateIds,
+    projectIds: plan.matchedProjectIds,
+  };
+}
+
+async function assertMatchedSlatesAreStale(db: Db, slateIds: readonly number[]): Promise<void> {
+  if (slateIds.length === 0) return;
+  const rows = await db
+    .select({ id: contactCandidateSlates.id, isStale: contactCandidateSlates.isStale })
+    .from(contactCandidateSlates)
+    .where(inArray(contactCandidateSlates.id, [...slateIds]));
+  const staleById = new Map(rows.map(row => [row.id, !!row.isStale]));
+  const nonStale = slateIds.filter(id => staleById.get(id) !== true);
+  if (nonStale.length > 0) {
+    throw new Error(`Candidate slates did not become stale: ${nonStale.join(", ")}`);
+  }
+}
+
 export async function applyContactTrustManifest(
   manifest: ContactTrustManifestSealed,
   options: ContactTrustApplyOptions,
@@ -437,6 +489,7 @@ export async function applyContactTrustManifest(
   const selectedIds = selectedRows.map(row => row.contactId);
   const currentSnapshots = await readSelectedSnapshots(db, selectedIds);
   const snapshotById = new Map(currentSnapshots.map(snapshot => [snapshot.contactId, snapshot]));
+  const slatePlan = await readSlateInvalidationPlan(db, selectedRows);
 
   if (currentManifest.databaseIdentity !== manifest.databaseIdentity) {
     throw new Error("Manifest belongs to a different database");
@@ -450,7 +503,7 @@ export async function applyContactTrustManifest(
       && snapshot.contactTrustTier === row.expectedAfter.contactTrustTier
       && snapshot.verificationStatus === row.expectedAfter.verificationStatus
       && (row.expectedAfter.linkProjectId === null || snapshot.linkedProjectIds.includes(row.expectedAfter.linkProjectId));
-  });
+  }) && slatePlan.freshSlateIds.length === 0;
 
   if (alreadyApplied) {
     return {
@@ -464,6 +517,7 @@ export async function applyContactTrustManifest(
       before: currentSnapshots,
       after: currentSnapshots,
       dispositionCounts: Object.fromEntries(selectedRows.map(row => [row.disposition, 0])),
+      slateInvalidation: toSlateInvalidationSummary(slatePlan, 0),
     };
   }
 
@@ -520,8 +574,17 @@ export async function applyContactTrustManifest(
 
       throw new Error(`Contact ${row.contactId}: non-applyable disposition ${row.disposition} reached apply`);
     }
+
+    if (slatePlan.freshSlateIds.length > 0) {
+      const staleAt = new Date();
+      await tx.update(contactCandidateSlates).set({
+        isStale: true,
+        staleSince: staleAt,
+      }).where(inArray(contactCandidateSlates.id, slatePlan.freshSlateIds));
+    }
   });
 
+  await assertMatchedSlatesAreStale(db, slatePlan.matchedSlateIds);
   const after = await readSelectedSnapshots(db, selectedIds);
   const afterById = new Map(after.map(snapshot => [snapshot.contactId, snapshot]));
   for (const row of selectedRows) {
@@ -545,6 +608,7 @@ export async function applyContactTrustManifest(
     before,
     after,
     dispositionCounts,
+    slateInvalidation: toSlateInvalidationSummary(slatePlan, slatePlan.freshSlateIds.length),
   };
 }
 

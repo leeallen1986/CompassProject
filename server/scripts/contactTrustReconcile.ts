@@ -167,6 +167,7 @@ async function apply(args: CliArgs) {
     applied: result.applied,
     skipped: result.skipped,
     contactIds: result.contactIds,
+    slateInvalidation: result.slateInvalidation,
     files: { before: beforePath, after: afterPath, summary: summaryPath },
   }, null, 2));
 }
