@@ -22,6 +22,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { isLinkedInResultAustralianRelevant } from "./geoFilter";
+import { unverifiedContactEmail } from "./intelligenceTrustPolicy";
 
 // ── Types ──
 
@@ -87,25 +88,6 @@ function normalizeRoleBucket(role: string): string {
   return "other";
 }
 
-/** Infer a corporate email pattern from name and company */
-function inferEmail(name: string, company: string): string | null {
-  if (!name || !company) return null;
-  const parts = name.toLowerCase().trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  const first = parts[0].replace(/[^a-z]/g, "");
-  const last = parts[parts.length - 1].replace(/[^a-z]/g, "");
-  if (!first || !last) return null;
-
-  const domain = company
-    .toLowerCase()
-    .replace(/\s*(pty|ltd|limited|inc|corp|group|australia|holdings)\s*/gi, "")
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[^a-z0-9]/g, "");
-
-  if (!domain) return null;
-  return `${first}.${last}@${domain}.com.au`;
-}
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -406,7 +388,7 @@ export async function discoverStakeholders(project: {
             title: person.headline || role,
             company: search.company,
             roleBucket: normalizeRoleBucket(person.headline || role),
-            email: inferEmail(person.fullName, search.company),
+            email: unverifiedContactEmail(),
             linkedinUrl,
             sourceUrl: linkedinUrl || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(person.fullName + " " + search.company)}`,
             sourceSnippet: person.headline || `${role} at ${search.company}`,
@@ -514,15 +496,33 @@ export async function discoverAndSaveStakeholders(project: {
 
   for (const contact of result.contacts) {
     try {
-      // Check for duplicate by name across all projects
+      // Deduplicate by person + employer, then link the existing person to this project.
       const existing = await db
         .select({ id: contacts.id })
         .from(contacts)
-        .where(sql`LOWER(${contacts.name}) = LOWER(${contact.name})`)
+        .where(and(
+          sql`LOWER(${contacts.name}) = LOWER(${contact.name})`,
+          sql`LOWER(${contacts.company}) = LOWER(${contact.company})`,
+        ))
         .limit(1);
 
       if (existing.length > 0) {
-        console.log(`[WebDiscovery] Skipping duplicate name "${contact.name}" — already exists`);
+        const existingLink = await db
+          .select({ id: contactProjects.id })
+          .from(contactProjects)
+          .where(and(
+            eq(contactProjects.contactId, existing[0].id),
+            eq(contactProjects.projectId, project.id),
+          ))
+          .limit(1);
+        if (existingLink.length === 0) {
+          await db.insert(contactProjects).values({
+            contactId: existing[0].id,
+            projectId: project.id,
+            projectName: project.name,
+            relevance: contact.company === project.owner ? "primary" : "secondary",
+          });
+        }
         continue;
       }
 
@@ -548,12 +548,13 @@ export async function discoverAndSaveStakeholders(project: {
         linkedinHeadline: contact.title,
         linkedinLocation: null,
         linkedinProfilePic: null,
-        verificationStatus: contact.confidence === "high" ? "verified" : "ai_suggested",
+        verificationStatus: "unverified",
         confidenceScore: contact.confidence,
         linkedinSearchUrl,
         linkedinProfileUrl: contact.linkedinUrl || null,
         roleRelevance,
         emailVerified: false,
+        contactTrustTier: "named_unverified",
       };
 
       // Compute verification score
@@ -713,7 +714,6 @@ export async function runBulkWebDiscovery(
 
 export {
   normalizeRoleBucket as _normalizeRoleBucket,
-  inferEmail as _inferEmail,
   searchLinkedInPeople as _searchLinkedInPeople,
   getSearchPlan as _getSearchPlan,
 };

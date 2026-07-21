@@ -4,7 +4,7 @@
  * Tests cover:
  * - Search query building from project metadata
  * - Role bucket normalisation
- * - Email inference from name + company
+ * - Unverified contacts never receive a guessed mailbox
  * - Module exports and function signatures
  * - Schema columns for web_search contacts
  * - Verification scoring for web_search source
@@ -13,8 +13,8 @@ import { describe, it, expect } from "vitest";
 import {
   buildSearchQueries,
   _normalizeRoleBucket,
-  _inferEmail,
 } from "./webStakeholderDiscovery";
+import { unverifiedContactEmail } from "./intelligenceTrustPolicy";
 import * as schema from "../drizzle/schema";
 
 // ── buildSearchQueries ──
@@ -173,34 +173,11 @@ describe("normalizeRoleBucket", () => {
   });
 });
 
-// ── inferEmail ──
+// ── Email trust ──
 
-describe("inferEmail", () => {
-  it("generates firstname.lastname@company.com.au pattern", () => {
-    const email = _inferEmail("John Smith", "BHP Group");
-    expect(email).toBe("john.smith@bhp.com.au");
-  });
-
-  it("strips common company suffixes", () => {
-    const email = _inferEmail("Jane Doe", "Rio Tinto Limited");
-    expect(email).toBe("jane.doe@riotinto.com.au");
-  });
-
-  it("handles multi-word names (uses first and last)", () => {
-    const email = _inferEmail("Mary Jane Watson", "Fortescue Metals Group");
-    expect(email).toBe("mary.watson@fortescuemetals.com.au");
-  });
-
-  it("returns null for empty name", () => {
-    expect(_inferEmail("", "BHP")).toBeNull();
-  });
-
-  it("returns null for empty company", () => {
-    expect(_inferEmail("John Smith", "")).toBeNull();
-  });
-
-  it("returns null for single-word name", () => {
-    expect(_inferEmail("John", "BHP")).toBeNull();
+describe("unverified contact email handling", () => {
+  it("never creates a guessed mailbox for a discovered person", () => {
+    expect(unverifiedContactEmail()).toBeNull();
   });
 });
 
@@ -314,10 +291,6 @@ describe("webStakeholderDiscovery module exports", () => {
 
   it("exports normalizeRoleBucket", () => {
     expect(typeof _normalizeRoleBucket).toBe("function");
-  });
-
-  it("exports inferEmail", () => {
-    expect(typeof _inferEmail).toBe("function");
   });
 
   it("exports discoverStakeholders", async () => {

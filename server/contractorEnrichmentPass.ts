@@ -1,15 +1,15 @@
 /**
- * Contractor Enrichment Pass
+ * Contractor Hypothesis Pass
  * 
- * When a project lacks contractor information, this module searches the web
- * for contractor, EPC, and construction partner details using the project name.
+ * When a project lacks contractor information, this module generates contractor, EPC and delivery-chain hypotheses from project context.
+ * It does not perform attributable web search and must never create confirmed facts.
  * 
  * Search patterns:
  *   - "{project name}" + contractor
  *   - "{project name}" + EPC
  *   - "{project name}" + construction partner
  * 
- * Uses LLM to extract structured contractor data from search results.
+ * Uses an LLM to generate structured, explicitly unverified contractor hypotheses.
  * Only runs for projects that have been identified from other sources.
  */
 
@@ -17,6 +17,7 @@ import { getDb } from "./db";
 import { projects, awardedProjects } from "../drizzle/schema";
 import { eq, sql, and, or, isNull } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
+import { toPersistedContractorHypothesis } from "./intelligenceTrustPolicy";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -338,7 +339,7 @@ If you don't know, return an empty array [].`,
         projectName: project.name,
         contractorsFound: [],
         searchQueries,
-        source: "llm_knowledge",
+        source: "llm_hypothesis",
       };
     }
 
@@ -359,7 +360,7 @@ If you don't know, return an empty array [].`,
       projectName: project.name,
       contractorsFound: filtered,
       searchQueries,
-      source: "llm_knowledge",
+      source: "llm_hypothesis",
     };
   } catch (error) {
     console.error(`[ContractorEnrichment] Error searching for ${project.name}:`, error);
@@ -368,7 +369,7 @@ If you don't know, return an empty array [].`,
       projectName: project.name,
       contractorsFound: [],
       searchQueries,
-      source: "llm_knowledge",
+      source: "llm_hypothesis",
     };
   }
 }
@@ -376,7 +377,7 @@ If you don't know, return an empty array [].`,
 // ─── Update Project with Discovered Contractors ──────────────────
 
 /**
- * Update a project's contractors field with newly discovered contractors.
+ * Update a project's contractors field with new contractor hypotheses.
  * Merges with existing contractors, avoiding duplicates.
  */
 export async function updateProjectContractors(
@@ -413,12 +414,7 @@ export async function updateProjectContractors(
   // Convert to the project's contractor format
   const merged = [
     ...existing.filter(c => c.name && c.name.toLowerCase() !== "unknown"),
-    ...toAdd.map(c => ({
-      name: c.name,
-      status: c.confidence === "high" ? "Confirmed" : "Predicted",
-      confidence: c.confidence === "high" ? 85 : c.confidence === "medium" ? 60 : 35,
-      detail: `${c.role}: ${c.detail} (enrichment pass)`,
-    })),
+    ...toAdd.map(toPersistedContractorHypothesis),
   ];
 
   await db.update(projects)

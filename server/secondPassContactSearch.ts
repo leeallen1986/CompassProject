@@ -20,11 +20,12 @@
 
 import { eq, and, sql } from "drizzle-orm";
 import { getDb } from "./db";
-import { contacts, projects, type InsertContact } from "../drizzle/schema";
+import { contacts, projects, contactProjects, type InsertContact } from "../drizzle/schema";
 import { callDataApi } from "./_core/dataApi";
 import { classifyRoleRelevance, getProjectsWithFewRelevantContacts } from "./roleRelevance";
 import { computeVerificationScore, generateLinkedInSearchUrl } from "./verificationScoring";
 import { isLinkedInResultAustralianRelevant } from "./geoFilter";
+import { unverifiedContactEmail } from "./intelligenceTrustPolicy";
 
 // ── Types ──
 
@@ -89,22 +90,6 @@ interface LinkedInPerson {
   profilePicture?: string;
 }
 
-function inferEmail(name: string, company: string): string | null {
-  if (!name || !company) return null;
-  const parts = name.toLowerCase().trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  const first = parts[0].replace(/[^a-z]/g, "");
-  const last = parts[parts.length - 1].replace(/[^a-z]/g, "");
-  if (!first || !last) return null;
-  const domain = company
-    .toLowerCase()
-    .replace(/\s*(pty|ltd|limited|inc|corp|group|australia|holdings)\s*/gi, "")
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[^a-z0-9]/g, "");
-  if (!domain) return null;
-  return `${first}.${last}@${domain}.com.au`;
-}
 
 function normalizeRoleBucket(role: string): string {
   const h = role.toLowerCase();
@@ -233,10 +218,11 @@ export async function runSecondPassForProject(
   // Count existing relevant contacts
   const [existingCount] = await db
     .select({ count: sql<number>`count(*)` })
-    .from(contacts)
+    .from(contactProjects)
+    .innerJoin(contacts, eq(contactProjects.contactId, contacts.id))
     .where(
       and(
-        sql`${contacts.project} = ${projectName}`,
+        eq(contactProjects.projectId, projectId),
         sql`${contacts.roleRelevance} IN ('high', 'medium')`
       )
     );
@@ -282,10 +268,11 @@ export async function runSecondPassForProject(
   // Determine which roles to search based on what's missing
   const existingRoles = await db
     .select({ roleBucket: contacts.roleBucket })
-    .from(contacts)
+    .from(contactProjects)
+    .innerJoin(contacts, eq(contactProjects.contactId, contacts.id))
     .where(
       and(
-        sql`${contacts.project} = ${projectName}`,
+        eq(contactProjects.projectId, projectId),
         sql`${contacts.roleRelevance} IN ('high', 'medium')`
       )
     );
@@ -326,10 +313,31 @@ export async function runSecondPassForProject(
           const [existing] = await db
             .select({ id: contacts.id })
             .from(contacts)
-            .where(sql`LOWER(${contacts.name}) = LOWER(${nameKey})`)
+            .where(and(
+              sql`LOWER(${contacts.name}) = LOWER(${nameKey})`,
+              sql`LOWER(${contacts.company}) = LOWER(${company})`,
+            ))
             .limit(1);
 
-          if (existing) continue;
+          if (existing) {
+            const [existingLink] = await db
+              .select({ id: contactProjects.id })
+              .from(contactProjects)
+              .where(and(
+                eq(contactProjects.contactId, existing.id),
+                eq(contactProjects.projectId, projectId),
+              ))
+              .limit(1);
+            if (!existingLink) {
+              await db.insert(contactProjects).values({
+                contactId: existing.id,
+                projectId,
+                projectName,
+                relevance: company === owner ? "primary" : "secondary",
+              });
+            }
+            continue;
+          }
 
           // Classify role relevance
           const titleToUse = person.headline || role;
@@ -359,7 +367,7 @@ export async function runSecondPassForProject(
             project: projectName,
             priority: "warm",
             roleBucket: normalizeRoleBucket(titleToUse),
-            email: inferEmail(person.fullName, company),
+            email: unverifiedContactEmail(),
             linkedin: null,
             enrichmentStatus: "enriched",
             enrichmentSource: "web_search",
@@ -374,6 +382,7 @@ export async function runSecondPassForProject(
             linkedinProfileUrl: linkedinUrl || null,
             roleRelevance,
             emailVerified: false,
+            contactTrustTier: "named_unverified",
           };
 
           // Compute verification score
@@ -381,7 +390,17 @@ export async function runSecondPassForProject(
           if (scoreBreakdown.total < MIN_VERIFICATION_SCORE) continue;
           (contactData as any).verificationScore = scoreBreakdown.total;
 
-          await db.insert(contacts).values(contactData);
+          await db.transaction(async tx => {
+            const [inserted] = await tx.insert(contacts).values(contactData);
+            const contactId = Number((inserted as any).insertId);
+            if (!contactId) throw new Error("Second-pass contact insert did not return an ID");
+            await tx.insert(contactProjects).values({
+              contactId,
+              projectId,
+              projectName,
+              relevance: company === owner ? "primary" : "secondary",
+            });
+          });
 
           newContacts.push({
             name: person.fullName,

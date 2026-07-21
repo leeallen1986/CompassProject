@@ -16,6 +16,7 @@ import { getDb } from "./db";
 import { contacts, projects, contactProjects, userProfiles, projectEnrichmentCache, type InsertContact } from "../drizzle/schema";
 import { classifyRoleRelevance } from "./roleRelevance";
 import { callDataApi } from "./_core/dataApi";
+import { selectLinkedInPersonMatch, unverifiedContactEmail } from "./intelligenceTrustPolicy";
 
 // ── Configuration ──
 
@@ -72,35 +73,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-//** Blocked domains that produce garbage/hallucinated emails */
-const BLOCKED_EMAIL_DOMAINS = [
-  "unknown", "various", "tba", "tbc", "tbd", "na", "none",
-  "multiple", "undisclosed", "confidential", "notavailable",
-];
-
-/** Infer a corporate email pattern from name and company */
-function inferEmail(name: string, company: string): string | null {
-  if (!name || !company) return null;
-  const parts = name.toLowerCase().trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  const first = parts[0].replace(/[^a-z]/g, "");
-  const last = parts[parts.length - 1].replace(/[^a-z]/g, "");
-  if (!first || !last) return null;
-  // Clean company domain
-  const domain = company
-    .toLowerCase()
-    .replace(/\s*(pty|ltd|limited|inc|corp|group|australia|holdings)\s*/gi, "")
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[^a-z0-9]/g, "");
-  if (!domain) return null;
-  // Block garbage domains
-  if (BLOCKED_EMAIL_DOMAINS.includes(domain)) {
-    console.warn(`[Enrichment] Blocked garbage email domain: "${domain}" from company "${company}"`);
-    return null;
-  }
-  return `${first}.${last}@${domain}.com.au`;
-}
 
 /** Map a LinkedIn headline to a role bucket */
 function inferRoleBucket(headline: string): string {
@@ -177,31 +149,7 @@ async function searchLinkedIn(
       return null;
     }
 
-    // Find best match by name similarity
-    const nameLower = name.toLowerCase().trim();
-    const items = result.data.items;
-
-    // Try exact name match first
-    for (const person of items) {
-      const fullName = (person.fullName || "").toLowerCase().trim();
-      if (fullName === nameLower) return person;
-    }
-
-    // Try partial match (first + last name)
-    const nameParts = nameLower.split(/\s+/);
-    if (nameParts.length >= 2) {
-      const firstName = nameParts[0];
-      const lastName = nameParts[nameParts.length - 1];
-      for (const person of items) {
-        const fullName = (person.fullName || "").toLowerCase().trim();
-        if (fullName.includes(firstName) && fullName.includes(lastName)) {
-          return person;
-        }
-      }
-    }
-
-    // Return first result if no name match (LinkedIn search is already filtered)
-    return items[0] || null;
+    return selectLinkedInPersonMatch(name, result.data.items);
   } catch (err: unknown) {
     console.error(
       `LinkedIn search failed for ${name}:`,
@@ -290,8 +238,8 @@ export async function enrichContactsForProject(projectId: number): Promise<Enric
         linkedinHeadline: result.headline,
         linkedinLocation: result.location,
         linkedinProfilePic: result.profilePic,
-        // Infer email if not already set
-        email: contact.email || inferEmail(contact.name, contact.company),
+        // Never persist an inferred mailbox pattern as contact data.
+        email: contact.email || unverifiedContactEmail(),
         // Update role bucket if we got a better one from LinkedIn
         roleBucket: result.headline
           ? inferRoleBucket(result.headline)
@@ -408,7 +356,26 @@ export async function generateAndEnrichContacts(
             )
             .limit(1);
 
-          if (existing.length > 0) continue;
+          if (existing.length > 0) {
+            const existingContactId = existing[0].id;
+            const existingLink = await db
+              .select({ id: contactProjects.id })
+              .from(contactProjects)
+              .where(and(
+                eq(contactProjects.contactId, existingContactId),
+                eq(contactProjects.projectId, projectId),
+              ))
+              .limit(1);
+            if (existingLink.length === 0) {
+              await db.insert(contactProjects).values({
+                contactId: existingContactId,
+                projectId,
+                projectName,
+                relevance: company === owner ? "primary" : "secondary",
+              });
+            }
+            continue;
+          }
 
           const linkedinUrl =
             person.profileURL ||
@@ -431,7 +398,7 @@ export async function generateAndEnrichContacts(
             project: projectName,
             priority: company === owner ? "hot" : "warm",
             roleBucket,
-            email: inferEmail(person.fullName, company),
+            email: unverifiedContactEmail(),
             linkedin: linkedinUrl,
             enrichmentStatus: "enriched",
             enrichmentSource: "linkedin",
@@ -623,20 +590,11 @@ export async function runEnrichmentPipeline(
       if (result.headline) updateData.linkedinHeadline = result.headline;
       if (result.location) updateData.linkedinLocation = result.location;
       if (result.profilePic) updateData.linkedinProfilePic = result.profilePic;
-      if (!contact.email) {
-        const inferred = inferEmail(contact.name, contact.company);
-        if (inferred) updateData.email = inferred;
-      }
       if (result.headline) {
         updateData.roleBucket = inferRoleBucket(result.headline);
       }
       enriched++;
     } else if (result.status === "not_found") {
-      // Still infer email even if LinkedIn not found
-      if (!contact.email) {
-        const inferred = inferEmail(contact.name, contact.company);
-        if (inferred) updateData.email = inferred;
-      }
       notFound++;
     } else {
       failed++;

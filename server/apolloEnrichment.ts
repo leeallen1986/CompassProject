@@ -30,7 +30,6 @@ import { cleanContactName } from "./nameUtils";
 
 const APOLLO_BASE_URL = "https://api.apollo.io/api/v1";
 const DELAY_BETWEEN_CALLS_MS = 500;
-const DAILY_ENRICHMENT_CAP = 200; // Apollo credits per day
 const SEARCH_RESULTS_PER_PAGE = 25;
 const MAX_CONTACTS_PER_COMPANY = 5;
 
