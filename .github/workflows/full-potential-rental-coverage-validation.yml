@@ -30,12 +30,23 @@ jobs:
       - name: TypeScript
         run: pnpm tsc --noEmit
       - name: Coverage census tests
-        run: >-
-          pnpm vitest run
-          server/fullPotentialRentalCoverageCensus.test.ts
-          server/fullPotentialRentalCoverageCensus.cli.test.ts
-          server/fullPotentialRentalHire.test.ts
-          server/fullPotentialRentalRemediation.test.ts
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm vitest run \
+            server/fullPotentialRentalCoverageCensus.test.ts \
+            server/fullPotentialRentalCoverageCensus.cli.test.ts \
+            server/fullPotentialRentalHire.test.ts \
+            server/fullPotentialRentalRemediation.test.ts \
+            2>&1 | tee /tmp/rental-coverage-tests.log
+      - name: Upload coverage-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-coverage-tests-log
+          path: /tmp/rental-coverage-tests.log
+          if-no-files-found: error
+          retention-days: 2
       - name: Read-only CLI help
         run: >-
           pnpm exec tsx
