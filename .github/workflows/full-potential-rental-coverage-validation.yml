@@ -23,6 +23,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Upload controlled source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-coverage-controlled-source
+          path: |
+            server/fullPotentialRentalCoverageCanonical.ts
+            server/fullPotentialRentalCoverageCanonical.test.ts
+            server/fullPotentialRentalCoverageCensusCli.ts
+            server/fullPotentialRentalCoverageCensus.cli.test.ts
+            server/scripts/fullPotentialRentalCoverageCensus.ts
+          if-no-files-found: error
+          retention-days: 2
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
