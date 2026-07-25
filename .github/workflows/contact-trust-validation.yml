@@ -50,6 +50,17 @@ jobs:
           server/intelligenceTrustPolicy.test.ts
           server/apolloEligibility.test.ts
       - name: Full test suite
-        run: pnpm test
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm test 2>&1 | tee /tmp/full-test.log
+      - name: Upload full-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-test-log
+          path: /tmp/full-test.log
+          if-no-files-found: error
+          retention-days: 2
       - name: Production build
         run: pnpm build
