@@ -1,0 +1,57 @@
+name: Contact trust validation
+
+on:
+  pull_request:
+    paths:
+      - "server/contactSlateTrustPolicy.ts"
+      - "server/contactValidationState.ts"
+      - "server/contactSlateTrustDb.ts"
+      - "server/contactWaterfall.ts"
+      - "server/contactSlateTrustAudit.ts"
+      - "server/scripts/contactSlateTrustAudit.ts"
+      - "server/hunterVerification.ts"
+      - "server/routers/contactValidation.ts"
+      - "client/src/pages/ContactValidation.tsx"
+      - "server/contactSlateTrust*.test.ts"
+      - "server/contactValidationState.test.ts"
+      - "server/contactWaterfall.test.ts"
+      - "server/contactTrustReconciliation*.test.ts"
+      - ".github/workflows/contact-trust-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Trust-boundary and reconciliation regressions
+        run: >-
+          pnpm vitest run
+          server/contactSlateTrustPolicy.test.ts
+          server/contactValidationState.test.ts
+          server/contactWaterfall.test.ts
+          server/contactSlateTrustAudit.test.ts
+          server/contactSlateTrustConsistency.test.ts
+          server/contactTrustReconciliation.shared.test.ts
+          server/contactTrustReconciliation.consistency.test.ts
+          server/intelligenceTrustPolicy.test.ts
+          server/apolloEligibility.test.ts
+      - name: Full test suite
+        run: pnpm test
+      - name: Production build
+        run: pnpm build

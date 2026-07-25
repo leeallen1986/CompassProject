@@ -40,7 +40,7 @@ import { toast } from "sonner";
 // ── Types ──
 
 type TrustTier = "send_ready" | "named_unverified" | "llm_inferred";
-type ValidationAction = "accept" | "reject" | "wrong_company" | "wrong_role" | "backup_only";
+type ValidationAction = "accept" | "reject" | "wrong_company" | "wrong_role" | "backup_only" | "verify_email";
 
 interface SlotSnapshot {
   contactId: number;
@@ -84,11 +84,17 @@ interface ProjectRow {
     isStale: boolean;
     generatedAt: Date | null;
     primarySnapshot: SlotSnapshot | null;
+    backup1Snapshot: SlotSnapshot | null;
+    backup2Snapshot: SlotSnapshot | null;
     commercialSnapshot: SlotSnapshot | null;
     technicalSnapshot: SlotSnapshot | null;
+    validationIssues: Array<{ code: string; detail: string }>;
   } | null;
+  status: "missing" | "current" | "stale" | "invalid";
   hasSlate: boolean;
   slateIsStale: boolean;
+  slateIsInvalid: boolean;
+  requiresRegeneration: boolean;
   gate: ProjectGate | null;
 }
 
@@ -182,8 +188,8 @@ function ContactSlotCard({ slotLabel, slotKey: _slotKey, snapshot, projectId, on
   });
 
   const handleAction = (action: ValidationAction) => {
+    setPendingAction(action);
     if (action === "reject" || action === "wrong_company") {
-      setPendingAction(action);
       setShowNote(true);
       return;
     }
@@ -256,8 +262,14 @@ function ContactSlotCard({ slotLabel, slotKey: _slotKey, snapshot, projectId, on
           <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border">
             <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
               onClick={() => handleAction("accept")} disabled={submitAction.isPending}>
-              <CheckCircle2 className="w-3 h-3" /> Accept
+              <CheckCircle2 className="w-3 h-3" /> Accept identity
             </Button>
+            {snapshot.email && snapshot.contactTrustTier === "named_unverified" && (
+              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                onClick={() => handleAction("verify_email")} disabled={submitAction.isPending}>
+                <Mail className="w-3 h-3" /> Verify email
+              </Button>
+            )}
             <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 text-red-600 border-red-200 hover:bg-red-50"
               onClick={() => handleAction("reject")} disabled={submitAction.isPending}>
               <XCircle className="w-3 h-3" /> Reject
@@ -515,7 +527,8 @@ function ProjectSlateRow({ project, onRefresh }: { project: ProjectRow; onRefres
     ? <Shield className="w-3.5 h-3.5 text-amber-500" />
     : <AlertCircle className="w-3.5 h-3.5 text-slate-400" />;
 
-  const slateData = slateQuery.data;
+  const slateEnvelope = slateQuery.data;
+  const slateData = slateEnvelope?.slate;
 
   return (
     <div className={`border rounded-lg overflow-hidden ${project.isDemoted ? "border-red-200" : "border-border"}`}>
@@ -548,14 +561,15 @@ function ProjectSlateRow({ project, onRefresh }: { project: ProjectRow; onRefres
           </div>
           <div className="flex items-center gap-2 text-xs">
             {project.slate ? (
-              <>
+              project.requiresRegeneration ? (
+                <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-200">
+                  Contact slate requires refresh
+                </Badge>
+              ) : (
                 <span className={`font-semibold ${coverageColor}`}>
                   {project.slate.sendReadySlots}/{project.slate.totalSlotsFilled} send-ready
                 </span>
-                {project.slateIsStale && (
-                  <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200">stale</Badge>
-                )}
-              </>
+              )
             ) : (
               <span className="text-muted-foreground italic text-[11px]">No slate yet</span>
             )}
@@ -584,7 +598,7 @@ function ProjectSlateRow({ project, onRefresh }: { project: ProjectRow; onRefres
               {hunterBatch.isPending ? "Running Hunter…" : "Hunter verify all"}
             </Button>
             <ProjectGateControls project={project} onGateSet={onRefresh} />
-            {slateData && (
+            {slateData && slateEnvelope?.status === "current" && (
               <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-600" />{slateData.sendReadySlots} send-ready</span>
                 <span className="flex items-center gap-1"><Shield className="w-3 h-3 text-amber-500" />{slateData.namedUnverifiedSlots} validate first</span>
@@ -614,11 +628,27 @@ function ProjectSlateRow({ project, onRefresh }: { project: ProjectRow; onRefres
             </div>
           )}
 
+          {slateEnvelope && slateEnvelope.status !== "current" && (
+            <div className="flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">Contact slate requires refresh</p>
+                <p className="mt-1">
+                  {slateEnvelope.status === "missing"
+                    ? "No persisted slate exists for this project."
+                    : slateEnvelope.status === "stale"
+                    ? "The stored slate is marked stale and its contact snapshots are hidden."
+                    : "The stored slate no longer satisfies the contact-trust policy and its contact snapshots are hidden."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {slateQuery.isLoading && (
             <p className="text-sm text-muted-foreground text-center py-4">Loading slate…</p>
           )}
 
-          {slateData && (
+          {slateData && slateEnvelope?.status === "current" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {(["primarySnapshot", "commercialSnapshot", "technicalSnapshot", "backup1Snapshot", "backup2Snapshot"] as const).map((key, i) => (
                 <ContactSlotCard
