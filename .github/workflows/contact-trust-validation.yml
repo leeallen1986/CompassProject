@@ -1,0 +1,133 @@
+name: Contact trust validation
+
+on:
+  pull_request:
+    paths:
+      - "server/contactSlateTrustPolicy.ts"
+      - "server/contactValidationState.ts"
+      - "server/contactSlateTrustDb.ts"
+      - "server/contactWaterfall.ts"
+      - "server/contactSlateTrustAudit.ts"
+      - "server/scripts/contactSlateTrustAudit.ts"
+      - "server/hunterVerification.ts"
+      - "server/routers/contactValidation.ts"
+      - "client/src/pages/ContactValidation.tsx"
+      - "server/contactSlateTrust*.test.ts"
+      - "server/contactValidationState.test.ts"
+      - "server/contactWaterfall.test.ts"
+      - "server/contactTrustReconciliation*.test.ts"
+      - ".github/workflows/contact-trust-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Trust-boundary and reconciliation regressions
+        run: >-
+          pnpm vitest run
+          server/contactSlateTrustPolicy.test.ts
+          server/contactValidationState.test.ts
+          server/contactWaterfall.test.ts
+          server/contactSlateTrustAudit.test.ts
+          server/contactSlateTrustConsistency.test.ts
+          server/contactTrustReconciliation.shared.test.ts
+          server/contactTrustReconciliation.consistency.test.ts
+          server/intelligenceTrustPolicy.test.ts
+          server/apolloEligibility.test.ts
+      - name: Offline repository test suite
+        run: >-
+          pnpm vitest run
+          --exclude server/apolloEnrichment.test.ts
+          --exclude server/apolloRoutes.test.ts
+          --exclude server/crmImport.test.ts
+          --exclude server/emailSender.test.ts
+          --exclude server/fullPotential.importSignals.test.ts
+          --exclude server/fullPotential.listSignalQueue.test.ts
+          --exclude server/fullPotential.listSignals.test.ts
+          --exclude server/fullPotential.matchedSignalsForAccount.test.ts
+          --exclude server/fullPotential.promoteMatchedSignalToAction.test.ts
+          --exclude server/fullPotential.signalTemplate.test.ts
+          --exclude server/fullPotential.updateAccountFields.integration.test.ts
+          --exclude server/fullPotential.updateAccountFields.test.ts
+          --exclude server/fullPotentialCommercialModel.integration.test.ts
+          --exclude server/hunterService.test.ts
+          --exclude server/lushaApiKey.test.ts
+          --exclude server/pipeline-digest.test.ts
+          --exclude server/pipeline.accessControl.test.ts
+          --exclude server/pipeline.attribution.test.ts
+          --exclude server/pipeline.legacyCompatibility.test.ts
+          --exclude server/projectory.auth.test.ts
+      - name: Full repository suite diagnostic
+        id: full_suite
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm test 2>&1 | tee /tmp/full-test.log
+      - name: Reject unexpected full-suite failures
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          allowed = {
+              "server/apolloEnrichment.test.ts",
+              "server/apolloRoutes.test.ts",
+              "server/crmImport.test.ts",
+              "server/emailSender.test.ts",
+              "server/fullPotential.importSignals.test.ts",
+              "server/fullPotential.listSignalQueue.test.ts",
+              "server/fullPotential.listSignals.test.ts",
+              "server/fullPotential.matchedSignalsForAccount.test.ts",
+              "server/fullPotential.promoteMatchedSignalToAction.test.ts",
+              "server/fullPotential.signalTemplate.test.ts",
+              "server/fullPotential.updateAccountFields.integration.test.ts",
+              "server/fullPotential.updateAccountFields.test.ts",
+              "server/fullPotentialCommercialModel.integration.test.ts",
+              "server/hunterService.test.ts",
+              "server/lushaApiKey.test.ts",
+              "server/pipeline-digest.test.ts",
+              "server/pipeline.accessControl.test.ts",
+              "server/pipeline.attribution.test.ts",
+              "server/pipeline.legacyCompatibility.test.ts",
+              "server/projectory.auth.test.ts",
+          }
+          path = pathlib.Path("/tmp/full-test.log")
+          if not path.exists():
+              raise SystemExit("Full-suite log was not created")
+          text = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", path.read_text(errors="replace"))
+          failed = set(re.findall(r"^ FAIL\s+([^ >\n]+)", text, flags=re.MULTILINE))
+          unexpected = sorted(failed - allowed)
+          print("full_suite_failed_files=", sorted(failed))
+          print("environment_allowlist_hits=", sorted(failed & allowed))
+          if unexpected:
+              print("unexpected_full_suite_failures=", unexpected, file=sys.stderr)
+              raise SystemExit(1)
+          PY
+      - name: Upload full-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-test-log
+          path: /tmp/full-test.log
+          if-no-files-found: error
+          retention-days: 2
+      - name: Production build
+        run: pnpm build

@@ -173,78 +173,68 @@ export async function verifyContactWithHunter(
   const db = await getDb();
   if (!db) return { contactId, action: "failed", reason: "db_unavailable" };
 
-  // Load the contact
   const [contact] = await db
     .select()
     .from(contacts)
     .where(eq(contacts.id, contactId))
     .limit(1);
-
-  if (!contact) {
-    return { contactId, action: "failed", reason: "contact_not_found" };
-  }
-
-  // Only process named_unverified — never promote LLM contacts via Hunter alone
+  if (!contact) return { contactId, action: "failed", reason: "contact_not_found" };
   if (contact.contactTrustTier === "llm_inferred") {
     return { contactId, action: "skipped", reason: "llm_contacts_not_eligible" };
+  }
+  if (contact.rejectionReason != null) {
+    return { contactId, action: "skipped", reason: "rejected_contact_not_eligible" };
   }
   if (contact.contactTrustTier === "send_ready") {
     return { contactId, action: "skipped", reason: "already_send_ready" };
   }
 
-  // Split name into first/last
   const nameParts = (contact.name || "").trim().split(/\s+/);
   const firstName = nameParts[0] || "";
   const lastName = nameParts.slice(1).join(" ") || "";
-
   if (!firstName || !lastName) {
     return { contactId, action: "skipped", reason: "insufficient_name_parts" };
   }
 
-  let hunterResult: HunterEmailFinderResult | null = null;
-  let verifyResult: HunterEmailVerifierResult | null = null;
-  let queryType: "email_finder" | "email_verifier" = "email_finder";
-  let emailToProcess = contact.email;
-
   try {
     if (contact.email) {
-      // Path A: Contact already has an email — verify it
-      queryType = "email_verifier";
-      verifyResult = await hunterEmailVerifier(contact.email);
-
-      await db.insert(hunterVerificationLog).values({
-        contactId,
-        projectId: projectId || null,
-        queryType: "email_verifier",
-        queryInput: { email: contact.email },
-        hunterStatus: verifyResult.status,
-        hunterConfidence: verifyResult.score,
-        emailFound: verifyResult.status === "valid" ? contact.email : null,
-        hunterSources: verifyResult.sources,
-        contactUpdated: false,
-        tierPromoted: false,
-        apiCreditsUsed: 1,
-      });
-
-      // accept-all domains do not verify an individual mailbox and remain named_unverified
+      const verifyResult = await hunterEmailVerifier(contact.email);
       const shouldPromote = shouldPromoteHunterResult({
         status: verifyResult.status,
         score: verifyResult.score,
         disposable: verifyResult.disposable,
         block: verifyResult.block,
       });
+      const now = new Date();
+
+      await db.transaction(async tx => {
+        await tx.insert(hunterVerificationLog).values({
+          contactId,
+          projectId: projectId || null,
+          queryType: "email_verifier",
+          queryInput: { email: contact.email as string },
+          hunterStatus: verifyResult.status,
+          hunterConfidence: verifyResult.score,
+          emailFound: verifyResult.status === "valid" ? contact.email : null,
+          hunterSources: verifyResult.sources,
+          contactUpdated: shouldPromote,
+          tierPromoted: shouldPromote,
+          apiCreditsUsed: 1,
+        });
+
+        if (shouldPromote) {
+          await tx.update(contacts).set({
+            contactTrustTier: "send_ready",
+            emailVerified: true,
+            verificationStatus: "verified",
+            verifiedAt: now,
+          }).where(eq(contacts.id, contactId));
+          const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+          await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
+        }
+      });
 
       if (shouldPromote) {
-        await db.update(contacts).set({
-          contactTrustTier: "send_ready",
-          emailVerified: true,
-        }).where(eq(contacts.id, contactId));
-
-        await db.update(hunterVerificationLog).set({
-          contactUpdated: true,
-          tierPromoted: true,
-        }).where(eq(hunterVerificationLog.contactId, contactId));
-
         return {
           contactId,
           action: "promoted",
@@ -254,7 +244,6 @@ export async function verifyContactWithHunter(
           emailFound: contact.email,
         };
       }
-
       return {
         contactId,
         action: "kept_unverified",
@@ -262,24 +251,22 @@ export async function verifyContactWithHunter(
         hunterStatus: verifyResult.status,
         hunterConfidence: verifyResult.score,
       };
+    }
 
-    } else {
-      // Path B: No email — try to find one via email-finder
-      queryType = "email_finder";
+    const domain = await deriveDomainFromCompany(contact.company || "");
+    if (!domain) return { contactId, action: "skipped", reason: "cannot_derive_domain" };
 
-      // Derive domain from company name or LinkedIn URL
-      let domain: string | null = null;
-      // Use LLM-based domain inference for accuracy
-      domain = await deriveDomainFromCompany(contact.company || "");
+    await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+    const hunterResult = await hunterEmailFinder(firstName, lastName, domain);
+    const shouldPromote = Boolean(hunterResult.email) && shouldPromoteHunterResult({
+      status: hunterResult.status,
+      score: hunterResult.score,
+    });
+    const contactUpdated = Boolean(hunterResult.email);
+    const now = new Date();
 
-      if (!domain) {
-        return { contactId, action: "skipped", reason: "cannot_derive_domain" };
-      }
-
-      await new Promise(r => setTimeout(r, DELAY_MS));
-      hunterResult = await hunterEmailFinder(firstName, lastName, domain);
-
-      await db.insert(hunterVerificationLog).values({
+    await db.transaction(async tx => {
+      await tx.insert(hunterVerificationLog).values({
         contactId,
         projectId: projectId || null,
         queryType: "email_finder",
@@ -288,69 +275,60 @@ export async function verifyContactWithHunter(
         hunterConfidence: hunterResult.score,
         emailFound: hunterResult.email,
         hunterSources: hunterResult.sources,
-        contactUpdated: false,
-        tierPromoted: false,
+        contactUpdated,
+        tierPromoted: shouldPromote,
         apiCreditsUsed: 1,
       });
 
-      if (!hunterResult.email) {
-        return {
-          contactId,
-          action: "kept_unverified",
-          reason: "hunter_no_email_found",
-          hunterStatus: hunterResult.status,
-          hunterConfidence: hunterResult.score,
-        };
-      }
-
-      emailToProcess = hunterResult.email;
-
-      // An accept-all domain does not verify the named person's mailbox.
-      const shouldPromote = shouldPromoteHunterResult({
-        status: hunterResult.status,
-        score: hunterResult.score,
-      });
-
-      if (shouldPromote) {
-        await db.update(contacts).set({
+      if (hunterResult.email) {
+        await tx.update(contacts).set(shouldPromote ? {
           email: hunterResult.email,
           emailVerified: true,
+          verificationStatus: "verified",
           contactTrustTier: "send_ready",
+          verifiedAt: now,
+        } : {
+          email: hunterResult.email,
+          emailVerified: false,
+          verificationStatus: "unverified",
+          contactTrustTier: "named_unverified",
         }).where(eq(contacts.id, contactId));
-
-        await db.update(hunterVerificationLog).set({
-          contactUpdated: true,
-          tierPromoted: true,
-        }).where(eq(hunterVerificationLog.contactId, contactId));
-
-        return {
-          contactId,
-          action: "email_found",
-          reason: `hunter_found_valid_${hunterResult.score}`,
-          hunterStatus: hunterResult.status,
-          hunterConfidence: hunterResult.score,
-          emailFound: hunterResult.email,
-        };
+        const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+        await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
       }
+    });
 
-      // Email found but low confidence — save email but don't promote
-      await db.update(contacts).set({
-        email: hunterResult.email,
-      }).where(eq(contacts.id, contactId));
-
+    if (!hunterResult.email) {
       return {
         contactId,
         action: "kept_unverified",
-        reason: `hunter_found_low_confidence_${hunterResult.score}`,
+        reason: "hunter_no_email_found",
+        hunterStatus: hunterResult.status,
+        hunterConfidence: hunterResult.score,
+      };
+    }
+    if (shouldPromote) {
+      return {
+        contactId,
+        action: "email_found",
+        reason: `hunter_found_valid_${hunterResult.score}`,
         hunterStatus: hunterResult.status,
         hunterConfidence: hunterResult.score,
         emailFound: hunterResult.email,
       };
     }
-
-  } catch (err: any) {
-    console.error(`[Hunter] Error verifying contact ${contactId}: ${err.message}`);
-    return { contactId, action: "failed", reason: err.message };
+    return {
+      contactId,
+      action: "kept_unverified",
+      reason: `hunter_found_low_confidence_${hunterResult.score}`,
+      hunterStatus: hunterResult.status,
+      hunterConfidence: hunterResult.score,
+      emailFound: hunterResult.email,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[Hunter] Error verifying contact ${contactId}: ${message}`);
+    return { contactId, action: "failed", reason: message };
   }
 }
 

@@ -1,31 +1,12 @@
 /**
- * Contact Waterfall Engine
+ * Contact candidate-slate waterfall.
  *
- * Implements the verified contact recovery waterfall for hot and warm projects.
- *
- * Source priority (highest → lowest):
- *   1. Apollo (verified email, project-linked)
- *   2. Web search / LinkedIn public match (named, email may be missing)
- *   3. Projectory stakeholders (named, often has email)
- *   4. Hunter fallback (email finder/verifier for already-named contacts)
- *   5. LLM inference (suggested stakeholders only — never primary)
- *
- * Role lanes relevant to Atlas Copco PT Capital Sales:
- *   - primary:    Project Manager, Project Director, Site Manager, Construction Manager
- *   - commercial: Procurement Manager, Commercial Manager, Contracts Manager, Purchasing
- *   - technical:  Operations Manager, Maintenance Manager, Project Engineer, Site Engineer,
- *                 Rental/Hire Manager, Equipment Manager, Plant Manager
- *   - backup:     Any other named contact linked to the project
- *
- * Candidate slate per project:
- *   slot 1: primary  — highest confidence, send_ready preferred
- *   slot 2: backup_1 — second-best overall
- *   slot 3: backup_2 — third-best overall
- *   slot 4: commercial — best procurement/commercial contact
- *   slot 5: technical  — best operations/maintenance/engineering contact
+ * Persisted slates contain only project-linked, non-rejected, non-orphan,
+ * non-LLM contacts. A raw send_ready label is exposed as send-ready only when
+ * the mailbox verification state is complete.
  */
 
-import { eq, and, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   contacts,
@@ -33,300 +14,301 @@ import {
   contactCandidateSlates,
   type SlotSnapshot,
 } from "../drizzle/schema";
+import {
+  buildEligibilityReport,
+  deriveEffectiveSlateTier,
+  evaluateSlateEligibility,
+  rankSlateContacts,
+  validateStoredCandidateSlate,
+  type RankedSlateContact,
+  type RoleLane,
+  type SlateEligibilityReport,
+  type SlatePolicyContact,
+  type StoredCandidateSlate,
+} from "./contactSlateTrustPolicy";
 
-// ── Role Lane Classification ──
+export { classifyRoleLane } from "./contactSlateTrustPolicy";
+export type { RoleLane } from "./contactSlateTrustPolicy";
 
-const PRIMARY_ROLE_KEYWORDS = [
-  "project manager", "project director", "site manager", "construction manager",
-  "project superintendent", "site superintendent", "project lead", "project head",
-  "general manager", "operations director", "country manager", "regional manager",
-  "managing director", "executive", "vp ", "vice president", "director",
-];
-
-const COMMERCIAL_ROLE_KEYWORDS = [
-  "procurement", "commercial", "contracts manager", "contract manager",
-  "purchasing", "supply chain", "category manager", "sourcing",
-  "tendering", "bid manager", "estimator", "cost manager",
-];
-
-const TECHNICAL_ROLE_KEYWORDS = [
-  "operations manager", "operations", "maintenance manager", "maintenance",
-  "project engineer", "site engineer", "engineering manager", "plant manager",
-  "equipment manager", "fleet manager", "hire manager", "rental manager",
-  "mechanical engineer", "electrical engineer", "process engineer",
-  "technical manager", "asset manager", "facilities manager",
-];
-
-export type RoleLane = "primary" | "commercial" | "technical" | "backup";
-
-export function classifyRoleLane(title: string): RoleLane {
-  const t = title.toLowerCase();
-
-  // Check commercial first (procurement often has "manager" which would match primary)
-  for (const kw of COMMERCIAL_ROLE_KEYWORDS) {
-    if (t.includes(kw)) return "commercial";
-  }
-  for (const kw of PRIMARY_ROLE_KEYWORDS) {
-    if (t.includes(kw)) return "primary";
-  }
-  for (const kw of TECHNICAL_ROLE_KEYWORDS) {
-    if (t.includes(kw)) return "technical";
-  }
-  return "backup";
-}
-
-// ── Contact Scoring ──
-
-interface ScoredContact {
-  id: number;
-  name: string;
-  title: string;
-  company: string;
-  email: string | null;
-  linkedin: string | null;
-  enrichmentSource: string | null;
-  contactTrustTier: "send_ready" | "named_unverified" | "llm_inferred";
-  confidenceScore: string | null;
-  roleRelevance: string | null;
-  roleLane: RoleLane;
-  compositeScore: number;
-}
-
-function scoreContact(c: {
-  id: number;
-  name: string;
-  title: string;
-  company: string;
-  email: string | null;
-  linkedin: string | null;
-  enrichmentSource: string | null;
-  contactTrustTier: "send_ready" | "named_unverified" | "llm_inferred" | null;
-  confidenceScore: "high" | "medium" | "low" | null;
-  roleRelevance: "high" | "medium" | "low" | null;
-}): ScoredContact {
-  let score = 0;
-
-  // Trust tier (0-40 points)
-  if (c.contactTrustTier === "send_ready") score += 40;
-  else if (c.contactTrustTier === "named_unverified") score += 20;
-  else score += 0; // llm_inferred
-
-  // Email present (0-20 points)
-  if (c.email) score += 20;
-
-  // LinkedIn present (0-10 points)
-  if (c.linkedin) score += 10;
-
-  // Confidence score (0-15 points)
-  if (c.confidenceScore === "high") score += 15;
-  else if (c.confidenceScore === "medium") score += 8;
-  else score += 2;
-
-  // Role relevance (0-15 points)
-  if (c.roleRelevance === "high") score += 15;
-  else if (c.roleRelevance === "medium") score += 8;
-  else score += 2;
-
-  const roleLane = classifyRoleLane(c.title || "");
-
-  return {
-    id: c.id,
-    name: c.name,
-    title: c.title,
-    company: c.company,
-    email: c.email,
-    linkedin: c.linkedin,
-    enrichmentSource: c.enrichmentSource,
-    contactTrustTier: (c.contactTrustTier || "named_unverified") as "send_ready" | "named_unverified" | "llm_inferred",
-    confidenceScore: c.confidenceScore,
-    roleRelevance: c.roleRelevance,
-    roleLane,
-    compositeScore: score,
-  };
-}
-
-function toSnapshot(c: ScoredContact, lane: RoleLane): SlotSnapshot {
-  return {
-    contactId: c.id,
-    name: c.name,
-    title: c.title,
-    company: c.company,
-    email: c.email,
-    linkedin: c.linkedin,
-    enrichmentSource: c.enrichmentSource || "unknown",
-    contactTrustTier: c.contactTrustTier,
-    confidenceScore: c.confidenceScore || "medium",
-    roleRelevance: c.roleRelevance || "medium",
-    roleLane: lane,
-  };
-}
-
-// ── Slate Generation ──
+export type SlateCandidate = RankedSlateContact;
 
 export interface CandidateSlate {
   projectId: number;
-  primary: ScoredContact | null;
-  backup1: ScoredContact | null;
-  backup2: ScoredContact | null;
-  commercial: ScoredContact | null;
-  technical: ScoredContact | null;
+  primary: SlateCandidate | null;
+  backup1: SlateCandidate | null;
+  backup2: SlateCandidate | null;
+  commercial: SlateCandidate | null;
+  technical: SlateCandidate | null;
   totalSlotsFilled: number;
   sendReadySlots: number;
   namedUnverifiedSlots: number;
-  llmSlots: number;
+  llmSlots: 0;
   sourcesUsed: string[];
+  eligibilityReport: SlateEligibilityReport;
 }
 
-export async function generateCandidateSlate(
-  projectId: number
-): Promise<CandidateSlate> {
-  const db = await getDb();
-  if (!db) {
-    return {
-      projectId,
-      primary: null, backup1: null, backup2: null,
-      commercial: null, technical: null,
-      totalSlotsFilled: 0, sendReadySlots: 0,
-      namedUnverifiedSlots: 0, llmSlots: 0,
-      sourcesUsed: [],
-    };
+export interface CandidateSlateRow extends SlatePolicyContact {}
+
+function emptySlate(projectId: number, totalRows = 0): CandidateSlate {
+  return {
+    projectId,
+    primary: null,
+    backup1: null,
+    backup2: null,
+    commercial: null,
+    technical: null,
+    totalSlotsFilled: 0,
+    sendReadySlots: 0,
+    namedUnverifiedSlots: 0,
+    llmSlots: 0,
+    sourcesUsed: [],
+    eligibilityReport: buildEligibilityReport(totalRows, [], new Set<number>()),
+  };
+}
+
+function deduplicateRows(rows: CandidateSlateRow[]): CandidateSlateRow[] {
+  const byId = new Map<number, CandidateSlateRow>();
+  for (const row of rows) {
+    if (!byId.has(row.id)) byId.set(row.id, row);
+  }
+  return [...byId.values()];
+}
+
+/** Database-independent slate construction used by generation and tests. */
+export function buildCandidateSlateFromRows(
+  projectId: number,
+  rows: CandidateSlateRow[],
+): CandidateSlate {
+  const uniqueRows = deduplicateRows(rows);
+  const linkedIds = new Set(uniqueRows.map(row => row.id));
+  const eligibilityReport = buildEligibilityReport(rows.length, uniqueRows, linkedIds);
+  const eligible = uniqueRows.filter(row => evaluateSlateEligibility(row, true).eligible);
+
+  if (eligible.length === 0) {
+    return { ...emptySlate(projectId, rows.length), eligibilityReport };
   }
 
-  // Fetch all contacts linked to this project
-  const rows = await db
-    .select({
-      id: contacts.id,
-      name: contacts.name,
-      title: contacts.title,
-      company: contacts.company,
-      email: contacts.email,
-      linkedin: contacts.linkedin,
-      enrichmentSource: contacts.enrichmentSource,
-      contactTrustTier: contacts.contactTrustTier,
-      confidenceScore: contacts.confidenceScore,
-      roleRelevance: contacts.roleRelevance,
-    })
+  const ranked = rankSlateContacts(eligible);
+  const primaryLane = ranked.filter(contact => contact.roleLane === "primary");
+  const commercialLane = ranked.filter(contact => contact.roleLane === "commercial");
+  const technicalLane = ranked.filter(contact => contact.roleLane === "technical");
+
+  const primary = primaryLane[0] || ranked[0] || null;
+  const usedIds = new Set<number>(primary ? [primary.id] : []);
+
+  const commercial = commercialLane.find(contact => !usedIds.has(contact.id)) || null;
+  if (commercial) usedIds.add(commercial.id);
+
+  const technical = technicalLane.find(contact => !usedIds.has(contact.id)) || null;
+  if (technical) usedIds.add(technical.id);
+
+  const backups = ranked.filter(contact => !usedIds.has(contact.id));
+  const backup1 = backups[0] || null;
+  if (backup1) usedIds.add(backup1.id);
+  const backup2 = backups.find(contact => !usedIds.has(contact.id)) || null;
+
+  const selected = [primary, backup1, backup2, commercial, technical]
+    .filter((contact): contact is SlateCandidate => contact != null);
+  const sendReadySlots = selected.filter(
+    contact => contact.effectiveTrustTier === "send_ready",
+  ).length;
+  const namedUnverifiedSlots = selected.length - sendReadySlots;
+
+  return {
+    projectId,
+    primary,
+    backup1,
+    backup2,
+    commercial,
+    technical,
+    totalSlotsFilled: selected.length,
+    sendReadySlots,
+    namedUnverifiedSlots,
+    llmSlots: 0,
+    sourcesUsed: [...new Set(selected.map(contact => contact.enrichmentSource || "unknown"))],
+    eligibilityReport,
+  };
+}
+
+const candidateSelection = {
+  id: contacts.id,
+  name: contacts.name,
+  title: contacts.title,
+  company: contacts.company,
+  email: contacts.email,
+  linkedin: contacts.linkedin,
+  enrichmentSource: contacts.enrichmentSource,
+  contactTrustTier: contacts.contactTrustTier,
+  confidenceScore: contacts.confidenceScore,
+  roleRelevance: contacts.roleRelevance,
+  emailVerified: contacts.emailVerified,
+  verificationStatus: contacts.verificationStatus,
+  rejectionReason: contacts.rejectionReason,
+  crmOrphan: contacts.crmOrphan,
+};
+
+export async function generateCandidateSlate(projectId: number): Promise<CandidateSlate> {
+  const db = await getDb();
+  if (!db) return emptySlate(projectId);
+
+  const rows: CandidateSlateRow[] = await db
+    .select(candidateSelection)
     .from(contacts)
     .innerJoin(contactProjects, eq(contactProjects.contactId, contacts.id))
     .where(eq(contactProjects.projectId, projectId));
 
-  if (rows.length === 0) {
-    return {
-      projectId,
-      primary: null, backup1: null, backup2: null,
-      commercial: null, technical: null,
-      totalSlotsFilled: 0, sendReadySlots: 0,
-      namedUnverifiedSlots: 0, llmSlots: 0,
-      sourcesUsed: [],
-    };
-  }
+  return buildCandidateSlateFromRows(projectId, rows);
+}
 
-  // Score all contacts
-  const scored = rows.map(r => scoreContact(r as any));
-
-  // Separate by lane
-  const primaryLane = scored.filter(c => c.roleLane === "primary");
-  const commercialLane = scored.filter(c => c.roleLane === "commercial");
-  const technicalLane = scored.filter(c => c.roleLane === "technical");
-  const allSorted = [...scored].sort((a, b) => b.compositeScore - a.compositeScore);
-
-  // Sort each lane by composite score
-  const sortByScore = (arr: ScoredContact[]) =>
-    [...arr].sort((a, b) => b.compositeScore - a.compositeScore);
-
-  const sortedPrimary = sortByScore(primaryLane);
-  const sortedCommercial = sortByScore(commercialLane);
-  const sortedTechnical = sortByScore(technicalLane);
-
-  // Assign slots
-  // Primary: best primary-lane contact, fallback to best overall
-  const primaryContact = sortedPrimary[0] || allSorted[0] || null;
-  const usedIds = new Set<number>(primaryContact ? [primaryContact.id] : []);
-
-  // Commercial: best commercial-lane contact not already used
-  const commercialContact = sortedCommercial.find(c => !usedIds.has(c.id)) || null;
-  if (commercialContact) usedIds.add(commercialContact.id);
-
-  // Technical: best technical-lane contact not already used
-  const technicalContact = sortedTechnical.find(c => !usedIds.has(c.id)) || null;
-  if (technicalContact) usedIds.add(technicalContact.id);
-
-  // Backup slots: next two best overall contacts not already used
-  const backupPool = allSorted.filter(c => !usedIds.has(c.id));
-  const backup1 = backupPool[0] || null;
-  if (backup1) usedIds.add(backup1.id);
-  const backup2 = backupPool[1] || null;
-
-  // Collect sources used
-  const sourceSet = new Set(
-    scored
-      .filter(c => [primaryContact, backup1, backup2, commercialContact, technicalContact]
-        .some(s => s?.id === c.id))
-      .map(c => c.enrichmentSource || "unknown")
-  );
-  const sourcesUsed = Array.from(sourceSet);
-
-  // Count tiers across filled slots
-  const filledSlots = [primaryContact, backup1, backup2, commercialContact, technicalContact]
-    .filter(Boolean) as ScoredContact[];
-
-  const sendReadySlots = filledSlots.filter(c => c.contactTrustTier === "send_ready").length;
-  const namedUnverifiedSlots = filledSlots.filter(c => c.contactTrustTier === "named_unverified").length;
-  const llmSlots = filledSlots.filter(c => c.contactTrustTier === "llm_inferred").length;
-
+function toSnapshot(contact: SlateCandidate, lane: RoleLane): SlotSnapshot {
   return {
-    projectId,
-    primary: primaryContact,
-    backup1,
-    backup2,
-    commercial: commercialContact,
-    technical: technicalContact,
-    totalSlotsFilled: filledSlots.length,
-    sendReadySlots,
-    namedUnverifiedSlots,
-    llmSlots,
-    sourcesUsed,
+    contactId: contact.id,
+    name: contact.name,
+    title: contact.title,
+    company: contact.company,
+    email: contact.email,
+    linkedin: contact.linkedin,
+    enrichmentSource: contact.enrichmentSource || "unknown",
+    contactTrustTier: deriveEffectiveSlateTier(contact),
+    confidenceScore: contact.confidenceScore || "medium",
+    roleRelevance: contact.roleRelevance || "medium",
+    roleLane: lane,
   };
 }
 
-// ── Persist Slate to DB ──
+interface SelectedSlot {
+  lane: RoleLane;
+  contactId: number;
+}
 
+function selectedSlots(slate: CandidateSlate): SelectedSlot[] {
+  return [
+    slate.primary ? { lane: "primary" as const, contactId: slate.primary.id } : null,
+    slate.backup1 ? { lane: "backup" as const, contactId: slate.backup1.id } : null,
+    slate.backup2 ? { lane: "backup" as const, contactId: slate.backup2.id } : null,
+    slate.commercial ? { lane: "commercial" as const, contactId: slate.commercial.id } : null,
+    slate.technical ? { lane: "technical" as const, contactId: slate.technical.id } : null,
+  ].filter((slot): slot is SelectedSlot => slot != null);
+}
+
+/**
+ * Atomically replace a project's slate. The selected contacts are reread inside
+ * the transaction so a contact cannot become ineligible between generation and
+ * persistence.
+ */
 export async function saveCandidateSlate(slate: CandidateSlate): Promise<void> {
   const db = await getDb();
-  if (!db) return;
+  if (!db) throw new Error("Database unavailable");
 
-  const values = {
-    projectId: slate.projectId,
-    primaryContactId: slate.primary?.id || null,
-    backup1ContactId: slate.backup1?.id || null,
-    backup2ContactId: slate.backup2?.id || null,
-    commercialContactId: slate.commercial?.id || null,
-    technicalContactId: slate.technical?.id || null,
-    primarySnapshot: slate.primary ? toSnapshot(slate.primary, "primary") : null,
-    backup1Snapshot: slate.backup1 ? toSnapshot(slate.backup1, "backup") : null,
-    backup2Snapshot: slate.backup2 ? toSnapshot(slate.backup2, "backup") : null,
-    commercialSnapshot: slate.commercial ? toSnapshot(slate.commercial, "commercial") : null,
-    technicalSnapshot: slate.technical ? toSnapshot(slate.technical, "technical") : null,
-    totalSlotsFilled: slate.totalSlotsFilled,
-    sendReadySlots: slate.sendReadySlots,
-    namedUnverifiedSlots: slate.namedUnverifiedSlots,
-    llmSlots: slate.llmSlots,
-    sourcesUsed: slate.sourcesUsed,
-    generatedAt: new Date(),
-    generatedBy: "waterfall_engine" as const,
-    isStale: false,
-    staleSince: null,
-  };
+  const slots = selectedSlots(slate);
+  const selectedIds = slots.map(slot => slot.contactId);
+  if (new Set(selectedIds).size !== selectedIds.length) {
+    throw new Error("Candidate slate contains a duplicate contact assignment.");
+  }
 
-  // Upsert: delete existing slate for this project, then insert fresh
-  await db
-    .delete(contactCandidateSlates)
-    .where(eq(contactCandidateSlates.projectId, slate.projectId));
+  await db.transaction(async tx => {
+    const liveRows: CandidateSlateRow[] = selectedIds.length > 0
+      ? await tx
+          .select(candidateSelection)
+          .from(contacts)
+          .where(inArray(contacts.id, selectedIds))
+      : [];
 
-  await db.insert(contactCandidateSlates).values(values);
+    const linkRows: Array<{ contactId: number }> = selectedIds.length > 0
+      ? await tx
+          .select({ contactId: contactProjects.contactId })
+          .from(contactProjects)
+          .where(
+            and(
+              eq(contactProjects.projectId, slate.projectId),
+              inArray(contactProjects.contactId, selectedIds),
+            ),
+          )
+      : [];
+
+    const linkedIds = new Set(linkRows.map(row => row.contactId));
+    const liveMap = new Map(liveRows.map(row => [row.id, row]));
+    const rankedLive = new Map(rankSlateContacts(liveRows).map(row => [row.id, row]));
+
+    for (const id of selectedIds) {
+      const live = liveMap.get(id);
+      if (!live) throw new Error(`Candidate contact ${id} no longer exists.`);
+      const eligibility = evaluateSlateEligibility(live, linkedIds.has(id));
+      if (!eligibility.eligible) {
+        throw new Error(
+          `Candidate contact ${id} became ineligible: ${eligibility.reasons.join(",")}`,
+        );
+      }
+    }
+
+    const liveFor = (candidate: SlateCandidate | null): SlateCandidate | null => {
+      if (!candidate) return null;
+      const current = rankedLive.get(candidate.id);
+      if (!current) throw new Error(`Candidate contact ${candidate.id} missing during persistence.`);
+      return current;
+    };
+
+    const primary = liveFor(slate.primary);
+    const backup1 = liveFor(slate.backup1);
+    const backup2 = liveFor(slate.backup2);
+    const commercial = liveFor(slate.commercial);
+    const technical = liveFor(slate.technical);
+    const persistedContacts = [primary, backup1, backup2, commercial, technical]
+      .filter((contact): contact is SlateCandidate => contact != null);
+    const sendReadySlots = persistedContacts.filter(
+      contact => contact.effectiveTrustTier === "send_ready",
+    ).length;
+    const namedUnverifiedSlots = persistedContacts.length - sendReadySlots;
+
+    const values = {
+      projectId: slate.projectId,
+      primaryContactId: primary?.id || null,
+      backup1ContactId: backup1?.id || null,
+      backup2ContactId: backup2?.id || null,
+      commercialContactId: commercial?.id || null,
+      technicalContactId: technical?.id || null,
+      primarySnapshot: primary ? toSnapshot(primary, "primary") : null,
+      backup1Snapshot: backup1 ? toSnapshot(backup1, "backup") : null,
+      backup2Snapshot: backup2 ? toSnapshot(backup2, "backup") : null,
+      commercialSnapshot: commercial ? toSnapshot(commercial, "commercial") : null,
+      technicalSnapshot: technical ? toSnapshot(technical, "technical") : null,
+      totalSlotsFilled: persistedContacts.length,
+      sendReadySlots,
+      namedUnverifiedSlots,
+      llmSlots: 0,
+      sourcesUsed: [...new Set(persistedContacts.map(contact => contact.enrichmentSource || "unknown"))],
+      generatedAt: new Date(),
+      generatedBy: "waterfall_engine" as const,
+      isStale: false,
+      staleSince: null,
+    };
+
+    await tx
+      .delete(contactCandidateSlates)
+      .where(eq(contactCandidateSlates.projectId, slate.projectId));
+    await tx.insert(contactCandidateSlates).values(values);
+
+    const [inserted] = await tx
+      .select()
+      .from(contactCandidateSlates)
+      .where(eq(contactCandidateSlates.projectId, slate.projectId))
+      .limit(1);
+    if (!inserted) {
+      throw new Error(`Persisted slate for project ${slate.projectId} could not be reread.`);
+    }
+
+    const validation = validateStoredCandidateSlate(
+      inserted as unknown as StoredCandidateSlate,
+      liveMap,
+      linkedIds,
+    );
+    if (!validation.valid) {
+      throw new Error(
+        `Persisted slate failed trust validation: ${validation.issues.map(issue => issue.code).join(",")}`,
+      );
+    }
+  });
 }
-
-// ── Batch: Generate slates for top-N hot/warm projects ──
 
 export interface BatchSlateResult {
   projectId: number;
@@ -337,22 +319,21 @@ export interface BatchSlateResult {
 }
 
 export async function generateSlatesForTopProjects(
-  projectIds: number[]
+  projectIds: number[],
 ): Promise<BatchSlateResult[]> {
   const db = await getDb();
   if (!db) return [];
 
-  // Fetch project names
   const { projects } = await import("../drizzle/schema");
-  const projectRows = await db
-    .select({ id: projects.id, name: projects.name })
-    .from(projects)
-    .where(inArray(projects.id, projectIds));
-
-  const nameMap = new Map(projectRows.map(p => [p.id, p.name || `Project ${p.id}`]));
+  const projectRows = projectIds.length > 0
+    ? await db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(inArray(projects.id, projectIds))
+    : [];
+  const nameMap = new Map(projectRows.map(row => [row.id, row.name || `Project ${row.id}`]));
 
   const results: BatchSlateResult[] = [];
-
   for (const projectId of projectIds) {
     try {
       const slate = await generateCandidateSlate(projectId);
@@ -363,23 +344,15 @@ export async function generateSlatesForTopProjects(
         slate,
         status: "generated",
       });
-    } catch (err: any) {
+    } catch (error) {
       results.push({
         projectId,
         projectName: nameMap.get(projectId) || `Project ${projectId}`,
-        slate: {
-          projectId,
-          primary: null, backup1: null, backup2: null,
-          commercial: null, technical: null,
-          totalSlotsFilled: 0, sendReadySlots: 0,
-          namedUnverifiedSlots: 0, llmSlots: 0,
-          sourcesUsed: [],
-        },
+        slate: emptySlate(projectId),
         status: "failed",
-        error: err.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
-
   return results;
 }
