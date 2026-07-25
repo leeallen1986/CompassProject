@@ -23,7 +23,6 @@ import { contacts, hunterVerificationLog } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { inferCompanyDomains } from "./domainInference";
 import { shouldPromoteHunterResult } from "./intelligenceTrustPolicy";
-import { invalidateAffectedSlatesInTransaction } from "./contactSlateTrustDb";
 
 
 // ── Configuration ──
@@ -230,6 +229,7 @@ export async function verifyContactWithHunter(
             verificationStatus: "verified",
             verifiedAt: now,
           }).where(eq(contacts.id, contactId));
+          const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
           await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
         }
       });
@@ -293,6 +293,7 @@ export async function verifyContactWithHunter(
           verificationStatus: "unverified",
           contactTrustTier: "named_unverified",
         }).where(eq(contacts.id, contactId));
+        const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
         await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
       }
     });
