@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -23,85 +23,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: fix/rental-coverage-canonical-parent-accuracy
-          fetch-depth: 0
-      - name: Apply exact controlled source correction
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          changed = False
-          canonical = Path('server/fullPotentialRentalCoverageCanonical.ts')
-          text = canonical.read_text()
-
-          old = '  return candidates.map(candidate => {'
-          new = '  return candidates.map<CanonicalRentalCandidateResult>(candidate => {'
-          if old in text:
-              if text.count(old) != 1:
-                  raise SystemExit(f'candidate map anchor count={text.count(old)}')
-              text = text.replace(old, new)
-              changed = True
-          elif new not in text:
-              raise SystemExit('candidate map target is neither old nor corrected')
-
-          old = '    const structuralGaps = members.flatMap(member => preliminaryRows.get(member.id)?.rowGapCodes || []);'
-          new = '''    const structuralGaps = members
-              .flatMap(member => preliminaryRows.get(member.id)?.rowGapCodes || [])
-              .filter(gap => [
-                "relationship_cycle",
-                "missing_relationship_target",
-                "child_without_parent",
-                "duplicate_counts_toward_potential",
-                "inactive_counts_toward_potential",
-              ].includes(gap));'''
-          if old in text:
-              if text.count(old) != 1:
-                  raise SystemExit(f'structural gap anchor count={text.count(old)}')
-              text = text.replace(old, new)
-              changed = True
-          elif 'const structuralGaps = members\n      .flatMap' not in text and 'const structuralGaps = members\n              .flatMap' not in text:
-              raise SystemExit('structural gap target is neither old nor corrected')
-          canonical.write_text(text)
-
-          tests = Path('server/fullPotentialRentalCoverageCanonical.test.ts')
-          text = tests.read_text()
-          old = '          ownerName: "Paul Lueth",\n          expectedOwnerNames: ["Paul Lueth"],'
-          new = '          ownerName: "Paul Lueth",\n          expectedOwnerNames: ["Paul Lueth"],\n          routeToMarket: "cea",\n          channelOwner: "CEA",'
-          if old in text:
-              if text.count(old) != 1:
-                  raise SystemExit(f'route conflict anchor count={text.count(old)}')
-              text = text.replace(old, new)
-              changed = True
-          elif 'routeToMarket: "cea"' not in text:
-              raise SystemExit('route conflict target is neither old nor corrected')
-          tests.write_text(text)
-
-          Path('/tmp/pr73-source-changed').write_text('true' if changed else 'false')
-          PY
-
-          git diff --check
-          if [ "$(cat /tmp/pr73-source-changed)" = "true" ]; then
-            git config user.name 'OpenAI engineering controller'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add server/fullPotentialRentalCoverageCanonical.ts server/fullPotentialRentalCoverageCanonical.test.ts
-            git commit -m 'fix(fp): correct canonical Rental census semantics'
-            git push origin HEAD:fix/rental-coverage-canonical-parent-accuracy
-          fi
-      - name: Upload controlled source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: rental-coverage-controlled-source
-          path: |
-            server/fullPotentialRentalCoverageCanonical.ts
-            server/fullPotentialRentalCoverageCanonical.test.ts
-            server/fullPotentialRentalCoverageCensusCli.ts
-            server/fullPotentialRentalCoverageCensus.cli.test.ts
-            server/scripts/fullPotentialRentalCoverageCensus.ts
-          if-no-files-found: error
-          retention-days: 2
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
