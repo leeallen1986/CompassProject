@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "server/fullPotentialRentalCoverageCensus.ts"
+      - "server/fullPotentialRentalCoverageCanonical.ts"
+      - "server/fullPotentialRentalCoverageCensusCli.ts"
       - "server/fullPotentialRentalCoverageCensus.test.ts"
+      - "server/fullPotentialRentalCoverageCanonical.test.ts"
       - "server/fullPotentialRentalCoverageCensus.cli.test.ts"
       - "server/scripts/fullPotentialRentalCoverageCensus.ts"
       - "docs/full-potential-rental-coverage-census.md"
@@ -35,6 +38,7 @@ jobs:
           set -o pipefail
           pnpm vitest run \
             server/fullPotentialRentalCoverageCensus.test.ts \
+            server/fullPotentialRentalCoverageCanonical.test.ts \
             server/fullPotentialRentalCoverageCensus.cli.test.ts \
             server/fullPotentialRentalHire.test.ts \
             server/fullPotentialRentalRemediation.test.ts \
