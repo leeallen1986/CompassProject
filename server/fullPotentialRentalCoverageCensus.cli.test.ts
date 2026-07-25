@@ -14,9 +14,9 @@ describe("Rental Hire coverage census CLI", () => {
     });
   });
 
-  it("rejects every write-style mode", () => {
-    for (const flag of ["--apply", "--commit", "--seal", "--write-db", "--migrate"]) {
-      expect(() => parseRentalCoverageArgs([flag])).toThrow(/read-only/);
+  it("rejects write-style modes and attempts to widen the fixed Australian scope", () => {
+    for (const flag of ["--apply", "--commit", "--seal", "--write-db", "--migrate", "--country"]) {
+      expect(() => parseRentalCoverageArgs([flag])).toThrow(/read-only|scoped to Australia/);
     }
   });
 
@@ -25,7 +25,7 @@ describe("Rental Hire coverage census CLI", () => {
   });
 
   it("contains SELECT-only database usage and no provider or outreach invocation", () => {
-    const source = readFileSync("server/scripts/fullPotentialRentalCoverageCensus.ts", "utf8");
+    const source = readFileSync("server/fullPotentialRentalCoverageCensusCli.ts", "utf8");
     expect(source).toContain("db.select().from(fullPotentialAccounts)");
     expect(source).toContain("db.select().from(fullPotentialAccountAliases)");
     expect(source).not.toMatch(/\.insert\s*\(/);
