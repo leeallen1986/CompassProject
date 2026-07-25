@@ -378,7 +378,7 @@ export function reconcileCanonicalRentalCandidates(
   const accountMap = new Map(accounts.map(account => [account.id, account]));
   const index = buildCandidateIndex(accounts, aliases);
 
-  return candidates.map(candidate => {
+  return candidates.map<CanonicalRentalCandidateResult>(candidate => {
     const normalizedCandidateName = normalizeCoverageAccountName(candidate.candidateName);
     const researchFlags = candidateResearchFlags(candidate);
     const researchComplete = researchFlags.length === 0;
@@ -571,7 +571,15 @@ export function buildCanonicalRentalCoverageCensus(
     const memberIds = new Set(members.map(member => member.id));
     const activeCounting = members.filter(isActiveCountingRecord);
     const flaggedCounting = members.filter(isFlaggedCountingRecord);
-    const structuralGaps = members.flatMap(member => preliminaryRows.get(member.id)?.rowGapCodes || []);
+    const structuralGaps = members
+    .flatMap(member => preliminaryRows.get(member.id)?.rowGapCodes || [])
+    .filter(gap => [
+      "relationship_cycle",
+      "missing_relationship_target",
+      "child_without_parent",
+      "duplicate_counts_toward_potential",
+      "inactive_counts_toward_potential",
+    ].includes(gap));
     const gaps = new Set<CanonicalRentalCoverageGapCode>(structuralGaps);
     const groupAliases = members.flatMap(member => aliasesByAccount.get(member.id) || []);
     const groupActions = groupInputRows(openActions, memberIds);

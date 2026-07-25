@@ -156,6 +156,8 @@ describe("canonical Rental Hire coverage census", () => {
           state: "NSW",
           ownerName: "Paul Lueth",
           expectedOwnerNames: ["Paul Lueth"],
+          routeToMarket: "cea",
+          channelOwner: "CEA",
         }),
       ],
       aliases: [],
