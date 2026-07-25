@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "server/fullPotentialRentalCoverageCensus.ts"
+      - "server/fullPotentialRentalCoverageCanonical.ts"
+      - "server/fullPotentialRentalCoverageCensusCli.ts"
       - "server/fullPotentialRentalCoverageCensus.test.ts"
+      - "server/fullPotentialRentalCoverageCanonical.test.ts"
       - "server/fullPotentialRentalCoverageCensus.cli.test.ts"
       - "server/scripts/fullPotentialRentalCoverageCensus.ts"
       - "docs/full-potential-rental-coverage-census.md"
@@ -28,13 +31,25 @@ jobs:
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
       - name: TypeScript
-        run: pnpm tsc --noEmit
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm tsc --noEmit 2>&1 | tee /tmp/rental-coverage-tsc.log
+      - name: Upload TypeScript log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-coverage-tsc-log
+          path: /tmp/rental-coverage-tsc.log
+          if-no-files-found: error
+          retention-days: 2
       - name: Coverage census tests
         shell: bash
         run: |
           set -o pipefail
           pnpm vitest run \
             server/fullPotentialRentalCoverageCensus.test.ts \
+            server/fullPotentialRentalCoverageCanonical.test.ts \
             server/fullPotentialRentalCoverageCensus.cli.test.ts \
             server/fullPotentialRentalHire.test.ts \
             server/fullPotentialRentalRemediation.test.ts \
@@ -45,7 +60,7 @@ jobs:
         with:
           name: rental-coverage-tests-log
           path: /tmp/rental-coverage-tests.log
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 2
       - name: Read-only CLI help
         run: >-
