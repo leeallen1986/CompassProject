@@ -183,7 +183,7 @@ describe("external candidate reconciliation", () => {
     expect(normalizeCoverageAccountNameLoose("ABC Equipment Rental Pty Ltd Australia")).toBe("abc equipment rental");
   });
 
-  it("classifies exact, loose, branch, new, ambiguous and excluded candidates without writing", () => {
+  it("classifies exact, loose, branch, new and excluded candidates without writing", () => {
     const results = reconcileRentalCoverageCandidates([
       { candidateName: "Coates" },
       { candidateName: "ABC Equipment Rental Limited" },
@@ -198,7 +198,8 @@ describe("external candidate reconciliation", () => {
     expect(byName.get("ABC Equipment Rental Limited")?.disposition).toBe("possible_existing_account");
     expect(byName.get("Coates Kalgoorlie")?.disposition).toBe("branch_or_site_candidate");
     expect(byName.get("New Regional Compressor Hire")?.disposition).toBe("new_account_candidate");
-    expect(byName.get("National Hire")?.disposition).toBe("new_account_candidate");
+    expect(byName.get("National Hire")?.disposition).toBe("possible_existing_account");
+    expect(byName.get("National Hire")?.matchedAccountIds).toEqual([3]);
     expect(byName.get("Party Balloon Hire")?.disposition).toBe("excluded_by_source");
   });
 
