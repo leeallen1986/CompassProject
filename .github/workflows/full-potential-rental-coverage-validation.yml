@@ -1,0 +1,56 @@
+name: Full Potential Rental coverage validation
+
+on:
+  pull_request:
+    paths:
+      - "server/fullPotentialRentalCoverageCensus.ts"
+      - "server/fullPotentialRentalCoverageCensus.test.ts"
+      - "server/fullPotentialRentalCoverageCensus.cli.test.ts"
+      - "server/scripts/fullPotentialRentalCoverageCensus.ts"
+      - "docs/full-potential-rental-coverage-census.md"
+      - ".github/workflows/full-potential-rental-coverage-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Coverage census tests
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm vitest run \
+            server/fullPotentialRentalCoverageCensus.test.ts \
+            server/fullPotentialRentalCoverageCensus.cli.test.ts \
+            server/fullPotentialRentalHire.test.ts \
+            server/fullPotentialRentalRemediation.test.ts \
+            2>&1 | tee /tmp/rental-coverage-tests.log
+      - name: Upload coverage-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-coverage-tests-log
+          path: /tmp/rental-coverage-tests.log
+          if-no-files-found: error
+          retention-days: 2
+      - name: Read-only CLI help
+        run: >-
+          pnpm exec tsx
+          server/scripts/fullPotentialRentalCoverageCensus.ts
+          --help
+      - name: Production build
+        run: pnpm build
