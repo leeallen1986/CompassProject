@@ -1,0 +1,42 @@
+name: Full Potential Rental canonical workspace validation
+
+on:
+  pull_request:
+    paths:
+      - "server/fullPotentialRentalHire.ts"
+      - "server/fullPotentialRentalHire.test.ts"
+      - "server/fullPotentialRentalWorkspacePolicy.ts"
+      - "server/fullPotentialRentalWorkspacePolicy.test.ts"
+      - "server/fullPotentialRentalCanonicalWorkspace.test.ts"
+      - "docs/full-potential-rental-canonical-workspace.md"
+      - ".github/workflows/full-potential-rental-canonical-workspace-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Canonical Rental workspace tests
+        run: >-
+          pnpm vitest run
+          server/fullPotentialRentalWorkspacePolicy.test.ts
+          server/fullPotentialRentalCanonicalWorkspace.test.ts
+          server/fullPotentialRentalHire.test.ts
+          server/fullPotentialRentalRemediation.test.ts
+          server/fullPotentialRentalRemediation.handler.test.ts
+      - name: Production build
+        run: pnpm build

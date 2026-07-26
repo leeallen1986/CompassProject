@@ -4,6 +4,12 @@ import { z } from "zod";
 import { fullPotentialAccounts, fullPotentialActions, fullPotentialSignals } from "../drizzle/schema";
 import { sdk } from "./_core/sdk";
 import { getDb } from "./db";
+import {
+  buildRentalWorkspaceSelection,
+  isActiveRentalCountingRecord,
+  toRentalWorkspaceContextRecord,
+  type RentalWorkspaceContextRecord,
+} from "./fullPotentialRentalWorkspacePolicy";
 
 const OPEN_ACTION_STATUSES = new Set(["not_started", "in_progress", "contacted", "meeting_booked", "quoted"]);
 const LIVE_SIGNAL_STATUSES = new Set(["new", "reviewed", "promoted"]);
@@ -408,6 +414,49 @@ function buildSignalMeta(signals: SignalLike[]): Map<number, SignalMeta> {
   return result;
 }
 
+function combineActionMeta(accountIds: number[], byAccount: Map<number, ActionMeta>): ActionMeta {
+  const openActions = accountIds.flatMap(accountId => byAccount.get(accountId)?.openActions ?? []);
+  const latestOpenAction = openActions.reduce<ActionLike | null>((latest, candidate) => {
+    if (!latest) return candidate;
+    const latestTime = latest.createdAt ? new Date(latest.createdAt as Date | string).getTime() : 0;
+    const candidateTime = candidate.createdAt ? new Date(candidate.createdAt as Date | string).getTime() : 0;
+    return candidateTime >= latestTime ? candidate : latest;
+  }, null);
+  return { openActionCount: openActions.length, latestOpenAction, openActions };
+}
+
+function combineSignalMeta(accountIds: number[], byAccount: Map<number, SignalMeta>): SignalMeta {
+  const rows = accountIds.map(accountId => byAccount.get(accountId)).filter((row): row is SignalMeta => !!row);
+  const latestSignal = rows
+    .map(row => row.latestSignal)
+    .filter((row): row is SignalLike => !!row)
+    .reduce<SignalLike | null>((latest, candidate) => {
+      if (!latest) return candidate;
+      const latestDate = latest.signalDate
+        ? new Date(latest.signalDate as Date | string).getTime()
+        : latest.createdAt
+          ? new Date(latest.createdAt as Date | string).getTime()
+          : 0;
+      const candidateDate = candidate.signalDate
+        ? new Date(candidate.signalDate as Date | string).getTime()
+        : candidate.createdAt
+          ? new Date(candidate.createdAt as Date | string).getTime()
+          : 0;
+      return candidateDate >= latestDate ? candidate : latest;
+    }, null);
+  const highestLiveUrgency = rows.reduce<SignalMeta["highestLiveUrgency"]>((highest, row) =>
+    (URGENCY_RANK[row.highestLiveUrgency] ?? 3) < (URGENCY_RANK[highest] ?? 3)
+      ? row.highestLiveUrgency
+      : highest,
+  "unknown");
+  return {
+    signalCount: rows.reduce((total, row) => total + row.signalCount, 0),
+    liveSignalCount: rows.reduce((total, row) => total + row.liveSignalCount, 0),
+    latestSignal,
+    highestLiveUrgency,
+  };
+}
+
 function hasFinancialPotential(account: AccountLike): boolean {
   return numberValue(account.fullPotentialAud) > 0
     || numberValue(account.target2026Aud) > 0
@@ -451,6 +500,7 @@ export function remediationEligible(
   ownership: OwnershipAssessment,
   remediationType: RentalRemediationType,
 ): boolean {
+  if (!isActiveRentalCountingRecord(account, isRentalHireAccount)) return false;
   if (remediationType === "ownership_review") return ownershipNeedsReview(account, ownership);
   if (remediationType === "financial_potential") return !hasFinancialPotential(account);
   if (remediationType === "installed_base") return !clean(account.installedBaseStatus) || clean(account.installedBaseStatus) === "unknown";
@@ -497,6 +547,7 @@ function matchesSearch(row: RentalAccountRow, search?: string): boolean {
     row.currentSupplier,
     row.latestSignalTitle,
     row.reviewReason,
+    ...row.contextRecords.flatMap(record => [record.canonicalName, record.displayName]),
     ...row.applicationPlays,
   ].filter(Boolean).join(" "));
   return haystack.includes(token);
@@ -539,7 +590,12 @@ function focusSort(left: RentalAccountRow, right: RentalAccountRow): number {
 
 type RentalAccountRow = ReturnType<typeof buildAccountRow>;
 
-function buildAccountRow(account: AccountLike, actions: ActionMeta, signals: SignalMeta) {
+function buildAccountRow(
+  account: AccountLike,
+  actions: ActionMeta,
+  signals: SignalMeta,
+  contextRecords: RentalWorkspaceContextRecord[] = [],
+) {
   const ownership = assessRentalOwnership(account);
   const remediation = remediationState(actions);
   const gapKeys = buildGapKeys(account, ownership, actions, signals, remediation);
@@ -548,6 +604,9 @@ function buildAccountRow(account: AccountLike, actions: ActionMeta, signals: Sig
   return {
     id: account.id,
     stableKey: clean(account.stableKey),
+    canonicalGroupMemberIds: [account.id, ...contextRecords.map(record => record.id)],
+    contextRecordCount: contextRecords.length,
+    contextRecords,
     canonicalName: clean(account.canonicalName),
     displayName: clean(account.displayName) || null,
     parentGroup: clean(account.parentGroup) || null,
@@ -664,13 +723,17 @@ export function buildRentalHireWorkspace(
 ) {
   const actionMeta = buildActionMeta(actions);
   const signalMeta = buildSignalMeta(signals);
-  const rentalRows = accounts
-    .filter(isRentalHireAccount)
-    .map(account => buildAccountRow(
+  const selection = buildRentalWorkspaceSelection(accounts, isRentalHireAccount);
+  const rentalRows = selection.countingAccounts.map(account => {
+    const contextRows = selection.contextByCountingAccountId.get(account.id) ?? [];
+    const memberIds = [account.id, ...contextRows.map(row => row.id)];
+    return buildAccountRow(
       account,
-      actionMeta.get(account.id) ?? { openActionCount: 0, latestOpenAction: null, openActions: [] },
-      signalMeta.get(account.id) ?? { signalCount: 0, liveSignalCount: 0, latestSignal: null, highestLiveUrgency: "unknown" },
-    ));
+      combineActionMeta(memberIds, actionMeta),
+      combineSignalMeta(memberIds, signalMeta),
+      contextRows.map(toRentalWorkspaceContextRecord),
+    );
+  });
 
   const filteredRows = rentalRows.filter(row =>
     matchesSearch(row, input.search)
@@ -689,7 +752,7 @@ export function buildRentalHireWorkspace(
 
   return {
     generatedAt: new Date().toISOString(),
-    selectionRule: "Segment/subsegment/name contains rental or hire, plus Coates national strategic account",
+    selectionRule: "Active counting Rental Hire records only; attached context is preserved beneath the counting account",
     ownershipRules: [
       { rule: "Coates national strategic account", expectedOwnerName: RYAN },
       { rule: "WA territory", expectedOwnerName: RYAN },
@@ -699,7 +762,11 @@ export function buildRentalHireWorkspace(
     ],
     remediationCatalog: RENTAL_REMEDIATION_TYPES.map(type => ({ type, ...RENTAL_REMEDIATION_DEFINITIONS[type] })),
     summary: {
+      totalRentalRows: selection.rentalRows.length,
       totalRentalAccounts: filteredRows.length,
+      nonCountingContextRecords: selection.contextRecords.length,
+      attachedContextRecords: selection.contextRecords.length - selection.unattachedContextRecords.length,
+      unattachedContextRecords: selection.unattachedContextRecords.length,
       tierA: filteredRows.filter(row => row.priorityTier === "tier_a").length,
       pushNow: filteredRows.filter(row => row.platformPushDecision === "push_now").length,
       directAccounts: filteredRows.filter(row => row.routeClass === "direct").length,
@@ -773,6 +840,9 @@ export function buildRentalRemediationPlan(
     }
     if (!isRentalHireAccount(account)) {
       return { accountId, canonicalName: clean(account.canonicalName), status: "not_rental" as const, reason: "Account is outside the Rental Hire selection rule", existingActionId: null };
+    }
+    if (!isActiveRentalCountingRecord(account, isRentalHireAccount)) {
+      return { accountId, canonicalName: clean(account.canonicalName), status: "not_eligible" as const, reason: "Non-counting context records cannot receive standalone remediation actions", existingActionId: null };
     }
     const ownership = assessRentalOwnership(account);
     if (!remediationEligible(account, ownership, input.remediationType)) {
