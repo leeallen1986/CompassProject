@@ -1,5 +1,7 @@
 export type RentalWorkspaceAccountLike = Record<string, unknown> & { id: number };
 
+export const RENTAL_WORKSPACE_SCOPE_COUNTRY = "AU";
+
 export interface RentalWorkspaceContextRecord {
   id: number;
   canonicalName: string;
@@ -13,6 +15,9 @@ export interface RentalWorkspaceContextRecord {
 }
 
 export interface RentalWorkspaceSelection {
+  scopeCountry: string;
+  allRentalRows: RentalWorkspaceAccountLike[];
+  nonScopeRentalRows: RentalWorkspaceAccountLike[];
   rentalRows: RentalWorkspaceAccountLike[];
   countingAccounts: RentalWorkspaceAccountLike[];
   contextRecords: RentalWorkspaceAccountLike[];
@@ -26,6 +31,10 @@ function clean(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function normalizedCountry(value: unknown): string {
+  return clean(value).toUpperCase();
+}
+
 function nullableId(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
@@ -36,16 +45,24 @@ function countsTowardPotential(account: RentalWorkspaceAccountLike): boolean {
   return account.countsTowardPotential !== false && account.countsTowardPotential !== 0;
 }
 
+export function isAustralianRentalWorkspaceRow(
+  account: RentalWorkspaceAccountLike,
+): boolean {
+  return normalizedCountry(account.country) === RENTAL_WORKSPACE_SCOPE_COUNTRY;
+}
+
 /**
- * A top-level Rental Hire workspace row must still count toward Full Potential.
- * Context, merged, parked, excluded and duplicate records remain queryable in
- * the database but cannot inflate the sales queue or financial totals.
+ * A top-level Australian Rental Hire workspace row must still count toward Full
+ * Potential. Context, merged, parked, excluded, duplicate and non-Australian
+ * records remain queryable in the database but cannot inflate the sales queue
+ * or financial totals.
  */
 export function isActiveRentalCountingRecord(
   account: RentalWorkspaceAccountLike,
   isRentalHireAccount: (account: RentalWorkspaceAccountLike) => boolean,
 ): boolean {
   if (!isRentalHireAccount(account)) return false;
+  if (!isAustralianRentalWorkspaceRow(account)) return false;
   if (!countsTowardPotential(account)) return false;
   if (NON_ACTIVE_STATUSES.has(clean(account.recordStatus))) return false;
   if (clean(account.relationshipType) === "duplicate") return false;
@@ -75,9 +92,9 @@ function nextRelationshipId(account: RentalWorkspaceAccountLike): number | null 
 
 /**
  * Resolve a non-counting record to the nearest active counting ancestor. The
- * function deliberately refuses cycles, missing targets and free-floating
- * context rows; those remain in `unattachedContextRecords` for audit rather
- * than being silently hidden beneath an arbitrary account.
+ * function deliberately refuses cycles, missing targets, cross-scope targets
+ * and free-floating context rows; those remain in `unattachedContextRecords`
+ * for audit rather than being silently hidden beneath an arbitrary account.
  */
 function resolveCountingAncestor(
   account: RentalWorkspaceAccountLike,
@@ -102,12 +119,14 @@ export function buildRentalWorkspaceSelection(
   accounts: RentalWorkspaceAccountLike[],
   isRentalHireAccount: (account: RentalWorkspaceAccountLike) => boolean,
 ): RentalWorkspaceSelection {
-  const rentalRows = accounts.filter(isRentalHireAccount);
+  const allRentalRows = accounts.filter(isRentalHireAccount);
+  const rentalRows = allRentalRows.filter(isAustralianRentalWorkspaceRow);
+  const nonScopeRentalRows = allRentalRows.filter(account => !isAustralianRentalWorkspaceRow(account));
   const countingAccounts = rentalRows.filter(account =>
     isActiveRentalCountingRecord(account, isRentalHireAccount),
   );
   const activeCountingIds = new Set(countingAccounts.map(account => account.id));
-  const accountMap = new Map(accounts.map(account => [account.id, account]));
+  const accountMap = new Map(rentalRows.map(account => [account.id, account]));
   const contextRecords = rentalRows.filter(account => !activeCountingIds.has(account.id));
   const contextByCountingAccountId = new Map<number, RentalWorkspaceAccountLike[]>();
   const unattachedContextRecords: RentalWorkspaceAccountLike[] = [];
@@ -128,6 +147,9 @@ export function buildRentalWorkspaceSelection(
   }
 
   return {
+    scopeCountry: RENTAL_WORKSPACE_SCOPE_COUNTRY,
+    allRentalRows,
+    nonScopeRentalRows,
     rentalRows,
     countingAccounts,
     contextRecords,

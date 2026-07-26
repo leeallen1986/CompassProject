@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildRentalWorkspaceSelection,
   isActiveRentalCountingRecord,
+  isAustralianRentalWorkspaceRow,
+  RENTAL_WORKSPACE_SCOPE_COUNTRY,
 } from "./fullPotentialRentalWorkspacePolicy";
 
 function account(id: number, overrides: Record<string, unknown> = {}) {
@@ -9,6 +11,7 @@ function account(id: number, overrides: Record<string, unknown> = {}) {
     id,
     canonicalName: `Rental ${id}`,
     displayName: null,
+    country: "AU",
     segment: "Rental Hire",
     subsegment: "Equipment Rental",
     countsTowardPotential: true,
@@ -24,12 +27,28 @@ const isRental = (row: Record<string, unknown> & { id: number }) =>
   String(row.segment || "").includes("Rental") || String(row.canonicalName || "").includes("Hire");
 
 describe("Rental workspace canonical counting policy", () => {
-  it("keeps only active counting records in the top-level queue", () => {
+  it("keeps only active Australian counting records in the top-level queue", () => {
+    expect(RENTAL_WORKSPACE_SCOPE_COUNTRY).toBe("AU");
     expect(isActiveRentalCountingRecord(account(1), isRental)).toBe(true);
     expect(isActiveRentalCountingRecord(account(2, { countsTowardPotential: false }), isRental)).toBe(false);
     expect(isActiveRentalCountingRecord(account(3, { recordStatus: "merged" }), isRental)).toBe(false);
     expect(isActiveRentalCountingRecord(account(4, { relationshipType: "duplicate" }), isRental)).toBe(false);
     expect(isActiveRentalCountingRecord(account(5, { mergedIntoAccountId: 1 }), isRental)).toBe(false);
+    expect(isActiveRentalCountingRecord(account(6, { country: "NZ" }), isRental)).toBe(false);
+  });
+
+  it("separates non-Australian Rental rows without deleting or reclassifying them", () => {
+    const australia = account(1, { canonicalName: "Australian Hire" });
+    const newZealand = account(2, { canonicalName: "Hirepool", country: "NZ", state: "NZ" });
+    const selection = buildRentalWorkspaceSelection([australia, newZealand], isRental);
+
+    expect(isAustralianRentalWorkspaceRow(australia)).toBe(true);
+    expect(isAustralianRentalWorkspaceRow(newZealand)).toBe(false);
+    expect(selection.scopeCountry).toBe("AU");
+    expect(selection.allRentalRows.map(row => row.id)).toEqual([1, 2]);
+    expect(selection.rentalRows.map(row => row.id)).toEqual([1]);
+    expect(selection.nonScopeRentalRows.map(row => row.id)).toEqual([2]);
+    expect(selection.countingAccounts.map(row => row.id)).toEqual([1]);
   });
 
   it("attaches non-counting context and duplicate rows to the nearest counting ancestor", () => {
