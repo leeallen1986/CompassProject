@@ -14,6 +14,11 @@ function account(id: number, overrides: Record<string, unknown> = {}) {
     displayName: null,
     parentGroup: null,
     rowClass: "account",
+    parentAccountId: null,
+    mergedIntoAccountId: null,
+    relationshipType: "standalone",
+    recordStatus: "active",
+    countsTowardPotential: true,
     country: "AU",
     state: "WA",
     region: "Perth",
@@ -165,14 +170,18 @@ function row(report: ReturnType<typeof buildRentalHireWorkspace>, id: number) {
 }
 
 describe("Rental Hire account selection", () => {
-  it("selects rental/hire segment records and Coates while excluding unrelated accounts", () => {
+  it("recognises Rental identities but scopes the operating queue to Australia", () => {
     expect(isRentalHireAccount(ACCOUNTS[0])).toBe(true);
     expect(isRentalHireAccount(ACCOUNTS[6])).toBe(true);
     expect(isRentalHireAccount(ACCOUNTS[7])).toBe(false);
 
-    const report = buildRentalHireWorkspace(ACCOUNTS, ACTIONS, SIGNALS);
-    expect(report.summary.totalRentalAccounts).toBe(7);
+    const report = buildRentalHireWorkspace(ACCOUNTS, ACTIONS, SIGNALS, { limit: 100 });
+    expect(report.summary.totalRentalRows).toBe(6);
+    expect(report.summary.totalRentalAccounts).toBe(6);
     expect(report.accounts.some(item => item.canonicalName === "Industrial Contractor")).toBe(false);
+    expect(report.accounts.some(item => item.id === 7)).toBe(false);
+    expect(report.filterOptions.states).not.toContain("NZ");
+    expect(report.filterOptions.routeToMarkets).not.toContain("nz_distributor");
   });
 
   it("uses the explicit territory and Coates ownership rules", () => {
@@ -193,9 +202,10 @@ describe("Rental Hire workspace calculations", () => {
     expect(row(report, 3)?.ownerAlignment).toBe("unassigned");
     expect(row(report, 4)?.ownerAlignment).toBe("mismatch");
     expect(row(report, 6)?.ownerAlignment).toBe("manual_review");
-    expect(report.summary.ownerAligned).toBe(4);
+    expect(report.summary.ownerAligned).toBe(3);
     expect(report.summary.ownerMismatch).toBe(1);
     expect(report.summary.ownerUnassigned).toBe(1);
+    expect(report.summary.ownerManualReview).toBe(1);
   });
 
   it("checks internal territory owner independently from channel owner", () => {
@@ -226,7 +236,7 @@ describe("Rental Hire workspace calculations", () => {
     expect(row(all, 4)?.highestLiveUrgency).toBe("unknown");
   });
 
-  it("calculates commercial gap queues and financial totals", () => {
+  it("calculates commercial gap queues and Australian financial totals", () => {
     const report = buildRentalHireWorkspace(ACCOUNTS, ACTIONS, SIGNALS, { limit: 100 });
 
     expect(report.viewCounts.owner_gap).toBe(1);
@@ -235,14 +245,14 @@ describe("Rental Hire workspace calculations", () => {
     expect(report.viewCounts.unknown_installed_base).toBe(1);
     expect(report.viewCounts.supplier_gap).toBe(1);
     expect(report.viewCounts.financial_gap).toBe(1);
-    expect(report.summary.totalFullPotentialAud).toBe(3_000_000);
-    expect(report.summary.totalRemainingPotentialAud).toBe(2_900_000);
+    expect(report.summary.totalFullPotentialAud).toBe(2_500_000);
+    expect(report.summary.totalRemainingPotentialAud).toBe(2_500_000);
   });
 
   it("supports all defined quick views", () => {
     const report = buildRentalHireWorkspace(ACCOUNTS, ACTIONS, SIGNALS, { limit: 100 });
     expect(Object.keys(report.viewCounts)).toEqual(RENTAL_HIRE_VIEW_KEYS);
-    expect(report.viewCounts.all).toBe(7);
+    expect(report.viewCounts.all).toBe(6);
     expect(report.viewCounts.tier_a).toBe(2);
     expect(report.viewCounts.push_now).toBe(2);
   });
@@ -274,6 +284,7 @@ describe("Rental Hire workspace calculations", () => {
     expect(sa).toMatchObject({ count: 1, expectedOwner: "Dan Day", channel: 1 });
     expect(report.ownerDistribution.some(item => item.value === "Unassigned")).toBe(true);
     expect(report.routeDistribution.some(item => item.value === "cea")).toBe(true);
+    expect(report.routeDistribution.some(item => item.value === "nz_distributor")).toBe(false);
     expect(report.subsegmentDistribution.some(item => item.value === "Specialist Rental")).toBe(true);
   });
 
@@ -289,8 +300,8 @@ describe("Rental Hire workspace calculations", () => {
     const report = buildRentalHireWorkspace(ACCOUNTS, ACTIONS, SIGNALS, { limit: 2, offset: 2 });
 
     expect(report.accounts).toHaveLength(2);
-    expect(report.total).toBe(7);
-    expect(report.summary.totalRentalAccounts).toBe(7);
+    expect(report.total).toBe(6);
+    expect(report.summary.totalRentalAccounts).toBe(6);
     expect(report.limit).toBe(2);
     expect(report.offset).toBe(2);
   });

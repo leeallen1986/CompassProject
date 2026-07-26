@@ -8,6 +8,7 @@ on:
       - "server/fullPotentialRentalWorkspacePolicy.ts"
       - "server/fullPotentialRentalWorkspacePolicy.test.ts"
       - "server/fullPotentialRentalCanonicalWorkspace.test.ts"
+      - "server/fullPotentialRentalAuScope.test.ts"
       - "docs/full-potential-rental-canonical-workspace.md"
       - ".github/workflows/full-potential-rental-canonical-workspace-validation.yml"
   workflow_dispatch:
@@ -35,6 +36,7 @@ jobs:
           pnpm vitest run
           server/fullPotentialRentalWorkspacePolicy.test.ts
           server/fullPotentialRentalCanonicalWorkspace.test.ts
+          server/fullPotentialRentalAuScope.test.ts
           server/fullPotentialRentalHire.test.ts
           server/fullPotentialRentalRemediation.test.ts
           server/fullPotentialRentalRemediation.handler.test.ts
