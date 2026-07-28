@@ -1,0 +1,71 @@
+name: Rental retained-child reconciliation v2 validation
+
+on:
+  pull_request:
+    paths:
+      - "server/rentalRetainedChildReconciliation.shared.ts"
+      - "server/rentalRetainedChildReconciliation.ts"
+      - "server/rentalRetainedChildReconciliation.test.ts"
+      - "server/scripts/rentalRetainedChildReconcile.ts"
+      - "server/scripts/rentalAccountRelationshipReconcile.ts"
+      - "docs/rental-retained-child-reconciliation-v2.md"
+      - ".github/workflows/rental-retained-child-reconciliation-v2-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Focused retained-child tests
+        run: >-
+          pnpm vitest run
+          server/rentalRetainedChildReconciliation.test.ts
+          server/rentalAccountRelationshipReconciliation.test.ts
+          server/fullPotentialRentalWorkspacePolicy.test.ts
+          server/fullPotentialRentalCanonicalWorkspace.test.ts
+          server/fullPotentialRentalAuScope.test.ts
+          server/fullPotentialRentalHire.test.ts
+          server/fullPotentialRentalRemediation.test.ts
+          server/fullPotentialRentalRemediation.handler.test.ts
+      - name: V2 CLI help is database-free
+        run: pnpm exec tsx server/scripts/rentalRetainedChildReconcile.ts --help
+      - name: Retired V1 CLI cannot generate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if pnpm exec tsx server/scripts/rentalAccountRelationshipReconcile.ts --output-dir /tmp/retired-v1; then
+            echo "Retired PR76 V1 CLI unexpectedly succeeded"
+            exit 1
+          fi
+          test ! -e /tmp/retired-v1/rental-relationship-manifest.draft.json
+      - name: Production build
+        run: pnpm build
+      - name: No schema, migration or dependency change
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          if [ -n "$base" ] && [ -n "$head" ]; then
+            changed="$(git diff --name-only "$base" "$head")"
+            if printf '%s\n' "$changed" | grep -Eq '(^drizzle/schema\.ts$|^drizzle/.*\.sql$|^migrations/|^package\.json$|^pnpm-lock\.yaml$)'; then
+              echo "Forbidden schema, migration or dependency change detected"
+              exit 1
+            fi
+          fi
