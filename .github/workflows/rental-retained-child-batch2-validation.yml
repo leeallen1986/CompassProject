@@ -1,0 +1,75 @@
+name: Rental retained-child batch 2 validation
+
+on:
+  pull_request:
+    paths:
+      - "server/rentalRetainedChildBatch2Reconciliation.shared.ts"
+      - "server/rentalRetainedChildBatch2Reconciliation.ts"
+      - "server/rentalRetainedChildBatch2Reconciliation.test.ts"
+      - "server/scripts/rentalRetainedChildBatch2Reconcile.ts"
+      - "docs/rental-retained-child-batch2-reconciliation.md"
+      - ".github/workflows/rental-retained-child-batch2-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Focused retained-child tests
+        run: >-
+          pnpm vitest run
+          server/rentalRetainedChildBatch2Reconciliation.test.ts
+          server/rentalRetainedChildReconciliation.test.ts
+          server/rentalAccountRelationshipReconciliation.test.ts
+          server/fullPotentialRentalWorkspacePolicy.test.ts
+          server/fullPotentialRentalCanonicalWorkspace.test.ts
+          server/fullPotentialRentalAuScope.test.ts
+          server/fullPotentialRentalHire.test.ts
+          server/fullPotentialRentalRemediation.test.ts
+          server/fullPotentialRentalRemediation.handler.test.ts
+      - name: CLI help is database-free
+        run: pnpm exec tsx server/scripts/rentalRetainedChildBatch2Reconcile.ts --help
+      - name: Production build
+        run: pnpm build
+      - name: Enforce bounded six-file release
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed="$(git diff --name-only "$base" "$head" | sort)"
+          expected="$(printf '%s\n' \
+            '.github/workflows/rental-retained-child-batch2-validation.yml' \
+            'docs/rental-retained-child-batch2-reconciliation.md' \
+            'server/rentalRetainedChildBatch2Reconciliation.shared.ts' \
+            'server/rentalRetainedChildBatch2Reconciliation.test.ts' \
+            'server/rentalRetainedChildBatch2Reconciliation.ts' \
+            'server/scripts/rentalRetainedChildBatch2Reconcile.ts' | sort)"
+          if [ "$changed" != "$expected" ]; then
+            echo 'Unexpected changed-file set'
+            echo 'Expected:'
+            printf '%s\n' "$expected"
+            echo 'Actual:'
+            printf '%s\n' "$changed"
+            exit 1
+          fi
+          if printf '%s\n' "$changed" | grep -Eq '(^drizzle/schema\.ts$|^drizzle/.*\.sql$|^migrations/|package\.json$|pnpm-lock\.yaml$)'; then
+            echo 'Schema, migration or dependency change detected'
+            exit 1
+          fi
