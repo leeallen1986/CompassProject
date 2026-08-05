@@ -28,6 +28,13 @@ import ContractorPatterns from "@/components/ContractorPatterns";
 import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
 import { useAwardedProjectFullPotentialContexts, useFullPotentialProjectContexts } from "@/hooks/useFullPotentialProjectContexts";
 import { summarizeProjectAccountContexts } from "@/lib/fullPotentialProjectContext";
+import {
+  getExactHomeOutreachProjects,
+  getExactLinkedProjects,
+  isPositivePersistedId,
+  resolveExactHomeOutreachSelection,
+  type HomeOutreachContactIdentity,
+} from "@/lib/homeOutreachIdentity";
 
 // ── Sector helpers ──
 const sectorIcons: Record<string, React.ReactNode> = {
@@ -90,7 +97,7 @@ function SectorFilter({ active, onChange }: { active: string; onChange: (v: stri
 }
 
 // ── Contacts Table ──
-interface ContactRow {
+interface ContactRow extends HomeOutreachContactIdentity {
   id: number;
   name: string;
   title: string;
@@ -104,20 +111,26 @@ interface ContactRow {
   verificationStatus: string | null;
   confidenceScore: string | null;
   linkedinSearchUrl: string | null;
-  emailVerified: boolean | null;
+  emailVerified: boolean | number | null;
   linkedinProfilePic: string | null;
   verificationScore: number | null;
   linkedinProfileUrl: string | null;
   sourceUrl: string | null;
   roleRelevance: "high" | "medium" | "low" | null;
+  contactTrustTier?: "send_ready" | "named_unverified" | "llm_inferred" | null;
+  rejectionReason?: string | null;
+  crmOrphan?: boolean | number | null;
+  /** Exact persisted links supplied by report.full; legacy payloads omit this. */
+  linkedProjectIds?: number[] | null;
+  /** Exact project IDs approved by the server's central outreach policy. */
+  outreachEligibleProjectIds?: number[] | null;
 }
 
-/** Deduplicated contact — one row per unique person, with all their projects */
-interface DeduplicatedContact extends ContactRow {
+/** Display data for one untouched API contact row. */
+interface ContactTableRow extends ContactRow {
+  rowKey: string;
   allProjects: string[];
   projectCount: number;
-  /** Keep the "best" row's data (prefer verified > ai_suggested, linkedin > llm) */
-  originalIds: number[];
 }
 
 // Map onboarding buyer role IDs to contact roleBucket values
@@ -164,8 +177,10 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
     });
     return buckets;
   }, [preferredBuyerRoles]);
-  const [outreachContact, setOutreachContact] = useState<ContactRow | null>(null);
-  const [outreachProject, setOutreachProject] = useState<ProjectData | null>(null);
+  const [outreachSelection, setOutreachSelection] = useState<{
+    contactId: number;
+    projectId: number;
+  } | null>(null);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
 
   // Fetch contacted contacts list for badges
@@ -192,87 +207,37 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
     },
   });
 
-  // Find matching project for a contact
-  const findProjectForContact = (contact: ContactRow): ProjectData | null => {
-    const projectName = contact.project.toLowerCase();
-    return allProjects.find(p => 
-      p.name.toLowerCase().includes(projectName) || 
-      projectName.includes(p.name.toLowerCase())
-    ) ?? allProjects.find(p => 
-      p.owner.toLowerCase() === contact.company.toLowerCase()
-    ) ?? null;
-  };
+  const handleOutreachClick = (contact: ContactRow, projectId: number) => {
+    // Re-resolve at click time so stale or hand-crafted UI state cannot bypass
+    // the exact persisted link + server eligibility contract.
+    const exactProject = getExactHomeOutreachProjects(contact, allProjects)
+      .find(project => project.id === projectId);
+    if (!exactProject || !isPositivePersistedId(contact.id)) return;
 
-  const handleOutreachClick = (contact: ContactRow) => {
-    const matchedProject = findProjectForContact(contact);
-    if (matchedProject) {
-      setOutreachContact(contact);
-      setOutreachProject(matchedProject);
-    } else {
-      setOutreachContact(contact);
-      setOutreachProject({
-        id: 0, reportId: 0, projectKey: "", name: contact.project, location: "Australia",
-        value: "Unknown", owner: contact.company, priority: contact.priority,
-        capexGrade: "Unknown" as const, opportunityRoute: "Direct CAPEX" as const,
-        sector: "mining" as const, isNew: false, stage: null, overview: null,
-        equipmentSignals: null, contractors: null, opportunityNote: null,
-        sources: null, timeline: null, completion: null, matchedBusinessLines: null,
-        createdAt: new Date(),
-      });
-    }
+    setOutreachSelection({ contactId: contact.id, projectId: exactProject.id });
   };
 
   const handleVerifyClick = (contactId: number) => {
+    if (!isPositivePersistedId(contactId)) return;
     setVerifyingId(contactId);
     verifyMutation.mutate({ contactId });
   };
 
-  // Deduplicate contacts: group by name (case-insensitive) to merge same person across projects
-  const deduplicatedData = useMemo(() => {
-    const map = new Map<string, DeduplicatedContact>();
-    for (const c of data) {
-      const key = c.name.toLowerCase().trim();
-      const existing = map.get(key);
-      if (existing) {
-        // Merge: add project, keep best data
-        if (c.project && !existing.allProjects.includes(c.project)) {
-          existing.allProjects.push(c.project);
-        }
-        existing.projectCount = existing.allProjects.length;
-        existing.originalIds.push(c.id);
-        // Upgrade verification status if this row is better
-        const verOrder = { verified: 3, ai_suggested: 2, unverified: 1 };
-        const existingVer = verOrder[(existing.verificationStatus as keyof typeof verOrder) || "unverified"] || 0;
-        const newVer = verOrder[(c.verificationStatus as keyof typeof verOrder) || "unverified"] || 0;
-        if (newVer > existingVer) {
-          existing.verificationStatus = c.verificationStatus;
-          existing.enrichmentSource = c.enrichmentSource;
-          existing.confidenceScore = c.confidenceScore;
-          existing.linkedin = c.linkedin || existing.linkedin;
-          existing.linkedinProfilePic = c.linkedinProfilePic || existing.linkedinProfilePic;
-          existing.linkedinSearchUrl = c.linkedinSearchUrl || existing.linkedinSearchUrl;
-          existing.email = c.email || existing.email;
-          existing.emailVerified = c.emailVerified || existing.emailVerified;
-        }
-        // Keep higher priority
-        const priOrder = { hot: 3, warm: 2, cold: 1 };
-        if ((priOrder[c.priority] || 0) > (priOrder[existing.priority] || 0)) {
-          existing.priority = c.priority;
-        }
-      } else {
-        map.set(key, {
-          ...c,
-          allProjects: c.project ? [c.project] : [],
-          projectCount: c.project ? 1 : 0,
-          originalIds: [c.id],
-        });
-      }
-    }
-    return Array.from(map.values());
-  }, [data]);
+  // Keep each API row intact. Name-based merging could combine one person's ID
+  // with another person's email, trust state, or project and create a contact
+  // chimera. Project labels come only from exact returned link IDs.
+  const contactRows = useMemo<ContactTableRow[]>(() => data.map((contact, index) => {
+    const linkedProjects = getExactLinkedProjects(contact, allProjects);
+    return {
+      ...contact,
+      rowKey: `${isPositivePersistedId(contact.id) ? contact.id : "unpersisted"}-${index}`,
+      allProjects: linkedProjects.map(project => project.name),
+      projectCount: linkedProjects.length,
+    };
+  }), [data, allProjects]);
 
   const filtered = useMemo(() => {
-    let result = deduplicatedData;
+    let result = contactRows;
     // Source filter
     if (sourceFilter === "verified") {
       result = result.filter(c => c.verificationStatus === "verified");
@@ -301,14 +266,14 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
       c.project.toLowerCase().includes(q) ||
       c.allProjects.some(p => p.toLowerCase().includes(q))
     );
-  }, [deduplicatedData, search, sourceFilter, roleFilter, relevanceFilter, preferredRoleBuckets]);
+  }, [contactRows, search, sourceFilter, roleFilter, relevanceFilter, preferredRoleBuckets]);
 
-  // Count contacts by role for filter badges (use deduplicated data)
-  const preferredCount = preferredRoleBuckets.size > 0 ? deduplicatedData.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "")).length : 0;
+  // Count contacts by role for filter badges without merging identities.
+  const preferredCount = preferredRoleBuckets.size > 0 ? contactRows.filter(c => preferredRoleBuckets.has(c.roleBucket?.toLowerCase() || "")).length : 0;
 
-  const verifiedCount = deduplicatedData.filter(c => c.verificationStatus === "verified").length;
-  const aiSuggestedCount = deduplicatedData.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm").length;
-  const totalUniqueContacts = deduplicatedData.length;
+  const verifiedCount = contactRows.filter(c => c.verificationStatus === "verified").length;
+  const aiSuggestedCount = contactRows.filter(c => c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm").length;
+  const totalContacts = contactRows.length;
 
   const exportCSV = () => {
     const headers = ["Name", "Title", "Company", "Projects", "# Projects", "Priority", "Role Bucket", "Role Relevance", "Email", "Email Verified", "LinkedIn Profile", "LinkedIn Search", "Source", "Verification", "Confidence", "Verification Score"];
@@ -365,6 +330,25 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
     return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-red-500">LOW</span>;
   };
 
+  // Re-resolve both records from the latest report payload. If a refresh
+  // revokes trust, removes the exact link, or removes either persisted row,
+  // the composer unmounts instead of retaining an actionable stale snapshot.
+  const activeOutreachSelection = resolveExactHomeOutreachSelection(
+    outreachSelection,
+    data,
+    allProjects,
+  );
+
+  useEffect(() => {
+    if (outreachSelection && !activeOutreachSelection) {
+      setOutreachSelection(null);
+    }
+  }, [
+    outreachSelection?.contactId,
+    outreachSelection?.projectId,
+    Boolean(activeOutreachSelection),
+  ]);
+
   return (
     <div>
       {/* Header with search, source filter, and export */}
@@ -387,7 +371,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
             sourceFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
           }`}>
-          All ({totalUniqueContacts})
+          All ({totalContacts})
         </button>
         <button onClick={() => setSourceFilter("verified")}
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
@@ -405,7 +389,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
             sourceFilter === "web_search" ? "bg-indigo-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-indigo-300"
           }`}>
-          <Eye className="w-3 h-3" /> Web Found ({deduplicatedData.filter(c => c.enrichmentSource === "web_search").length})
+          <Eye className="w-3 h-3" /> Web Found ({contactRows.filter(c => c.enrichmentSource === "web_search").length})
         </button>
       </div>
 
@@ -424,12 +408,12 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
             roleFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
           }`}>
-          All Roles ({totalUniqueContacts})
+          All Roles ({totalContacts})
         </button>
         {/* Dynamically show all buying groups that exist in the data */}
         {(() => {
           const roleCounts = new Map<string, number>();
-          deduplicatedData.forEach(c => {
+          contactRows.forEach(c => {
             const role = c.roleBucket?.toLowerCase() || "";
             if (role) roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
           });
@@ -454,25 +438,25 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
             relevanceFilter === "all" ? "bg-navy text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-navy/30"
           }`}>
-          All ({totalUniqueContacts})
+          All ({totalContacts})
         </button>
         <button onClick={() => setRelevanceFilter("high")}
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
             relevanceFilter === "high" ? "bg-emerald-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-emerald-300"
           }`}>
-          Key Decision Makers ({deduplicatedData.filter(c => c.roleRelevance === "high").length})
+          Key Decision Makers ({contactRows.filter(c => c.roleRelevance === "high").length})
         </button>
         <button onClick={() => setRelevanceFilter("medium")}
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
             relevanceFilter === "medium" ? "bg-amber-600 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-amber-300"
           }`}>
-          Medium ({deduplicatedData.filter(c => c.roleRelevance === "medium").length})
+          Medium ({contactRows.filter(c => c.roleRelevance === "medium").length})
         </button>
         <button onClick={() => setRelevanceFilter("low")}
           className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
             relevanceFilter === "low" ? "bg-slate-500 text-white shadow-sm" : "bg-card text-muted-foreground border border-border hover:border-slate-300"
           }`}>
-          Corporate ({deduplicatedData.filter(c => c.roleRelevance === "low").length})
+          Corporate ({contactRows.filter(c => c.roleRelevance === "low").length})
         </button>
       </div>
 
@@ -501,8 +485,10 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c, i) => (
-              <tr key={c.id} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
+            {filtered.map((c, i) => {
+              const exactOutreachProjects = getExactHomeOutreachProjects(c, allProjects);
+              return (
+                <tr key={c.rowKey} className={`border-t border-border ${i % 2 === 0 ? "bg-card" : "bg-slate-50"} hover:bg-gold/5 transition-colors`}>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
                     {c.linkedinProfilePic ? (
@@ -533,7 +519,12 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                 <td className="px-3 py-3 text-xs">{c.company}</td>
                 <td className="px-3 py-3 text-xs max-w-[200px]">
                   <div className="flex items-center gap-1">
-                    <span className="text-muted-foreground truncate" title={c.allProjects.join(' | ')}>{c.allProjects[0]}</span>
+                    <span
+                      className="text-muted-foreground truncate"
+                      title={c.projectCount > 0 ? c.allProjects.join(" | ") : "No exact persisted project link was returned"}
+                    >
+                      {c.allProjects[0] ?? "Unlinked — validate first"}
+                    </span>
                     {c.projectCount > 1 && (
                       <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-navy/10 text-navy text-[9px] font-bold" title={c.allProjects.join('\n')}>+{c.projectCount - 1}</span>
                     )}
@@ -598,24 +589,29 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* Email with warning for unverified */}
-                    {c.email && (
-                      <div className="relative group">
-                        <button onClick={() => handleOutreachClick(c)}
-                          className={`px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors ${
-                            c.emailVerified || c.verificationStatus === "verified"
-                              ? "bg-gold/15 text-gold-dark hover:bg-gold/25"
-                              : "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                          }`}>
+                    {exactOutreachProjects.length > 0 ? (
+                      exactOutreachProjects.map(project => (
+                        <button
+                          key={project.id}
+                          onClick={() => handleOutreachClick(c, project.id)}
+                          className="px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 bg-gold/15 text-gold-dark hover:bg-gold/25 transition-colors"
+                          title={`Create outreach for ${project.name}`}
+                        >
                           <Sparkles className="w-3 h-3" />
-                          {c.emailVerified || c.verificationStatus === "verified" ? "Outreach" : "Outreach*"}
+                          {exactOutreachProjects.length === 1 ? "Outreach" : (
+                            <span className="max-w-[130px] truncate">Outreach · {project.name}</span>
+                          )}
                         </button>
-                        {!c.emailVerified && c.verificationStatus !== "verified" && (
-                          <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                            Email is pattern-guessed — verify before sending
-                          </div>
-                        )}
-                      </div>
+                      ))
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 bg-slate-100 text-slate-500 cursor-not-allowed"
+                        title="Outreach requires a persisted contact, verified send-ready trust, and an exact eligible project link"
+                      >
+                        <AlertTriangle className="w-3 h-3" /> Validate first
+                      </button>
                     )}
 
                     {/* Source URL for web-discovered contacts */}
@@ -631,7 +627,7 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                     {(c.verificationStatus === "ai_suggested" || c.enrichmentSource === "llm" || c.enrichmentSource === "web_search") && c.verificationStatus !== "verified" && (
                       <button
                         onClick={() => handleVerifyClick(c.id)}
-                        disabled={verifyingId === c.id}
+                        disabled={verifyingId === c.id || !isPositivePersistedId(c.id)}
                         className="px-2 py-1 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors flex items-center gap-1 disabled:opacity-50"
                         title="Use LinkedIn API to verify this contact">
                         {verifyingId === c.id ? (
@@ -643,35 +639,37 @@ function ContactsTable({ data, weekEnding, projects: allProjects, businessLineNa
                     )}
                   </div>
                 </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground mt-2">{filtered.length} unique contacts shown (from {data.length} total entries across projects)</p>
+      <p className="text-xs text-muted-foreground mt-2">{filtered.length} contact records shown. Identities are never merged by name.</p>
 
       {/* Outreach Email Modal */}
-      {outreachContact && outreachProject && (
+      {activeOutreachSelection && (
         <OutreachEmailModal
-          isOpen={!!outreachContact}
-          onClose={() => { setOutreachContact(null); setOutreachProject(null); }}
+          isOpen
+          onClose={() => setOutreachSelection(null)}
           contact={{
-            name: outreachContact.name,
-            title: outreachContact.title,
-            company: outreachContact.company,
-            email: outreachContact.email || "",
-            roleBucket: outreachContact.roleBucket,
+            id: activeOutreachSelection.contact.id,
+            name: activeOutreachSelection.contact.name,
+            title: activeOutreachSelection.contact.title,
+            company: activeOutreachSelection.contact.company,
+            roleBucket: activeOutreachSelection.contact.roleBucket,
           }}
           project={{
-            name: outreachProject.name,
-            location: outreachProject.location,
-            value: outreachProject.value,
-            sector: outreachProject.sector,
-            stage: outreachProject.stage,
-            overview: outreachProject.overview,
-            equipmentSignals: outreachProject.equipmentSignals,
-            opportunityRoute: outreachProject.opportunityRoute,
-            matchedBusinessLines: (outreachProject.matchedBusinessLines || []).map(id => businessLineNames[id] || `BL-${id}`),
+            id: activeOutreachSelection.project.id,
+            name: activeOutreachSelection.project.name,
+            location: activeOutreachSelection.project.location,
+            value: activeOutreachSelection.project.value,
+            sector: activeOutreachSelection.project.sector,
+            stage: activeOutreachSelection.project.stage,
+            overview: activeOutreachSelection.project.overview,
+            equipmentSignals: activeOutreachSelection.project.equipmentSignals,
+            opportunityRoute: activeOutreachSelection.project.opportunityRoute,
+            matchedBusinessLines: (activeOutreachSelection.project.matchedBusinessLines || []).map(id => businessLineNames[id] || `BL-${id}`),
           }}
         />
       )}
@@ -972,16 +970,19 @@ export default function Home() {
       });
 
   // Also filter contacts, awarded projects, and drilling campaigns by territory
+  const territoryProjectIds = new Set(
+    territoryFiltered
+      .map((project: ProjectData) => project.id)
+      .filter(isPositivePersistedId),
+  );
   const territoryFilteredContacts = (showAllTerritories || userTerritories.length === 0)
     ? contacts
-    : (contacts as any[]).filter((c: any) => {
-        // Match contact's project name to a territory-filtered project
-        const matchedProject = territoryFiltered.find((p: ProjectData) =>
-          p.name.toLowerCase().includes(c.project?.toLowerCase?.() || "") ||
-          (c.project?.toLowerCase?.() || "").includes(p.name.toLowerCase())
-        );
-        return !!matchedProject;
-      });
+    : (contacts as ContactRow[]).filter(contact =>
+        Array.isArray(contact.linkedProjectIds) &&
+        contact.linkedProjectIds.some(projectId =>
+          isPositivePersistedId(projectId) && territoryProjectIds.has(projectId)
+        )
+      );
 
   const territoryFilteredAwarded = (showAllTerritories || userTerritories.length === 0)
     ? awardedProjects
