@@ -13,7 +13,7 @@ import { z } from "zod";
 import {
   getLatestReport, getAllReports, getReportById, createReport,
   getProjectsByReportId, createProjects, getAllProjects,
-  getContactsByReportId, createContacts, getAllContacts,
+  getContactsByReportId, createContacts, getAllContactsWithOutreachEligibility,
   getDrillingCampaignsByReportId, createDrillingCampaigns, getAllDrillingCampaigns,
   getAwardedProjectsByReportId, createAwardedProjects, getAllAwardedProjects,
   getProfileByUserId, upsertProfile, completeOnboarding,
@@ -31,7 +31,7 @@ import {
   findDuplicateClusters, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep,
   classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
   getEmailRecipients,
-  getProjectById, getContactsForProject, getPipelineClaimsForProject,
+  getProjectById, getContactsForProject, getLinkedContactsForProject, getPipelineClaimsForProject,
   createFpPipelineClaim, getPipelineClaimsByAccount, advanceClaimStage,
 } from "./db";
 import {
@@ -163,7 +163,7 @@ import {
 } from "./templateService";
 import { storagePut } from "./storage";
 import { selectProjectContact, type ContactInput, type ContactSelectionResult } from "./contactSelector";
-import { resolveOutreachContext } from "./projectOutreachGuard";
+import { executeGuardedProjectOutreach } from "./projectOutreachExecution";
 import { isPumpLaneRep, computePumpActionMode } from "./laneScoring";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
 import { queueDiscoveryForProject, processDiscoveryQueue, enforceHotProjectSLA, backfillDiscoveryStatus } from "./discoveryQueue";
@@ -789,7 +789,7 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const [project, projectContacts] = await Promise.all([
           getProjectById(input.projectId),
-          getContactsForProject(input.projectId),
+          getLinkedContactsForProject(input.projectId),
         ]);
         if (!project) return null;
         const profile = await getProfileByUserId(ctx.user.id);
@@ -799,6 +799,7 @@ export const appRouter = router({
           projectOwner: project.owner ?? "",
           projectState: (project as any).projectState ?? null,
           isPumpLane: isPumpLaneRep(userBLs),
+          contactsAreExactProjectLinks: true,
         });
         return result;
       }),
@@ -1272,7 +1273,7 @@ export const appRouter = router({
         // Always fetch ALL projects across all reports for the unified dashboard
         const [projectsList, contactsList, drillingList, awardedList] = await Promise.all([
           getAllProjects(),
-          getAllContacts(),
+          getAllContactsWithOutreachEligibility(),
           getAllDrillingCampaigns(),
           getAllAwardedProjects(),
         ]);
@@ -2671,42 +2672,49 @@ export const appRouter = router({
         const bls = await getActiveBusinessLines();
         const blNames: Record<number, string> = {};
         bls.forEach((bl: any) => { blNames[bl.id] = bl.name; });
-        // Guard: load canonical contact+project from DB, verify link and eligibility
-        const ctx85 = await resolveOutreachContext(input.contactId, input.projectId, blNames);
-        // Load user's assigned BLs to personalise the outreach
-        const profile = await getProfileByUserId(ctx.user.id);
-        const userBLs = (profile?.assignedBusinessLines as string[]) || [];
-        const result = await generateOutreachEmail({
-          contactName: ctx85.contactName,
-          contactTitle: ctx85.contactTitle,
-          contactCompany: ctx85.contactCompany,
-          contactEmail: ctx85.contactEmail,
-          contactRoleBucket: ctx85.contactRoleBucket,
-          projectName: ctx85.projectName,
-          projectLocation: ctx85.projectLocation,
-          projectValue: ctx85.projectValue,
-          projectSector: ctx85.projectSector,
-          projectStage: ctx85.projectStage,
-          projectOverview: ctx85.projectOverview,
-          equipmentSignals: ctx85.equipmentSignals,
-          opportunityRoute: ctx85.opportunityRoute,
-          matchedBusinessLines: ctx85.matchedBusinessLines,
-          tone: input.tone,
-          style: input.style,
-          senderName: ctx.user.name || "Team",
-          senderBusinessLines: userBLs.length > 0 ? userBLs : undefined,
-        });
-        // Track outreach drafted
-        await trackActivity(ctx.user.id, "outreach_drafted", {
-          metadata: {
+        return executeGuardedProjectOutreach({
+          contactId: input.contactId,
+          projectId: input.projectId,
+          businessLineNames: blNames,
+        }, async ctx85 => {
+          // All provider and activity side effects remain unreachable until
+          // the canonical contact, exact link and mailbox policy pass.
+          const profile = await getProfileByUserId(ctx.user.id);
+          const userBLs = (profile?.assignedBusinessLines as string[]) || [];
+          const result = await generateOutreachEmail({
             contactName: ctx85.contactName,
+            contactTitle: ctx85.contactTitle,
+            contactCompany: ctx85.contactCompany,
+            contactEmail: ctx85.contactEmail,
+            contactRoleBucket: ctx85.contactRoleBucket,
             projectName: ctx85.projectName,
+            projectLocation: ctx85.projectLocation,
+            projectValue: ctx85.projectValue,
+            projectSector: ctx85.projectSector,
+            projectStage: ctx85.projectStage,
+            projectOverview: ctx85.projectOverview,
+            equipmentSignals: ctx85.equipmentSignals,
+            opportunityRoute: ctx85.opportunityRoute,
+            matchedBusinessLines: ctx85.matchedBusinessLines,
             tone: input.tone,
-            claimId: input.claimId ?? null,
-            sourceAccountId: input.sourceAccountId ?? null,
-          },
+            style: input.style,
+            fallbackPolicy: "deterministic_template",
+            senderName: ctx.user.name || "Team",
+            senderBusinessLines: userBLs.length > 0 ? userBLs : undefined,
+          });
+          await trackActivity(ctx.user.id, "outreach_drafted", {
+            metadata: {
+              contactName: ctx85.contactName,
+              projectName: ctx85.projectName,
+              tone: input.tone,
+              generationMode: result.generationMode ?? "ai",
+              aiUnavailableReason: result.aiUnavailableReason ?? null,
+              claimId: input.claimId ?? null,
+              sourceAccountId: input.sourceAccountId ?? null,
+            },
+          });
+          return result;
         });
-        return result;
       }),
     /** Save an outreach email to the database */
     save: protectedProcedure
@@ -2721,22 +2729,23 @@ export const appRouter = router({
         status: z.enum(["drafted", "opened_in_email", "sent"]),
       }).strict())
       .mutation(async ({ ctx, input }) => {
-        // Guard: verify contact+project link and eligibility before saving
-        const ctx85 = await resolveOutreachContext(input.contactId, input.projectId);
-        return saveOutreachEmail({
-          userId: ctx.user.id,
-          contactId: ctx85.contactId,
-          contactName: ctx85.contactName,
-          contactEmail: ctx85.contactEmail,
-          projectId: ctx85.projectId,
-          projectName: ctx85.projectName,
-          claimId: input.claimId,
-          sourceAccountId: input.sourceAccountId,
-          subject: input.subject,
-          body: input.body,
-          tone: input.tone,
-          status: input.status,
-        });
+        return executeGuardedProjectOutreach({
+          contactId: input.contactId,
+          projectId: input.projectId,
+        }, ctx85 => saveOutreachEmail({
+            userId: ctx.user.id,
+            contactId: ctx85.contactId,
+            contactName: ctx85.contactName,
+            contactEmail: ctx85.contactEmail,
+            projectId: ctx85.projectId,
+            projectName: ctx85.projectName,
+            claimId: input.claimId,
+            sourceAccountId: input.sourceAccountId,
+            subject: input.subject,
+            body: input.body,
+            tone: input.tone,
+            status: input.status,
+          }));
       }),
 
     /** Get outreach history for a specific contact */
@@ -2769,45 +2778,47 @@ export const appRouter = router({
         collateralName: z.string().optional(),
       }).strict())
       .mutation(async ({ ctx, input }) => {
-        // Guard: verify contact+project link and eligibility before building EML
-        const ctx85 = await resolveOutreachContext(input.contactId, input.projectId);
-        const senderName = ctx.user?.name || "Team";
-        const senderEmail = ctx.user?.email || "";
-        const brand = detectBrand(input.collateralName);
-        // Strip any existing signature from the body
-        let cleanBody = input.body;
-        const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
-        cleanBody = cleanBody.replace(sigRegex, "");
-        cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
-        cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
-        const emlContent = buildEmlFile({
-          fromName: senderName,
-          fromEmail: senderEmail,
-          toName: ctx85.contactName,
-          toEmail: ctx85.contactEmail,
-          subject: input.subject,
-          bodyText: cleanBody.trim(),
-          brand,
+        return executeGuardedProjectOutreach({
+          contactId: input.contactId,
+          projectId: input.projectId,
+        }, async ctx85 => {
+          const senderName = ctx.user?.name || "Team";
+          const senderEmail = ctx.user?.email || "";
+          const brand = detectBrand(input.collateralName);
+          // Strip any existing signature from the body
+          let cleanBody = input.body;
+          const sigRegex = /\n\n\s*(Best regards|Kind regards|Regards|Warm regards|Cheers)[\s\S]*$/i;
+          cleanBody = cleanBody.replace(sigRegex, "");
+          cleanBody = cleanBody.replace(/\n---\nReminder:[\s\S]*$/, "");
+          cleanBody = cleanBody.replace(/\n\nReminder: Please attach[\s\S]*$/, "");
+          const emlContent = buildEmlFile({
+            fromName: senderName,
+            fromEmail: senderEmail,
+            toName: ctx85.contactName,
+            toEmail: ctx85.contactEmail,
+            subject: input.subject,
+            bodyText: cleanBody.trim(),
+            brand,
+          });
+          await saveOutreachEmail({
+            userId: ctx.user.id,
+            contactId: ctx85.contactId,
+            contactName: ctx85.contactName,
+            contactEmail: ctx85.contactEmail,
+            projectId: ctx85.projectId,
+            projectName: ctx85.projectName,
+            claimId: input.claimId,
+            sourceAccountId: input.sourceAccountId,
+            subject: input.subject,
+            body: input.body,
+            tone: input.tone,
+            status: "opened_in_email",
+          });
+          return {
+            emlBase64: Buffer.from(emlContent).toString("base64"),
+            filename: `outreach-${ctx85.contactName.replace(/\s+/g, "-").toLowerCase()}.eml`,
+          };
         });
-        // Track outreach
-        await saveOutreachEmail({
-          userId: ctx.user.id,
-          contactId: ctx85.contactId,
-          contactName: ctx85.contactName,
-          contactEmail: ctx85.contactEmail,
-          projectId: ctx85.projectId,
-          projectName: ctx85.projectName,
-          claimId: input.claimId,
-          sourceAccountId: input.sourceAccountId,
-          subject: input.subject,
-          body: input.body,
-          tone: input.tone,
-          status: "opened_in_email",
-        });
-        return {
-          emlBase64: Buffer.from(emlContent).toString("base64"),
-          filename: `outreach-${ctx85.contactName.replace(/\s+/g, "-").toLowerCase()}.eml`,
-        };
       }),
 
     /** Prepare a mailto URI for opening in email client — records the outreach event server-side */
@@ -2822,26 +2833,27 @@ export const appRouter = router({
         sourceAccountId: z.number().int().positive().optional(),
       }).strict())
       .mutation(async ({ ctx, input }) => {
-        // Guard: verify contact+project link and eligibility before building mailto URI
-        const ctx85 = await resolveOutreachContext(input.contactId, input.projectId);
-        // Record the outreach event server-side
-        await saveOutreachEmail({
-          userId: ctx.user.id,
-          contactId: ctx85.contactId,
-          contactName: ctx85.contactName,
-          contactEmail: ctx85.contactEmail,
-          projectId: ctx85.projectId,
-          projectName: ctx85.projectName,
-          claimId: input.claimId,
-          sourceAccountId: input.sourceAccountId,
-          subject: input.subject,
-          body: input.body,
-          tone: input.tone,
-          status: "opened_in_email",
+        return executeGuardedProjectOutreach({
+          contactId: input.contactId,
+          projectId: input.projectId,
+        }, async ctx85 => {
+          await saveOutreachEmail({
+            userId: ctx.user.id,
+            contactId: ctx85.contactId,
+            contactName: ctx85.contactName,
+            contactEmail: ctx85.contactEmail,
+            projectId: ctx85.projectId,
+            projectName: ctx85.projectName,
+            claimId: input.claimId,
+            sourceAccountId: input.sourceAccountId,
+            subject: input.subject,
+            body: input.body,
+            tone: input.tone,
+            status: "opened_in_email",
+          });
+          const mailtoUri = `mailto:${encodeURIComponent(ctx85.contactEmail)}?subject=${encodeURIComponent(input.subject)}&body=${encodeURIComponent(input.body)}`;
+          return { mailtoUri };
         });
-        // Return canonical mailto URI using DB-backed email
-        const mailtoUri = `mailto:${encodeURIComponent(ctx85.contactEmail)}?subject=${encodeURIComponent(input.subject)}&body=${encodeURIComponent(input.body)}`;
-        return { mailtoUri };
       }),
     /** Get outreach leaderboard — email count per user */
     leaderboard: protectedProcedure
@@ -2965,24 +2977,29 @@ export const appRouter = router({
         const bls = await getActiveBusinessLines();
         const blNames: Record<number, string> = {};
         bls.forEach((bl: any) => { blNames[bl.id] = bl.name; });
-        const ctx85 = await resolveOutreachContext(input.contactId, input.projectId, blNames);
-        return personaliseTemplate({
-          templateId: input.templateId,
-          contactName: ctx85.contactName,
-          contactTitle: ctx85.contactTitle,
-          contactCompany: ctx85.contactCompany,
-          contactEmail: ctx85.contactEmail,
-          contactRoleBucket: ctx85.contactRoleBucket,
-          projectName: ctx85.projectName,
-          projectLocation: ctx85.projectLocation,
-          projectValue: ctx85.projectValue,
-          projectSector: ctx85.projectSector,
-          projectStage: ctx85.projectStage,
-          projectOverview: ctx85.projectOverview,
-          equipmentSignals: ctx85.equipmentSignals,
-          matchedBusinessLines: ctx85.matchedBusinessLines,
-          senderName: ctx.user.name || "Team",
-        });
+        return executeGuardedProjectOutreach({
+          contactId: input.contactId,
+          projectId: input.projectId,
+          businessLineNames: blNames,
+        }, ctx85 => personaliseTemplate({
+            templateId: input.templateId,
+            contactName: ctx85.contactName,
+            contactTitle: ctx85.contactTitle,
+            contactCompany: ctx85.contactCompany,
+            contactEmail: ctx85.contactEmail,
+            contactRoleBucket: ctx85.contactRoleBucket,
+            projectName: ctx85.projectName,
+            projectLocation: ctx85.projectLocation,
+            projectValue: ctx85.projectValue,
+            projectSector: ctx85.projectSector,
+            projectStage: ctx85.projectStage,
+            projectOverview: ctx85.projectOverview,
+            equipmentSignals: ctx85.equipmentSignals,
+            opportunityRoute: ctx85.opportunityRoute,
+            matchedBusinessLines: ctx85.matchedBusinessLines,
+            senderName: ctx.user.name || "Team",
+            fallbackPolicy: "deterministic_template",
+          }));
       }),
 
      /** Get template library stats */
