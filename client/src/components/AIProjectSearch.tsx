@@ -5,7 +5,7 @@
  * Sales reps type in keywords/products and the AI guides them through the full
  * project-to-outreach pipeline without leaving the component.
  */
-import { useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   Search, Sparkles, Loader2, Target, MapPin, Building,
@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import OutreachEmailModal from "./OutreachEmailModal";
+import {
+  isPositivePersistedId,
+  isProjectOutreachEligible,
+} from "@/lib/projectOutreachEligibility";
 
 // ── Types matching backend ──
 interface MatchedProject {
@@ -58,6 +62,13 @@ interface ProjectContact {
   roleRelevance: string | null;
   confidenceScore: string | null;
   enrichmentStatus: string | null;
+  contactTrustTier: string | null;
+  emailVerified: boolean | number | null;
+  verificationStatus: string | null;
+  rejectionReason: string | null;
+  crmOrphan: boolean | number | null;
+  linkedProjectIds: number[] | null;
+  outreachEligibleProjectIds: number[] | null;
 }
 
 // ── Quick search suggestions ──
@@ -153,11 +164,12 @@ function WorkflowSteps({ currentStep }: { currentStep: number }) {
 }
 
 // ── Contact Row in stakeholder panel ──
-function ContactRow({ contact, onDraftEmail, projectName }: {
+function ContactRow({ contact, onDraftEmail, projectId }: {
   contact: ProjectContact;
-  onDraftEmail: (contact: ProjectContact) => void;
-  projectName: string;
+  onDraftEmail: (contactId: number) => void;
+  projectId: number;
 }) {
+  const canDraft = isProjectOutreachEligible(contact, projectId);
   return (
     <div className="flex items-center justify-between gap-3 py-2.5 px-3 rounded-lg hover:bg-gold/5 transition-colors group">
       <div className="min-w-0 flex-1">
@@ -174,13 +186,22 @@ function ContactRow({ contact, onDraftEmail, projectName }: {
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-        {contact.email && (
+        {canDraft ? (
           <button
-            onClick={() => onDraftEmail(contact)}
+            onClick={() => onDraftEmail(contact.id)}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-gold/15 text-gold-dark hover:bg-gold/30 border border-gold/20 transition-colors"
             title="Draft outreach email"
           >
             <Mail className="w-3 h-3" /> Draft
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-500 cursor-not-allowed"
+            title="Validate the contact and exact project link before outreach"
+          >
+            <Shield className="w-3 h-3" /> Validate first
           </button>
         )}
         {contact.linkedin && (
@@ -212,9 +233,8 @@ function ContactRow({ contact, onDraftEmail, projectName }: {
 }
 
 // ── Stakeholder Panel (inline within result card) ──
-function StakeholderPanel({ projectId, projectName, project, onClose }: {
+function StakeholderPanel({ projectId, project, onClose }: {
   projectId: number;
-  projectName: string;
   project: MatchedProject;
   onClose: () => void;
 }) {
@@ -223,11 +243,16 @@ function StakeholderPanel({ projectId, projectName, project, onClose }: {
   const contactsData = useMemo(() => {
     if (!reportData) return [];
     const allContacts = (reportData as any)?.contacts || [];
-    const nameLC = projectName.toLowerCase().slice(0, 30);
-    return allContacts.filter((c: any) => {
-      const cp = (c.project || "").toLowerCase();
-      return cp.includes(nameLC) || nameLC.includes(cp.slice(0, 30));
-    }).map((c: any): ProjectContact => ({
+    // AI search is still a project-outreach launch surface. Associate contacts
+    // only through the exact server-returned junction IDs; legacy free-text
+    // project names are display data and must never open the composer.
+    return allContacts.filter((c: any) =>
+      isPositivePersistedId(projectId) &&
+      Array.isArray(c.linkedProjectIds) &&
+      c.linkedProjectIds.some(
+        (linkedId: unknown) => isPositivePersistedId(linkedId) && linkedId === projectId,
+      )
+    ).map((c: any): ProjectContact => ({
       id: c.id,
       name: c.name,
       title: c.title,
@@ -239,10 +264,19 @@ function StakeholderPanel({ projectId, projectName, project, onClose }: {
       roleRelevance: c.roleRelevance,
       confidenceScore: c.confidenceScore,
       enrichmentStatus: c.enrichmentStatus,
+      contactTrustTier: c.contactTrustTier ?? null,
+      emailVerified: c.emailVerified ?? null,
+      verificationStatus: c.verificationStatus ?? null,
+      rejectionReason: c.rejectionReason ?? null,
+      crmOrphan: c.crmOrphan ?? null,
+      linkedProjectIds: Array.isArray(c.linkedProjectIds) ? c.linkedProjectIds : null,
+      outreachEligibleProjectIds: Array.isArray(c.outreachEligibleProjectIds)
+        ? c.outreachEligibleProjectIds
+        : null,
     }));
-  }, [reportData, projectName]);
+  }, [reportData, projectId]);
 
-  const [outreachContact, setOutreachContact] = useState<ProjectContact | null>(null);
+  const [outreachContactId, setOutreachContactId] = useState<number | null>(null);
 
   const contacts: ProjectContact[] = contactsData || [];
   const highRelevance = contacts.filter((c: ProjectContact) => c.roleRelevance === "high");
@@ -250,6 +284,19 @@ function StakeholderPanel({ projectId, projectName, project, onClose }: {
   const lowRelevance = contacts.filter((c: ProjectContact) => c.roleRelevance === "low" || !c.roleRelevance);
 
   const sortedContacts = [...highRelevance, ...medRelevance, ...lowRelevance];
+  const activeOutreachContact = sortedContacts.find(contact =>
+    contact.id === outreachContactId &&
+    isProjectOutreachEligible(contact, projectId)
+  ) ?? null;
+  const topActionableContact = sortedContacts.find(contact =>
+    isProjectOutreachEligible(contact, projectId)
+  ) ?? null;
+
+  useEffect(() => {
+    if (outreachContactId !== null && !activeOutreachContact) {
+      setOutreachContactId(null);
+    }
+  }, [outreachContactId, activeOutreachContact]);
 
   return (
     <div className="border-t border-border bg-slate-50/50">
@@ -294,8 +341,8 @@ function StakeholderPanel({ projectId, projectName, project, onClose }: {
               <ContactRow
                 key={contact.id}
                 contact={contact}
-                onDraftEmail={(c) => setOutreachContact(c)}
-                projectName={projectName}
+                onDraftEmail={setOutreachContactId}
+                projectId={projectId}
               />
             ))}
           </div>
@@ -307,9 +354,9 @@ function StakeholderPanel({ projectId, projectName, project, onClose }: {
             <span className="text-[10px] text-muted-foreground">
               {highRelevance.length} key decision-makers, {medRelevance.length} influencers, {lowRelevance.length} corporate
             </span>
-            {highRelevance.length > 0 && highRelevance[0].email && (
+            {topActionableContact && (
               <button
-                onClick={() => setOutreachContact(highRelevance[0])}
+                onClick={() => setOutreachContactId(topActionableContact.id)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold text-navy text-xs font-bold hover:bg-gold-light transition-colors"
               >
                 <Send className="w-3 h-3" /> Draft to Top Contact
@@ -320,20 +367,19 @@ function StakeholderPanel({ projectId, projectName, project, onClose }: {
       </div>
 
       {/* Outreach Modal */}
-      {outreachContact && (
+      {activeOutreachContact && (
         <OutreachEmailModal
           isOpen={true}
-          onClose={() => setOutreachContact(null)}
+          onClose={() => setOutreachContactId(null)}
           contact={{
-            id: outreachContact.id,
-            name: outreachContact.name,
-            title: outreachContact.title,
-            company: outreachContact.company,
-            email: outreachContact.email || "",
-            roleBucket: outreachContact.roleBucket,
+            id: activeOutreachContact.id,
+            name: activeOutreachContact.name,
+            title: activeOutreachContact.title,
+            company: activeOutreachContact.company,
+            roleBucket: activeOutreachContact.roleBucket,
           }}
           project={{
-            id: project.projectId,
+            id: projectId,
             name: project.name,
             location: project.location,
             value: project.value,
@@ -494,7 +540,6 @@ function ResultCard({ match, rank, onNavigateToProject }: {
       {showStakeholders && (
         <StakeholderPanel
           projectId={match.projectId}
-          projectName={match.name}
           project={match}
           onClose={() => setShowStakeholders(false)}
         />

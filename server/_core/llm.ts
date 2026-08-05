@@ -1,4 +1,9 @@
 import { ENV } from "./env";
+import {
+  LLMInvokeError,
+  classifyLLMHttpFailure,
+  parseRetryAfterMs,
+} from "./llmErrors";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -56,6 +61,8 @@ export type ToolChoice =
   | ToolChoiceExplicit;
 
 export type InvokeParams = {
+  /** Safe feature label for diagnostics and usage attribution. Never include PII. */
+  feature?: string;
   messages: Message[];
   tools?: Tool[];
   toolChoice?: ToolChoice;
@@ -66,6 +73,7 @@ export type InvokeParams = {
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  timeoutMs?: number;
 };
 
 export type ToolCall = {
@@ -216,9 +224,101 @@ const resolveApiUrl = () =>
 
 const assertApiKey = () => {
   if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+    throw new LLMInvokeError({ kind: "configuration" });
   }
 };
+
+const DEFAULT_MAX_TOKENS = 32_768;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_QUOTA_CIRCUIT_MS = 30 * 60 * 1_000;
+const MAX_SUCCESS_RESPONSE_BYTES = 2 * 1024 * 1024;
+const MAX_ERROR_PREFIX_BYTES = 4 * 1024;
+
+let circuitOpenUntil = 0;
+
+function requestIdFrom(headers: Headers): string | undefined {
+  return ["x-request-id", "x-goog-request-id", "request-id"]
+    .map(name => headers.get(name)?.trim())
+    .find((value): value is string =>
+      Boolean(
+        value &&
+        value.length <= 200 &&
+        /^[A-Za-z0-9._:@/+~-]+$/.test(value),
+      )
+    );
+}
+
+function positiveInteger(value: number | undefined, fallback: number, maximum: number): number {
+  if (!Number.isInteger(value) || (value ?? 0) <= 0) return fallback;
+  return Math.min(value as number, maximum);
+}
+
+async function readBoundedResponseText(
+  response: Response,
+  maxBytes: number,
+  truncate: boolean,
+): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    const text = await response.text();
+    const bytes = new TextEncoder().encode(text);
+    if (bytes.byteLength > maxBytes && !truncate) {
+      throw new LLMInvokeError({
+        kind: "malformed_response",
+        status: response.status,
+      });
+    }
+    return truncate
+      ? new TextDecoder().decode(bytes.subarray(0, maxBytes))
+      : text;
+  }
+
+  const decoder = new TextDecoder();
+  let totalBytes = 0;
+  let text = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const remaining = maxBytes - totalBytes;
+    if (value.byteLength > remaining) {
+      if (!truncate) {
+        await reader.cancel();
+        throw new LLMInvokeError({
+          kind: "malformed_response",
+          status: response.status,
+        });
+      }
+      text += decoder.decode(value.subarray(0, Math.max(0, remaining)), {
+        stream: true,
+      });
+      await reader.cancel();
+      return text + decoder.decode();
+    }
+
+    totalBytes += value.byteLength;
+    text += decoder.decode(value, { stream: true });
+  }
+
+  return text + decoder.decode();
+}
+
+function assertCircuitClosed(now = Date.now()): void {
+  if (circuitOpenUntil <= now) {
+    circuitOpenUntil = 0;
+    return;
+  }
+  throw new LLMInvokeError({
+    kind: "circuit_open",
+    retryAfterMs: circuitOpenUntil - now,
+  });
+}
+
+/** Test-only reset. Production recovery is time based. */
+export function resetLLMCircuitForTests(): void {
+  circuitOpenUntil = 0;
+}
 
 const normalizeResponseFormat = ({
   responseFormat,
@@ -267,6 +367,7 @@ const normalizeResponseFormat = ({
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
+  assertCircuitClosed();
 
   const {
     messages,
@@ -277,6 +378,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     output_schema,
     responseFormat,
     response_format,
+    maxTokens,
+    max_tokens,
+    timeoutMs,
   } = params;
 
   const payload: Record<string, unknown> = {
@@ -296,10 +400,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
+  payload.max_tokens = positiveInteger(
+    maxTokens ?? max_tokens,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_MAX_TOKENS,
+  );
   payload.thinking = {
     "budget_tokens": 128
-  }
+  };
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
@@ -312,21 +420,91 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-    },
-    body: JSON.stringify(payload),
+  const controller = new AbortController();
+  const effectiveTimeoutMs = positiveInteger(timeoutMs, DEFAULT_TIMEOUT_MS, 120_000);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new LLMInvokeError({ kind: "timeout" }));
+    }, effectiveTimeoutMs);
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
-  }
+  const request = async (): Promise<InvokeResult> => {
+    let response: Response;
+    try {
+      response = await fetch(resolveApiUrl(), {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${ENV.forgeApiKey}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      const timedOut = controller.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError");
+      throw new LLMInvokeError({
+        kind: timedOut ? "timeout" : "upstream_unavailable",
+      });
+    }
 
-  return (await response.json()) as InvokeResult;
+    if (!response.ok) {
+      // Read only a small prefix for classification, then cancel the body. The
+      // prefix is never included in the thrown error or logs.
+      const errorText = await readBoundedResponseText(
+        response,
+        MAX_ERROR_PREFIX_BYTES,
+        true,
+      );
+      const kind = classifyLLMHttpFailure(response.status, errorText);
+      const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"));
+      const requestId = requestIdFrom(response.headers);
+
+      if (kind === "quota_exhausted" || kind === "rate_limited") {
+        circuitOpenUntil = Date.now() +
+          (retryAfterMs ?? DEFAULT_QUOTA_CIRCUIT_MS);
+      }
+
+      console.warn("[LLM] request failed", {
+        feature: params.feature ?? "unclassified",
+        kind,
+        status: response.status,
+        requestId: requestId ?? null,
+        retryAfterMs: retryAfterMs ?? null,
+      });
+      throw new LLMInvokeError({
+        kind,
+        status: response.status,
+        requestId,
+        retryAfterMs,
+      });
+    }
+
+    const responseText = await readBoundedResponseText(
+      response,
+      MAX_SUCCESS_RESPONSE_BYTES,
+      false,
+    );
+    try {
+      const parsed = JSON.parse(responseText) as Partial<InvokeResult>;
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.choices)) {
+        throw new Error("invalid shape");
+      }
+      return parsed as InvokeResult;
+    } catch {
+      throw new LLMInvokeError({
+        kind: "malformed_response",
+        status: response.status,
+        requestId: requestIdFrom(response.headers),
+      });
+    }
+  };
+
+  try {
+    return await Promise.race([request(), timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

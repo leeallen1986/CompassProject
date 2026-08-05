@@ -11,6 +11,13 @@ import { getDb } from "./db";
 import { outreachTemplates } from "../drizzle/schema";
 import { eq, desc, and, or, sql, like } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
+import {
+  isDeterministicFallbackEligible,
+  LLMInvokeError,
+  parseLLMJson,
+  type LLMFailureKind,
+} from "./_core/llmErrors";
+import { buildDeterministicOutreachEmail } from "./outreachEmailFallback";
 
 export interface CreateTemplateInput {
   name: string;
@@ -62,8 +69,11 @@ export interface PersonaliseInput {
   projectStage: string | null;
   projectOverview: string | null;
   equipmentSignals: string[] | null;
+  opportunityRoute: string;
   matchedBusinessLines: string[];
   senderName: string;
+  /** Server-only opt-in, set only after the project outreach guard passes. */
+  fallbackPolicy?: "deterministic_template";
 }
 
 /**
@@ -238,12 +248,11 @@ export async function incrementTemplateUsage(id: number): Promise<void> {
 export async function personaliseTemplate(input: PersonaliseInput): Promise<{
   subject: string;
   body: string;
+  generationMode?: "ai" | "deterministic_template";
+  aiUnavailableReason?: LLMFailureKind;
 }> {
   const template = await getTemplateById(input.templateId);
   if (!template) throw new Error("Template not found");
-
-  // Increment usage
-  await incrementTemplateUsage(input.templateId);
 
   const prompt = `You are an expert sales email personaliser. You have a proven outreach email template that has been successful. Your job is to adapt it for a NEW contact and project while preserving the template's structure, tone, and messaging approach.
 
@@ -256,7 +265,6 @@ NEW CONTACT DETAILS:
 - Name: ${input.contactName}
 - Title: ${input.contactTitle}
 - Company: ${input.contactCompany}
-- Email: ${input.contactEmail}
 - Role: ${input.contactRoleBucket}
 
 NEW PROJECT DETAILS:
@@ -286,38 +294,95 @@ Return ONLY valid JSON:
   "body": "The personalised email body"
 }`;
 
-  const response = await invokeLLM({
-    messages: [
-      { role: "system", content: "You personalise sales email templates. Return only valid JSON." },
-      { role: "user", content: prompt },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "personalised_email",
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            subject: { type: "string", description: "Personalised subject line" },
-            body: { type: "string", description: "Personalised email body" },
+  let result: {
+    subject: string;
+    body: string;
+    generationMode?: "ai" | "deterministic_template";
+    aiUnavailableReason?: LLMFailureKind;
+  };
+
+  try {
+    const response = await invokeLLM({
+      feature: "project_outreach_template_personalisation",
+      maxTokens: 1_600,
+      timeoutMs: 30_000,
+      messages: [
+        { role: "system", content: "You personalise sales email templates. Return only valid JSON." },
+        { role: "user", content: prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "personalised_email",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              subject: { type: "string", description: "Personalised subject line" },
+              body: { type: "string", description: "Personalised email body" },
+            },
+            required: ["subject", "body"],
+            additionalProperties: false,
           },
-          required: ["subject", "body"],
-          additionalProperties: false,
         },
       },
-    },
-  });
+    });
 
-  const content = response.choices?.[0]?.message?.content;
-  if (!content) throw new Error("LLM returned empty response");
-  const contentStr = typeof content === "string" ? content : JSON.stringify(content);
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) throw new LLMInvokeError({ kind: "malformed_response" });
+    const contentStr = typeof content === "string" ? content : JSON.stringify(content);
+    const parsed = parseLLMJson<{ subject?: unknown; body?: unknown }>(contentStr);
+    if (
+      typeof parsed.subject !== "string" ||
+      parsed.subject.trim().length === 0 ||
+      typeof parsed.body !== "string" ||
+      parsed.body.trim().length === 0
+    ) {
+      throw new LLMInvokeError({ kind: "malformed_response" });
+    }
+    result = {
+      subject: parsed.subject,
+      body: parsed.body,
+      generationMode: "ai",
+    };
+  } catch (error) {
+    if (
+      input.fallbackPolicy !== "deterministic_template" ||
+      !isDeterministicFallbackEligible(error)
+    ) {
+      throw error;
+    }
 
-  const parsed = JSON.parse(contentStr);
-  return {
-    subject: parsed.subject,
-    body: parsed.body,
-  };
+    const fallback = buildDeterministicOutreachEmail({
+      contactName: input.contactName,
+      contactTitle: input.contactTitle,
+      contactCompany: input.contactCompany,
+      contactEmail: input.contactEmail,
+      contactRoleBucket: input.contactRoleBucket,
+      projectName: input.projectName,
+      projectLocation: input.projectLocation,
+      projectValue: input.projectValue,
+      projectSector: input.projectSector,
+      projectStage: input.projectStage,
+      projectOverview: input.projectOverview,
+      equipmentSignals: input.equipmentSignals,
+      opportunityRoute: input.opportunityRoute,
+      matchedBusinessLines: input.matchedBusinessLines,
+      senderName: input.senderName,
+      tone: template.tone,
+    }, error.kind);
+    result = {
+      subject: fallback.subject,
+      body: fallback.body,
+      generationMode: fallback.generationMode,
+      aiUnavailableReason: fallback.aiUnavailableReason,
+    };
+  }
+
+  // Record usage only after a usable draft has actually been produced. A
+  // quota failure without an authorised fallback must never inflate counts.
+  await incrementTemplateUsage(input.templateId);
+  return result;
 }
 
 /**

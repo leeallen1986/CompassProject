@@ -1,6 +1,7 @@
 import {
   deriveEffectiveSlateTier,
   hasNonEmptyEmail,
+  hasSendReadyEnrichmentSource,
   isEffectivelySendReady,
   type ContactTrustTier,
 } from "./contactSlateTrustPolicy";
@@ -18,6 +19,7 @@ export type ContactValidationAction = (typeof CONTACT_VALIDATION_ACTIONS)[number
 
 export interface ContactValidationState {
   contactTrustTier: ContactTrustTier | null;
+  enrichmentSource: string | null;
   email: string | null;
   emailVerified: boolean | number | null;
   verificationStatus: string | null;
@@ -39,6 +41,7 @@ export interface ContactValidationTransition {
   newTier: ContactTrustTier;
   update: {
     contactTrustTier: ContactTrustTier;
+    enrichmentSource?: "manual";
     emailVerified?: boolean;
     verificationStatus?: "verified" | "unverified";
     verifiedByUserId?: number | null;
@@ -76,6 +79,11 @@ export function deriveContactValidationTransition(
 ): ContactValidationTransition {
   const previousTier = state.contactTrustTier || "named_unverified";
   const wasEffectivelySendReady = isEffectivelySendReady(state);
+  // A human validation action can replace unknown/LLM-only provenance with a
+  // manual source, but must not erase an existing independent source.
+  const manualSourceUpdate = hasSendReadyEnrichmentSource(state.enrichmentSource)
+    ? {}
+    : { enrichmentSource: "manual" as const };
   const base: ContactValidationTransition = {
     previousTier,
     newTier: previousTier,
@@ -98,6 +106,7 @@ export function deriveContactValidationTransition(
         newTier,
         update: {
           contactTrustTier: newTier,
+          ...manualSourceUpdate,
           rejectionReason: null,
           rejectedByUserId: null,
           rejectedAt: null,
@@ -132,6 +141,7 @@ export function deriveContactValidationTransition(
         newTier: "send_ready",
         update: {
           contactTrustTier: "send_ready",
+          ...manualSourceUpdate,
           emailVerified: true,
           verificationStatus: "verified",
           verifiedByUserId: context.userId,

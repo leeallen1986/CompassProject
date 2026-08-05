@@ -200,6 +200,11 @@ describe("Pump/Flow Lane: Contact Role Ranking", () => {
     roleBucket: "operations",
     email: "test@newmont.com",
     contactTrustTier: "send_ready",
+    enrichmentSource: "manual",
+    emailVerified: true,
+    verificationStatus: "verified",
+    rejectionReason: null,
+    crmOrphan: false,
     roleRelevance: "high",
     ...overrides,
   });

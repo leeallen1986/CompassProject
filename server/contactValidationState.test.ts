@@ -9,6 +9,7 @@ const now = new Date("2026-07-25T01:00:00Z");
 function state(overrides: Partial<ContactValidationState> = {}): ContactValidationState {
   return {
     contactTrustTier: "named_unverified",
+    enrichmentSource: "manual",
     email: "person@example.com",
     emailVerified: false,
     verificationStatus: "unverified",
@@ -34,13 +35,13 @@ describe("contact validation action state matrix", () => {
   });
 
   it("accept moves an inferred identity to named_unverified", () => {
-    expect(
-      deriveContactValidationTransition(
-        "accept",
-        state({ contactTrustTier: "llm_inferred" }),
-        context,
-      ).newTier,
-    ).toBe("named_unverified");
+    const result = deriveContactValidationTransition(
+      "accept",
+      state({ contactTrustTier: "llm_inferred", enrichmentSource: "llm" }),
+      context,
+    );
+    expect(result.newTier).toBe("named_unverified");
+    expect(result.update.enrichmentSource).toBe("manual");
   });
 
   it("accept preserves an independently effective send-ready contact", () => {
@@ -54,6 +55,21 @@ describe("contact validation action state matrix", () => {
       context,
     );
     expect(result.newTier).toBe("send_ready");
+  });
+
+  it("does not preserve a raw send-ready label backed only by LLM provenance", () => {
+    const result = deriveContactValidationTransition(
+      "accept",
+      state({
+        contactTrustTier: "send_ready",
+        enrichmentSource: "llm",
+        emailVerified: true,
+        verificationStatus: "verified",
+      }),
+      context,
+    );
+    expect(result.newTier).toBe("named_unverified");
+    expect(result.update.enrichmentSource).toBe("manual");
   });
 
   it("verify_email requires a current email and accepted non-LLM identity", () => {
@@ -79,6 +95,16 @@ describe("contact validation action state matrix", () => {
       verifiedByUserId: 42,
       verifiedAt: now,
     });
+  });
+
+  it("records manual provenance when a human verifies a legacy LLM-sourced row", () => {
+    const result = deriveContactValidationTransition(
+      "verify_email",
+      state({ enrichmentSource: "llm" }),
+      context,
+    );
+    expect(result.newTier).toBe("send_ready");
+    expect(result.update.enrichmentSource).toBe("manual");
   });
 
   it("reject and wrong_company clear verification and cannot remain send-ready", () => {

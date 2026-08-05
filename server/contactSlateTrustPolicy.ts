@@ -129,8 +129,30 @@ export function normaliseBoolean(value: boolean | number | null | undefined): bo
   return value === true || value === 1;
 }
 
+/** Missing/unknown orphan state is unsafe for contactable actions. */
+export function isExplicitlyNotCrmOrphan(
+  value: boolean | number | null | undefined,
+): boolean {
+  return value === false || value === 0;
+}
+
 export function hasNonEmptyEmail(email: string | null | undefined): boolean {
   return typeof email === "string" && email.trim().length > 0;
+}
+
+const SEND_READY_ENRICHMENT_SOURCES = new Set([
+  "linkedin",
+  "manual",
+  "apollo",
+  "web_search",
+  "lusha",
+]);
+
+export function hasSendReadyEnrichmentSource(
+  source: string | null | undefined,
+): boolean {
+  return typeof source === "string" &&
+    SEND_READY_ENRICHMENT_SOURCES.has(source);
 }
 
 /**
@@ -139,10 +161,12 @@ export function hasNonEmptyEmail(email: string | null | undefined): boolean {
  */
 export function isEffectivelySendReady(contact: Pick<
   SlatePolicyContact,
-  "contactTrustTier" | "email" | "emailVerified" | "verificationStatus" | "rejectionReason"
+  "contactTrustTier" | "email" | "emailVerified" | "verificationStatus" |
+  "rejectionReason" | "enrichmentSource"
 >): boolean {
   return (
     contact.contactTrustTier === "send_ready" &&
+    hasSendReadyEnrichmentSource(contact.enrichmentSource) &&
     hasNonEmptyEmail(contact.email) &&
     normaliseBoolean(contact.emailVerified) &&
     contact.verificationStatus === "verified" &&
@@ -157,20 +181,23 @@ export function isEffectivelySendReady(contact: Pick<
  */
 export function deriveEffectiveSlateTier(contact: Pick<
   SlatePolicyContact,
-  "contactTrustTier" | "email" | "emailVerified" | "verificationStatus" | "rejectionReason"
+  "contactTrustTier" | "email" | "emailVerified" | "verificationStatus" |
+  "rejectionReason" | "enrichmentSource"
 >): EffectiveSlateTier {
   return isEffectivelySendReady(contact) ? "send_ready" : "named_unverified";
 }
 
 export function evaluateSlateEligibility(
-  contact: Pick<SlatePolicyContact, "contactTrustTier" | "rejectionReason" | "crmOrphan">,
+  contact: Pick<SlatePolicyContact, "contactTrustTier" | "rejectionReason"> & {
+    crmOrphan?: boolean | number | null;
+  },
   linkedToProject: boolean,
 ): SlateEligibilityResult {
   const reasons: SlateEligibilityReason[] = [];
 
   if (contact.contactTrustTier === "llm_inferred") reasons.push("llm_inferred");
   if (contact.rejectionReason != null) reasons.push("rejected");
-  if (normaliseBoolean(contact.crmOrphan)) reasons.push("crm_orphan");
+  if (!isExplicitlyNotCrmOrphan(contact.crmOrphan)) reasons.push("crm_orphan");
   if (!linkedToProject) reasons.push("not_linked_to_project");
 
   return { eligible: reasons.length === 0, reasons };

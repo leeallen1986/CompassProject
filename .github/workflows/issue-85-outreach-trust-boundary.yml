@@ -1,0 +1,70 @@
+name: Issue 85 outreach trust boundary
+
+on:
+  pull_request:
+    paths:
+      - "client/src/components/OutreachEmailModal.tsx"
+      - "client/src/components/AIProjectSearch.tsx"
+      - "client/src/components/ProjectCard.tsx"
+      - "client/src/components/outreachClientTrustBoundary.static.test.ts"
+      - "client/src/lib/homeOutreachIdentity.ts"
+      - "client/src/lib/homeOutreachIdentity.test.ts"
+      - "client/src/lib/projectOutreachEligibility.ts"
+      - "client/src/lib/projectOutreachEligibility.test.ts"
+      - "client/src/pages/Home.tsx"
+      - "server/_core/llm.ts"
+      - "server/_core/llmErrors.ts"
+      - "server/_core/llmErrors.test.ts"
+      - "server/_core/llm.behavior.test.ts"
+      - "server/contactSelector.ts"
+      - "server/contactSelector.issue85.test.ts"
+      - "server/contactSlateTrustPolicy.ts"
+      - "server/contactSlateTrustPolicy.issue85.test.ts"
+      - "server/contactValidationState.ts"
+      - "server/contactValidationState.test.ts"
+      - "server/routers/contactValidation.ts"
+      - "server/db.ts"
+      - "server/outreachContactProjection.ts"
+      - "server/outreachContactProjection.test.ts"
+      - "server/outreachEmail.ts"
+      - "server/outreachEmailFallback.ts"
+      - "server/outreachEmailFallback.test.ts"
+      - "server/outreachEmail.quotaFallback.test.ts"
+      - "server/outreachEmail.test.ts"
+      - "server/outreachTemplates.ts"
+      - "server/outreachTemplates.quotaFallback.test.ts"
+      - "server/projectOutreachExecution.ts"
+      - "server/projectOutreachExecution.test.ts"
+      - "server/projectOutreachGuard.ts"
+      - "server/projectOutreachGuard.test.ts"
+      - "server/pumpFlowLane.test.ts"
+      - "server/report.test.ts"
+      - "server/routers.ts"
+      - "server/outreachTrustBoundary.static.test.ts"
+      - "package.json"
+      - "vitest.issue85.config.ts"
+      - ".github/workflows/issue-85-outreach-trust-boundary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Issue 85 focused tests
+        run: pnpm test:issue85
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build

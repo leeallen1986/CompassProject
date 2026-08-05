@@ -26,6 +26,11 @@
  *   - fallbackContacts: named_unverified contacts for the "validate before outreach" section
  */
 
+import {
+  isEffectivelySendReady,
+  isExplicitlyNotCrmOrphan,
+} from "./contactSlateTrustPolicy";
+
 // ── Types ──
 
 export interface ContactInput {
@@ -43,11 +48,15 @@ export interface ContactInput {
   contactTrustTier?: "send_ready" | "named_unverified" | "llm_inferred" | null;
   verificationScore?: number | null;
   verificationStatus?: string | null;
+  /** True when email has been verified by an email verification service */
+  emailVerified?: boolean | null;
   enrichmentSource?: string | null;
   linkedinHeadline?: string | null;
   linkedinLocation?: string | null;
   /** Set when contact has been quarantined — excluded from all selection paths */
   rejectionReason?: string | null;
+  /** Set when the contact exists in the DB but has no CRM project link — excluded from outreach */
+  crmOrphan?: boolean | null;
 }
 
 export interface SelectedContact {
@@ -57,7 +66,7 @@ export interface SelectedContact {
   company: string;
   email: string | null;
   linkedin: string | null;
-  trustTier: "send_ready" | "named_unverified";
+  trustTier: "send_ready";
   roleRelevance: "high" | "medium" | "low";
   routeToBuy: string;
   whySelected: string;
@@ -124,6 +133,8 @@ export function selectProjectContact(
     buyerRoles?: string[];
     /** When true, uses pump-specific role ranking (site ops, maintenance, dewatering, package engineer) */
     isPumpLane?: boolean;
+    /** The caller already loaded contacts through exact contactProjects links. */
+    contactsAreExactProjectLinks?: boolean;
   }
 ): ContactSelectionResult {
   const { projectName, projectOwner, projectState, buyerRoles } = options;
@@ -138,11 +149,18 @@ export function selectProjectContact(
     };
   }
 
-  // Pre-filter: remove quarantined contacts (rejectionReason set) before any selection logic
-  const activeContacts = contacts.filter(c => !c.rejectionReason);
+  // Pre-filter: remove quarantined and CRM-orphaned contacts before any
+  // selection logic. Any non-null rejection reason, including an empty string,
+  // means the contact is quarantined.
+  const activeContacts = contacts.filter(c =>
+    c.rejectionReason == null && isExplicitlyNotCrmOrphan(c.crmOrphan)
+  );
 
-  // Step 1: Match contacts to this project (fuzzy name/company match)
-  const projectContacts = matchContactsToProject(activeContacts, projectName, projectOwner ?? "");
+  // Step 1: Exact-link callers must not re-run legacy fuzzy text matching.
+  // Other callers retain the existing display-selection behaviour.
+  const projectContacts = options.contactsAreExactProjectLinks
+    ? activeContacts
+    : matchContactsToProject(activeContacts, projectName, projectOwner ?? "");
 
   if (projectContacts.length === 0) {
     return {
@@ -154,8 +172,16 @@ export function selectProjectContact(
     };
   }
 
-  // Step 2: Segment by trust tier
-  const sendReady = projectContacts.filter(c => c.contactTrustTier === "send_ready");
+  // Step 2: Segment by trust tier. The central policy deliberately fails
+  // closed when any verification evidence is missing or invalid.
+  const sendReady = projectContacts.filter(c => isEffectivelySendReady({
+    contactTrustTier: c.contactTrustTier ?? null,
+    enrichmentSource: c.enrichmentSource ?? null,
+    email: c.email,
+    emailVerified: c.emailVerified ?? null,
+    verificationStatus: c.verificationStatus ?? null,
+    rejectionReason: c.rejectionReason ?? null,
+  }));
   const namedUnverified = projectContacts.filter(c => c.contactTrustTier === "named_unverified");
   // llm_inferred contacts are NEVER shown as primary
 
@@ -192,11 +218,10 @@ export function selectProjectContact(
 
   // No send_ready contacts — check named_unverified
   if (scoredFallback.length > 0) {
-    const best = scoredFallback[0];
     return {
-      selectedContact: buildSelectedContact(best, "named_unverified"),
+      selectedContact: null,
       salesReadiness: "needs_verification",
-      fallbackContacts: scoredFallback.slice(1).map(f => ({
+      fallbackContacts: scoredFallback.map(f => ({
         id: f.contact.id,
         name: f.contact.name,
         title: f.contact.title,
@@ -205,7 +230,7 @@ export function selectProjectContact(
         roleRelevance: (f.contact.roleRelevance ?? "low") as "high" | "medium" | "low",
       })),
       totalContactsFound: projectContacts.length,
-      noContactReason: "No send-ready contacts — best available is named_unverified",
+      noContactReason: "No send-ready contacts — validate named_unverified contacts before outreach",
     };
   }
 
@@ -315,7 +340,7 @@ function scoreContact(
 
 // ── Build Selected Contact Output ──
 
-function buildSelectedContact(scored: ScoredContact, trustTier: "send_ready" | "named_unverified"): SelectedContact {
+function buildSelectedContact(scored: ScoredContact, trustTier: "send_ready"): SelectedContact {
   return {
     id: scored.contact.id,
     name: scored.contact.name,
