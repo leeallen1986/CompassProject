@@ -13,6 +13,13 @@
  * collateral item (e.g., XAVS1800 compressor vs CDR desiccant dryers).
  */
 import { invokeLLM } from "./_core/llm";
+import {
+  isDeterministicFallbackEligible,
+  LLMInvokeError,
+  parseLLMJson,
+  type LLMFailureKind,
+} from "./_core/llmErrors";
+import { buildDeterministicOutreachEmail } from "./outreachEmailFallback";
 import { getDb } from "./db";
 import { outreachEmails, pipelineClaims } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -49,6 +56,8 @@ export interface OutreachInput {
   // Tone / Style
   tone: "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
   style?: "standard" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
+  /** Server-only opt-in. Project routes set this only after the trust guard passes. */
+  fallbackPolicy?: "deterministic_template";
 }
 
 export interface OutreachResult {
@@ -56,6 +65,8 @@ export interface OutreachResult {
   body: string;
   toneUsed: string;
   keyPoints: string[];
+  generationMode?: "ai" | "deterministic_template";
+  aiUnavailableReason?: LLMFailureKind;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -711,42 +722,66 @@ Return your response as JSON with this exact structure:
   "keyPoints": ["Key selling point 1", "Key selling point 2", "Key selling point 3"]
 }`;
 
-  const response = await invokeLLM({
-    messages: [
-      { role: "system", content: `You are an expert B2B sales email copywriter specialising in industrial compressed air and air treatment equipment for project-driven industries in Australia. You are writing about ${profile.systemProductDesc}. You write emails that get responses because they demonstrate genuine understanding of the recipient's specific role, their company, and how Atlas Copco's products solve their particular pain points. You use Australian English spelling. You weave specific product specs into the email naturally, making them feel like solutions to the recipient's problems rather than a product brochure.` },
-      { role: "user", content: prompt },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "outreach_email",
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            subject: { type: "string", description: "Email subject line" },
-            body: { type: "string", description: "Full email body with \\n for paragraph breaks" },
-            keyPoints: {
-              type: "array",
-              items: { type: "string" },
-              description: "3 key selling points used in the email",
+  try {
+    const response = await invokeLLM({
+      feature: "project_outreach_email",
+      maxTokens: 1_600,
+      timeoutMs: 30_000,
+      messages: [
+        { role: "system", content: `You are an expert B2B sales email copywriter specialising in industrial compressed air and air treatment equipment for project-driven industries in Australia. You are writing about ${profile.systemProductDesc}. You write emails that get responses because they demonstrate genuine understanding of the recipient's specific role, their company, and how Atlas Copco's products solve their particular pain points. You use Australian English spelling. You weave specific product specs into the email naturally, making them feel like solutions to the recipient's problems rather than a product brochure.` },
+        { role: "user", content: prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "outreach_email",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              subject: { type: "string", description: "Email subject line" },
+              body: { type: "string", description: "Full email body with \\n for paragraph breaks" },
+              keyPoints: {
+                type: "array",
+                items: { type: "string" },
+                description: "3 key selling points used in the email",
+              },
             },
+            required: ["subject", "body", "keyPoints"],
+            additionalProperties: false,
           },
-          required: ["subject", "body", "keyPoints"],
-          additionalProperties: false,
         },
       },
-    },
-  });
+    });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content || typeof content !== "string") {
-    throw new Error("LLM returned empty response for outreach email");
+    const content = response.choices[0]?.message?.content;
+    if (!content || typeof content !== "string") {
+      throw new LLMInvokeError({ kind: "malformed_response" });
+    }
+
+    const parsed = parseLLMJson<OutreachResult>(content);
+    if (
+      typeof parsed.subject !== "string" ||
+      parsed.subject.trim().length === 0 ||
+      typeof parsed.body !== "string" ||
+      parsed.body.trim().length === 0 ||
+      !Array.isArray(parsed.keyPoints) ||
+      !parsed.keyPoints.every(point => typeof point === "string")
+    ) {
+      throw new LLMInvokeError({ kind: "malformed_response" });
+    }
+    parsed.toneUsed = input.tone;
+    parsed.generationMode = "ai";
+    return parsed;
+  } catch (error) {
+    if (
+      input.fallbackPolicy === "deterministic_template" &&
+      isDeterministicFallbackEligible(error)
+    ) {
+      return buildDeterministicOutreachEmail(input, error.kind);
+    }
+    throw error;
   }
-
-  const parsed = JSON.parse(content) as OutreachResult;
-  parsed.toneUsed = input.tone;
-  return parsed;
 }
 
 /**
