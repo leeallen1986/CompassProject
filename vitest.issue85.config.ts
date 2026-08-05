@@ -19,6 +19,7 @@ export default defineConfig({
       "server/contactSelector.issue85.test.ts",
       "server/contactSlateTrustPolicy.test.ts",
       "server/contactSlateTrustPolicy.issue85.test.ts",
+      "server/contactValidationState.test.ts",
       "server/projectOutreachGuard.test.ts",
       "server/outreachTrustBoundary.static.test.ts",
       "server/outreachContactProjection.test.ts",
