@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "client/src/components/OutreachEmailModal.tsx"
+      - "client/src/components/AIProjectSearch.tsx"
       - "client/src/components/ProjectCard.tsx"
       - "client/src/components/outreachClientTrustBoundary.static.test.ts"
       - "client/src/lib/homeOutreachIdentity.ts"
@@ -19,6 +20,8 @@ on:
       - "server/contactSelector.issue85.test.ts"
       - "server/contactSlateTrustPolicy.ts"
       - "server/contactSlateTrustPolicy.issue85.test.ts"
+      - "server/contactValidationState.ts"
+      - "server/contactValidationState.test.ts"
       - "server/db.ts"
       - "server/outreachContactProjection.ts"
       - "server/outreachContactProjection.test.ts"
