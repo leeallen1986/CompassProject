@@ -3,7 +3,7 @@
  *
  * Static boundary checks for Issue #85.
  * These tests verify at the source-code level that:
- * 1. All five outreach procedures call resolveOutreachContext.
+ * 1. All five outreach procedures execute through executeGuardedProjectOutreach.
  * 2. None of the five procedures accept client-supplied contactName/contactEmail/projectName.
  * 3. The guard file never uses contacts.project text field or fuzzy matching.
  * 4. The guard file never includes the recipient email in error messages.
@@ -95,8 +95,8 @@ describe("Issue #85 — Static trust boundary checks", () => {
       "/** Save an outreach email",
     );
 
-    it("calls resolveOutreachContext", () => {
-      expect(section).toContain("resolveOutreachContext");
+    it("uses the guarded outreach executor", () => {
+      expect(section).toContain("executeGuardedProjectOutreach");
     });
 
     it("accepts contactId (not contactName)", () => {
@@ -128,8 +128,8 @@ describe("Issue #85 — Static trust boundary checks", () => {
       "/** Get outreach history",
     );
 
-    it("calls resolveOutreachContext", () => {
-      expect(section).toContain("resolveOutreachContext");
+    it("uses the guarded outreach executor", () => {
+      expect(section).toContain("executeGuardedProjectOutreach");
     });
 
     it("accepts contactId as required (not optional)", () => {
@@ -154,8 +154,8 @@ describe("Issue #85 — Static trust boundary checks", () => {
       "/** Prepare a mailto URI",
     );
 
-    it("calls resolveOutreachContext", () => {
-      expect(section).toContain("resolveOutreachContext");
+    it("uses the guarded outreach executor", () => {
+      expect(section).toContain("executeGuardedProjectOutreach");
     });
 
     it("accepts contactId as required (not optional)", () => {
@@ -185,8 +185,8 @@ describe("Issue #85 — Static trust boundary checks", () => {
       "/** Get outreach leaderboard",
     );
 
-    it("calls resolveOutreachContext", () => {
-      expect(section).toContain("resolveOutreachContext");
+    it("uses the guarded outreach executor", () => {
+      expect(section).toContain("executeGuardedProjectOutreach");
     });
 
     it("records the outreach event via saveOutreachEmail before returning", () => {
@@ -215,8 +215,8 @@ describe("Issue #85 — Static trust boundary checks", () => {
       "/** Get template library stats",
     );
 
-    it("calls resolveOutreachContext", () => {
-      expect(section).toContain("resolveOutreachContext");
+    it("uses the guarded outreach executor", () => {
+      expect(section).toContain("executeGuardedProjectOutreach");
     });
 
     it("accepts contactId (not contactName)", () => {
