@@ -108,30 +108,22 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
   });
 
   useEffect(() => {
-    if (isOpen && contact.email) {
+    if (isOpen && contact.id && project.id) {
       generateMutation.mutate({
-        contactName: contact.name,
-        contactTitle: contact.title,
-        contactCompany: contact.company,
-        contactEmail: contact.email,
-        contactRoleBucket: contact.roleBucket,
-        projectName: project.name,
-        projectLocation: project.location,
-        projectValue: project.value,
-        projectSector: project.sector,
-        projectStage: project.stage,
-        projectOverview: project.overview,
-        equipmentSignals: project.equipmentSignals,
-        opportunityRoute: project.opportunityRoute,
-        matchedBusinessLines: project.matchedBusinessLines,
+        contactId: contact.id,
+        projectId: project.id,
         tone,
       });
     }
   }, [isOpen, tone]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const saveMutation = trpc.outreach.save.useMutation({
+  const prepareOpenInEmailMutation = trpc.outreach.prepareOpenInEmail.useMutation({
+    onSuccess: (data) => {
+      window.open(data.mailtoUri, "_self");
+      toast.success("Opening in your email client — outreach saved to history");
+    },
     onError: (err) => {
-      console.error("Failed to save outreach email:", err.message);
+      toast.error("Failed to open email: " + err.message);
     },
   });
 
@@ -189,34 +181,31 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
   });
 
   const handleDownloadEml = () => {
+    if (!contact.id || !project.id) {
+      toast.error("Contact or project ID is missing — cannot download email");
+      return;
+    }
     downloadEmlMutation.mutate({
-      contactName: contact.name,
-      contactEmail: contact.email,
-      subject,
-      body,
       contactId: contact.id,
       projectId: project.id,
-      projectName: project.name,
+      subject,
+      body,
       tone,
     });
   };
 
   const handleOpenInEmail = () => {
-    saveMutation.mutate({
+    if (!contact.id || !project.id) {
+      toast.error("Contact or project ID is missing — cannot open email");
+      return;
+    }
+    prepareOpenInEmailMutation.mutate({
       contactId: contact.id,
-      contactName: contact.name,
-      contactEmail: contact.email || undefined,
       projectId: project.id,
-      projectName: project.name,
       subject,
       body,
       tone,
-      status: "opened_in_email",
     });
-    const mailtoSubject = encodeURIComponent(subject);
-    const mailtoBody = encodeURIComponent(body);
-    window.open(`mailto:${contact.email}?subject=${mailtoSubject}&body=${mailtoBody}`, "_self");
-    toast.success("Opening in your email client — outreach saved to history");
   };
 
   const handleCopy = async () => {
@@ -231,21 +220,13 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
   };
 
   const handleRegenerate = () => {
+    if (!contact.id || !project.id) {
+      toast.error("Contact or project ID is missing — cannot regenerate email");
+      return;
+    }
     generateMutation.mutate({
-      contactName: contact.name,
-      contactTitle: contact.title,
-      contactCompany: contact.company,
-      contactEmail: contact.email,
-      contactRoleBucket: contact.roleBucket,
-      projectName: project.name,
-      projectLocation: project.location,
-      projectValue: project.value,
-      projectSector: project.sector,
-      projectStage: project.stage,
-      projectOverview: project.overview,
-      equipmentSignals: project.equipmentSignals,
-      opportunityRoute: project.opportunityRoute,
-      matchedBusinessLines: project.matchedBusinessLines,
+      contactId: contact.id,
+      projectId: project.id,
       tone,
     });
   };
@@ -270,21 +251,14 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
   };
 
   const handleUseTemplate = (templateId: number) => {
+    if (!contact.id || !project.id) {
+      toast.error("Contact or project ID is missing — cannot personalise template");
+      return;
+    }
     personaliseMutation.mutate({
       templateId,
-      contactName: contact.name,
-      contactTitle: contact.title,
-      contactCompany: contact.company,
-      contactEmail: contact.email,
-      contactRoleBucket: contact.roleBucket,
-      projectName: project.name,
-      projectLocation: project.location,
-      projectValue: project.value,
-      projectSector: project.sector,
-      projectStage: project.stage,
-      projectOverview: project.overview,
-      equipmentSignals: project.equipmentSignals,
-      matchedBusinessLines: project.matchedBusinessLines,
+      contactId: contact.id,
+      projectId: project.id,
     });
   };
 
@@ -579,9 +553,9 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold text-navy text-sm font-bold hover:bg-gold-light transition-colors shadow-sm disabled:opacity-50">
                 <Download className="w-4 h-4" /> {downloadEmlMutation.isPending ? "Preparing..." : "Download Email"}
               </button>
-              <button onClick={handleOpenInEmail} disabled={isGenerating || !body}
+              <button onClick={handleOpenInEmail} disabled={isGenerating || !body || prepareOpenInEmailMutation.isPending}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-navy border border-border hover:bg-navy/5 transition-colors disabled:opacity-50">
-                <Mail className="w-4 h-4" /> mailto:
+                <Mail className="w-4 h-4" /> {prepareOpenInEmailMutation.isPending ? "Opening..." : "mailto:"}
               </button>
             </div>
           </div>

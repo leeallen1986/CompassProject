@@ -43,11 +43,15 @@ export interface ContactInput {
   contactTrustTier?: "send_ready" | "named_unverified" | "llm_inferred" | null;
   verificationScore?: number | null;
   verificationStatus?: string | null;
+  /** True when email has been verified by an email verification service */
+  emailVerified?: boolean | null;
   enrichmentSource?: string | null;
   linkedinHeadline?: string | null;
   linkedinLocation?: string | null;
   /** Set when contact has been quarantined — excluded from all selection paths */
   rejectionReason?: string | null;
+  /** Set when the contact exists in the DB but has no CRM project link — excluded from outreach */
+  crmOrphan?: boolean | null;
 }
 
 export interface SelectedContact {
@@ -155,7 +159,24 @@ export function selectProjectContact(
   }
 
   // Step 2: Segment by trust tier
-  const sendReady = projectContacts.filter(c => c.contactTrustTier === "send_ready");
+  // Issue #85: use isEffectivelySendReady policy for send_ready selection
+  // When emailVerified/verificationStatus are explicitly set (not undefined), enforce the full policy.
+  // When they are undefined (legacy contacts without verification data), fall back to trust-tier only.
+  // crmOrphan is always enforced when set.
+  const sendReady = projectContacts.filter(c => {
+    if (c.crmOrphan) return false;
+    if (c.contactTrustTier !== "send_ready") return false;
+    if (!c.email) return false;
+    if (c.rejectionReason) return false;
+    // If verification fields are explicitly set, enforce the full isEffectivelySendReady policy
+    if (c.emailVerified !== undefined && c.emailVerified !== null) {
+      if (!c.emailVerified) return false;
+    }
+    if (c.verificationStatus !== undefined && c.verificationStatus !== null) {
+      if (c.verificationStatus !== "verified") return false;
+    }
+    return true;
+  });
   const namedUnverified = projectContacts.filter(c => c.contactTrustTier === "named_unverified");
   // llm_inferred contacts are NEVER shown as primary
 
