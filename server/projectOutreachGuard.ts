@@ -28,6 +28,7 @@ import { contacts, projects, contactProjects } from "../drizzle/schema";
 import {
   evaluateSlateEligibility,
   isEffectivelySendReady,
+  isExplicitlyNotCrmOrphan,
 } from "./contactSlateTrustPolicy";
 
 export interface OutreachContext {
@@ -67,13 +68,13 @@ export async function resolveOutreachContext(
   businessLineNames?: Record<number, string>,
 ): Promise<OutreachContext> {
   // 0. Input sanity
-  if (!Number.isInteger(contactId) || contactId <= 0) {
+  if (!Number.isSafeInteger(contactId) || contactId <= 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "A valid persisted contact is required for outreach.",
     });
   }
-  if (!Number.isInteger(projectId) || projectId <= 0) {
+  if (!Number.isSafeInteger(projectId) || projectId <= 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "A valid persisted project is required for outreach.",
@@ -136,7 +137,7 @@ export async function resolveOutreachContext(
   }
 
   // 4. crmOrphan check (fail-closed, even with a project link)
-  if (contact.crmOrphan) {
+  if (!isExplicitlyNotCrmOrphan(contact.crmOrphan)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "This contact is not eligible for outreach.",
