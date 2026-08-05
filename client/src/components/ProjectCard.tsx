@@ -5,7 +5,7 @@
  * Expanded view: contacts first → collateral → overview → stage/contractor → [More detail ▼]
  * Contractor sanitizer applied via shared/utils.ts
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ChevronDown, ExternalLink, MapPin, DollarSign, Building2, Sparkles,
   ThumbsUp, ThumbsDown, Target, Check, Mail, User, Search, Loader2,
@@ -21,6 +21,10 @@ import { toast } from "sonner";
 import { sanitizeContractorName, deriveWhyNow } from "@shared/utils";
 import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
 import type { ProjectFullPotentialContext } from "@/lib/fullPotentialProjectContext";
+import {
+  isPositivePersistedId,
+  isProjectOutreachEligible,
+} from "@/lib/projectOutreachEligibility";
 
 // DB project shape from the API
 export interface ProjectData {
@@ -149,6 +153,12 @@ export interface ContactData {
   roleRelevance?: "high" | "medium" | "low" | null;
   /** Three-tier trust model: send_ready | named_unverified | llm_inferred */
   contactTrustTier?: "send_ready" | "named_unverified" | "llm_inferred" | null;
+  /** Exact persisted project links, projected by the server for display context. */
+  linkedProjectIds?: number[] | null;
+  /** Exact project links for which the server's full send-ready policy passes. */
+  outreachEligibleProjectIds?: number[] | null;
+  rejectionReason?: string | null;
+  crmOrphan?: boolean | null;
 }
 
 // ── Keyword matching helpers ──
@@ -167,6 +177,7 @@ function hasKeywordOverlap(a: string, b: string): boolean {
 }
 
 function findProjectContacts(
+  projectId: number,
   projectName: string,
   projectOwner: string,
   allContacts: ContactData[],
@@ -178,6 +189,16 @@ function findProjectContacts(
   const ownerParts = ownerLower.split(/[/&,]+/).map(s => s.trim()).filter(Boolean);
 
   const projectContacts = allContacts.filter(c => {
+    // New report payloads carry exact DB links. Once present, never broaden
+    // display association through fuzzy names or companies.
+    if (Array.isArray(c.linkedProjectIds)) {
+      return isPositivePersistedId(projectId) && c.linkedProjectIds.some(
+        linkedProjectId => isPositivePersistedId(linkedProjectId) && linkedProjectId === projectId,
+      );
+    }
+
+    // Legacy payloads may omit link metadata. This path remains display-only;
+    // the outreach helper still fails closed without the server projection.
     const cProject = c.project.toLowerCase();
     const cCompany = c.company.toLowerCase();
     if (cProject.includes(projectNameLower) || projectNameLower.includes(cProject)) return true;
@@ -281,19 +302,6 @@ function LifecycleActions({ project }: { project: ProjectData }) {
   );
 }
 
-function inferRoleBucketFromTitle(title: string): string {
-  const t = title.toLowerCase();
-  if (t.includes("procurement") || t.includes("purchasing") || t.includes("supply chain")) return "procurement";
-  if (t.includes("engineer") || t.includes("technical") || t.includes("design")) return "engineering";
-  if (t.includes("operations") || t.includes("site manager") || t.includes("mine manager")) return "operations";
-  if (t.includes("project manager") || t.includes("project director") || t.includes("construction manager")) return "project_management";
-  if (t.includes("maintenance") || t.includes("reliability")) return "maintenance";
-  if (t.includes("fleet") || t.includes("equipment manager")) return "fleet";
-  if (t.includes("general manager") || t.includes("managing director") || t.includes("ceo") || t.includes("coo") || t.includes("director")) return "executive";
-  if (t.includes("construction") || t.includes("civil") || t.includes("building")) return "construction";
-  return "other";
-}
-
 function ClaimButton({ projectId, reportId }: { projectId: number; reportId: number }) {
   const utils = trpc.useUtils();
   const claimMutation = trpc.pipeline.claim.useMutation({
@@ -320,11 +328,9 @@ function ClaimButton({ projectId, reportId }: { projectId: number; reportId: num
 }
 
 // ── On-demand contact enrichment ──
-function EnrichProjectButton({ projectId, projectName, onOutreach, project }: {
+function EnrichProjectButton({ projectId, projectName }: {
   projectId: number;
   projectName: string;
-  onOutreach?: (contact: { name: string; title: string; company: string; email: string; roleBucket: string }) => void;
-  project?: ProjectData;
 }) {
   const utils = trpc.useUtils();
 
@@ -437,24 +443,6 @@ function EnrichProjectButton({ projectId, projectName, onOutreach, project }: {
               <span className="font-medium text-navy">{c.name}</span>
               {c.headline && <span className="text-muted-foreground truncate">— {c.headline}</span>}
               <div className="ml-auto flex items-center gap-2 shrink-0">
-                {c.email && onOutreach && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOutreach({
-                        name: c.name,
-                        title: c.headline || "Unknown",
-                        company: project?.owner || "Unknown",
-                        email: c.email!,
-                        roleBucket: inferRoleBucketFromTitle(c.headline || ""),
-                      });
-                    }}
-                    className="text-[10px] font-semibold bg-gold/15 text-gold-dark px-1.5 py-0.5 rounded hover:bg-gold/25 transition-colors"
-                  >
-                    <Mail className="w-3 h-3 inline mr-0.5" />
-                    Outreach
-                  </button>
-                )}
                 {c.linkedinUrl && (
                   <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
                     <ExternalLink className="w-3 h-3" />
@@ -495,9 +483,9 @@ function VerificationScoreBadge({ contact }: { contact: ContactData }) {
   );
 }
 
-function VerificationStatusBadge({ contact }: { contact: ContactData }) {
-  // Trust tier takes precedence over legacy verificationStatus
-  if (contact.contactTrustTier === "send_ready") {
+function VerificationStatusBadge({ contact, projectId }: { contact: ContactData; projectId: number }) {
+  // The server's exact project projection is the only actionable send-ready signal.
+  if (isProjectOutreachEligible(contact, projectId)) {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700" title="Verified email + project linked — safe for outreach">
         <ShieldCheck className="w-3 h-3" /> Send-Ready
@@ -511,18 +499,19 @@ function VerificationStatusBadge({ contact }: { contact: ContactData }) {
       </span>
     );
   }
-  if (contact.contactTrustTier === "named_unverified") {
+  if (contact.contactTrustTier === "named_unverified" || contact.contactTrustTier === "send_ready") {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700" title="Named contact — validate email before outreach">
         Validate First
       </span>
     );
   }
-  // Legacy fallback
+  // A legacy "verified" label is not equivalent to the server's effective
+  // send-ready projection, so it remains display-only.
   if (contact.verificationStatus === "verified") {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700" title="Verified via LinkedIn API">
-        <ShieldCheck className="w-3 h-3" /> Verified
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700" title="Server outreach eligibility is not confirmed">
+        Validate First
       </span>
     );
   }
@@ -536,11 +525,13 @@ function VerificationStatusBadge({ contact }: { contact: ContactData }) {
 // ── Single contact card (expanded view) ──
 function ProjectContactCard({
   contact,
+  projectId,
   isPrimary,
   buyerRoles,
   onOutreach,
 }: {
   contact: ContactData;
+  projectId: number;
   isPrimary: boolean;
   buyerRoles?: string[] | null;
   onOutreach: (contact: ContactData) => void;
@@ -588,6 +579,7 @@ function ProjectContactCard({
   const linkedinUrl = contact.linkedin || contact.linkedinProfileUrl;
   const isAiSuggested = contact.verificationStatus === "ai_suggested" || contact.enrichmentSource === "llm";
   const isVerified = contact.verificationStatus === "verified";
+  const canOutreach = isProjectOutreachEligible(contact, projectId);
 
   return (
     <div className={`rounded-lg p-3 border transition-all ${
@@ -603,7 +595,7 @@ function ProjectContactCard({
             {isPrimary && (
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gold/20 text-gold-dark uppercase">Top Match</span>
             )}
-            <VerificationStatusBadge contact={contact} />
+            <VerificationStatusBadge contact={contact} projectId={projectId} />
             {isPreferredRole && (
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-teal/15 text-teal uppercase" title="Matches your preferred buyer roles">
                 Preferred Role
@@ -638,26 +630,14 @@ function ProjectContactCard({
               </a>
             ) : null}
 
-            {contact.email && (
-              <div className="relative group">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onOutreach(contact); }}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
-                    contact.emailVerified || isVerified
-                      ? "bg-gold/15 text-gold-dark hover:bg-gold/25"
-                      : "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                  }`}
-                >
-                  <Mail className="w-3 h-3" />
-                  {contact.emailVerified || isVerified ? "Outreach" : "Outreach*"}
-                </button>
-                {!contact.emailVerified && !isVerified && (
-                  <div className="absolute bottom-full left-0 mb-1 hidden group-hover:block z-10 bg-slate-800 text-white text-[9px] px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                    <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-400" />
-                    Email is pattern-guessed — verify before sending
-                  </div>
-                )}
-              </div>
+            {canOutreach && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onOutreach(contact); }}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-colors bg-gold/15 text-gold-dark hover:bg-gold/25"
+              >
+                <Mail className="w-3 h-3" />
+                Outreach
+              </button>
             )}
 
             {isAiSuggested && !isVerified && (
@@ -739,15 +719,15 @@ export default function ProjectCard({
   const [open, setOpen] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
   const [showOutreach, setShowOutreach] = useState(false);
-  const [outreachContact, setOutreachContact] = useState<ContactData | null>(null);
+  const [outreachContactId, setOutreachContactId] = useState<number | null>(null);
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [showMoreDetail, setShowMoreDetail] = useState(false);
 
   // Find all matching contacts for this project (up to 10) — local list for display
   const projectContacts = useMemo(() => {
     if (!allContacts || allContacts.length === 0) return [];
-    return findProjectContacts(project.name, project.owner, allContacts, buyerRoles, 10);
-  }, [project.name, project.owner, allContacts, buyerRoles]);
+    return findProjectContacts(project.id, project.name, project.owner, allContacts, buyerRoles, 10);
+  }, [project.id, project.name, project.owner, allContacts, buyerRoles]);
 
   // ── SHARED CONTACT SELECTOR (single source of truth via tRPC) ──
   // Only fetch when card is expanded to avoid N+1 queries
@@ -756,25 +736,31 @@ export default function ProjectCard({
     { enabled: open, staleTime: 60_000 }
   );
 
-  // Trust tier segmentation
-  const sendReadyContacts = projectContacts.filter(c => c.contactTrustTier === "send_ready");
+  // Actionability comes only from the server's exact-link outreach projection.
+  const sendReadyContacts = useMemo(
+    () => projectContacts.filter(contact => isProjectOutreachEligible(contact, project.id)),
+    [projectContacts, project.id],
+  );
   const llmContacts = projectContacts.filter(c => c.contactTrustTier === "llm_inferred");
-  // Primary contact: use shared selector result when available, otherwise fall back to local scoring
+  // Prefer the shared selector. Before it loads, only the server-projected
+  // eligible rows can be an actionable fallback. Named contacts remain
+  // display-only so the existing "Validate First" workflow is preserved.
   const primaryContact = useMemo(() => {
-    // If shared selector returned a result, use it to find the matching local contact
     if (contactSelectionQuery.data?.selectedContact) {
       const selectedId = contactSelectionQuery.data.selectedContact.id;
       const match = projectContacts.find(c => c.id === selectedId);
       if (match) return match;
     }
-    // Fallback: local scoring (same order as before)
     if (sendReadyContacts.length > 0) return sendReadyContacts[0];
-    return projectContacts.find(c => c.contactTrustTier === "named_unverified") ?? projectContacts[0] ?? null;
+    return projectContacts.find(c => c.contactTrustTier === "named_unverified")
+      ?? projectContacts.find(c => c.contactTrustTier !== "llm_inferred")
+      ?? null;
   }, [contactSelectionQuery.data, projectContacts, sendReadyContacts]);
-  // Show send_ready and named_unverified contacts in main list; LLM contacts in separate section
-  const outreachContacts = projectContacts.filter(c => c.contactTrustTier !== "llm_inferred");
-  const visibleContacts = showAllContacts ? outreachContacts : outreachContacts.slice(0, 3);
-  const hasMoreContacts = outreachContacts.length > 3;
+  // Non-inferred contacts stay visible even when they need validation; LLM
+  // suggestions remain in their separately labelled display-only section.
+  const nonInferredContacts = projectContacts.filter(c => c.contactTrustTier !== "llm_inferred");
+  const visibleContacts = showAllContacts ? nonInferredContacts : nonInferredContacts.slice(0, 3);
+  const hasMoreContacts = nonInferredContacts.length > 3;
 
   const [feedback, setFeedback] = useState<FeedbackState>({
     vote: existingFeedback?.vote ?? null,
@@ -838,11 +824,24 @@ export default function ProjectCard({
   };
 
   const handleOutreach = (contact: ContactData) => {
-    setOutreachContact(contact);
+    if (!isProjectOutreachEligible(contact, project.id)) return;
+    setOutreachContactId(contact.id);
     setShowOutreach(true);
   };
 
-  const activeOutreachContact = outreachContact || primaryContact;
+  // Re-resolve from current report data so a verification/rejection change
+  // revokes an already-open launch path instead of retaining a stale object.
+  const currentOutreachContact = projectContacts.find(contact => contact.id === outreachContactId);
+  const activeOutreachContact = isProjectOutreachEligible(currentOutreachContact, project.id)
+    ? currentOutreachContact
+    : null;
+
+  useEffect(() => {
+    if (showOutreach && outreachContactId !== null && !activeOutreachContact) {
+      setShowOutreach(false);
+      setOutreachContactId(null);
+    }
+  }, [showOutreach, outreachContactId, activeOutreachContact]);
 
   return (
     <div
@@ -987,9 +986,7 @@ export default function ProjectCard({
               <CircleDot className="w-3.5 h-3.5 text-teal shrink-0" />
               <span className="font-medium text-navy">{primaryContact.name}</span>
               <span className="text-muted-foreground">— {primaryContact.roleBucket}</span>
-              {primaryContact.email && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-teal/10 text-teal">Email</span>
-              )}
+              <VerificationStatusBadge contact={primaryContact} projectId={project.id} />
             </div>
           ) : (
             <button
@@ -1004,7 +1001,7 @@ export default function ProjectCard({
 
         {/* Row 6: Action buttons */}
         <div className="flex items-center gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
-          {primaryContact?.email && (
+          {primaryContact && isProjectOutreachEligible(primaryContact, project.id) && (
             <button
               onClick={(e) => { e.stopPropagation(); handleOutreach(primaryContact); }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-gold/20 text-gold-dark hover:bg-gold/35 border border-gold/30 transition-colors"
@@ -1078,10 +1075,10 @@ export default function ProjectCard({
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" /> Project Contacts
                     <span className="ml-1 px-1.5 py-0.5 rounded-full bg-navy/10 text-navy text-[10px] font-bold">
-                      {outreachContacts.length}
+                      {nonInferredContacts.length}
                     </span>
                     {sendReadyContacts.length > 0 && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold" title="Contacts with verified email">
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold" title="Server-verified contacts exactly linked to this project">
                         {sendReadyContacts.length} send-ready
                       </span>
                     )}
@@ -1091,17 +1088,18 @@ export default function ProjectCard({
                       onClick={(e) => { e.stopPropagation(); setShowAllContacts(!showAllContacts); }}
                       className="text-[10px] font-semibold text-teal hover:text-teal-light transition-colors"
                     >
-                      {showAllContacts ? "Show less" : `Show all ${outreachContacts.length}`}
+                      {showAllContacts ? "Show less" : `Show all ${nonInferredContacts.length}`}
                     </button>
                   )}
                 </div>
-                {outreachContacts.length > 0 ? (
+                {nonInferredContacts.length > 0 ? (
                   <div className="space-y-2">
-                    {visibleContacts.map((contact, i) => (
+                    {visibleContacts.map(contact => (
                       <ProjectContactCard
                         key={contact.id}
                         contact={contact}
-                        isPrimary={i === 0 && contact.contactTrustTier === "send_ready"}
+                        projectId={project.id}
+                        isPrimary={contact.id === primaryContact?.id && isProjectOutreachEligible(contact, project.id)}
                         buyerRoles={buyerRoles}
                         onOutreach={handleOutreach}
                       />
@@ -1149,21 +1147,6 @@ export default function ProjectCard({
                   <EnrichProjectButton
                     projectId={project.id}
                     projectName={project.name}
-                    project={project}
-                    onOutreach={(contact) => {
-                      setOutreachContact({
-                        id: 0,
-                        name: contact.name,
-                        title: contact.title,
-                        company: contact.company,
-                        project: project.name,
-                        priority: "warm",
-                        roleBucket: contact.roleBucket,
-                        email: contact.email,
-                        linkedin: null,
-                      });
-                      setShowOutreach(true);
-                    }}
                   />
                 </div>
               </div>
@@ -1426,13 +1409,12 @@ export default function ProjectCard({
       {activeOutreachContact && showOutreach && (
         <OutreachEmailModal
           isOpen={showOutreach}
-          onClose={() => { setShowOutreach(false); setOutreachContact(null); }}
+          onClose={() => { setShowOutreach(false); setOutreachContactId(null); }}
           contact={{
             id: activeOutreachContact.id,
             name: activeOutreachContact.name,
             title: activeOutreachContact.title,
             company: activeOutreachContact.company,
-            email: activeOutreachContact.email || "",
             roleBucket: activeOutreachContact.roleBucket,
           }}
           project={{
