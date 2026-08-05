@@ -104,6 +104,7 @@ export const contactValidationRouter = router({
               emailVerified: contacts.emailVerified,
               verificationStatus: contacts.verificationStatus,
               contactTrustTier: contacts.contactTrustTier,
+              enrichmentSource: contacts.enrichmentSource,
               verifiedByUserId: contacts.verifiedByUserId,
               verifiedAt: contacts.verifiedAt,
               rejectionReason: contacts.rejectionReason,
