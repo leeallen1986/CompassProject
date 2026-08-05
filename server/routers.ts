@@ -9,6 +9,7 @@ import {
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, campaignProcedure, internalSalesProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   getLatestReport, getAllReports, getReportById, createReport,
@@ -31,7 +32,7 @@ import {
   findDuplicateClusters, dismissDuplicateCluster, mergeProjectIntoCanonical, runDuplicateDetectionSweep,
   classifyProject as classifyProjectType, classifyAllProjects as classifyAllProjectTypes, getSuppressionStats,
   getEmailRecipients,
-  getProjectById, getContactsForProject, getLinkedContactsForProject, getPipelineClaimsForProject,
+  getProjectById, getLinkedContactsForProject, getProjectBuyerRouteInputs, getPipelineClaimsForProject,
   createFpPipelineClaim, getPipelineClaimsByAccount, advanceClaimStage,
 } from "./db";
 import {
@@ -163,6 +164,8 @@ import {
 } from "./templateService";
 import { storagePut } from "./storage";
 import { selectProjectContact, type ContactInput, type ContactSelectionResult } from "./contactSelector";
+import { buildProjectBuyerRoute } from "./projectBuyerRoute";
+import { recordOutreachDraftTelemetry } from "./outreachDraftTelemetry";
 import { executeGuardedProjectOutreach } from "./projectOutreachExecution";
 import { isPumpLaneRep, computePumpActionMode } from "./laneScoring";
 import { buildEmlFile, fetchFileAsBase64, detectBrand } from "./emlGenerator";
@@ -724,11 +727,13 @@ export const appRouter = router({
   projectLifecycle: router({
     /** Deep-link: fetch a single project by ID with all related data (contacts, claims, business lines) */
     byId: protectedProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({
+        id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      }).strict())
       .query(async ({ ctx, input }) => {
         const [project, projectContacts, claims, businessLines] = await Promise.all([
           getProjectById(input.id),
-          getContactsForProject(input.id),
+          getLinkedContactsForProject(input.id),
           getPipelineClaimsForProject(input.id),
           getActiveBusinessLines(),
         ]);
@@ -783,9 +788,33 @@ export const appRouter = router({
         return { project, contacts: projectContacts, claims, userClaim, businessLineNames, scopeFlags, pumpActionMode, matchedAccountPrior };
       }),
 
+    /**
+     * Fail-closed Route to buyer dossier.
+     *
+     * Uses exact persisted project/contact/contractor IDs only. The projection
+     * labels unbound project sources and unsupported employment/package claims
+     * instead of promoting them to verified evidence.
+     */
+    buyerRoute: protectedProcedure
+      .input(z.object({
+        projectId: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      }).strict())
+      .query(async ({ input }) => {
+        const inputs = await getProjectBuyerRouteInputs(input.projectId);
+        if (!inputs) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Project not found.",
+          });
+        }
+        return buildProjectBuyerRoute(inputs);
+      }),
+
     /** Get the primary contact selection for a project using the shared selector */
     contactSelection: protectedProcedure
-      .input(z.object({ projectId: z.number() }))
+      .input(z.object({
+        projectId: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      }).strict())
       .query(async ({ ctx, input }) => {
         const [project, projectContacts] = await Promise.all([
           getProjectById(input.projectId),
@@ -2702,16 +2731,15 @@ export const appRouter = router({
             senderName: ctx.user.name || "Team",
             senderBusinessLines: userBLs.length > 0 ? userBLs : undefined,
           });
-          await trackActivity(ctx.user.id, "outreach_drafted", {
-            metadata: {
-              contactName: ctx85.contactName,
-              projectName: ctx85.projectName,
-              tone: input.tone,
-              generationMode: result.generationMode ?? "ai",
-              aiUnavailableReason: result.aiUnavailableReason ?? null,
-              claimId: input.claimId ?? null,
-              sourceAccountId: input.sourceAccountId ?? null,
-            },
+          await recordOutreachDraftTelemetry({
+            userId: ctx.user.id,
+            projectId: ctx85.projectId,
+            contactId: ctx85.contactId,
+            claimId: input.claimId,
+            sourceAccountId: input.sourceAccountId,
+            tone: input.tone,
+            generationMode: result.generationMode ?? "ai",
+            aiUnavailableReason: result.aiUnavailableReason ?? null,
           });
           return result;
         });
@@ -2723,8 +2751,8 @@ export const appRouter = router({
         projectId: z.number().int().positive(),
         claimId: z.number().int().positive().optional(),
         sourceAccountId: z.number().int().positive().optional(),
-        subject: z.string(),
-        body: z.string(),
+        subject: z.string().trim().min(1).max(512),
+        body: z.string().trim().min(1).max(100_000),
         tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
         status: z.enum(["drafted", "opened_in_email", "sent"]),
       }).strict())
@@ -2770,8 +2798,8 @@ export const appRouter = router({
       .input(z.object({
         contactId: z.number().int().positive(),
         projectId: z.number().int().positive(),
-        subject: z.string(),
-        body: z.string(),
+        subject: z.string().trim().min(1).max(512),
+        body: z.string().trim().min(1).max(100_000),
         claimId: z.number().int().positive().optional(),
         sourceAccountId: z.number().int().positive().optional(),
         tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
@@ -2826,8 +2854,8 @@ export const appRouter = router({
       .input(z.object({
         contactId: z.number().int().positive(),
         projectId: z.number().int().positive(),
-        subject: z.string(),
-        body: z.string(),
+        subject: z.string().trim().min(1).max(512),
+        body: z.string().trim().min(1).max(100_000),
         tone: z.enum(["professional", "consultative", "direct", "contractor_focused", "owner_epc_focused", "procurement_led", "engineering_led", "first_touch"]),
         claimId: z.number().int().positive().optional(),
         sourceAccountId: z.number().int().positive().optional(),

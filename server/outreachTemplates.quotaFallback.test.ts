@@ -86,7 +86,7 @@ describe("personaliseTemplate quota fallback", () => {
       generationMode: "deterministic_template",
       aiUnavailableReason: "quota_exhausted",
     });
-    expect(result.subject).toContain("Build Co");
+    expect(result.subject).toBe("Northern Water Upgrade — project contact check");
     expect(result.body).not.toContain("guaranteed savings");
     expect(result.body).not.toContain("unverified performance claims");
     expect(mocks.invokeLLM).toHaveBeenCalledTimes(1);
@@ -95,6 +95,18 @@ describe("personaliseTemplate quota fallback", () => {
       maxTokens: 1_600,
       timeoutMs: 30_000,
     });
+    const [systemMessage, userMessage] = mocks.invokeLLM.mock.calls[0][0].messages;
+    expect(systemMessage.content).toContain(
+      "Current employment, project participation, authority and product needs are unproven",
+    );
+    expect(userMessage.content).toContain(
+      "CURRENT EMPLOYMENT/TITLE UNVERIFIED",
+    );
+    expect(userMessage.content).toContain(
+      "never assert current employment",
+    );
+    expect(userMessage.content).toContain("confirmation-first");
+    expect(userMessage.content).not.toContain("NEW CONTACT DETAILS");
     expect(mocks.update).toHaveBeenCalledTimes(1);
   });
 
@@ -124,6 +136,20 @@ describe("personaliseTemplate quota fallback", () => {
     mocks.invokeLLM.mockResolvedValueOnce({
       choices: [{ message: { content: JSON.stringify({ subject: "Subject", body: "Body" }) } }],
     });
+
+    await expect(personaliseTemplate(INPUT)).resolves.toMatchObject({
+      subject: "Subject",
+      body: "Body",
+      generationMode: "ai",
+    });
+    expect(mocks.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a usable draft even when usage accounting fails", async () => {
+    mocks.invokeLLM.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ subject: "Subject", body: "Body" }) } }],
+    });
+    mocks.incrementWhere.mockRejectedValueOnce(new Error("metrics unavailable"));
 
     await expect(personaliseTemplate(INPUT)).resolves.toMatchObject({
       subject: "Subject",

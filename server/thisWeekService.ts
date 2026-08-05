@@ -3,7 +3,7 @@
  * Aggregates top priorities, new stakeholders, stage changes, and suggested actions
  * for the weekly landing page. Designed to surface the most actionable intelligence.
  */
-import { getDb, getAllProjects, getAllContacts, getProfileByUserId, getUserById } from "./db";
+import { getDb, getAllProjects, getAllContactsWithOutreachEligibility, getProfileByUserId, getUserById } from "./db";
 import { projects, contacts, projectBusinessLineScores, pipelineRuns, dismissedActions, pipelineClaims, outreachEmails, accountPriors } from "../drizzle/schema";
 import { eq, desc, gte, and, sql, inArray } from "drizzle-orm";
 import { getProjectScoresBatch, SCORING_DIMENSIONS } from "./businessLineScoring";
@@ -22,8 +22,14 @@ import {
 import { getActiveBusinessLines } from "./pipelineDb";
 import { isAustralianRelevant } from "./geoFilter";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
+import { isExplicitlyNotCrmOrphan } from "./contactSlateTrustPolicy";
 import { resolveTerritories, resolveBusinessLines, getPrimaryDimension } from "./canonicalMappings";
 import { hasConfiguredTerritoryInput, scopeProjectsToResolvedTerritories } from "./commercialTruthGuardrails";
+import {
+  contactsExactlyLinkedToProject,
+  isContactOutreachEligibleForProject,
+  isThisWeekActionReady,
+} from "./thisWeekContactSelection";
 
 // ── Types ──
 
@@ -79,12 +85,14 @@ export interface ThisWeekProject {
 
 export type ContactCTAState =
   | { action: "view_best"; label: string; contactName: string; trustTier: string }
+  | { action: "validate_contacts"; label: string; contactCount: number }
   | { action: "find_contacts"; label: string; reason: string }
   | { action: "refresh_contacts"; label: string; lastAttempt: string | null }
   | { action: "why_no_contacts"; label: string; blockedReason: string };
 
 export interface ThisWeekStakeholder {
   id: number;
+  projectId: number;
   name: string;
   title: string;
   company: string;
@@ -92,12 +100,15 @@ export interface ThisWeekStakeholder {
   roleRelevance: "high" | "medium" | "low";
   roleBucket: string;
   email: string | null;
+  emailState: "verified" | "withheld_unverified" | "not_available";
   linkedin: string | null;
   enrichmentSource: string | null;
   createdAt: Date;
   // ── Scope context ──
   laneMatch: boolean;
   scopeReason: string;
+  trustTier: "send_ready" | "named_unverified";
+  projectLinkState: "exact_persisted";
 }
 
 export interface StageChange {
@@ -112,7 +123,7 @@ export interface StageChange {
 }
 
 export interface SuggestedAction {
-  type: "contact_outreach" | "contractor_gap" | "tier1_new" | "stage_upgrade" | "high_value" | "pipeline_claim";
+  type: "contact_outreach" | "contact_validation" | "contractor_gap" | "tier1_new" | "stage_upgrade" | "high_value" | "pipeline_claim";
   priority: "urgent" | "high" | "medium";
   title: string;
   description: string;
@@ -183,6 +194,25 @@ function isRecent(date: Date | string | null, windowMs = SEVEN_DAYS_MS): boolean
   return Date.now() - d.getTime() < windowMs;
 }
 
+function safeLinkedInUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const parsed = new URL(value.trim());
+    const host = parsed.hostname.toLowerCase();
+    if (
+      !parsed.username &&
+      !parsed.password &&
+      (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+      (host === "linkedin.com" || host.endsWith(".linkedin.com"))
+    ) {
+      return parsed.toString();
+    }
+  } catch {
+    // Fail closed for malformed or non-URL stored values.
+  }
+  return null;
+}
+
 /** Generate a stable key for an action so we can track dismissals */
 function makeActionKey(type: string, projectId?: number, contactId?: number): string {
   return `${type}:${projectId ?? 0}:${contactId ?? 0}`;
@@ -204,6 +234,20 @@ function deriveContactCTA(
       label: "View Best Contacts",
       contactName: bestContact.name,
       trustTier: (bestContact as any).contactTrustTier ?? "named_unverified",
+    };
+  }
+
+  // Exact linked people already exist, but none satisfies the complete
+  // send-ready policy. Keep the rep on validation; do not spend provider
+  // credits discovering a duplicate contact.
+  if (
+    contactSelection.salesReadiness === "needs_verification" &&
+    contactSelection.fallbackContacts.length > 0
+  ) {
+    return {
+      action: "validate_contacts",
+      label: "Validate contacts",
+      contactCount: contactSelection.fallbackContacts.length,
     };
   }
 
@@ -314,8 +358,9 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     !p.geoBlockedReason // AU-only gate: exclude geo-blocked projects from rep views
   );
 
-  // Get all contacts
-  const allContacts = await getAllContacts();
+  // Load the server-owned exact-link/send-ready projection. This Week must not
+  // turn project-name or owner/company similarity into an actionable contact.
+  const allContacts = await getAllContactsWithOutreachEligibility();
 
   // Get current week's Monday date for the week label
   // This ensures the dashboard always shows the current week, even if the pipeline hasn't run recently
@@ -607,7 +652,8 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
 
     // ── SHARED CONTACT SELECTOR (single source of truth) ──
     // Geographic filter: exclude non-Australian contacts before selection
-    const auContacts = allContacts.filter(c => isAustralianRelevant({
+    const exactProjectContacts = contactsExactlyLinkedToProject(allContacts, p.id);
+    const auContacts = exactProjectContacts.filter(c => isAustralianRelevant({
       title: c.title,
       linkedinHeadline: (c as any).linkedinHeadline,
       linkedinLocation: (c as any).linkedinLocation,
@@ -618,6 +664,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       projectState: (p as any).projectState ?? null,
       buyerRoles: userProfile?.buyerRoles as string[] | undefined,
       isPumpLane: isPumpLaneRep(assignedBLs),
+      contactsAreExactProjectLinks: true,
     });
     const bestContact = contactSelection.selectedContact;
     const relevantContacts = contactSelection.salesReadiness === "send_ready" ? [bestContact] : [];
@@ -631,7 +678,7 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     if (topBLs.length > 0) whyParts.push(`Strong fit for ${topBLs.map(bl => bl.name).join(", ")}`);
     if (p.contractors && (p.contractors as any[]).length > 0) {
       const cNames = (p.contractors as any[]).slice(0, 2).map((c: any) => c.name).join(", ");
-      whyParts.push(`Contractors: ${cNames}`);
+      whyParts.push(`Recorded contractor/package entries (participation unverified): ${cNames}`);
     }
     const whyItMatters = whyParts.join(". ") + ".";
 
@@ -641,6 +688,8 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
       suggestedAction = `Reach out to ${bestContact.name} (${bestContact.title}) — high-relevance contact`;
     } else if (relevantContacts.length === 0 && contactSelection.totalContactsFound === 0) {
       suggestedAction = "Run stakeholder discovery — no contacts found yet";
+    } else if (contactSelection.salesReadiness === "needs_verification") {
+      suggestedAction = `Validate ${contactSelection.fallbackContacts.length} exact-linked contact${contactSelection.fallbackContacts.length === 1 ? "" : "s"} before outreach`;
     } else if (relevantContacts.length === 0) {
       suggestedAction = "Run second-pass contact search — no high-relevance contacts";
     } else if (!p.contractors || (p.contractors as any[]).length === 0) {
@@ -742,9 +791,15 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   // ── 2. New Stakeholders ──
   // Contacts created in the last 7 days with high or medium relevance
   // Also filter out non-Australian contacts
+  const inScopeProjectsById = new Map(rankedProjects.map(project => [project.id, project]));
   const recentContacts = allContacts.filter(c =>
     isRecent(c.createdAt) &&
     ((c as any).roleRelevance === "high" || (c as any).roleRelevance === "medium") &&
+    c.contactTrustTier !== "llm_inferred" &&
+    c.rejectionReason == null &&
+    isExplicitlyNotCrmOrphan(c.crmOrphan) &&
+    Array.isArray(c.linkedProjectIds) &&
+    c.linkedProjectIds.some(projectId => inScopeProjectsById.has(projectId)) &&
     isAustralianRelevant({
       title: c.title,
       linkedinHeadline: (c as any).linkedinHeadline,
@@ -761,15 +816,18 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  // Build a set of project names that are in-scope for territory matching
-  const inScopeProjectNames = new Set(rankedProjects.map(p => p.name.toLowerCase().slice(0, 30)));
-
   const newStakeholders: ThisWeekStakeholder[] = recentContacts.slice(0, 20).map(c => {
-    // Determine if this stakeholder's project is in the user's territory scope
-    const contactProjectLower = c.project.toLowerCase().slice(0, 30);
-    const inScopeArray = Array.from(inScopeProjectNames);
-    const projectInScope = inScopeProjectNames.has(contactProjectLower) ||
-      inScopeArray.some(n => n.includes(contactProjectLower) || contactProjectLower.includes(n));
+    const linkedProject = [...c.linkedProjectIds]
+      .filter(projectId => Number.isSafeInteger(projectId) && projectId > 0)
+      .sort((a, b) => a - b)
+      .map(projectId => inScopeProjectsById.get(projectId))
+      .find((project): project is NonNullable<typeof project> => Boolean(project));
+    // The recentContacts gate above guarantees this. Keep an explicit failure
+    // instead of silently falling back to contacts.project free text.
+    if (!linkedProject) {
+      throw new Error("Exact in-scope project link disappeared during This Week projection");
+    }
+    const sendReady = isContactOutreachEligibleForProject(c, linkedProject.id);
     // Determine lane match based on roleBucket
     const portableAirRoles = ["maintenance", "reliability", "mechanical", "equipment", "fleet", "hme", "shutdown", "fixed plant"];
     const roleLower = (c.roleBucket ?? "").toLowerCase();
@@ -779,31 +837,35 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     const laneMatch = !hasLane || isPortableAirRole;
     // Build scope reason
     let scopeReason = "New contact this week";
-    if (projectInScope && laneMatch) {
+    if (laneMatch) {
       const terr = userContext.territories[0] ?? "your territory";
       const lane = userContext.assignedBusinessLines[0] ?? "your lane";
       scopeReason = `${terr} + ${lane} match`;
-    } else if (projectInScope) {
-      scopeReason = `${userContext.territories[0] ?? "Territory"} — adjacent role`;
-    } else if (laneMatch) {
-      scopeReason = `${userContext.assignedBusinessLines[0] ?? "Lane"} role — outside territory`;
     } else {
-      scopeReason = "Outside primary scope";
+      scopeReason = `${userContext.territories[0] ?? "Territory"} — adjacent role`;
     }
     return {
       id: c.id,
+      projectId: linkedProject.id,
       name: c.name,
       title: c.title,
       company: c.company,
-      project: c.project,
+      project: linkedProject.name,
       roleRelevance: ((c as any).roleRelevance ?? "medium") as "high" | "medium" | "low",
       roleBucket: c.roleBucket,
-      email: c.email,
-      linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
+      email: sendReady ? c.email?.trim() || null : null,
+      emailState: sendReady
+        ? "verified"
+        : c.email?.trim()
+          ? "withheld_unverified"
+          : "not_available",
+      linkedin: safeLinkedInUrl((c as any).linkedinProfileUrl ?? (c as any).linkedin),
       enrichmentSource: c.enrichmentSource,
       createdAt: c.createdAt,
       laneMatch,
       scopeReason,
+      trustTier: sendReady ? "send_ready" : "named_unverified",
+      projectLinkState: "exact_persisted",
     };
   });
 
@@ -895,11 +957,13 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   ).slice(0, 5);
 
   for (const p of tier1Unengaged) {
-    const projectContacts = allContacts.filter(c =>
-      c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-      p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+    const projectContacts = contactsExactlyLinkedToProject(allContacts, p.id);
+    const exactHighRelContacts = projectContacts.filter(
+      c => (c as any).roleRelevance === "high"
     );
-    const highRelContacts = projectContacts.filter(c => (c as any).roleRelevance === "high");
+    const highRelContacts = exactHighRelContacts.filter(c =>
+      isContactOutreachEligibleForProject(c, p.id)
+    );
 
     if (highRelContacts.length > 0) {
       const key = makeActionKey("contact_outreach", p.id, highRelContacts[0].id);
@@ -907,11 +971,25 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
         type: "contact_outreach",
         priority: p.isNew ? "urgent" : "high",
         title: `Reach out to ${highRelContacts[0].name} on ${p.name}`,
-        description: `${highRelContacts[0].title} at ${highRelContacts[0].company} — ${p.isNew ? "new " : ""}Tier 1 project in ${p.location}. ${p.stage ? `Stage: ${p.stage}.` : ""} Value: ${p.value}.`,
+        description: `Recorded context: ${highRelContacts[0].title} — ${highRelContacts[0].company} (employment not independently verified). ${p.isNew ? "New " : ""}Tier 1 project in ${p.location}. ${p.stage ? `Stage: ${p.stage}.` : ""} Value: ${p.value}.`,
         projectId: p.id,
         projectName: p.name,
         contactId: highRelContacts[0].id,
         contactName: highRelContacts[0].name,
+        actionKey: key,
+      });
+    } else if (exactHighRelContacts.length > 0) {
+      const contact = exactHighRelContacts[0];
+      const key = makeActionKey("contact_validation", p.id, contact.id);
+      rawActions.push({
+        type: "contact_validation",
+        priority: p.isNew ? "urgent" : "high",
+        title: `Validate ${contact.name} before outreach`,
+        description: `An exact persisted project link exists, but the contact is not send-ready. Validate the mailbox and recorded employment context before outreach; do not run duplicate stakeholder discovery.`,
+        projectId: p.id,
+        projectName: p.name,
+        contactId: contact.id,
+        contactName: contact.name,
         actionKey: key,
       });
     } else {
@@ -994,8 +1072,15 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
   // ── 5. Stats ── (use rankedProjects = filtered by territory + BL)
   const scopedProjects = rankedProjects; // already filtered by territory & BL above
   const newProjectsThisWeek = scopedProjects.filter(p => p.isNew).length;
-  const newContactsThisWeek = allContacts.filter(c => isRecent(c.createdAt)).length;
-  const highRelevanceContacts = allContacts.filter(c => (c as any).roleRelevance === "high").length;
+  const inScopeContacts = allContacts.filter(contact =>
+    contact.rejectionReason == null &&
+    isExplicitlyNotCrmOrphan(contact.crmOrphan) &&
+    contact.contactTrustTier !== "llm_inferred" &&
+    Array.isArray(contact.linkedProjectIds) &&
+    contact.linkedProjectIds.some(projectId => inScopeProjectsById.has(projectId))
+  );
+  const newContactsThisWeek = inScopeContacts.filter(c => isRecent(c.createdAt)).length;
+  const highRelevanceContacts = inScopeContacts.filter(c => (c as any).roleRelevance === "high").length;
   const projectsWithContractors = scopedProjects.filter(p =>
     p.contractors && (p.contractors as any[]).length > 0
   ).length;
@@ -1013,11 +1098,11 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     highRelevanceContacts,
     projectsWithContractors,
     projectsMissingContractors: scopedProjects.length - projectsWithContractors,
-    actionReadyCount: topProjects.filter(p =>
-      p.bestStakeholder && (p.priority === "hot" || p.priority === "warm")
-    ).length,
+    actionReadyCount: topProjects.filter(isThisWeekActionReady).length,
     needDiscoveryCount: topProjects.filter(p =>
-      !p.bestStakeholder && (p.priority === "hot" || p.priority === "warm") &&
+      (p.contactCTA.action === "find_contacts" ||
+        p.contactCTA.action === "refresh_contacts") &&
+      (p.priority === "hot" || p.priority === "warm") &&
       p.actionTier !== "tier3_monitor"
     ).length,
     closingSoonCount: 0, // will be filled from separate query

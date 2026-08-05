@@ -20,9 +20,20 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { sanitizeContractorName, deriveWhyNow } from "@shared/utils";
 import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
+import ProjectBuyerRoute, {
+  type BuyerRouteDossierContact,
+} from "@/components/ProjectBuyerRoute";
 import type { ProjectFullPotentialContext } from "@/lib/fullPotentialProjectContext";
 import {
-  isPositivePersistedId,
+  laneLabel,
+  lastCheckedLabel,
+  normaliseContractorStatus,
+  safeExternalUrl,
+  safeLinkedInUrl,
+  selectExactProjectContacts,
+  sourceTypeLabel,
+} from "@/lib/projectBuyerRouteView";
+import {
   isProjectOutreachEligible,
 } from "@/lib/projectOutreachEligibility";
 
@@ -159,87 +170,40 @@ export interface ContactData {
   outreachEligibleProjectIds?: number[] | null;
   rejectionReason?: string | null;
   crmOrphan?: boolean | null;
+  /** Evidence-complete exact-link dossier row returned by projectLifecycle.buyerRoute. */
+  buyerRouteEvidence?: BuyerRouteDossierContact;
 }
 
-// ── Keyword matching helpers ──
-const STOP_WORDS = new Set(["the", "a", "an", "of", "in", "for", "and", "or", "to", "at", "by", "on", "is", "—", "-", "/"]);
-
-function extractKeywords(text: string): string[] {
-  return text.toLowerCase().split(/[\s/—\-–,()]+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
-}
-
-function hasKeywordOverlap(a: string, b: string): boolean {
-  const kwA = extractKeywords(a);
-  const kwB = extractKeywords(b);
-  if (kwA.length === 0 || kwB.length === 0) return false;
-  const shared = kwA.filter(w => kwB.some(bw => bw.includes(w) || w.includes(bw)));
-  return shared.length >= 2 || (shared.length >= 1 && kwA.length <= 2);
-}
-
-function findProjectContacts(
-  projectId: number,
-  projectName: string,
-  projectOwner: string,
-  allContacts: ContactData[],
-  buyerRoles?: string[] | null,
-  limit: number = 10,
-): ContactData[] {
-  const projectNameLower = projectName.toLowerCase();
-  const ownerLower = projectOwner.toLowerCase();
-  const ownerParts = ownerLower.split(/[/&,]+/).map(s => s.trim()).filter(Boolean);
-
-  const projectContacts = allContacts.filter(c => {
-    // New report payloads carry exact DB links. Once present, never broaden
-    // display association through fuzzy names or companies.
-    if (Array.isArray(c.linkedProjectIds)) {
-      return isPositivePersistedId(projectId) && c.linkedProjectIds.some(
-        linkedProjectId => isPositivePersistedId(linkedProjectId) && linkedProjectId === projectId,
-      );
-    }
-
-    // Legacy payloads may omit link metadata. This path remains display-only;
-    // the outreach helper still fails closed without the server projection.
-    const cProject = c.project.toLowerCase();
-    const cCompany = c.company.toLowerCase();
-    if (cProject.includes(projectNameLower) || projectNameLower.includes(cProject)) return true;
-    if (hasKeywordOverlap(cProject, projectNameLower)) return true;
-    if (ownerParts.some(op => cCompany.includes(op) || op.includes(cCompany))) return true;
-    if (projectNameLower.includes(cCompany) && cCompany.length > 3) return true;
-    return false;
-  });
-
-  if (projectContacts.length === 0) return [];
-
-  const seen = new Map<string, ContactData>();
-  for (const c of projectContacts) {
-    const key = `${c.name.toLowerCase()}|${c.company.toLowerCase()}`;
-    const existing = seen.get(key);
-    if (!existing || (c.verificationScore ?? 0) > (existing.verificationScore ?? 0)) {
-      seen.set(key, c);
-    }
-  }
-  const deduped = Array.from(seen.values());
-
-  const priorityScore = { hot: 3, warm: 2, cold: 1 };
-  const scored = deduped.map(c => {
-    let score = priorityScore[c.priority] || 0;
-    if (buyerRoles && buyerRoles.length > 0) {
-      const roleLower = c.roleBucket.toLowerCase();
-      if (buyerRoles.some(r => roleLower.includes(r.toLowerCase()))) score += 10;
-    }
-    score += ((c.verificationScore ?? 0) / 20);
-    if (c.email) score += 5;
-    const cProject = c.project.toLowerCase();
-    if (projectNameLower.includes(cProject) || cProject.includes(projectNameLower)) score += 3;
-    if (c.verificationStatus === "verified") score += 8;
-    if (c.roleRelevance === "high") score += 12;
-    else if (c.roleRelevance === "medium") score += 6;
-    else if (c.roleRelevance === "low") score -= 5;
-    return { contact: c, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit).map(s => s.contact);
+function dossierContactForDisplay(
+  dossierContact: BuyerRouteDossierContact,
+  project: ProjectData,
+  reportContact?: ContactData,
+): ContactData {
+  return {
+    ...reportContact,
+    id: dossierContact.contactId,
+    name: dossierContact.name,
+    title: dossierContact.title,
+    company: dossierContact.organisation.recordedName,
+    project: project.name,
+    priority: reportContact?.priority ?? project.priority,
+    roleBucket: reportContact?.roleBucket ?? dossierContact.lane.value,
+    email: dossierContact.email.value,
+    linkedin: dossierContact.linkedin.profileUrl,
+    enrichmentSource: dossierContact.source.type,
+    verificationStatus: dossierContact.email.state === "verified"
+      ? "verified"
+      : reportContact?.verificationStatus ?? "unverified",
+    emailVerified: dossierContact.email.state === "verified",
+    linkedinSearchUrl: dossierContact.linkedin.searchUrl,
+    linkedinProfileUrl: dossierContact.linkedin.profileUrl,
+    contactTrustTier: dossierContact.effectiveTrustTier,
+    // Keep outreach eligibility solely from the existing server projection.
+    // The dossier's trust display is not converted into action authority.
+    outreachEligibleProjectIds: reportContact?.outreachEligibleProjectIds ?? [],
+    linkedProjectIds: [project.id],
+    buyerRouteEvidence: dossierContact,
+  };
 }
 
 // ── Lifecycle Actions ──
@@ -437,20 +401,23 @@ function EnrichProjectButton({ projectId, projectName }: {
       )}
       {enrichMutation.isSuccess && enrichMutation.data.contactsFound > 0 && !enrichMutation.data.fromCache && (
         <div className="space-y-1">
-          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string }, i: number) => (
-            <div key={i} className="flex items-center gap-2 text-xs bg-teal/5 rounded-md px-3 py-1.5 border border-teal/10">
-              <User className="w-3 h-3 text-teal shrink-0" />
-              <span className="font-medium text-navy">{c.name}</span>
-              {c.headline && <span className="text-muted-foreground truncate">— {c.headline}</span>}
-              <div className="ml-auto flex items-center gap-2 shrink-0">
-                {c.linkedinUrl && (
-                  <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+          {enrichMutation.data.contacts.map((c: { name: string; status: string; headline?: string; linkedinUrl?: string; email?: string }, i: number) => {
+            const linkedinUrl = safeLinkedInUrl(c.linkedinUrl);
+            return (
+              <div key={i} className="flex items-center gap-2 text-xs bg-teal/5 rounded-md px-3 py-1.5 border border-teal/10">
+                <User className="w-3 h-3 text-teal shrink-0" />
+                <span className="font-medium text-navy">{c.name}</span>
+                {c.headline && <span className="text-muted-foreground truncate">— {c.headline}</span>}
+                <div className="ml-auto flex items-center gap-2 shrink-0">
+                  {linkedinUrl && (
+                    <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-teal hover:text-teal-light" onClick={e => e.stopPropagation()}>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -576,7 +543,10 @@ function ProjectContactCard({
 
   const isPreferredRole = buyerRoles && buyerRoles.length > 0 &&
     buyerRoles.some(r => contact.roleBucket.toLowerCase().includes(r.toLowerCase()));
-  const linkedinUrl = contact.linkedin || contact.linkedinProfileUrl;
+  const dossierEvidence = contact.buyerRouteEvidence;
+  const linkedinUrl = safeLinkedInUrl(contact.linkedin || contact.linkedinProfileUrl);
+  const linkedinSearchUrl = safeLinkedInUrl(contact.linkedinSearchUrl);
+  const dossierSourceUrl = safeExternalUrl(dossierEvidence?.source.url);
   const isAiSuggested = contact.verificationStatus === "ai_suggested" || contact.enrichmentSource === "llm";
   const isVerified = contact.verificationStatus === "verified";
   const canOutreach = isProjectOutreachEligible(contact, projectId);
@@ -602,8 +572,8 @@ function ProjectContactCard({
               </span>
             )}
             {contact.roleRelevance === "high" && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase" title="High relevance: directly influences equipment decisions">
-                Key Decision Maker
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase" title="High role relevance; decision authority is not asserted">
+                High Role Relevance
               </span>
             )}
             {contact.roleRelevance === "low" && (
@@ -615,7 +585,99 @@ function ProjectContactCard({
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {contact.title} — {contact.company}
           </p>
+          {dossierEvidence && (
+            <p className="mt-0.5 text-[9px] leading-relaxed text-muted-foreground">
+              Organisation recorded on the contact; current employment is not externally evidenced.
+            </p>
+          )}
           <p className="text-[10px] text-muted-foreground mt-0.5">Role: {contact.roleBucket}</p>
+
+          {dossierEvidence && (
+            <div className="mt-2 rounded-md border border-slate-200 bg-white/80 p-2.5" aria-label={`Evidence for ${contact.name}`}>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Email</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="font-medium text-foreground">
+                      {dossierEvidence.email.value
+                        ?? (dossierEvidence.email.state === "unverified" ? "Address withheld until verified" : "No email recorded")}
+                    </span>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                      dossierEvidence.email.state === "verified"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : dossierEvidence.email.state === "unverified"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-slate-100 text-slate-500"
+                    }`}>
+                      {dossierEvidence.email.state === "not_available" ? "Not available" : dossierEvidence.email.state}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Contact source</p>
+                  <div className="mt-0.5 flex items-center gap-1 text-[11px] text-foreground">
+                    {dossierSourceUrl ? (
+                      <a
+                        href={dossierSourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={event => event.stopPropagation()}
+                        aria-label={`Open identity-discovery source for ${contact.name}`}
+                        className="inline-flex items-center gap-1 font-medium text-teal hover:text-teal-light"
+                      >
+                        {sourceTypeLabel(dossierEvidence.source.type)} <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <span className="font-medium">{sourceTypeLabel(dossierEvidence.source.type)}</span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[9px] leading-relaxed text-muted-foreground">
+                    Identity discovery only; not proof of current employment.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Last checked</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-foreground">
+                    {lastCheckedLabel(dossierEvidence.lastChecked.at, dossierEvidence.lastChecked.basis)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Project link</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-700">
+                      <Check aria-hidden="true" className="h-3 w-3" /> Exact persisted link
+                    </span>
+                    {dossierEvidence.projectLink.relevance && (
+                      <span className="text-[10px] capitalize text-muted-foreground">{dossierEvidence.projectLink.relevance}</span>
+                    )}
+                  </div>
+                  {dossierEvidence.projectLink.linkedAt && (
+                    <p className="mt-0.5 text-[9px] text-muted-foreground">
+                      Linked {lastCheckedLabel(dossierEvidence.projectLink.linkedAt, "record_created_at")}
+                    </p>
+                  )}
+                  <p className="mt-1 text-[9px] leading-relaxed text-muted-foreground">
+                    External participation evidence: Not recorded
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-2 border-t border-slate-100 pt-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded bg-navy/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-navy">
+                    {laneLabel(dossierEvidence.lane.value)} lane
+                  </span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-700">
+                    Inferred rationale
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] leading-relaxed text-foreground/75">{dossierEvidence.whyRelevant.text}</p>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {linkedinUrl ? (
@@ -623,8 +685,8 @@ function ProjectContactCard({
                 className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-[#0077B5]/10 text-[#0077B5] hover:bg-[#0077B5]/20 transition-colors">
                 <Linkedin className="w-3 h-3" /> Profile
               </a>
-            ) : contact.linkedinSearchUrl ? (
-              <a href={contact.linkedinSearchUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            ) : linkedinSearchUrl ? (
+              <a href={linkedinSearchUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                 className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                 <Search className="w-3 h-3" /> Search LI
               </a>
@@ -708,6 +770,7 @@ export default function ProjectCard({
   businessLineNames,
   allContacts,
   buyerRoles,
+  defaultOpen = false,
 }: {
   project: ProjectData;
   existingFeedback?: { vote: "up" | "down"; reason: string | null } | null;
@@ -715,19 +778,40 @@ export default function ProjectCard({
   businessLineNames?: Record<number, string>;
   allContacts?: ContactData[];
   buyerRoles?: string[] | null;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [showReasons, setShowReasons] = useState(false);
   const [showOutreach, setShowOutreach] = useState(false);
   const [outreachContactId, setOutreachContactId] = useState<number | null>(null);
   const [showAllContacts, setShowAllContacts] = useState(false);
   const [showMoreDetail, setShowMoreDetail] = useState(false);
 
-  // Find all matching contacts for this project (up to 10) — local list for display
-  const projectContacts = useMemo(() => {
+  // Collapsed report data is used only when it carries an exact persisted-link
+  // projection. Free-text project/company matching is deliberately prohibited.
+  const exactReportContacts = useMemo(() => {
     if (!allContacts || allContacts.length === 0) return [];
-    return findProjectContacts(project.id, project.name, project.owner, allContacts, buyerRoles, 10);
-  }, [project.id, project.name, project.owner, allContacts, buyerRoles]);
+    return selectExactProjectContacts(project.id, allContacts, 10);
+  }, [project.id, allContacts]);
+
+  // Fetch the complete route-to-buyer dossier only for an expanded card. This
+  // avoids a dashboard-wide N+1 while making the expanded contact list exact.
+  const buyerRouteQuery = trpc.projectLifecycle.buyerRoute.useQuery(
+    { projectId: project.id },
+    { enabled: open, staleTime: 60_000 },
+  );
+
+  const dossierContacts = useMemo(() => {
+    if (!buyerRouteQuery.data) return [];
+    const reportContactsById = new Map(exactReportContacts.map(contact => [contact.id, contact]));
+    return buyerRouteQuery.data.contacts.map(contact =>
+      dossierContactForDisplay(contact, project, reportContactsById.get(contact.contactId)),
+    );
+  }, [buyerRouteQuery.data, exactReportContacts, project]);
+
+  // Expanded cards are dossier-only: loading/failure never falls back to fuzzy
+  // association. Collapsed cards can show an exact report projection.
+  const projectContacts = open ? dossierContacts : exactReportContacts;
 
   // ── SHARED CONTACT SELECTOR (single source of truth via tRPC) ──
   // Only fetch when card is expanded to avoid N+1 queries
@@ -853,6 +937,9 @@ export default function ProjectCard({
       <div
         role="button"
         tabIndex={0}
+        aria-expanded={open}
+        aria-controls={`project-details-${project.id}`}
+        aria-label={`${open ? "Collapse" : "Expand"} ${project.name}`}
         onClick={() => setOpen(!open)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}
         className="w-full text-left p-4 sm:p-5 cursor-pointer"
@@ -1057,6 +1144,7 @@ export default function ProjectCard({
       <AnimatePresence>
         {open && (
           <motion.div
+            id={`project-details-${project.id}`}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -1068,6 +1156,18 @@ export default function ProjectCard({
               {project.fullPotentialContext && (
                 <FullPotentialAccountContext context={project.fullPotentialContext} showEmpty />
               )}
+
+              {buyerRouteQuery.isLoading && (
+                <div role="status" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-muted-foreground">
+                  <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" /> Loading route-to-buyer evidence…
+                </div>
+              )}
+              {buyerRouteQuery.error && (
+                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                  Route-to-buyer evidence could not be loaded. No fallback contact matching was used.
+                </div>
+              )}
+              {buyerRouteQuery.data && <ProjectBuyerRoute dossier={buyerRouteQuery.data} />}
 
               {/* 1. Contacts — moved to top */}
               <div>
@@ -1092,7 +1192,9 @@ export default function ProjectCard({
                     </button>
                   )}
                 </div>
-                {nonInferredContacts.length > 0 ? (
+                {buyerRouteQuery.isLoading ? (
+                  <div role="status" className="text-xs text-muted-foreground italic mb-2">Loading exact project contacts…</div>
+                ) : nonInferredContacts.length > 0 ? (
                   <div className="space-y-2">
                     {visibleContacts.map(contact => (
                       <ProjectContactCard
@@ -1106,7 +1208,7 @@ export default function ProjectCard({
                     ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-muted-foreground italic mb-2">No verified contacts matched yet.</div>
+                  <div className="text-xs text-muted-foreground italic mb-2">No non-inferred contacts are exactly linked to this project.</div>
                 )}
                 {/* LLM-inferred contacts: shown in a separate section with clear warning */}
                 {llmContacts.length > 0 && (
@@ -1121,24 +1223,27 @@ export default function ProjectCard({
                       AI-inferred roles only — not verified. Confirm via LinkedIn before any outreach.
                     </p>
                     <div className="space-y-1.5">
-                      {llmContacts.slice(0, 3).map((contact) => (
-                        <div key={contact.id} className="flex items-center gap-2 text-xs">
-                          <Bot className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span className="font-medium text-amber-800">{contact.name}</span>
-                          <span className="text-amber-600">— {contact.title}</span>
-                          {(contact.linkedin || contact.linkedinProfileUrl) && (
-                            <a
-                              href={contact.linkedin || contact.linkedinProfileUrl || ""}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
-                            >
-                              Verify on LI
-                            </a>
-                          )}
-                        </div>
-                      ))}
+                      {llmContacts.slice(0, 3).map((contact) => {
+                        const linkedinUrl = safeLinkedInUrl(contact.linkedin || contact.linkedinProfileUrl);
+                        return (
+                          <div key={contact.id} className="flex items-center gap-2 text-xs">
+                            <Bot className="w-3 h-3 text-amber-500 shrink-0" />
+                            <span className="font-medium text-amber-800">{contact.name}</span>
+                            <span className="text-amber-600">— {contact.title}</span>
+                            {linkedinUrl && (
+                              <a
+                                href={linkedinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+                              >
+                                Verify on LI
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1165,6 +1270,7 @@ export default function ProjectCard({
                       const scoreColor = item.matchScore >= 80 ? "text-teal" : item.matchScore >= 60 ? "text-gold-dark" : "text-muted-foreground";
                       const scoreBg = item.matchScore >= 80 ? "bg-teal" : item.matchScore >= 60 ? "bg-gold" : "bg-slate-300";
                       const plConfig = businessLineBadgeConfig[item.productLine] || { bg: "bg-slate-100", text: "text-slate-600", short: item.productLine };
+                      const fileUrl = safeExternalUrl(item.fileUrl);
                       return (
                         <div key={item.id} className="bg-card border border-border rounded-lg p-3 hover:shadow-md hover:border-teal/30 transition-all">
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -1182,10 +1288,16 @@ export default function ProjectCard({
                           {item.matchReason && (
                             <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-2">{item.matchReason}</p>
                           )}
-                          <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-semibold bg-teal/10 text-teal hover:bg-teal/20 transition-colors w-full justify-center">
-                            <Download className="w-3 h-3" /> Download Flyer
-                          </a>
+                          {fileUrl ? (
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-semibold bg-teal/10 text-teal hover:bg-teal/20 transition-colors w-full justify-center">
+                              <Download className="w-3 h-3" /> Download Flyer
+                            </a>
+                          ) : (
+                            <span className="inline-flex w-full items-center justify-center rounded-md bg-slate-100 px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                              File unavailable
+                            </span>
+                          )}
                         </div>
                       );
                     })}
@@ -1220,30 +1332,42 @@ export default function ProjectCard({
                     {project.completion && <p><span className="font-medium text-foreground">Completion:</span> {project.completion}</p>}
                   </div>
                   <div className="mt-3 space-y-1">
-                    {sources.map((src, i) => (
-                      <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-teal hover:text-teal-light transition-colors">
-                        <ExternalLink className="w-3 h-3 shrink-0" />
-                        {src.label}{src.date ? ` (${src.date})` : ""}
-                      </a>
-                    ))}
+                    {sources.map((src, i) => {
+                      const sourceUrl = safeExternalUrl(src.url);
+                      return sourceUrl ? (
+                        <a key={i} href={sourceUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs text-teal hover:text-teal-light transition-colors">
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                          {src.label}{src.date ? ` (${src.date})` : ""}
+                        </a>
+                      ) : (
+                        <span key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {src.label} (link unavailable)
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-2">Contractors</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gold-dark mb-2">Recorded contractors</h4>
                   {cleanContractors.length > 0 ? (
                     <ul className="space-y-1.5">
                       {cleanContractors.map((c, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            c.status === "confirmed" ? "bg-teal/15 text-teal" :
-                            c.status === "predicted" ? "bg-gold/15 text-gold-dark" :
-                            "bg-slate-200 text-slate-500"
-                          }`}>
-                            {c.status === "confirmed" ? "Confirmed" : c.status === "predicted" ? `Predicted ${c.confidence || ""}` : "TBD"}
-                          </span>
-                          <span className="text-foreground/80">{c.name}{c.detail ? ` — ${c.detail}` : ""}</span>
-                        </li>
+                        (() => {
+                          const status = normaliseContractorStatus(c.status);
+                          return (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className={`shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                status.kind === "confirmed" ? "bg-teal/15 text-teal" :
+                                status.kind === "predicted" ? "bg-gold/15 text-gold-dark" :
+                                "bg-slate-200 text-slate-500"
+                              }`}>
+                                Stored: {status.label}{status.kind === "predicted" && c.confidence ? ` ${c.confidence}` : ""}
+                              </span>
+                              <span className="text-foreground/80">{c.name}{c.detail ? ` — ${c.detail}` : ""}</span>
+                            </li>
+                          );
+                        })()
                       ))}
                     </ul>
                   ) : (

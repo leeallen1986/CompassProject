@@ -630,32 +630,32 @@ export async function generateOutreachEmail(input: OutreachInput): Promise<Outre
   const profile = getCollateralProfile(input.collateralName);
 
   const toneGuide: Record<string, string> = {
-    professional: "Write in a formal, professional tone. Use proper business language. Be respectful of the recipient's time. Focus on value proposition and credibility.",
-    consultative: "Write in a warm, consultative tone. Position yourself as a trusted advisor who understands their challenges. Ask thoughtful questions. Show genuine interest in their project success.",
-    direct: "Write in a concise, direct tone. Get straight to the point. Lead with the specific value you can deliver. Include a clear call-to-action. Keep it under 150 words.",
-    contractor_focused: "Write specifically for a CONTRACTOR audience (EPC, construction company, mining contractor). They care about: equipment reliability on-site, mobilisation speed, service response times, and total cost of ownership. Reference their role as the contractor delivering the project — they need equipment that won't let them down.",
-    owner_epc_focused: "Write specifically for a PROJECT OWNER or EPC audience. They care about: project timeline adherence, budget control, vendor consolidation, and ESG/sustainability credentials. Position Atlas Copco as a strategic partner, not just a vendor.",
-    procurement_led: "Write specifically for a PROCUREMENT audience. They care about: competitive pricing, contract terms, TCO analysis, vendor qualification, and supply chain reliability. Lead with commercial value.",
-    engineering_led: "Write specifically for an ENGINEERING audience. They care about: technical specifications, compliance standards, energy efficiency, noise/emission levels, and system integration. Lead with technical credibility.",
-    first_touch: "This is a FIRST-TOUCH cold outreach. The recipient has never heard from you. Be brief (under 120 words), lead with a specific observation about their company or market that shows you've done your homework, and make a very low-commitment ask (e.g., 'Would it be worth a quick chat?' or 'Happy to share a one-page overview'). Do NOT pitch products heavily in the first email — focus on establishing relevance and curiosity. The goal is to get a reply, not close a deal.",
+    professional: "Write in a formal, professional tone. Be respectful of the recipient's time. Establish credibility without claiming a proven need, role, employer, project participation or outcome.",
+    consultative: "Write in a warm, consultative tone. Ask thoughtful confirmation-first questions about whether the recorded context is current and whether common industry considerations are relevant. Do not claim to know this person's challenges or responsibilities.",
+    direct: "Write in a concise, direct tone. State why you are checking the recorded project context, ask whether the recipient is the right person, and offer relevant information conditionally. Do not promise specific value or outcomes. Keep it under 150 words.",
+    contractor_focused: "Write for a possible CONTRACTOR audience (EPC, construction company, mining contractor). Treat the recorded employer, role and project participation as unverified. Frame equipment reliability, mobilisation speed, service response and total cost as common considerations or questions, never as facts about this recipient.",
+    owner_epc_focused: "Write for a possible PROJECT OWNER or EPC audience. Timeline, budget, vendor consolidation and sustainability are common considerations, not known facts about this recipient. Ask whether any are relevant and position Atlas Copco conditionally.",
+    procurement_led: "Write for a possible PROCUREMENT audience. Pricing, contract terms, TCO, vendor qualification and supply reliability are common considerations, not known responsibilities or pain points. Use questions and conditional commercial context.",
+    engineering_led: "Write for a possible ENGINEERING audience. Specifications, compliance, efficiency, noise/emissions and integration are common technical considerations, not proven recipient needs. Use questions and conditional technical context.",
+    first_touch: "This is a FIRST-TOUCH cold outreach. Be brief (under 120 words), lead with the recorded project or general market context, and make a very low-commitment ask. Do not claim a specific company activity, current employment or project role unless it is independently evidenced in the prompt. The goal is to confirm relevance and get a reply, not close a deal.",
   };
 
   const businessLineContext = input.matchedBusinessLines.length > 0
-    ? `This outreach is relevant to: ${input.matchedBusinessLines.join(", ")}. Focus your pitch on the products and solutions from these specific business lines.`
-    : "Identify which Atlas Copco Power Technique products would be most relevant based on the context.";
+    ? `Internal matching ranked these business lines: ${input.matchedBusinessLines.join(", ")}. This is a working sales hypothesis, not evidence of the recipient's needs. Mention a product only conditionally and only if useful for a confirmation-first message.`
+    : "No product need is proven. Keep the message confirmation-first and do not invent a product fit.";
 
   const equipmentContext = input.equipmentSignals && input.equipmentSignals.length > 0
-    ? `Equipment signals detected: ${input.equipmentSignals.join(", ")}. Reference these specific needs in your email.`
+    ? `Recorded project-level equipment signals (unverified and not attributed to the recipient): ${input.equipmentSignals.join(", ")}. If used, frame them as possible project considerations or questions, never as the recipient's needs.`
     : "";
 
   // Get role-specific hooks from the collateral profile
   const roleHooks = getRoleHooks(input.contactRoleBucket, profile);
   const roleContext = `
-ROLE-SPECIFIC PERSONALISATION (CRITICAL — this is what makes the email resonate):
-The recipient is a "${input.contactRoleBucket}" persona. Their key KPIs are:
+RECORDED ROLE-CATEGORY HYPOTHESES (NOT RECIPIENT FACTS):
+The stored role bucket is "${input.contactRoleBucket}". People in that broad function may commonly consider:
 ${roleHooks.kpis.map((k, i) => `  ${i + 1}. ${k}`).join("\n")}
 
-Their typical pain points are:
+Common industry considerations may include:
 ${roleHooks.painPoints.map((p, i) => `  ${i + 1}. ${p}`).join("\n")}
 
 Messaging strategy: ${roleHooks.messagingAngle}
@@ -663,8 +663,8 @@ Messaging strategy: ${roleHooks.messagingAngle}
 PRODUCT HOOK FOR THIS ROLE (use this as inspiration for how to position the product):
 ${roleHooks.productHook}
 
-You MUST weave at least 2 of their KPIs or pain points into the email body naturally.
-Do NOT list KPIs — instead, demonstrate understanding of their world.
+Use at most 2 of these only as conditional, general considerations or questions.
+Never describe them as this recipient's KPI, pain point, responsibility or current problem.
 `;
 
   // Build the campaign description context
@@ -677,15 +677,16 @@ Do NOT list KPIs — instead, demonstrate understanding of their world.
 ${ATLAS_COPCO_BASE_KNOWLEDGE}
 ${profile.knowledge}
 
-RECIPIENT:
+RECORDED CONTACT CONTEXT (IDENTITY/MAILBOX CONTEXT ONLY):
 - Name: ${input.contactName}
 - Title: ${input.contactTitle}
 - Company: ${input.contactCompany}
 - Role type: ${input.contactRoleBucket}
+Current employment, title, buying authority and project participation are not independently proven. Do not assert them. Use confirmation-first or conditional language.
 ${roleContext}
 
-CONTEXT:
-- Company: ${input.contactCompany}
+PROJECT CONTEXT (EXACT INTERNAL LINK; EXTERNAL PARTICIPATION UNVERIFIED):
+- Project: ${input.projectName}
 - Industry: ${input.projectSector}
 - Location: ${input.projectLocation}
 ${input.projectOverview ? `- Overview: ${input.projectOverview}` : ""}
@@ -699,21 +700,22 @@ ${input.senderBusinessLines && input.senderBusinessLines.length > 0 ? `SENDER'S 
 TONE: ${toneGuide[input.tone]}
 
 RULES:
-1. The email MUST feel deeply personalised — reference the recipient's company, their role, and at least 2 of their role-specific KPIs or pain points
-2. Lead with value for THEIR business, not a product pitch — show you understand what keeps them up at night
-3. Reference specific Atlas Copco PT products/solutions that match the campaign's collateral
+1. Use the recipient's name, but do not assert that the stored title/company is current or that the recipient participates in the project. Ask whether they are the right person or whether the context is still current.
+2. Treat role KPIs, pain points, equipment signals and business-line matches as hypotheses. Use conditional language such as "if relevant", "teams working on... often consider", or a question.
+3. Mention Atlas Copco PT products only conditionally; never claim a proven need, fit, saving, performance outcome or incumbent problem.
 4. Include a clear, low-commitment call-to-action (e.g., "Would a 15-minute call this week work?" or "Happy to share a one-page overview")
 5. Keep the email concise — 3-4 short paragraphs maximum
 6. Do NOT use generic phrases like "I hope this email finds you well" or "I wanted to reach out"
 7. Do NOT include [placeholder] brackets — use real product names and specific details
 8. Do NOT include a signature block (no name, title, company, or email at the end). The recipient's email client will add their own signature automatically. End the email after the call-to-action or a brief closing line like "Looking forward to hearing from you" — nothing more.
 9. Do NOT include any "Reminder: Please attach..." notes or attachment instructions. Attachments are handled automatically by the system.
-10. The subject line should reference the recipient's company or market and be compelling
-11. ALWAYS start the email with "Hi [FirstName]," (e.g., "Hi Chris,") — Australians expect a friendly "Hi" greeting. Never start with just the name, "Dear", or skip the greeting entirely. The first paragraph after the greeting should hook them by referencing something specific about their company, market, or role — NOT a self-introduction
+10. The subject line may reference the recorded project or general market, but must not present current employment, company activity or project participation as fact.
+11. ALWAYS start the email with "Hi [FirstName]," (e.g., "Hi Chris,"). The first paragraph must be confirmation-first and grounded only in the recorded project/market context — not an unsupported claim about the person's employer, role or needs.
 ${profile.productRules}
 ${profile.commercialRules}
 ${input.senderName && input.senderName.toLowerCase().includes("tim") && input.senderName.toLowerCase().includes("shaw") ? `14. SENDER-SPECIFIC SIGN-OFF (MANDATORY for Tim O'Neil Shaw): Because Tim is the Communications Manager (not a direct sales rep), the email MUST close with a line like: "If you're interested, just reply to this email and I'll organise your local Atlas Copco sales representative to visit or share more details." This positions Tim as the connector, not the salesperson. Vary the exact wording naturally but always convey: reply → I'll arrange local sales to follow up.` : `14. Include a natural closing line before the sign-off (e.g., "Looking forward to hearing from you" or "Happy to chat further").`}
 15. AUSTRALIAN ENGLISH: Use Australian spelling (e.g., "optimise" not "optimize", "colour" not "color", "programme" not "program" for project programmes).
+16. FINAL EVIDENCE OVERRIDE (HIGHEST PRIORITY): These evidence limits override any collateral, role hook, product rule, tone guide or saved wording above. Never say or imply that the recipient currently works for the recorded company, holds the recorded title, participates in the project, owns a KPI/pain point, needs a product, or will achieve an outcome. Ask or use conditional language instead.
 
 Return your response as JSON with this exact structure:
 {
@@ -728,7 +730,7 @@ Return your response as JSON with this exact structure:
       maxTokens: 1_600,
       timeoutMs: 30_000,
       messages: [
-        { role: "system", content: `You are an expert B2B sales email copywriter specialising in industrial compressed air and air treatment equipment for project-driven industries in Australia. You are writing about ${profile.systemProductDesc}. You write emails that get responses because they demonstrate genuine understanding of the recipient's specific role, their company, and how Atlas Copco's products solve their particular pain points. You use Australian English spelling. You weave specific product specs into the email naturally, making them feel like solutions to the recipient's problems rather than a product brochure.` },
+        { role: "system", content: `You are an evidence-disciplined B2B sales email copywriter for project-driven industries in Australia. You are writing about ${profile.systemProductDesc}. Contact title, company, employment, buying authority, project participation, equipment needs and pain points may be recorded or inferred but are not independently proven. Never convert them into factual claims. Use Australian English, confirmation-first questions and conditional language, and do not invent performance or product-fit claims.` },
         { role: "user", content: prompt },
       ],
       response_format: {

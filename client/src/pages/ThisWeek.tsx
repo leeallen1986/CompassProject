@@ -24,6 +24,7 @@ import { LaneBadge } from "@/components/LaneBadge";
 import FullPotentialAccountContext from "@/components/FullPotentialAccountContext";
 import FullPotentialNextBest5 from "@/components/FullPotentialNextBest5";
 import { useFullPotentialProjectContexts } from "@/hooks/useFullPotentialProjectContexts";
+import { safeExternalUrl } from "@/lib/projectBuyerRouteView";
 
 // ── Sykes Pump Range Section ──
 const SYKES_SERIES_LABELS: Record<string, { short: string; color: string; models: string }> = {
@@ -105,6 +106,7 @@ function SykesPumpRangeSection({ profile }: { profile: any }) {
               {sykesItems.map((item: any) => {
                 const seriesKey = getSykesSeries(item.name);
                 const seriesInfo = SYKES_SERIES_LABELS[seriesKey];
+                const fileUrl = safeExternalUrl(item.fileUrl);
                 return (
                   <div key={item.id} className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50/40 transition-colors">
                     <Package className="w-4 h-4 text-blue-500 shrink-0" />
@@ -129,14 +131,20 @@ function SykesPumpRangeSection({ profile }: { profile: any }) {
                         {item.matchCount} projects
                       </a>
                     )}
-                    <a
-                      href={item.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" /> View
-                    </a>
+                    {fileUrl ? (
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" /> View
+                      </a>
+                    ) : (
+                      <span className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+                        File unavailable
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -234,6 +242,15 @@ function ContactCTABadge({ project }: { project: any }) {
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-slate-50 text-slate-500 border-slate-200" title={cta.blockedReason}>
         <AlertTriangle className="w-3 h-3" />
         Blocked
+      </span>
+    );
+  }
+
+  if (cta.action === "validate_contacts") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+        <UserCircle className="h-3 w-3" />
+        {cta.label} · {cta.contactCount}
       </span>
     );
   }
@@ -462,6 +479,9 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
         <div className="flex items-center gap-2 text-xs">
           <UserCircle className="w-4 h-4 text-navy shrink-0" />
           <div className="min-w-0">
+            <span className="block text-[10px] font-medium text-muted-foreground">
+              Recorded contact context · employment unverified
+            </span>
             <span className="font-semibold text-navy">{project.bestStakeholder.name}</span>
             {project.bestStakeholder.title && (
               <span className="text-muted-foreground">, {project.bestStakeholder.title}</span>
@@ -480,10 +500,10 @@ function TopActionCard({ action, project, navigate }: { action: any; project: an
         </div>
       )}
 
-      {/* Route to buy */}
+      {/* Route-to-buy scoring is guidance, not a sourced buyer fact. */}
       {routeToBuy && (
         <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-          <span className="shrink-0 font-semibold text-navy/60">Route:</span>
+          <span className="shrink-0 font-semibold text-navy/60">Likely route (inference):</span>
           <span className="line-clamp-1">{routeToBuy}</span>
         </div>
       )}
@@ -712,7 +732,10 @@ export default function ThisWeek() {
     return scopedProjects.filter((p: any) => {
       // Part C: Only show commercially relevant projects in the contact CTA section
       // Must be hot/warm, no send-ready contact, AND have decent lane fit + route-to-buy
-      if (p.bestStakeholder) return false;
+      if (
+        p.contactCTA?.action !== "find_contacts" &&
+        p.contactCTA?.action !== "refresh_contacts"
+      ) return false;
       if (p.priority !== "hot" && p.priority !== "warm") return false;
       // Suppress weak projects: must have at least Medium lane fit or be a direct/crosssell channel
       const laneFit = p.laneFitLabel ?? "Not relevant";

@@ -52,6 +52,26 @@ describe("generateOutreachEmail quota fallback", () => {
       maxTokens: 1_600,
       timeoutMs: 30_000,
     });
+    const [systemMessage, userMessage] = invokeLLM.mock.calls[0][0].messages;
+    expect(systemMessage.content).toContain(
+      "Contact title, company, employment, buying authority, project participation",
+    );
+    expect(userMessage.content).toContain(
+      "RECORDED CONTACT CONTEXT (IDENTITY/MAILBOX CONTEXT ONLY)",
+    );
+    expect(userMessage.content).toContain(
+      "Current employment, title, buying authority and project participation are not independently proven",
+    );
+    expect(userMessage.content).toContain("confirmation-first");
+    expect(userMessage.content).toContain(
+      "FINAL EVIDENCE OVERRIDE (HIGHEST PRIORITY)",
+    );
+    expect(userMessage.content).not.toContain(
+      "You MUST weave at least 2 of their KPIs or pain points",
+    );
+    expect(userMessage.content).not.toContain(
+      "trusted advisor who understands their challenges",
+    );
   });
 
   it("does not silently apply project fallback to other consumers", async () => {

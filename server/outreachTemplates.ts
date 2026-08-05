@@ -254,20 +254,20 @@ export async function personaliseTemplate(input: PersonaliseInput): Promise<{
   const template = await getTemplateById(input.templateId);
   if (!template) throw new Error("Template not found");
 
-  const prompt = `You are an expert sales email personaliser. You have a proven outreach email template that has been successful. Your job is to adapt it for a NEW contact and project while preserving the template's structure, tone, and messaging approach.
+  const prompt = `You are an evidence-disciplined sales email personaliser. Adapt the saved template without preserving or introducing unsupported factual claims.
 
 ORIGINAL TEMPLATE:
 Subject: ${template.subject}
 Body:
 ${template.body}
 
-NEW CONTACT DETAILS:
+RECORDED CONTACT CONTEXT (CURRENT EMPLOYMENT/TITLE UNVERIFIED):
 - Name: ${input.contactName}
 - Title: ${input.contactTitle}
 - Company: ${input.contactCompany}
 - Role: ${input.contactRoleBucket}
 
-NEW PROJECT DETAILS:
+RECORDED PROJECT CONTEXT (EXACT INTERNAL LINK; EXTERNAL PARTICIPATION UNVERIFIED):
 - Project: ${input.projectName}
 - Location: ${input.projectLocation}
 - Value: ${input.projectValue}
@@ -280,13 +280,13 @@ NEW PROJECT DETAILS:
 SENDER: ${input.senderName}, Atlas Copco Power Technique
 
 INSTRUCTIONS:
-1. Keep the same overall structure, flow, and persuasion approach as the original template
-2. Replace all contact-specific details (name, title, company) with the new contact's info
-3. Replace all project-specific details (project name, location, value, equipment) with the new project's info
-4. Adjust any role-specific messaging to match the new contact's role
-5. Keep the same tone and length as the original
+1. Preserve only the template's safe overall structure, tone and length; remove unsupported savings, performance, employment, authority, project-participation or product-need claims
+2. Use the contact's name, but describe title/company only as recorded context that may need confirmation; never assert current employment
+3. Treat project, stage, equipment and business-line fields as recorded or inferred context, not facts about this person's responsibilities or needs
+4. Use confirmation-first and conditional language (for example, ask whether they are the appropriate contact or whether a topic is relevant)
+5. Frame role-specific considerations as common to similar teams, not this recipient's known pain points
 6. Update the sender name
-7. Do NOT add new sections or significantly change the template's proven approach
+7. Do not add invented facts, specific company observations, outcomes or claims
 
 Return ONLY valid JSON:
 {
@@ -307,7 +307,7 @@ Return ONLY valid JSON:
       maxTokens: 1_600,
       timeoutMs: 30_000,
       messages: [
-        { role: "system", content: "You personalise sales email templates. Return only valid JSON." },
+        { role: "system", content: "You personalise sales email templates without turning recorded or inferred context into factual claims. Current employment, project participation, authority and product needs are unproven. Use confirmation-first conditional language. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: {
@@ -381,7 +381,17 @@ Return ONLY valid JSON:
 
   // Record usage only after a usable draft has actually been produced. A
   // quota failure without an authorised fallback must never inflate counts.
-  await incrementTemplateUsage(input.templateId);
+  try {
+    await incrementTemplateUsage(input.templateId);
+  } catch {
+    // Usage accounting is diagnostic. Do not turn a valid AI or fallback
+    // draft into a blank composer when the counter cannot be updated.
+    console.warn("[OutreachTemplate] usage metric unavailable", {
+      templateId: input.templateId,
+      generationMode: result.generationMode ?? "ai",
+      aiUnavailableReason: result.aiUnavailableReason ?? null,
+    });
+  }
   return result;
 }
 

@@ -24,9 +24,13 @@ const INPUT: OutreachInput = {
 describe("buildDeterministicOutreachEmail", () => {
   it("uses only bounded canonical context and returns an explicit fallback mode", () => {
     const result = buildDeterministicOutreachEmail(INPUT, "quota_exhausted");
-    expect(result.subject).toBe("Build Co — Northern Water Upgrade");
+    expect(result.subject).toBe("Northern Water Upgrade — project contact check");
     expect(result.body).toContain("Hi Casey,");
-    expect(result.body).toContain("Portable Air");
+    expect(result.body).not.toContain("Portable Air");
+    expect(result.body).toContain("understand the project's equipment requirements");
+    expect(result.body).not.toContain("Given your role");
+    expect(result.body).not.toContain("role as Procurement Manager at Build Co");
+    expect(result.body).toContain("confirm whether this project is relevant to your current responsibilities");
     expect(result.generationMode).toBe("deterministic_template");
     expect(result.aiUnavailableReason).toBe("quota_exhausted");
   });
@@ -48,5 +52,15 @@ describe("buildDeterministicOutreachEmail", () => {
     expect(result.body).toContain("understand the project's equipment requirements");
     expect(result.body).not.toContain("compressor");
     expect(result.body).not.toContain("saving");
+  });
+
+  it("uses an explicitly selected collateral name without using derived lane matches", () => {
+    const result = buildDeterministicOutreachEmail({
+      ...INPUT,
+      collateralName: "XAS 88 product guide",
+    }, "quota_exhausted");
+    expect(result.body).toContain("XAS 88 product guide");
+    expect(result.body).not.toContain("Portable Air");
+    expect(result.body).toContain("if it proves relevant");
   });
 });

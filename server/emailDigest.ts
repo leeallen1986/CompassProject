@@ -15,7 +15,7 @@ import {
   getProjectsByReportId,
   getContactsByReportId,
   getActiveProjects,
-  getAllContacts,
+  getAllContactsWithOutreachEligibility,
   getPipelineClaimsByUser,
   getDb,
   getEmailRecipients,
@@ -43,9 +43,14 @@ import {
 } from "./laneScoring";
 import { getFeedbackBoostForProjects } from "./mlRanker";
 import { selectProjectContact, type ContactInput } from "./contactSelector";
+import { isExplicitlyNotCrmOrphan } from "./contactSlateTrustPolicy";
 import { resolveTerritories, resolveBusinessLines } from "./canonicalMappings";
 import { ENV } from "./_core/env";
 import { getThisWeekForEmail, type ThisWeekProject, type ThisWeekStakeholder, type SuggestedAction } from "./thisWeekService";
+import {
+  contactsExactlyLinkedToProject,
+  isContactOutreachEligibleForProject,
+} from "./thisWeekContactSelection";
 import { userEmailSendLog, digestScheduleLog, projectValidationGates, digestSendControl, accountPriors } from "../drizzle/schema";
 import { eq, and, gte, inArray, sql } from "drizzle-orm";
 
@@ -344,11 +349,13 @@ interface DigestProject {
 }
 
 interface DigestContact {
+  id: number;
   name: string;
   title: string;
   company: string;
   project: string;
   priority: string;
+  roleBucket: string;
   email: string | null;
   roleRelevance?: string | null;
   linkedin?: string | null;
@@ -358,6 +365,95 @@ interface DigestContact {
   source?: string | null;
   /** Verification score 0-100 */
   verificationScore?: number | null;
+  verificationStatus?: string | null;
+  emailVerified?: boolean | null;
+  enrichmentSource?: string | null;
+  rejectionReason?: string | null;
+  crmOrphan?: boolean | null;
+}
+
+type ProjectedDigestSourceContact = Awaited<
+  ReturnType<typeof getAllContactsWithOutreachEligibility>
+>[number];
+
+function safeDigestLinkedInUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const parsed = new URL(value.trim());
+    const host = parsed.hostname.toLowerCase();
+    if (
+      !parsed.username &&
+      !parsed.password &&
+      (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+      (host === "linkedin.com" || host.endsWith(".linkedin.com"))
+    ) {
+      return parsed.toString();
+    }
+  } catch {
+    // Stored URLs are optional; malformed or unsafe values are withheld.
+  }
+  return null;
+}
+
+/**
+ * Build digest contact context from exact contactProjects IDs only.
+ * Unverified mailbox values are removed before any formatter can see them.
+ */
+export function exactDigestContactsForProject(
+  allContacts: readonly ProjectedDigestSourceContact[],
+  project: Pick<DigestProject, "id" | "name">,
+): DigestContact[] {
+  return contactsExactlyLinkedToProject(allContacts, project.id)
+    .filter(
+      contact =>
+        contact.rejectionReason == null &&
+        isExplicitlyNotCrmOrphan(contact.crmOrphan),
+    )
+    .map(contact => {
+    const sendReady = isContactOutreachEligibleForProject(contact, project.id);
+    const storedTier = contact.contactTrustTier;
+    const effectiveTier = sendReady
+      ? "send_ready"
+      : storedTier === "llm_inferred"
+        ? "llm_inferred"
+        : "named_unverified";
+    const priority =
+      contact.priority === "hot" || contact.priority === "warm"
+        ? contact.priority
+        : "cold";
+
+      return {
+      id: contact.id,
+      name: contact.name,
+      title: contact.title,
+      company: contact.company,
+      project: project.name,
+      priority,
+      roleBucket: contact.roleBucket,
+      email: sendReady ? contact.email?.trim() || null : null,
+      roleRelevance: contact.roleRelevance ?? null,
+      linkedin: safeDigestLinkedInUrl(
+        contact.linkedinProfileUrl ?? contact.linkedin,
+      ),
+      contactTrustTier: effectiveTier,
+      source: contact.enrichmentSource ?? null,
+      verificationScore: contact.verificationScore ?? null,
+      verificationStatus: contact.verificationStatus ?? null,
+      emailVerified: contact.emailVerified ?? null,
+      enrichmentSource: contact.enrichmentSource ?? null,
+      rejectionReason: contact.rejectionReason ?? null,
+      crmOrphan: contact.crmOrphan ?? null,
+      };
+    });
+}
+
+function exactDigestContactsForProjects(
+  allContacts: readonly ProjectedDigestSourceContact[],
+  projects: readonly Pick<DigestProject, "id" | "name">[],
+): DigestContact[] {
+  return projects.flatMap(project =>
+    exactDigestContactsForProject(allContacts, project),
+  );
 }
 
 /**
@@ -394,11 +490,12 @@ export function classifyBriefReadiness(
     projectOwner: (project as any).owner ?? "",
     projectState: (project as any).projectState ?? null,
     isPumpLane: options?.isPumpLane,
+    contactsAreExactProjectLinks: true,
   });
 
   if (contactSelection.salesReadiness === "send_ready" && contactSelection.selectedContact) {
     const best = contactSelection.selectedContact;
-    const rawContact = (projectContacts as any[]).find(c => c.name === best.name);
+    const rawContact = projectContacts.find(c => c.id === best.id);
     return {
       readiness: "action_ready",
       bestContact: {
@@ -420,7 +517,7 @@ export function classifyBriefReadiness(
   if (!project.hasNoContacts && project.actionTier === "tier1_actionable" &&
       contactSelection.selectedContact && contactSelection.selectedContact.email) {
     const best = contactSelection.selectedContact;
-    const rawContact = (projectContacts as any[]).find(c => c.name === best.name);
+    const rawContact = projectContacts.find(c => c.id === best.id);
     return {
       readiness: "action_ready",
       bestContact: {
@@ -859,7 +956,7 @@ function formatThisWeekSection(
           .filter((n): n is string => n !== null)
           .slice(0, 2);
         if (cleanContractors.length > 0) {
-          section += `   🔧 Contractors: ${cleanContractors.join(", ")}\n`;
+          section += `   🔧 Recorded contractor/package entries (participation unverified): ${cleanContractors.join(", ")}\n`;
         }
       }
       if (p.overview) {
@@ -873,9 +970,11 @@ function formatThisWeekSection(
   if (top2Stakeholders.length > 0) {
     section += `**New Stakeholder Discoveries:**\n\n`;
     for (const s of top2Stakeholders) {
-      const relBadge = s.roleRelevance === "high" ? "🔑 KEY" : "📋 MED";
-      section += `${relBadge} **${s.name}** — ${s.title} at ${s.company}\n`;
-      section += `   Project: ${s.project}`;
+      const relBadge = s.trustTier === "send_ready"
+        ? "✅ SEND-READY"
+        : "⚠️ VALIDATE FIRST";
+      section += `${relBadge} **${s.name}** — Recorded context: ${s.title} · ${s.company} (employment not independently verified)\n`;
+      section += `   Project: ${s.project} | Exact persisted project link`;
       if (s.email) section += ` | Email: ${s.email}`;
       if (s.linkedin) section += ` | [LinkedIn](${s.linkedin})`;
       section += `\n\n`;
@@ -1943,18 +2042,19 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
   // across scrapers (each creates its own report row). Instead we load all active
   // projects and let the per-user scoring + tier classification handle relevance.
   const allProjects = await getActiveProjects();
-  let allContacts = await getAllContacts();
+  let allContacts = await getAllContactsWithOutreachEligibility();
   console.log(`[EmailDigest] Loaded ${allProjects.length} active projects, ${allContacts.length} quality contacts (report.id=${report.id} used for metadata only)`);
 
   // ── Pre-digest enrichment: target hot/tier1 projects with no send-ready contacts ──
   // This runs BEFORE per-user scoring so enriched contacts are available for all reps.
   try {
-    const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
     const enrichCandidates = allProjects
       .filter(p =>
         (p.priority === "hot" || (p as any).actionTier === "tier1_actionable") &&
         !p.suppressed &&
-        !contactProjectNames.has(p.name)
+        !exactDigestContactsForProject(allContacts, p).some(
+          contact => contact.contactTrustTier === "send_ready" && contact.email,
+        )
       )
       .slice(0, 5); // cap at 5 to keep digest latency reasonable
 
@@ -1970,7 +2070,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         }
       }
       // Re-fetch contacts after enrichment so new contacts appear in the digest
-      allContacts = await getAllContacts();
+      allContacts = await getAllContactsWithOutreachEligibility();
       console.log(`[EmailDigest] Post-enrichment contact count: ${allContacts.length}`);
     }
   } catch (enrichErr) {
@@ -2123,31 +2223,16 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
       // Get pipeline count
       const pipeline = await getPipelineClaimsByUser(user.id);
 
-      // Get matched contacts (from same projects)
-      const matchedProjectNames = new Set(matchedProjects.map(p => p.name));
-      const matchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
+      // Contacts are bound to matched projects by exact contactProjects IDs.
+      const matchedContacts = exactDigestContactsForProjects(
+        allContacts,
+        matchedProjects,
+      );
 
-      // Part D: annotate each project with hasNoContacts + briefReadiness
-      // Contacts join by project name (not projectId), so use name-based lookup
-      const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
+      // Part D: annotate each project with hasNoContacts + briefReadiness.
       const annotatedProjects = matchedProjects.map(p => {
-        const hasNoContacts = !contactProjectNames.has(p.name);
-        // Find contacts for this project (fuzzy name match)
-        const projectContacts: DigestContact[] = matchedContacts
-          .filter(c =>
-            c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-            p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
-          )
-          .map(c => ({
-            ...c,
-            roleRelevance: (c as any).roleRelevance ?? null,
-            linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
-            // Pass trust tier through so classifyBriefReadiness can enforce it
-            contactTrustTier: (c as any).contactTrustTier ?? null,
-            // Pass source + verificationScore for gate defensibility check
-            source: (c as any).source ?? null,
-            verificationScore: (c as any).verificationScore ?? null,
-          }));
+        const projectContacts = exactDigestContactsForProject(allContacts, p);
+        const hasNoContacts = projectContacts.length === 0;
          const { readiness, bestContact } = classifyBriefReadiness(
           { ...p, hasNoContacts },
           projectContacts,
@@ -2365,9 +2450,9 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
                     .orderBy(descFn(projectEnrichmentCache.enrichedAt))
                     .limit(1);
                   // Count send_ready contacts for this project
-                  const projectContacts = matchedContacts.filter(c =>
-                    c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-                    p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
+                  const projectContacts = exactDigestContactsForProject(
+                    allContacts,
+                    p,
                   );
                   const sendReadyCount = projectContacts.filter(c => (c as any).contactTrustTier === "send_ready").length;
                   return {
@@ -2392,25 +2477,14 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
                     }
                   }
                   // Re-fetch contacts after rescue enrichment
-                  allContacts = await getAllContacts();
+                  allContacts = await getAllContactsWithOutreachEligibility();
                   // Re-annotate projects with fresh contact data
-                  const freshMatchedContacts = allContacts.filter(c => matchedProjectNames.has(c.project));
-                  const freshContactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
                   const freshAnnotatedProjects = matchedProjects.map(p => {
-                    const hasNoContacts = !freshContactProjectNames.has(p.name);
-                    const projectContacts: DigestContact[] = freshMatchedContacts
-                      .filter(c =>
-                        c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-                        p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
-                      )
-                      .map(c => ({
-                        ...c,
-                        roleRelevance: (c as any).roleRelevance ?? null,
-                        linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
-                        contactTrustTier: (c as any).contactTrustTier ?? null,
-                        source: (c as any).source ?? null,
-                        verificationScore: (c as any).verificationScore ?? null,
-                      }));
+                    const projectContacts = exactDigestContactsForProject(
+                      allContacts,
+                      p,
+                    );
+                    const hasNoContacts = projectContacts.length === 0;
                     const { readiness, bestContact: freshBestContact } = classifyBriefReadiness(
                       { ...p, hasNoContacts },
                       projectContacts,
@@ -2502,24 +2576,13 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
                           const lushaResult = await lushaRescueForRep(lushaCandidates);
                           if (lushaResult.totalPromoted > 0) {
                             // Re-fetch and re-gate one more time
-                            allContacts = await getAllContacts();
-                            const lushaFreshMatched = allContacts.filter(c => matchedProjectNames.has(c.project));
-                            const lushaFreshContactNames = new Set(allContacts.map(c => c.project).filter(Boolean));
+                            allContacts = await getAllContactsWithOutreachEligibility();
                             const lushaFreshAnnotated = matchedProjects.map(p => {
-                              const hasNoContacts = !lushaFreshContactNames.has(p.name);
-                              const pContacts: DigestContact[] = lushaFreshMatched
-                                .filter(c =>
-                                  c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-                                  p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
-                                )
-                                .map(c => ({
-                                  ...c,
-                                  roleRelevance: (c as any).roleRelevance ?? null,
-                                  linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
-                                  contactTrustTier: (c as any).contactTrustTier ?? null,
-                                  source: (c as any).source ?? null,
-                                  verificationScore: (c as any).verificationScore ?? null,
-                                }));
+                              const pContacts = exactDigestContactsForProject(
+                                allContacts,
+                                p,
+                              );
+                              const hasNoContacts = pContacts.length === 0;
                               const { readiness, bestContact: bc } = classifyBriefReadiness({ ...p, hasNoContacts }, pContacts, { isPumpLane: isPumpLaneRep((profile.assignedBusinessLines as string[] | null) || []) });
                               return { ...p, hasNoContacts, briefReadiness: readiness, bestContact: bc };
                             });
@@ -2638,14 +2701,7 @@ export async function sendWeeklyDigests(force = false, dryRun = false): Promise<
         user.name || "Team Member",
         report.weekEnding,
         annotatedProjects,
-        matchedContacts.map(c => ({
-          name: c.name,
-          title: c.title,
-          company: c.company,
-          project: c.project,
-          priority: c.priority,
-          email: c.email,
-        })),
+        matchedContacts,
         pipeline.length,
         thisWeekSection,
         territories,
@@ -3210,7 +3266,7 @@ export async function sendWeeklyDigestToUser(userId: number, forceOverride = fal
     try {
       const { sendWeeklyDigestsForUser: _previewFn } = await import("./emailDigest");
       // Build email signals by re-running the annotation pipeline for this user
-      const { getActiveProjects: _getProjects, getAllContacts: _getContacts, getLatestReport: _getReport, getPipelineClaimsByUser: _getPipeline, getDb: _getDb, getLatestPipelineRun: _getRun } = await import("./db");
+      const { getActiveProjects: _getProjects, getAllContactsWithOutreachEligibility: _getContacts, getLatestReport: _getReport, getPipelineClaimsByUser: _getPipeline, getDb: _getDb, getLatestPipelineRun: _getRun } = await import("./db");
       const { scoreAndFilterProjects: _score } = await import("./emailDigest");
       const { resolveTerritories: _resolveTerr } = await import("./canonicalMappings");
       const { classifyBriefReadiness: _classify } = await import("./emailDigest");
@@ -3235,23 +3291,12 @@ export async function sendWeeklyDigestToUser(userId: number, forceOverride = fal
             assignedBusinessLines: _profile2.assignedBusinessLines as string[] | null,
             salesMotion: (_profile2 as any).salesMotion as "direct_only" | "mixed" | null,
           });
-          const _contactProjectNames2 = new Set(_allContacts2.map((c: any) => c.project).filter(Boolean));
-          const _matchedContacts2 = _allContacts2.filter((c: any) => new Set(_matched2.map((p: any) => p.name)).has(c.project));
           const _annotated2 = _matched2.map((p: any) => {
-            const hasNoContacts = !_contactProjectNames2.has(p.name);
-            const projectContacts = _matchedContacts2
-              .filter((c: any) =>
-                c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-                p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
-              )
-              .map((c: any) => ({
-                name: c.name, title: c.title, company: c.company, project: c.project,
-                priority: c.priority, email: c.email, roleRelevance: (c as any).roleRelevance ?? null,
-                linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
-                contactTrustTier: (c as any).contactTrustTier ?? null,
-                source: (c as any).source ?? null,
-                verificationScore: (c as any).verificationScore ?? null,
-              }));
+            const projectContacts = exactDigestContactsForProject(
+              _allContacts2,
+              p,
+            );
+            const hasNoContacts = projectContacts.length === 0;
             const { readiness, bestContact } = _classify({ ...p, hasNoContacts }, projectContacts);
             return { ...p, hasNoContacts, briefReadiness: readiness, bestContact };
           });
@@ -3332,7 +3377,7 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     : `Data as of: ${report.weekEnding}`;
 
   const allProjects = await getActiveProjects();
-  const allContacts = await getAllContacts();
+  const allContacts = await getAllContactsWithOutreachEligibility();
 
   const db = await getDb();
   if (!db) return null;
@@ -3365,25 +3410,9 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     salesMotion: (profile as any).salesMotion as "direct_only" | "mixed" | null,
     repName: (profile as any).repName || null,
   });
-  const contactProjectNames = new Set(allContacts.map(c => c.project).filter(Boolean));
-  const matchedContacts2 = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const annotatedProjects = matchedProjects.map(p => {
-    const hasNoContacts = !contactProjectNames.has(p.name);
-    const projectContacts: DigestContact[] = matchedContacts2
-      .filter(c =>
-        c.project.toLowerCase().includes(p.name.toLowerCase().slice(0, 30)) ||
-        p.name.toLowerCase().includes(c.project.toLowerCase().slice(0, 30))
-      )
-      .map(c => ({
-        name: c.name, title: c.title, company: c.company, project: c.project, priority: c.priority, email: c.email,
-        roleRelevance: (c as any).roleRelevance ?? null,
-        linkedin: (c as any).linkedinProfileUrl ?? (c as any).linkedin ?? null,
-        // Pass trust tier through so classifyBriefReadiness can enforce it
-        contactTrustTier: (c as any).contactTrustTier ?? null,
-        // Pass source + verificationScore for gate defensibility check
-        source: (c as any).source ?? null,
-        verificationScore: (c as any).verificationScore ?? null,
-      }));
+    const projectContacts = exactDigestContactsForProject(allContacts, p);
+    const hasNoContacts = projectContacts.length === 0;
     const { readiness, bestContact } = classifyBriefReadiness(
       { ...p, hasNoContacts },
       projectContacts,
@@ -3392,21 +3421,17 @@ export async function sendWeeklyDigestsForUser(userId: number): Promise<{
     return { ...p, hasNoContacts, briefReadiness: readiness, bestContact };
   });
   const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
-  const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
+  const matchedContacts = exactDigestContactsForProjects(
+    allContacts,
+    matchedProjects,
+  );
   const pipeline = await getPipelineClaimsByUser(userId);
 
   const content = generateMondayDigest(
     user.name || "Team Member",
     report.weekEnding,
     annotatedProjects,
-    matchedContacts.map(c => ({
-      name: c.name,
-      title: c.title,
-      company: c.company,
-      project: c.project,
-      priority: c.priority,
-      email: c.email,
-    })),
+    matchedContacts,
     pipeline.length,
     thisWeekSection,
     territories,
@@ -3443,8 +3468,6 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     : `Data as of: ${report.weekEnding}`;
 
   const allProjects = await getActiveProjects();
-  const allContacts = await getAllContacts();
-
   const db = await getDb();
   if (!db) return null;
   const { users: usersTable, userProfiles: userProfilesTable } = await import("../drizzle/schema");
@@ -3466,7 +3489,6 @@ export async function sendThursdayReminderForUser(userId: number): Promise<{
     repName: user.name || null,
   });
   const territories = resolveTerritories(profile.territories as string[] | null, profile.sectorFocus as string[] | null);
-  const matchedContacts = allContacts.filter(c => new Set(matchedProjects.map(p => p.name)).has(c.project));
   const pipeline = await getPipelineClaimsByUser(userId);;
 
   let thisWeekSection = "";
