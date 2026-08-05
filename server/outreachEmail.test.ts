@@ -122,9 +122,9 @@ describe("outreachEmail", () => {
         choices: [{ message: { content: null } }],
       });
 
-      await expect(generateOutreachEmail(sampleInput)).rejects.toThrow(
-        "LLM returned empty response"
-      );
+      await expect(generateOutreachEmail(sampleInput)).rejects.toMatchObject({
+        kind: "malformed_response",
+      });
     });
 
     it("throws when LLM returns invalid JSON", async () => {
@@ -133,7 +133,9 @@ describe("outreachEmail", () => {
         choices: [{ message: { content: "not valid json" } }],
       });
 
-      await expect(generateOutreachEmail(sampleInput)).rejects.toThrow();
+      await expect(generateOutreachEmail(sampleInput)).rejects.toMatchObject({
+        kind: "malformed_response",
+      });
     });
   });
 
