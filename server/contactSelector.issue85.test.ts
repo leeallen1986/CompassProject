@@ -28,6 +28,7 @@ function makeContact(overrides: Partial<ContactInput> = {}): ContactInput {
     priority: "hot",
     roleBucket: "manager",
     email: "bob@buildco.com",
+    enrichmentSource: "linkedin",
     contactTrustTier: "send_ready",
     emailVerified: true,
     verificationStatus: "verified",
@@ -56,38 +57,104 @@ describe("selectProjectContact — Issue #85 send_ready policy", () => {
   it("does not select a send_ready contact with empty email", () => {
     const contact = makeContact({ email: null });
     const result = selectProjectContact([contact], BASE_OPTIONS);
-    // No email → not effectively send_ready
     expect(result.selectedContact).toBeNull();
+    expect(result.salesReadiness).toBe("no_contact");
   });
 
-  it("does not select a send_ready contact with emailVerified=false", () => {
-    const contact = makeContact({ emailVerified: false });
+  it("does not select a send_ready contact with a whitespace-only email", () => {
+    const contact = makeContact({ email: "   \t" });
     const result = selectProjectContact([contact], BASE_OPTIONS);
     expect(result.selectedContact).toBeNull();
+    expect(result.salesReadiness).toBe("no_contact");
   });
 
-  it("does not select a send_ready contact with verificationStatus != verified", () => {
-    const contact = makeContact({ verificationStatus: "unverified" });
-    const result = selectProjectContact([contact], BASE_OPTIONS);
-    expect(result.selectedContact).toBeNull();
-  });
+  it.each(
+    [
+      ["emailVerified=false", { emailVerified: false }],
+      ["emailVerified=null", { emailVerified: null }],
+      ["emailVerified=undefined", { emailVerified: undefined }],
+      ["verificationStatus unverified", { verificationStatus: "unverified" }],
+      ["verificationStatus=null", { verificationStatus: null }],
+      ["verificationStatus=undefined", { verificationStatus: undefined }],
+    ] satisfies Array<[string, Partial<ContactInput>]>,
+  )(
+    "fails closed when %s",
+    (_description, overrides) => {
+      const result = selectProjectContact([makeContact(overrides)], BASE_OPTIONS);
+      expect(result.selectedContact).toBeNull();
+      expect(result.salesReadiness).toBe("no_contact");
+    },
+  );
 
   it("does not select a crmOrphan contact even if send_ready", () => {
     const contact = makeContact({ crmOrphan: true });
     const result = selectProjectContact([contact], BASE_OPTIONS);
     expect(result.selectedContact).toBeNull();
+    expect(result.fallbackContacts).toEqual([]);
+    expect(result.salesReadiness).toBe("no_contact");
   });
 
-  it("does not select a contact with a rejectionReason", () => {
-    const contact = makeContact({ rejectionReason: "bounced" });
+  it.each([null, undefined])(
+    "fails closed when crmOrphan is %s",
+    crmOrphan => {
+      const result = selectProjectContact(
+        [makeContact({ crmOrphan })],
+        BASE_OPTIONS,
+      );
+      expect(result.selectedContact).toBeNull();
+      expect(result.fallbackContacts).toEqual([]);
+    },
+  );
+
+  it.each(["bounced", ""])(
+    "does not select a contact with rejectionReason=%j",
+    rejectionReason => {
+      const result = selectProjectContact(
+        [makeContact({ rejectionReason })],
+        BASE_OPTIONS,
+      );
+      expect(result.selectedContact).toBeNull();
+      expect(result.fallbackContacts).toEqual([]);
+      expect(result.salesReadiness).toBe("no_contact");
+    },
+  );
+
+  it("excludes a crmOrphan named_unverified contact from fallbacks", () => {
+    const contact = makeContact({
+      contactTrustTier: "named_unverified",
+      emailVerified: false,
+      crmOrphan: true,
+    });
     const result = selectProjectContact([contact], BASE_OPTIONS);
     expect(result.selectedContact).toBeNull();
+    expect(result.fallbackContacts).toEqual([]);
+    expect(result.salesReadiness).toBe("no_contact");
+  });
+
+  it("excludes a named_unverified contact with an empty rejection reason from fallbacks", () => {
+    const contact = makeContact({
+      contactTrustTier: "named_unverified",
+      emailVerified: false,
+      rejectionReason: "",
+    });
+    const result = selectProjectContact([contact], BASE_OPTIONS);
+    expect(result.selectedContact).toBeNull();
+    expect(result.fallbackContacts).toEqual([]);
+    expect(result.salesReadiness).toBe("no_contact");
   });
 
   it("never selects llm_inferred as primary", () => {
     const llm = makeContact({ id: 2, contactTrustTier: "llm_inferred" });
     const result = selectProjectContact([llm], BASE_OPTIONS);
     expect(result.selectedContact).toBeNull();
+  });
+
+  it("rejects an inconsistent send_ready row whose source is LLM", () => {
+    const result = selectProjectContact([
+      makeContact({ enrichmentSource: "llm", contactTrustTier: "send_ready" }),
+    ], BASE_OPTIONS);
+    expect(result.selectedContact).toBeNull();
+    expect(result.salesReadiness).toBe("no_contact");
   });
 
   it("puts named_unverified in fallbackContacts, not selectedContact", () => {
@@ -97,13 +164,11 @@ describe("selectProjectContact — Issue #85 send_ready policy", () => {
       emailVerified: false,
     });
     const result = selectProjectContact([named], BASE_OPTIONS);
-    // named_unverified should NOT be selectedContact (per Issue #85 spec)
-    // It may appear in fallbackContacts
-    if (result.selectedContact !== null) {
-      expect(result.selectedContact.trustTier).not.toBe("llm_inferred");
-    }
-    // salesReadiness must not be "send_ready" if no effectively-send-ready contact
-    expect(result.salesReadiness).not.toBe("send_ready");
+    expect(result.selectedContact).toBeNull();
+    expect(result.salesReadiness).toBe("needs_verification");
+    expect(result.fallbackContacts).toEqual([
+      expect.objectContaining({ id: 3, trustTier: "named_unverified" }),
+    ]);
   });
 
   it("prefers send_ready over named_unverified when both present", () => {
@@ -115,6 +180,19 @@ describe("selectProjectContact — Issue #85 send_ready policy", () => {
     });
     const result = selectProjectContact([named, sendReady], BASE_OPTIONS);
     expect(result.selectedContact?.id).toBe(1);
+    expect(result.salesReadiness).toBe("send_ready");
+  });
+
+  it("does not discard an exact-linked contact because legacy project text is stale", () => {
+    const contact = makeContact({
+      project: "Unrelated legacy project text",
+      company: "Unrelated contractor name",
+    });
+    const result = selectProjectContact([contact], {
+      ...BASE_OPTIONS,
+      contactsAreExactProjectLinks: true,
+    });
+    expect(result.selectedContact?.id).toBe(contact.id);
     expect(result.salesReadiness).toBe("send_ready");
   });
 
