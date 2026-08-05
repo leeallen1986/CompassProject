@@ -9,19 +9,29 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TRPCError } from "@trpc/server";
 
 // ── DB mock ──────────────────────────────────────────────────────────────────
-const mockLimit = vi.fn();
-const mockWhere = vi.fn();
-const mockFrom = vi.fn();
-const mockSelect = vi.fn();
-const mockDb = { select: mockSelect };
-
-vi.mock("./db", async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
+const {
+  mockLimit,
+  mockWhere,
+  mockFrom,
+  mockSelect,
+  mockDb,
+} = vi.hoisted(() => {
+  const mockLimit = vi.fn();
+  const mockWhere = vi.fn();
+  const mockFrom = vi.fn();
+  const mockSelect = vi.fn();
   return {
-    ...actual,
-    getDb: vi.fn().mockResolvedValue(mockDb),
+    mockLimit,
+    mockWhere,
+    mockFrom,
+    mockSelect,
+    mockDb: { select: mockSelect },
   };
 });
+
+vi.mock("./db", () => ({
+  getDb: vi.fn().mockResolvedValue(mockDb),
+}));
 
 // ── Schema mock (pass-through eq/and) ────────────────────────────────────────
 vi.mock("../drizzle/schema", () => ({
@@ -47,6 +57,7 @@ const makeContact = (overrides: Record<string, unknown> = {}) => ({
   email: "alice@acme.com",
   roleBucket: "manager",
   contactTrustTier: "send_ready",
+  enrichmentSource: "linkedin",
   emailVerified: true,
   verificationStatus: "verified",
   rejectionReason: null,
@@ -107,6 +118,12 @@ describe("resolveOutreachContext — Issue #85 trust boundary guard", () => {
       });
     });
 
+    it("throws BAD_REQUEST when contactId exceeds the safe integer range", async () => {
+      const { resolveOutreachContext } = await import("./projectOutreachGuard");
+      await expect(resolveOutreachContext(Number.MAX_SAFE_INTEGER + 1, 10))
+        .rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
     it("throws BAD_REQUEST when projectId is 0", async () => {
       const { resolveOutreachContext } = await import("./projectOutreachGuard");
       await expect(resolveOutreachContext(1, 0)).rejects.toMatchObject({
@@ -158,6 +175,18 @@ describe("resolveOutreachContext — Issue #85 trust boundary guard", () => {
         message: "This contact is not linked to the selected project.",
       });
     });
+
+    it("queries the exact contactId and projectId pair", async () => {
+      setupDbChain([[makeContact()], [makeProject()], [makeLink()]]);
+      const { resolveOutreachContext } = await import("./projectOutreachGuard");
+
+      await resolveOutreachContext(1, 10);
+
+      expect(mockWhere).toHaveBeenNthCalledWith(3, [
+        { col: "contactProjects.contactId", val: 1 },
+        { col: "contactProjects.projectId", val: 10 },
+      ]);
+    });
   });
 
   // ── crmOrphan gate ──────────────────────────────────────────────────────────
@@ -170,6 +199,22 @@ describe("resolveOutreachContext — Issue #85 trust boundary guard", () => {
         message: "This contact is not eligible for outreach.",
       });
     });
+
+    it.each([null, undefined])(
+      "fails closed when crmOrphan is %s",
+      async crmOrphan => {
+        setupDbChain([
+          [makeContact({ crmOrphan })],
+          [makeProject()],
+          [makeLink()],
+        ]);
+        const { resolveOutreachContext } = await import("./projectOutreachGuard");
+        await expect(resolveOutreachContext(1, 10)).rejects.toMatchObject({
+          code: "FORBIDDEN",
+          message: "This contact is not eligible for outreach.",
+        });
+      },
+    );
   });
 
   // ── Slate eligibility gate ──────────────────────────────────────────────────
@@ -203,6 +248,17 @@ describe("resolveOutreachContext — Issue #85 trust boundary guard", () => {
 
   // ── Send-ready gate ─────────────────────────────────────────────────────────
   describe("send-ready gate", () => {
+    it("fails closed for an LLM source even if the tier says send_ready", async () => {
+      setupDbChain([
+        [makeContact({ enrichmentSource: "llm" })],
+        [makeProject()],
+        [makeLink()],
+      ]);
+      const { resolveOutreachContext } = await import("./projectOutreachGuard");
+      await expect(resolveOutreachContext(1, 10)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+    });
     it("throws FORBIDDEN when email is empty", async () => {
       setupDbChain([
         [makeContact({ email: "" })],
@@ -252,6 +308,26 @@ describe("resolveOutreachContext — Issue #85 trust boundary guard", () => {
       await expect(resolveOutreachContext(1, 10)).rejects.toMatchObject({
         code: "FORBIDDEN",
         message: expect.stringContaining("verified email"),
+      });
+    });
+
+    it.each([
+      ["whitespace-only email", { email: "   " }, "verified email"],
+      ["missing emailVerified", { emailVerified: undefined }, "verified email"],
+      ["null emailVerified", { emailVerified: null }, "verified email"],
+      ["missing verificationStatus", { verificationStatus: undefined }, "verified email"],
+      ["null verificationStatus", { verificationStatus: null }, "verified email"],
+      ["empty rejection reason", { rejectionReason: "" }, "flagged"],
+    ])("fails closed for %s", async (_label, overrides, message) => {
+      setupDbChain([
+        [makeContact(overrides)],
+        [makeProject()],
+        [makeLink()],
+      ]);
+      const { resolveOutreachContext } = await import("./projectOutreachGuard");
+      await expect(resolveOutreachContext(1, 10)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: expect.stringContaining(message),
       });
     });
   });
