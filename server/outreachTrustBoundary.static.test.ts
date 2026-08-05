@@ -30,6 +30,13 @@ function sliceBetween(src: string, startMarker: string, endMarker: string): stri
 describe("Issue #85 — Static trust boundary checks", () => {
   const routersSrc = readSrc("server/routers.ts");
   const guardSrc = readSrc("server/projectOutreachGuard.ts");
+  const contactValidationRouterSrc = readSrc("server/routers/contactValidation.ts");
+
+  it("loads enrichment provenance for human validation transitions", () => {
+    expect(contactValidationRouterSrc).toContain(
+      "enrichmentSource: contacts.enrichmentSource",
+    );
+  });
 
   // ── Guard file invariants ───────────────────────────────────────────────────
   describe("projectOutreachGuard.ts invariants", () => {
