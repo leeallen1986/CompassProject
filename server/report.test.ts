@@ -15,7 +15,7 @@ vi.mock("./db", async (importOriginal) => {
     getDrillingCampaignsByReportId: vi.fn(),
     getAwardedProjectsByReportId: vi.fn(),
     getAllProjects: vi.fn(),
-    getAllContacts: vi.fn(),
+    getAllContactsWithOutreachEligibility: vi.fn(),
     getAllDrillingCampaigns: vi.fn(),
     getAllAwardedProjects: vi.fn(),
     createReport: vi.fn(),
@@ -35,7 +35,7 @@ import {
   getDrillingCampaignsByReportId,
   getAwardedProjectsByReportId,
   getAllProjects,
-  getAllContacts,
+  getAllContactsWithOutreachEligibility,
   getAllDrillingCampaigns,
   getAllAwardedProjects,
   createReport,
@@ -212,7 +212,7 @@ describe("report.full", () => {
   it("returns aggregated data from all reports with ML ranking", async () => {
     vi.mocked(getLatestReport).mockResolvedValue(mockReport);
     vi.mocked(getAllProjects).mockResolvedValue([mockProject]);
-    vi.mocked(getAllContacts).mockResolvedValue([mockContact]);
+    vi.mocked(getAllContactsWithOutreachEligibility).mockResolvedValue([mockContact] as any);
     vi.mocked(getAllDrillingCampaigns).mockResolvedValue([mockDrilling]);
     vi.mocked(getAllAwardedProjects).mockResolvedValue([mockAwarded]);
 
@@ -227,13 +227,13 @@ describe("report.full", () => {
     expect(result!.drillingCampaigns).toEqual([mockDrilling]);
     expect(result!.awardedProjects).toEqual([mockAwarded]);
     expect(getAllProjects).toHaveBeenCalledOnce();
-    expect(getAllContacts).toHaveBeenCalledOnce();
+    expect(getAllContactsWithOutreachEligibility).toHaveBeenCalledOnce();
   });
 
   it("returns full report data for a specific report ID", async () => {
     vi.mocked(getReportById).mockResolvedValue(mockReport);
     vi.mocked(getAllProjects).mockResolvedValue([mockProject]);
-    vi.mocked(getAllContacts).mockResolvedValue([mockContact]);
+    vi.mocked(getAllContactsWithOutreachEligibility).mockResolvedValue([mockContact] as any);
     vi.mocked(getAllDrillingCampaigns).mockResolvedValue([mockDrilling]);
     vi.mocked(getAllAwardedProjects).mockResolvedValue([mockAwarded]);
 
@@ -247,7 +247,7 @@ describe("report.full", () => {
   it("returns synthetic report when no report exists (still shows all projects)", async () => {
     vi.mocked(getLatestReport).mockResolvedValue(null);
     vi.mocked(getAllProjects).mockResolvedValue([]);
-    vi.mocked(getAllContacts).mockResolvedValue([]);
+    vi.mocked(getAllContactsWithOutreachEligibility).mockResolvedValue([]);
     vi.mocked(getAllDrillingCampaigns).mockResolvedValue([]);
     vi.mocked(getAllAwardedProjects).mockResolvedValue([]);
 
