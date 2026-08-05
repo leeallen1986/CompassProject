@@ -1,0 +1,46 @@
+name: Full Potential Rental relationship validation
+
+on:
+  pull_request:
+    paths:
+      - "server/fullPotentialRentalRelationshipReconciliation.ts"
+      - "server/fullPotentialRentalRelationshipReconciliation.test.ts"
+      - "server/fullPotentialRentalRelationshipReconcile.cli.test.ts"
+      - "server/scripts/fullPotentialRentalRelationshipReconcile.ts"
+      - "docs/full-potential-rental-relationship-reconciliation.md"
+      - ".github/workflows/full-potential-rental-relationship-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm tsc --noEmit
+      - name: Relationship reconciliation tests
+        run: >-
+          pnpm vitest run
+          server/fullPotentialRentalRelationshipReconciliation.test.ts
+          server/fullPotentialRentalRelationshipReconcile.cli.test.ts
+          server/fullPotentialRentalWorkspacePolicy.test.ts
+          server/fullPotentialRentalCanonicalWorkspace.test.ts
+          server/fullPotentialRentalAuScope.test.ts
+      - name: CLI help
+        run: >-
+          pnpm exec tsx
+          server/scripts/fullPotentialRentalRelationshipReconcile.ts
+          --help
+      - name: Production build
+        run: pnpm build
