@@ -22,6 +22,7 @@ on:
       - "server/contactSlateTrustPolicy.issue85.test.ts"
       - "server/contactValidationState.ts"
       - "server/contactValidationState.test.ts"
+      - "server/routers/contactValidation.ts"
       - "server/db.ts"
       - "server/outreachContactProjection.ts"
       - "server/outreachContactProjection.test.ts"
