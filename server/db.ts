@@ -25,6 +25,7 @@ import { ENV } from './_core/env';
 import { fullPotentialAccounts } from '../drizzle/fullPotentialSchema';
 import type { FpProductFamily } from "@shared/const";
 import { ATTRIBUTED_SOURCE_TYPES } from "@shared/const";
+import { attachOutreachContactProjection } from "./outreachContactProjection";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -255,6 +256,26 @@ export async function getContactsForProject(projectId: number) {
       isNull(contacts.rejectionReason)
     )
   ).limit(20);
+}
+
+/**
+ * Fetch contacts through the exact contactProjects junction only.
+ *
+ * This is the source for contact selection and all contactable UI state. The
+ * legacy free-text fallback in getContactsForProject remains display-only.
+ */
+export async function getLinkedContactsForProject(projectId: number) {
+  const db = await getDb();
+  if (!db || !Number.isSafeInteger(projectId) || projectId <= 0) return [];
+
+  const links = await db
+    .select({ contactId: contactProjects.contactId })
+    .from(contactProjects)
+    .where(eq(contactProjects.projectId, projectId));
+  const contactIds = Array.from(new Set(links.map(link => link.contactId)));
+  if (contactIds.length === 0) return [];
+
+  return db.select().from(contacts).where(inArray(contacts.id, contactIds));
 }
 
 /**
@@ -546,6 +567,26 @@ export async function getAllContacts(includeAll = false) {
       sql`(${contacts.verificationScore} >= 60 OR ${contacts.enrichmentSource} = 'linkedin' OR ${contacts.verificationStatus} = 'verified') AND ${CRM_JUNK_EXCLUSION} AND ${contacts.rejectionReason} IS NULL`
     )
     .orderBy(desc(contacts.id));
+}
+
+/**
+ * Rep-facing contacts with an authoritative, server-computed project outreach
+ * projection. The projection contains exact junction IDs only and fails closed
+ * under the central contact trust policy.
+ */
+export async function getAllContactsWithOutreachEligibility(includeAll = false) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const [contactRows, links] = await Promise.all([
+    getAllContacts(includeAll),
+    db.select({
+      contactId: contactProjects.contactId,
+      projectId: contactProjects.projectId,
+    }).from(contactProjects),
+  ]);
+
+  return attachOutreachContactProjection(contactRows, links);
 }
 
 export async function getAllDrillingCampaigns() {
