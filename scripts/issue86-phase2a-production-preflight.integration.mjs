@@ -19,12 +19,7 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createConnection } from "mysql2/promise";
-import {
-  SQL_STATEMENTS,
-  buildExpected0090Contract,
-  canonicalJson,
-  validate0090Footprint,
-} from "./issue86-phase2a-preflight-core.mjs";
+import { SQL_STATEMENTS, canonicalJson } from "./issue86-phase2a-preflight-core.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -100,52 +95,6 @@ function connectionConfig(ca, user, password, database) {
       rejectUnauthorized: true,
       minVersion: "TLSv1.2",
     },
-  };
-}
-
-async function predecessorFootprintDiagnostic(connection) {
-  const statementIds = {
-    tables: "PREDECESSOR_TABLES",
-    columns: "PREDECESSOR_COLUMNS",
-    indexes: "PREDECESSOR_INDEXES",
-    constraints: "PREDECESSOR_CONSTRAINTS",
-    keys: "PREDECESSOR_KEYS",
-    referential: "PREDECESSOR_REFERENTIAL",
-    checks: "PREDECESSOR_CHECKS",
-  };
-  const observation = {};
-  for (const [category, statementId] of Object.entries(statementIds)) {
-    const [rows] = await connection.query(SQL_STATEMENTS[statementId].sql);
-    observation[category] = rows;
-  }
-  const snapshot = JSON.parse(
-    readFileSync(join(PROJECT_ROOT, "drizzle/meta/0090_snapshot.json"), "utf8"),
-  );
-  const expected = buildExpected0090Contract(snapshot);
-  const validation = validate0090Footprint(observation, expected);
-  const differences = {};
-  for (const category of Object.keys(statementIds)) {
-    const expectedRows = new Map(
-      expected[category].map((row) => [canonicalJson(row), row]),
-    );
-    const actualRows = new Map(
-      validation.actual[category].map((row) => [canonicalJson(row), row]),
-    );
-    const missing = [...expectedRows]
-      .filter(([key]) => !actualRows.has(key))
-      .map(([, row]) => row);
-    const unexpected = [...actualRows]
-      .filter(([key]) => !expectedRows.has(key))
-      .map(([, row]) => row);
-    if (missing.length || unexpected.length) {
-      differences[category] = { missing, unexpected };
-    }
-  }
-  return {
-    exact: validation.exact,
-    expectedHash: validation.expectedHash,
-    observedHash: validation.observedHash,
-    differences,
   };
 }
 
@@ -317,7 +266,6 @@ async function main() {
     assert.equal(String(trustRows[0].versionString), "8.4.11");
 
     const beforeFingerprint = await schemaFingerprint(admin);
-    const predecessorDiagnostic = await predecessorFootprintDiagnostic(admin);
     await admin.query("SET GLOBAL general_log = OFF");
     await admin.query("TRUNCATE TABLE mysql.general_log");
     await admin.query("SET GLOBAL general_log = ON");
@@ -375,16 +323,6 @@ async function main() {
             blockers: blocked.blockers ?? [],
           })}\n`,
         );
-        if (
-          Array.isArray(blocked.blockers) &&
-          blocked.blockers.includes("BLOCKED_PREDECESSOR_FOOTPRINT")
-        ) {
-          process.stderr.write(
-            `predecessorFootprintDiagnostic=${JSON.stringify(
-              predecessorDiagnostic,
-            )}\n`,
-          );
-        }
       } catch {
         process.stderr.write("disposablePreflight=NO_FINAL_EVIDENCE\n");
       }
