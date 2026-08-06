@@ -1078,10 +1078,11 @@ export function classifyJournalAndPhase2a({
   const exact90 = rows.filter(
     (row) => row.hash === c90.sha256 && row.createdAt === c90.journalWhen,
   );
-  const lf90 = rows.filter(
-    (row) =>
-      row.hash === c90.knownSingleLfVariant &&
-      row.createdAt === c90.journalWhen,
+  const lf90ByHash = rows.filter(
+    (row) => row.hash === c90.knownSingleLfVariant,
+  );
+  const lf90 = lf90ByHash.filter(
+    (row) => row.createdAt === c90.journalWhen,
   );
   const timestamp90 = rows.filter((row) => row.createdAt === c90.journalWhen);
   const hash90 = rows.filter((row) => row.hash === c90.sha256);
@@ -1132,6 +1133,8 @@ export function classifyJournalAndPhase2a({
   } else if (lf90.length > 0) {
     databaseStateClassification =
       "BLOCKED_PREDECESSOR_HASH_VARIANT_REQUIRES_CONTROLLER_REVIEW";
+  } else if (lf90ByHash.length > 0) {
+    databaseStateClassification = "BLOCKED_PREDECESSOR_DIVERGENCE";
   } else if (
     exact90.length !== 1 ||
     timestamp90.length !== 1 ||
@@ -1165,7 +1168,7 @@ export function classifyJournalAndPhase2a({
     predecessorHashClassification:
       exact90Unique
         ? "exact_committed_source_bytes"
-        : lf90.length
+        : lf90ByHash.length
           ? "known_single_trailing_lf_variant"
           : "unexpected_or_absent",
     migration0090ExactAndLatest:
@@ -1286,7 +1289,8 @@ export function assertNoSecrets(value, secrets = {}) {
   for (const secret of secrets.highRisk ?? []) {
     if (!secret) continue;
     const text = String(secret);
-    if (content.includes(text) || content.includes(JSON.stringify(text))) {
+    const escapedBody = JSON.stringify(text).slice(1, -1);
+    if (content.includes(text) || content.includes(escapedBody)) {
       throw new Error("EVIDENCE_SECRET_SCAN_FAILED");
     }
   }
