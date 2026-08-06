@@ -309,6 +309,24 @@ async function main() {
     process.stdout.write(child.stdout);
     process.stderr.write(child.stderr);
     assert.equal(child.signal, null);
+    if (child.code !== 0) {
+      try {
+        const blocked = JSON.parse(
+          readFileSync(
+            join(outputDir, "issue86-phase2a-preflight-final.json"),
+            "utf8",
+          ),
+        );
+        process.stderr.write(
+          `disposablePreflight=${JSON.stringify({
+            applyReadiness: blocked.applyReadiness ?? null,
+            blockers: blocked.blockers ?? [],
+          })}\n`,
+        );
+      } catch {
+        process.stderr.write("disposablePreflight=NO_FINAL_EVIDENCE\n");
+      }
+    }
     assert.equal(child.code, 0);
 
     await admin.query("SET GLOBAL general_log = OFF");
