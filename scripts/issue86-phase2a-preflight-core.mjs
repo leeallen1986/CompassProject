@@ -161,7 +161,7 @@ export const SQL_STATEMENTS = deepFreeze({
     "SELECT VERSION() AS versionString, @@version_comment AS versionComment, CONNECTION_ID() AS connectionId, SHA2(CURRENT_USER(), 256) AS currentUserSha256, SHA2(CONCAT_WS(CHAR(0), @@server_uuid, DATABASE(), @@port, CURRENT_USER()), 256) AS targetIdentitySha256",
   ),
   CURRENT_ROLE: S("READ", "SELECT CURRENT_ROLE() AS currentRole"),
-  SHOW_GRANTS: S("SHOW", "SHOW GRANTS FOR CURRENT_USER"),
+  SHOW_GRANTS: S("SHOW", "SHOW GRANTS"),
   SHOW_CREATE_USER: S("SHOW", "SHOW CREATE USER CURRENT_USER()"),
   SET_ISOLATION: S(
     "CONTROL",
