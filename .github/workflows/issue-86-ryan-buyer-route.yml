@@ -7,6 +7,7 @@ on:
       - "scripts/issue86-phase2a-preflight-core.mjs"
       - "scripts/issue86-phase2a-production-preflight.mjs"
       - "scripts/issue86-phase2a-production-preflight.test.mjs"
+      - "scripts/issue86-phase2a-production-preflight.integration.mjs"
       - "docs/issue86-phase2a-production-preflight.md"
       - ".github/workflows/issue-86-ryan-buyer-route.yml"
       - "client/src/components/OutreachEmailModal.tsx"
@@ -63,10 +64,10 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       mysql:
-        image: mysql:8.4
+        image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: issue86_schema
@@ -84,7 +85,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.13.0
           cache: pnpm
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
@@ -113,6 +114,7 @@ jobs:
         run: |
           node --check scripts/issue86-phase2a-preflight-core.mjs
           node --check scripts/issue86-phase2a-production-preflight.mjs
+          node --check scripts/issue86-phase2a-production-preflight.integration.mjs
           node --test scripts/issue86-phase2a-production-preflight.test.mjs
       - name: Issue 85 trust-boundary regressions
         run: pnpm test:issue85
@@ -128,3 +130,50 @@ jobs:
         env:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/issue86_schema
         run: node .github/scripts/verify-issue86-phase2a.mjs
+      - name: Generate disposable TLS identity
+        run: |
+          set -euo pipefail
+          TLS_DIR="$RUNNER_TEMP/issue86-preflight-tls"
+          mkdir -m 700 "$TLS_DIR"
+          openssl genrsa -out "$TLS_DIR/ca-key.pem" 2048
+          openssl req -new -x509 -sha256 -days 1             -key "$TLS_DIR/ca-key.pem"             -out "$TLS_DIR/ca.pem"             -subj "/CN=Issue86 Disposable CI CA"
+          openssl genrsa -out "$TLS_DIR/server-key.pem" 2048
+          openssl req -new -sha256             -key "$TLS_DIR/server-key.pem"             -out "$TLS_DIR/server.csr"             -subj "/CN=localhost"             -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+          printf '%s\n'             'subjectAltName=DNS:localhost,IP:127.0.0.1'             'extendedKeyUsage=serverAuth'             'keyUsage=digitalSignature,keyEncipherment'             > "$TLS_DIR/server.ext"
+          openssl x509 -req -sha256 -days 1             -in "$TLS_DIR/server.csr"             -CA "$TLS_DIR/ca.pem"             -CAkey "$TLS_DIR/ca-key.pem"             -CAcreateserial             -extfile "$TLS_DIR/server.ext"             -out "$TLS_DIR/server-cert.pem"
+          chmod 644 "$TLS_DIR/ca.pem" "$TLS_DIR/server-cert.pem" "$TLS_DIR/server-key.pem"
+      - name: Start digest-pinned TLS MySQL 8.4.11
+        run: |
+          set -euo pipefail
+          IMAGE='mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb'
+          docker run --detach             --name issue86-preflight-mysql             --publish 127.0.0.1:3307:3306             --env MYSQL_ROOT_PASSWORD=issue86-integration-root             --env MYSQL_ROOT_HOST=%             --env MYSQL_DATABASE=issue86_preflight_it             --volume "$RUNNER_TEMP/issue86-preflight-tls:/issue86-tls:ro"             "$IMAGE"             --require-secure-transport=ON             --ssl-ca=/issue86-tls/ca.pem             --ssl-cert=/issue86-tls/server-cert.pem             --ssl-key=/issue86-tls/server-key.pem             --tls-version=TLSv1.2,TLSv1.3             --general-log=ON             --log-output=TABLE
+          for attempt in $(seq 1 60); do
+            if docker exec issue86-preflight-mysql               mysqladmin ping -uroot -pissue86-integration-root --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs issue86-preflight-mysql
+          exit 1
+      - name: Run real TLS MySQL Phase 2A preflight
+        env:
+          ISSUE86_PREFLIGHT_IT_CA_FILE: ${{ runner.temp }}/issue86-preflight-tls/ca.pem
+          ISSUE86_PREFLIGHT_IT_SERVER_CERT_FILE: ${{ runner.temp }}/issue86-preflight-tls/server-cert.pem
+          ISSUE86_PREFLIGHT_IT_RESULT_DIR: ${{ runner.temp }}/issue86-preflight-integration
+          ISSUE86_PREFLIGHT_IT_ROOT_PASSWORD: issue86-integration-root
+          ISSUE86_PREFLIGHT_IT_MYSQL_IMAGE_DIGEST: sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+        run: |
+          set -euo pipefail
+          sha256sum scripts/issue86-phase2a-preflight-core.mjs
+          sha256sum scripts/issue86-phase2a-production-preflight.mjs
+          node scripts/issue86-phase2a-production-preflight.integration.mjs
+      - name: Upload sanitized disposable integration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue86-phase2a-preflight-integration
+          path: ${{ runner.temp }}/issue86-preflight-integration
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stop disposable integration database
+        if: always()
+        run: docker rm --force issue86-preflight-mysql 2>/dev/null || true
