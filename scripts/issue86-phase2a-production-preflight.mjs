@@ -14,7 +14,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   SQL_STATEMENTS,
@@ -129,6 +129,13 @@ function parseCli(argv) {
 }
 
 function validateOutputLocation(outputDir) {
+  const fromRepository = relative(PROJECT_ROOT, outputDir);
+  if (
+    fromRepository === "" ||
+    (fromRepository !== ".." && !fromRepository.startsWith(`..${sep}`))
+  ) {
+    throw new Error("OUTPUT_PATH_INSIDE_REPOSITORY_REJECTED");
+  }
   try {
     lstatSync(outputDir);
     throw new Error("OUTPUT_PATH_ALREADY_EXISTS");
@@ -140,6 +147,12 @@ function validateOutputLocation(outputDir) {
   if (!parentStat.isDirectory() || parentStat.isSymbolicLink()) {
     throw new Error("OUTPUT_PARENT_NOT_SECURE_DIRECTORY");
   }
+  if (
+    (typeof process.getuid === "function" && parentStat.uid !== process.getuid()) ||
+    (parentStat.mode & 0o022) !== 0
+  ) {
+    throw new Error("OUTPUT_PARENT_OWNER_OR_MODE_REJECTED");
+  }
   if (realpathSync(parent) !== parent) {
     throw new Error("OUTPUT_PARENT_NOT_CANONICAL");
   }
@@ -150,6 +163,12 @@ function reserveOutputDirectory(outputDir) {
   const stat = lstatSync(outputDir);
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
     throw new Error("OUTPUT_DIRECTORY_RESERVATION_FAILED");
+  }
+  if (
+    (typeof process.getuid === "function" && stat.uid !== process.getuid()) ||
+    (stat.mode & 0o077) !== 0
+  ) {
+    throw new Error("OUTPUT_DIRECTORY_OWNER_OR_MODE_REJECTED");
   }
 }
 
@@ -494,6 +513,15 @@ function writeAtomicJson(outputDir, filename, value) {
   };
 }
 
+function fsyncDirectory(path) {
+  const fd = openSync(path, fsConstants.O_RDONLY);
+  try {
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+}
+
 function writeEvidencePack(outputDir, evidence, secrets) {
   for (const value of Object.values(evidence)) assertNoSecrets(value, secrets);
   const mapping = [
@@ -512,11 +540,20 @@ function writeEvidencePack(outputDir, evidence, secrets) {
       sha256: meta.sha256,
     };
   }
-  writeAtomicJson(
+  const indexMeta = writeAtomicJson(
     outputDir,
     "issue86-phase2a-preflight-sha256.json",
     index,
   );
+  fsyncDirectory(outputDir);
+  writeAtomicJson(outputDir, COMPLETION_FILENAME, {
+    status: "COMPLETE",
+    evidenceFileCount: EVIDENCE_FILENAMES.length,
+    indexFilename: indexMeta.filename,
+    indexByteSize: indexMeta.byteSize,
+    indexSha256: indexMeta.sha256,
+  });
+  fsyncDirectory(outputDir);
 }
 
 function addBlocker(blockers, code) {
@@ -979,7 +1016,12 @@ export async function runPreflight({
     zeroWrite: zeroWriteEvidence,
     final: finalEvidence,
   };
-  writeEvidencePack(outputDir, evidence, secrets);
+  try {
+    writeEvidencePack(outputDir, evidence, secrets);
+  } catch {
+    rmSync(outputDir, { recursive: true, force: true });
+    throw new Error("EVIDENCE_PACK_PUBLICATION_FAILED");
+  }
   return {
     exitCode: outcome.ready ? 0 : 2,
     outputDir,
