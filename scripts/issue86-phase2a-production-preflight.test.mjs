@@ -15,6 +15,7 @@ import { describe, test } from "node:test";
 import {
   MUTATION_COUNTER_NAMES,
   SQL_STATEMENTS,
+  assertNoSecrets,
   buildExpected0090Contract,
   canonicalJson,
   classifyEngine,
@@ -118,6 +119,23 @@ describe("source and SQL gates", () => {
     });
     assert.equal(result.passed, false);
     assert.ok(result.errors.includes("RUNTIME_TOOL_SHA256_MISMATCH"));
+  });
+
+  test("detects high-risk secrets after JSON escaping", () => {
+    for (const secret of [
+      'ab"cd12',
+      "ab\\cd12",
+      "ab\ncd12",
+      "pässword-2026",
+      "ab%22cd12",
+    ]) {
+      assert.throws(
+        () => assertNoSecrets({ detail: `prefix:${secret}:suffix` }, {
+          highRisk: [secret],
+        }),
+        /EVIDENCE_SECRET_SCAN_FAILED/,
+      );
+    }
   });
 
   test("manifest is fixed, parameterless, query-only, and side-effect free", () => {
@@ -286,6 +304,30 @@ describe("central readiness and journal classification", () => {
     assert.equal(
       result.databaseStateClassification,
       "BLOCKED_PREDECESSOR_HASH_VARIANT_REQUIRES_CONTROLLER_REVIEW",
+    );
+  });
+
+  test("one-LF predecessor hash at a wrong timestamp cannot coexist with READY", () => {
+    const lfWrongTimestamp = {
+      id: "90",
+      hash: "85ef1c42f3e252b837fcd6df2ce350f8c9af84b5854f934410a0c7b18a677d0f",
+      createdAt: "1780000000000",
+    };
+    const result = classifyJournalAndPhase2a({
+      relevantRows: [lfWrongTimestamp, row0090],
+      relevantCount: "2",
+      latestRows: [row0090, lfWrongTimestamp],
+      phase2aTables: [],
+      phase2aResidue: [],
+    });
+    assert.equal(
+      result.databaseStateClassification,
+      "BLOCKED_PREDECESSOR_DIVERGENCE",
+    );
+    assert.equal(result.migration0090ExactAndLatest, true);
+    assert.equal(
+      result.predecessorHashClassification,
+      "exact_committed_source_bytes",
     );
   });
 
