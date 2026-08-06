@@ -520,6 +520,9 @@ export function parseDatabaseUrl(raw) {
   const user = decodeUrlComponent(parsed.username, "USER");
   const password = decodeUrlComponent(parsed.password, "PASSWORD");
   const database = decodeUrlComponent(segments[0], "DATABASE");
+  if (!/^[A-Za-z0-9_]{1,64}$/.test(database)) {
+    throw new Error("DATABASE_URL_DATABASE_IDENTIFIER_REJECTED");
+  }
   return {
     config: {
       host,
@@ -540,7 +543,15 @@ export function parseDatabaseUrl(raw) {
         minVersion: "TLSv1.2",
       },
     },
-    secrets: [raw, host, user, password, database].filter(Boolean),
+    secrets: {
+      highRisk: [
+        raw,
+        password,
+        encodeURIComponent(password),
+        `${user}:${password}@`,
+      ].filter(Boolean),
+      contextual: [host, user, database].filter(Boolean),
+    },
   };
 }
 
@@ -1214,10 +1225,20 @@ export function evaluateReadiness(facts, initialBlockers = []) {
   };
 }
 
-export function sanitizeMessage(value, secrets = []) {
+function secretValues(secrets) {
+  if (Array.isArray(secrets)) return secrets.filter(Boolean).map(String);
+  return [
+    ...(secrets?.highRisk ?? []),
+    ...(secrets?.contextual ?? []),
+  ]
+    .filter(Boolean)
+    .map(String);
+}
+
+export function sanitizeMessage(value, secrets = {}) {
   let text = String(value ?? "unknown error");
-  for (const secret of secrets) {
-    if (secret) text = text.split(secret).join("[REDACTED]");
+  for (const secret of secretValues(secrets)) {
+    text = text.split(secret).join("[REDACTED]");
   }
   text = text
     .replace(/[a-z][a-z0-9+.-]*:\/\/[^\s]+/gi, "[REDACTED_URL]")
@@ -1226,14 +1247,19 @@ export function sanitizeMessage(value, secrets = []) {
   return text.slice(0, 512);
 }
 
-export function assertNoSecrets(value, secrets) {
+export function assertNoSecrets(value, secrets = {}) {
   const content = typeof value === "string" ? value : canonicalJson(value);
-  for (const secret of secrets) {
+  for (const secret of secrets.highRisk ?? []) {
     if (!secret) continue;
     const text = String(secret);
-    const serializedLiteral = JSON.stringify(text);
-    const highRiskRawOccurrence = text.length >= 12 && content.includes(text);
-    if (content.includes(serializedLiteral) || highRiskRawOccurrence) {
+    if (content.includes(text) || content.includes(JSON.stringify(text))) {
+      throw new Error("EVIDENCE_SECRET_SCAN_FAILED");
+    }
+  }
+  for (const secret of secrets.contextual ?? []) {
+    if (!secret) continue;
+    const text = String(secret);
+    if (content.includes(JSON.stringify(text))) {
       throw new Error("EVIDENCE_SECRET_SCAN_FAILED");
     }
   }
