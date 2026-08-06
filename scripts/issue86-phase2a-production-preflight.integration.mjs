@@ -263,7 +263,7 @@ async function main() {
         "@%'), 256) AS identitySha256",
     );
     assert.equal(trustRows.length, 1);
-    assert.match(String(trustRows[0].versionString), /^8\.4\.[0-9]+$/);
+    assert.equal(String(trustRows[0].versionString), "8.4.11");
 
     const beforeFingerprint = await schemaFingerprint(admin);
     await admin.query("SET GLOBAL general_log = OFF");
@@ -340,6 +340,13 @@ async function main() {
     const threadId = [...candidateThreads][0];
     const preflightRows = logRows.filter(
       (row) => String(row.threadId) === threadId,
+    );
+    const commandTypes = preflightRows.map((row) => String(row.commandType));
+    assert.equal(commandTypes[0], "Connect");
+    assert.equal(commandTypes.at(-1), "Quit");
+    assert.equal(
+      commandTypes.slice(1, -1).every((commandType) => commandType === "Query"),
+      true,
     );
     const queryArguments = preflightRows
       .filter((row) => row.commandType === "Query")
