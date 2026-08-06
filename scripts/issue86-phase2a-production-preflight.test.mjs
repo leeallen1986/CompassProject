@@ -479,15 +479,15 @@ describe("0090 physical manifest", () => {
     assert.equal(validate0090Footprint(typeDrift, expected).exact, false);
 
     const mysqlTimestamp = makeObservation();
-    const createdAt = mysqlTimestamp.columns.find(
-      (row) =>
-        row.tableName === "fullPotentialEvidence" &&
-        row.columnName === "createdAt",
+    const timestampDefaults = mysqlTimestamp.columns.filter(
+      (row) => row.columnDefault === "CURRENT_TIMESTAMP",
     );
-    assert.equal(createdAt?.columnDefault, "CURRENT_TIMESTAMP");
-    createdAt.columnDefault = "now()";
-    assert.equal(validate0090Footprint(mysqlTimestamp, expected).exact, true);
-    createdAt.columnDefault = "uuid()";
+    assert.equal(timestampDefaults.length, 8);
+    for (const row of timestampDefaults) row.columnDefault = "now()";
+    const normalizedTimestamp = validate0090Footprint(mysqlTimestamp, expected);
+    assert.equal(normalizedTimestamp.exact, true);
+    assert.equal(normalizedTimestamp.expectedHash, normalizedTimestamp.observedHash);
+    timestampDefaults[0].columnDefault = "now(6)";
     assert.equal(validate0090Footprint(mysqlTimestamp, expected).exact, false);
 
     const ordinalDrift = makeObservation();
