@@ -638,7 +638,7 @@ function expectedColumn(tableName, column, ordinalPosition) {
   return {
     tableName,
     columnName: column.name,
-    ordinalPosition,
+    ordinalPosition: String(ordinalPosition),
     columnType: normalizeType(column.type),
     isNullable: column.notNull ? "NO" : "YES",
     columnDefault: normalizeDefault(column.default),
@@ -1109,7 +1109,11 @@ export function sanitizeMessage(value, secrets = []) {
 export function assertNoSecrets(value, secrets) {
   const content = typeof value === "string" ? value : canonicalJson(value);
   for (const secret of secrets) {
-    if (secret && content.includes(secret)) {
+    if (!secret) continue;
+    const text = String(secret);
+    const serializedLiteral = JSON.stringify(text);
+    const highRiskRawOccurrence = text.length >= 12 && content.includes(text);
+    if (content.includes(serializedLiteral) || highRiskRawOccurrence) {
       throw new Error("EVIDENCE_SECRET_SCAN_FAILED");
     }
   }
