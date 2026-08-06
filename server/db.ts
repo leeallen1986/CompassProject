@@ -19,6 +19,8 @@ import {
   pipelineRuns,
   userEmailSendLog,
   contactProjects,
+  contractorRegistry,
+  contractorProjectLinks,
   systemKv,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -26,6 +28,7 @@ import { fullPotentialAccounts } from '../drizzle/fullPotentialSchema';
 import type { FpProductFamily } from "@shared/const";
 import { ATTRIBUTED_SOURCE_TYPES } from "@shared/const";
 import { attachOutreachContactProjection } from "./outreachContactProjection";
+import type { ProjectBuyerRouteInputs } from "./projectBuyerRoute";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -269,13 +272,111 @@ export async function getLinkedContactsForProject(projectId: number) {
   if (!db || !Number.isSafeInteger(projectId) || projectId <= 0) return [];
 
   const links = await db
-    .select({ contactId: contactProjects.contactId })
+    .select({
+      contactId: contactProjects.contactId,
+      projectId: contactProjects.projectId,
+    })
     .from(contactProjects)
     .where(eq(contactProjects.projectId, projectId));
   const contactIds = Array.from(new Set(links.map(link => link.contactId)));
   if (contactIds.length === 0) return [];
 
-  return db.select().from(contacts).where(inArray(contacts.id, contactIds));
+  const contactRows = await db.select().from(contacts).where(and(
+    inArray(contacts.id, contactIds),
+    isNull(contacts.rejectionReason),
+    eq(contacts.crmOrphan, false),
+  ));
+  return attachOutreachContactProjection(contactRows, links);
+}
+
+/**
+ * Load only persisted, exact-ID evidence used by the Route to buyer dossier.
+ *
+ * Deliberately excluded:
+ * - the legacy project-name LIKE fallback in getContactsForProject;
+ * - provider/enrichment calls;
+ * - claims inferred by joining a project-level source URL to a person or
+ *   contractor assertion.
+ */
+export async function getProjectBuyerRouteInputs(
+  projectId: number,
+): Promise<ProjectBuyerRouteInputs | null> {
+  const db = await getDb();
+  if (!db || !Number.isSafeInteger(projectId) || projectId <= 0) return null;
+
+  const projectRows = await db
+    .select({
+      id: projects.id,
+      owner: projects.owner,
+      contractors: projects.contractors,
+      sources: projects.sources,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  const project = projectRows[0];
+  if (!project) return null;
+
+  const [contactRows, contractorRows] = await Promise.all([
+    db
+      .select({
+        contact: {
+          id: contacts.id,
+          name: contacts.name,
+          title: contacts.title,
+          company: contacts.company,
+          email: contacts.email,
+          linkedin: contacts.linkedin,
+          linkedinProfileUrl: contacts.linkedinProfileUrl,
+          linkedinSearchUrl: contacts.linkedinSearchUrl,
+          enrichmentSource: contacts.enrichmentSource,
+          sourceUrl: contacts.sourceUrl,
+          enrichedAt: contacts.enrichedAt,
+          verificationStatus: contacts.verificationStatus,
+          emailVerified: contacts.emailVerified,
+          verifiedAt: contacts.verifiedAt,
+          contactTrustTier: contacts.contactTrustTier,
+          rejectionReason: contacts.rejectionReason,
+          crmOrphan: contacts.crmOrphan,
+          createdAt: contacts.createdAt,
+        },
+        link: {
+          relevance: contactProjects.relevance,
+          createdAt: contactProjects.createdAt,
+        },
+      })
+      .from(contactProjects)
+      .innerJoin(contacts, eq(contacts.id, contactProjects.contactId))
+      .where(and(
+        eq(contactProjects.projectId, projectId),
+        isNull(contacts.rejectionReason),
+        eq(contacts.crmOrphan, false),
+      )),
+    db
+      .select({
+        contractorId: contractorProjectLinks.contractorId,
+        canonicalName: contractorRegistry.canonicalName,
+        aliases: contractorRegistry.aliases,
+        role: contractorProjectLinks.role,
+        status: contractorProjectLinks.status,
+        detail: contractorProjectLinks.detail,
+        confidence: contractorProjectLinks.confidence,
+        source: contractorProjectLinks.source,
+        createdAt: contractorProjectLinks.createdAt,
+      })
+      .from(contractorProjectLinks)
+      .innerJoin(
+        contractorRegistry,
+        eq(contractorRegistry.id, contractorProjectLinks.contractorId),
+      )
+      .where(eq(contractorProjectLinks.projectId, projectId)),
+  ]);
+
+  return {
+    project,
+    contacts: contactRows,
+    contractorLinks: contractorRows,
+  };
 }
 
 /**

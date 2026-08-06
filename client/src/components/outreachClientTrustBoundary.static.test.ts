@@ -60,7 +60,8 @@ describe("Issue #85 client trust-boundary wiring", () => {
 
   it("invalidates callbacks on close and ignores superseded drafts", () => {
     expect(modal).toContain("activeContextRef.current = null");
-    expect(modal).toContain("draftRequestRef.current === requestId");
+    expect(modal).toContain("isCurrentOutreachOperation(");
+    expect(modal).toContain("draftRequestRef.current,");
     expect(modal).toContain("++draftRequestRef.current");
   });
 

@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:issue85": "vitest run --config vitest.issue85.config.ts",
+    "test:issue86": "vitest run --config vitest.issue86.config.ts",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"
   },
   "dependencies": {

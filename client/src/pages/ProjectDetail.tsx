@@ -251,6 +251,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
           businessLineNames={businessLineNames ?? {}}
           allContacts={(contacts ?? []) as ContactData[]}
           buyerRoles={profile?.buyerRoles as string[] | undefined}
+          defaultOpen
         />
 
         {/* ── Navigation footer ── */}

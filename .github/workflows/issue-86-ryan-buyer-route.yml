@@ -1,0 +1,89 @@
+name: Issue 86 Ryan buyer route
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue-86-ryan-buyer-route.yml"
+      - "client/src/components/OutreachEmailModal.tsx"
+      - "client/src/components/ProjectBuyerRoute.tsx"
+      - "client/src/components/ProjectCard.issue86.static.test.ts"
+      - "client/src/components/ProjectCard.test.ts"
+      - "client/src/components/ProjectCard.tsx"
+      - "client/src/components/outreachQuotaUx.static.test.ts"
+      - "client/src/lib/outreachComposerState.test.ts"
+      - "client/src/lib/outreachComposerState.ts"
+      - "client/src/lib/projectBuyerRouteView.test.ts"
+      - "client/src/lib/projectBuyerRouteView.ts"
+      - "client/src/lib/projectOutreachEligibility.ts"
+      - "client/src/pages/ProjectDetail.tsx"
+      - "client/src/pages/ThisWeek.tsx"
+      - "package.json"
+      - "drizzle/**"
+      - "server/contactSlateTrustPolicy.ts"
+      - "server/_core/llm.behavior.test.ts"
+      - "server/_core/llmErrors.test.ts"
+      - "server/_core/llmErrors.ts"
+      - "server/_core/llm.ts"
+      - "server/db.ts"
+      - "server/emailDigest.ts"
+      - "server/emailDigestContactProjection.issue86.test.ts"
+      - "server/issue86Regression.static.test.ts"
+      - "server/outreachContactProjection.ts"
+      - "server/outreachDraftTelemetry.test.ts"
+      - "server/outreachDraftTelemetry.ts"
+      - "server/outreachEmail.ts"
+      - "server/outreachEmail.quotaFallback.test.ts"
+      - "server/outreachEmailFallback.test.ts"
+      - "server/outreachEmailFallback.ts"
+      - "server/outreachTemplates.quotaFallback.test.ts"
+      - "server/outreachTemplates.ts"
+      - "server/projectBuyerRoute.db.static.test.ts"
+      - "server/projectBuyerRoute.router.test.ts"
+      - "server/projectBuyerRoute.test.ts"
+      - "server/projectBuyerRoute.ts"
+      - "server/projectOutreachGuard.ts"
+      - "server/routers.ts"
+      - "server/thisWeekContactSelection.issue86.test.ts"
+      - "server/thisWeekContactSelection.ts"
+      - "server/thisWeekService.ts"
+      - "vitest.issue86.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Enforce Phase 1 no-schema boundary
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**')
+          if [ -n "$changed" ]; then
+            echo "Issue 86 Phase 1 must not change schema or migrations:"
+            echo "$changed"
+            exit 1
+          fi
+      - name: Issue 86 focused tests
+        run: pnpm test:issue86
+      - name: Issue 85 trust-boundary regressions
+        run: pnpm test:issue85
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build

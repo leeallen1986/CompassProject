@@ -1,6 +1,6 @@
 /**
  * OutreachEmailModal — AI-powered personalised outreach email composer
- * 
+ *
  * Flow:
  * 1. User clicks "Email" on a contact → modal opens
  * 2. User picks a targeting style (tone) — 8 options grouped by audience
@@ -12,14 +12,40 @@
  */
 import { useState, useEffect, useRef } from "react";
 import {
-  X, RefreshCw, Sparkles, Mail, Copy, Check, Pencil, Download,
-  BookTemplate, ChevronDown, ChevronUp, Save, HardHat,
-  Building2, ShoppingCart, Wrench, Handshake, Zap, Target
+  X,
+  RefreshCw,
+  Sparkles,
+  Mail,
+  Copy,
+  Check,
+  Pencil,
+  Download,
+  BookTemplate,
+  ChevronDown,
+  ChevronUp,
+  Save,
+  HardHat,
+  Building2,
+  ShoppingCart,
+  Wrench,
+  Handshake,
+  Zap,
+  Target,
+  AlertTriangle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { isPositivePersistedId } from "@/lib/projectOutreachEligibility";
+import {
+  AI_DRAFTING_UNAVAILABLE_MESSAGE,
+  AI_DRAFT_FAILURE_MESSAGE,
+  isCompleteOutreachDraft,
+  isCurrentOutreachOperation,
+  isQuotaOrCircuitUnavailable,
+  planOutreachComposerOpen,
+  type OutreachDraftState,
+} from "@/lib/outreachComposerState";
 
 interface ContactInfo {
   id: number;
@@ -49,7 +75,21 @@ interface OutreachEmailModalProps {
   project: ProjectInfo;
 }
 
-type Tone = "professional" | "consultative" | "direct" | "contractor_focused" | "owner_epc_focused" | "procurement_led" | "engineering_led" | "first_touch";
+interface SavedTemplateDraft {
+  id: number;
+  subject: string;
+  body: string;
+}
+
+type Tone =
+  | "professional"
+  | "consultative"
+  | "direct"
+  | "contractor_focused"
+  | "owner_epc_focused"
+  | "procurement_led"
+  | "engineering_led"
+  | "first_touch";
 
 interface ToneOption {
   label: string;
@@ -59,35 +99,111 @@ interface ToneOption {
 }
 
 const toneConfig: Record<Tone, ToneOption> = {
-  professional: { label: "Professional", description: "Formal, credibility-focused", icon: <Building2 className="w-3.5 h-3.5" />, group: "general" },
-  consultative: { label: "Consultative", description: "Warm, advisor-style", icon: <Handshake className="w-3.5 h-3.5" />, group: "general" },
-  direct: { label: "Direct", description: "Concise, action-focused", icon: <Zap className="w-3.5 h-3.5" />, group: "general" },
-  contractor_focused: { label: "Contractor", description: "Site reliability, mobilisation speed", icon: <HardHat className="w-3.5 h-3.5" />, group: "audience" },
-  owner_epc_focused: { label: "Owner / EPC", description: "Strategic partnership, ESG", icon: <Building2 className="w-3.5 h-3.5" />, group: "audience" },
-  procurement_led: { label: "Procurement", description: "TCO, pricing, contract terms", icon: <ShoppingCart className="w-3.5 h-3.5" />, group: "audience" },
-  engineering_led: { label: "Engineering", description: "Technical specs, compliance", icon: <Wrench className="w-3.5 h-3.5" />, group: "audience" },
-  first_touch: { label: "First Touch", description: "Cold intro, low-commitment ask", icon: <Target className="w-3.5 h-3.5" />, group: "strategy" },
+  professional: {
+    label: "Professional",
+    description: "Formal, credibility-focused",
+    icon: <Building2 className="w-3.5 h-3.5" />,
+    group: "general",
+  },
+  consultative: {
+    label: "Consultative",
+    description: "Warm, advisor-style",
+    icon: <Handshake className="w-3.5 h-3.5" />,
+    group: "general",
+  },
+  direct: {
+    label: "Direct",
+    description: "Concise, action-focused",
+    icon: <Zap className="w-3.5 h-3.5" />,
+    group: "general",
+  },
+  contractor_focused: {
+    label: "Contractor",
+    description: "Site reliability, mobilisation speed",
+    icon: <HardHat className="w-3.5 h-3.5" />,
+    group: "audience",
+  },
+  owner_epc_focused: {
+    label: "Owner / EPC",
+    description: "Strategic partnership, ESG",
+    icon: <Building2 className="w-3.5 h-3.5" />,
+    group: "audience",
+  },
+  procurement_led: {
+    label: "Procurement",
+    description: "TCO, pricing, contract terms",
+    icon: <ShoppingCart className="w-3.5 h-3.5" />,
+    group: "audience",
+  },
+  engineering_led: {
+    label: "Engineering",
+    description: "Technical specs, compliance",
+    icon: <Wrench className="w-3.5 h-3.5" />,
+    group: "audience",
+  },
+  first_touch: {
+    label: "First Touch",
+    description: "Cold intro, low-commitment ask",
+    icon: <Target className="w-3.5 h-3.5" />,
+    group: "strategy",
+  },
 };
 
 /** Suggest the best tone based on the contact's role bucket */
 function suggestTone(roleBucket: string): Tone {
   const rb = (roleBucket || "").toLowerCase();
-  if (rb.includes("procurement") || rb.includes("commercial") || rb.includes("buying")) return "procurement_led";
-  if (rb.includes("engineer") || rb.includes("technical") || rb.includes("design")) return "engineering_led";
-  if (rb.includes("construction") || rb.includes("contractor") || rb.includes("site")) return "contractor_focused";
-  if (rb.includes("executive") || rb.includes("director") || rb.includes("ceo") || rb.includes("cfo")) return "owner_epc_focused";
-  if (rb.includes("project") || rb.includes("operations") || rb.includes("maintenance")) return "consultative";
+  if (
+    rb.includes("procurement") ||
+    rb.includes("commercial") ||
+    rb.includes("buying")
+  )
+    return "procurement_led";
+  if (
+    rb.includes("engineer") ||
+    rb.includes("technical") ||
+    rb.includes("design")
+  )
+    return "engineering_led";
+  if (
+    rb.includes("construction") ||
+    rb.includes("contractor") ||
+    rb.includes("site")
+  )
+    return "contractor_focused";
+  if (
+    rb.includes("executive") ||
+    rb.includes("director") ||
+    rb.includes("ceo") ||
+    rb.includes("cfo")
+  )
+    return "owner_epc_focused";
+  if (
+    rb.includes("project") ||
+    rb.includes("operations") ||
+    rb.includes("maintenance")
+  )
+    return "consultative";
   return "consultative";
 }
 
-export default function OutreachEmailModal({ isOpen, onClose, contact, project }: OutreachEmailModalProps) {
+export default function OutreachEmailModal({
+  isOpen,
+  onClose,
+  contact,
+  project,
+}: OutreachEmailModalProps) {
   const recommended = suggestTone(contact.roleBucket);
-  const hasValidIds = isPositivePersistedId(contact.id) && isPositivePersistedId(project.id);
+  const hasValidIds =
+    isPositivePersistedId(contact.id) && isPositivePersistedId(project.id);
   const contextKey = `${contact.id}:${project.id}`;
   const activeContextRef = useRef<string | null>(isOpen ? contextKey : null);
   const draftRequestRef = useRef(0);
+  const downloadRequestRef = useRef(0);
+  const openInEmailRequestRef = useRef(0);
   activeContextRef.current = isOpen ? contextKey : null;
-  const [draftContextKey, setDraftContextKey] = useState<string | null>(isOpen ? contextKey : null);
+  const [draftContextKey, setDraftContextKey] = useState<string | null>(
+    isOpen ? contextKey : null
+  );
   const [tone, setTone] = useState<Tone>(recommended);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -101,25 +217,24 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
   const [templateTags, setTemplateTags] = useState("");
   const [isShared, setIsShared] = useState(true);
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [draftState, setDraftState] = useState<OutreachDraftState>("idle");
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [aiUnavailableReason, setAiUnavailableReason] = useState<string | null>(
+    null
+  );
+  const aiDraftingBlocked = isQuotaOrCircuitUnavailable(aiUnavailableReason);
+  const hasCompleteDraft = isCompleteOutreachDraft(subject, body);
 
   const generateMutation = trpc.outreach.generate.useMutation();
 
-  const prepareOpenInEmailMutation = trpc.outreach.prepareOpenInEmail.useMutation({
-    onSuccess: (data, variables) => {
-      if (activeContextRef.current !== `${variables.contactId}:${variables.projectId}`) return;
-      window.open(data.mailtoUri, "_self");
-      toast.success("Opening in your email client — outreach saved to history");
-    },
-    onError: (err, variables) => {
-      if (activeContextRef.current !== `${variables.contactId}:${variables.projectId}`) return;
-      toast.error("Failed to open email: " + err.message);
-    },
-  });
+  const prepareOpenInEmailMutation =
+    trpc.outreach.prepareOpenInEmail.useMutation();
 
-  const { data: templates, refetch: refetchTemplates } = trpc.templates.list.useQuery(
-    { roleBucket: contact.roleBucket || undefined },
-    { enabled: isOpen && hasValidIds }
-  );
+  const { data: templates, refetch: refetchTemplates } =
+    trpc.templates.list.useQuery(
+      { roleBucket: contact.roleBucket || undefined },
+      { enabled: isOpen && hasValidIds }
+    );
 
   const saveTemplateMutation = trpc.templates.create.useMutation({
     onSuccess: () => {
@@ -130,109 +245,132 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
       setTemplateTags("");
       refetchTemplates();
     },
-    onError: (err) => {
+    onError: err => {
       toast.error("Failed to save template: " + err.message);
     },
   });
 
   const personaliseMutation = trpc.templates.personalise.useMutation();
 
-  const downloadEmlMutation = trpc.outreach.downloadEml.useMutation({
-    onSuccess: (data, variables) => {
-      if (activeContextRef.current !== `${variables.contactId}:${variables.projectId}`) return;
-      // Decode base64 and trigger download
-      const bytes = Uint8Array.from(atob(data.emlBase64), c => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: "message/rfc822" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("Email downloaded — open it in Outlook and hit Send");
-    },
-    onError: (err, variables) => {
-      if (activeContextRef.current !== `${variables.contactId}:${variables.projectId}`) return;
-      toast.error("Failed to download email: " + err.message);
-    },
-  });
+  const downloadEmlMutation = trpc.outreach.downloadEml.useMutation();
 
   const isCurrentDraftRequest = (requestId: number, requestContext: string) =>
-    draftRequestRef.current === requestId &&
-    activeContextRef.current === requestContext;
+    isCurrentOutreachOperation(
+      draftRequestRef.current,
+      requestId,
+      activeContextRef.current,
+      requestContext,
+    );
 
   // Draft requests can overlap when a user changes tone or selects a template
   // quickly. A monotonically increasing request ID prevents an older response
   // from replacing the most recently requested draft in the same context.
   const requestGeneratedDraft = (requestedTone: Tone) => {
-    if (!hasValidIds) return;
+    if (!hasValidIds || aiDraftingBlocked) return;
     const requestContext = contextKey;
     const requestId = ++draftRequestRef.current;
-    generateMutation.mutate({
-      contactId: contact.id,
-      projectId: project.id,
-      tone: requestedTone,
-    }, {
-      onSuccess: data => {
-        if (!isCurrentDraftRequest(requestId, requestContext)) return;
-        setSubject(data.subject);
-        setBody(data.body);
-        setKeyPoints(data.keyPoints);
-        setIsEditing(false);
-        setShowTemplates(false);
-        if (data.generationMode === "deterministic_template") {
-          toast.info("AI drafting unavailable — a factual template draft was created");
-        }
+    setDraftState("loading");
+    setDraftError(null);
+    generateMutation.mutate(
+      {
+        contactId: contact.id,
+        projectId: project.id,
+        tone: requestedTone,
       },
-      onError: () => {
-        if (!isCurrentDraftRequest(requestId, requestContext)) return;
-        toast.error("Failed to generate an email draft. Please try again.");
-      },
-    });
+      {
+        onSuccess: data => {
+          if (!isCurrentDraftRequest(requestId, requestContext)) return;
+          setSubject(data.subject);
+          setBody(data.body);
+          setKeyPoints(data.keyPoints);
+          setIsEditing(false);
+          setShowTemplates(false);
+          if (data.generationMode === "deterministic_template") {
+            setDraftState("deterministic_fallback");
+            setAiUnavailableReason(data.aiUnavailableReason ?? null);
+            toast.info(AI_DRAFTING_UNAVAILABLE_MESSAGE);
+          } else {
+            setDraftState("ai_ready");
+            setAiUnavailableReason(null);
+          }
+        },
+        onError: () => {
+          if (!isCurrentDraftRequest(requestId, requestContext)) return;
+          setSubject("");
+          setBody("");
+          setKeyPoints([]);
+          setIsEditing(true);
+          setDraftState("error");
+          setDraftError(AI_DRAFT_FAILURE_MESSAGE);
+          toast.error(AI_DRAFT_FAILURE_MESSAGE);
+        },
+      }
+    );
   };
 
   const requestPersonalisedTemplate = (templateId: number) => {
-    if (!hasValidIds || !isPositivePersistedId(templateId)) return;
+    if (!hasValidIds || !isPositivePersistedId(templateId) || aiDraftingBlocked)
+      return;
     const requestContext = contextKey;
     const requestId = ++draftRequestRef.current;
-    personaliseMutation.mutate({
-      templateId,
-      contactId: contact.id,
-      projectId: project.id,
-    }, {
-      onSuccess: data => {
-        if (!isCurrentDraftRequest(requestId, requestContext)) return;
-        setSubject(data.subject);
-        setBody(data.body);
-        setKeyPoints([]);
-        setIsEditing(false);
-        setShowTemplates(false);
-        if (data.generationMode === "deterministic_template") {
-          toast.info("AI drafting unavailable — a factual template draft was created");
-        } else {
-          toast.success("Template personalised for " + contact.name);
-        }
+    setDraftState("loading");
+    setDraftError(null);
+    personaliseMutation.mutate(
+      {
+        templateId,
+        contactId: contact.id,
+        projectId: project.id,
       },
-      onError: () => {
-        if (!isCurrentDraftRequest(requestId, requestContext)) return;
-        toast.error("Failed to personalise the template. Please try again.");
-      },
-    });
+      {
+        onSuccess: data => {
+          if (!isCurrentDraftRequest(requestId, requestContext)) return;
+          setSubject(data.subject);
+          setBody(data.body);
+          setKeyPoints([]);
+          setIsEditing(false);
+          setShowTemplates(false);
+          if (data.generationMode === "deterministic_template") {
+            setDraftState("deterministic_fallback");
+            setAiUnavailableReason(data.aiUnavailableReason ?? null);
+            toast.info(AI_DRAFTING_UNAVAILABLE_MESSAGE);
+          } else {
+            setDraftState("ai_ready");
+            setAiUnavailableReason(null);
+            toast.success("Template personalised for " + contact.name);
+          }
+        },
+        onError: () => {
+          if (!isCurrentDraftRequest(requestId, requestContext)) return;
+          setSubject("");
+          setBody("");
+          setKeyPoints([]);
+          setIsEditing(true);
+          setDraftState("error");
+          setDraftError(AI_DRAFT_FAILURE_MESSAGE);
+          toast.error(AI_DRAFT_FAILURE_MESSAGE);
+        },
+      }
+    );
   };
 
   // TanStack mutation callbacks can finish after their observer unmounts.
   // Invalidate the context so closing the composer cannot later open an email
   // client, start a download, or surface a draft from the abandoned modal.
-  useEffect(() => () => {
-    activeContextRef.current = null;
-    draftRequestRef.current += 1;
-  }, []);
+  useEffect(
+    () => () => {
+      activeContextRef.current = null;
+      draftRequestRef.current += 1;
+      downloadRequestRef.current += 1;
+      openInEmailRequestRef.current += 1;
+    },
+    []
+  );
 
   useEffect(() => {
     if (!isOpen) {
       draftRequestRef.current += 1;
+      downloadRequestRef.current += 1;
+      openInEmailRequestRef.current += 1;
       setDraftContextKey(null);
       return;
     }
@@ -243,7 +381,11 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
     setSubject("");
     setBody("");
     setKeyPoints([]);
-    setIsEditing(false);
+    const openPlan = planOutreachComposerOpen(
+      hasValidIds,
+      aiUnavailableReason,
+    );
+    setIsEditing(openPlan.knownQuotaBlock);
     setCopied(false);
     setShowTemplates(false);
     setShowSaveForm(false);
@@ -252,23 +394,34 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
     setTemplateTags("");
     setIsShared(true);
     setShowStylePicker(false);
+    setDraftState(openPlan.draftState);
+    setDraftError(
+      openPlan.knownQuotaBlock ? AI_DRAFTING_UNAVAILABLE_MESSAGE : null,
+    );
+    if (!openPlan.knownQuotaBlock) setAiUnavailableReason(null);
     setDraftContextKey(contextKey);
     draftRequestRef.current += 1;
+    downloadRequestRef.current += 1;
+    openInEmailRequestRef.current += 1;
     generateMutation.reset();
     personaliseMutation.reset();
     prepareOpenInEmailMutation.reset();
     downloadEmlMutation.reset();
 
-    if (hasValidIds) {
+    if (openPlan.shouldRequestAi) {
       requestGeneratedDraft(recommended);
     }
   }, [isOpen, contextKey, recommended]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasCurrentDraftContext = draftContextKey === contextKey;
   const actionsAvailable = hasValidIds && hasCurrentDraftContext;
+  const aiActionsAvailable = actionsAvailable && !aiDraftingBlocked;
 
   const handleToneChange = (nextTone: Tone) => {
-    if (!actionsAvailable) return;
+    if (!aiActionsAvailable) {
+      if (aiDraftingBlocked) toast.info(AI_DRAFTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
     setTone(nextTone);
     setShowStylePicker(false);
     requestGeneratedDraft(nextTone);
@@ -279,13 +432,51 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
       toast.error("Contact or project ID is missing — cannot download email");
       return;
     }
-    downloadEmlMutation.mutate({
-      contactId: contact.id,
-      projectId: project.id,
-      subject,
-      body,
-      tone,
-    });
+    if (!hasCompleteDraft) {
+      toast.error("Add a subject and email body before downloading.");
+      return;
+    }
+    const requestContext = contextKey;
+    const requestId = ++downloadRequestRef.current;
+    downloadEmlMutation.mutate(
+      {
+        contactId: contact.id,
+        projectId: project.id,
+        subject: subject.trim(),
+        body: body.trim(),
+        tone,
+      },
+      {
+        onSuccess: data => {
+          if (!isCurrentOutreachOperation(
+            downloadRequestRef.current,
+            requestId,
+            activeContextRef.current,
+            requestContext,
+          )) return;
+          const bytes = Uint8Array.from(atob(data.emlBase64), c => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type: "message/rfc822" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = data.filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success("Email downloaded — open it in Outlook and hit Send");
+        },
+        onError: err => {
+          if (!isCurrentOutreachOperation(
+            downloadRequestRef.current,
+            requestId,
+            activeContextRef.current,
+            requestContext,
+          )) return;
+          toast.error("Failed to download email: " + err.message);
+        },
+      }
+    );
   };
 
   const handleOpenInEmail = () => {
@@ -293,19 +484,58 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
       toast.error("Contact or project ID is missing — cannot open email");
       return;
     }
-    prepareOpenInEmailMutation.mutate({
-      contactId: contact.id,
-      projectId: project.id,
-      subject,
-      body,
-      tone,
-    });
+    if (!hasCompleteDraft) {
+      toast.error(
+        "Add a subject and email body before opening your email client."
+      );
+      return;
+    }
+    const requestContext = contextKey;
+    const requestId = ++openInEmailRequestRef.current;
+    prepareOpenInEmailMutation.mutate(
+      {
+        contactId: contact.id,
+        projectId: project.id,
+        subject: subject.trim(),
+        body: body.trim(),
+        tone,
+      },
+      {
+        onSuccess: data => {
+          if (!isCurrentOutreachOperation(
+            openInEmailRequestRef.current,
+            requestId,
+            activeContextRef.current,
+            requestContext,
+          )) return;
+          window.open(data.mailtoUri, "_self");
+          toast.success(
+            "Opening in your email client — outreach saved to history"
+          );
+        },
+        onError: err => {
+          if (!isCurrentOutreachOperation(
+            openInEmailRequestRef.current,
+            requestId,
+            activeContextRef.current,
+            requestContext,
+          )) return;
+          toast.error("Failed to open email: " + err.message);
+        },
+      }
+    );
   };
 
   const handleCopy = async () => {
     if (!actionsAvailable) return;
+    if (!hasCompleteDraft) {
+      toast.error("Add a subject and email body before copying.");
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+      await navigator.clipboard.writeText(
+        `Subject: ${subject.trim()}\n\n${body.trim()}`
+      );
       setCopied(true);
       toast.success("Email copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
@@ -319,21 +549,32 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
       toast.error("Contact or project ID is missing — cannot regenerate email");
       return;
     }
+    if (aiDraftingBlocked) {
+      toast.info(AI_DRAFTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
     requestGeneratedDraft(tone);
   };
 
   const handleSaveAsTemplate = () => {
     if (!actionsAvailable) return;
+    if (!hasCompleteDraft) {
+      toast.error("Add a subject and email body before saving a template.");
+      return;
+    }
     if (!templateName.trim()) {
       toast.error("Please enter a template name");
       return;
     }
-    const tags = templateTags.split(",").map((t) => t.trim()).filter(Boolean);
+    const tags = templateTags
+      .split(",")
+      .map(t => t.trim())
+      .filter(Boolean);
     saveTemplateMutation.mutate({
       name: templateName.trim(),
       description: templateDescription.trim() || undefined,
-      subject,
-      body,
+      subject: subject.trim(),
+      body: body.trim(),
       tone,
       roleBucket: contact.roleBucket || undefined,
       sector: project.sector || undefined,
@@ -342,20 +583,47 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
     });
   };
 
-  const handleUseTemplate = (templateId: number) => {
-    if (!actionsAvailable || !isPositivePersistedId(templateId)) {
-      toast.error("Contact or project ID is missing — cannot personalise template");
+  const handleUseTemplate = (template: SavedTemplateDraft) => {
+    if (!actionsAvailable || !isPositivePersistedId(template.id)) {
+      toast.error(
+        "Contact or project ID is missing — cannot personalise template"
+      );
       return;
     }
-    requestPersonalisedTemplate(templateId);
+    if (generateMutation.isPending || personaliseMutation.isPending) {
+      toast.info("Wait for the current draft request to finish.");
+      return;
+    }
+    if (aiDraftingBlocked) {
+      // Quota-safe path: load the saved content locally and require the user to
+      // review/edit it. No personalisation request or provider call is made.
+      draftRequestRef.current += 1;
+      setSubject(template.subject);
+      setBody(template.body);
+      setKeyPoints([]);
+      setDraftError(null);
+      setDraftState("manual_template");
+      setIsEditing(true);
+      setShowTemplates(false);
+      toast.info("Saved template loaded for manual editing.");
+      return;
+    }
+    requestPersonalisedTemplate(template.id);
   };
 
   if (!isOpen) return null;
 
-  const isGenerating = generateMutation.isPending || personaliseMutation.isPending;
-  const generalTones = (Object.entries(toneConfig) as [Tone, ToneOption][]).filter(([, v]) => v.group === "general");
-  const audienceTones = (Object.entries(toneConfig) as [Tone, ToneOption][]).filter(([, v]) => v.group === "audience");
-  const strategyTones = (Object.entries(toneConfig) as [Tone, ToneOption][]).filter(([, v]) => v.group === "strategy");
+  const isGenerating =
+    generateMutation.isPending || personaliseMutation.isPending;
+  const generalTones = (
+    Object.entries(toneConfig) as [Tone, ToneOption][]
+  ).filter(([, v]) => v.group === "general");
+  const audienceTones = (
+    Object.entries(toneConfig) as [Tone, ToneOption][]
+  ).filter(([, v]) => v.group === "audience");
+  const strategyTones = (
+    Object.entries(toneConfig) as [Tone, ToneOption][]
+  ).filter(([, v]) => v.group === "strategy");
   const currentToneConfig = toneConfig[tone];
 
   return (
@@ -386,7 +654,10 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -396,13 +667,26 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <button
                 onClick={() => setShowStylePicker(!showStylePicker)}
-                disabled={!actionsAvailable}
+                disabled={!aiActionsAvailable}
+                title={
+                  aiDraftingBlocked
+                    ? AI_DRAFTING_UNAVAILABLE_MESSAGE
+                    : undefined
+                }
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-navy/20 bg-navy/5 hover:bg-navy/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {currentToneConfig.icon}
-                <span className="text-xs font-bold text-navy">{currentToneConfig.label}</span>
-                <span className="text-[10px] text-muted-foreground">— {currentToneConfig.description}</span>
-                {showStylePicker ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+                <span className="text-xs font-bold text-navy">
+                  {currentToneConfig.label}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  — {currentToneConfig.description}
+                </span>
+                {showStylePicker ? (
+                  <ChevronUp className="w-3 h-3 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                )}
               </button>
               <div className="flex items-center gap-2">
                 {tone !== recommended && (
@@ -411,10 +695,16 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
                   </span>
                 )}
                 <button
-                  onClick={() => { setShowTemplates(!showTemplates); setShowSaveForm(false); setShowStylePicker(false); }}
+                  onClick={() => {
+                    setShowTemplates(!showTemplates);
+                    setShowSaveForm(false);
+                    setShowStylePicker(false);
+                  }}
                   disabled={!actionsAvailable}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                    showTemplates ? "bg-gold/15 text-gold-dark border border-gold/30" : "text-muted-foreground border border-border hover:border-gold/30 hover:text-gold-dark"
+                    showTemplates
+                      ? "bg-gold/15 text-gold-dark border border-gold/30"
+                      : "text-muted-foreground border border-border hover:border-gold/30 hover:text-gold-dark"
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <BookTemplate className="w-3.5 h-3.5" /> Templates
@@ -428,47 +718,79 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
             <div className="px-6 py-3 border-b border-border bg-slate-50/50">
               <div className="space-y-3">
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">General Tone</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    General Tone
+                  </p>
                   <div className="flex gap-2 flex-wrap">
                     {generalTones.map(([key, config]) => (
-                      <button key={key} onClick={() => handleToneChange(key)} disabled={!actionsAvailable || isGenerating}
+                      <button
+                        key={key}
+                        onClick={() => handleToneChange(key)}
+                        disabled={!aiActionsAvailable || isGenerating}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          tone === key ? "bg-navy text-white border-navy shadow-sm" : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-navy/5"
-                        } ${!actionsAvailable || isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}>
+                          tone === key
+                            ? "bg-navy text-white border-navy shadow-sm"
+                            : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-navy/5"
+                        } ${!aiActionsAvailable || isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
                         {config.icon} <span>{config.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Audience-Targeted</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Audience-Targeted
+                  </p>
                   <div className="flex gap-2 flex-wrap">
                     {audienceTones.map(([key, config]) => (
-                      <button key={key} onClick={() => handleToneChange(key)} disabled={!actionsAvailable || isGenerating}
+                      <button
+                        key={key}
+                        onClick={() => handleToneChange(key)}
+                        disabled={!aiActionsAvailable || isGenerating}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          tone === key ? "bg-navy text-white border-navy shadow-sm" : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-navy/5"
-                        } ${!actionsAvailable || isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}>
+                          tone === key
+                            ? "bg-navy text-white border-navy shadow-sm"
+                            : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-navy/5"
+                        } ${!aiActionsAvailable || isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
                         {config.icon}
                         <div className="text-left">
                           <span className="block">{config.label}</span>
-                          <span className={`block text-[9px] font-normal ${tone === key ? "text-white/70" : "text-muted-foreground"}`}>{config.description}</span>
+                          <span
+                            className={`block text-[9px] font-normal ${tone === key ? "text-white/70" : "text-muted-foreground"}`}
+                          >
+                            {config.description}
+                          </span>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Strategy</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Strategy
+                  </p>
                   <div className="flex gap-2 flex-wrap">
                     {strategyTones.map(([key, config]) => (
-                      <button key={key} onClick={() => handleToneChange(key)} disabled={!actionsAvailable || isGenerating}
+                      <button
+                        key={key}
+                        onClick={() => handleToneChange(key)}
+                        disabled={!aiActionsAvailable || isGenerating}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          tone === key ? "bg-navy text-white border-navy shadow-sm" : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-navy/5"
-                        } ${!actionsAvailable || isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}>
+                          tone === key
+                            ? "bg-navy text-white border-navy shadow-sm"
+                            : "bg-card text-foreground/80 border-border hover:border-navy/30 hover:bg-navy/5"
+                        } ${!aiActionsAvailable || isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
                         {config.icon}
                         <div className="text-left">
                           <span className="block">{config.label}</span>
-                          <span className={`block text-[9px] font-normal ${tone === key ? "text-white/70" : "text-muted-foreground"}`}>{config.description}</span>
+                          <span
+                            className={`block text-[9px] font-normal ${tone === key ? "text-white/70" : "text-muted-foreground"}`}
+                          >
+                            {config.description}
+                          </span>
                         </div>
                       </button>
                     ))}
@@ -483,35 +805,62 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
             <div className="px-6 py-3 border-b border-border bg-gold/3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-navy">
-                  {personaliseMutation.isPending ? "Personalising template..." : "Pick a template to personalise for this contact:"}
+                  {personaliseMutation.isPending
+                    ? "Personalising template..."
+                    : aiDraftingBlocked
+                      ? "Pick a saved template to edit manually:"
+                      : "Pick a template to personalise for this contact:"}
                 </p>
               </div>
               {personaliseMutation.isPending ? (
                 <div className="flex items-center gap-2 py-4 justify-center">
                   <Sparkles className="w-4 h-4 text-gold animate-pulse" />
-                  <span className="text-xs text-muted-foreground">Adapting template for {contact.name}...</span>
+                  <span className="text-xs text-muted-foreground">
+                    Adapting template for {contact.name}...
+                  </span>
                 </div>
               ) : !templates || templates.length === 0 ? (
                 <div className="text-center py-4">
-                  <p className="text-xs text-muted-foreground">No templates saved yet.</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Generate an email below and click "Save as Template" to start your library.</p>
+                  <p className="text-xs text-muted-foreground">
+                    No templates saved yet.
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Generate an email below and click "Save as Template" to
+                    start your library.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {templates.map((t) => (
-                    <button key={t.id} onClick={() => handleUseTemplate(t.id)} disabled={!actionsAvailable}
-                      className="w-full text-left px-3 py-2 rounded-lg border border-border hover:border-gold/40 hover:bg-gold/5 transition-all group bg-card">
+                  {templates.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleUseTemplate(t)}
+                      disabled={!actionsAvailable || isGenerating}
+                      className="w-full text-left px-3 py-2 rounded-lg border border-border hover:border-gold/40 hover:bg-gold/5 transition-all group bg-card"
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-semibold text-navy truncate">{t.name}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy/8 text-navy font-medium shrink-0">{t.tone}</span>
+                          <span className="text-xs font-semibold text-navy truncate">
+                            {t.name}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy/8 text-navy font-medium shrink-0">
+                            {t.tone}
+                          </span>
                           {t.roleBucket && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal/10 text-teal font-medium shrink-0">{t.roleBucket.replace(/_/g, " ")}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal/10 text-teal font-medium shrink-0">
+                              {t.roleBucket.replace(/_/g, " ")}
+                            </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{t.usageCount} uses</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                          {aiDraftingBlocked
+                            ? "Use manually"
+                            : `${t.usageCount} uses`}
+                        </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">{t.subject}</p>
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                        {t.subject}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -523,57 +872,147 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {!hasValidIds ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                Outreach is unavailable because this contact or project has not been persisted.
+                Outreach is unavailable because this contact or project has not
+                been persisted.
               </div>
-            ) : !hasCurrentDraftContext || isGenerating ? (
+            ) : !hasCurrentDraftContext ||
+              draftState === "loading" ||
+              isGenerating ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <Sparkles className="w-8 h-8 text-gold animate-pulse" />
                 <div className="text-center">
                   <p className="text-sm font-semibold text-navy">
-                    {personaliseMutation.isPending ? "Personalising template..." : `Generating ${currentToneConfig.label} email...`}
+                    {personaliseMutation.isPending
+                      ? "Personalising template..."
+                      : `Generating ${currentToneConfig.label} email...`}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Analysing {project.name} and crafting a tailored message for {contact.name}
+                    Analysing {project.name} and crafting a tailored message for{" "}
+                    {contact.name}
                   </p>
                 </div>
               </div>
             ) : (
               <>
+                {draftState === "deterministic_fallback" && (
+                  <div
+                    role="status"
+                    className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {AI_DRAFTING_UNAVAILABLE_MESSAGE}
+                        </p>
+                        <p className="text-xs mt-1 text-amber-800">
+                          Deterministic provider-free draft — review and edit it
+                          before use.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {draftState === "manual_template" && (
+                  <div
+                    role="status"
+                    className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900"
+                  >
+                    <p className="text-sm font-semibold">
+                      {AI_DRAFTING_UNAVAILABLE_MESSAGE}
+                    </p>
+                    <p className="text-xs mt-1 text-blue-800">
+                      Saved template loaded without AI — review and personalise
+                      it manually before use.
+                    </p>
+                  </div>
+                )}
+
+                {draftState === "error" && (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-900"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-red-700" />
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {AI_DRAFTING_UNAVAILABLE_MESSAGE}
+                        </p>
+                        <p className="text-xs mt-1 text-red-800">
+                          {draftError ?? AI_DRAFT_FAILURE_MESSAGE}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Subject */}
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Subject</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                    Subject
+                  </label>
                   {isEditing ? (
-                    <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                    <input
+                      type="text"
+                      value={subject}
+                      onChange={e => setSubject(e.target.value)}
+                      placeholder="Write a subject"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gold/40"
+                    />
                   ) : (
-                    <div className="px-3 py-2 rounded-lg bg-gold/5 border border-gold/20 text-sm font-medium text-navy">{subject}</div>
+                    <div className="px-3 py-2 rounded-lg bg-gold/5 border border-gold/20 text-sm font-medium text-navy">
+                      {subject}
+                    </div>
                   )}
                 </div>
 
                 {/* Body */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Body</label>
-                    <button onClick={() => setIsEditing(!isEditing)} disabled={!actionsAvailable || !body} className="flex items-center gap-1 text-xs text-teal hover:text-teal-light transition-colors disabled:opacity-50">
-                      <Pencil className="w-3 h-3" /> {isEditing ? "Done editing" : "Edit"}
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Email Body
+                    </label>
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      disabled={!actionsAvailable || !body}
+                      className="flex items-center gap-1 text-xs text-teal hover:text-teal-light transition-colors disabled:opacity-50"
+                    >
+                      <Pencil className="w-3 h-3" />{" "}
+                      {isEditing ? "Done editing" : "Edit"}
                     </button>
                   </div>
                   {isEditing ? (
-                    <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={12}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y" />
+                    <textarea
+                      value={body}
+                      onChange={e => setBody(e.target.value)}
+                      rows={12}
+                      placeholder="Write your email"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-gold/40 resize-y"
+                    />
                   ) : (
-                    <div className="px-4 py-3 rounded-lg bg-card border border-border text-sm leading-relaxed whitespace-pre-line text-foreground/85">{body}</div>
+                    <div className="px-4 py-3 rounded-lg bg-card border border-border text-sm leading-relaxed whitespace-pre-line text-foreground/85">
+                      {body}
+                    </div>
                   )}
                 </div>
 
                 {/* Key Points */}
                 {keyPoints.length > 0 && (
                   <div className="bg-teal/5 border border-teal/20 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-teal uppercase tracking-wider mb-2">Key Selling Points Used</p>
+                    <p className="text-xs font-semibold text-teal uppercase tracking-wider mb-2">
+                      Key Selling Points Used
+                    </p>
                     <ul className="space-y-1">
                       {keyPoints.map((kp, i) => (
-                        <li key={i} className="text-xs text-foreground/70 flex gap-2">
-                          <span className="shrink-0 w-4 h-4 rounded-full bg-teal/15 text-teal text-[10px] font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                        <li
+                          key={i}
+                          className="text-xs text-foreground/70 flex gap-2"
+                        >
+                          <span className="shrink-0 w-4 h-4 rounded-full bg-teal/15 text-teal text-[10px] font-bold flex items-center justify-center mt-0.5">
+                            {i + 1}
+                          </span>
                           {kp}
                         </li>
                       ))}
@@ -586,35 +1025,75 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
                   <div className="bg-gold/5 border border-gold/20 rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-navy flex items-center gap-1.5">
-                        <BookTemplate className="w-3.5 h-3.5 text-gold" /> Save as Template
+                        <BookTemplate className="w-3.5 h-3.5 text-gold" /> Save
+                        as Template
                       </h4>
-                      <button onClick={() => setShowSaveForm(false)} className="text-muted-foreground hover:text-navy transition-colors">
+                      <button
+                        onClick={() => setShowSaveForm(false)}
+                        className="text-muted-foreground hover:text-navy transition-colors"
+                      >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Template Name *</label>
-                      <input type="text" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g., Mining Procurement — TCO Pitch"
-                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Template Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={templateName}
+                        onChange={e => setTemplateName(e.target.value)}
+                        placeholder="e.g., Mining Procurement — TCO Pitch"
+                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+                      />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Description (optional)</label>
-                      <input type="text" value={templateDescription} onChange={(e) => setTemplateDescription(e.target.value)} placeholder="When to use this template..."
-                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Description (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={templateDescription}
+                        onChange={e => setTemplateDescription(e.target.value)}
+                        placeholder="When to use this template..."
+                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+                      />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tags (comma-separated, optional)</label>
-                      <input type="text" value={templateTags} onChange={(e) => setTemplateTags(e.target.value)} placeholder="e.g., mining, compressors, TCO"
-                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Tags (comma-separated, optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={templateTags}
+                        onChange={e => setTemplateTags(e.target.value)}
+                        placeholder="e.g., mining, compressors, TCO"
+                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                        <input type="checkbox" checked={isShared} onChange={(e) => setIsShared(e.target.checked)} className="rounded border-border" />
+                        <input
+                          type="checkbox"
+                          checked={isShared}
+                          onChange={e => setIsShared(e.target.checked)}
+                          className="rounded border-border"
+                        />
                         Share with team
                       </label>
-                      <button onClick={handleSaveAsTemplate} disabled={!actionsAvailable || saveTemplateMutation.isPending || !templateName.trim()}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gold text-navy text-xs font-bold hover:bg-gold-light transition-colors disabled:opacity-50">
-                        <Save className="w-3.5 h-3.5" /> {saveTemplateMutation.isPending ? "Saving..." : "Save Template"}
+                      <button
+                        onClick={handleSaveAsTemplate}
+                        disabled={
+                          !actionsAvailable ||
+                          saveTemplateMutation.isPending ||
+                          !templateName.trim()
+                        }
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gold text-navy text-xs font-bold hover:bg-gold-light transition-colors disabled:opacity-50"
+                      >
+                        <Save className="w-3.5 h-3.5" />{" "}
+                        {saveTemplateMutation.isPending
+                          ? "Saving..."
+                          : "Save Template"}
                       </button>
                     </div>
                   </div>
@@ -626,30 +1105,77 @@ export default function OutreachEmailModal({ isOpen, onClose, contact, project }
           {/* Footer Actions */}
           <div className="px-6 py-4 border-t border-border bg-card flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <button onClick={handleRegenerate} disabled={!actionsAvailable || isGenerating}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground border border-border hover:border-navy/30 hover:text-navy transition-colors disabled:opacity-50">
-                <RefreshCw className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`} /> Regenerate
+              <button
+                onClick={handleRegenerate}
+                disabled={!aiActionsAvailable || isGenerating}
+                title={
+                  aiDraftingBlocked
+                    ? AI_DRAFTING_UNAVAILABLE_MESSAGE
+                    : undefined
+                }
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground border border-border hover:border-navy/30 hover:text-navy transition-colors disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${isGenerating ? "animate-spin" : ""}`}
+                />{" "}
+                Regenerate
               </button>
-              {actionsAvailable && !isGenerating && body && !showSaveForm && (
-                <button onClick={() => setShowSaveForm(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-gold-dark border border-gold/30 hover:bg-gold/10 transition-colors">
-                  <BookTemplate className="w-4 h-4" /> Save as Template
-                </button>
-              )}
+              {actionsAvailable &&
+                !isGenerating &&
+                hasCompleteDraft &&
+                !showSaveForm && (
+                  <button
+                    onClick={() => setShowSaveForm(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-gold-dark border border-gold/30 hover:bg-gold/10 transition-colors"
+                  >
+                    <BookTemplate className="w-4 h-4" /> Save as Template
+                  </button>
+                )}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleCopy} disabled={!actionsAvailable || isGenerating || !body}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-navy border border-border hover:bg-navy/5 transition-colors disabled:opacity-50">
-                {copied ? <Check className="w-4 h-4 text-teal" /> : <Copy className="w-4 h-4" />}
+              <button
+                onClick={handleCopy}
+                disabled={
+                  !actionsAvailable || isGenerating || !hasCompleteDraft
+                }
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-navy border border-border hover:bg-navy/5 transition-colors disabled:opacity-50"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-teal" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
                 {copied ? "Copied" : "Copy"}
               </button>
-              <button onClick={handleDownloadEml} disabled={!actionsAvailable || isGenerating || !body || downloadEmlMutation.isPending}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold text-navy text-sm font-bold hover:bg-gold-light transition-colors shadow-sm disabled:opacity-50">
-                <Download className="w-4 h-4" /> {downloadEmlMutation.isPending ? "Preparing..." : "Download Email"}
+              <button
+                onClick={handleDownloadEml}
+                disabled={
+                  !actionsAvailable ||
+                  isGenerating ||
+                  !hasCompleteDraft ||
+                  downloadEmlMutation.isPending
+                }
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold text-navy text-sm font-bold hover:bg-gold-light transition-colors shadow-sm disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />{" "}
+                {downloadEmlMutation.isPending
+                  ? "Preparing..."
+                  : "Download Email"}
               </button>
-              <button onClick={handleOpenInEmail} disabled={!actionsAvailable || isGenerating || !body || prepareOpenInEmailMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-navy border border-border hover:bg-navy/5 transition-colors disabled:opacity-50">
-                <Mail className="w-4 h-4" /> {prepareOpenInEmailMutation.isPending ? "Opening..." : "Open in Email"}
+              <button
+                onClick={handleOpenInEmail}
+                disabled={
+                  !actionsAvailable ||
+                  isGenerating ||
+                  !hasCompleteDraft ||
+                  prepareOpenInEmailMutation.isPending
+                }
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-navy border border-border hover:bg-navy/5 transition-colors disabled:opacity-50"
+              >
+                <Mail className="w-4 h-4" />{" "}
+                {prepareOpenInEmailMutation.isPending
+                  ? "Opening..."
+                  : "Open in Email"}
               </button>
             </div>
           </div>

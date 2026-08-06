@@ -10,10 +10,12 @@ function firstName(fullName: string): string {
 }
 
 function knownFocus(input: OutreachInput): string | null {
+  // A user-selected collateral item is an explicit input. A derived business
+  // line match is a ranking signal, not claim-level evidence, and must not be
+  // stated as fact in a provider-free fallback.
   const collateral = compact(input.collateralName);
   if (collateral) return collateral;
-  const businessLines = input.matchedBusinessLines.map(compact).filter(Boolean);
-  return businessLines.length > 0 ? businessLines.join(", ") : null;
+  return null;
 }
 
 /**
@@ -30,30 +32,32 @@ export function buildDeterministicOutreachEmail(
   const project = compact(input.projectName);
   const location = compact(input.projectLocation);
   const title = compact(input.contactTitle);
-  const focus = knownFocus(input);
+  const selectedCollateral = knownFocus(input);
 
   const projectReference = location
     ? `${project} in ${location}`
     : project;
-  const roleReference = title
-    ? `Given your role as ${title} at ${company}, `
-    : `Given your role at ${company}, `;
-  const focusParagraph = focus
-    ? `The information available identifies ${focus} as a relevant area. I would like to understand the requirements before suggesting a specific solution.`
+  const contextReference = title && company
+    ? `Our records list ${title} and ${company}, but I would first like to confirm whether this project is relevant to your current responsibilities. `
+    : `I would first like to confirm whether this project is relevant to your current responsibilities. `;
+  const focusParagraph = selectedCollateral
+    ? `I have ${selectedCollateral} information available if it proves relevant. I would like to understand the requirements before suggesting a specific solution.`
     : `I would like to understand the project's equipment requirements before suggesting a specific solution.`;
 
   return {
-    subject: `${company} — ${project}`,
+    subject: `${project} — project contact check`,
     body: [
       `Hi ${recipientFirstName},`,
-      `I'm getting in touch regarding ${projectReference}. ${roleReference}I thought it would be useful to understand the project's requirements and whether Atlas Copco Power Technique could support them.`,
+      `I'm getting in touch regarding ${projectReference}. ${contextReference}I thought it would be useful to understand the project's requirements and whether Atlas Copco Power Technique could support them.`,
       focusParagraph,
-      "Would a brief discussion be useful, or is there someone else on the project I should speak with?",
+      "Would a brief discussion be useful? If this is outside your remit, please let me know or point me to the appropriate project contact.",
     ].join("\n\n"),
     keyPoints: [
       `Project: ${project}`,
-      `Contact context: ${title || "project stakeholder"} at ${company}`,
-      focus ? `Known focus: ${focus}` : "Next step: confirm requirements before recommending a solution",
+      `Recorded contact context to confirm: ${title || "role not recorded"}${company ? ` — ${company}` : ""}`,
+      selectedCollateral
+        ? `Selected collateral available if relevant: ${selectedCollateral}`
+        : "Next step: confirm requirements before recommending a solution",
     ],
     toneUsed: input.tone,
     generationMode: "deterministic_template",

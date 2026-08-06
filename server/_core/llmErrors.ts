@@ -24,8 +24,9 @@ export class LLMInvokeError extends Error {
 
   constructor(details: LLMFailureDetails) {
     const status = details.status ? `, HTTP ${details.status}` : "";
-    const request = details.requestId ? `, request ${details.requestId}` : "";
-    super(`LLM unavailable (${details.kind}${status}${request})`);
+    // Provider request IDs remain available as internal structured metadata but
+    // never enter the public Error.message propagated by tRPC.
+    super(`LLM unavailable (${details.kind}${status})`);
     this.name = "LLMInvokeError";
     this.kind = details.kind;
     this.status = details.status;
@@ -48,12 +49,17 @@ function providerCode(body: string): number | undefined {
   return undefined;
 }
 
-export function classifyLLMHttpFailure(status: number, body: string): LLMFailureKind {
+export function classifyLLMHttpFailure(
+  status: number,
+  body: string
+): LLMFailureKind {
   const normalised = body.toLowerCase();
   const code = providerCode(body);
   const quotaEvidence =
     code === 9 ||
-    /usage\s+exhausted|quota\s+exhausted|insufficient\s+(credit|quota)|credit\s+exhausted/.test(normalised);
+    /usage\s+exhausted|quota\s+exhausted|insufficient\s+(credit|quota)|credit\s+exhausted/.test(
+      normalised
+    );
 
   if (
     quotaEvidence &&
@@ -67,7 +73,10 @@ export function classifyLLMHttpFailure(status: number, body: string): LLMFailure
   return "upstream_rejected";
 }
 
-export function parseRetryAfterMs(value: string | null, now = Date.now()): number | undefined {
+export function parseRetryAfterMs(
+  value: string | null,
+  now = Date.now()
+): number | undefined {
   if (!value) return undefined;
   const seconds = Number(value);
   if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
@@ -76,15 +85,20 @@ export function parseRetryAfterMs(value: string | null, now = Date.now()): numbe
   return Math.max(0, date - now);
 }
 
-export function isDeterministicFallbackEligible(error: unknown): error is LLMInvokeError {
-  return error instanceof LLMInvokeError && [
-    "configuration",
-    "quota_exhausted",
-    "rate_limited",
-    "timeout",
-    "upstream_unavailable",
-    "circuit_open",
-  ].includes(error.kind);
+export function isDeterministicFallbackEligible(
+  error: unknown
+): error is LLMInvokeError {
+  return (
+    error instanceof LLMInvokeError &&
+    [
+      "configuration",
+      "quota_exhausted",
+      "rate_limited",
+      "timeout",
+      "upstream_unavailable",
+      "circuit_open",
+    ].includes(error.kind)
+  );
 }
 
 /** Parse model-controlled JSON without ever echoing its contents in an error. */
