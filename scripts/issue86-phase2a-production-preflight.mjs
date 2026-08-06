@@ -576,14 +576,34 @@ export async function runPreflight({
 
   const parsed = parseDatabaseUrl(env.DATABASE_URL);
   const tlsCa = readTlsCa(env.ISSUE86_PREFLIGHT_CA_FILE);
+  const expectedCaSha256 = requireSha256(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_CA_SHA256",
+  );
+  const expectedPeerFingerprintSha256 = requireSha256(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_PEER_CERT_SHA256",
+  );
+  const expectedIdentity = requireSha256(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_DB_IDENTITY_SHA256",
+  );
+  const expectedAccountSha256 = requireSha256(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_DB_ACCOUNT_SHA256",
+  );
+  const expectedMySqlVersion = env.ISSUE86_PREFLIGHT_EXPECTED_MYSQL_VERSION;
+  if (!/^8\\.4\\.[0-9]+$/.test(expectedMySqlVersion ?? "")) {
+    throw new Error("ISSUE86_PREFLIGHT_EXPECTED_MYSQL_VERSION_MISSING_OR_INVALID");
+  }
+  const caPinned = tlsCa.sha256 === expectedCaSha256;
+  if (!caPinned) throw new Error("CA_SHA256_MISMATCH");
   parsed.config.ssl.ca = tlsCa.pem;
   parsed.config.connectTimeout = 10000;
-  secrets = [...parsed.secrets, tlsCa.pem];
-
-  const expectedIdentity = env.ISSUE86_PREFLIGHT_EXPECTED_DB_IDENTITY_SHA256;
-  if (!/^[0-9a-f]{64}$/.test(expectedIdentity ?? "")) {
-    throw new Error("EXPECTED_PRODUCTION_IDENTITY_MISSING_OR_INVALID");
-  }
+  secrets = {
+    highRisk: [...parsed.secrets.highRisk, tlsCa.pem],
+    contextual: parsed.secrets.contextual,
+  };
 
   validateOutputLocation(outputDir);
   reserveOutputDirectory(outputDir);
@@ -593,6 +613,8 @@ export async function runPreflight({
     observed: false,
     runtime,
     tlsCaSha256: tlsCa.sha256,
+    expectedTlsCaSha256: expectedCaSha256,
+    caPinned,
     queryManifestSha256: manifest.sha256,
     expected0090ManifestSha256: canonicalHash(expected0090),
   };
@@ -606,11 +628,15 @@ export async function runPreflight({
     sourceGatePassed: true,
     runtimeProfilePassed: runtime.passed,
     productionIdentityMatched: false,
+    accountIdentityMatched: false,
+    caPinned,
+    peerCertificatePinned: false,
     tlsVerified: false,
     grantProfileMatched: false,
     oneConnectionOnly: false,
     readOnlySnapshotsEstablished: false,
     oracleMySql84ExactProfileMatched: false,
+    rehearsedEngineVersionMatched: false,
     capabilitiesPassed: false,
     journalSchemaExact: false,
     predecessorFootprintExact: false,
@@ -634,7 +660,12 @@ export async function runPreflight({
     connectionIds.push(await readConnectionId(executor));
 
     const tlsSocket = inspectTlsSocket(connection);
-    const tls = validateTls(tlsSocket, await executor.run("TLS_STATUS"));
+    const tls = validateTls(
+      tlsSocket,
+      await executor.run("TLS_STATUS"),
+      expectedPeerFingerprintSha256,
+    );
+    facts.peerCertificatePinned = tls.peerCertificatePinned;
     facts.tlsVerified = tls.verified;
     if (!tls.verified) throw new Error("TLS_NOT_VERIFIED");
 
@@ -646,6 +677,7 @@ export async function runPreflight({
         "versionString",
         "versionComment",
         "connectionId",
+        "currentUserSha256",
         "targetIdentitySha256",
       ],
       "ENGINE_IDENTITY",
@@ -656,22 +688,36 @@ export async function runPreflight({
     );
     facts.oracleMySql84ExactProfileMatched =
       engine.oracleMySql84ExactProfileMatched;
+    facts.rehearsedEngineVersionMatched =
+      engine.versionString === expectedMySqlVersion;
     facts.productionIdentityMatched =
       String(identityRows[0].targetIdentitySha256) === expectedIdentity;
+    facts.accountIdentityMatched =
+      String(identityRows[0].currentUserSha256) === expectedAccountSha256;
     connectionIds.push(String(identityRows[0].connectionId));
     engineEvidence = {
       ...engineEvidence,
       observed: true,
       tls,
       targetIdentitySha256: String(identityRows[0].targetIdentitySha256),
+      currentUserSha256: String(identityRows[0].currentUserSha256),
       productionIdentityMatched: facts.productionIdentityMatched,
+      accountIdentityMatched: facts.accountIdentityMatched,
+      expectedMySqlVersion,
+      rehearsedEngineVersionMatched: facts.rehearsedEngineVersionMatched,
       engine,
     };
     if (!facts.productionIdentityMatched) {
       throw new Error("PRODUCTION_IDENTITY_MISMATCH");
     }
+    if (!facts.accountIdentityMatched) {
+      throw new Error("ACCOUNT_IDENTITY_MISMATCH");
+    }
     if (!facts.oracleMySql84ExactProfileMatched) {
       throw new Error("ENGINE_UNSUPPORTED_OR_UNCERTAIN");
+    }
+    if (!facts.rehearsedEngineVersionMatched) {
+      throw new Error("ENGINE_PATCH_NOT_REHEARSED");
     }
 
     const roleRows = await executor.run("CURRENT_ROLE");
@@ -883,9 +929,13 @@ export async function runPreflight({
     sourceGatePassed: true,
     runtimeProfilePassed: runtime.passed,
     productionIdentityMatched: facts.productionIdentityMatched,
+    accountIdentityMatched: facts.accountIdentityMatched,
+    caPinned: facts.caPinned,
+    peerCertificatePinned: facts.peerCertificatePinned,
     tlsVerified: facts.tlsVerified,
     grantProfileMatched: facts.grantProfileMatched,
     engineProfileMatched: facts.oracleMySql84ExactProfileMatched,
+    rehearsedEngineVersionMatched: facts.rehearsedEngineVersionMatched,
     capabilitiesPassed: facts.capabilitiesPassed,
     migration0090ExactAndLatest:
       databaseState.migration0090ExactAndLatest ?? null,
