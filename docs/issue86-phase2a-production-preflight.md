@@ -22,7 +22,9 @@ The corrected implementation is intentionally separate:
 - `scripts/issue86-phase2a-preflight-core.mjs` — immutable contracts and pure policy;
 - `scripts/issue86-phase2a-production-preflight.mjs` — one-connection runner and CLI;
 - `scripts/issue86-phase2a-production-preflight.test.mjs` — source, policy, and strict
-  query-protocol tests.
+  query-protocol tests;
+- `scripts/issue86-phase2a-production-preflight.integration.mjs` — disposable,
+  digest-pinned TLS Oracle MySQL integration runner.
 
 ## Immutable source contract
 
@@ -60,7 +62,10 @@ The tool:
 - requires the exact 0090 physical contract derived from the attested 0090 snapshot;
 - treats empty, partial, duplicate, malformed, decreased, or nonzero mutation
   counters as failure;
-- writes evidence only after the connection has closed successfully;
+- requires a new output directory outside the repository under a controller-owned,
+  non-world-writable parent;
+- stages, syncs, and publishes a complete evidence pack only after the connection
+  has closed successfully;
 - reports only writes by the preflight connection; global writes remain
   `NOT_PROVEN`.
 
@@ -74,21 +79,35 @@ The final controller-approved run will require these variables:
 
 - `DATABASE_URL` — the dedicated production read-only account;
 - `ISSUE86_PREFLIGHT_CA_FILE` — regular, non-symlink CA certificate file;
+- `ISSUE86_PREFLIGHT_EXPECTED_CA_SHA256` — independently approved SHA-256 of
+  the exact CA bytes;
+- `ISSUE86_PREFLIGHT_EXPECTED_PEER_CERT_SHA256` — independently approved
+  SHA-256 fingerprint of the production leaf certificate;
 - `ISSUE86_PREFLIGHT_EXPECTED_NODE_VERSION` — exact rehearsed Node version;
+- `ISSUE86_PREFLIGHT_EXPECTED_MYSQL_VERSION` — exact rehearsed Oracle MySQL
+  8.4 patch version;
 - `ISSUE86_PREFLIGHT_EXPECTED_TOOL_SHA256` — exact controller-approved runner hash;
 - `ISSUE86_PREFLIGHT_EXPECTED_CORE_SHA256` — exact controller-approved core hash;
+- `ISSUE86_PREFLIGHT_EXPECTED_DB_ACCOUNT_SHA256` — independently approved
+  SHA-256 of the dedicated account returned by `CURRENT_USER()`;
 - `ISSUE86_PREFLIGHT_EXPECTED_DB_IDENTITY_SHA256` — independently approved hash of
-  the Oracle MySQL server UUID, selected database, and server port.
+  the Oracle MySQL server UUID, selected database, server port, and
+  `CURRENT_USER()`.
 
-The expected database identity must come from a trusted production configuration
-source. It must not be learned from the same untrusted connection and immediately
-accepted.
+The CA, peer certificate, account, database identity, engine patch, runner, core,
+Node, and dependency/runtime values must come from trusted controller or provider
+records. They must not be learned from the same connection and immediately accepted
+as their own expected values. Manus must not substitute freshly computed hashes for
+the controller-approved values.
 
 ## Evidence output
 
-After a completed and successfully closed connection, the tool writes six canonical
-JSON evidence files and a seventh non-self-referential SHA index. The index contains
-relative filenames, byte counts, and hashes only. It does not contain absolute paths.
+After a completed and successfully closed connection, the tool publishes exactly
+eight files: six canonical JSON evidence files, one non-self-referential SHA index,
+and a last-written `issue86-phase2a-preflight-COMPLETE.json` marker. A directory
+without that completion marker is an incomplete pack and must not be used for any
+decision. The index contains relative filenames, byte counts, and hashes only. It
+does not contain absolute paths.
 
 Exit codes:
 
@@ -113,8 +132,9 @@ node --check scripts/issue86-phase2a-production-preflight.mjs
 node --test scripts/issue86-phase2a-production-preflight.test.mjs
 ```
 
-Production approval additionally requires a disposable, TLS-enabled Oracle MySQL
-8.4 integration run using mysql2 3.16.3 and a `REQUIRE SSL`, SELECT-only test user.
+Production approval additionally requires a disposable, TLS-enabled, exact-patch
+Oracle MySQL 8.4 integration run from the digest-pinned CI image using Node 22.13.0,
+mysql2 3.16.3, and a `REQUIRE SSL`, SELECT-only test user.
 The real integration must prove MySQL grammar, exact query ordering, one connection,
 TLS authorisation, unchanged schema/journal fingerprints, no DML/DDL, and all-zero
 mutation-counter deltas.
