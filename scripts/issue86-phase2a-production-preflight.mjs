@@ -224,7 +224,7 @@ function inspectTlsSocket(connection) {
   };
 }
 
-function validateTls(socketEvidence, statusRows) {
+function validateTls(socketEvidence, statusRows, expectedPeerFingerprintSha256) {
   const status = parseStatusRows(statusRows, ["Ssl_cipher", "Ssl_version"]);
   const sessionCipher = status.get("Ssl_cipher");
   const sessionVersion = status.get("Ssl_version");
@@ -236,9 +236,12 @@ function validateTls(socketEvidence, statusRows) {
     socketEvidence.protocol === sessionVersion &&
     Boolean(socketEvidence.cipher) &&
     socketEvidence.cipher === sessionCipher &&
-    Boolean(socketEvidence.peerFingerprintSha256);
+    socketEvidence.peerFingerprintSha256 === expectedPeerFingerprintSha256;
   return {
     verified,
+    peerCertificatePinned:
+      socketEvidence.peerFingerprintSha256 === expectedPeerFingerprintSha256,
+    expectedPeerFingerprintSha256,
     socket: socketEvidence,
     session: {
       protocol: sessionVersion || null,
@@ -348,10 +351,14 @@ async function captureMetadata(executor) {
   const journalTables = await executor.run("JOURNAL_TABLES");
   const journalColumns = await executor.run("JOURNAL_COLUMNS");
   const journalIndexes = await executor.run("JOURNAL_INDEXES");
+  const journalConstraints = await executor.run("JOURNAL_CONSTRAINTS");
+  const journalTriggers = await executor.run("JOURNAL_TRIGGERS");
   const journalSchema = validateJournalSchema({
     tables: journalTables,
     columns: journalColumns,
     indexes: journalIndexes,
+    constraints: journalConstraints,
+    triggers: journalTriggers,
   });
   if (!journalSchema.exact) throw new Error("JOURNAL_SCHEMA_NOT_EXACT");
 
@@ -378,6 +385,8 @@ async function captureMetadata(executor) {
       tables: journalTables,
       columns: journalColumns,
       indexes: journalIndexes,
+      constraints: journalConstraints,
+      triggers: journalTriggers,
       schemaExact: journalSchema.exact,
       relevantCount: String(countRows[0].rowCount),
       relevantRows,
@@ -391,8 +400,7 @@ async function captureMetadata(executor) {
   };
 }
 
-async function startSnapshot(executor) {
-  await executor.run("START_SNAPSHOT");
+async function confirmSnapshot(executor) {
   const warnings = await executor.run("SHOW_WARNINGS");
   if (warnings.length !== 0) throw new Error("START_SNAPSHOT_WARNINGS");
   const rows = await executor.run("CONFIRM_SESSION");
@@ -416,6 +424,8 @@ function readySequence() {
     "JOURNAL_TABLES",
     "JOURNAL_COLUMNS",
     "JOURNAL_INDEXES",
+    "JOURNAL_CONSTRAINTS",
+    "JOURNAL_TRIGGERS",
     "JOURNAL_RELEVANT_COUNT",
     "JOURNAL_RELEVANT",
     "JOURNAL_LATEST",
@@ -679,8 +689,9 @@ export async function runPreflight({
     await executor.run("SET_ISOLATION");
     await executor.run("SET_READ_ONLY");
 
-    connectionIds.push(await startSnapshot(executor));
+    await executor.run("START_SNAPSHOT");
     transactionOpen = true;
+    connectionIds.push(await confirmSnapshot(executor));
 
     const capRows = await executor.run("ORACLE_CAPABILITIES");
     if (capRows.length !== 1) throw new Error("CAPABILITIES_ROW_COUNT");
@@ -707,8 +718,9 @@ export async function runPreflight({
     transactionOpen = false;
     connectionIds.push(await readConnectionId(executor));
 
-    connectionIds.push(await startSnapshot(executor));
+    await executor.run("START_SNAPSHOT");
     transactionOpen = true;
+    connectionIds.push(await confirmSnapshot(executor));
     snapshotB = await captureMetadata(executor);
     rollbackBAttempted = true;
     await executor.run("ROLLBACK");
