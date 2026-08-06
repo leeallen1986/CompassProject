@@ -269,39 +269,59 @@ function validateTls(socketEvidence, statusRows, expectedPeerFingerprintSha256) 
   };
 }
 
-export function validateGrantProfile(rows, currentRole, databaseName) {
+export function validateGrantProfile(
+  rows,
+  currentRole,
+  databaseName,
+  createUserRows,
+) {
   if (!/^[A-Za-z0-9_]{1,64}$/.test(databaseName)) {
     throw new Error("GRANT_DATABASE_IDENTIFIER_INVALID");
   }
-  const grants = rows.map((row) => {
-    if (!row || typeof row !== "object" || Array.isArray(row)) {
-      throw new Error("GRANT_ROW_INVALID");
-    }
-    const values = Object.values(row);
-    if (values.length !== 1 || typeof values[0] !== "string") {
-      throw new Error("GRANT_ROW_SHAPE_INVALID");
-    }
-    return values[0].trim();
-  });
-  const escapedDb = databaseName.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
-  const usage = /^GRANT USAGE ON \*\.\* TO .+ REQUIRE (?:SSL|X509)$/i;
-  const select = new RegExp("^GRANT SELECT ON `" + escapedDb + "`\\.\\* TO .+$", "i");
+  const oneStringPerRow = (inputRows, label) =>
+    inputRows.map((row) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) {
+        throw new Error(`${label}_ROW_INVALID`);
+      }
+      const values = Object.values(row);
+      if (values.length !== 1 || typeof values[0] !== "string") {
+        throw new Error(`${label}_ROW_SHAPE_INVALID`);
+      }
+      return values[0].trim();
+    });
+  const grants = oneStringPerRow(rows, "GRANT");
+  const createStatements = oneStringPerRow(createUserRows, "CREATE_USER");
+  const dbPattern = [...databaseName]
+    .map((character) => (character === "_" ? "(?:_|\\\\_)" : character))
+    .join("");
+  const usage = /^GRANT USAGE ON \*\.\* TO .+$/i;
+  const select = new RegExp("^GRANT SELECT ON `" + dbPattern + "`\\.\\* TO .+$", "i");
   const forbidden =
     /\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TRIGGER|EVENT|EXECUTE|FILE|PROCESS|SUPER|RELOAD|SHUTDOWN|REPLICATION|GRANT OPTION|SYSTEM_USER|CONNECTION_ADMIN)\b/i;
   const usageRows = grants.filter((grant) => usage.test(grant));
   const selectRows = grants.filter((grant) => select.test(grant));
+  const createUserStatement =
+    createStatements.length === 1 ? createStatements[0] : "";
+  const tlsRequirementPresent =
+    /\bREQUIRE (?:SSL|X509)\b/i.test(createUserStatement) &&
+    !/\bREQUIRE NONE\b/i.test(createUserStatement);
   const matched =
     currentRole === "NONE" &&
     grants.length === 2 &&
     usageRows.length === 1 &&
     selectRows.length === 1 &&
+    createStatements.length === 1 &&
+    tlsRequirementPresent &&
     grants.every((grant) => !forbidden.test(grant));
   return {
     matched,
     currentRoleNone: currentRole === "NONE",
-    tlsRequirementPresent: usageRows.length === 1,
+    tlsRequirementPresent,
     grantCount: grants.length,
+    createUserRowCount: createStatements.length,
     grantTextSha256: canonicalHash([...grants].sort()),
+    createUserTextSha256:
+      createStatements.length === 1 ? canonicalHash(createUserStatement) : null,
   };
 }
 
@@ -464,6 +484,7 @@ function readySequence() {
     "ENGINE_IDENTITY",
     "CURRENT_ROLE",
     "SHOW_GRANTS",
+    "SHOW_CREATE_USER",
     "SET_ISOLATION",
     "SET_READ_ONLY",
     "START_SNAPSHOT",
@@ -763,6 +784,7 @@ export async function runPreflight({
       await executor.run("SHOW_GRANTS"),
       String(roleRows[0].currentRole),
       parsed.config.database,
+      await executor.run("SHOW_CREATE_USER"),
     );
     facts.grantProfileMatched = grants.matched;
     engineEvidence.grants = grants;
