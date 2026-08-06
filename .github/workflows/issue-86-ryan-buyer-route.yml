@@ -134,7 +134,7 @@ jobs:
         run: |
           set -euo pipefail
           TLS_DIR="$RUNNER_TEMP/issue86-preflight-tls"
-          mkdir -m 700 "$TLS_DIR"
+          mkdir -m 755 "$TLS_DIR"
           openssl genrsa -out "$TLS_DIR/ca-key.pem" 2048
           openssl req -new -x509 -sha256 -days 1             -key "$TLS_DIR/ca-key.pem"             -out "$TLS_DIR/ca.pem"             -subj "/CN=Issue86 Disposable CI CA"
           openssl genrsa -out "$TLS_DIR/server-key.pem" 2048
