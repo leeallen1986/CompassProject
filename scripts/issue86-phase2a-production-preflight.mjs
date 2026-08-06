@@ -4,6 +4,7 @@ import {
   closeSync,
   constants as fsConstants,
   fsyncSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
   openSync,
@@ -13,7 +14,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   SQL_STATEMENTS,
@@ -44,6 +45,7 @@ const CORE_PATH = resolve(SCRIPT_DIR, "issue86-phase2a-preflight-core.mjs");
 const MYSQL2_PACKAGE_PATH = resolve(PROJECT_ROOT, "node_modules/mysql2/package.json");
 const EXPECTED_MYSQL2_VERSION = "3.16.3";
 const EXPECTED_TLS_VERSIONS = new Set(["TLSv1.2", "TLSv1.3"]);
+const COMPLETION_FILENAME = "issue86-phase2a-preflight-COMPLETE.json";
 const EVIDENCE_FILENAMES = [
   "issue86-phase2a-preflight-source-attestation.json",
   "issue86-phase2a-preflight-engine-capability.json",
@@ -154,23 +156,37 @@ function reserveOutputDirectory(outputDir) {
 function readTlsCa(path) {
   if (!path) throw new Error("PREFLIGHT_CA_FILE_MISSING");
   const absolute = resolve(path);
-  const stat = lstatSync(absolute);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 1 || stat.size > 1048576) {
-    throw new Error("PREFLIGHT_CA_FILE_INVALID");
+  const noFollow = fsConstants.O_NOFOLLOW ?? 0;
+  const fd = openSync(absolute, fsConstants.O_RDONLY | noFollow);
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.size < 1 || stat.size > 1048576) {
+      throw new Error("PREFLIGHT_CA_FILE_INVALID");
+    }
+    const pem = readFileSync(fd, "utf8");
+    if (
+      !pem.includes("-----BEGIN CERTIFICATE-----") ||
+      !pem.includes("-----END CERTIFICATE-----")
+    ) {
+      throw new Error("PREFLIGHT_CA_FILE_NOT_CERTIFICATE");
+    }
+    return { pem, sha256: sha256(Buffer.from(pem, "utf8")) };
+  } finally {
+    closeSync(fd);
   }
-  const pem = readFileSync(absolute, "utf8");
-  if (
-    !pem.includes("-----BEGIN CERTIFICATE-----") ||
-    !pem.includes("-----END CERTIFICATE-----")
-  ) {
-    throw new Error("PREFLIGHT_CA_FILE_NOT_CERTIFICATE");
-  }
-  return { pem, sha256: sha256(Buffer.from(pem, "utf8")) };
 }
 
-function runtimeProfile() {
+function requireSha256(env, name) {
+  const value = env[name];
+  if (!/^[0-9a-f]{64}$/.test(value ?? "")) {
+    throw new Error(`${name}_MISSING_OR_INVALID`);
+  }
+  return value;
+}
+
+function runtimeProfile(env) {
   const pkg = JSON.parse(readFileSync(MYSQL2_PACKAGE_PATH, "utf8"));
-  const expectedNode = process.env.ISSUE86_PREFLIGHT_EXPECTED_NODE_VERSION;
+  const expectedNode = env.ISSUE86_PREFLIGHT_EXPECTED_NODE_VERSION;
   const nodeExact =
     typeof expectedNode === "string" &&
     /^v22\.[0-9]+\.[0-9]+$/.test(expectedNode) &&
@@ -523,7 +539,7 @@ export async function runPreflight({
   let rollbackBSucceeded = false;
   let transactionOpen = false;
   const connectionIds = [];
-  let secrets = [];
+  let secrets = { highRisk: [], contextual: [] };
   const startedAt = utcNow();
 
   const manifest = lintSqlManifest();
@@ -543,7 +559,7 @@ export async function runPreflight({
   }
   const { snapshot0090, ...sourceEvidence } = sourceResult;
   const expected0090 = buildExpected0090Contract(snapshot0090);
-  const runtime = runtimeProfile();
+  const runtime = runtimeProfile(env);
   if (!runtime.passed) {
     throw new Error("RUNTIME_PROFILE_MISMATCH");
   }
