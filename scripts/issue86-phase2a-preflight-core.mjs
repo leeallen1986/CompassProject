@@ -1010,10 +1010,40 @@ export function validateJournalSchema({
     ],
     triggers: [],
   };
-  const exact = canonicalJson(actual) === canonicalJson(expected);
+  const expectedCanonical = {
+    tables: normalizeObservedRows(expected.tables, ["tableName", "tableType", "engine"]),
+    columns: normalizeObservedRows(expected.columns, [
+      "columnName",
+      "dataType",
+      "columnType",
+      "isNullable",
+      "columnKey",
+      "extra",
+      "ordinalPosition",
+    ]),
+    indexes: normalizeObservedRows(expected.indexes, [
+      "indexName",
+      "nonUnique",
+      "seqInIndex",
+      "columnName",
+      "subPart",
+      "indexType",
+    ]),
+    constraints: normalizeObservedRows(expected.constraints, [
+      "constraintName",
+      "constraintType",
+      "enforced",
+    ]),
+    triggers: normalizeObservedRows(expected.triggers, [
+      "triggerName",
+      "eventManipulation",
+      "actionTiming",
+    ]),
+  };
+  const exact = canonicalJson(actual) === canonicalJson(expectedCanonical);
   return {
     exact,
-    expectedHash: canonicalHash(expected),
+    expectedHash: canonicalHash(expectedCanonical),
     observedHash: canonicalHash(actual),
   };
 }
