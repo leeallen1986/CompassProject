@@ -1,8 +1,36 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { describe, test } from "node:test";
 import { runProductionDiscovery } from "./issue86-phase2a-production-discovery.mjs";
 
 const RAW = "mysql://user:password@db.example:3306/compass?ssl=required";
+const DISCOVERY_BYTES = Buffer.from("reviewed-discovery");
+const POLICY_BYTES = Buffer.from("reviewed-policy");
+const CORE_BYTES = Buffer.from("reviewed-core");
+
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function discoveryEnv(extra = {}) {
+  return {
+    DATABASE_URL: RAW,
+    ISSUE86_DISCOVERY_EXPECTED_SCRIPT_SHA256: sha256(DISCOVERY_BYTES),
+    ISSUE86_DISCOVERY_EXPECTED_URL_POLICY_SHA256: sha256(POLICY_BYTES),
+    ISSUE86_DISCOVERY_EXPECTED_CORE_SHA256: sha256(CORE_BYTES),
+    ...extra,
+  };
+}
+
+function sourceInputs(extra = {}) {
+  return {
+    env: discoveryEnv(),
+    discoveryBytes: DISCOVERY_BYTES,
+    policyBytes: POLICY_BYTES,
+    coreBytes: CORE_BYTES,
+    ...extra,
+  };
+}
 
 const core = {
   parseDatabaseUrl(raw) {
@@ -90,16 +118,15 @@ function fakeConnection({
 }
 
 describe("production discovery", () => {
-  test("uses the sanitized URL and returns only hashed account/target identities", async () => {
+  test("pins sources, uses the sanitized URL, and returns only hashed identities", async () => {
     let config;
-    const result = await runProductionDiscovery({
-      env: { DATABASE_URL: RAW },
+    const result = await runProductionDiscovery(sourceInputs({
       core,
       connectionFactory: async value => {
         config = value;
         return fakeConnection();
       },
-    });
+    }));
 
     assert.equal(config.host, "db.example");
     assert.equal(config.database, "compass");
@@ -114,7 +141,9 @@ describe("production discovery", () => {
     assert.equal(result.currentRole.none, true);
     assert.equal(result.grants.appearsSelectOnly, true);
     assert.deepEqual(result.grants.nonSelectPrivilegeFlags, []);
-    assert.match(result.sourceAttestation.discoveryScriptSha256, /^[0-9a-f]{64}$/);
+    assert.equal(result.sourceAttestation.discoveryScript.matched, true);
+    assert.equal(result.sourceAttestation.urlPolicy.matched, true);
+    assert.equal(result.sourceAttestation.core.matched, true);
     assert.deepEqual(result.executedStatementIds, [
       "ENGINE_IDENTITY",
       "CURRENT_ROLE",
@@ -129,16 +158,37 @@ describe("production discovery", () => {
     assert.equal(json.includes("compass"), false);
   });
 
+  test("does not connect if any source pin fails", async () => {
+    for (const [name, code] of [
+      ["ISSUE86_DISCOVERY_EXPECTED_SCRIPT_SHA256", "DISCOVERY_SCRIPT_SHA256_MISMATCH"],
+      ["ISSUE86_DISCOVERY_EXPECTED_URL_POLICY_SHA256", "DISCOVERY_URL_POLICY_SHA256_MISMATCH"],
+      ["ISSUE86_DISCOVERY_EXPECTED_CORE_SHA256", "DISCOVERY_CORE_SHA256_MISMATCH"],
+    ]) {
+      let called = false;
+      await assert.rejects(
+        runProductionDiscovery(sourceInputs({
+          env: discoveryEnv({ [name]: "0".repeat(64) }),
+          core,
+          connectionFactory: async () => {
+            called = true;
+          },
+        })),
+        error => error?.message === code,
+      );
+      assert.equal(called, false);
+    }
+  });
+
   test("does not connect if the query policy is not exact", async () => {
     let called = false;
     await assert.rejects(
-      runProductionDiscovery({
-        env: { DATABASE_URL: RAW + "&x=1" },
+      runProductionDiscovery(sourceInputs({
+        env: discoveryEnv({ DATABASE_URL: RAW + "&x=1" }),
         core,
         connectionFactory: async () => {
           called = true;
         },
-      }),
+      })),
       error => error?.message === "DATABASE_URL_QUERY_SHAPE_REJECTED",
     );
     assert.equal(called, false);
@@ -148,34 +198,31 @@ describe("production discovery", () => {
     const connection = fakeConnection({ requireAllSteps: false });
     connection.connection.stream.authorized = false;
     await assert.rejects(
-      runProductionDiscovery({
-        env: { DATABASE_URL: RAW },
+      runProductionDiscovery(sourceInputs({
         core,
         connectionFactory: async () => connection,
-      }),
+      })),
       error => error?.message === "DISCOVERY_TLS_NOT_VERIFIED",
     );
   });
 
   test("fails closed if MySQL TLS status disagrees with the socket", async () => {
     await assert.rejects(
-      runProductionDiscovery({
-        env: { DATABASE_URL: RAW },
+      runProductionDiscovery(sourceInputs({
         core,
         connectionFactory: async () =>
           fakeConnection({ statusVersion: "TLSv1.2" }),
-      }),
+      })),
       error => error?.message === "DISCOVERY_TLS_STATUS_MISMATCH",
     );
   });
 
   test("fails when connection close is not proven", async () => {
     await assert.rejects(
-      runProductionDiscovery({
-        env: { DATABASE_URL: RAW },
+      runProductionDiscovery(sourceInputs({
         core,
         connectionFactory: async () => fakeConnection({ closeFails: true }),
-      }),
+      })),
       /close failed/,
     );
   });
