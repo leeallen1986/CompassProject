@@ -148,7 +148,12 @@ jobs:
           IMAGE='mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb'
           docker run --detach             --name issue86-preflight-mysql             --publish 127.0.0.1:3307:3306             --env MYSQL_ROOT_PASSWORD=issue86-integration-root             --env MYSQL_ROOT_HOST=%             --env MYSQL_DATABASE=issue86_preflight_it             --volume "$RUNNER_TEMP/issue86-preflight-tls:/issue86-tls:ro"             "$IMAGE"             --require-secure-transport=ON             --ssl-ca=/issue86-tls/ca.pem             --ssl-cert=/issue86-tls/server-cert.pem             --ssl-key=/issue86-tls/server-key.pem             --tls-version=TLSv1.2,TLSv1.3             --general-log=ON             --log-output=TABLE
           for attempt in $(seq 1 60); do
-            if docker exec issue86-preflight-mysql               mysqladmin ping -uroot -pissue86-integration-root --silent; then
+            if docker exec issue86-preflight-mysql \
+              mysql --protocol=TCP --host=127.0.0.1 --port=3306 \
+              --user=root --password=issue86-integration-root \
+              --ssl-mode=VERIFY_IDENTITY --ssl-ca=/issue86-tls/ca.pem \
+              --batch --skip-column-names \
+              --execute "SELECT VERSION(), @@require_secure_transport" >/dev/null 2>&1; then
               exit 0
             fi
             sleep 2
