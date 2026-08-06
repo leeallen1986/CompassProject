@@ -847,7 +847,13 @@ export async function runPreflight({
       },
     };
   } catch (error) {
-    addBlocker(blockers, sanitizeMessage(error?.message, secrets));
+    const rawCode = String(error?.message ?? "").split(":")[0];
+    addBlocker(
+      blockers,
+      /^[A-Z][A-Z0-9_]{2,127}$/.test(rawCode)
+        ? rawCode
+        : "PREFLIGHT_OPERATIONAL_ERROR",
+    );
   } finally {
     if (connection && transactionOpen && executor) {
       try {
