@@ -40,7 +40,12 @@ const core = {
   },
 };
 
-function fakeConnection({ closeFails = false, requireAllSteps = true } = {}) {
+function fakeConnection({
+  closeFails = false,
+  requireAllSteps = true,
+  statusVersion = "TLSv1.3",
+  statusCipher = "TLS_AES_256_GCM_SHA384",
+} = {}) {
   const steps = [
     ["SELECT VERSION()", [{
       versionString: "8.4.11",
@@ -55,8 +60,8 @@ function fakeConnection({ closeFails = false, requireAllSteps = true } = {}) {
     ]],
     ["SHOW CREATE USER", [{ create: "CREATE USER `user`@`%` REQUIRE SSL" }]],
     ["SHOW SESSION STATUS", [
-      { Variable_name: "Ssl_cipher", Value: "TLS_AES_256_GCM_SHA384" },
-      { Variable_name: "Ssl_version", Value: "TLSv1.3" },
+      { Variable_name: "Ssl_cipher", Value: statusCipher },
+      { Variable_name: "Ssl_version", Value: statusVersion },
     ]],
   ];
   let index = 0;
@@ -105,6 +110,7 @@ describe("production discovery", () => {
     assert.equal(result.currentUserSha256, "a".repeat(64));
     assert.equal(result.targetIdentitySha256, "b".repeat(64));
     assert.equal(result.transport.authorized, true);
+    assert.equal(result.tlsSocketAndSessionStatusMatched, true);
     assert.equal(result.currentRole.none, true);
     assert.equal(result.grants.appearsSelectOnly, true);
     assert.deepEqual(result.grants.nonSelectPrivilegeFlags, []);
@@ -148,6 +154,18 @@ describe("production discovery", () => {
         connectionFactory: async () => connection,
       }),
       error => error?.message === "DISCOVERY_TLS_NOT_VERIFIED",
+    );
+  });
+
+  test("fails closed if MySQL TLS status disagrees with the socket", async () => {
+    await assert.rejects(
+      runProductionDiscovery({
+        env: { DATABASE_URL: RAW },
+        core,
+        connectionFactory: async () =>
+          fakeConnection({ statusVersion: "TLSv1.2" }),
+      }),
+      error => error?.message === "DISCOVERY_TLS_STATUS_MISMATCH",
     );
   });
 
