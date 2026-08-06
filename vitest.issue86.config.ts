@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-/** Provider- and database-free focused suite for Issue #86 Phase 1. */
+/** Provider- and database-free focused suite for Issue #86. */
 export default defineConfig({
   root: path.resolve(import.meta.dirname),
   resolve: {
@@ -29,6 +29,7 @@ export default defineConfig({
       "server/projectBuyerRoute.db.static.test.ts",
       "server/projectBuyerRoute.router.test.ts",
       "server/projectBuyerRoute.test.ts",
+      "server/projectEvidenceMigration.issue86.test.ts",
       "server/thisWeekContactSelection.issue86.test.ts",
     ],
   },

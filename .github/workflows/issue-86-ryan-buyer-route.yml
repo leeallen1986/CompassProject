@@ -3,6 +3,7 @@ name: Issue 86 Ryan buyer route
 on:
   pull_request:
     paths:
+      - ".github/scripts/verify-issue86-phase2a.mjs"
       - ".github/workflows/issue-86-ryan-buyer-route.yml"
       - "client/src/components/OutreachEmailModal.tsx"
       - "client/src/components/ProjectBuyerRoute.tsx"
@@ -17,7 +18,9 @@ on:
       - "client/src/lib/projectOutreachEligibility.ts"
       - "client/src/pages/ProjectDetail.tsx"
       - "client/src/pages/ThisWeek.tsx"
+      - "drizzle.config.ts"
       - "package.json"
+      - "pnpm-lock.yaml"
       - "drizzle/**"
       - "server/contactSlateTrustPolicy.ts"
       - "server/_core/llm.behavior.test.ts"
@@ -41,6 +44,7 @@ on:
       - "server/projectBuyerRoute.router.test.ts"
       - "server/projectBuyerRoute.test.ts"
       - "server/projectBuyerRoute.ts"
+      - "server/projectEvidenceMigration.issue86.test.ts"
       - "server/projectOutreachGuard.ts"
       - "server/routers.ts"
       - "server/thisWeekContactSelection.issue86.test.ts"
@@ -55,7 +59,20 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: issue86_schema
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,18 +84,51 @@ jobs:
           cache: pnpm
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
-      - name: Enforce Phase 1 no-schema boundary
+      - name: Enforce Phase 2A additive migration boundary
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**')
-          if [ -n "$changed" ]; then
-            echo "Issue 86 Phase 1 must not change schema or migrations:"
-            echo "$changed"
+          failed=0
+          while IFS=$'\t' read -r status path extra; do
+            [ -z "$status" ] && continue
+            case "$status:$path" in
+              M:drizzle/schema.ts|M:drizzle/meta/_journal.json)
+                ;;
+              A:drizzle/0091_issue86_buyer_route_evidence.sql|A:drizzle/meta/0091_snapshot.json)
+                ;;
+              *)
+                echo "Unexpected migration change: $status $path ${extra:-}"
+                failed=1
+                ;;
+            esac
+          done < <(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**')
+
+          for required in \
+            drizzle/schema.ts \
+            drizzle/meta/_journal.json \
+            drizzle/0091_issue86_buyer_route_evidence.sql \
+            drizzle/meta/0091_snapshot.json
+          do
+            if ! git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**' |
+              grep -Fxq "$required"; then
+              echo "Required Phase 2A artifact is missing: $required"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
             exit 1
           fi
+      - name: Validate generated Drizzle metadata
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/issue86_schema
+        run: |
+          pnpm exec drizzle-kit check
+          pnpm exec drizzle-kit generate --name issue86_phase2_drift
+          git diff --exit-code -- drizzle
+          test -z "$(git status --porcelain --untracked-files=all -- drizzle)"
       - name: Issue 86 focused tests
         run: pnpm test:issue86
       - name: Issue 85 trust-boundary regressions
@@ -87,3 +137,11 @@ jobs:
         run: pnpm check
       - name: Production build
         run: pnpm build
+      - name: Apply migrations to ephemeral MySQL
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/issue86_schema
+        run: pnpm exec drizzle-kit migrate
+      - name: Verify Phase 2A tables start empty
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/issue86_schema
+        run: node .github/scripts/verify-issue86-phase2a.mjs
