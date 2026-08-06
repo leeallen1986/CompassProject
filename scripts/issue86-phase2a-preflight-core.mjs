@@ -75,59 +75,73 @@ export const MUTATION_COUNTER_NAMES = deepFreeze([
   "Com_alter_db",
   "Com_alter_event",
   "Com_alter_function",
-  "Com_alter_instance",
   "Com_alter_procedure",
-  "Com_alter_resource_group",
   "Com_alter_server",
   "Com_alter_table",
   "Com_alter_tablespace",
   "Com_alter_user",
+  "Com_analyze",
+  "Com_assign_to_keycache",
+  "Com_call_procedure",
+  "Com_change_repl_filter",
+  "Com_change_replication_source",
   "Com_create_db",
   "Com_create_event",
   "Com_create_function",
   "Com_create_index",
   "Com_create_procedure",
-  "Com_create_resource_group",
-  "Com_create_role",
   "Com_create_server",
-  "Com_create_spatial_reference_system",
   "Com_create_table",
-  "Com_create_tablespace",
   "Com_create_trigger",
   "Com_create_udf",
   "Com_create_user",
   "Com_create_view",
   "Com_delete",
   "Com_delete_multi",
+  "Com_do",
   "Com_drop_db",
   "Com_drop_event",
   "Com_drop_function",
   "Com_drop_index",
   "Com_drop_procedure",
-  "Com_drop_resource_group",
-  "Com_drop_role",
   "Com_drop_server",
-  "Com_drop_spatial_reference_system",
   "Com_drop_table",
-  "Com_drop_tablespace",
   "Com_drop_trigger",
   "Com_drop_user",
   "Com_drop_view",
+  "Com_flush",
   "Com_grant",
   "Com_insert",
   "Com_insert_select",
+  "Com_install_plugin",
   "Com_load",
   "Com_lock_tables",
+  "Com_optimize",
+  "Com_preload_keys",
+  "Com_purge",
+  "Com_purge_before_date",
   "Com_rename_table",
   "Com_rename_user",
+  "Com_repair",
   "Com_replace",
   "Com_replace_select",
+  "Com_replica_start",
+  "Com_replica_stop",
+  "Com_reset",
+  "Com_restart",
   "Com_revoke",
   "Com_revoke_all",
+  "Com_shutdown",
   "Com_truncate",
+  "Com_uninstall_plugin",
   "Com_unlock_tables",
   "Com_update",
   "Com_update_multi",
+  "Com_xa_commit",
+  "Com_xa_end",
+  "Com_xa_prepare",
+  "Com_xa_rollback",
+  "Com_xa_start",
 ]);
 
 const S = (kind, sql) => ({ method: "query", kind, sql });
@@ -135,7 +149,7 @@ const S = (kind, sql) => ({ method: "query", kind, sql });
 export const SQL_STATEMENTS = deepFreeze({
   COUNTERS: S(
     "SHOW",
-    "SHOW SESSION STATUS WHERE Variable_name LIKE 'Com\\_%'",
+    "SHOW SESSION STATUS WHERE Variable_name IN ('Com_alter_db','Com_alter_event','Com_alter_function','Com_alter_procedure','Com_alter_server','Com_alter_table','Com_alter_tablespace','Com_alter_user','Com_analyze','Com_assign_to_keycache','Com_call_procedure','Com_change_repl_filter','Com_change_replication_source','Com_create_db','Com_create_event','Com_create_function','Com_create_index','Com_create_procedure','Com_create_server','Com_create_table','Com_create_trigger','Com_create_udf','Com_create_user','Com_create_view','Com_delete','Com_delete_multi','Com_do','Com_drop_db','Com_drop_event','Com_drop_function','Com_drop_index','Com_drop_procedure','Com_drop_server','Com_drop_table','Com_drop_trigger','Com_drop_user','Com_drop_view','Com_flush','Com_grant','Com_insert','Com_insert_select','Com_install_plugin','Com_load','Com_lock_tables','Com_optimize','Com_preload_keys','Com_purge','Com_purge_before_date','Com_rename_table','Com_rename_user','Com_repair','Com_replace','Com_replace_select','Com_replica_start','Com_replica_stop','Com_reset','Com_restart','Com_revoke','Com_revoke_all','Com_shutdown','Com_truncate','Com_uninstall_plugin','Com_unlock_tables','Com_update','Com_update_multi','Com_xa_commit','Com_xa_end','Com_xa_prepare','Com_xa_rollback','Com_xa_start')",
   ),
   CONNECTION_ID: S("READ", "SELECT CONNECTION_ID() AS connectionId"),
   TLS_STATUS: S(
@@ -144,7 +158,7 @@ export const SQL_STATEMENTS = deepFreeze({
   ),
   ENGINE_IDENTITY: S(
     "READ",
-    "SELECT VERSION() AS versionString, @@version_comment AS versionComment, CONNECTION_ID() AS connectionId, SHA2(CONCAT_WS(CHAR(0), @@server_uuid, DATABASE(), @@port), 256) AS targetIdentitySha256",
+    "SELECT VERSION() AS versionString, @@version_comment AS versionComment, CONNECTION_ID() AS connectionId, SHA2(CURRENT_USER(), 256) AS currentUserSha256, SHA2(CONCAT_WS(CHAR(0), @@server_uuid, DATABASE(), @@port, CURRENT_USER()), 256) AS targetIdentitySha256",
   ),
   CURRENT_ROLE: S("READ", "SELECT CURRENT_ROLE() AS currentRole"),
   SHOW_GRANTS: S("SHOW", "SHOW GRANTS FOR CURRENT_USER"),
@@ -190,6 +204,14 @@ export const SQL_STATEMENTS = deepFreeze({
   JOURNAL_INDEXES: S(
     "READ",
     "SELECT INDEX_NAME AS indexName, NON_UNIQUE AS nonUnique, SEQ_IN_INDEX AS seqInIndex, COLUMN_NAME AS columnName, SUB_PART AS subPart, INDEX_TYPE AS indexType FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '__drizzle_migrations' ORDER BY INDEX_NAME, SEQ_IN_INDEX",
+  ),
+  JOURNAL_CONSTRAINTS: S(
+    "READ",
+    "SELECT CONSTRAINT_NAME AS constraintName, CONSTRAINT_TYPE AS constraintType, ENFORCED AS enforced FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = '__drizzle_migrations' ORDER BY CONSTRAINT_NAME",
+  ),
+  JOURNAL_TRIGGERS: S(
+    "READ",
+    "SELECT TRIGGER_NAME AS triggerName, EVENT_MANIPULATION AS eventManipulation, ACTION_TIMING AS actionTiming FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = '__drizzle_migrations' ORDER BY TRIGGER_NAME",
   ),
   JOURNAL_RELEVANT_COUNT: S(
     "READ",
@@ -576,6 +598,9 @@ export function parseStatusRows(rows, requiredNames) {
 
 export function parseMutationCounters(rows) {
   const all = parseStatusRows(rows, MUTATION_COUNTER_NAMES);
+  if (all.size !== MUTATION_COUNTER_NAMES.length) {
+    throw new Error("MUTATION_COUNTER_SET_UNEXPECTED");
+  }
   const counters = {};
   for (const name of MUTATION_COUNTER_NAMES) {
     const raw = all.get(name);
@@ -604,7 +629,7 @@ export function compareMutationCounters(before, after) {
   return { allZero, deltas };
 }
 
-function normalizeDefault(value) {
+function normalizeDefault(value, columnType = "") {
   if (value === undefined || value === null) return null;
   let text = String(value);
   if (/^'.*'$/.test(text)) text = text.slice(1, -1);
@@ -612,6 +637,15 @@ function normalizeDefault(value) {
   if (/^current_timestamp(?:\(\))?$/i.test(text)) return "CURRENT_TIMESTAMP";
   if (text === "true") return "1";
   if (text === "false") return "0";
+  if (/^decimal\([0-9]+,[0-9]+\)$/i.test(String(columnType)) && /^-?[0-9]+(?:\.[0-9]+)?$/.test(text)) {
+    const negative = text.startsWith("-");
+    const unsigned = negative ? text.slice(1) : text;
+    let [integer, fraction = ""] = unsigned.split(".");
+    integer = integer.replace(/^0+(?=[0-9])/, "");
+    fraction = fraction.replace(/0+$/, "");
+    const normalized = fraction ? `${integer}.${fraction}` : integer;
+    return negative && normalized !== "0" ? `-${normalized}` : normalized;
+  }
   return text;
 }
 
@@ -641,7 +675,7 @@ function expectedColumn(tableName, column, ordinalPosition) {
     ordinalPosition: String(ordinalPosition),
     columnType: normalizeType(column.type),
     isNullable: column.notNull ? "NO" : "YES",
-    columnDefault: normalizeDefault(column.default),
+    columnDefault: normalizeDefault(column.default, column.type),
     extra,
   };
 }
@@ -789,7 +823,7 @@ function normalizeObservedRows(rows, fields) {
       Object.fromEntries(
         fields.map((field) => {
           let value = row[field];
-          if (field === "columnDefault") value = normalizeDefault(value);
+          if (field === "columnDefault") value = normalizeDefault(value, row.columnType);
           else if (field === "extra") value = normalizeExtra(value);
           else if (field === "columnType") value = normalizeType(value);
           else if (value !== null && value !== undefined) value = String(value);
@@ -872,30 +906,105 @@ function canonicalDecimal(value, label) {
   return text;
 }
 
-export function validateJournalSchema({ tables, columns, indexes }) {
-  const exactTable =
-    tables.length === 1 &&
-    tables[0].tableName === "__drizzle_migrations" &&
-    tables[0].tableType === "BASE TABLE" &&
-    tables[0].engine === "InnoDB";
-  const columnNames = columns.map((row) => row.columnName);
-  const semanticColumnsExact =
-    columnNames.length === 3 &&
-    columnNames.join(",") === "id,hash,created_at" &&
-    String(columns[0].columnKey) === "PRI" &&
-    String(columns[0].extra).toLowerCase().includes("auto_increment") &&
-    String(columns[1].isNullable) === "NO" &&
-    String(columns[2].dataType).toLowerCase() === "bigint";
-  const primaryIndex =
-    indexes.length >= 1 &&
-    indexes.some(
-      (row) =>
-        row.indexName === "PRIMARY" &&
-        String(row.nonUnique) === "0" &&
-        row.columnName === "id" &&
-        String(row.seqInIndex) === "1",
-    );
-  return { exact: exactTable && semanticColumnsExact && primaryIndex };
+export function validateJournalSchema({
+  tables,
+  columns,
+  indexes,
+  constraints,
+  triggers,
+}) {
+  const actual = {
+    tables: normalizeObservedRows(tables, ["tableName", "tableType", "engine"]),
+    columns: normalizeObservedRows(columns, [
+      "columnName",
+      "dataType",
+      "columnType",
+      "isNullable",
+      "columnKey",
+      "extra",
+      "ordinalPosition",
+    ]),
+    indexes: normalizeObservedRows(indexes, [
+      "indexName",
+      "nonUnique",
+      "seqInIndex",
+      "columnName",
+      "subPart",
+      "indexType",
+    ]),
+    constraints: normalizeObservedRows(constraints, [
+      "constraintName",
+      "constraintType",
+      "enforced",
+    ]),
+    triggers: normalizeObservedRows(triggers, [
+      "triggerName",
+      "eventManipulation",
+      "actionTiming",
+    ]),
+  };
+  const expected = {
+    tables: [
+      {
+        tableName: "__drizzle_migrations",
+        tableType: "BASE TABLE",
+        engine: "InnoDB",
+      },
+    ],
+    columns: [
+      {
+        columnName: "id",
+        dataType: "bigint",
+        columnType: "bigint unsigned",
+        isNullable: "NO",
+        columnKey: "PRI",
+        extra: "auto_increment",
+        ordinalPosition: "1",
+      },
+      {
+        columnName: "hash",
+        dataType: "text",
+        columnType: "text",
+        isNullable: "NO",
+        columnKey: "",
+        extra: "",
+        ordinalPosition: "2",
+      },
+      {
+        columnName: "created_at",
+        dataType: "bigint",
+        columnType: "bigint",
+        isNullable: "YES",
+        columnKey: "",
+        extra: "",
+        ordinalPosition: "3",
+      },
+    ],
+    indexes: [
+      {
+        indexName: "PRIMARY",
+        nonUnique: "0",
+        seqInIndex: "1",
+        columnName: "id",
+        subPart: null,
+        indexType: "BTREE",
+      },
+    ],
+    constraints: [
+      {
+        constraintName: "PRIMARY",
+        constraintType: "PRIMARY KEY",
+        enforced: "YES",
+      },
+    ],
+    triggers: [],
+  };
+  const exact = canonicalJson(actual) === canonicalJson(expected);
+  return {
+    exact,
+    expectedHash: canonicalHash(expected),
+    observedHash: canonicalHash(actual),
+  };
 }
 
 export function classifyJournalAndPhase2a({
@@ -967,11 +1076,14 @@ export function classifyJournalAndPhase2a({
     exact91.length > 1
   ) {
     databaseStateClassification = "BLOCKED_JOURNAL_HASH_MISMATCH";
+  } else if (laterUnexpected.length > 0) {
+    databaseStateClassification = "BLOCKED_UNEXPECTED_MIGRATION_ORDER";
   } else if (exact91.length === 1 && exactPhaseBasics) {
     databaseStateClassification =
       "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY";
-  } else if (laterUnexpected.length > 0) {
-    databaseStateClassification = "BLOCKED_UNEXPECTED_MIGRATION_ORDER";
+  } else if (exact91.length === 1) {
+    databaseStateClassification =
+      "BLOCKED_JOURNALED_SCHEMA_MISSING_OR_DIVERGENT";
   } else if (!phaseAbsent && !exactPhaseBasics) {
     databaseStateClassification = "BLOCKED_PARTIAL_OR_CASE_COLLIDING_SCHEMA";
   } else if (exactPhaseBasics && exact91.length === 0) {
@@ -1002,17 +1114,21 @@ export function classifyJournalAndPhase2a({
     blocker = databaseStateClassification;
   }
 
+  const exact90Unique =
+    exact90.length === 1 &&
+    timestamp90.length === 1 &&
+    hash90.length === 1;
   return {
     databaseStateClassification,
     blocker,
     predecessorHashClassification:
-      exact90.length === 1
+      exact90Unique
         ? "exact_committed_source_bytes"
         : lf90.length
           ? "known_single_trailing_lf_variant"
           : "unexpected_or_absent",
     migration0090ExactAndLatest:
-      exact90.length === 1 &&
+      exact90Unique &&
       latest[0]?.hash === c90.sha256 &&
       latest[0]?.createdAt === c90.journalWhen,
     migration0091JournalEntryAbsent:
@@ -1049,7 +1165,13 @@ export function lintSqlManifest() {
 }
 
 export function evaluateReadiness(facts, initialBlockers = []) {
-  const blockers = new Set(initialBlockers.filter(Boolean));
+  const databaseBlocker =
+    facts.databaseStateClassification !== "READY_DATABASE_STATE"
+      ? facts.databaseStateClassification || "BLOCKED_DATABASE_STATE_UNKNOWN"
+      : null;
+  const blockers = new Set(
+    initialBlockers.filter((blocker) => blocker && blocker !== databaseBlocker),
+  );
   const requirements = [
     ["sourceGatePassed", "BLOCKED_SOURCE_GATE"],
     ["runtimeProfilePassed", "BLOCKED_RUNTIME_PROFILE"],
@@ -1072,18 +1194,16 @@ export function evaluateReadiness(facts, initialBlockers = []) {
   for (const [key, blocker] of requirements) {
     if (facts[key] !== true) blockers.add(blocker);
   }
-  if (facts.databaseStateClassification !== "READY_DATABASE_STATE") {
-    blockers.add(
-      facts.databaseStateClassification || "BLOCKED_DATABASE_STATE_UNKNOWN",
-    );
-  }
+  const nonDatabaseGatesPassed = blockers.size === 0;
+  if (databaseBlocker) blockers.add(databaseBlocker);
   const ordered = [...blockers].sort();
   const ready = ordered.length === 0;
   return {
     applyReadiness: ready
       ? "READY_FOR_SEPARATE_APPLY_AUTHORIZATION"
       : facts.databaseStateClassification ===
-          "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY"
+            "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY" &&
+          nonDatabaseGatesPassed
         ? "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY"
         : "PREFLIGHT_BLOCKED",
     applyAuthorized: false,
