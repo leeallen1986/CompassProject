@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - ".github/scripts/verify-issue86-phase2a.mjs"
+      - "scripts/issue86-phase2a-preflight-core.mjs"
+      - "scripts/issue86-phase2a-production-preflight.mjs"
+      - "scripts/issue86-phase2a-production-preflight.test.mjs"
+      - "docs/issue86-phase2a-production-preflight.md"
       - ".github/workflows/issue-86-ryan-buyer-route.yml"
       - "client/src/components/OutreachEmailModal.tsx"
       - "client/src/components/ProjectBuyerRoute.tsx"
@@ -84,41 +88,15 @@ jobs:
           cache: pnpm
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
-      - name: Enforce Phase 2A additive migration boundary
+      - name: Protect frozen Phase 2A migration artifacts
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          failed=0
-          while IFS=$'\t' read -r status path extra; do
-            [ -z "$status" ] && continue
-            case "$status:$path" in
-              M:drizzle/schema.ts|M:drizzle/meta/_journal.json)
-                ;;
-              A:drizzle/0091_issue86_buyer_route_evidence.sql|A:drizzle/meta/0091_snapshot.json)
-                ;;
-              *)
-                echo "Unexpected migration change: $status $path ${extra:-}"
-                failed=1
-                ;;
-            esac
-          done < <(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**')
-
-          for required in \
-            drizzle/schema.ts \
-            drizzle/meta/_journal.json \
-            drizzle/0091_issue86_buyer_route_evidence.sql \
-            drizzle/meta/0091_snapshot.json
-          do
-            if ! git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**' |
-              grep -Fxq "$required"; then
-              echo "Required Phase 2A artifact is missing: $required"
-              failed=1
-            fi
-          done
-
-          if [ "$failed" -ne 0 ]; then
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**'; then
+            echo "Phase 2A migration artifacts are frozen after PR #90."
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- 'drizzle/**'
             exit 1
           fi
       - name: Validate generated Drizzle metadata
@@ -131,6 +109,11 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all -- drizzle)"
       - name: Issue 86 focused tests
         run: pnpm test:issue86
+      - name: Phase 2A preflight unit and strict protocol tests
+        run: |
+          node --check scripts/issue86-phase2a-preflight-core.mjs
+          node --check scripts/issue86-phase2a-production-preflight.mjs
+          node --test scripts/issue86-phase2a-production-preflight.test.mjs
       - name: Issue 85 trust-boundary regressions
         run: pnpm test:issue85
       - name: TypeScript
