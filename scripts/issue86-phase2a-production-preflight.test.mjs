@@ -327,8 +327,49 @@ describe("central readiness and journal classification", () => {
     assert.equal(result.migration0090ExactAndLatest, true);
     assert.equal(
       result.predecessorHashClassification,
-      "exact_committed_source_bytes",
+      "known_single_trailing_lf_variant",
     );
+  });
+
+  test("applied-state classification requires an exact predecessor chain", () => {
+    const row0091 = {
+      id: "92",
+      hash: "d6b76795819387a012768978403156b3b1b7f70fd129cbfe1484d052bf7346c4",
+      createdAt: "1786008053119",
+    };
+    const phase2aTables = [
+      "projectEvidenceSources",
+      "projectEvidenceClaims",
+      "projectEvidenceClaimSources",
+      "projectEvidenceEvents",
+    ].map((tableName) => ({
+      tableName,
+      tableType: "BASE TABLE",
+      engine: "InnoDB",
+    }));
+    const invalidPredecessors = [
+      [],
+      [{ ...row0090, hash: "f".repeat(64) }],
+      [row0090, { ...row0090, id: "90" }],
+      [{
+        id: "91",
+        hash: "85ef1c42f3e252b837fcd6df2ce350f8c9af84b5854f934410a0c7b18a677d0f",
+        createdAt: "1784077724863",
+      }],
+    ];
+    for (const predecessorRows of invalidPredecessors) {
+      const result = classifyJournalAndPhase2a({
+        relevantRows: [...predecessorRows, row0091],
+        relevantCount: String(predecessorRows.length + 1),
+        latestRows: [row0091, ...predecessorRows],
+        phase2aTables,
+        phase2aResidue: [],
+      });
+      assert.notEqual(
+        result.databaseStateClassification,
+        "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY",
+      );
+    }
   });
 
   test("partial or case-colliding Phase 2A footprint blocks", () => {
