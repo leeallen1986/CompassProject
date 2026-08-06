@@ -113,8 +113,11 @@ Exit codes:
 
 - `0`: database state passed every preflight gate; a separate apply decision is
   still required;
-- `2`: completed read-only evidence collection but blocked;
-- `1`: source, configuration, connection, cleanup, or evidence-writing failure.
+- `2`: the connection closed and a complete evidence pack was published, but one
+  or more database, query, rollback, or policy gates blocked the preflight;
+- `1`: a pre-connection source/configuration/output failure, an unclosed
+  connection, or an evidence-publication failure; no decision-quality COMPLETE
+  pack should be accepted.
 
 Every outcome keeps:
 
