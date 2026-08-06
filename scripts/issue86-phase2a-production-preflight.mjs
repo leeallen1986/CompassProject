@@ -593,7 +593,7 @@ export async function runPreflight({
     "ISSUE86_PREFLIGHT_EXPECTED_DB_ACCOUNT_SHA256",
   );
   const expectedMySqlVersion = env.ISSUE86_PREFLIGHT_EXPECTED_MYSQL_VERSION;
-  if (!/^8\\.4\\.[0-9]+$/.test(expectedMySqlVersion ?? "")) {
+  if (!/^8\.4\.[0-9]+$/.test(expectedMySqlVersion ?? "")) {
     throw new Error("ISSUE86_PREFLIGHT_EXPECTED_MYSQL_VERSION_MISSING_OR_INVALID");
   }
   const caPinned = tlsCa.sha256 === expectedCaSha256;
