@@ -1213,7 +1213,11 @@ export function lintSqlManifest() {
     if (statement.method !== "query") errors.push(`${id}:METHOD_NOT_QUERY`);
     if (!allowedStarts.test(statement.sql)) errors.push(`${id}:START_REJECTED`);
     if (statement.sql.includes(";")) errors.push(`${id}:SEMICOLON_REJECTED`);
+    const safeShowCreateCurrentUser =
+      id === "SHOW_CREATE_USER" &&
+      statement.sql === "SHOW CREATE USER CURRENT_USER()";
     if (
+      !safeShowCreateCurrentUser &&
       /\b(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE|DROP|CREATE|ALTER|GRANT|REVOKE|CALL|HANDLER|LOAD DATA|GET_LOCK|SLEEP|BENCHMARK|INTO OUTFILE|INTO DUMPFILE|FOR UPDATE|FOR SHARE)\b/i.test(
         statement.sql,
       )
