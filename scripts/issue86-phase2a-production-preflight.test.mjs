@@ -458,10 +458,10 @@ describe("0090 physical manifest", () => {
     );
   });
 
-  test("accepts the canonical manifest and rejects one-column drift", () => {
+  test("accepts canonical MySQL rendering and rejects physical drift", () => {
     const snapshot = JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8"));
     const expected = buildExpected0090Contract(snapshot);
-    const observation = {
+    const makeObservation = () => ({
       tables: structuredClone(expected.tables),
       columns: structuredClone(expected.columns),
       indexes: structuredClone(expected.indexes),
@@ -469,10 +469,35 @@ describe("0090 physical manifest", () => {
       keys: structuredClone(expected.keys),
       referential: [],
       checks: [],
-    };
-    assert.equal(validate0090Footprint(observation, expected).exact, true);
-    observation.columns[0].columnType = "varchar(1)";
-    assert.equal(validate0090Footprint(observation, expected).exact, false);
+    });
+
+    const canonical = makeObservation();
+    assert.equal(validate0090Footprint(canonical, expected).exact, true);
+
+    const typeDrift = makeObservation();
+    typeDrift.columns[0].columnType = "varchar(1)";
+    assert.equal(validate0090Footprint(typeDrift, expected).exact, false);
+
+    const mysqlTimestamp = makeObservation();
+    const createdAt = mysqlTimestamp.columns.find(
+      (row) =>
+        row.tableName === "fullPotentialEvidence" &&
+        row.columnName === "createdAt",
+    );
+    assert.equal(createdAt?.columnDefault, "CURRENT_TIMESTAMP");
+    createdAt.columnDefault = "now()";
+    assert.equal(validate0090Footprint(mysqlTimestamp, expected).exact, true);
+    createdAt.columnDefault = "uuid()";
+    assert.equal(validate0090Footprint(mysqlTimestamp, expected).exact, false);
+
+    const ordinalDrift = makeObservation();
+    const relationship = ordinalDrift.columns.find(
+      (row) =>
+        row.tableName === "fullPotentialAccounts" &&
+        row.columnName === "relationshipType",
+    );
+    relationship.ordinalPosition = "9";
+    assert.equal(validate0090Footprint(ordinalDrift, expected).exact, false);
   });
 });
 
