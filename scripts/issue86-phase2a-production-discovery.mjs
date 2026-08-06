@@ -27,6 +27,15 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function requireSourcePin(env, name, actual, mismatchCode) {
+  const expected = env?.[name];
+  if (!/^[0-9a-f]{64}$/.test(expected ?? "")) {
+    throw new Error(`${name}_MISSING_OR_INVALID`);
+  }
+  if (actual !== expected) throw new Error(mismatchCode);
+  return { expected, actual, matched: true };
+}
+
 function oneValueRows(rows, label) {
   if (!Array.isArray(rows)) throw new Error(`${label}_ROWS_INVALID`);
   return rows.map(row => {
@@ -151,7 +160,34 @@ export async function runProductionDiscovery({
   env = process.env,
   connectionFactory,
   core,
+  discoveryBytes = readFileSync(SCRIPT_PATH),
+  policyBytes = readFileSync(POLICY_PATH),
+  coreBytes = readFileSync(CORE_PATH),
 }) {
+  const discoveryScriptSha256 = sha256(discoveryBytes);
+  const policyModuleSha256 = sha256(policyBytes);
+  const coreModuleSha256 = sha256(coreBytes);
+  const sourceAttestation = {
+    discoveryScript: requireSourcePin(
+      env,
+      "ISSUE86_DISCOVERY_EXPECTED_SCRIPT_SHA256",
+      discoveryScriptSha256,
+      "DISCOVERY_SCRIPT_SHA256_MISMATCH",
+    ),
+    urlPolicy: requireSourcePin(
+      env,
+      "ISSUE86_DISCOVERY_EXPECTED_URL_POLICY_SHA256",
+      policyModuleSha256,
+      "DISCOVERY_URL_POLICY_SHA256_MISMATCH",
+    ),
+    core: requireSourcePin(
+      env,
+      "ISSUE86_DISCOVERY_EXPECTED_CORE_SHA256",
+      coreModuleSha256,
+      "DISCOVERY_CORE_SHA256_MISMATCH",
+    ),
+  };
+
   if (core === undefined) {
     core = await import("./issue86-phase2a-preflight-core.mjs");
   }
@@ -191,11 +227,7 @@ export async function runProductionDiscovery({
     urlPolicy: normalized.policyEvidence,
     urlPolicySha256: normalized.policySha256,
     queryManifestSha256: canonicalHash(DISCOVERY_SQL),
-    sourceAttestation: {
-      discoveryScriptSha256: sha256(readFileSync(SCRIPT_PATH)),
-      policyModuleSha256: sha256(readFileSync(POLICY_PATH)),
-      coreModuleSha256: sha256(readFileSync(CORE_PATH)),
-    },
+    sourceAttestation,
   };
 
   try {
