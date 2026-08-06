@@ -119,6 +119,18 @@ function parseTlsStatus(rows) {
   return result;
 }
 
+function validateTlsAgreement(transport, mysqlTlsStatus) {
+  const matched =
+    typeof transport?.protocol === "string" &&
+    transport.protocol.length > 0 &&
+    typeof transport?.cipher === "string" &&
+    transport.cipher.length > 0 &&
+    mysqlTlsStatus?.Ssl_version === transport.protocol &&
+    mysqlTlsStatus?.Ssl_cipher === transport.cipher;
+  if (!matched) throw new Error("DISCOVERY_TLS_STATUS_MISMATCH");
+  return true;
+}
+
 class DiscoveryExecutor {
   constructor(connection) {
     this.connection = connection;
@@ -261,6 +273,10 @@ export async function runProductionDiscovery({
 
     result.mysqlTlsStatus = parseTlsStatus(
       await executor.run("TLS_STATUS"),
+    );
+    result.tlsSocketAndSessionStatusMatched = validateTlsAgreement(
+      result.transport,
+      result.mysqlTlsStatus,
     );
     result.executedStatementIds = executor.statementIds;
   } finally {
