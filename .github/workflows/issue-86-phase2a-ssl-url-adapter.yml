@@ -18,7 +18,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -56,3 +56,110 @@ jobs:
           grep -Fq 'normaliseDatabaseUrlForPreflight(env.DATABASE_URL)' scripts/issue86-phase2a-production-discovery.mjs
       - name: File hashes
         run: sha256sum scripts/issue86-phase2a-database-url-policy.mjs scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs scripts/issue86-phase2a-production-preflight-ssl-wrapper.test.mjs scripts/issue86-phase2a-production-discovery.mjs scripts/issue86-phase2a-production-discovery.test.mjs
+      - name: Generate disposable TLS identity
+        run: |
+          set -euo pipefail
+          TLS_DIR="$RUNNER_TEMP/issue86-url-adapter-tls"
+          mkdir -m 755 "$TLS_DIR"
+          openssl genrsa -out "$TLS_DIR/ca-key.pem" 2048
+          openssl req -new -x509 -sha256 -days 1 \
+            -key "$TLS_DIR/ca-key.pem" \
+            -out "$TLS_DIR/ca.pem" \
+            -subj "/CN=Issue86 URL Adapter CI CA"
+          openssl genrsa -out "$TLS_DIR/server-key.pem" 2048
+          openssl req -new -sha256 \
+            -key "$TLS_DIR/server-key.pem" \
+            -out "$TLS_DIR/server.csr" \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+          printf '%s\n' \
+            'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+            'extendedKeyUsage=serverAuth' \
+            'keyUsage=digitalSignature,keyEncipherment' \
+            > "$TLS_DIR/server.ext"
+          openssl x509 -req -sha256 -days 1 \
+            -in "$TLS_DIR/server.csr" \
+            -CA "$TLS_DIR/ca.pem" \
+            -CAkey "$TLS_DIR/ca-key.pem" \
+            -CAcreateserial \
+            -extfile "$TLS_DIR/server.ext" \
+            -out "$TLS_DIR/server-cert.pem"
+          chmod 644 "$TLS_DIR/ca.pem" "$TLS_DIR/server-cert.pem" "$TLS_DIR/server-key.pem"
+      - name: Start digest-pinned TLS MySQL 8.4.11
+        run: |
+          set -euo pipefail
+          IMAGE='mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb'
+          docker run --detach \
+            --name issue86-url-adapter-mysql \
+            --publish 127.0.0.1:3308:3306 \
+            --env MYSQL_ROOT_PASSWORD=issue86-url-adapter-root \
+            --env MYSQL_ROOT_HOST=% \
+            --env MYSQL_DATABASE=issue86_discovery_it \
+            --volume "$RUNNER_TEMP/issue86-url-adapter-tls:/issue86-tls:ro" \
+            "$IMAGE" \
+            --require-secure-transport=ON \
+            --ssl-ca=/issue86-tls/ca.pem \
+            --ssl-cert=/issue86-tls/server-cert.pem \
+            --ssl-key=/issue86-tls/server-key.pem \
+            --tls-version=TLSv1.2,TLSv1.3
+          for attempt in $(seq 1 60); do
+            if docker exec issue86-url-adapter-mysql \
+              mysql --protocol=TCP --host=127.0.0.1 --port=3306 \
+              --user=root --password=issue86-url-adapter-root \
+              --ssl-mode=VERIFY_IDENTITY --ssl-ca=/issue86-tls/ca.pem \
+              --batch --skip-column-names \
+              --execute "SELECT VERSION()" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs issue86-url-adapter-mysql
+          exit 1
+      - name: Run actual ssl-query discovery over verified TLS
+        env:
+          NODE_EXTRA_CA_CERTS: ${{ runner.temp }}/issue86-url-adapter-tls/ca.pem
+          DATABASE_URL: mysql://issue86_discovery_ro:Issue86-Discovery-Only-2026!@127.0.0.1:3308/issue86_discovery_it?ssl=provider-ignored
+        run: |
+          set -euo pipefail
+          docker exec issue86-url-adapter-mysql \
+            mysql --user=root --password=issue86-url-adapter-root \
+            --execute "DROP USER IF EXISTS 'issue86_discovery_ro'@'%'; CREATE USER 'issue86_discovery_ro'@'%' IDENTIFIED BY 'Issue86-Discovery-Only-2026!' REQUIRE SSL; GRANT SELECT ON issue86_discovery_it.* TO 'issue86_discovery_ro'@'%';"
+          node scripts/issue86-phase2a-production-discovery.mjs > "$RUNNER_TEMP/issue86-discovery.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const result = JSON.parse(
+            readFileSync(process.env.RUNNER_TEMP + '/issue86-discovery.json', 'utf8'),
+          );
+          assert.equal(result.connectionAttempts, 1);
+          assert.equal(result.connectionsEstablished, 1);
+          assert.equal(result.connectionClosed, true);
+          assert.equal(result.databaseWrites, 0);
+          assert.equal(result.migrationCommands, 0);
+          assert.equal(result.urlPolicy.ignoredQueryParameterNames[0], 'ssl');
+          assert.equal(result.urlPolicy.queryValuesUsedForConnectionConfiguration, false);
+          assert.equal(result.engine.versionString, '8.4.11');
+          assert.equal(result.engine.oracleMySql84ExactProfileMatched, true);
+          assert.equal(result.transport.encrypted, true);
+          assert.equal(result.transport.authorized, true);
+          assert.equal(result.transport.authorizationErrorPresent, false);
+          assert.match(result.transport.peerCertificateSha256, /^[0-9a-f]{64}$/);
+          assert.equal(result.mysqlTlsStatus.Ssl_version, result.transport.protocol);
+          assert.equal(result.mysqlTlsStatus.Ssl_cipher, result.transport.cipher);
+          assert.equal(result.currentRole.none, true);
+          assert.equal(result.grants.appearsSelectOnly, true);
+          assert.deepEqual(result.grants.nonSelectPrivilegeFlags, []);
+          assert.deepEqual(result.executedStatementIds, [
+            'ENGINE_IDENTITY',
+            'CURRENT_ROLE',
+            'SHOW_GRANTS',
+            'SHOW_CREATE_USER',
+            'TLS_STATUS',
+          ]);
+          NODE
+          ! grep -Fq 'Issue86-Discovery-Only-2026!' "$RUNNER_TEMP/issue86-discovery.json"
+          ! grep -Fq 'issue86_discovery_ro' "$RUNNER_TEMP/issue86-discovery.json"
+          ! grep -Fq '127.0.0.1' "$RUNNER_TEMP/issue86-discovery.json"
+      - name: Stop disposable discovery database
+        if: always()
+        run: docker rm --force issue86-url-adapter-mysql 2>/dev/null || true
