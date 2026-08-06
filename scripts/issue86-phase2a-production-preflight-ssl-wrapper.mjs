@@ -14,6 +14,15 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function requirePinnedHash(env, name, actual, mismatchCode) {
+  const expected = env?.[name];
+  if (!/^[0-9a-f]{64}$/.test(expected ?? "")) {
+    throw new Error(`${name}_MISSING_OR_INVALID`);
+  }
+  if (actual !== expected) throw new Error(mismatchCode);
+  return { expected, actual, matched: true };
+}
+
 export function parseWrapperCli(argv) {
   if (
     !Array.isArray(argv) ||
@@ -41,6 +50,21 @@ export async function runWrappedPreflight({
     throw new Error("RUN_PREFLIGHT_IMPLEMENTATION_MISSING");
   }
 
+  const wrapperSha256 = sha256(wrapperBytes);
+  const policyModuleSha256 = sha256(policyBytes);
+  const wrapperPin = requirePinnedHash(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_WRAPPER_SHA256",
+    wrapperSha256,
+    "PREFLIGHT_WRAPPER_SHA256_MISMATCH",
+  );
+  const policyPin = requirePinnedHash(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_URL_POLICY_SHA256",
+    policyModuleSha256,
+    "PREFLIGHT_URL_POLICY_SHA256_MISMATCH",
+  );
+
   const { outputDir } = parseWrapperCli(argv);
   const normalized = normaliseDatabaseUrlForPreflight(env?.DATABASE_URL);
   const delegatedEnv = {
@@ -56,8 +80,10 @@ export async function runWrappedPreflight({
   return {
     result,
     wrapperAttestation: {
-      wrapperSha256: sha256(wrapperBytes),
-      policyModuleSha256: sha256(policyBytes),
+      wrapperSha256,
+      policyModuleSha256,
+      wrapperPin,
+      policyPin,
       ...normalized.policyEvidence,
       policySha256: normalized.policySha256,
     },
@@ -79,6 +105,8 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
         `queryValuesUsedForConnectionConfiguration=false\n` +
         `wrapperSha256=${wrapped.wrapperAttestation.wrapperSha256}\n` +
         `policyModuleSha256=${wrapped.wrapperAttestation.policyModuleSha256}\n` +
+        `wrapperPinMatched=${wrapped.wrapperAttestation.wrapperPin.matched}\n` +
+        `policyPinMatched=${wrapped.wrapperAttestation.policyPin.matched}\n` +
         `policySha256=${wrapped.wrapperAttestation.policySha256}\n` +
         `applyReadiness=${wrapped.result.final.applyReadiness}\n` +
         `applyAuthorized=false\n` +
