@@ -1,4 +1,5 @@
-import { int, float, decimal, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
+import { int, float, decimal, json, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, boolean, check, foreignKey, index, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -1836,6 +1837,589 @@ export const accountPriors = mysqlTable("accountPriors", {
 });
 export type AccountPrior = typeof accountPriors.$inferSelect;
 export type InsertAccountPrior = typeof accountPriors.$inferInsert;
+
+// ─── Issue #86 Phase 2: claim-bound project evidence ─────────────────────────
+/**
+ * Independently reviewable sources for Route-to-buyer claims.
+ *
+ * A source is intentionally separate from the proposition it supports. Its
+ * lifecycle is non-destructive: rejected, revoked and superseded rows remain
+ * available for controller audit. Source URLs are canonicalised and screened
+ * by the server before insertion; this table never stores fetched page bodies.
+ */
+export const projectEvidenceSources = mysqlTable(
+  "projectEvidenceSources",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sourceKey: varchar("sourceKey", { length: 128 }).notNull().unique(),
+    openDedupeKey: varchar("openDedupeKey", { length: 128 }).unique(),
+    projectId: int("projectId").notNull(),
+    sourceType: mysqlEnum("sourceType", [
+      "official_project_site",
+      "government_notice",
+      "tender_document",
+      "award_notice",
+      "organisation_website",
+      "professional_profile",
+      "crm_record",
+      "direct_confirmation",
+      "internal_document",
+      "provider_record",
+      "public_web",
+      "other",
+    ]).notNull(),
+    sourceName: varchar("sourceName", { length: 256 }).notNull(),
+    sourceUrl: varchar("sourceUrl", { length: 2048 }),
+    sourceHost: varchar("sourceHost", { length: 253 }),
+    sourceReference: varchar("sourceReference", { length: 512 }),
+    publisher: varchar("publisher", { length: 256 }),
+    documentTitle: varchar("documentTitle", { length: 512 }).notNull(),
+    sourcePublishedAt: timestamp("sourcePublishedAt"),
+    observedAt: timestamp("observedAt"),
+    retrievedAt: timestamp("retrievedAt").notNull(),
+    lastCheckedAt: timestamp("lastCheckedAt").notNull(),
+    validFrom: timestamp("validFrom"),
+    validTo: timestamp("validTo"),
+    contentHash: varchar("contentHash", { length: 64 }),
+    confidenceLevel: mysqlEnum("confidenceLevel", [
+      "high",
+      "medium",
+      "low",
+      "unknown",
+    ])
+      .notNull()
+      .default("unknown"),
+    privacyClass: mysqlEnum("privacyClass", [
+      "public",
+      "internal",
+      "confidential",
+      "restricted",
+    ])
+      .notNull()
+      .default("restricted"),
+    containsPersonalData: boolean("containsPersonalData")
+      .notNull()
+      .default(true),
+    status: mysqlEnum("status", [
+      "proposed",
+      "approved",
+      "rejected",
+      "revoked",
+      "superseded",
+    ])
+      .notNull()
+      .default("proposed"),
+    revision: int("revision").notNull().default(1),
+    supersedesSourceId: int("supersedesSourceId"),
+    capturedBy: int("capturedBy").notNull(),
+    capturedByName: varchar("capturedByName", { length: 256 }),
+    reviewedBy: int("reviewedBy"),
+    reviewedByName: varchar("reviewedByName", { length: 256 }),
+    reviewedAt: timestamp("reviewedAt"),
+    reviewNote: varchar("reviewNote", { length: 2048 }),
+    revokedBy: int("revokedBy"),
+    revokedByName: varchar("revokedByName", { length: 256 }),
+    revokedAt: timestamp("revokedAt"),
+    revocationReason: varchar("revocationReason", { length: 1024 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    projectStatusIdx: index("projectEvidenceSources_project_status_idx").on(
+      table.projectId,
+      table.status,
+    ),
+    statusCheckedIdx: index("projectEvidenceSources_status_checked_idx").on(
+      table.status,
+      table.lastCheckedAt,
+      table.validTo,
+    ),
+    typeStatusIdx: index("projectEvidenceSources_type_status_idx").on(
+      table.sourceType,
+      table.status,
+    ),
+    contentHashIdx: index("projectEvidenceSources_content_hash_idx").on(
+      table.contentHash,
+    ),
+    supersedesIdx: index("projectEvidenceSources_supersedes_idx").on(
+      table.supersedesSourceId,
+      table.projectId,
+    ),
+    idProjectUnique: uniqueIndex("projectEvidenceSources_id_project_uidx").on(
+      table.id,
+      table.projectId,
+    ),
+    // MySQL 8.4 forbids explicit referential-action clauses on columns used by
+    // CHECK constraints. The generated 0091 SQL therefore preserves the
+    // default action while omitting Drizzle's explicit NO ACTION text.
+    supersedesProjectFk: foreignKey({
+      columns: [table.supersedesSourceId, table.projectId],
+      foreignColumns: [table.id, table.projectId],
+      name: "projectEvidenceSources_supersedes_project_fk",
+    }),
+    revisionCheck: check(
+      "projectEvidenceSources_revision_check",
+      sql`${table.revision} >= 1`,
+    ),
+    contentHashCheck: check(
+      "projectEvidenceSources_content_hash_check",
+      sql`${table.contentHash} IS NULL OR REGEXP_LIKE(${table.contentHash}, '^[0-9a-f]{64}$', 'c')`,
+    ),
+    validityCheck: check(
+      "projectEvidenceSources_validity_check",
+      sql`${table.validTo} IS NULL OR ${table.validFrom} IS NULL OR ${table.validTo} > ${table.validFrom}`,
+    ),
+    sourceLocatorCheck: check(
+      "projectEvidenceSources_locator_check",
+      sql`(${table.sourceUrl} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.sourceUrl})) > 0) OR (${table.sourceReference} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.sourceReference})) > 0)`,
+    ),
+    urlHostCheck: check(
+      "projectEvidenceSources_url_host_check",
+      sql`(${table.sourceUrl} IS NULL AND ${table.sourceHost} IS NULL) OR (${table.sourceUrl} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.sourceUrl})) > 0 AND ${table.sourceHost} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.sourceHost})) > 0)`,
+    ),
+    keyCheck: check(
+      "projectEvidenceSources_key_check",
+      sql`CHAR_LENGTH(TRIM(${table.sourceKey})) > 0 AND (${table.openDedupeKey} IS NULL OR CHAR_LENGTH(TRIM(${table.openDedupeKey})) > 0)`,
+    ),
+    textCheck: check(
+      "projectEvidenceSources_text_check",
+      sql`CHAR_LENGTH(TRIM(${table.sourceName})) > 0 AND CHAR_LENGTH(TRIM(${table.documentTitle})) > 0 AND (${table.sourceReference} IS NULL OR CHAR_LENGTH(TRIM(${table.sourceReference})) > 0)`,
+    ),
+    lifecycleCheck: check(
+      "projectEvidenceSources_lifecycle_check",
+      sql`(${table.status} IN ('proposed', 'approved') AND ${table.openDedupeKey} IS NOT NULL) OR (${table.status} IN ('rejected', 'revoked', 'superseded') AND ${table.openDedupeKey} IS NULL)`,
+    ),
+    approvalCheck: check(
+      "projectEvidenceSources_approval_check",
+      sql`${table.status} NOT IN ('approved', 'rejected', 'revoked', 'superseded') OR (${table.reviewedBy} IS NOT NULL AND ${table.reviewedAt} IS NOT NULL)`,
+    ),
+    revocationCheck: check(
+      "projectEvidenceSources_revocation_check",
+      sql`${table.status} <> 'revoked' OR (${table.revokedBy} IS NOT NULL AND ${table.revokedAt} IS NOT NULL AND ${table.revocationReason} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.revocationReason})) > 0)`,
+    ),
+    decisionReasonCheck: check(
+      "projectEvidenceSources_decision_reason_check",
+      sql`${table.status} NOT IN ('rejected', 'superseded') OR (${table.reviewNote} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.reviewNote})) > 0)`,
+    ),
+    positiveIdsCheck: check(
+      "projectEvidenceSources_positive_ids_check",
+      sql`${table.projectId} > 0 AND ${table.capturedBy} > 0 AND (${table.supersedesSourceId} IS NULL OR ${table.supersedesSourceId} > 0) AND (${table.reviewedBy} IS NULL OR ${table.reviewedBy} > 0) AND (${table.revokedBy} IS NULL OR ${table.revokedBy} > 0)`,
+    ),
+  }),
+);
+
+export type ProjectEvidenceSource = typeof projectEvidenceSources.$inferSelect;
+export type InsertProjectEvidenceSource =
+  typeof projectEvidenceSources.$inferInsert;
+
+/**
+ * Immutable revisions of exact Route-to-buyer propositions.
+ *
+ * currentKey is populated on the sole current revision of a logical claim and
+ * cleared when that revision is superseded. targetFingerprint binds review to
+ * the exact underlying owner/contact/link/package snapshot that was inspected.
+ */
+export const projectEvidenceClaims = mysqlTable(
+  "projectEvidenceClaims",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    claimKey: varchar("claimKey", { length: 128 }).notNull(),
+    version: int("version").notNull().default(1),
+    currentKey: varchar("currentKey", { length: 128 }).unique(),
+    targetFingerprint: varchar("targetFingerprint", { length: 64 }).notNull(),
+    projectId: int("projectId").notNull(),
+    claimType: mysqlEnum("claimType", [
+      "principal_organisation",
+      "project_organisation_participation",
+      "package_ownership",
+      "contact_employment",
+      "contact_project_participation",
+      "buyer_authority",
+    ]).notNull(),
+    contactId: int("contactId"),
+    contactProjectId: int("contactProjectId"),
+    contractorProjectLinkId: int("contractorProjectLinkId"),
+    organisationId: int("organisationId"),
+    organisationName: varchar("organisationName", { length: 256 }),
+    organisationRole: mysqlEnum("organisationRole", [
+      "principal",
+      "owner_operator",
+      "joint_venture",
+      "epc",
+      "head_contractor",
+      "contractor",
+      "subcontractor",
+      "package_holder",
+      "consultant",
+      "supplier",
+      "government",
+      "unknown",
+    ]),
+    packageName: varchar("packageName", { length: 256 }),
+    packageScope: varchar("packageScope", { length: 1024 }),
+    claimedTitle: varchar("claimedTitle", { length: 256 }),
+    buyerFunction: mysqlEnum("buyerFunction", [
+      "project_package_lead",
+      "plant_equipment_fleet",
+      "procurement_commercial",
+      "technical_site_operations",
+      "referral",
+      "unknown",
+    ]),
+    assertedValue: varchar("assertedValue", { length: 1024 }).notNull(),
+    assertionMethod: mysqlEnum("assertionMethod", [
+      "manual",
+      "imported",
+      "deterministic",
+      "provider_observed",
+      "llm_inferred",
+    ])
+      .notNull()
+      .default("manual"),
+    confidenceLevel: mysqlEnum("confidenceLevel", [
+      "high",
+      "medium",
+      "low",
+      "unknown",
+    ])
+      .notNull()
+      .default("unknown"),
+    confidenceScore: int("confidenceScore"),
+    status: mysqlEnum("status", [
+      "draft",
+      "active",
+      "disputed",
+      "rejected",
+      "superseded",
+      "expired",
+    ])
+      .notNull()
+      .default("draft"),
+    validFrom: timestamp("validFrom"),
+    validTo: timestamp("validTo"),
+    assertedAt: timestamp("assertedAt").notNull(),
+    lastCheckedAt: timestamp("lastCheckedAt").notNull(),
+    supersedesClaimId: int("supersedesClaimId"),
+    createdBy: int("createdBy").notNull(),
+    createdByName: varchar("createdByName", { length: 256 }),
+    reviewedBy: int("reviewedBy"),
+    reviewedByName: varchar("reviewedByName", { length: 256 }),
+    reviewedAt: timestamp("reviewedAt"),
+    reviewNote: varchar("reviewNote", { length: 2048 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    claimVersionUnique: uniqueIndex(
+      "projectEvidenceClaims_claim_version_uidx",
+    ).on(table.claimKey, table.version),
+    idProjectUnique: uniqueIndex("projectEvidenceClaims_id_project_uidx").on(
+      table.id,
+      table.projectId,
+    ),
+    supersedesProjectFk: foreignKey({
+      columns: [table.supersedesClaimId, table.projectId],
+      foreignColumns: [table.id, table.projectId],
+      name: "projectEvidenceClaims_supersedes_project_fk",
+    }),
+    projectStatusTypeIdx: index(
+      "projectEvidenceClaims_project_status_type_idx",
+    ).on(table.projectId, table.status, table.claimType, table.validTo),
+    contactStatusIdx: index("projectEvidenceClaims_contact_status_idx").on(
+      table.contactId,
+      table.status,
+      table.validTo,
+    ),
+    contactProjectStatusIdx: index(
+      "projectEvidenceClaims_contact_project_status_idx",
+    ).on(table.contactProjectId, table.status, table.validTo),
+    contractorLinkStatusIdx: index(
+      "projectEvidenceClaims_contractor_link_status_idx",
+    ).on(table.contractorProjectLinkId, table.status),
+    organisationStatusIdx: index(
+      "projectEvidenceClaims_organisation_status_idx",
+    ).on(table.organisationId, table.status),
+    supersedesIdx: index("projectEvidenceClaims_supersedes_idx").on(
+      table.supersedesClaimId,
+      table.projectId,
+    ),
+    versionCheck: check(
+      "projectEvidenceClaims_version_check",
+      sql`${table.version} >= 1`,
+    ),
+    confidenceScoreCheck: check(
+      "projectEvidenceClaims_confidence_score_check",
+      sql`${table.confidenceScore} IS NULL OR (${table.confidenceScore} >= 0 AND ${table.confidenceScore} <= 100)`,
+    ),
+    targetFingerprintCheck: check(
+      "projectEvidenceClaims_target_fingerprint_check",
+      sql`REGEXP_LIKE(${table.targetFingerprint}, '^[0-9a-f]{64}$', 'c')`,
+    ),
+    validityCheck: check(
+      "projectEvidenceClaims_validity_check",
+      sql`${table.validTo} IS NULL OR ${table.validFrom} IS NULL OR ${table.validTo} > ${table.validFrom}`,
+    ),
+    positiveIdsCheck: check(
+      "projectEvidenceClaims_positive_ids_check",
+      sql`${table.projectId} > 0 AND ${table.createdBy} > 0 AND (${table.contactId} IS NULL OR ${table.contactId} > 0) AND (${table.contactProjectId} IS NULL OR ${table.contactProjectId} > 0) AND (${table.contractorProjectLinkId} IS NULL OR ${table.contractorProjectLinkId} > 0) AND (${table.organisationId} IS NULL OR ${table.organisationId} > 0) AND (${table.supersedesClaimId} IS NULL OR ${table.supersedesClaimId} > 0) AND (${table.reviewedBy} IS NULL OR ${table.reviewedBy} > 0)`,
+    ),
+    currentRevisionCheck: check(
+      "projectEvidenceClaims_current_revision_check",
+      sql`((${table.status} IN ('draft', 'active', 'disputed')) AND ${table.currentKey} IS NOT NULL AND ${table.currentKey} = ${table.claimKey}) OR ((${table.status} IN ('rejected', 'superseded', 'expired')) AND ${table.currentKey} IS NULL)`,
+    ),
+    activeReviewCheck: check(
+      "projectEvidenceClaims_active_review_check",
+      sql`${table.status} <> 'active' OR (${table.reviewedBy} IS NOT NULL AND ${table.reviewedAt} IS NOT NULL)`,
+    ),
+    assertedValueCheck: check(
+      "projectEvidenceClaims_asserted_value_check",
+      sql`CHAR_LENGTH(TRIM(${table.assertedValue})) > 0`,
+    ),
+    keyCheck: check(
+      "projectEvidenceClaims_key_check",
+      sql`CHAR_LENGTH(TRIM(${table.claimKey})) > 0 AND (${table.currentKey} IS NULL OR CHAR_LENGTH(TRIM(${table.currentKey})) > 0)`,
+    ),
+    optionalTextCheck: check(
+      "projectEvidenceClaims_optional_text_check",
+      sql`(${table.organisationName} IS NULL OR CHAR_LENGTH(TRIM(${table.organisationName})) > 0) AND (${table.packageName} IS NULL OR CHAR_LENGTH(TRIM(${table.packageName})) > 0) AND (${table.packageScope} IS NULL OR CHAR_LENGTH(TRIM(${table.packageScope})) > 0) AND (${table.claimedTitle} IS NULL OR CHAR_LENGTH(TRIM(${table.claimedTitle})) > 0)`,
+    ),
+    subjectCheck: check(
+      "projectEvidenceClaims_subject_check",
+      sql`(${table.claimType} = 'principal_organisation' AND ${table.organisationName} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.organisationName})) > 0 AND ${table.contactId} IS NULL AND ${table.contactProjectId} IS NULL AND ${table.contractorProjectLinkId} IS NULL) OR (${table.claimType} = 'project_organisation_participation' AND ${table.contractorProjectLinkId} IS NOT NULL AND ${table.organisationName} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.organisationName})) > 0 AND ${table.contactId} IS NULL AND ${table.contactProjectId} IS NULL) OR (${table.claimType} = 'package_ownership' AND ${table.contractorProjectLinkId} IS NOT NULL AND ${table.organisationName} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.organisationName})) > 0 AND ((${table.packageName} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.packageName})) > 0) OR (${table.packageScope} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.packageScope})) > 0)) AND ${table.contactId} IS NULL AND ${table.contactProjectId} IS NULL) OR (${table.claimType} = 'contact_employment' AND ${table.contactId} IS NOT NULL AND ${table.contactProjectId} IS NOT NULL AND ${table.organisationName} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.organisationName})) > 0) OR (${table.claimType} = 'contact_project_participation' AND ${table.contactId} IS NOT NULL AND ${table.contactProjectId} IS NOT NULL) OR (${table.claimType} = 'buyer_authority' AND ${table.contactId} IS NOT NULL AND ${table.contactProjectId} IS NOT NULL AND ${table.buyerFunction} IS NOT NULL)`,
+    ),
+  }),
+);
+
+export type ProjectEvidenceClaim = typeof projectEvidenceClaims.$inferSelect;
+export type InsertProjectEvidenceClaim =
+  typeof projectEvidenceClaims.$inferInsert;
+
+/**
+ * Exact bindings between an immutable claim revision and a reviewable source.
+ *
+ * identity_only and contactability_only are deliberately non-promoting scopes:
+ * they prevent discovery/mailbox evidence from becoming employment or project
+ * participation evidence through proximity.
+ */
+export const projectEvidenceClaimSources = mysqlTable(
+  "projectEvidenceClaimSources",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    linkKey: varchar("linkKey", { length: 128 }).notNull().unique(),
+    projectId: int("projectId").notNull(),
+    claimId: int("claimId").notNull(),
+    sourceId: int("sourceId").notNull(),
+    supportScope: mysqlEnum("supportScope", [
+      "principal_organisation",
+      "project_organisation_participation",
+      "package_ownership",
+      "contact_employment",
+      "contact_project_participation",
+      "buyer_authority",
+      "identity_only",
+      "contactability_only",
+    ]).notNull(),
+    stance: mysqlEnum("stance", [
+      "supports",
+      "contradicts",
+      "context_only",
+    ]).notNull(),
+    supportStrength: mysqlEnum("supportStrength", [
+      "direct",
+      "corroborating",
+      "context_only",
+    ]).notNull(),
+    isPrimary: boolean("isPrimary").notNull().default(false),
+    evidenceSummary: varchar("evidenceSummary", { length: 2048 }).notNull(),
+    sourceLocator: varchar("sourceLocator", { length: 512 }),
+    createdBy: int("createdBy").notNull(),
+    createdByName: varchar("createdByName", { length: 256 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    revokedBy: int("revokedBy"),
+    revokedByName: varchar("revokedByName", { length: 256 }),
+    revokedAt: timestamp("revokedAt"),
+    revocationReason: varchar("revocationReason", { length: 1024 }),
+  },
+  (table) => ({
+    claimSourceScopeUnique: uniqueIndex(
+      "projectEvidenceClaimSources_binding_uidx",
+    ).on(table.claimId, table.sourceId, table.supportScope),
+    idProjectUnique: uniqueIndex(
+      "projectEvidenceClaimSources_id_project_uidx",
+    ).on(table.id, table.projectId),
+    projectClaimIdx: index("projectEvidenceClaimSources_project_claim_idx").on(
+      table.projectId,
+      table.claimId,
+    ),
+    claimRevokedIdx: index("projectEvidenceClaimSources_claim_revoked_idx").on(
+      table.claimId,
+      table.projectId,
+      table.revokedAt,
+    ),
+    sourceRevokedIdx: index(
+      "projectEvidenceClaimSources_source_revoked_idx",
+    ).on(table.sourceId, table.projectId, table.revokedAt),
+    claimProjectFk: foreignKey({
+      columns: [table.claimId, table.projectId],
+      foreignColumns: [
+        projectEvidenceClaims.id,
+        projectEvidenceClaims.projectId,
+      ],
+      name: "projectEvidenceClaimSources_claim_project_fk",
+    }),
+    sourceProjectFk: foreignKey({
+      columns: [table.sourceId, table.projectId],
+      foreignColumns: [
+        projectEvidenceSources.id,
+        projectEvidenceSources.projectId,
+      ],
+      name: "projectEvidenceClaimSources_source_project_fk",
+    }),
+    positiveIdsCheck: check(
+      "projectEvidenceClaimSources_positive_ids_check",
+      sql`${table.projectId} > 0 AND ${table.claimId} > 0 AND ${table.sourceId} > 0 AND ${table.createdBy} > 0 AND (${table.revokedBy} IS NULL OR ${table.revokedBy} > 0)`,
+    ),
+    evidenceSummaryCheck: check(
+      "projectEvidenceClaimSources_summary_check",
+      sql`CHAR_LENGTH(TRIM(${table.evidenceSummary})) > 0`,
+    ),
+    keyAndLocatorCheck: check(
+      "projectEvidenceClaimSources_key_locator_check",
+      sql`CHAR_LENGTH(TRIM(${table.linkKey})) > 0 AND (${table.sourceLocator} IS NULL OR CHAR_LENGTH(TRIM(${table.sourceLocator})) > 0)`,
+    ),
+    stanceStrengthCheck: check(
+      "projectEvidenceClaimSources_stance_strength_check",
+      sql`(${table.stance} = 'context_only' AND ${table.supportStrength} = 'context_only') OR (${table.stance} IN ('supports', 'contradicts') AND ${table.supportStrength} IN ('direct', 'corroborating'))`,
+    ),
+    nonPromotingScopeCheck: check(
+      "projectEvidenceClaimSources_non_promoting_check",
+      sql`${table.supportScope} NOT IN ('identity_only', 'contactability_only') OR (${table.stance} = 'context_only' AND ${table.supportStrength} = 'context_only' AND ${table.isPrimary} = false)`,
+    ),
+    primaryCheck: check(
+      "projectEvidenceClaimSources_primary_check",
+      sql`${table.isPrimary} = false OR (${table.stance} = 'supports' AND ${table.supportStrength} = 'direct')`,
+    ),
+    revocationCheck: check(
+      "projectEvidenceClaimSources_revocation_check",
+      sql`(${table.revokedAt} IS NULL AND ${table.revokedBy} IS NULL AND ${table.revocationReason} IS NULL) OR (${table.revokedAt} IS NOT NULL AND ${table.revokedBy} IS NOT NULL AND ${table.revocationReason} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.revocationReason})) > 0)`,
+    ),
+  }),
+);
+
+export type ProjectEvidenceClaimSource =
+  typeof projectEvidenceClaimSources.$inferSelect;
+export type InsertProjectEvidenceClaimSource =
+  typeof projectEvidenceClaimSources.$inferInsert;
+
+/**
+ * Append-only lifecycle history for claim-bound evidence.
+ *
+ * The write service inserts one event in the same transaction as each state
+ * transition. No update/delete API is provided for this table.
+ */
+export const projectEvidenceEvents = mysqlTable(
+  "projectEvidenceEvents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    eventKey: varchar("eventKey", { length: 128 }).notNull().unique(),
+    projectId: int("projectId").notNull(),
+    claimId: int("claimId"),
+    sourceId: int("sourceId"),
+    claimSourceId: int("claimSourceId"),
+    eventType: mysqlEnum("eventType", [
+      "claim_created",
+      "claim_activated",
+      "claim_disputed",
+      "claim_rejected",
+      "claim_superseded",
+      "claim_expired",
+      "source_submitted",
+      "source_approved",
+      "source_rejected",
+      "source_revoked",
+      "source_superseded",
+      "binding_created",
+      "binding_revoked",
+    ]).notNull(),
+    actorUserId: int("actorUserId").notNull(),
+    actorName: varchar("actorName", { length: 256 }),
+    previousStatus: varchar("previousStatus", { length: 32 }),
+    nextStatus: varchar("nextStatus", { length: 32 }),
+    expectedRevision: int("expectedRevision"),
+    nextRevision: int("nextRevision"),
+    reason: varchar("reason", { length: 1024 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    projectCreatedIdx: index("projectEvidenceEvents_project_created_idx").on(
+      table.projectId,
+      table.createdAt,
+    ),
+    claimCreatedIdx: index("projectEvidenceEvents_claim_created_idx").on(
+      table.claimId,
+      table.projectId,
+      table.createdAt,
+    ),
+    sourceCreatedIdx: index("projectEvidenceEvents_source_created_idx").on(
+      table.sourceId,
+      table.projectId,
+      table.createdAt,
+    ),
+    bindingCreatedIdx: index("projectEvidenceEvents_binding_created_idx").on(
+      table.claimSourceId,
+      table.projectId,
+      table.createdAt,
+    ),
+    claimProjectFk: foreignKey({
+      columns: [table.claimId, table.projectId],
+      foreignColumns: [
+        projectEvidenceClaims.id,
+        projectEvidenceClaims.projectId,
+      ],
+      name: "projectEvidenceEvents_claim_project_fk",
+    }),
+    sourceProjectFk: foreignKey({
+      columns: [table.sourceId, table.projectId],
+      foreignColumns: [
+        projectEvidenceSources.id,
+        projectEvidenceSources.projectId,
+      ],
+      name: "projectEvidenceEvents_source_project_fk",
+    }),
+    bindingProjectFk: foreignKey({
+      columns: [table.claimSourceId, table.projectId],
+      foreignColumns: [
+        projectEvidenceClaimSources.id,
+        projectEvidenceClaimSources.projectId,
+      ],
+      name: "projectEvidenceEvents_binding_project_fk",
+    }),
+    positiveIdsCheck: check(
+      "projectEvidenceEvents_positive_ids_check",
+      sql`${table.projectId} > 0 AND ${table.actorUserId} > 0 AND (${table.claimId} IS NULL OR ${table.claimId} > 0) AND (${table.sourceId} IS NULL OR ${table.sourceId} > 0) AND (${table.claimSourceId} IS NULL OR ${table.claimSourceId} > 0)`,
+    ),
+    keyCheck: check(
+      "projectEvidenceEvents_key_check",
+      sql`CHAR_LENGTH(TRIM(${table.eventKey})) > 0`,
+    ),
+    subjectCheck: check(
+      "projectEvidenceEvents_subject_check",
+      sql`(${table.eventType} IN ('claim_created', 'claim_activated', 'claim_disputed', 'claim_rejected', 'claim_superseded', 'claim_expired') AND ${table.claimId} IS NOT NULL AND ${table.sourceId} IS NULL AND ${table.claimSourceId} IS NULL) OR (${table.eventType} IN ('source_submitted', 'source_approved', 'source_rejected', 'source_revoked', 'source_superseded') AND ${table.claimId} IS NULL AND ${table.sourceId} IS NOT NULL AND ${table.claimSourceId} IS NULL) OR (${table.eventType} IN ('binding_created', 'binding_revoked') AND ${table.claimId} IS NULL AND ${table.sourceId} IS NULL AND ${table.claimSourceId} IS NOT NULL)`,
+    ),
+    revisionCheck: check(
+      "projectEvidenceEvents_revision_check",
+      sql`(${table.expectedRevision} IS NULL AND (${table.nextRevision} IS NULL OR ${table.nextRevision} = 1)) OR (${table.expectedRevision} IS NOT NULL AND ${table.nextRevision} IS NOT NULL AND ${table.expectedRevision} >= 1 AND ${table.nextRevision} = ${table.expectedRevision} + 1)`,
+    ),
+    reasonCheck: check(
+      "projectEvidenceEvents_reason_check",
+      sql`(${table.reason} IS NULL OR CHAR_LENGTH(TRIM(${table.reason})) > 0) AND (${table.eventType} NOT IN ('claim_disputed', 'claim_rejected', 'claim_superseded', 'claim_expired', 'source_rejected', 'source_revoked', 'source_superseded', 'binding_revoked') OR (${table.reason} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.reason})) > 0))`,
+    ),
+  }),
+);
+
+export type ProjectEvidenceEvent = typeof projectEvidenceEvents.$inferSelect;
+export type InsertProjectEvidenceEvent =
+  typeof projectEvidenceEvents.$inferInsert;
 
 // ─── Full Potential module ────────────────────────────────────────────────────
 // Kept in a separate file for readability; re-exported here so Drizzle Kit
