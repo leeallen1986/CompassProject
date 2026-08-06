@@ -1000,11 +1000,24 @@ export function validateJournalSchema({
         subPart: null,
         indexType: "BTREE",
       },
+      {
+        indexName: "id",
+        nonUnique: "0",
+        seqInIndex: "1",
+        columnName: "id",
+        subPart: null,
+        indexType: "BTREE",
+      },
     ],
     constraints: [
       {
         constraintName: "PRIMARY",
         constraintType: "PRIMARY KEY",
+        enforced: "YES",
+      },
+      {
+        constraintName: "id",
+        constraintType: "UNIQUE",
         enforced: "YES",
       },
     ],
