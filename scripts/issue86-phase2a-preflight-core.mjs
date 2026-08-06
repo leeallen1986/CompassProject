@@ -1166,10 +1166,10 @@ export function classifyJournalAndPhase2a({
     databaseStateClassification,
     blocker,
     predecessorHashClassification:
-      exact90Unique
-        ? "exact_committed_source_bytes"
-        : lf90ByHash.length
-          ? "known_single_trailing_lf_variant"
+      lf90ByHash.length
+        ? "known_single_trailing_lf_variant"
+        : exact90Unique
+          ? "exact_committed_source_bytes"
           : "unexpected_or_absent",
     migration0090ExactAndLatest:
       exact90Unique &&
