@@ -645,7 +645,7 @@ function normalizeDefault(value, columnType = "") {
   if (value === undefined || value === null) return null;
   let text = String(value);
   if (/^'.*'$/.test(text)) text = text.slice(1, -1);
-  if (/^\(now\(\)\)$/i.test(text)) return "CURRENT_TIMESTAMP";
+  if (/^(?:now\(\)|\(now\(\)\))$/i.test(text)) return "CURRENT_TIMESTAMP";
   if (/^current_timestamp(?:\(\))?$/i.test(text)) return "CURRENT_TIMESTAMP";
   if (text === "true") return "1";
   if (text === "false") return "0";
