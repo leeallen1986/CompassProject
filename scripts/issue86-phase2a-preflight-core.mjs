@@ -810,13 +810,25 @@ export function buildExpected0090Contract(snapshot) {
     engine: "InnoDB",
   });
   const accountColumns = Object.values(account.columns);
-  for (const sentinel of PREDECESSOR_ACCOUNT_SENTINELS) {
-    const index = accountColumns.findIndex((column) => column.name === sentinel);
-    if (index < 0) throw new Error(`SNAPSHOT_0090_SENTINEL_MISSING:${sentinel}`);
-    columns.push(
-      expectedColumn("fullPotentialAccounts", accountColumns[index], index + 1),
-    );
+  const firstAppendedSentinelOrdinal =
+    accountColumns.length - PREDECESSOR_ACCOUNT_SENTINELS.length + 1;
+  if (firstAppendedSentinelOrdinal < 1) {
+    throw new Error("SNAPSHOT_0090_ACCOUNT_COLUMN_COUNT_INVALID");
   }
+  PREDECESSOR_ACCOUNT_SENTINELS.forEach((sentinel, sentinelIndex) => {
+    const column = accountColumns.find((candidate) => candidate.name === sentinel);
+    if (!column) throw new Error(`SNAPSHOT_0090_SENTINEL_MISSING:${sentinel}`);
+    // 0090 adds these five columns with plain ALTER TABLE ... ADD statements.
+    // MySQL appends them after the 37 predecessor columns (physical ordinals 38-42),
+    // even though Drizzle's snapshot serializes them near the start of the object.
+    columns.push(
+      expectedColumn(
+        "fullPotentialAccounts",
+        column,
+        firstAppendedSentinelOrdinal + sentinelIndex,
+      ),
+    );
+  });
 
   return deepFreeze({
     tables: tables.sort(compareRows),
