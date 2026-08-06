@@ -1120,16 +1120,6 @@ export function classifyJournalAndPhase2a({
     databaseStateClassification = "BLOCKED_JOURNAL_HASH_MISMATCH";
   } else if (laterUnexpected.length > 0) {
     databaseStateClassification = "BLOCKED_UNEXPECTED_MIGRATION_ORDER";
-  } else if (exact91.length === 1 && exactPhaseBasics) {
-    databaseStateClassification =
-      "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY";
-  } else if (exact91.length === 1) {
-    databaseStateClassification =
-      "BLOCKED_JOURNALED_SCHEMA_MISSING_OR_DIVERGENT";
-  } else if (!phaseAbsent && !exactPhaseBasics) {
-    databaseStateClassification = "BLOCKED_PARTIAL_OR_CASE_COLLIDING_SCHEMA";
-  } else if (exactPhaseBasics && exact91.length === 0) {
-    databaseStateClassification = "BLOCKED_UNJOURNALED_SCHEMA";
   } else if (lf90.length > 0) {
     databaseStateClassification =
       "BLOCKED_PREDECESSOR_HASH_VARIANT_REQUIRES_CONTROLLER_REVIEW";
@@ -1141,6 +1131,23 @@ export function classifyJournalAndPhase2a({
     hash90.length !== 1
   ) {
     databaseStateClassification = "BLOCKED_PREDECESSOR_DIVERGENCE";
+  } else if (
+    exact91.length === 1 &&
+    (latest.length === 0 ||
+      latest[0].hash !== c91.sha256 ||
+      latest[0].createdAt !== c91.journalWhen)
+  ) {
+    databaseStateClassification = "BLOCKED_JOURNAL_LATEST_INCONSISTENT";
+  } else if (exact91.length === 1 && exactPhaseBasics) {
+    databaseStateClassification =
+      "ALREADY_APPLIED_REQUIRES_EXACT_POST_VERIFY";
+  } else if (exact91.length === 1) {
+    databaseStateClassification =
+      "BLOCKED_JOURNALED_SCHEMA_MISSING_OR_DIVERGENT";
+  } else if (!phaseAbsent && !exactPhaseBasics) {
+    databaseStateClassification = "BLOCKED_PARTIAL_OR_CASE_COLLIDING_SCHEMA";
+  } else if (exactPhaseBasics) {
+    databaseStateClassification = "BLOCKED_UNJOURNALED_SCHEMA";
   } else if (
     latest.length === 0 ||
     latest[0].hash !== c90.sha256 ||
