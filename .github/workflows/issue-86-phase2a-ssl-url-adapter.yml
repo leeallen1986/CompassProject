@@ -1,0 +1,58 @@
+name: Issue 86 Phase 2A ssl URL adapter
+
+on:
+  pull_request:
+    paths:
+      - "scripts/issue86-phase2a-database-url-policy.mjs"
+      - "scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs"
+      - "scripts/issue86-phase2a-production-preflight-ssl-wrapper.test.mjs"
+      - "scripts/issue86-phase2a-production-discovery.mjs"
+      - "scripts/issue86-phase2a-production-discovery.test.mjs"
+      - "docs/issue86-phase2a-database-url-ssl-adapter.md"
+      - ".github/workflows/issue-86-phase2a-ssl-url-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Syntax and unit tests
+        run: |
+          node --check scripts/issue86-phase2a-database-url-policy.mjs
+          node --check scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs
+          node --check scripts/issue86-phase2a-production-discovery.mjs
+          node --test scripts/issue86-phase2a-production-preflight-ssl-wrapper.test.mjs
+          node --test scripts/issue86-phase2a-production-discovery.test.mjs
+      - name: Existing Phase 2A preflight regressions
+        run: node --test scripts/issue86-phase2a-production-preflight.test.mjs
+      - name: Issue 86 and Issue 85 regressions
+        run: |
+          pnpm test:issue86
+          pnpm test:issue85
+      - name: TypeScript and production build
+        run: |
+          pnpm exec tsc --noEmit
+          pnpm build
+      - name: Static safety boundary
+        run: |
+          ! grep -Eq 'createConnection|createPool|mysql2|\.query\(|\.execute\(' scripts/issue86-phase2a-database-url-policy.mjs
+          ! grep -Eq 'createConnection|createPool|mysql2|\.query\(|\.execute\(' scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs
+          test "$(grep -Ec 'SELECT |SHOW ' scripts/issue86-phase2a-production-discovery.mjs)" -le 5
+          ! grep -Eq '\b(INSERT|UPDATE|DELETE|REPLACE|CREATE TABLE|ALTER TABLE|DROP TABLE|TRUNCATE)\b' scripts/issue86-phase2a-production-discovery.mjs
+          grep -Fq 'queryValuesUsedForConnectionConfiguration: false' scripts/issue86-phase2a-database-url-policy.mjs
+          grep -Fq 'DATABASE_URL: normalized.sanitizedDatabaseUrl' scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs
+          grep -Fq 'normaliseDatabaseUrlForPreflight(env.DATABASE_URL)' scripts/issue86-phase2a-production-discovery.mjs
+      - name: File hashes
+        run: sha256sum scripts/issue86-phase2a-database-url-policy.mjs scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs scripts/issue86-phase2a-production-preflight-ssl-wrapper.test.mjs scripts/issue86-phase2a-production-discovery.mjs scripts/issue86-phase2a-production-discovery.test.mjs
