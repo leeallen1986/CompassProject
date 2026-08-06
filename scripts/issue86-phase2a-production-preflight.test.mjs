@@ -421,6 +421,23 @@ describe("0090 physical manifest", () => {
     const snapshot = JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8"));
     const expected = buildExpected0090Contract(snapshot);
     assert.equal(expected.tables.length, 6);
+    assert.deepEqual(
+      [
+        "parentAccountId",
+        "mergedIntoAccountId",
+        "relationshipType",
+        "recordStatus",
+        "countsTowardPotential",
+      ].map(
+        (columnName) =>
+          expected.columns.find(
+            (row) =>
+              row.tableName === "fullPotentialAccounts" &&
+              row.columnName === columnName,
+          )?.ordinalPosition,
+      ),
+      ["38", "39", "40", "41", "42"],
+    );
     const relationship = expected.columns.find(
       (row) =>
         row.tableName === "fullPotentialAccounts" &&
