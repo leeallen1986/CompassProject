@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   chmodSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -24,9 +25,13 @@ import {
   parseDatabaseUrl,
   parseMutationCounters,
   validate0090Footprint,
+  validateJournalSchema,
   verifySourceBundle,
 } from "./issue86-phase2a-preflight-core.mjs";
-import { runPreflight } from "./issue86-phase2a-production-preflight.mjs";
+import {
+  runPreflight,
+  validateGrantProfile,
+} from "./issue86-phase2a-production-preflight.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -60,11 +65,15 @@ function readyFacts() {
     sourceGatePassed: true,
     runtimeProfilePassed: true,
     productionIdentityMatched: true,
+    accountIdentityMatched: true,
+    caPinned: true,
+    peerCertificatePinned: true,
     tlsVerified: true,
     grantProfileMatched: true,
     oneConnectionOnly: true,
     readOnlySnapshotsEstablished: true,
     oracleMySql84ExactProfileMatched: true,
+    rehearsedEngineVersionMatched: true,
     capabilitiesPassed: true,
     journalSchemaExact: true,
     predecessorFootprintExact: true,
@@ -415,6 +424,14 @@ function journalSchemaRows() {
         indexType: "BTREE",
       },
     ],
+    constraints: [
+      {
+        constraintName: "PRIMARY",
+        constraintType: "PRIMARY KEY",
+        enforced: "YES",
+      },
+    ],
+    triggers: [],
   };
 }
 
@@ -426,6 +443,8 @@ function readyProtocol() {
     ["JOURNAL_TABLES", journal.tables],
     ["JOURNAL_COLUMNS", journal.columns],
     ["JOURNAL_INDEXES", journal.indexes],
+    ["JOURNAL_CONSTRAINTS", journal.constraints],
+    ["JOURNAL_TRIGGERS", journal.triggers],
     ["JOURNAL_RELEVANT_COUNT", [{ rowCount: "1" }]],
     ["JOURNAL_RELEVANT", [row0090]],
     ["JOURNAL_LATEST", [row0090]],
@@ -457,6 +476,7 @@ function readyProtocol() {
           versionString: "8.4.2",
           versionComment: "MySQL Community Server - GPL",
           connectionId: "77",
+          currentUserSha256: "b".repeat(64),
           targetIdentitySha256: "a".repeat(64),
         },
       ],
@@ -609,6 +629,49 @@ function strictConnection(steps, outputDir) {
   return connection;
 }
 
+describe("journal and grant exactness", () => {
+  test("journal contract rejects column, index, constraint and trigger drift", () => {
+    const base = journalSchemaRows();
+    assert.equal(validateJournalSchema(base).exact, true);
+    for (const mutate of [
+      (value) => { value.columns[0].columnType = "bigint"; },
+      (value) => { value.indexes.push({ ...value.indexes[0], indexName: "extra" }); },
+      (value) => { value.constraints[0].constraintType = "UNIQUE"; },
+      (value) => { value.triggers.push({ triggerName: "x", eventManipulation: "INSERT", actionTiming: "BEFORE" }); },
+    ]) {
+      const changed = structuredClone(base);
+      mutate(changed);
+      assert.equal(validateJournalSchema(changed).exact, false);
+    }
+  });
+
+  test("grant contract requires exact USAGE REQUIRE SSL plus database SELECT", () => {
+    const grantRows = [
+      { grant: "GRANT USAGE ON *.* TO `preflight`@`%` REQUIRE SSL" },
+      { grant: "GRANT SELECT ON `compass_test`.* TO `preflight`@`%`" },
+    ];
+    assert.equal(
+      validateGrantProfile(grantRows, "NONE", "compass_test").matched,
+      true,
+    );
+    const noSsl = structuredClone(grantRows);
+    noSsl[0].grant = "GRANT USAGE ON *.* TO `preflight`@`%`";
+    assert.equal(
+      validateGrantProfile(noSsl, "NONE", "compass_test").matched,
+      false,
+    );
+    assert.equal(
+      validateGrantProfile([...grantRows, grantRows[1]], "NONE", "compass_test")
+        .matched,
+      false,
+    );
+    assert.equal(
+      validateGrantProfile(grantRows, "`role`@`%`", "compass_test").matched,
+      false,
+    );
+  });
+});
+
 describe("strict end-to-end fake protocol", () => {
   test("READY path consumes exact query-only sequence, closes, then writes evidence", async () => {
     const root = tempDir();
@@ -625,10 +688,14 @@ describe("strict end-to-end fake protocol", () => {
       DATABASE_URL:
         "mysql://preflight:secret-password@db.example:3306/compass_test",
       ISSUE86_PREFLIGHT_CA_FILE: caPath,
+      ISSUE86_PREFLIGHT_EXPECTED_CA_SHA256: digest(caPath),
+      ISSUE86_PREFLIGHT_EXPECTED_PEER_CERT_SHA256: "a".repeat(64),
       ISSUE86_PREFLIGHT_EXPECTED_NODE_VERSION: process.version,
       ISSUE86_PREFLIGHT_EXPECTED_TOOL_SHA256: digest(TOOL_PATH),
       ISSUE86_PREFLIGHT_EXPECTED_CORE_SHA256: digest(CORE_PATH),
       ISSUE86_PREFLIGHT_EXPECTED_DB_IDENTITY_SHA256: "a".repeat(64),
+      ISSUE86_PREFLIGHT_EXPECTED_DB_ACCOUNT_SHA256: "b".repeat(64),
+      ISSUE86_PREFLIGHT_EXPECTED_MYSQL_VERSION: "8.4.2",
     };
     const steps = readyProtocol();
     let factoryCalls = 0;
@@ -660,6 +727,15 @@ describe("strict end-to-end fake protocol", () => {
       assert.equal(final.includes("secret-password"), false);
       assert.equal(final.includes("db.example"), false);
       assert.equal(final.includes("compass_test"), false);
+      const files = readdirSync(outputDir).sort();
+      assert.ok(files.includes("issue86-phase2a-preflight-COMPLETE.json"));
+      assert.equal(files.length, 8);
+      for (const filename of files) {
+        const content = readFileSync(join(outputDir, filename), "utf8");
+        assert.equal(content.includes("secret-password"), false);
+        assert.equal(content.includes("db.example"), false);
+        assert.equal(content.includes("compass_test"), false);
+      }
     } finally {
       delete process.env.ISSUE86_PREFLIGHT_EXPECTED_NODE_VERSION;
       rmSync(root, { recursive: true, force: true });
