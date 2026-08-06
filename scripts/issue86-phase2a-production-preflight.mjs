@@ -250,7 +250,10 @@ function validateTls(socketEvidence, statusRows, expectedPeerFingerprintSha256) 
   };
 }
 
-function validateGrantProfile(rows, currentRole, databaseName) {
+export function validateGrantProfile(rows, currentRole, databaseName) {
+  if (!/^[A-Za-z0-9_]{1,64}$/.test(databaseName)) {
+    throw new Error("GRANT_DATABASE_IDENTIFIER_INVALID");
+  }
   const grants = rows.map((row) => {
     if (!row || typeof row !== "object" || Array.isArray(row)) {
       throw new Error("GRANT_ROW_INVALID");
@@ -259,29 +262,25 @@ function validateGrantProfile(rows, currentRole, databaseName) {
     if (values.length !== 1 || typeof values[0] !== "string") {
       throw new Error("GRANT_ROW_SHAPE_INVALID");
     }
-    return values[0];
+    return values[0].trim();
   });
   const escapedDb = databaseName.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
-  const usage = /^GRANT USAGE ON \*\.\* TO /i;
-  const select = new RegExp(
-    `^GRANT SELECT ON \\\`${escapedDb}\\\`\\.\\* TO `,
-    "i",
-  );
+  const usage = /^GRANT USAGE ON \*\.\* TO .+ REQUIRE (?:SSL|X509)$/i;
+  const select = new RegExp("^GRANT SELECT ON `" + escapedDb + "`\\.\\* TO .+$", "i");
   const forbidden =
     /\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TRIGGER|EVENT|EXECUTE|FILE|PROCESS|SUPER|RELOAD|SHUTDOWN|REPLICATION|GRANT OPTION|SYSTEM_USER|CONNECTION_ADMIN)\b/i;
-  const everyAllowed =
-    grants.length >= 2 &&
-    grants.every(
-      (grant) =>
-        !forbidden.test(grant) && (usage.test(grant) || select.test(grant)),
-    );
-  const hasSelect = grants.some((grant) => select.test(grant));
+  const usageRows = grants.filter((grant) => usage.test(grant));
+  const selectRows = grants.filter((grant) => select.test(grant));
+  const matched =
+    currentRole === "NONE" &&
+    grants.length === 2 &&
+    usageRows.length === 1 &&
+    selectRows.length === 1 &&
+    grants.every((grant) => !forbidden.test(grant));
   return {
-    matched:
-      currentRole === "NONE" &&
-      everyAllowed &&
-      hasSelect,
+    matched,
     currentRoleNone: currentRole === "NONE",
+    tlsRequirementPresent: usageRows.length === 1,
     grantCount: grants.length,
     grantTextSha256: canonicalHash([...grants].sort()),
   };
