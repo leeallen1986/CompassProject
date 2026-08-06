@@ -583,11 +583,20 @@ function readyProtocol() {
       [
         {
           "Grants for preflight@%":
-            "GRANT USAGE ON *.* TO \`preflight\`@\`%\` REQUIRE SSL",
+            "GRANT USAGE ON *.* TO \`preflight\`@\`%\`",
         },
         {
           "Grants for preflight@%":
             "GRANT SELECT ON \`compass_test\`.* TO \`preflight\`@\`%\`",
+        },
+      ],
+    ],
+    [
+      "SHOW_CREATE_USER",
+      [
+        {
+          "CREATE USER for preflight@%":
+            "CREATE USER \`preflight\`@\`%\` IDENTIFIED WITH 'caching_sha2_password' AS '<secret>' REQUIRE SSL PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK",
         },
       ],
     ],
@@ -741,28 +750,72 @@ describe("journal and grant exactness", () => {
     }
   });
 
-  test("grant contract requires exact USAGE REQUIRE SSL plus database SELECT", () => {
+  test("grant contract separates privileges from the account TLS policy", () => {
     const grantRows = [
-      { grant: "GRANT USAGE ON *.* TO `preflight`@`%` REQUIRE SSL" },
+      { grant: "GRANT USAGE ON *.* TO `preflight`@`%`" },
       { grant: "GRANT SELECT ON `compass_test`.* TO `preflight`@`%`" },
     ];
+    const createUserSsl = [
+      {
+        createUser:
+          "CREATE USER `preflight`@`%` IDENTIFIED WITH 'caching_sha2_password' AS '<secret>' REQUIRE SSL PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK",
+      },
+    ];
     assert.equal(
-      validateGrantProfile(grantRows, "NONE", "compass_test").matched,
+      validateGrantProfile(
+        grantRows,
+        "NONE",
+        "compass_test",
+        createUserSsl,
+      ).matched,
       true,
     );
-    const noSsl = structuredClone(grantRows);
-    noSsl[0].grant = "GRANT USAGE ON *.* TO `preflight`@`%`";
     assert.equal(
-      validateGrantProfile(noSsl, "NONE", "compass_test").matched,
+      validateGrantProfile(
+        [
+          grantRows[0],
+          {
+            grant:
+              "GRANT SELECT ON `compass\\_test`.* TO `preflight`@`%`",
+          },
+        ],
+        "NONE",
+        "compass_test",
+        createUserSsl,
+      ).matched,
+      true,
+    );
+    const createUserNone = [
+      {
+        createUser:
+          "CREATE USER `preflight`@`%` IDENTIFIED WITH 'caching_sha2_password' AS '<secret>' REQUIRE NONE PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK",
+      },
+    ];
+    assert.equal(
+      validateGrantProfile(
+        grantRows,
+        "NONE",
+        "compass_test",
+        createUserNone,
+      ).matched,
       false,
     );
     assert.equal(
-      validateGrantProfile([...grantRows, grantRows[1]], "NONE", "compass_test")
-        .matched,
+      validateGrantProfile(
+        [...grantRows, grantRows[1]],
+        "NONE",
+        "compass_test",
+        createUserSsl,
+      ).matched,
       false,
     );
     assert.equal(
-      validateGrantProfile(grantRows, "`role`@`%`", "compass_test").matched,
+      validateGrantProfile(
+        grantRows,
+        "`role`@`%`",
+        "compass_test",
+        createUserSsl,
+      ).matched,
       false,
     );
   });
