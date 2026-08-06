@@ -53,7 +53,13 @@ jobs:
           ! grep -Eq '\b(INSERT|UPDATE|DELETE|REPLACE|CREATE TABLE|ALTER TABLE|DROP TABLE|TRUNCATE)\b' scripts/issue86-phase2a-production-discovery.mjs
           grep -Fq 'queryValuesUsedForConnectionConfiguration: false' scripts/issue86-phase2a-database-url-policy.mjs
           grep -Fq 'DATABASE_URL: normalized.sanitizedDatabaseUrl' scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs
+          grep -Fq 'ISSUE86_PREFLIGHT_EXPECTED_WRAPPER_SHA256' scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs
+          grep -Fq 'ISSUE86_PREFLIGHT_EXPECTED_URL_POLICY_SHA256' scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs
           grep -Fq 'normaliseDatabaseUrlForPreflight(env.DATABASE_URL)' scripts/issue86-phase2a-production-discovery.mjs
+          grep -Fq 'ISSUE86_DISCOVERY_EXPECTED_SCRIPT_SHA256' scripts/issue86-phase2a-production-discovery.mjs
+          grep -Fq 'ISSUE86_DISCOVERY_EXPECTED_URL_POLICY_SHA256' scripts/issue86-phase2a-production-discovery.mjs
+          grep -Fq 'ISSUE86_DISCOVERY_EXPECTED_CORE_SHA256' scripts/issue86-phase2a-production-discovery.mjs
+          grep -Fq 'DISCOVERY_TLS_STATUS_MISMATCH' scripts/issue86-phase2a-production-discovery.mjs
       - name: File hashes
         run: sha256sum scripts/issue86-phase2a-database-url-policy.mjs scripts/issue86-phase2a-production-preflight-ssl-wrapper.mjs scripts/issue86-phase2a-production-preflight-ssl-wrapper.test.mjs scripts/issue86-phase2a-production-discovery.mjs scripts/issue86-phase2a-production-discovery.test.mjs
       - name: Generate disposable TLS identity
@@ -124,6 +130,9 @@ jobs:
           docker exec issue86-url-adapter-mysql \
             mysql --user=root --password=issue86-url-adapter-root \
             --execute "DROP USER IF EXISTS 'issue86_discovery_ro'@'%'; CREATE USER 'issue86_discovery_ro'@'%' IDENTIFIED BY 'Issue86-Discovery-Only-2026!' REQUIRE SSL; GRANT SELECT ON issue86_discovery_it.* TO 'issue86_discovery_ro'@'%';"
+          export ISSUE86_DISCOVERY_EXPECTED_SCRIPT_SHA256="$(sha256sum scripts/issue86-phase2a-production-discovery.mjs | awk '{print $1}')"
+          export ISSUE86_DISCOVERY_EXPECTED_URL_POLICY_SHA256="$(sha256sum scripts/issue86-phase2a-database-url-policy.mjs | awk '{print $1}')"
+          export ISSUE86_DISCOVERY_EXPECTED_CORE_SHA256="$(sha256sum scripts/issue86-phase2a-preflight-core.mjs | awk '{print $1}')"
           node scripts/issue86-phase2a-production-discovery.mjs > "$RUNNER_TEMP/issue86-discovery.json"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -138,6 +147,9 @@ jobs:
           assert.equal(result.migrationCommands, 0);
           assert.equal(result.urlPolicy.ignoredQueryParameterNames[0], 'ssl');
           assert.equal(result.urlPolicy.queryValuesUsedForConnectionConfiguration, false);
+          assert.equal(result.sourceAttestation.discoveryScript.matched, true);
+          assert.equal(result.sourceAttestation.urlPolicy.matched, true);
+          assert.equal(result.sourceAttestation.core.matched, true);
           assert.equal(result.engine.versionString, '8.4.11');
           assert.equal(result.engine.oracleMySql84ExactProfileMatched, true);
           assert.equal(result.transport.encrypted, true);
@@ -146,6 +158,7 @@ jobs:
           assert.match(result.transport.peerCertificateSha256, /^[0-9a-f]{64}$/);
           assert.equal(result.mysqlTlsStatus.Ssl_version, result.transport.protocol);
           assert.equal(result.mysqlTlsStatus.Ssl_cipher, result.transport.cipher);
+          assert.equal(result.tlsSocketAndSessionStatusMatched, true);
           assert.equal(result.currentRole.none, true);
           assert.equal(result.grants.appearsSelectOnly, true);
           assert.deepEqual(result.grants.nonSelectPrivilegeFlags, []);
