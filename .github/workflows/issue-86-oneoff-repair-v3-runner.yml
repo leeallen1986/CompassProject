@@ -1,0 +1,42 @@
+name: Issue 86 one-off repair v3 runner
+
+on:
+  push:
+    branches:
+      - fix/issue-86-tidb-preflight-v3
+    paths:
+      - ".github/workflows/issue-86-oneoff-repair-v3-runner.yml"
+      - "scripts/issue86-phase2a-production-tidb-preflight-v3.mjs"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue-86-tidb-preflight-v3
+          fetch-depth: 0
+      - name: Repair one corrupted token and remove this workflow
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/issue86-phase2a-production-tidb-preflight-v3.mjs')
+          text = path.read_text()
+          broken = 'sessionForeignKeyChec{sEnabled'
+          fixed = 'sessionForeignKeyChecksEnabled'
+          count = text.count(broken)
+          if count != 1:
+              raise SystemExit(f'EXPECTED_ONE_CORRUPTED_TOKEN_FOUND_{count}')
+          path.write_text(text.replace(broken, fixed))
+          PY
+          node --check scripts/issue86-phase2a-production-tidb-preflight-v3.mjs
+          git rm .github/workflows/issue-86-oneoff-repair-v3-runner.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/issue86-phase2a-production-tidb-preflight-v3.mjs
+          git commit -m "fix(issue86): repair corrupted TiDB v3 runner token"
+          git push origin HEAD:fix/issue-86-tidb-preflight-v3
