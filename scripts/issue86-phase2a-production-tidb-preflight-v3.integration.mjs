@@ -12,11 +12,14 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { createConnection } from "mysql2/promise";
 import { canonicalHash } from "./issue86-phase2a-preflight-core.mjs";
+import {
+  exitCodeForReadiness,
+  runTidbPreflightV3,
+} from "./issue86-phase2a-production-tidb-preflight-v3.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
@@ -76,6 +79,37 @@ function config({ user, password, database, ca }) {
   };
 }
 
+function wrappedConnectionFactory(ca) {
+  return async (incoming) => {
+    const connection = await createConnection({
+      ...incoming,
+      ssl: {
+        ...incoming.ssl,
+        ca,
+        rejectUnauthorized: true,
+        minVersion: "TLSv1.2",
+      },
+    });
+    return {
+      connection: connection.connection,
+      async query(sql, params) {
+        const result = await connection.query(sql, params);
+        if (String(sql).startsWith("SELECT VERSION() AS versionString")) {
+          const [rows, fields] = result;
+          for (const row of rows) {
+            row.versionString = `${row.versionString}-serverless`;
+          }
+          return [rows, fields];
+        }
+        return result;
+      },
+      async end() {
+        return connection.end();
+      },
+    };
+  };
+}
+
 async function schemaFingerprint(connection) {
   const queries = [
     "SELECT TABLE_NAME, TABLE_TYPE, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY BINARY TABLE_NAME",
@@ -118,21 +152,15 @@ async function accountPins(admin, ca) {
   }
 }
 
-function runCli({ outputDir, env }) {
-  const result = spawnSync(
-    process.execPath,
-    [V3, "--output-dir", outputDir],
-    {
-      env,
-      encoding: "utf8",
-      maxBuffer: 4 * 1024 * 1024,
-    },
-  );
+async function runPreflight({ outputDir, env, ca }) {
+  const final = await runTidbPreflightV3({
+    outputDir,
+    env,
+    realConnectionFactory: wrappedConnectionFactory(ca),
+  });
   return {
-    status: result.status,
-    stdout: result.stdout,
-    stderr: result.stderr,
-    final: result.stdout.trim() ? JSON.parse(result.stdout) : null,
+    status: exitCodeForReadiness(final.applyReadiness),
+    final,
   };
 }
 
@@ -166,7 +194,6 @@ async function main() {
     const databaseUrl = `mysql://${encodeURIComponent(USER)}:${encodeURIComponent(PASSWORD)}@${HOST}:${PORT}/${DATABASE}?ssl=ignored`;
     const baseEnv = {
       ...process.env,
-      NODE_EXTRA_CA_CERTS: CA_PATH,
       DATABASE_URL: databaseUrl,
       ISSUE86_TIDB_PREFLIGHT_EXPECTED_V3_SHA256: hashFile(V3),
       ISSUE86_TIDB_PREFLIGHT_EXPECTED_ACCOUNT_POLICY_SHA256: hashFile(ACCOUNT_POLICY),
@@ -185,12 +212,16 @@ async function main() {
     const before = await schemaFingerprint(root);
 
     const censusOutput = join(RESULT_ROOT, "census-unreviewed");
-    const censusRun = runCli({ outputDir: censusOutput, env: baseEnv });
-    assert.equal(censusRun.status, 2, censusRun.stderr || censusRun.stdout);
+    const censusRun = await runPreflight({
+      outputDir: censusOutput,
+      env: baseEnv,
+      ca: CA,
+    });
+    assert.equal(censusRun.status, 2);
     assert.equal(
       censusRun.final.applyReadiness,
       "BLOCKED_TIDB_CHECK_CENSUS_UNREVIEWED",
-      censusRun.stdout,
+      JSON.stringify(censusRun.final),
     );
     const census = JSON.parse(
       readFileSync(
@@ -209,12 +240,16 @@ async function main() {
         census.observed.rowsSha256,
     };
     const readyOutput = join(RESULT_ROOT, "ready");
-    const readyRun = runCli({ outputDir: readyOutput, env: reviewedEnv });
-    assert.equal(readyRun.status, 0, readyRun.stderr || readyRun.stdout);
+    const readyRun = await runPreflight({
+      outputDir: readyOutput,
+      env: reviewedEnv,
+      ca: CA,
+    });
+    assert.equal(readyRun.status, 0);
     assert.equal(
       readyRun.final.applyReadiness,
       "READY_FOR_SEPARATE_TIDB_APPLY_AUTHORIZATION",
-      readyRun.stdout,
+      JSON.stringify(readyRun.final),
     );
     assert.equal(readyRun.final.productionDatabaseWrites, 0);
     assert.equal(readyRun.final.effectiveSecureTransport, true);
@@ -223,12 +258,16 @@ async function main() {
 
     await root.query("SET GLOBAL tidb_enable_check_constraint = OFF");
     const blockedOutput = join(RESULT_ROOT, "checks-off");
-    const blockedRun = runCli({ outputDir: blockedOutput, env: reviewedEnv });
-    assert.equal(blockedRun.status, 2, blockedRun.stderr || blockedRun.stdout);
+    const blockedRun = await runPreflight({
+      outputDir: blockedOutput,
+      env: reviewedEnv,
+      ca: CA,
+    });
+    assert.equal(blockedRun.status, 2);
     assert.equal(
       blockedRun.final.applyReadiness,
       "BLOCKED_TIDB_CHECK_CONSTRAINTS_DISABLED",
-      blockedRun.stdout,
+      JSON.stringify(blockedRun.final),
     );
     assert.equal(blockedRun.final.productionDatabaseWrites, 0);
     assert.equal(await schemaFingerprint(root), before);
@@ -238,6 +277,7 @@ async function main() {
         {
           integrationType: "issue86_phase2a_tidb_preflight_v3",
           version: "8.0.11-TiDB-v8.5.3",
+          productionVersionProfileSimulatedBySuffixOnly: true,
           unreviewedExitCode: censusRun.status,
           unreviewedApplyReadiness: censusRun.final.applyReadiness,
           readyExitCode: readyRun.status,
