@@ -28,25 +28,26 @@ jobs:
         run: |
           node --check scripts/issue86-phase2a-tidb-0091-rehearsal.mjs
           test "$(sha256sum drizzle/0091_issue86_buyer_route_evidence.sql | awk '{print $1}')" = "d6b76795819387a012768978403156b3b1b7f70fd129cbfe1484d052bf7346c4"
-      - name: Pull official TiDB 8.5.3 image
+      - name: Pull digest-pinned TiDB 8.5.3 image
         run: |
           set -euo pipefail
-          docker pull pingcap/tidb:v8.5.3
-          docker image inspect pingcap/tidb:v8.5.3 \
-            --format '{{json .RepoDigests}}'
-          docker image inspect pingcap/tidb:v8.5.3 \
-            --format '{{.Id}}'
+          IMAGE='pingcap/tidb@sha256:00f015520ce91734c3fbec720f23448e790e691655c7e181544a620872a00c61'
+          docker pull "$IMAGE"
+          test "$(docker image inspect "$IMAGE" --format '{{index .RepoDigests 0}}')" = \
+            'pingcap/tidb@sha256:00f015520ce91734c3fbec720f23448e790e691655c7e181544a620872a00c61'
+          docker image inspect "$IMAGE" --format '{{.Id}}'
       - name: Start disposable TiDB 8.5.3
         run: |
           set -euo pipefail
+          IMAGE='pingcap/tidb@sha256:00f015520ce91734c3fbec720f23448e790e691655c7e181544a620872a00c61'
           docker run --detach \
             --name issue86-tidb-853 \
             --publish 127.0.0.1:4000:4000 \
-            pingcap/tidb:v8.5.3 \
+            "$IMAGE" \
             --store=unistore \
             --path=/tmp/issue86-tidb \
             --host=0.0.0.0 \
-            --port=4000
+            -P 4000
           for attempt in $(seq 1 90); do
             if node --input-type=module <<'NODE'
           import { createConnection } from 'mysql2/promise';
