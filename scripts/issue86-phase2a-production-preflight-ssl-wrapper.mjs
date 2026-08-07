@@ -3,11 +3,16 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { normaliseDatabaseUrlForPreflight } from "./issue86-phase2a-database-url-policy.mjs";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const POLICY_PATH = fileURLToPath(
   new URL("./issue86-phase2a-database-url-policy.mjs", import.meta.url),
+);
+const RUNNER_PATH = fileURLToPath(
+  new URL("./issue86-phase2a-production-preflight.mjs", import.meta.url),
+);
+const CORE_PATH = fileURLToPath(
+  new URL("./issue86-phase2a-preflight-core.mjs", import.meta.url),
 );
 
 function sha256(value) {
@@ -43,15 +48,16 @@ export async function runWrappedPreflight({
   argv,
   env,
   runPreflightImpl,
+  normaliseDatabaseUrlImpl,
   wrapperBytes = readFileSync(SCRIPT_PATH),
   policyBytes = readFileSync(POLICY_PATH),
+  runnerBytes = readFileSync(RUNNER_PATH),
+  coreBytes = readFileSync(CORE_PATH),
 }) {
-  if (typeof runPreflightImpl !== "function") {
-    throw new Error("RUN_PREFLIGHT_IMPLEMENTATION_MISSING");
-  }
-
   const wrapperSha256 = sha256(wrapperBytes);
   const policyModuleSha256 = sha256(policyBytes);
+  const runnerSha256 = sha256(runnerBytes);
+  const coreSha256 = sha256(coreBytes);
   const wrapperPin = requirePinnedHash(
     env,
     "ISSUE86_PREFLIGHT_EXPECTED_WRAPPER_SHA256",
@@ -64,9 +70,37 @@ export async function runWrappedPreflight({
     policyModuleSha256,
     "PREFLIGHT_URL_POLICY_SHA256_MISMATCH",
   );
+  const runnerPin = requirePinnedHash(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_TOOL_SHA256",
+    runnerSha256,
+    "PREFLIGHT_RUNNER_SHA256_MISMATCH",
+  );
+  const corePin = requirePinnedHash(
+    env,
+    "ISSUE86_PREFLIGHT_EXPECTED_CORE_SHA256",
+    coreSha256,
+    "PREFLIGHT_CORE_SHA256_MISMATCH",
+  );
+
+  if (normaliseDatabaseUrlImpl === undefined) {
+    const policy = await import("./issue86-phase2a-database-url-policy.mjs");
+    normaliseDatabaseUrlImpl = policy.normaliseDatabaseUrlForPreflight;
+  }
+  if (typeof normaliseDatabaseUrlImpl !== "function") {
+    throw new Error("URL_POLICY_IMPLEMENTATION_MISSING");
+  }
+
+  if (runPreflightImpl === undefined) {
+    const runner = await import("./issue86-phase2a-production-preflight.mjs");
+    runPreflightImpl = runner.runPreflight;
+  }
+  if (typeof runPreflightImpl !== "function") {
+    throw new Error("RUN_PREFLIGHT_IMPLEMENTATION_MISSING");
+  }
 
   const { outputDir } = parseWrapperCli(argv);
-  const normalized = normaliseDatabaseUrlForPreflight(env?.DATABASE_URL);
+  const normalized = normaliseDatabaseUrlImpl(env?.DATABASE_URL);
   const delegatedEnv = {
     ...env,
     DATABASE_URL: normalized.sanitizedDatabaseUrl,
@@ -82,8 +116,12 @@ export async function runWrappedPreflight({
     wrapperAttestation: {
       wrapperSha256,
       policyModuleSha256,
+      runnerSha256,
+      coreSha256,
       wrapperPin,
       policyPin,
+      runnerPin,
+      corePin,
       ...normalized.policyEvidence,
       policySha256: normalized.policySha256,
     },
@@ -92,21 +130,20 @@ export async function runWrappedPreflight({
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
   try {
-    const { runPreflight } = await import(
-      "./issue86-phase2a-production-preflight.mjs"
-    );
-    const wrapped = await runWrappedPreflight({
-      argv,
-      env,
-      runPreflightImpl: runPreflight,
-    });
+    const wrapped = await runWrappedPreflight({ argv, env });
     process.stdout.write(
       `databaseUrlQueryPolicy=ignore_exact_ssl_once\n` +
         `queryValuesUsedForConnectionConfiguration=false\n` +
         `wrapperSha256=${wrapped.wrapperAttestation.wrapperSha256}\n` +
         `policyModuleSha256=${wrapped.wrapperAttestation.policyModuleSha256}\n` +
-        `wrapperPinMatched=${wrapped.wrapperAttestation.wrapperPin.matched}\n` +
-        `policyPinMatched=${wrapped.wrapperAttestation.policyPin.matched}\n` +
+        `runnerSha256=${wrapped.wrapperAttestation.runnerSha256}\n` +
+        `coreSha256=${wrapped.wrapperAttestation.coreSha256}\n` +
+        `allSourcePinsMatched=${[
+          wrapped.wrapperAttestation.wrapperPin,
+          wrapped.wrapperAttestation.policyPin,
+          wrapped.wrapperAttestation.runnerPin,
+          wrapped.wrapperAttestation.corePin,
+        ].every(pin => pin.matched)}\n` +
         `policySha256=${wrapped.wrapperAttestation.policySha256}\n` +
         `applyReadiness=${wrapped.result.final.applyReadiness}\n` +
         `applyAuthorized=false\n` +
