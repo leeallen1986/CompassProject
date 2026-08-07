@@ -23,6 +23,10 @@ import { runTidbPreflightV3 } from "./issue86-phase2a-production-tidb-preflight-
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(SCRIPT_DIR, "..");
 const TOOL = join(SCRIPT_DIR, "issue86-phase2a-production-tidb-preflight-v3.mjs");
+const SUPPORT = join(
+  SCRIPT_DIR,
+  "issue86-phase2a-production-tidb-preflight-v3-support.mjs",
+);
 const TIDB_CORE = join(SCRIPT_DIR, "issue86-phase2a-tidb-preflight-core.mjs");
 const READ_POLICY = join(SCRIPT_DIR, "issue86-phase2a-tidb-preflight-policy.mjs");
 const V3_POLICY = join(SCRIPT_DIR, "issue86-phase2a-tidb-preflight-v3-policy.mjs");
@@ -231,6 +235,7 @@ async function main() {
     const census = await censusPins(root);
     const commonEnv = {
       ISSUE86_TIDB_V3_EXPECTED_TOOL_SHA256: hashFile(TOOL),
+      ISSUE86_TIDB_V3_EXPECTED_SUPPORT_SHA256: hashFile(SUPPORT),
       ISSUE86_TIDB_V3_EXPECTED_TIDB_CORE_SHA256: hashFile(TIDB_CORE),
       ISSUE86_TIDB_V3_EXPECTED_READ_POLICY_SHA256: hashFile(READ_POLICY),
       ISSUE86_TIDB_V3_EXPECTED_V3_POLICY_SHA256: hashFile(V3_POLICY),
@@ -262,7 +267,7 @@ async function main() {
       "READY_FOR_SEPARATE_TIDB_APPLY_AUTHORIZATION",
       JSON.stringify(ready),
     );
-    verifyEvidence(
+    const readyEvidence = verifyEvidence(
       readyOutput,
       "READY_FOR_SEPARATE_TIDB_APPLY_AUTHORIZATION",
     );
@@ -281,7 +286,7 @@ async function main() {
       connectionFactory: wrappedConnectionFactory(CA),
     });
     assert.equal(rotated.applyReadiness, "READY_FOR_SEPARATE_TIDB_APPLY_AUTHORIZATION");
-    verifyEvidence(
+    const rotatedEvidence = verifyEvidence(
       rotatedOutput,
       "READY_FOR_SEPARATE_TIDB_APPLY_AUTHORIZATION",
     );

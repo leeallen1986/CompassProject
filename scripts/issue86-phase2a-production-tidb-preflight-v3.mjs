@@ -5,16 +5,21 @@ import { resolve } from "node:path";
 import {
   SCRIPT_PATH, PROJECT_ROOT, TIDB_CORE_PATH, READ_POLICY_PATH, V3_POLICY_PATH,
   CLI_EXIT_PATH, ORIGINAL_CORE_PATH, URL_POLICY_PATH, FILES,
-  parseArgs, reserveOutput, writePack, lintExtraSql, Executor, getConnectionId, exactKeys,
+  parseArgs, reserveOutput, writePack, lintExtraSql, Executor, getConnectionId, exactKeys, requireSha,
   validateTls, capture, expectedTranscript, runtime, pins, TIDB_PROFILE,
   classifyTidbDatabaseState, parseProductionDatabaseUrl, sourceAttestation,
   assertNoSecrets, canonicalHash, sanitizeMessage,
 } from "./issue86-phase2a-production-tidb-preflight-v3-support.mjs";
-import { canonicalJson, hashBytes, expectedTidb0090Contract, validateTidbCapabilities } from "./issue86-phase2a-tidb-preflight-core.mjs";
+import { hashBytes, expectedTidb0090Contract, validateTidbCapabilities } from "./issue86-phase2a-tidb-preflight-core.mjs";
+import { canonicalJson } from "./issue86-phase2a-preflight-core.mjs";
 import { lintTidbReadOnlySqlManifest } from "./issue86-phase2a-tidb-preflight-policy.mjs";
 import { evaluateTidbV3Readiness, validateTidbAccountPolicy } from "./issue86-phase2a-tidb-preflight-v3-policy.mjs";
 import { emitJsonResult } from "./issue86-phase2a-tidb-cli-exit-contract.mjs";
 
+const SUPPORT_PATH = resolve(
+  PROJECT_ROOT,
+  "scripts/issue86-phase2a-production-tidb-preflight-v3-support.mjs",
+);
 const now = () => new Date().toISOString();
 
 export async function runTidbPreflightV3({
@@ -34,6 +39,10 @@ export async function runTidbPreflightV3({
     );
   }
   const expected = pins(env);
+  const expectedSupport = requireSha(
+    env,
+    "ISSUE86_TIDB_V3_EXPECTED_SUPPORT_SHA256",
+  );
   const source = sourceAttestation({
     projectRoot: PROJECT_ROOT,
     toolPath: SCRIPT_PATH,
@@ -43,11 +52,15 @@ export async function runTidbPreflightV3({
   });
   if (!source.passed) throw new Error(`TIDB_SOURCE_FAILED:${source.errors.join(",")}`);
 
+  const actualSupport = hashBytes(readFileSync(SUPPORT_PATH));
   const actualReadPolicy = hashBytes(readFileSync(READ_POLICY_PATH));
   const actualV3Policy = hashBytes(readFileSync(V3_POLICY_PATH));
   const actualCliExit = hashBytes(readFileSync(CLI_EXIT_PATH));
   const actualOriginalCore = hashBytes(readFileSync(ORIGINAL_CORE_PATH));
   const actualUrlPolicy = hashBytes(readFileSync(URL_POLICY_PATH));
+  if (actualSupport !== expectedSupport) {
+    throw new Error("TIDB_SUPPORT_SHA_MISMATCH");
+  }
   if (actualReadPolicy !== expected.readPolicy) {
     throw new Error("TIDB_READ_POLICY_SHA_MISMATCH");
   }
@@ -217,7 +230,7 @@ export async function runTidbPreflightV3({
     globalForeignKeyChecksEnabled:
       capabilities?.globalForeignKeyChecksEnabled === true,
     sessionForeignKeyChecksEnabled:
-      capabilities?.sessionForeignKeyChecksEnabled === true,
+      capabilities?.sessionForeignKeyChec{sEnabled === true,
     noopFunctionsDisabled: capabilities?.noopFunctionsDisabled === true,
     metadataCapabilitiesExact:
       capabilities?.tableMetadataExact === true &&
@@ -251,6 +264,11 @@ export async function runTidbPreflightV3({
     hashes: {
       tool: expected.tool,
       tidbCore: expected.tidbCore,
+      support: {
+        expected: expectedSupport,
+        actual: actualSupport,
+        matched: actualSupport === expectedSupport,
+      },
       readPolicy: {
         expected: expected.readPolicy,
         actual: actualReadPolicy,
