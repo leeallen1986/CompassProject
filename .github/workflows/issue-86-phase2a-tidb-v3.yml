@@ -132,8 +132,15 @@ jobs:
       - name: Measure migration and global CHECK toggle behavior
         run: |
           set -euo pipefail
+          EVIDENCE="$RUNNER_TEMP/issue86-tidb-v3-0091-rehearsal.json"
           node scripts/issue86-phase2a-tidb-0091-rehearsal.mjs \
-            | tee "$RUNNER_TEMP/issue86-tidb-v3-0091-rehearsal.json"
+            | tee "$EVIDENCE"
+          jq -e '
+            .globalToggle.createdWhileOnObservedAfterGlobalOff.checkConstraintCount == 35 and
+            .globalToggle.createdWhileOnObservedAfterGlobalOff.checkProbe.rejected == true and
+            .globalToggle.createdWhileOffObservedAfterGlobalOn.checkConstraintCount == 0 and
+            .globalToggle.createdWhileOffObservedAfterGlobalOn.checkProbe.rejected == false
+          ' "$EVIDENCE" >/dev/null
       - name: Run real TiDB v3 preflight and exit gates
         env:
           ISSUE86_TIDB_CA_FILE: ${{ runner.temp }}/issue86-tidb-v3-tls/ca.pem
