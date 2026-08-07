@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { describe, test } from "node:test";
+import { normaliseDatabaseUrlForPreflight } from "./issue86-phase2a-database-url-policy.mjs";
 import { runProductionDiscovery } from "./issue86-phase2a-production-discovery.mjs";
 
 const RAW = "mysql://user:password@db.example:3306/compass?ssl=required";
@@ -28,6 +29,7 @@ function sourceInputs(extra = {}) {
     discoveryBytes: DISCOVERY_BYTES,
     policyBytes: POLICY_BYTES,
     coreBytes: CORE_BYTES,
+    urlPolicy: { normaliseDatabaseUrlForPreflight },
     ...extra,
   };
 }
