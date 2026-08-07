@@ -1,7 +1,5 @@
-import {
-  TIDB_SQL,
-  canonicalHash,
-} from "./issue86-phase2a-tidb-preflight-core.mjs";
+import { TIDB_SQL } from "./issue86-phase2a-tidb-preflight-core.mjs";
+import { canonicalHash } from "./issue86-phase2a-preflight-core.mjs";
 
 const FORBIDDEN = Object.freeze([
   /^(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|SET|CALL|DO|LOAD|LOCK|UNLOCK|ADMIN)\b/i,
