@@ -117,8 +117,6 @@ export const SNAPSHOT_STATEMENT_IDS = deepFreeze([
   "JOURNAL_CONSTRAINTS",
   "JOURNAL_TRIGGERS",
   "JOURNAL_RELEVANT_COUNT",
-  "JOURNAL_RELEVANT",
-  "JOURNAL_LATEST",
   "PREDECESSOR_TABLES",
   "PREDECESSOR_COLUMNS",
   "PREDECESSOR_INDEXES",
@@ -126,6 +124,8 @@ export const SNAPSHOT_STATEMENT_IDS = deepFreeze([
   "PREDECESSOR_KEYS",
   "PREDECESSOR_REFERENTIAL",
   "PREDECESSOR_CHECKS",
+  "JOURNAL_RELEVANT",
+  "JOURNAL_LATEST",
   "PHASE2A_TABLES",
   "PHASE2A_RESIDUE",
 ]);
@@ -560,13 +560,21 @@ export function validateTidbAccountProfile({
 }
 
 export function classifyTidbDatabaseState(snapshot) {
-  return classifyJournalAndPhase2a({
+  const state = classifyJournalAndPhase2a({
     relevantRows: snapshot.journal.relevantRows,
     relevantCount: snapshot.journal.relevantCount,
     latestRows: snapshot.journal.latestRows,
     phase2aTables: snapshot.phase2a.tables,
     phase2aResidue: snapshot.phase2a.residue,
   });
+  if (state.databaseStateClassification === "READY_DATABASE_STATE") {
+    return {
+      ...state,
+      databaseStateClassification: "READY_FOR_SEPARATE_APPLY_AUTHORIZATION",
+      blocker: null,
+    };
+  }
+  return state;
 }
 
 export function evaluateTidbReadiness({ facts, databaseState }) {
