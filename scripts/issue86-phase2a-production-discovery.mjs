@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { normaliseDatabaseUrlForPreflight } from "./issue86-phase2a-database-url-policy.mjs";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const POLICY_PATH = fileURLToPath(
@@ -160,6 +159,7 @@ export async function runProductionDiscovery({
   env = process.env,
   connectionFactory,
   core,
+  urlPolicy,
   discoveryBytes = readFileSync(SCRIPT_PATH),
   policyBytes = readFileSync(POLICY_PATH),
   coreBytes = readFileSync(CORE_PATH),
@@ -187,6 +187,14 @@ export async function runProductionDiscovery({
       "DISCOVERY_CORE_SHA256_MISMATCH",
     ),
   };
+
+  if (urlPolicy === undefined) {
+    urlPolicy = await import("./issue86-phase2a-database-url-policy.mjs");
+  }
+  const { normaliseDatabaseUrlForPreflight } = urlPolicy;
+  if (typeof normaliseDatabaseUrlForPreflight !== "function") {
+    throw new Error("DISCOVERY_URL_POLICY_IMPLEMENTATION_INVALID");
+  }
 
   if (core === undefined) {
     core = await import("./issue86-phase2a-preflight-core.mjs");
