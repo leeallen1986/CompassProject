@@ -5,6 +5,10 @@ on:
     paths:
       - "drizzle/0091_issue86_buyer_route_evidence.sql"
       - "scripts/issue86-phase2a-tidb-0091-rehearsal.mjs"
+      - "scripts/issue86-phase2a-tidb-preflight-core.mjs"
+      - "scripts/issue86-phase2a-tidb-preflight-policy.mjs"
+      - "scripts/issue86-phase2a-production-tidb-preflight-v2.mjs"
+      - "scripts/issue86-phase2a-production-tidb-preflight.test.mjs"
       - ".github/workflows/issue-86-phase2a-tidb-compat.yml"
   workflow_dispatch:
 
@@ -24,9 +28,14 @@ jobs:
           cache: pnpm
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
-      - name: Verify rehearsal source
+      - name: Verify TiDB preflight source and unit gates
         run: |
+          set -euo pipefail
           node --check scripts/issue86-phase2a-tidb-0091-rehearsal.mjs
+          node --check scripts/issue86-phase2a-tidb-preflight-core.mjs
+          node --check scripts/issue86-phase2a-tidb-preflight-policy.mjs
+          node --check scripts/issue86-phase2a-production-tidb-preflight-v2.mjs
+          node --test scripts/issue86-phase2a-production-tidb-preflight.test.mjs
           test "$(sha256sum drizzle/0091_issue86_buyer_route_evidence.sql | awk '{print $1}')" = "d6b76795819387a012768978403156b3b1b7f70fd129cbfe1484d052bf7346c4"
       - name: Pull digest-pinned TiDB 8.5.3 image
         run: |
