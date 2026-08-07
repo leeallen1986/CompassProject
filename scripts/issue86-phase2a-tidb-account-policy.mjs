@@ -9,6 +9,8 @@ export const ACCOUNT_POLICY_SENTINEL_SHA256 = canonicalHash(
 const SECURE_REQUIRE_PATTERN =
   /\bREQUIRE\s+(?:SSL|X509|SUBJECT\b|ISSUER\b|CIPHER\b)/i;
 const REQUIRE_NONE_PATTERN = /\bREQUIRE\s+NONE\b/i;
+const DISALLOWED_CONTROL_PATTERN =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 
 function oneStringValue(row, label) {
   if (!row || typeof row !== "object" || Array.isArray(row)) {
@@ -22,14 +24,16 @@ function oneStringValue(row, label) {
 }
 
 export function inspectTidbCreateUserStatement(statement) {
-  if (typeof statement !== "string") {
+  if (
+    typeof statement !== "string" ||
+    DISALLOWED_CONTROL_PATTERN.test(statement)
+  ) {
     throw new Error("TIDB_CREATE_USER_STATEMENT_INVALID");
   }
   const normalized = statement.trim().replace(/\s+/g, " ");
   if (
     normalized.length === 0 ||
     normalized.length > 16384 ||
-    /[\u0000-\u001f\u007f]/.test(normalized) ||
     normalized.includes(";") ||
     !/^CREATE\s+USER\b/i.test(normalized) ||
     (normalized.match(/\bCREATE\s+USER\b/gi) ?? []).length !== 1 ||
