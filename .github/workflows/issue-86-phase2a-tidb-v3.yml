@@ -1,0 +1,165 @@
+name: Issue 86 Phase 2A TiDB v3 safety
+
+on:
+  pull_request:
+    paths:
+      - "drizzle/0091_issue86_buyer_route_evidence.sql"
+      - "scripts/issue86-phase2a-tidb-0091-rehearsal.mjs"
+      - "scripts/issue86-phase2a-tidb-account-policy.mjs"
+      - "scripts/issue86-phase2a-tidb-account-policy.test.mjs"
+      - "scripts/issue86-phase2a-production-tidb-preflight-v3.mjs"
+      - "scripts/issue86-phase2a-production-tidb-preflight-v3.test.mjs"
+      - "scripts/issue86-phase2a-production-tidb-preflight-v3.integration.mjs"
+      - ".github/workflows/issue-86-phase2a-tidb-v3.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify v3 source and unit gates
+        run: |
+          set -euo pipefail
+          node --check scripts/issue86-phase2a-tidb-account-policy.mjs
+          node --check scripts/issue86-phase2a-tidb-account-policy.test.mjs
+          node --check scripts/issue86-phase2a-production-tidb-preflight-v3.mjs
+          node --check scripts/issue86-phase2a-production-tidb-preflight-v3.test.mjs
+          node --check scripts/issue86-phase2a-production-tidb-preflight-v3.integration.mjs
+          node --test \
+            scripts/issue86-phase2a-tidb-account-policy.test.mjs \
+            scripts/issue86-phase2a-production-tidb-preflight-v3.test.mjs
+          test "$(sha256sum drizzle/0091_issue86_buyer_route_evidence.sql | awk '{print $1}')" = \
+            "d6b76795819387a012768978403156b3b1b7f70fd129cbfe1484d052bf7346c4"
+      - name: Pull digest-pinned TiDB 8.5.3 image
+        run: |
+          set -euo pipefail
+          IMAGE='pingcap/tidb@sha256:00f015520ce91734c3fbec720f23448e790e691655c7e181544a620872a00c61'
+          docker pull "$IMAGE"
+          test "$(docker image inspect "$IMAGE" --format '{{index .RepoDigests 0}}')" = \
+            'pingcap/tidb@sha256:00f015520ce91734c3fbec720f23448e790e691655c7e181544a620872a00c61'
+      - name: Generate disposable TiDB TLS identity
+        run: |
+          set -euo pipefail
+          TLS_DIR="$RUNNER_TEMP/issue86-tidb-v3-tls"
+          mkdir -m 755 "$TLS_DIR"
+          openssl genrsa -out "$TLS_DIR/ca-key.pem" 2048
+          openssl req -new -x509 -sha256 -days 1 \
+            -key "$TLS_DIR/ca-key.pem" \
+            -out "$TLS_DIR/ca.pem" \
+            -subj "/CN=Issue86 TiDB V3 CI CA"
+          openssl genrsa -out "$TLS_DIR/server-key.pem" 2048
+          openssl req -new -sha256 \
+            -key "$TLS_DIR/server-key.pem" \
+            -out "$TLS_DIR/server.csr" \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+          printf '%s\n' \
+            'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+            'extendedKeyUsage=serverAuth' \
+            'keyUsage=digitalSignature,keyEncipherment' \
+            > "$TLS_DIR/server.ext"
+          openssl x509 -req -sha256 -days 1 \
+            -in "$TLS_DIR/server.csr" \
+            -CA "$TLS_DIR/ca.pem" \
+            -CAkey "$TLS_DIR/ca-key.pem" \
+            -CAcreateserial \
+            -extfile "$TLS_DIR/server.ext" \
+            -out "$TLS_DIR/server-cert.pem"
+          chmod 644 "$TLS_DIR/ca.pem" "$TLS_DIR/server-cert.pem" "$TLS_DIR/server-key.pem"
+          cat > "$TLS_DIR/tidb.toml" <<'TOML'
+          [security]
+          ssl-cert = "/issue86-v3-tls/server-cert.pem"
+          ssl-key = "/issue86-v3-tls/server-key.pem"
+          ssl-ca = "/issue86-v3-tls/ca.pem"
+          tls-version = "TLSv1.2"
+          TOML
+          chmod 644 "$TLS_DIR/tidb.toml"
+      - name: Start disposable TiDB 8.5.3
+        run: |
+          set -euo pipefail
+          IMAGE='pingcap/tidb@sha256:00f015520ce91734c3fbec720f23448e790e691655c7e181544a620872a00c61'
+          docker run --detach \
+            --name issue86-tidb-v3-853 \
+            --publish 127.0.0.1:4000:4000 \
+            --volume "$RUNNER_TEMP/issue86-tidb-v3-tls:/issue86-v3-tls:ro" \
+            "$IMAGE" \
+            --config=/issue86-v3-tls/tidb.toml \
+            --store=unistore \
+            --path=/tmp/issue86-tidb-v3 \
+            --host=0.0.0.0 \
+            -P 4000
+          for attempt in $(seq 1 90); do
+            if NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/issue86-tidb-v3-tls/ca.pem" \
+              node --input-type=module <<'NODE'
+          import { createConnection } from 'mysql2/promise';
+          try {
+            const connection = await createConnection({
+              host: 'localhost',
+              port: 4000,
+              user: 'root',
+              password: '',
+              connectTimeout: 1000,
+              ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2' },
+            });
+            const [[row]] = await connection.query('SELECT VERSION() AS versionString');
+            const [tls] = await connection.query("SHOW STATUS WHERE Variable_name IN ('Ssl_cipher','Ssl_version')");
+            await connection.end();
+            if (!String(row.versionString).startsWith('8.0.11-TiDB-v8.5.3')) process.exit(2);
+            if (tls.length !== 2 || tls.some((item) => !String(item.Value))) process.exit(3);
+          } catch {
+            process.exit(1);
+          }
+          NODE
+            then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs issue86-tidb-v3-853
+          exit 1
+      - name: Measure migration and global CHECK toggle behavior
+        run: |
+          set -euo pipefail
+          EVIDENCE="$RUNNER_TEMP/issue86-tidb-v3-0091-rehearsal.json"
+          node scripts/issue86-phase2a-tidb-0091-rehearsal.mjs \
+            | tee "$EVIDENCE"
+          jq -e '
+            .globalToggle.createdWhileOnObservedAfterGlobalOff.checkConstraintCount == 35 and
+            .globalToggle.createdWhileOnObservedAfterGlobalOff.checkProbe.rejected == true and
+            .globalToggle.createdWhileOffObservedAfterGlobalOn.checkConstraintCount == 0 and
+            .globalToggle.createdWhileOffObservedAfterGlobalOn.checkProbe.rejected == false
+          ' "$EVIDENCE" >/dev/null
+      - name: Run real TiDB v3 preflight and exit gates
+        env:
+          ISSUE86_TIDB_CA_FILE: ${{ runner.temp }}/issue86-tidb-v3-tls/ca.pem
+          ISSUE86_TIDB_SERVER_CERT_FILE: ${{ runner.temp }}/issue86-tidb-v3-tls/server-cert.pem
+          ISSUE86_TIDB_PREFLIGHT_V3_RESULT_DIR: ${{ runner.temp }}/issue86-tidb-v3-results
+        run: |
+          set -euo pipefail
+          node scripts/issue86-phase2a-production-tidb-preflight-v3.integration.mjs \
+            | tee "$RUNNER_TEMP/issue86-tidb-v3-integration.json"
+      - name: Upload TiDB v3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue86-tidb-phase2a-v3-evidence
+          path: |
+            ${{ runner.temp }}/issue86-tidb-v3-0091-rehearsal.json
+            ${{ runner.temp }}/issue86-tidb-v3-integration.json
+            ${{ runner.temp }}/issue86-tidb-v3-results
+          if-no-files-found: error
+          retention-days: 30
+      - name: Stop disposable TiDB
+        if: always()
+        run: docker rm --force issue86-tidb-v3-853 2>/dev/null || true
