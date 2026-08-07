@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exitCodeForReadiness } from "./issue86-phase2a-tidb-preflight-v3-policy.mjs";
 
+// This helper is SHA-256 pinned by the production v3 runner.
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 
 export function emitJsonResult(value) {
