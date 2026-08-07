@@ -77,6 +77,7 @@ jobs:
             -out "$TLS_DIR/server-cert.pem"
           chmod 644 "$TLS_DIR/ca.pem" "$TLS_DIR/server-cert.pem" "$TLS_DIR/server-key.pem"
           cat > "$TLS_DIR/tidb.toml" <<'TOML'
+          [security]
           ssl-cert = "/issue86-tls/server-cert.pem"
           ssl-key = "/issue86-tls/server-key.pem"
           ssl-ca = "/issue86-tls/ca.pem"
