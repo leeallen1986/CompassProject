@@ -9,6 +9,7 @@ This controller-owned tool replaces the brittle account-definition gate in the v
 - Effective transport is accepted only when the account requires SSL/X509 or TiDB has `require_secure_transport=ON`.
 - A complete `information_schema.TIDB_CHECK_CONSTRAINTS` census is captured twice and must remain stable.
 - A later READY run requires the census count and SHA-256 to be controller-pinned.
+- The runner, support module and complete imported policy/core chain are independently SHA-256 pinned before any production connection.
 - Zero preflight writes can be certified even when a separate capability blocker, such as disabled CHECK enforcement, remains.
 - The CLI writes JSON synchronously and exits `2` for every blocked readiness state.
 - Disposable TiDB tests measure the behavior of constraints created before and after changes to `tidb_enable_check_constraint`.
