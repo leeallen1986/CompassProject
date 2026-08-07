@@ -45,6 +45,16 @@ export function normaliseDatabaseUrlForPreflight(raw) {
   if (parsed.protocol !== "mysql:") reject("DATABASE_URL_SCHEME_REJECTED");
   if (parsed.hash) reject("DATABASE_URL_FRAGMENT_REJECTED");
 
+  const questionMark = raw.indexOf("?");
+  if (questionMark < 0) reject("DATABASE_URL_SSL_OPTION_MISSING");
+  const rawQuery = raw.slice(questionMark + 1);
+  if (
+    rawQuery.includes("&") ||
+    !(rawQuery === "ssl" || rawQuery.startsWith("ssl="))
+  ) {
+    reject("DATABASE_URL_QUERY_ENCODING_REJECTED");
+  }
+
   const entries = [...parsed.searchParams.entries()];
   if (entries.length !== DATABASE_URL_QUERY_POLICY.requiredOccurrenceCount) {
     reject("DATABASE_URL_QUERY_SHAPE_REJECTED");
@@ -54,8 +64,6 @@ export function normaliseDatabaseUrlForPreflight(raw) {
   if (key !== "ssl") reject("DATABASE_URL_QUERY_KEY_REJECTED");
   validateDecodedValue(value);
 
-  const questionMark = raw.indexOf("?");
-  if (questionMark < 0) reject("DATABASE_URL_SSL_OPTION_MISSING");
   const sanitizedDatabaseUrl = raw.slice(0, questionMark);
   if (!sanitizedDatabaseUrl) reject("DATABASE_URL_SANITIZATION_FAILED");
 
