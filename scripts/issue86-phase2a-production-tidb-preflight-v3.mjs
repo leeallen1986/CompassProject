@@ -230,7 +230,7 @@ export async function runTidbPreflightV3({
     globalForeignKeyChecksEnabled:
       capabilities?.globalForeignKeyChecksEnabled === true,
     sessionForeignKeyChecksEnabled:
-      capabilities?.sessionForeignKeyChec{sEnabled === true,
+      capabilities?.sessionForeignKeyChecksEnabled === true,
     noopFunctionsDisabled: capabilities?.noopFunctionsDisabled === true,
     metadataCapabilitiesExact:
       capabilities?.tableMetadataExact === true &&
