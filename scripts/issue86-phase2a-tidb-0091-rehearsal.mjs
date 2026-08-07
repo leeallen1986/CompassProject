@@ -186,11 +186,29 @@ async function runDatabase({ root, database, checkConstraintsEnabled }) {
       checkConstraintCount: observed.checks.length,
       foreignKeyCount: observed.foreignKeys.length,
       indexRowCount: observed.indexes.length,
-      metadataSha256: sha256(
-        Buffer.from(JSON.stringify(observed), "utf8"),
-      ),
+      metadataSha256: sha256(Buffer.from(JSON.stringify(observed), "utf8")),
       checkProbe,
       foreignKeyProbe,
+    };
+  } finally {
+    await connection.end();
+  }
+}
+
+async function observeAfterGlobalToggle({ root, database, enabled, label }) {
+  await root.query(
+    `SET GLOBAL tidb_enable_check_constraint = ${enabled ? "ON" : "OFF"}`,
+  );
+  const connection = await connect(database);
+  try {
+    const observed = await metadata(connection, database);
+    return {
+      globalCheckConstraintState: enabled ? "ON" : "OFF",
+      tableCount: observed.tables.length,
+      checkConstraintCount: observed.checks.length,
+      foreignKeyCount: observed.foreignKeys.length,
+      checkProbe: await expectCheckRejected(connection, label),
+      foreignKeyProbe: await expectForeignKeyRejected(connection, label),
     };
   } finally {
     await connection.end();
@@ -224,6 +242,20 @@ async function main() {
       database: "issue86_tidb_checks_off",
       checkConstraintsEnabled: false,
     });
+    result.globalToggle = {
+      createdWhileOnObservedAfterGlobalOff: await observeAfterGlobalToggle({
+        root,
+        database: "issue86_tidb_checks_on",
+        enabled: false,
+        label: "created-on-global-off",
+      }),
+      createdWhileOffObservedAfterGlobalOn: await observeAfterGlobalToggle({
+        root,
+        database: "issue86_tidb_checks_off",
+        enabled: true,
+        label: "created-off-global-on",
+      }),
+    };
 
     assert.equal(result.enabled.tableCount, 4);
     assert.equal(result.enabled.checkConstraintCount, 35);
@@ -234,6 +266,22 @@ async function main() {
     assert.equal(result.disabled.foreignKeyCount, 7);
     assert.equal(result.disabled.checkProbe.rejected, false);
     assert.equal(result.disabled.foreignKeyProbe.rejected, true);
+    assert.equal(
+      result.globalToggle.createdWhileOnObservedAfterGlobalOff.tableCount,
+      4,
+    );
+    assert.equal(
+      result.globalToggle.createdWhileOffObservedAfterGlobalOn.tableCount,
+      4,
+    );
+    assert.equal(
+      result.globalToggle.createdWhileOnObservedAfterGlobalOff.foreignKeyCount,
+      7,
+    );
+    assert.equal(
+      result.globalToggle.createdWhileOffObservedAfterGlobalOn.foreignKeyCount,
+      7,
+    );
 
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } finally {
