@@ -87,6 +87,22 @@ describe("DATABASE_URL ssl option policy", () => {
     );
   });
 
+  test("rejects an encoded spelling of the ssl key", () => {
+    expectCode(
+      () => normaliseDatabaseUrlForPreflight(`${BASE}?%73sl=true`),
+      "DATABASE_URL_QUERY_ENCODING_REJECTED",
+    );
+  });
+
+  test("rejects trailing or empty query separators", () => {
+    for (const suffix of ["ssl=true&", "ssl=true&&"]) {
+      expectCode(
+        () => normaliseDatabaseUrlForPreflight(`${BASE}?${suffix}`),
+        "DATABASE_URL_QUERY_ENCODING_REJECTED",
+      );
+    }
+  });
+
   test("rejects fragments", () => {
     expectCode(
       () => normaliseDatabaseUrlForPreflight(`${BASE}?ssl=true#fragment`),
