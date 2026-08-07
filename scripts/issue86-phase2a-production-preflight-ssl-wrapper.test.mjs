@@ -13,6 +13,8 @@ import {
 const BASE = "mysql://user:password@db.example:3306/compass";
 const WRAPPER_BYTES = Buffer.from("reviewed-wrapper");
 const POLICY_BYTES = Buffer.from("reviewed-policy");
+const RUNNER_BYTES = Buffer.from("reviewed-runner");
+const CORE_BYTES = Buffer.from("reviewed-core");
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -22,6 +24,19 @@ function pinnedEnv(extra = {}) {
   return {
     ISSUE86_PREFLIGHT_EXPECTED_WRAPPER_SHA256: sha256(WRAPPER_BYTES),
     ISSUE86_PREFLIGHT_EXPECTED_URL_POLICY_SHA256: sha256(POLICY_BYTES),
+    ISSUE86_PREFLIGHT_EXPECTED_TOOL_SHA256: sha256(RUNNER_BYTES),
+    ISSUE86_PREFLIGHT_EXPECTED_CORE_SHA256: sha256(CORE_BYTES),
+    ...extra,
+  };
+}
+
+function wrapperInputs(extra = {}) {
+  return {
+    wrapperBytes: WRAPPER_BYTES,
+    policyBytes: POLICY_BYTES,
+    runnerBytes: RUNNER_BYTES,
+    coreBytes: CORE_BYTES,
+    normaliseDatabaseUrlImpl: normaliseDatabaseUrlForPreflight,
     ...extra,
   };
 }
@@ -139,15 +154,13 @@ describe("DATABASE_URL ssl option policy", () => {
 });
 
 describe("wrapper delegation", () => {
-  test("pins wrapper/policy, passes a query-free URL, and leaves caller env unchanged", async () => {
+  test("pins the full import chain, passes a query-free URL, and leaves caller env unchanged", async () => {
     const raw = `${BASE}?ssl=required`;
     const env = pinnedEnv({ DATABASE_URL: raw, KEEP: "value" });
     let received;
-    const wrapped = await runWrappedPreflight({
+    const wrapped = await runWrappedPreflight(wrapperInputs({
       argv: ["--output-dir", "/tmp/issue86-wrapper-test"],
       env,
-      wrapperBytes: WRAPPER_BYTES,
-      policyBytes: POLICY_BYTES,
       runPreflightImpl: async input => {
         received = input;
         return {
@@ -156,7 +169,7 @@ describe("wrapper delegation", () => {
           final: { applyReadiness: "READY_FOR_SEPARATE_APPLY_AUTHORIZATION" },
         };
       },
-    });
+    }));
 
     assert.equal(env.DATABASE_URL, raw);
     assert.equal(received.env.DATABASE_URL, BASE);
@@ -165,35 +178,36 @@ describe("wrapper delegation", () => {
       wrapped.result.final.applyReadiness,
       "READY_FOR_SEPARATE_APPLY_AUTHORIZATION",
     );
-    assert.equal(wrapped.wrapperAttestation.wrapperPin.matched, true);
-    assert.equal(wrapped.wrapperAttestation.policyPin.matched, true);
-    assert.match(wrapped.wrapperAttestation.wrapperSha256, /^[0-9a-f]{64}$/);
-    assert.match(wrapped.wrapperAttestation.policyModuleSha256, /^[0-9a-f]{64}$/);
+    for (const pin of [
+      wrapped.wrapperAttestation.wrapperPin,
+      wrapped.wrapperAttestation.policyPin,
+      wrapped.wrapperAttestation.runnerPin,
+      wrapped.wrapperAttestation.corePin,
+    ]) {
+      assert.equal(pin.matched, true);
+    }
   });
 
-  test("does not invoke the runner when either source pin fails", async () => {
-    for (const env of [
-      pinnedEnv({
-        DATABASE_URL: `${BASE}?ssl=true`,
-        ISSUE86_PREFLIGHT_EXPECTED_WRAPPER_SHA256: "0".repeat(64),
-      }),
-      pinnedEnv({
-        DATABASE_URL: `${BASE}?ssl=true`,
-        ISSUE86_PREFLIGHT_EXPECTED_URL_POLICY_SHA256: "0".repeat(64),
-      }),
+  test("does not import or invoke the runner when any source pin fails", async () => {
+    for (const [name, code] of [
+      ["ISSUE86_PREFLIGHT_EXPECTED_WRAPPER_SHA256", "PREFLIGHT_WRAPPER_SHA256_MISMATCH"],
+      ["ISSUE86_PREFLIGHT_EXPECTED_URL_POLICY_SHA256", "PREFLIGHT_URL_POLICY_SHA256_MISMATCH"],
+      ["ISSUE86_PREFLIGHT_EXPECTED_TOOL_SHA256", "PREFLIGHT_RUNNER_SHA256_MISMATCH"],
+      ["ISSUE86_PREFLIGHT_EXPECTED_CORE_SHA256", "PREFLIGHT_CORE_SHA256_MISMATCH"],
     ]) {
       let called = false;
       await assert.rejects(
-        runWrappedPreflight({
+        runWrappedPreflight(wrapperInputs({
           argv: ["--output-dir", "/tmp/issue86-wrapper-test"],
-          env,
-          wrapperBytes: WRAPPER_BYTES,
-          policyBytes: POLICY_BYTES,
+          env: pinnedEnv({
+            DATABASE_URL: `${BASE}?ssl=true`,
+            [name]: "0".repeat(64),
+          }),
           runPreflightImpl: async () => {
             called = true;
           },
-        }),
-        /SHA256_MISMATCH/,
+        })),
+        error => error?.message === code,
       );
       assert.equal(called, false);
     }
@@ -202,15 +216,13 @@ describe("wrapper delegation", () => {
   test("does not invoke the runner when the URL policy fails", async () => {
     let called = false;
     await assert.rejects(
-      runWrappedPreflight({
+      runWrappedPreflight(wrapperInputs({
         argv: ["--output-dir", "/tmp/issue86-wrapper-test"],
         env: pinnedEnv({ DATABASE_URL: `${BASE}?ssl=true&x=1` }),
-        wrapperBytes: WRAPPER_BYTES,
-        policyBytes: POLICY_BYTES,
         runPreflightImpl: async () => {
           called = true;
         },
-      }),
+      })),
       error => error?.message === "DATABASE_URL_QUERY_SHAPE_REJECTED",
     );
     assert.equal(called, false);
