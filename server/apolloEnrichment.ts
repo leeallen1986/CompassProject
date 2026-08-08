@@ -1006,8 +1006,9 @@ export async function revealContactEmail(
       apolloPersonId: p.id,
     });
 
-    const nextEmail = p.email?.trim() || contact.email?.trim() || null;
-    const isVerified = p.email_status === "verified" && Boolean(nextEmail);
+    const providerEmail = p.email?.trim() || null;
+    const nextEmail = providerEmail || contact.email?.trim() || null;
+    const isVerified = p.email_status === "verified" && Boolean(providerEmail);
     const nextTier = resolvePersistedContactTrustTier({
       enrichmentSource: "apollo",
       email: nextEmail,
