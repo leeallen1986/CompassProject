@@ -10,9 +10,11 @@ on:
       - "server/contactSlateTrustAudit.ts"
       - "server/scripts/contactSlateTrustAudit.ts"
       - "server/hunterVerification.ts"
+      - "server/contactEnrichment.ts"
       - "server/routers/contactValidation.ts"
       - "client/src/pages/ContactValidation.tsx"
       - "server/contactSlateTrust*.test.ts"
+      - "server/contactTrustPromotionRegression.test.ts"
       - "server/contactValidationState.test.ts"
       - "server/contactWaterfall.test.ts"
       - "server/contactTrustReconciliation*.test.ts"
@@ -45,6 +47,7 @@ jobs:
           server/contactWaterfall.test.ts
           server/contactSlateTrustAudit.test.ts
           server/contactSlateTrustConsistency.test.ts
+          server/contactTrustPromotionRegression.test.ts
           server/contactTrustReconciliation.shared.test.ts
           server/contactTrustReconciliation.consistency.test.ts
           server/intelligenceTrustPolicy.test.ts
