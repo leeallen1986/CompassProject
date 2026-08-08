@@ -37,6 +37,17 @@ function sourceFiles(root: string): string[] {
   return files;
 }
 
+/**
+ * Detect an actual persistence operation, not a type, fixture, expected state,
+ * comment, SELECT predicate or project-validation update that merely mentions
+ * send_ready.
+ */
+function hasRawSendReadyPersistence(text: string): boolean {
+  const drizzleObjectWrite = /\.(?:set|values)\(\s*\{[\s\S]{0,1600}?contactTrustTier\s*:\s*["']send_ready["'][\s\S]{0,1600}?\}\s*\)/m;
+  const contactsSqlUpdate = /UPDATE\s+contacts(?:\s+[a-zA-Z_]\w*)?[\s\S]{0,1600}?\bSET\b[^;]{0,1200}?\bcontactTrustTier\s*=\s*["']send_ready["']/i;
+  return drizzleObjectWrite.test(text) || contactsSqlUpdate.test(text);
+}
+
 describe("persisted send-ready promotion boundary", () => {
   it("accepts only the complete canonical evidence shape", () => {
     expect(canPersistSendReady(completeEvidence)).toBe(true);
@@ -140,25 +151,42 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(router).toContain("send_ready requires an allowed source");
   });
 
-  it("finds no unenumerated raw send-ready persistence writer", () => {
-    const allowedRawWriters = new Set([
+  it("finds no unenumerated raw writer in normal server runtime", () => {
+    const allowedRuntimeWriters = new Set([
+      // Fail-closed stale-tier backfill.
       "server/contactEnrichment.ts",
+      // Controlled manifest-gated reconciliation executor, not autonomous enrichment.
       "server/contactTrustReconciliation.ts",
-      "server/contactValidationState.ts",
     ]);
-    const hitFiles = new Set<string>();
 
-    for (const root of ["server", "scripts"]) {
-      for (const path of sourceFiles(root)) {
-        if (/\.test\.[^.]+$/.test(path)) continue;
-        const text = source(path);
-        const hasDirectObjectWrite = /contactTrustTier\s*:\s*["']send_ready["']/.test(text);
-        const hasRawSqlUpdate = /UPDATE[\s\S]{0,1200}?\bSET\b[\s\S]{0,800}?\bcontactTrustTier\s*=\s*["']send_ready["']/i.test(text);
-        if (hasDirectObjectWrite || hasRawSqlUpdate) hitFiles.add(path);
-      }
-    }
+    const runtimeHits = sourceFiles("server")
+      .filter(path => !/\.test\.[^.]+$/.test(path))
+      .filter(path => !path.startsWith("server/scripts/"))
+      .filter(path => hasRawSendReadyPersistence(source(path)))
+      .sort();
 
-    expect([...hitFiles].filter(path => !allowedRawWriters.has(path)).sort()).toEqual([]);
+    expect(runtimeHits.filter(path => !allowedRuntimeWriters.has(path))).toEqual([]);
+    expect(runtimeHits).toEqual([...allowedRuntimeWriters].sort());
+  });
+
+  it("freezes the known manual/demo mutation-tool inventory outside normal runtime", () => {
+    const expectedManualWriters = [
+      "scripts/amitRescueDemo.mjs",
+      "scripts/e2eRescueDemo.mjs",
+      "scripts/rescueE2E.mjs",
+      "scripts/trust-tier-promotion.mjs",
+      "server/scripts/enrichCadiaNewmont.ts",
+    ];
+
+    const manualHits = [
+      ...sourceFiles("scripts"),
+      ...sourceFiles("server/scripts"),
+    ]
+      .filter(path => !/\.test\.[^.]+$/.test(path))
+      .filter(path => hasRawSendReadyPersistence(source(path)))
+      .sort();
+
+    expect(manualHits).toEqual(expectedManualWriters.sort());
   });
 
   it("retains every fail-closed gate in the stale-tier pipeline backfill", () => {
