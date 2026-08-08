@@ -9,7 +9,10 @@
  *   2. emailVerifier — given an existing email → verify deliverability
  *
  * Trust promotion rules:
- *   - Hunter status "valid" + confidence >= 70  → promote to send_ready
+ *   - Hunter status "valid" + confidence >= 70  → promotion evidence only
+ *   - Persisted send_ready also requires allowed provenance, a non-empty
+ *     mailbox, verified state, no rejection, crmOrphan=false and an exact
+ *     contactProjects link
  *   - Hunter status "accept_all"                → keep as named_unverified (domain accepts all, can't confirm)
  *   - Hunter status "unknown" or "invalid"      → keep as named_unverified, flag email as unverified
  *   - LLM contacts (llm_inferred tier)          → never promoted by Hunter alone
@@ -17,12 +20,16 @@
  * API docs: https://hunter.io/api-documentation
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "./db";
-import { contacts, hunterVerificationLog } from "../drizzle/schema";
+import { contacts, contactProjects, hunterVerificationLog } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { inferCompanyDomains } from "./domainInference";
 import { shouldPromoteHunterResult } from "./intelligenceTrustPolicy";
+import {
+  canPersistSendReady,
+  resolvePersistedContactTrustTier,
+} from "./contactTrustPromotionBoundary";
 
 
 // ── Configuration ──
@@ -185,7 +192,38 @@ export async function verifyContactWithHunter(
   if (contact.rejectionReason != null) {
     return { contactId, action: "skipped", reason: "rejected_contact_not_eligible" };
   }
-  if (contact.contactTrustTier === "send_ready") {
+  if (!(contact.crmOrphan === false || contact.crmOrphan === 0)) {
+    return { contactId, action: "skipped", reason: "crm_orphan_not_eligible" };
+  }
+
+  const [projectLink] = await db
+    .select({ id: contactProjects.id })
+    .from(contactProjects)
+    .where(projectId
+      ? and(
+          eq(contactProjects.contactId, contactId),
+          eq(contactProjects.projectId, projectId),
+        )
+      : eq(contactProjects.contactId, contactId))
+    .limit(1);
+  const hasProjectLink = Boolean(projectLink);
+  if (!hasProjectLink) {
+    return {
+      contactId,
+      action: "skipped",
+      reason: projectId ? "contact_not_linked_to_project" : "contact_has_no_project_link",
+    };
+  }
+
+  if (contact.contactTrustTier === "send_ready" && canPersistSendReady({
+    enrichmentSource: contact.enrichmentSource,
+    email: contact.email,
+    emailVerified: contact.emailVerified,
+    verificationStatus: contact.verificationStatus,
+    rejectionReason: contact.rejectionReason,
+    crmOrphan: contact.crmOrphan,
+    hasProjectLink,
+  })) {
     return { contactId, action: "skipped", reason: "already_send_ready" };
   }
 
@@ -199,12 +237,22 @@ export async function verifyContactWithHunter(
   try {
     if (contact.email) {
       const verifyResult = await hunterEmailVerifier(contact.email);
-      const shouldPromote = shouldPromoteHunterResult({
+      const hunterVerified = shouldPromoteHunterResult({
         status: verifyResult.status,
         score: verifyResult.score,
         disposable: verifyResult.disposable,
         block: verifyResult.block,
       });
+      const nextTier = resolvePersistedContactTrustTier({
+        enrichmentSource: contact.enrichmentSource,
+        email: contact.email,
+        emailVerified: hunterVerified,
+        verificationStatus: hunterVerified ? "verified" : "unverified",
+        rejectionReason: contact.rejectionReason,
+        crmOrphan: contact.crmOrphan,
+        hasProjectLink,
+      }, contact.contactTrustTier);
+      const tierPromoted = nextTier === "send_ready";
       const now = new Date();
 
       await db.transaction(async tx => {
@@ -217,24 +265,28 @@ export async function verifyContactWithHunter(
           hunterConfidence: verifyResult.score,
           emailFound: verifyResult.status === "valid" ? contact.email : null,
           hunterSources: verifyResult.sources,
-          contactUpdated: shouldPromote,
-          tierPromoted: shouldPromote,
+          contactUpdated: true,
+          tierPromoted,
           apiCreditsUsed: 1,
         });
 
-        if (shouldPromote) {
-          await tx.update(contacts).set({
-            contactTrustTier: "send_ready",
-            emailVerified: true,
-            verificationStatus: "verified",
-            verifiedAt: now,
-          }).where(eq(contacts.id, contactId));
-          const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
-          await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
-        }
+        await tx.update(contacts).set(hunterVerified ? {
+          contactTrustTier: nextTier,
+          emailVerified: true,
+          verificationStatus: "verified",
+          verifiedAt: now,
+        } : {
+          contactTrustTier: "named_unverified",
+          emailVerified: false,
+          verificationStatus: "unverified",
+          verifiedAt: null,
+        }).where(eq(contacts.id, contactId));
+
+        const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+        await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
       });
 
-      if (shouldPromote) {
+      if (tierPromoted) {
         return {
           contactId,
           action: "promoted",
@@ -247,7 +299,9 @@ export async function verifyContactWithHunter(
       return {
         contactId,
         action: "kept_unverified",
-        reason: `hunter_status_${verifyResult.status}_confidence_${verifyResult.score}`,
+        reason: hunterVerified
+          ? `hunter_valid_but_persist_boundary_blocked_${verifyResult.score}`
+          : `hunter_status_${verifyResult.status}_confidence_${verifyResult.score}`,
         hunterStatus: verifyResult.status,
         hunterConfidence: verifyResult.score,
       };
@@ -258,10 +312,20 @@ export async function verifyContactWithHunter(
 
     await new Promise(resolve => setTimeout(resolve, DELAY_MS));
     const hunterResult = await hunterEmailFinder(firstName, lastName, domain);
-    const shouldPromote = Boolean(hunterResult.email) && shouldPromoteHunterResult({
+    const hunterVerified = Boolean(hunterResult.email) && shouldPromoteHunterResult({
       status: hunterResult.status,
       score: hunterResult.score,
     });
+    const nextTier = resolvePersistedContactTrustTier({
+      enrichmentSource: contact.enrichmentSource,
+      email: hunterResult.email,
+      emailVerified: hunterVerified,
+      verificationStatus: hunterVerified ? "verified" : "unverified",
+      rejectionReason: contact.rejectionReason,
+      crmOrphan: contact.crmOrphan,
+      hasProjectLink,
+    }, contact.contactTrustTier);
+    const tierPromoted = nextTier === "send_ready";
     const contactUpdated = Boolean(hunterResult.email);
     const now = new Date();
 
@@ -276,22 +340,23 @@ export async function verifyContactWithHunter(
         emailFound: hunterResult.email,
         hunterSources: hunterResult.sources,
         contactUpdated,
-        tierPromoted: shouldPromote,
+        tierPromoted,
         apiCreditsUsed: 1,
       });
 
       if (hunterResult.email) {
-        await tx.update(contacts).set(shouldPromote ? {
+        await tx.update(contacts).set(hunterVerified ? {
           email: hunterResult.email,
           emailVerified: true,
           verificationStatus: "verified",
-          contactTrustTier: "send_ready",
+          contactTrustTier: nextTier,
           verifiedAt: now,
         } : {
           email: hunterResult.email,
           emailVerified: false,
           verificationStatus: "unverified",
           contactTrustTier: "named_unverified",
+          verifiedAt: null,
         }).where(eq(contacts.id, contactId));
         const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
         await invalidateAffectedSlatesInTransaction(tx, contactId, projectId, now);
@@ -307,7 +372,7 @@ export async function verifyContactWithHunter(
         hunterConfidence: hunterResult.score,
       };
     }
-    if (shouldPromote) {
+    if (tierPromoted) {
       return {
         contactId,
         action: "email_found",
@@ -320,7 +385,9 @@ export async function verifyContactWithHunter(
     return {
       contactId,
       action: "kept_unverified",
-      reason: `hunter_found_low_confidence_${hunterResult.score}`,
+      reason: hunterVerified
+        ? `hunter_found_valid_but_persist_boundary_blocked_${hunterResult.score}`
+        : `hunter_found_low_confidence_${hunterResult.score}`,
       hunterStatus: hunterResult.status,
       hunterConfidence: hunterResult.score,
       emailFound: hunterResult.email,
@@ -359,6 +426,8 @@ export async function verifyProjectContactsWithHunter(
      JOIN contactProjects cp ON cp.contactId = c.id
      WHERE cp.projectId = ${projectId}
        AND c.contactTrustTier = 'named_unverified'
+       AND c.rejectionReason IS NULL
+       AND c.crmOrphan = 0
        AND (c.enrichmentSource != 'llm' OR c.enrichmentSource IS NULL)
      ORDER BY
        CASE c.roleRelevance WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
