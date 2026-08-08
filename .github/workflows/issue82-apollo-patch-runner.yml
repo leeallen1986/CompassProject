@@ -44,33 +44,30 @@ jobs:
               if not isinstance(text, str):
                   raise SystemExit("Apollo patch scope did not retain transformed source")
 
-              email_needle = '      email: p.email || null,\n'
-              email_index = text.rfind(email_needle)
-              if email_index < 0:
-                  raise SystemExit("Reveal return email line was not found")
-              text = (
-                  text[:email_index]
-                  + '      email: nextEmail,\n'
-                  + text[email_index + len(email_needle):]
+              def replace_last(source_text: str, old: str, new: str, label: str) -> str:
+                  index = source_text.rfind(old)
+                  if index < 0:
+                      raise SystemExit(f"{label}: line was not found")
+                  return source_text[:index] + new + source_text[index + len(old):]
+
+              text = replace_last(
+                  text,
+                  '      email: p.email || null,\n',
+                  '      email: nextEmail,\n',
+                  "reveal returned email",
+              )
+              text = replace_last(
+                  text,
+                  '      hasEmail: !!p.email,\n',
+                  '      hasEmail: Boolean(nextEmail),\n',
+                  "reveal returned email flag",
               )
 
-              remaining = [
-                  (
-                      '      hasEmail: !!p.email,\n',
-                      '      hasEmail: Boolean(nextEmail),\n',
-                      "reveal returned email flag",
-                  ),
-                  (
-                      '          AND (c.crmOrphan IS NULL OR c.crmOrphan = 0)\n',
-                      '          AND c.crmOrphan = 0\n',
-                      "manual pass explicit non-orphan",
-                  ),
-              ]
-              for old, new, label in remaining:
-                  count = text.count(old)
-                  if count != 1:
-                      raise SystemExit(f"{label}: expected exactly one match, found {count}")
-                  text = text.replace(old, new, 1)
+              old_orphan = '          AND (c.crmOrphan IS NULL OR c.crmOrphan = 0)\n'
+              count = text.count(old_orphan)
+              if count != 1:
+                  raise SystemExit(f"manual pass explicit non-orphan: expected exactly one match, found {count}")
+              text = text.replace(old_orphan, '          AND c.crmOrphan = 0\n', 1)
 
               Path("server/apolloEnrichment.ts").write_text(text)
           PY
