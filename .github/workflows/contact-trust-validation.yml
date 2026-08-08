@@ -8,6 +8,7 @@ on:
       - "server/contactValidationState.ts"
       - "server/contactSlateTrustDb.ts"
       - "server/contactWaterfall.ts"
+      - "server/waterfall.structural.test.ts"
       - "server/contactSlateTrustAudit.ts"
       - "server/scripts/contactSlateTrustAudit.ts"
       - "server/hunterVerification.ts"
@@ -49,6 +50,7 @@ jobs:
           server/contactSlateTrustPolicy.test.ts
           server/contactValidationState.test.ts
           server/contactWaterfall.test.ts
+          server/waterfall.structural.test.ts
           server/contactSlateTrustAudit.test.ts
           server/contactSlateTrustConsistency.test.ts
           server/contactTrustPromotionBoundary.test.ts
