@@ -134,24 +134,24 @@ describe("Fix 3: crmOrphan field in schema", () => {
 
 // ── Fix 4: Apollo trust tier promotion ───────────────────────────────────────
 describe("Fix 4: Apollo trust tier promotion on email verification", () => {
-  it("apolloEnrichment verifyContactEmail updates contactTrustTier", async () => {
+  it("apolloEnrichment reveal flow uses current provider mailbox evidence", async () => {
     const fs = await import("fs");
     const src = fs.readFileSync(
       new URL("./apolloEnrichment.ts", import.meta.url).pathname,
       "utf-8"
     );
-    // The verifyContactEmail function should update contactTrustTier
-    expect(src).toContain("contactTrustTier: isVerified ? \"send_ready\" : contact.contactTrustTier");
+    expect(src).toContain("const providerEmail = p.email?.trim() || null");
+    expect(src).toContain("resolvePersistedContactTrustTier({");
   });
 
-  it("apolloEnrichment enrichProjectContacts sets correct trust tier on insert", async () => {
+  it("apolloEnrichment links new contacts before canonical promotion", async () => {
     const fs = await import("fs");
     const src = fs.readFileSync(
       new URL("./apolloEnrichment.ts", import.meta.url).pathname,
       "utf-8"
     );
-    // enrichProjectContacts should set send_ready for verified emails
-    expect(src).toContain("contactTrustTier: enrichedPerson.emailStatus === \"verified\" ? \"send_ready\" : \"named_unverified\"");
+    expect(src).toContain('contactTrustTier: "named_unverified"');
+    expect(src).toContain("await tx.insert(contactProjects).values");
   });
 
   it("trust tier promotion logic is consistent: verified → send_ready, else named_unverified", () => {
