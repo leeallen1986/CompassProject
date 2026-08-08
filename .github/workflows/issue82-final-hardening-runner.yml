@@ -32,6 +32,15 @@ jobs:
               line[10:] if line.startswith("          ") else line
               for line in lines[start:end]
           )
+          exact_call = 'lusha = replace_once(lusha, old_flow, new_flow, "Lusha atomic confidence flow")'
+          anchored_call = '''flow_start = lusha.index(
+    "      const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl);"
+)
+flow_end = lusha.index("      await sleep(DELAY_BETWEEN_CALLS_MS);", flow_start)
+lusha = lusha[:flow_start] + new_flow + "\n" + lusha[flow_end:]'''
+          if script.count(exact_call) != 1:
+              raise SystemExit("Staged Lusha replacement call was not unique")
+          script = script.replace(exact_call, anchored_call, 1)
           exec(compile(script, "issue82-final-hardening.py", "exec"), {})
           PY
       - name: Commit production and regression changes
