@@ -5,11 +5,11 @@
  * Fix 1: Hunter wired into automated waterfall (discoveryQueue.ts)
  * Fix 2: Hunter domain derivation uses LLM inference (hunterVerification.ts)
  * Fix 3: CRM orphan contacts flagged with crmOrphan=true (schema + DB)
- * Fix 4: Apollo trust tier promoted when emailVerified=1 (apolloEnrichment.ts)
+ * Fix 4: Apollo promotion passes the canonical persisted trust boundary
  * Fix 5: Stuck discovery_running projects reset to discovery_queued
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 // ── Fix 1: Hunter wired into discoveryQueue ──────────────────────────────────
 describe("Fix 1: Hunter in automated waterfall", () => {
@@ -132,38 +132,53 @@ describe("Fix 3: crmOrphan field in schema", () => {
   });
 });
 
-// ── Fix 4: Apollo trust tier promotion ───────────────────────────────────────
-describe("Fix 4: Apollo trust tier promotion on email verification", () => {
-  it("apolloEnrichment verifyContactEmail updates contactTrustTier", async () => {
+// ── Fix 4: canonical Apollo trust promotion ──────────────────────────────────
+describe("Fix 4: Apollo trust promotion uses canonical evidence", () => {
+  it("apolloEnrichment reveal path resolves the tier through the shared boundary", async () => {
     const fs = await import("fs");
     const src = fs.readFileSync(
       new URL("./apolloEnrichment.ts", import.meta.url).pathname,
       "utf-8"
     );
-    // The verifyContactEmail function should update contactTrustTier
-    expect(src).toContain("contactTrustTier: isVerified ? \"send_ready\" : contact.contactTrustTier");
+
+    expect(src).toContain("resolvePersistedContactTrustTier({");
+    expect(src).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");
+    expect(src).toContain("hasProjectLink,");
+    expect(src).not.toContain(
+      "contactTrustTier: isVerified ? \"send_ready\" : contact.contactTrustTier"
+    );
   });
 
-  it("apolloEnrichment enrichProjectContacts sets correct trust tier on insert", async () => {
+  it("apolloEnrichment links new contacts before conditionally promoting them", async () => {
     const fs = await import("fs");
     const src = fs.readFileSync(
       new URL("./apolloEnrichment.ts", import.meta.url).pathname,
       "utf-8"
     );
-    // enrichProjectContacts should set send_ready for verified emails
-    expect(src).toContain("contactTrustTier: enrichedPerson.emailStatus === \"verified\" ? \"send_ready\" : \"named_unverified\"");
+
+    expect(src).toContain('contactTrustTier: "named_unverified"');
+    expect(src).toContain("await tx.insert(contactProjects).values");
+    expect(src).toContain("hasProjectLink: true");
+    expect(src).not.toContain(
+      "contactTrustTier: enrichedPerson.emailStatus === \"verified\" ? \"send_ready\" : \"named_unverified\""
+    );
   });
 
-  it("trust tier promotion logic is consistent: verified → send_ready, else named_unverified", () => {
-    // Unit test the promotion logic directly
-    function promoteTrustTier(emailStatus: string, isVerified: boolean): string {
-      if (emailStatus === "verified" && isVerified) return "send_ready";
-      return "named_unverified";
-    }
-    expect(promoteTrustTier("verified", true)).toBe("send_ready");
-    expect(promoteTrustTier("likely_to_engage", false)).toBe("named_unverified");
-    expect(promoteTrustTier("unverified", false)).toBe("named_unverified");
-    expect(promoteTrustTier("verified", false)).toBe("named_unverified");
+  it("verified email alone is insufficient without explicit orphan and project-link evidence", async () => {
+    const { canPersistSendReady } = await import("./contactTrustPromotionBoundary");
+    const completeEvidence = {
+      enrichmentSource: "apollo",
+      email: "verified@example.com",
+      emailVerified: true,
+      verificationStatus: "verified",
+      rejectionReason: null,
+      crmOrphan: false,
+      hasProjectLink: true,
+    } as const;
+
+    expect(canPersistSendReady(completeEvidence)).toBe(true);
+    expect(canPersistSendReady({ ...completeEvidence, hasProjectLink: false })).toBe(false);
+    expect(canPersistSendReady({ ...completeEvidence, crmOrphan: null })).toBe(false);
   });
 });
 
