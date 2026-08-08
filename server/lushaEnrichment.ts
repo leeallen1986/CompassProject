@@ -17,13 +17,16 @@
  *   Returns: email, phone, title, company, location
  *
  * Trust promotion:
- *   - Lusha email found → promote to send_ready (Lusha has high accuracy)
+ *   - A non-empty Lusha business email is provider verification evidence
+ *   - Persisted send_ready additionally requires allowed provenance, no
+ *     rejection, crmOrphan=false and an exact contactProjects link
  *   - No email found → keep current tier, log attempt
  */
 import { eq, and, sql, gte, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import { contacts, contactProjects, projects, lushaEnrichmentLog } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { resolvePersistedContactTrustTier } from "./contactTrustPromotionBoundary";
 
 // ── Configuration ──
 const LUSHA_BASE_URL = "https://api.lusha.com";
@@ -214,6 +217,7 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
  * Only enriches contacts that:
  *   - Are NOT already send_ready
  *   - Have a real name (not LLM-inferred junk)
+ *   - Are not rejected or CRM-orphaned
  *   - Have NOT been Lusha-enriched before (dedup)
  *   - Belong to a project NOT in cooldown
  *
@@ -263,12 +267,15 @@ export async function lushaEnrichProjectContacts(
   // Include linkedin/linkedinProfileUrl for LinkedIn URL lookup mode
   const projectContacts = await db.execute(sql`
     SELECT c.id, c.name, c.company, c.title, c.email, c.enrichmentStatus, c.enrichmentSource,
-           c.contactTrustTier, c.roleBucket, c.linkedin, c.linkedinProfileUrl
+           c.contactTrustTier, c.roleBucket, c.linkedin, c.linkedinProfileUrl,
+           c.rejectionReason, c.crmOrphan
     FROM contacts c
     JOIN contactProjects cp ON cp.contactId = c.id
     WHERE cp.projectId = ${projectId}
       AND c.contactTrustTier != 'send_ready'
       AND c.enrichmentSource != 'llm'
+      AND c.rejectionReason IS NULL
+      AND c.crmOrphan = 0
       AND c.name IS NOT NULL
       AND c.name != ''
       AND c.name NOT LIKE '%Unknown%'
@@ -329,61 +336,81 @@ export async function lushaEnrichProjectContacts(
       // Use LinkedIn URL if available (preferred for privacy-restricted contacts like "Mark K.")
       const contactLinkedinUrl = contact.linkedin || contact.linkedinProfileUrl || undefined;
       const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl);
+      const verifiedEmail = lushaResult?.email?.trim() || null;
       const queryInput: Record<string, string> = contactLinkedinUrl
         ? { linkedinUrl: contactLinkedinUrl, firstName, lastName: lastName || '', company: contact.company }
         : { firstName, lastName, company: contact.company };
 
-      // Log the attempt
+      // Log the attempt before any promotion. The promotion update below is
+      // transactional with the contact write and slate invalidation.
       await db.insert(lushaEnrichmentLog).values({
         contactId: contact.id,
         projectId,
         queryInput,
-        emailFound: lushaResult?.email || null,
+        emailFound: verifiedEmail,
         phoneFound: lushaResult?.phone || null,
         titleFound: lushaResult?.title || null,
-        status: lushaResult?.email ? "enriched" : "not_found",
+        status: verifiedEmail ? "enriched" : "not_found",
         creditsUsed: 1,
-        contactPromoted: false, // Will update below if promoted
+        contactPromoted: false,
       });
 
       budgetRemaining--;
       result.creditsUsed++;
 
-      if (lushaResult?.email) {
-        // Update the contact with Lusha data
+      if (verifiedEmail) {
+        const nextTier = resolvePersistedContactTrustTier({
+          enrichmentSource: "lusha",
+          email: verifiedEmail,
+          emailVerified: true,
+          verificationStatus: "verified",
+          rejectionReason: contact.rejectionReason,
+          crmOrphan: contact.crmOrphan,
+          hasProjectLink: true,
+        }, contact.contactTrustTier);
+        const promoted = nextTier === "send_ready";
+        const now = new Date();
+
         // NOTE: Phone numbers are intentionally excluded — Lusha phone credits are
         // expensive and the platform only needs email for outreach. Do NOT add phone back.
-        await db.update(contacts).set({
-          email: lushaResult.email,
-          enrichmentStatus: "enriched",
-          enrichmentSource: "lusha",
-          enrichedAt: new Date(),
-          contactTrustTier: "send_ready",
-          ...(lushaResult.title && { linkedinHeadline: lushaResult.title }),
-        }).where(eq(contacts.id, contact.id));
+        await db.transaction(async tx => {
+          await tx.update(contacts).set({
+            email: verifiedEmail,
+            emailVerified: true,
+            verificationStatus: "verified",
+            verificationScore: 95,
+            enrichmentStatus: "enriched",
+            enrichmentSource: "lusha",
+            enrichedAt: now,
+            contactTrustTier: nextTier,
+            ...(lushaResult?.title && { linkedinHeadline: lushaResult.title }),
+          }).where(eq(contacts.id, contact.id));
 
-        // Update the log to reflect promotion
-        await db.update(lushaEnrichmentLog).set({
-          contactPromoted: true,
-        }).where(
-          and(
-            eq(lushaEnrichmentLog.contactId, contact.id),
-            eq(lushaEnrichmentLog.projectId, projectId),
-          )
-        );
+          await tx.update(lushaEnrichmentLog).set({
+            contactPromoted: promoted,
+          }).where(
+            and(
+              eq(lushaEnrichmentLog.contactId, contact.id),
+              eq(lushaEnrichmentLog.projectId, projectId),
+            )
+          );
+
+          const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+          await invalidateAffectedSlatesInTransaction(tx, contact.id, projectId, now);
+        });
 
         result.contactsEnriched++;
-        result.contactsPromoted++;
+        if (promoted) result.contactsPromoted++;
         result.results.push({
           contactId: contact.id,
           contactName: contact.name,
           projectId,
           projectName,
           status: "enriched",
-          email: lushaResult.email,
-          phone: lushaResult.phone,
-          title: lushaResult.title,
-          promoted: true,
+          email: verifiedEmail,
+          phone: lushaResult?.phone,
+          title: lushaResult?.title,
+          promoted,
           creditsUsed: 1,
         });
         enriched++;
