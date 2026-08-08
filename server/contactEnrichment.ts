@@ -816,15 +816,21 @@ export async function getEnrichmentStats(): Promise<{
 
 // ── Stale Trust-Tier Backfill ──
 /**
- * Promotes contacts that already have sufficient evidence to be send_ready
- * but are stuck at named_unverified due to a missing trust-tier update.
+ * Repairs only contacts that already satisfy the canonical persisted
+ * send-ready evidence contract. It must never infer mailbox verification from
+ * LinkedIn presence, raw source labels, or email presence alone.
  *
- * Rules (in order of confidence):
- *   1. Apollo source + emailVerified=1                              → send_ready
- *   2. linkedin source + email + linkedin URL + not crmOrphan       → send_ready
- *   3. web_search source + verificationStatus='verified' + email    → send_ready
+ * Required evidence:
+ *   - named_unverified source state;
+ *   - allowed non-LLM provenance;
+ *   - non-empty current email;
+ *   - emailVerified=true;
+ *   - verificationStatus='verified';
+ *   - no rejection;
+ *   - explicitly non-orphan CRM state;
+ *   - at least one exact contactProjects link.
  *
- * Safe to run daily — only promotes, never demotes.
+ * Safe to run daily — only promotes rows already carrying complete evidence.
  * Returns the number of contacts promoted.
  */
 export async function runStaleTierBackfill(): Promise<{
@@ -834,51 +840,34 @@ export async function runStaleTierBackfill(): Promise<{
   const db = await getDb();
   if (!db) return { promoted: 0, breakdown: [] };
 
-  const breakdown: { rule: string; count: number }[] = [];
-
-  // Rule 1: Apollo contacts with emailVerified=1
-  const [apolloResult] = await db.execute(sql`
-    UPDATE contacts
-    SET contactTrustTier = 'send_ready'
-    WHERE contactTrustTier = 'named_unverified'
-      AND enrichmentSource = 'apollo'
-      AND emailVerified = 1
-      AND email IS NOT NULL
+  const [result] = await db.execute(sql`
+    UPDATE contacts c
+    SET c.contactTrustTier = 'send_ready'
+    WHERE c.contactTrustTier = 'named_unverified'
+      AND c.enrichmentSource IN ('linkedin', 'manual', 'apollo', 'web_search', 'lusha')
+      AND c.email IS NOT NULL
+      AND TRIM(c.email) <> ''
+      AND c.emailVerified = 1
+      AND c.verificationStatus = 'verified'
+      AND c.rejectionReason IS NULL
+      AND c.crmOrphan = 0
+      AND EXISTS (
+        SELECT 1
+        FROM contactProjects cp
+        WHERE cp.contactId = c.id
+      )
   `);
-  const apolloCount = (apolloResult as any)?.affectedRows ?? 0;
-  if (apolloCount > 0) breakdown.push({ rule: "apollo_email_verified", count: apolloCount });
 
-  // Rule 2: LinkedIn-sourced contacts with both email and linkedin URL
-  const [linkedinResult] = await db.execute(sql`
-    UPDATE contacts
-    SET contactTrustTier = 'send_ready'
-    WHERE contactTrustTier = 'named_unverified'
-      AND enrichmentSource = 'linkedin'
-      AND email IS NOT NULL
-      AND linkedin IS NOT NULL
-      AND crmOrphan = 0
-  `);
-  const linkedinCount = (linkedinResult as any)?.affectedRows ?? 0;
-  if (linkedinCount > 0) breakdown.push({ rule: "linkedin_email_and_url", count: linkedinCount });
+  const promoted = (result as any)?.affectedRows ?? 0;
+  const breakdown = promoted > 0
+    ? [{ rule: "canonical_verified_send_ready", count: promoted }]
+    : [];
 
-  // Rule 3: web_search contacts with verified status and email
-  const [webResult] = await db.execute(sql`
-    UPDATE contacts
-    SET contactTrustTier = 'send_ready'
-    WHERE contactTrustTier = 'named_unverified'
-      AND enrichmentSource = 'web_search'
-      AND verificationStatus = 'verified'
-      AND email IS NOT NULL
-  `);
-  const webCount = (webResult as any)?.affectedRows ?? 0;
-  if (webCount > 0) breakdown.push({ rule: "web_search_verified", count: webCount });
-
-  const total = apolloCount + linkedinCount + webCount;
-  if (total > 0) {
-    console.log(`[StaleTierBackfill] Promoted ${total} contacts to send_ready:`, breakdown);
+  if (promoted > 0) {
+    console.log(`[StaleTierBackfill] Promoted ${promoted} contacts with complete verified evidence`);
   } else {
-    console.log(`[StaleTierBackfill] No stale contacts found — all tiers are current`);
+    console.log(`[StaleTierBackfill] No fully verified stale contacts found`);
   }
 
-  return { promoted: total, breakdown };
+  return { promoted, breakdown };
 }
