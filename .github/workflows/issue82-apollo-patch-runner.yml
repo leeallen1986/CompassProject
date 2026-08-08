@@ -32,7 +32,47 @@ jobs:
           end = source.index("          PY", start)
           script_lines = source[start:end]
           script = "\n".join(line[10:] if line.startswith("          ") else line for line in script_lines)
-          exec(compile(script, "issue82-apollo-patch.py", "exec"), {})
+          scope: dict[str, object] = {}
+          try:
+              exec(compile(script, "issue82-apollo-patch.py", "exec"), scope)
+          except SystemExit as exc:
+              expected = "reveal returned email: expected exactly one match, found 2"
+              if str(exc) != expected:
+                  raise
+
+              text = scope.get("text")
+              if not isinstance(text, str):
+                  raise SystemExit("Apollo patch scope did not retain transformed source")
+
+              email_needle = '      email: p.email || null,\n'
+              email_index = text.rfind(email_needle)
+              if email_index < 0:
+                  raise SystemExit("Reveal return email line was not found")
+              text = (
+                  text[:email_index]
+                  + '      email: nextEmail,\n'
+                  + text[email_index + len(email_needle):]
+              )
+
+              remaining = [
+                  (
+                      '      hasEmail: !!p.email,\n',
+                      '      hasEmail: Boolean(nextEmail),\n',
+                      "reveal returned email flag",
+                  ),
+                  (
+                      '          AND (c.crmOrphan IS NULL OR c.crmOrphan = 0)\n',
+                      '          AND c.crmOrphan = 0\n',
+                      "manual pass explicit non-orphan",
+                  ),
+              ]
+              for old, new, label in remaining:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f"{label}: expected exactly one match, found {count}")
+                  text = text.replace(old, new, 1)
+
+              Path("server/apolloEnrichment.ts").write_text(text)
           PY
       - name: Commit patched Apollo writer
         shell: bash
