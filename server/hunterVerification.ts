@@ -26,6 +26,7 @@ import { contacts, contactProjects, hunterVerificationLog } from "../drizzle/sch
 import { ENV } from "./_core/env";
 import { inferCompanyDomains } from "./domainInference";
 import { shouldPromoteHunterResult } from "./intelligenceTrustPolicy";
+import { isExplicitlyNotCrmOrphan } from "./contactSlateTrustPolicy";
 import {
   canPersistSendReady,
   resolvePersistedContactTrustTier,
@@ -192,7 +193,7 @@ export async function verifyContactWithHunter(
   if (contact.rejectionReason != null) {
     return { contactId, action: "skipped", reason: "rejected_contact_not_eligible" };
   }
-  if (!(contact.crmOrphan === false || contact.crmOrphan === 0)) {
+  if (!isExplicitlyNotCrmOrphan(contact.crmOrphan)) {
     return { contactId, action: "skipped", reason: "crm_orphan_not_eligible" };
   }
 
