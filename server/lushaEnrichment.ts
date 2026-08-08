@@ -12,14 +12,15 @@
  *   - Dedup: skip contacts already enriched by Apollo/Hunter
  *
  * API: GET https://api.lusha.com/v2/person
- *   Headers: api_key: Bearer <key>
- *   Params: firstName, lastName, company
- *   Returns: email, phone, title, company, location
+ *   Headers: api_key: <key>
+ *   Params: firstName, lastName, companyName (or linkedinUrl)
+ *   Returns: email, confidence, phone, title, company, location
  *
  * Trust promotion:
- *   - A non-empty Lusha business email is provider verification evidence
+ *   - Only an explicit high-confidence Lusha email is verification evidence
  *   - Persisted send_ready additionally requires allowed provenance, no
  *     rejection, crmOrphan=false and an exact contactProjects link
+ *   - Lower-confidence email found → store it as named_unverified
  *   - No email found → keep current tier, log attempt
  */
 import { eq, and, sql, gte, desc } from "drizzle-orm";
@@ -40,6 +41,7 @@ const MAX_CONTACTS_PER_PROJECT = 3; // Don't over-enrich a single project
 // ── Types ──
 export interface LushaPersonResult {
   email?: string;
+  emailConfidence?: string | null;
   phone?: string;
   title?: string;
   company?: string;
@@ -85,6 +87,18 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export function isLushaEmailVerified(confidence: string | null | undefined): boolean {
+  return confidence?.trim().toLowerCase() === "high";
+}
+
+function lushaVerificationScore(confidence: string | null | undefined): number {
+  const normalised = confidence?.trim().toLowerCase();
+  if (normalised === "high") return 95;
+  if (normalised === "medium") return 60;
+  if (normalised === "low") return 40;
+  return 0;
+}
+
 /**
  * Call Lusha Person API to enrich a single contact.
  * Supports two lookup modes:
@@ -105,12 +119,12 @@ async function lushaPersonLookup(
   // Prefer LinkedIn URL lookup when available — more accurate for privacy-restricted contacts
   const params = linkedinUrl
     ? new URLSearchParams({ linkedinUrl })
-    : new URLSearchParams({ firstName, lastName, company });
+    : new URLSearchParams({ firstName, lastName, companyName: company });
 
   const response = await fetch(`${LUSHA_BASE_URL}/v2/person?${params.toString()}`, {
     method: "GET",
     headers: {
-      "api_key": `Bearer ${apiKey}`,
+      "api_key": apiKey,
       "Accept": "application/json",
     },
   });
@@ -129,16 +143,24 @@ async function lushaPersonLookup(
   }
 
   const data = await response.json();
+  const payload = data?.data ?? data;
+  const emailRecord = Array.isArray(payload?.emailAddresses)
+    ? payload.emailAddresses.find((entry: any) => typeof entry?.email === "string" && entry.email.trim())
+    : null;
 
-  // Lusha returns nested structure
   return {
-    email: data?.emailAddresses?.[0]?.email || data?.email || null,
-    phone: data?.phoneNumbers?.[0]?.internationalNumber || data?.phone || null,
-    title: data?.currentJobTitle || data?.title || null,
-    company: data?.currentCompanyName || data?.company || null,
-    location: data?.location || null,
-    firstName: data?.firstName || firstName,
-    lastName: data?.lastName || lastName,
+    email: emailRecord?.email || payload?.email || null,
+    emailConfidence:
+      emailRecord?.emailConfidence ||
+      emailRecord?.confidence ||
+      payload?.emailConfidence ||
+      null,
+    phone: payload?.phoneNumbers?.[0]?.internationalNumber || payload?.phone || null,
+    title: payload?.currentJobTitle || payload?.title || null,
+    company: payload?.currentCompanyName || payload?.company || null,
+    location: payload?.location || null,
+    firstName: payload?.firstName || firstName,
+    lastName: payload?.lastName || lastName,
   };
 }
 
@@ -336,34 +358,22 @@ export async function lushaEnrichProjectContacts(
       // Use LinkedIn URL if available (preferred for privacy-restricted contacts like "Mark K.")
       const contactLinkedinUrl = contact.linkedin || contact.linkedinProfileUrl || undefined;
       const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl);
-      const verifiedEmail = lushaResult?.email?.trim() || null;
+      const enrichedEmail = lushaResult?.email?.trim() || null;
+      const emailVerified = Boolean(enrichedEmail) && isLushaEmailVerified(lushaResult?.emailConfidence);
+      const verificationStatus = emailVerified ? "verified" : "unverified";
       const queryInput: Record<string, string> = contactLinkedinUrl
-        ? { linkedinUrl: contactLinkedinUrl, firstName, lastName: lastName || '', company: contact.company }
-        : { firstName, lastName, company: contact.company };
-
-      // Log the attempt before any promotion. The promotion update below is
-      // transactional with the contact write and slate invalidation.
-      await db.insert(lushaEnrichmentLog).values({
-        contactId: contact.id,
-        projectId,
-        queryInput,
-        emailFound: verifiedEmail,
-        phoneFound: lushaResult?.phone || null,
-        titleFound: lushaResult?.title || null,
-        status: verifiedEmail ? "enriched" : "not_found",
-        creditsUsed: 1,
-        contactPromoted: false,
-      });
+        ? { linkedinUrl: contactLinkedinUrl, firstName, lastName: lastName || "", companyName: contact.company }
+        : { firstName, lastName, companyName: contact.company };
 
       budgetRemaining--;
       result.creditsUsed++;
 
-      if (verifiedEmail) {
+      if (enrichedEmail) {
         const nextTier = resolvePersistedContactTrustTier({
           enrichmentSource: "lusha",
-          email: verifiedEmail,
-          emailVerified: true,
-          verificationStatus: "verified",
+          email: enrichedEmail,
+          emailVerified,
+          verificationStatus,
           rejectionReason: contact.rejectionReason,
           crmOrphan: contact.crmOrphan,
           hasProjectLink: true,
@@ -374,26 +384,30 @@ export async function lushaEnrichProjectContacts(
         // NOTE: Phone numbers are intentionally excluded — Lusha phone credits are
         // expensive and the platform only needs email for outreach. Do NOT add phone back.
         await db.transaction(async tx => {
+          await tx.insert(lushaEnrichmentLog).values({
+            contactId: contact.id,
+            projectId,
+            queryInput,
+            emailFound: enrichedEmail,
+            phoneFound: lushaResult?.phone || null,
+            titleFound: lushaResult?.title || null,
+            status: "enriched",
+            creditsUsed: 1,
+            contactPromoted: promoted,
+          });
+
           await tx.update(contacts).set({
-            email: verifiedEmail,
-            emailVerified: true,
-            verificationStatus: "verified",
-            verificationScore: 95,
+            email: enrichedEmail,
+            emailVerified,
+            verificationStatus,
+            verificationScore: lushaVerificationScore(lushaResult?.emailConfidence),
             enrichmentStatus: "enriched",
             enrichmentSource: "lusha",
             enrichedAt: now,
+            verifiedAt: emailVerified ? now : null,
             contactTrustTier: nextTier,
             ...(lushaResult?.title && { linkedinHeadline: lushaResult.title }),
           }).where(eq(contacts.id, contact.id));
-
-          await tx.update(lushaEnrichmentLog).set({
-            contactPromoted: promoted,
-          }).where(
-            and(
-              eq(lushaEnrichmentLog.contactId, contact.id),
-              eq(lushaEnrichmentLog.projectId, projectId),
-            )
-          );
 
           const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
           await invalidateAffectedSlatesInTransaction(tx, contact.id, projectId, now);
@@ -407,7 +421,7 @@ export async function lushaEnrichProjectContacts(
           projectId,
           projectName,
           status: "enriched",
-          email: verifiedEmail,
+          email: enrichedEmail,
           phone: lushaResult?.phone,
           title: lushaResult?.title,
           promoted,
@@ -415,6 +429,18 @@ export async function lushaEnrichProjectContacts(
         });
         enriched++;
       } else {
+        await db.insert(lushaEnrichmentLog).values({
+          contactId: contact.id,
+          projectId,
+          queryInput,
+          emailFound: null,
+          phoneFound: lushaResult?.phone || null,
+          titleFound: lushaResult?.title || null,
+          status: "not_found",
+          creditsUsed: 1,
+          contactPromoted: false,
+        });
+
         result.results.push({
           contactId: contact.id,
           contactName: contact.name,
