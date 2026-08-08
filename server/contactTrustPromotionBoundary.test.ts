@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { extname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canPersistSendReady,
@@ -19,6 +19,33 @@ const completeEvidence: PersistedSendReadyCandidate = {
 
 function source(path: string): string {
   return readFileSync(resolve(process.cwd(), path), "utf8");
+}
+
+function sourceFiles(root: string): string[] {
+  const files: string[] = [];
+  const walk = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const absolute = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(absolute);
+      } else if ([".ts", ".tsx", ".mjs"].includes(extname(entry.name))) {
+        files.push(relative(process.cwd(), absolute).replaceAll("\\", "/"));
+      }
+    }
+  };
+  walk(resolve(process.cwd(), root));
+  return files;
+}
+
+/**
+ * Detect an actual persistence operation, not a type, fixture, expected state,
+ * comment, SELECT predicate or project-validation update that merely mentions
+ * send_ready.
+ */
+function hasRawSendReadyPersistence(text: string): boolean {
+  const drizzleObjectWrite = /\.(?:set|values)\(\s*\{[\s\S]{0,1600}?contactTrustTier\s*:\s*["']send_ready["'][\s\S]{0,1600}?\}\s*\)/m;
+  const contactsSqlUpdate = /UPDATE\s+contacts(?:\s+[a-zA-Z_]\w*)?[\s\S]{0,1600}?\bSET\b[^;]{0,1200}?\bcontactTrustTier\s*=\s*["']send_ready["']/i;
+  return drizzleObjectWrite.test(text) || contactsSqlUpdate.test(text);
 }
 
 describe("persisted send-ready promotion boundary", () => {
@@ -67,6 +94,8 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(apollo).toContain("await tx.insert(contactProjects).values");
     expect(apollo).toContain("await db.transaction(async tx =>");
     expect(apollo).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");
+    expect(apollo).toContain("const providerEmail = p.email?.trim() || null");
+    expect(apollo).toContain("Boolean(providerEmail)");
     expect(apollo).toContain("AND c.crmOrphan = 0");
     expect(apollo).not.toContain(
       'contactTrustTier: enrichedPerson.emailStatus === "verified" ? "send_ready" : "named_unverified"',
@@ -97,10 +126,16 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(lusha).toContain('from "./contactTrustPromotionBoundary"');
     expect(lusha).toContain("AND c.rejectionReason IS NULL");
     expect(lusha).toContain("AND c.crmOrphan = 0");
-    expect(lusha).toContain("emailVerified: true");
-    expect(lusha).toContain('verificationStatus: "verified"');
+    expect(lusha).toContain('confidence?.trim().toLowerCase() === "high"');
+    expect(lusha).toContain("emailVerified,");
+    expect(lusha).toContain("verificationStatus,");
     expect(lusha).toContain("resolvePersistedContactTrustTier({");
-    expect(lusha).toContain("await db.transaction(async tx =>");
+    expect(lusha).toContain("companyName: company");
+    expect(lusha).toContain('"api_key": apiKey');
+    expect(lusha).toMatch(
+      /await db\.transaction\(async tx => \{[\s\S]*await tx\.insert\(lushaEnrichmentLog\)[\s\S]*await tx\.update\(contacts\)/,
+    );
+    expect(lusha).not.toContain("`Bearer ${apiKey}`");
     expect(lusha).not.toContain(
       'contactTrustTier: lushaResult.email ? "send_ready" : contact.contactTrustTier',
     );
@@ -114,6 +149,44 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(router).toContain(".from(contactProjects)");
     expect(router).toContain("if (transition.newTier === \"send_ready\")");
     expect(router).toContain("send_ready requires an allowed source");
+  });
+
+  it("finds no unenumerated raw writer in normal server runtime", () => {
+    const allowedRuntimeWriters = new Set([
+      // Fail-closed stale-tier backfill.
+      "server/contactEnrichment.ts",
+      // Controlled manifest-gated reconciliation executor, not autonomous enrichment.
+      "server/contactTrustReconciliation.ts",
+    ]);
+
+    const runtimeHits = sourceFiles("server")
+      .filter(path => !/\.test\.[^.]+$/.test(path))
+      .filter(path => !path.startsWith("server/scripts/"))
+      .filter(path => hasRawSendReadyPersistence(source(path)))
+      .sort();
+
+    expect(runtimeHits.filter(path => !allowedRuntimeWriters.has(path))).toEqual([]);
+    expect(runtimeHits).toEqual([...allowedRuntimeWriters].sort());
+  });
+
+  it("freezes the known manual/demo mutation-tool inventory outside normal runtime", () => {
+    const expectedManualWriters = [
+      "scripts/amitRescueDemo.mjs",
+      "scripts/e2eRescueDemo.mjs",
+      "scripts/rescueE2E.mjs",
+      "scripts/trust-tier-promotion.mjs",
+      "server/scripts/enrichCadiaNewmont.ts",
+    ];
+
+    const manualHits = [
+      ...sourceFiles("scripts"),
+      ...sourceFiles("server/scripts"),
+    ]
+      .filter(path => !/\.test\.[^.]+$/.test(path))
+      .filter(path => hasRawSendReadyPersistence(source(path)))
+      .sort();
+
+    expect(manualHits).toEqual(expectedManualWriters.sort());
   });
 
   it("retains every fail-closed gate in the stale-tier pipeline backfill", () => {
