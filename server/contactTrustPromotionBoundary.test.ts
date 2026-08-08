@@ -84,7 +84,9 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(hunter).toContain(".from(contactProjects)");
     expect(hunter).toContain('reason: "rejected_contact_not_eligible"');
     expect(hunter).toContain('reason: "crm_orphan_not_eligible"');
-    expect(hunter).toContain('reason: "contact_has_no_project_link"');
+    expect(hunter).toMatch(
+      /reason:\s*projectId\s*\?\s*"contact_not_linked_to_project"\s*:\s*"contact_has_no_project_link"/s,
+    );
     expect(hunter).toContain("resolvePersistedContactTrustTier({");
     expect(hunter).toContain("await db.transaction(async tx =>");
   });
@@ -125,9 +127,12 @@ describe("Issue #82 normal-writer inventory", () => {
       "c.verificationStatus = 'verified'",
       "c.rejectionReason IS NULL",
       "c.crmOrphan = 0",
-      "EXISTS (SELECT 1 FROM contactProjects cp WHERE cp.contactId = c.id)",
     ]) {
       expect(backfill).toContain(gate);
     }
+
+    expect(backfill).toMatch(
+      /AND\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+contactProjects\s+cp\s+WHERE\s+cp\.contactId\s*=\s*c\.id\s*\)/s,
+    );
   });
 });
