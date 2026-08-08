@@ -1,0 +1,552 @@
+name: Apply Issue 82 final mailbox hardening
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/issue82-final-hardening.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Apply exact fail-closed corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              return text.replace(old, new, 1)
+
+          # Apollo: verification must refer to the mailbox returned by this provider call,
+          # never a retained historical email.
+          apollo_path = Path("server/apolloEnrichment.ts")
+          apollo = apollo_path.read_text()
+          apollo = replace_once(
+              apollo,
+              '    const nextEmail = p.email?.trim() || contact.email?.trim() || null;\n'
+              '    const isVerified = p.email_status === "verified" && Boolean(nextEmail);\n',
+              '    const providerEmail = p.email?.trim() || null;\n'
+              '    const nextEmail = providerEmail || contact.email?.trim() || null;\n'
+              '    const isVerified = p.email_status === "verified" && Boolean(providerEmail);\n',
+              "Apollo current mailbox evidence",
+          )
+          apollo_path.write_text(apollo)
+
+          # Lusha: use the documented V2 request contract, parse confidence, auto-promote
+          # only high-confidence mailboxes, and make log/contact/slate writes atomic.
+          lusha_path = Path("server/lushaEnrichment.ts")
+          lusha = lusha_path.read_text()
+          lusha = replace_once(
+              lusha,
+              ' * API: GET https://api.lusha.com/v2/person\n'
+              ' *   Headers: api_key: Bearer <key>\n'
+              ' *   Params: firstName, lastName, company\n'
+              ' *   Returns: email, phone, title, company, location\n'
+              ' *\n'
+              ' * Trust promotion:\n'
+              ' *   - A non-empty Lusha business email is provider verification evidence\n',
+              ' * API: GET https://api.lusha.com/v2/person\n'
+              ' *   Headers: api_key: <key>\n'
+              ' *   Params: firstName, lastName, companyName (or linkedinUrl)\n'
+              ' *   Returns: email, confidence, phone, title, company, location\n'
+              ' *\n'
+              ' * Trust promotion:\n'
+              ' *   - Only an explicit high-confidence Lusha email is verification evidence\n',
+              "Lusha contract comment",
+          )
+          lusha = replace_once(
+              lusha,
+              'export interface LushaPersonResult {\n'
+              '  email?: string;\n',
+              'export interface LushaPersonResult {\n'
+              '  email?: string;\n'
+              '  emailConfidence?: string | null;\n',
+              "Lusha confidence type",
+          )
+          lusha = replace_once(
+              lusha,
+              'function sleep(ms: number): Promise<void> {\n'
+              '  return new Promise(resolve => setTimeout(resolve, ms));\n'
+              '}\n',
+              'function sleep(ms: number): Promise<void> {\n'
+              '  return new Promise(resolve => setTimeout(resolve, ms));\n'
+              '}\n'
+              '\n'
+              'export function isLushaEmailVerified(confidence: string | null | undefined): boolean {\n'
+              '  return confidence?.trim().toLowerCase() === "high";\n'
+              '}\n'
+              '\n'
+              'function lushaVerificationScore(confidence: string | null | undefined): number {\n'
+              '  const normalised = confidence?.trim().toLowerCase();\n'
+              '  if (normalised === "high") return 95;\n'
+              '  if (normalised === "medium") return 60;\n'
+              '  if (normalised === "low") return 40;\n'
+              '  return 0;\n'
+              '}\n',
+              "Lusha confidence helpers",
+          )
+          lusha = replace_once(
+              lusha,
+              '  const params = linkedinUrl\n'
+              '    ? new URLSearchParams({ linkedinUrl })\n'
+              '    : new URLSearchParams({ firstName, lastName, company });\n',
+              '  const params = linkedinUrl\n'
+              '    ? new URLSearchParams({ linkedinUrl })\n'
+              '    : new URLSearchParams({ firstName, lastName, companyName: company });\n',
+              "Lusha companyName parameter",
+          )
+          lusha = replace_once(
+              lusha,
+              '      "api_key": `Bearer ${apiKey}`,\n',
+              '      "api_key": apiKey,\n',
+              "Lusha raw api_key header",
+          )
+          lusha = replace_once(
+              lusha,
+              '  const data = await response.json();\n'
+              '\n'
+              '  // Lusha returns nested structure\n'
+              '  return {\n'
+              '    email: data?.emailAddresses?.[0]?.email || data?.email || null,\n'
+              '    phone: data?.phoneNumbers?.[0]?.internationalNumber || data?.phone || null,\n'
+              '    title: data?.currentJobTitle || data?.title || null,\n'
+              '    company: data?.currentCompanyName || data?.company || null,\n'
+              '    location: data?.location || null,\n'
+              '    firstName: data?.firstName || firstName,\n'
+              '    lastName: data?.lastName || lastName,\n'
+              '  };\n',
+              '  const data = await response.json();\n'
+              '  const payload = data?.data ?? data;\n'
+              '  const emailRecord = Array.isArray(payload?.emailAddresses)\n'
+              '    ? payload.emailAddresses.find((entry: any) => typeof entry?.email === "string" && entry.email.trim())\n'
+              '    : null;\n'
+              '\n'
+              '  return {\n'
+              '    email: emailRecord?.email || payload?.email || null,\n'
+              '    emailConfidence:\n'
+              '      emailRecord?.emailConfidence ||\n'
+              '      emailRecord?.confidence ||\n'
+              '      payload?.emailConfidence ||\n'
+              '      null,\n'
+              '    phone: payload?.phoneNumbers?.[0]?.internationalNumber || payload?.phone || null,\n'
+              '    title: payload?.currentJobTitle || payload?.title || null,\n'
+              '    company: payload?.currentCompanyName || payload?.company || null,\n'
+              '    location: payload?.location || null,\n'
+              '    firstName: payload?.firstName || firstName,\n'
+              '    lastName: payload?.lastName || lastName,\n'
+              '  };\n',
+              "Lusha response parsing",
+          )
+
+          old_flow = '''      const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl);
+      const verifiedEmail = lushaResult?.email?.trim() || null;
+      const queryInput: Record<string, string> = contactLinkedinUrl
+        ? { linkedinUrl: contactLinkedinUrl, firstName, lastName: lastName || '', company: contact.company }
+        : { firstName, lastName, company: contact.company };
+
+      // Log the attempt before any promotion. The promotion update below is
+      // transactional with the contact write and slate invalidation.
+      await db.insert(lushaEnrichmentLog).values({
+        contactId: contact.id,
+        projectId,
+        queryInput,
+        emailFound: verifiedEmail,
+        phoneFound: lushaResult?.phone || null,
+        titleFound: lushaResult?.title || null,
+        status: verifiedEmail ? "enriched" : "not_found",
+        creditsUsed: 1,
+        contactPromoted: false,
+      });
+
+      budgetRemaining--;
+      result.creditsUsed++;
+
+      if (verifiedEmail) {
+        const nextTier = resolvePersistedContactTrustTier({
+          enrichmentSource: "lusha",
+          email: verifiedEmail,
+          emailVerified: true,
+          verificationStatus: "verified",
+          rejectionReason: contact.rejectionReason,
+          crmOrphan: contact.crmOrphan,
+          hasProjectLink: true,
+        }, contact.contactTrustTier);
+        const promoted = nextTier === "send_ready";
+        const now = new Date();
+
+        // NOTE: Phone numbers are intentionally excluded — Lusha phone credits are
+        // expensive and the platform only needs email for outreach. Do NOT add phone back.
+        await db.transaction(async tx => {
+          await tx.update(contacts).set({
+            email: verifiedEmail,
+            emailVerified: true,
+            verificationStatus: "verified",
+            verificationScore: 95,
+            enrichmentStatus: "enriched",
+            enrichmentSource: "lusha",
+            enrichedAt: now,
+            contactTrustTier: nextTier,
+            ...(lushaResult?.title && { linkedinHeadline: lushaResult.title }),
+          }).where(eq(contacts.id, contact.id));
+
+          await tx.update(lushaEnrichmentLog).set({
+            contactPromoted: promoted,
+          }).where(
+            and(
+              eq(lushaEnrichmentLog.contactId, contact.id),
+              eq(lushaEnrichmentLog.projectId, projectId),
+            )
+          );
+
+          const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+          await invalidateAffectedSlatesInTransaction(tx, contact.id, projectId, now);
+        });
+
+        result.contactsEnriched++;
+        if (promoted) result.contactsPromoted++;
+        result.results.push({
+          contactId: contact.id,
+          contactName: contact.name,
+          projectId,
+          projectName,
+          status: "enriched",
+          email: verifiedEmail,
+          phone: lushaResult?.phone,
+          title: lushaResult?.title,
+          promoted,
+          creditsUsed: 1,
+        });
+        enriched++;
+      } else {
+        result.results.push({
+          contactId: contact.id,
+          contactName: contact.name,
+          projectId,
+          projectName,
+          status: "not_found",
+          promoted: false,
+          creditsUsed: 1,
+        });
+        enriched++;
+      }
+'''
+          new_flow = '''      const lushaResult = await lushaPersonLookup(firstName, lastName, contact.company, contactLinkedinUrl);
+      const enrichedEmail = lushaResult?.email?.trim() || null;
+      const emailVerified = Boolean(enrichedEmail) && isLushaEmailVerified(lushaResult?.emailConfidence);
+      const verificationStatus = emailVerified ? "verified" : "unverified";
+      const queryInput: Record<string, string> = contactLinkedinUrl
+        ? { linkedinUrl: contactLinkedinUrl, firstName, lastName: lastName || '', companyName: contact.company }
+        : { firstName, lastName, companyName: contact.company };
+
+      budgetRemaining--;
+      result.creditsUsed++;
+
+      if (enrichedEmail) {
+        const nextTier = resolvePersistedContactTrustTier({
+          enrichmentSource: "lusha",
+          email: enrichedEmail,
+          emailVerified,
+          verificationStatus,
+          rejectionReason: contact.rejectionReason,
+          crmOrphan: contact.crmOrphan,
+          hasProjectLink: true,
+        }, contact.contactTrustTier);
+        const promoted = nextTier === "send_ready";
+        const now = new Date();
+
+        // NOTE: Phone numbers are intentionally excluded — Lusha phone credits are
+        // expensive and the platform only needs email for outreach. Do NOT add phone back.
+        await db.transaction(async tx => {
+          await tx.insert(lushaEnrichmentLog).values({
+            contactId: contact.id,
+            projectId,
+            queryInput,
+            emailFound: enrichedEmail,
+            phoneFound: lushaResult?.phone || null,
+            titleFound: lushaResult?.title || null,
+            status: "enriched",
+            creditsUsed: 1,
+            contactPromoted: promoted,
+          });
+
+          await tx.update(contacts).set({
+            email: enrichedEmail,
+            emailVerified,
+            verificationStatus,
+            verificationScore: lushaVerificationScore(lushaResult?.emailConfidence),
+            enrichmentStatus: "enriched",
+            enrichmentSource: "lusha",
+            enrichedAt: now,
+            verifiedAt: emailVerified ? now : null,
+            contactTrustTier: nextTier,
+            ...(lushaResult?.title && { linkedinHeadline: lushaResult.title }),
+          }).where(eq(contacts.id, contact.id));
+
+          const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+          await invalidateAffectedSlatesInTransaction(tx, contact.id, projectId, now);
+        });
+
+        result.contactsEnriched++;
+        if (promoted) result.contactsPromoted++;
+        result.results.push({
+          contactId: contact.id,
+          contactName: contact.name,
+          projectId,
+          projectName,
+          status: "enriched",
+          email: enrichedEmail,
+          phone: lushaResult?.phone,
+          title: lushaResult?.title,
+          promoted,
+          creditsUsed: 1,
+        });
+        enriched++;
+      } else {
+        await db.insert(lushaEnrichmentLog).values({
+          contactId: contact.id,
+          projectId,
+          queryInput,
+          emailFound: null,
+          phoneFound: lushaResult?.phone || null,
+          titleFound: lushaResult?.title || null,
+          status: "not_found",
+          creditsUsed: 1,
+          contactPromoted: false,
+        });
+
+        result.results.push({
+          contactId: contact.id,
+          contactName: contact.name,
+          projectId,
+          projectName,
+          status: "not_found",
+          promoted: false,
+          creditsUsed: 1,
+        });
+        enriched++;
+      }
+'''
+          lusha = replace_once(lusha, old_flow, new_flow, "Lusha atomic confidence flow")
+          lusha_path.write_text(lusha)
+
+          # Update the stale structural tests to assert the canonical mechanism rather
+          # than the deleted unsafe ternaries.
+          waterfall_path = Path("server/waterfall.structural.test.ts")
+          waterfall = waterfall_path.read_text()
+          old_fix4 = '''describe("Fix 4: Apollo trust tier promotion on email verification", () => {
+  it("apolloEnrichment verifyContactEmail updates contactTrustTier", async () => {
+    const fs = await import("fs");
+    const src = fs.readFileSync(
+      new URL("./apolloEnrichment.ts", import.meta.url).pathname,
+      "utf-8"
+    );
+    // The verifyContactEmail function should update contactTrustTier
+    expect(src).toContain("contactTrustTier: isVerified ? \\"send_ready\\" : contact.contactTrustTier");
+  });
+
+  it("apolloEnrichment enrichProjectContacts sets correct trust tier on insert", async () => {
+    const fs = await import("fs");
+    const src = fs.readFileSync(
+      new URL("./apolloEnrichment.ts", import.meta.url).pathname,
+      "utf-8"
+    );
+    // enrichProjectContacts should set send_ready for verified emails
+    expect(src).toContain("contactTrustTier: enrichedPerson.emailStatus === \\"verified\\" ? \\"send_ready\\" : \\"named_unverified\\"");
+  });
+'''
+          new_fix4 = '''describe("Fix 4: Apollo trust tier promotion on email verification", () => {
+  it("apolloEnrichment reveal flow uses current provider mailbox evidence", async () => {
+    const fs = await import("fs");
+    const src = fs.readFileSync(
+      new URL("./apolloEnrichment.ts", import.meta.url).pathname,
+      "utf-8"
+    );
+    expect(src).toContain("const providerEmail = p.email?.trim() || null");
+    expect(src).toContain("resolvePersistedContactTrustTier({");
+  });
+
+  it("apolloEnrichment links new contacts before canonical promotion", async () => {
+    const fs = await import("fs");
+    const src = fs.readFileSync(
+      new URL("./apolloEnrichment.ts", import.meta.url).pathname,
+      "utf-8"
+    );
+    expect(src).toContain('contactTrustTier: "named_unverified"');
+    expect(src).toContain("await tx.insert(contactProjects).values");
+  });
+'''
+          waterfall = replace_once(waterfall, old_fix4, new_fix4, "stale Apollo structural assertions")
+          waterfall_path.write_text(waterfall)
+
+          # Strengthen focused inventory checks and add a repository-wide raw-writer census.
+          boundary_path = Path("server/contactTrustPromotionBoundary.test.ts")
+          boundary = boundary_path.read_text()
+          boundary = replace_once(
+              boundary,
+              'import { readFileSync } from "node:fs";\n'
+              'import { resolve } from "node:path";\n',
+              'import { readFileSync, readdirSync } from "node:fs";\n'
+              'import { extname, join, relative, resolve } from "node:path";\n',
+              "boundary census imports",
+          )
+          boundary = replace_once(
+              boundary,
+              'function source(path: string): string {\n'
+              '  return readFileSync(resolve(process.cwd(), path), "utf8");\n'
+              '}\n',
+              'function source(path: string): string {\n'
+              '  return readFileSync(resolve(process.cwd(), path), "utf8");\n'
+              '}\n'
+              '\n'
+              'function sourceFiles(root: string): string[] {\n'
+              '  const files: string[] = [];\n'
+              '  const walk = (directory: string) => {\n'
+              '    for (const entry of readdirSync(directory, { withFileTypes: true })) {\n'
+              '      const absolute = join(directory, entry.name);\n'
+              '      if (entry.isDirectory()) {\n'
+              '        walk(absolute);\n'
+              '      } else if ([".ts", ".tsx", ".mjs"].includes(extname(entry.name))) {\n'
+              '        files.push(relative(process.cwd(), absolute).replaceAll("\\\\", "/"));\n'
+              '      }\n'
+              '    }\n'
+              '  };\n'
+              '  walk(resolve(process.cwd(), root));\n'
+              '  return files;\n'
+              '}\n',
+              "boundary census helper",
+          )
+          boundary = replace_once(
+              boundary,
+              '    expect(apollo).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");\n'
+              '    expect(apollo).toContain("AND c.crmOrphan = 0");\n',
+              '    expect(apollo).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");\n'
+              '    expect(apollo).toContain("const providerEmail = p.email?.trim() || null");\n'
+              '    expect(apollo).toContain("Boolean(providerEmail)");\n'
+              '    expect(apollo).toContain("AND c.crmOrphan = 0");\n',
+              "Apollo current-email inventory assertion",
+          )
+          old_lusha_test = '''    expect(lusha).toContain("AND c.rejectionReason IS NULL");
+    expect(lusha).toContain("AND c.crmOrphan = 0");
+    expect(lusha).toContain("emailVerified: true");
+    expect(lusha).toContain('verificationStatus: "verified"');
+    expect(lusha).toContain("resolvePersistedContactTrustTier({");
+    expect(lusha).toContain("await db.transaction(async tx =>");
+    expect(lusha).not.toContain(
+      'contactTrustTier: lushaResult.email ? "send_ready" : contact.contactTrustTier',
+    );
+'''
+          new_lusha_test = '''    expect(lusha).toContain("AND c.rejectionReason IS NULL");
+    expect(lusha).toContain("AND c.crmOrphan = 0");
+    expect(lusha).toContain('confidence?.trim().toLowerCase() === "high"');
+    expect(lusha).toContain("emailVerified,");
+    expect(lusha).toContain("verificationStatus,");
+    expect(lusha).toContain("resolvePersistedContactTrustTier({");
+    expect(lusha).toContain("companyName: company");
+    expect(lusha).toContain('"api_key": apiKey');
+    expect(lusha).toMatch(
+      /await db\.transaction\(async tx => \{[\s\S]*await tx\.insert\(lushaEnrichmentLog\)[\s\S]*await tx\.update\(contacts\)/,
+    );
+    expect(lusha).not.toContain("`Bearer ${apiKey}`");
+    expect(lusha).not.toContain(
+      'contactTrustTier: lushaResult.email ? "send_ready" : contact.contactTrustTier',
+    );
+'''
+          boundary = replace_once(boundary, old_lusha_test, new_lusha_test, "Lusha confidence inventory assertion")
+
+          census_test = '''
+  it("finds no unenumerated raw send-ready persistence writer", () => {
+    const allowedRawWriters = new Set([
+      "server/contactEnrichment.ts",
+      "server/contactTrustReconciliation.ts",
+      "server/contactValidationState.ts",
+    ]);
+    const hits: string[] = [];
+
+    for (const root of ["server", "scripts"]) {
+      for (const path of sourceFiles(root)) {
+        if (/\.test\.[^.]+$/.test(path)) continue;
+        source(path).split(/\r?\n/).forEach((line, index) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("//") || trimmed.startsWith("*")) return;
+          if (
+            /contactTrustTier\s*:\s*["']send_ready["']/.test(line) ||
+            /contactTrustTier\s*=\s*["']send_ready["']/.test(line)
+          ) {
+            hits.push(`${path}:${index + 1}:${trimmed}`);
+          }
+        });
+      }
+    }
+
+    expect(hits.filter(hit => !allowedRawWriters.has(hit.split(":", 1)[0]))).toEqual([]);
+  });
+
+'''
+          boundary = replace_once(
+              boundary,
+              '  it("retains every fail-closed gate in the stale-tier pipeline backfill", () => {\n',
+              census_test + '  it("retains every fail-closed gate in the stale-tier pipeline backfill", () => {\n',
+              "repository writer census",
+          )
+          boundary_path.write_text(boundary)
+
+          # Runtime checks for Lusha confidence semantics and documented request shape.
+          lusha_test_path = Path("server/lushaEnrichment.test.ts")
+          lusha_test = lusha_test_path.read_text()
+          confidence_tests = '''
+
+  describe("Email confidence trust boundary", () => {
+    it("auto-verifies only explicit high-confidence Lusha emails", async () => {
+      const { isLushaEmailVerified } = await import("./lushaEnrichment");
+      expect(isLushaEmailVerified("high")).toBe(true);
+      expect(isLushaEmailVerified(" HIGH ")).toBe(true);
+      expect(isLushaEmailVerified("medium")).toBe(false);
+      expect(isLushaEmailVerified("low")).toBe(false);
+      expect(isLushaEmailVerified(null)).toBe(false);
+      expect(isLushaEmailVerified(undefined)).toBe(false);
+    });
+
+    it("uses the V2 companyName parameter and raw api_key header", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      expect(content).toContain("companyName: company");
+      expect(content).toContain('"api_key": apiKey');
+      expect(content).not.toContain('"api_key": `Bearer ${apiKey}`');
+    });
+  });
+'''
+          lusha_test = replace_once(
+              lusha_test,
+              '\n});\n',
+              confidence_tests + '\n});\n',
+              "Lusha confidence tests",
+          )
+          lusha_test_path.write_text(lusha_test)
+          PY
+      - name: Commit production and regression changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            server/apolloEnrichment.ts \
+            server/lushaEnrichment.ts \
+            server/waterfall.structural.test.ts \
+            server/contactTrustPromotionBoundary.test.ts \
+            server/lushaEnrichment.test.ts
+          git commit -m "fix(issue82): require current mailbox verification evidence"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
