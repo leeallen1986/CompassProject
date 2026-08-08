@@ -25,6 +25,11 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { cleanContactName } from "./nameUtils";
+import { isExplicitlyNotCrmOrphan } from "./contactSlateTrustPolicy";
+import {
+  canPersistSendReady,
+  resolvePersistedContactTrustTier,
+} from "./contactTrustPromotionBoundary";
 
 // ── Configuration ──
 
@@ -751,7 +756,11 @@ export async function enrichProjectContacts(
         continue;
       }
 
-      // Step 3: Store in database
+      // Step 3: Store in database. Persist named_unverified first;
+      // project linkage and any send_ready promotion commit together.
+      const verifiedEmail = enrichedPerson.email?.trim() || null;
+      const apolloVerified =
+        enrichedPerson.emailStatus === "verified" && Boolean(verifiedEmail);
       const contactData: InsertContact = {
         reportId,
         name: enrichedPerson.name,
@@ -760,7 +769,7 @@ export async function enrichProjectContacts(
         project: project.name,
         priority: company.name === project.owner ? "hot" : "warm",
         roleBucket: inferRoleBucket(enrichedPerson.title || ""),
-        email: enrichedPerson.email || null,
+        email: verifiedEmail,
         linkedin: enrichedPerson.linkedinUrl || null,
         enrichmentStatus: enrichedPerson.email ? "enriched" : "pending",
         enrichmentSource: "apollo",
@@ -770,33 +779,52 @@ export async function enrichProjectContacts(
           .filter(Boolean)
           .join(", ") || null,
         linkedinProfilePic: enrichedPerson.photoUrl || null,
-        verificationStatus:
-          enrichedPerson.emailStatus === "verified" ? "verified" : "unverified",
+        verificationStatus: apolloVerified ? "verified" : "unverified",
         verificationScore:
-          enrichedPerson.emailStatus === "verified"
+          apolloVerified
             ? 95
             : enrichedPerson.emailStatus === "likely_to_engage"
               ? 80
               : 50,
-        emailVerified: enrichedPerson.emailStatus === "verified",
-        // Trust tier: Apollo contacts with verified email are send_ready;
-        // others start as named_unverified until email is verified
-        contactTrustTier: enrichedPerson.emailStatus === "verified" ? "send_ready" : "named_unverified",
+        emailVerified: apolloVerified,
+        contactTrustTier: "named_unverified",
+        crmOrphan: false,
       };
 
-      const [inserted] = await db.insert(contacts).values(contactData);
-      const newContactId = inserted.insertId;
-      enrichedPerson.contactId = newContactId;
+      const newContactId = await db.transaction(async tx => {
+        const now = new Date();
+        const [inserted] = await tx.insert(contacts).values(contactData);
+        const insertedId = Number(inserted.insertId);
 
-      // ── Fix: link contact to project via contactProjects junction ──
-      // Without this row, readiness checks cannot see this contact for the project.
-      await db.insert(contactProjects).values({
-        contactId: newContactId,
-        projectId,
-        projectName: project.name,
-        relevance: company.name === project.owner ? "primary" : "secondary",
+        await tx.insert(contactProjects).values({
+          contactId: insertedId,
+          projectId,
+          projectName: project.name,
+          relevance: company.name === project.owner ? "primary" : "secondary",
+        });
+
+        const nextTier = resolvePersistedContactTrustTier({
+          enrichmentSource: "apollo",
+          email: verifiedEmail,
+          emailVerified: apolloVerified,
+          verificationStatus: apolloVerified ? "verified" : "unverified",
+          rejectionReason: null,
+          crmOrphan: false,
+          hasProjectLink: true,
+        }, "named_unverified");
+
+        if (nextTier === "send_ready") {
+          await tx.update(contacts)
+            .set({ contactTrustTier: nextTier })
+            .where(eq(contacts.id, insertedId));
+        }
+
+        const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+        await invalidateAffectedSlatesInTransaction(tx, insertedId, projectId, now);
+        return insertedId;
       });
 
+      enrichedPerson.contactId = newContactId;
       allResults.push(enrichedPerson);
     }
 
@@ -849,6 +877,21 @@ export async function revealContactEmail(
 
   if (!contact) throw new Error(`Contact ${contactId} not found`);
 
+  const [projectLink] = await db
+    .select({ id: contactProjects.id })
+    .from(contactProjects)
+    .where(eq(contactProjects.contactId, contactId))
+    .limit(1);
+  const hasProjectLink = Boolean(projectLink);
+  if (
+    !hasProjectLink ||
+    contact.rejectionReason != null ||
+    !isExplicitlyNotCrmOrphan(contact.crmOrphan)
+  ) {
+    console.log(`[Apollo] Skipping contact ${contactId} — persisted trust boundary not satisfied`);
+    return null;
+  }
+
   // ── Fix 1: Dedup guard — skip if this contact was already enriched/revealed recently ──
   if (contact.enrichmentStatus === "enriched" && contact.enrichedAt) {
     const hoursSinceEnrich = (Date.now() - new Date(contact.enrichedAt).getTime()) / (1000 * 60 * 60);
@@ -865,8 +908,19 @@ export async function revealContactEmail(
     }
   }
 
-  // Already has a verified email? Return it
-  if (contact.email && contact.emailVerified) {
+  // Only an already-canonical persisted contact can bypass another provider call.
+  if (
+    contact.contactTrustTier === "send_ready" &&
+    canPersistSendReady({
+      enrichmentSource: contact.enrichmentSource,
+      email: contact.email,
+      emailVerified: contact.emailVerified,
+      verificationStatus: contact.verificationStatus,
+      rejectionReason: contact.rejectionReason,
+      crmOrphan: contact.crmOrphan,
+      hasProjectLink,
+    })
+  ) {
     return {
       contactId: contact.id,
       apolloId: "",
@@ -952,34 +1006,48 @@ export async function revealContactEmail(
       apolloPersonId: p.id,
     });
 
-    // Update the contact in DB
-    // IMPORTANT: also promote contactTrustTier when email is verified
-    const isVerified = p.email_status === "verified";
-    await db
-      .update(contacts)
-      .set({
-        email: p.email || contact.email,
-        emailVerified: isVerified,
-        enrichmentStatus: "enriched",
-        enrichmentSource: "apollo",
-        enrichedAt: new Date(),
-        linkedin: p.linkedin_url || contact.linkedin,
-        linkedinHeadline: p.headline || contact.linkedinHeadline,
-        linkedinProfilePic: p.photo_url || contact.linkedinProfilePic,
-        linkedinLocation:
-          [p.city, p.state, p.country].filter(Boolean).join(", ") ||
-          contact.linkedinLocation,
-        verificationStatus: isVerified ? "verified" : "unverified",
-        verificationScore:
-          isVerified
-            ? 95
-            : p.email_status === "likely_to_engage"
-              ? 80
-              : 50,
-        // Promote trust tier: verified email → send_ready
-        contactTrustTier: isVerified ? "send_ready" : contact.contactTrustTier,
-      })
-      .where(eq(contacts.id, contactId));
+    const nextEmail = p.email?.trim() || contact.email?.trim() || null;
+    const isVerified = p.email_status === "verified" && Boolean(nextEmail);
+    const nextTier = resolvePersistedContactTrustTier({
+      enrichmentSource: "apollo",
+      email: nextEmail,
+      emailVerified: isVerified,
+      verificationStatus: isVerified ? "verified" : "unverified",
+      rejectionReason: contact.rejectionReason,
+      crmOrphan: contact.crmOrphan,
+      hasProjectLink,
+    }, contact.contactTrustTier);
+    const now = new Date();
+
+    await db.transaction(async tx => {
+      await tx.update(contacts)
+        .set({
+          email: nextEmail,
+          emailVerified: isVerified,
+          enrichmentStatus: "enriched",
+          enrichmentSource: "apollo",
+          enrichedAt: now,
+          linkedin: p.linkedin_url || contact.linkedin,
+          linkedinHeadline: p.headline || contact.linkedinHeadline,
+          linkedinProfilePic: p.photo_url || contact.linkedinProfilePic,
+          linkedinLocation:
+            [p.city, p.state, p.country].filter(Boolean).join(", ") ||
+            contact.linkedinLocation,
+          verificationStatus: isVerified ? "verified" : "unverified",
+          verificationScore:
+            isVerified
+              ? 95
+              : p.email_status === "likely_to_engage"
+                ? 80
+                : 50,
+          verifiedAt: isVerified ? now : null,
+          contactTrustTier: nextTier,
+        })
+        .where(eq(contacts.id, contactId));
+
+      const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");
+      await invalidateAffectedSlatesInTransaction(tx, contactId, undefined, now);
+    });
 
     return {
       contactId: contact.id,
@@ -988,7 +1056,7 @@ export async function revealContactEmail(
       firstName: p.first_name || contact.name.split(" ")[0],
       title: p.title || contact.title,
       company: contact.company,
-      email: p.email || null,
+      email: nextEmail,
       emailStatus: p.email_status,
       linkedinUrl: p.linkedin_url || contact.linkedin,
       photoUrl: p.photo_url,
@@ -996,7 +1064,7 @@ export async function revealContactEmail(
       state: p.state,
       country: p.country,
       seniority: p.seniority,
-      hasEmail: !!p.email,
+      hasEmail: Boolean(nextEmail),
       status: "enriched",
     };
   } catch (err: unknown) {
@@ -1362,7 +1430,7 @@ export async function manualContactApolloPass(options: {
           AND c.enrichmentStatus = 'pending'
           AND (c.email IS NULL OR c.email = '')
           AND c.rejectionReason IS NULL
-          AND (c.crmOrphan IS NULL OR c.crmOrphan = 0)
+          AND c.crmOrphan = 0
           AND p.priority IN ('hot', 'warm')
           AND p.lifecycleStatus = 'active'
           AND (p.suppressed IS NULL OR p.suppressed = 0)
