@@ -31,6 +31,7 @@ import {
   type SafeSlateResponse,
   type SlateValidationResult,
 } from "../contactSlateTrustPolicy";
+import { canPersistSendReady } from "../contactTrustPromotionBoundary";
 import {
   invalidateAffectedSlatesInTransaction,
   validateStoredSlatesReadOnly,
@@ -110,6 +111,7 @@ export const contactValidationRouter = router({
               rejectionReason: contacts.rejectionReason,
               rejectedByUserId: contacts.rejectedByUserId,
               rejectedAt: contacts.rejectedAt,
+              crmOrphan: contacts.crmOrphan,
             })
             .from(contacts)
             .where(eq(contacts.id, input.contactId))
@@ -121,6 +123,39 @@ export const contactValidationRouter = router({
             now,
             note: input.note,
           });
+
+          if (transition.newTier === "send_ready") {
+            const [projectLink] = await tx
+              .select({ id: contactProjects.id })
+              .from(contactProjects)
+              .where(input.projectId
+                ? and(
+                    eq(contactProjects.contactId, input.contactId),
+                    eq(contactProjects.projectId, input.projectId),
+                  )
+                : eq(contactProjects.contactId, input.contactId))
+              .limit(1);
+
+            const nextRejectionReason = transition.update.rejectionReason !== undefined
+              ? transition.update.rejectionReason
+              : contact.rejectionReason;
+            const canPersist = canPersistSendReady({
+              enrichmentSource: transition.update.enrichmentSource ?? contact.enrichmentSource,
+              email: contact.email,
+              emailVerified: transition.update.emailVerified ?? contact.emailVerified,
+              verificationStatus: transition.update.verificationStatus ?? contact.verificationStatus,
+              rejectionReason: nextRejectionReason,
+              crmOrphan: contact.crmOrphan,
+              hasProjectLink: Boolean(projectLink),
+            });
+
+            if (!canPersist) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "send_ready requires an allowed source, a verified non-empty email, no rejection, crmOrphan=false and an exact project link.",
+              });
+            }
+          }
 
           await tx
             .update(contacts)
