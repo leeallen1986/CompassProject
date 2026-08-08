@@ -1,0 +1,75 @@
+name: Apply Issue 82 final type corrections
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/issue82-fix-types.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Apply exact corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          hunter_path = Path("server/hunterVerification.ts")
+          hunter = hunter_path.read_text()
+
+          old_import = 'import { shouldPromoteHunterResult } from "./intelligenceTrustPolicy";\n'
+          new_import = (
+              'import { shouldPromoteHunterResult } from "./intelligenceTrustPolicy";\n'
+              'import { isExplicitlyNotCrmOrphan } from "./contactSlateTrustPolicy";\n'
+          )
+          if hunter.count(old_import) != 1:
+              raise SystemExit("Hunter policy import anchor was not unique")
+          hunter = hunter.replace(old_import, new_import, 1)
+
+          old_guard = '  if (!(contact.crmOrphan === false || contact.crmOrphan === 0)) {\n'
+          new_guard = '  if (!isExplicitlyNotCrmOrphan(contact.crmOrphan)) {\n'
+          if hunter.count(old_guard) != 1:
+              raise SystemExit("Hunter orphan guard anchor was not unique")
+          hunter = hunter.replace(old_guard, new_guard, 1)
+          hunter_path.write_text(hunter)
+
+          workflow_path = Path(".github/workflows/contact-trust-validation.yml")
+          workflow = workflow_path.read_text()
+          replacements = [
+              (
+                  '      - name: Upload offline-test log\n        if: always()\n',
+                  "      - name: Upload offline-test log\n        if: always() && steps.offline_suite.outcome != 'skipped'\n",
+                  "offline artifact condition",
+              ),
+              (
+                  '      - name: Upload full-test log\n        if: always()\n',
+                  "      - name: Upload full-test log\n        if: always() && steps.full_suite.outcome != 'skipped'\n",
+                  "full artifact condition",
+              ),
+          ]
+          for old, new, label in replacements:
+              if workflow.count(old) != 1:
+                  raise SystemExit(f"{label} anchor was not unique")
+              workflow = workflow.replace(old, new, 1)
+          workflow_path.write_text(workflow)
+          PY
+      - name: Commit corrections and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/issue82-fix-types.yml
+          git add server/hunterVerification.ts .github/workflows/contact-trust-validation.yml
+          git commit -m "fix(issue82): normalise orphan type and skipped artifacts"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
