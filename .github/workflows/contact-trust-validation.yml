@@ -86,7 +86,7 @@ jobs:
             --exclude server/projectory.auth.test.ts \
             2>&1 | tee /tmp/offline-test.log
       - name: Upload offline-test log
-        if: always()
+        if: always() && steps.offline_suite.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: offline-test-log
@@ -143,7 +143,7 @@ jobs:
               raise SystemExit(1)
           PY
       - name: Upload full-test log
-        if: always()
+        if: always() && steps.full_suite.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: full-test-log
