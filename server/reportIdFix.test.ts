@@ -6,15 +6,16 @@
  * TendersWA used the pipeline run ID as reportId), so the latest report always had
  * 0 projects linked to it.
  *
- * The fix: emailDigest.ts now uses getActiveProjects() and getAllContacts() instead
- * of filtering by reportId. The pipeline also creates a canonical report at startup
- * and passes it to TendersWA/QTOL NT.
+ * The fix: emailDigest.ts now uses getActiveProjects() and the current all-contact
+ * outreach-eligibility loader instead of filtering by reportId. The pipeline also
+ * creates a canonical report at startup and passes it to TendersWA/QTOL NT.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Mock db.ts ──
 const mockGetActiveProjects = vi.fn();
 const mockGetAllContacts = vi.fn();
+const mockGetAllContactsWithOutreachEligibility = vi.fn();
 const mockGetProjectsByReportId = vi.fn();
 const mockGetContactsByReportId = vi.fn();
 const mockGetLatestReport = vi.fn();
@@ -34,6 +35,7 @@ const mockClaimDigestSendSlot = vi.fn().mockResolvedValue(true);
 vi.mock("./db", () => ({
   getActiveProjects: (...args: any[]) => mockGetActiveProjects(...args),
   getAllContacts: (...args: any[]) => mockGetAllContacts(...args),
+  getAllContactsWithOutreachEligibility: (...args: any[]) => mockGetAllContactsWithOutreachEligibility(...args),
   getProjectsByReportId: (...args: any[]) => mockGetProjectsByReportId(...args),
   getContactsByReportId: (...args: any[]) => mockGetContactsByReportId(...args),
   getLatestReport: (...args: any[]) => mockGetLatestReport(...args),
@@ -102,11 +104,11 @@ describe("reportId fragmentation fix", () => {
     mockGetProjectsByReportId.mockResolvedValue([]);
     mockGetContactsByReportId.mockResolvedValue([]);
 
-    // The FIX: getActiveProjects returns all 1100 projects
+    // The FIX: current global loaders return active projects and outreach-safe contacts.
     mockGetActiveProjects.mockResolvedValue([
       { id: 1, name: "Test Project", priority: "hot", suppressed: false, actionTier: "tier1_actionable" },
     ]);
-    mockGetAllContacts.mockResolvedValue([
+    mockGetAllContactsWithOutreachEligibility.mockResolvedValue([
       { id: 1, name: "Test Contact", project: "Test Project", priority: "hot" },
     ]);
 
@@ -118,8 +120,8 @@ describe("reportId fragmentation fix", () => {
 
     // Verify: getActiveProjects was called (the fix)
     expect(mockGetActiveProjects).toHaveBeenCalled();
-    // Verify: getAllContacts was called (the fix)
-    expect(mockGetAllContacts).toHaveBeenCalled();
+    // Verify: the current outreach-safe contact loader was called.
+    expect(mockGetAllContactsWithOutreachEligibility).toHaveBeenCalled();
     // Verify: getProjectsByReportId was NOT called (the old broken path)
     expect(mockGetProjectsByReportId).not.toHaveBeenCalled();
     // Verify: getContactsByReportId was NOT called (the old broken path)
@@ -152,7 +154,7 @@ describe("reportId fragmentation fix", () => {
       { id: 1, name: "Mining Expansion", priority: "hot", suppressed: false, actionTier: "tier1_actionable", owner: "BHP" },
       { id: 2, name: "Solar Farm", priority: "warm", suppressed: false, actionTier: "tier2_develop", owner: "AGL" },
     ]);
-    mockGetAllContacts.mockResolvedValue([
+    mockGetAllContactsWithOutreachEligibility.mockResolvedValue([
       { id: 1, name: "John Smith", project: "Mining Expansion", priority: "hot", email: "john@bhp.com" },
     ]);
 
@@ -163,6 +165,7 @@ describe("reportId fragmentation fix", () => {
 
     // Should not crash, should load projects via getActiveProjects
     expect(mockGetActiveProjects).toHaveBeenCalled();
+    expect(mockGetAllContactsWithOutreachEligibility).toHaveBeenCalled();
     expect(result).toBeDefined();
   });
 });
