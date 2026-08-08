@@ -1,0 +1,289 @@
+name: Apply Issue 82 Apollo boundary patch
+
+on:
+  push:
+    branches:
+      - agent/issue82-contact-trust-promotion-boundary
+    paths:
+      - ".github/workflows/issue82-apply-apollo-boundary.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/issue82-contact-trust-promotion-boundary
+          fetch-depth: 0
+      - name: Apply exact fail-closed replacements
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("server/apolloEnrichment.ts")
+          text = path.read_text()
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'import { cleanContactName } from "./nameUtils";\n',
+              'import { cleanContactName } from "./nameUtils";\n'
+              'import { isExplicitlyNotCrmOrphan } from "./contactSlateTrustPolicy";\n'
+              'import {\n'
+              '  canPersistSendReady,\n'
+              '  resolvePersistedContactTrustTier,\n'
+              '} from "./contactTrustPromotionBoundary";\n',
+              "canonical imports",
+          )
+
+          replace_once(
+              '      // Step 3: Store in database\n'
+              '      const contactData: InsertContact = {\n',
+              '      // Step 3: Store in database. Persist named_unverified first;\n'
+              '      // project linkage and any send_ready promotion commit together.\n'
+              '      const verifiedEmail = enrichedPerson.email?.trim() || null;\n'
+              '      const apolloVerified =\n'
+              '        enrichedPerson.emailStatus === "verified" && Boolean(verifiedEmail);\n'
+              '      const contactData: InsertContact = {\n',
+              "new-contact prelude",
+          )
+
+          replace_once(
+              '        email: enrichedPerson.email || null,\n',
+              '        email: verifiedEmail,\n',
+              "new-contact email",
+          )
+
+          replace_once(
+              '        verificationStatus:\n'
+              '          enrichedPerson.emailStatus === "verified" ? "verified" : "unverified",\n'
+              '        verificationScore:\n'
+              '          enrichedPerson.emailStatus === "verified"\n'
+              '            ? 95\n'
+              '            : enrichedPerson.emailStatus === "likely_to_engage"\n'
+              '              ? 80\n'
+              '              : 50,\n'
+              '        emailVerified: enrichedPerson.emailStatus === "verified",\n'
+              '        // Trust tier: Apollo contacts with verified email are send_ready;\n'
+              '        // others start as named_unverified until email is verified\n'
+              '        contactTrustTier: enrichedPerson.emailStatus === "verified" ? "send_ready" : "named_unverified",\n',
+              '        verificationStatus: apolloVerified ? "verified" : "unverified",\n'
+              '        verificationScore:\n'
+              '          apolloVerified\n'
+              '            ? 95\n'
+              '            : enrichedPerson.emailStatus === "likely_to_engage"\n'
+              '              ? 80\n'
+              '              : 50,\n'
+              '        emailVerified: apolloVerified,\n'
+              '        contactTrustTier: "named_unverified",\n'
+              '        crmOrphan: false,\n',
+              "new-contact evidence",
+          )
+
+          replace_once(
+              '      const [inserted] = await db.insert(contacts).values(contactData);\n'
+              '      const newContactId = inserted.insertId;\n'
+              '      enrichedPerson.contactId = newContactId;\n'
+              '\n'
+              '      // ── Fix: link contact to project via contactProjects junction ──\n'
+              '      // Without this row, readiness checks cannot see this contact for the project.\n'
+              '      await db.insert(contactProjects).values({\n'
+              '        contactId: newContactId,\n'
+              '        projectId,\n'
+              '        projectName: project.name,\n'
+              '        relevance: company.name === project.owner ? "primary" : "secondary",\n'
+              '      });\n'
+              '\n'
+              '      allResults.push(enrichedPerson);\n',
+              '      const newContactId = await db.transaction(async tx => {\n'
+              '        const now = new Date();\n'
+              '        const [inserted] = await tx.insert(contacts).values(contactData);\n'
+              '        const insertedId = Number(inserted.insertId);\n'
+              '\n'
+              '        await tx.insert(contactProjects).values({\n'
+              '          contactId: insertedId,\n'
+              '          projectId,\n'
+              '          projectName: project.name,\n'
+              '          relevance: company.name === project.owner ? "primary" : "secondary",\n'
+              '        });\n'
+              '\n'
+              '        const nextTier = resolvePersistedContactTrustTier({\n'
+              '          enrichmentSource: "apollo",\n'
+              '          email: verifiedEmail,\n'
+              '          emailVerified: apolloVerified,\n'
+              '          verificationStatus: apolloVerified ? "verified" : "unverified",\n'
+              '          rejectionReason: null,\n'
+              '          crmOrphan: false,\n'
+              '          hasProjectLink: true,\n'
+              '        }, "named_unverified");\n'
+              '\n'
+              '        if (nextTier === "send_ready") {\n'
+              '          await tx.update(contacts)\n'
+              '            .set({ contactTrustTier: nextTier })\n'
+              '            .where(eq(contacts.id, insertedId));\n'
+              '        }\n'
+              '\n'
+              '        const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");\n'
+              '        await invalidateAffectedSlatesInTransaction(tx, insertedId, projectId, now);\n'
+              '        return insertedId;\n'
+              '      });\n'
+              '\n'
+              '      enrichedPerson.contactId = newContactId;\n'
+              '      allResults.push(enrichedPerson);\n',
+              "new-contact transaction",
+          )
+
+          replace_once(
+              '  if (!contact) throw new Error(`Contact ${contactId} not found`);\n'
+              '\n'
+              '  // ── Fix 1: Dedup guard — skip if this contact was already enriched/revealed recently ──\n',
+              '  if (!contact) throw new Error(`Contact ${contactId} not found`);\n'
+              '\n'
+              '  const [projectLink] = await db\n'
+              '    .select({ id: contactProjects.id })\n'
+              '    .from(contactProjects)\n'
+              '    .where(eq(contactProjects.contactId, contactId))\n'
+              '    .limit(1);\n'
+              '  const hasProjectLink = Boolean(projectLink);\n'
+              '  if (\n'
+              '    !hasProjectLink ||\n'
+              '    contact.rejectionReason != null ||\n'
+              '    !isExplicitlyNotCrmOrphan(contact.crmOrphan)\n'
+              '  ) {\n'
+              '    console.log(`[Apollo] Skipping contact ${contactId} — persisted trust boundary not satisfied`);\n'
+              '    return null;\n'
+              '  }\n'
+              '\n'
+              '  // ── Fix 1: Dedup guard — skip if this contact was already enriched/revealed recently ──\n',
+              "reveal preflight",
+          )
+
+          replace_once(
+              '  // Already has a verified email? Return it\n'
+              '  if (contact.email && contact.emailVerified) {\n',
+              '  // Only an already-canonical persisted contact can bypass another provider call.\n'
+              '  if (\n'
+              '    contact.contactTrustTier === "send_ready" &&\n'
+              '    canPersistSendReady({\n'
+              '      enrichmentSource: contact.enrichmentSource,\n'
+              '      email: contact.email,\n'
+              '      emailVerified: contact.emailVerified,\n'
+              '      verificationStatus: contact.verificationStatus,\n'
+              '      rejectionReason: contact.rejectionReason,\n'
+              '      crmOrphan: contact.crmOrphan,\n'
+              '      hasProjectLink,\n'
+              '    })\n'
+              '  ) {\n',
+              "reveal existing canonical short-circuit",
+          )
+
+          replace_once(
+              '    // Update the contact in DB\n'
+              '    // IMPORTANT: also promote contactTrustTier when email is verified\n'
+              '    const isVerified = p.email_status === "verified";\n'
+              '    await db\n'
+              '      .update(contacts)\n'
+              '      .set({\n'
+              '        email: p.email || contact.email,\n'
+              '        emailVerified: isVerified,\n'
+              '        enrichmentStatus: "enriched",\n'
+              '        enrichmentSource: "apollo",\n'
+              '        enrichedAt: new Date(),\n'
+              '        linkedin: p.linkedin_url || contact.linkedin,\n'
+              '        linkedinHeadline: p.headline || contact.linkedinHeadline,\n'
+              '        linkedinProfilePic: p.photo_url || contact.linkedinProfilePic,\n'
+              '        linkedinLocation:\n'
+              '          [p.city, p.state, p.country].filter(Boolean).join(", ") ||\n'
+              '          contact.linkedinLocation,\n'
+              '        verificationStatus: isVerified ? "verified" : "unverified",\n'
+              '        verificationScore:\n'
+              '          isVerified\n'
+              '            ? 95\n'
+              '            : p.email_status === "likely_to_engage"\n'
+              '              ? 80\n'
+              '              : 50,\n'
+              '        // Promote trust tier: verified email → send_ready\n'
+              '        contactTrustTier: isVerified ? "send_ready" : contact.contactTrustTier,\n'
+              '      })\n'
+              '      .where(eq(contacts.id, contactId));\n',
+              '    const nextEmail = p.email?.trim() || contact.email?.trim() || null;\n'
+              '    const isVerified = p.email_status === "verified" && Boolean(nextEmail);\n'
+              '    const nextTier = resolvePersistedContactTrustTier({\n'
+              '      enrichmentSource: "apollo",\n'
+              '      email: nextEmail,\n'
+              '      emailVerified: isVerified,\n'
+              '      verificationStatus: isVerified ? "verified" : "unverified",\n'
+              '      rejectionReason: contact.rejectionReason,\n'
+              '      crmOrphan: contact.crmOrphan,\n'
+              '      hasProjectLink,\n'
+              '    }, contact.contactTrustTier);\n'
+              '    const now = new Date();\n'
+              '\n'
+              '    await db.transaction(async tx => {\n'
+              '      await tx.update(contacts)\n'
+              '        .set({\n'
+              '          email: nextEmail,\n'
+              '          emailVerified: isVerified,\n'
+              '          enrichmentStatus: "enriched",\n'
+              '          enrichmentSource: "apollo",\n'
+              '          enrichedAt: now,\n'
+              '          linkedin: p.linkedin_url || contact.linkedin,\n'
+              '          linkedinHeadline: p.headline || contact.linkedinHeadline,\n'
+              '          linkedinProfilePic: p.photo_url || contact.linkedinProfilePic,\n'
+              '          linkedinLocation:\n'
+              '            [p.city, p.state, p.country].filter(Boolean).join(", ") ||\n'
+              '            contact.linkedinLocation,\n'
+              '          verificationStatus: isVerified ? "verified" : "unverified",\n'
+              '          verificationScore:\n'
+              '            isVerified\n'
+              '              ? 95\n'
+              '              : p.email_status === "likely_to_engage"\n'
+              '                ? 80\n'
+              '                : 50,\n'
+              '          verifiedAt: isVerified ? now : null,\n'
+              '          contactTrustTier: nextTier,\n'
+              '        })\n'
+              '        .where(eq(contacts.id, contactId));\n'
+              '\n'
+              '      const { invalidateAffectedSlatesInTransaction } = await import("./contactSlateTrustDb");\n'
+              '      await invalidateAffectedSlatesInTransaction(tx, contactId, undefined, now);\n'
+              '    });\n',
+              "reveal transaction",
+          )
+
+          replace_once(
+              '      email: p.email || null,\n',
+              '      email: nextEmail,\n',
+              "reveal returned email",
+          )
+          replace_once(
+              '      hasEmail: !!p.email,\n',
+              '      hasEmail: Boolean(nextEmail),\n',
+              "reveal returned email flag",
+          )
+          replace_once(
+              '          AND (c.crmOrphan IS NULL OR c.crmOrphan = 0)\n',
+              '          AND c.crmOrphan = 0\n',
+              "manual pass explicit non-orphan",
+          )
+
+          path.write_text(text)
+          PY
+      - name: Commit Apollo guard and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/issue82-apply-apollo-boundary.yml
+          git add server/apolloEnrichment.ts
+          git commit -m "fix(issue82): gate Apollo writers on canonical trust evidence"
+          git push origin HEAD:agent/issue82-contact-trust-promotion-boundary
