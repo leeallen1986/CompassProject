@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { extname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canPersistSendReady,
@@ -19,6 +19,22 @@ const completeEvidence: PersistedSendReadyCandidate = {
 
 function source(path: string): string {
   return readFileSync(resolve(process.cwd(), path), "utf8");
+}
+
+function sourceFiles(root: string): string[] {
+  const files: string[] = [];
+  const walk = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const absolute = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(absolute);
+      } else if ([".ts", ".tsx", ".mjs"].includes(extname(entry.name))) {
+        files.push(relative(process.cwd(), absolute).replaceAll("\\", "/"));
+      }
+    }
+  };
+  walk(resolve(process.cwd(), root));
+  return files;
 }
 
 describe("persisted send-ready promotion boundary", () => {
@@ -67,6 +83,8 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(apollo).toContain("await tx.insert(contactProjects).values");
     expect(apollo).toContain("await db.transaction(async tx =>");
     expect(apollo).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");
+    expect(apollo).toContain("const providerEmail = p.email?.trim() || null");
+    expect(apollo).toContain("Boolean(providerEmail)");
     expect(apollo).toContain("AND c.crmOrphan = 0");
     expect(apollo).not.toContain(
       'contactTrustTier: enrichedPerson.emailStatus === "verified" ? "send_ready" : "named_unverified"',
@@ -97,10 +115,16 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(lusha).toContain('from "./contactTrustPromotionBoundary"');
     expect(lusha).toContain("AND c.rejectionReason IS NULL");
     expect(lusha).toContain("AND c.crmOrphan = 0");
-    expect(lusha).toContain("emailVerified: true");
-    expect(lusha).toContain('verificationStatus: "verified"');
+    expect(lusha).toContain('confidence?.trim().toLowerCase() === "high"');
+    expect(lusha).toContain("emailVerified,");
+    expect(lusha).toContain("verificationStatus,");
     expect(lusha).toContain("resolvePersistedContactTrustTier({");
-    expect(lusha).toContain("await db.transaction(async tx =>");
+    expect(lusha).toContain("companyName: company");
+    expect(lusha).toContain('"api_key": apiKey');
+    expect(lusha).toMatch(
+      /await db\.transaction\(async tx => \{[\s\S]*await tx\.insert\(lushaEnrichmentLog\)[\s\S]*await tx\.update\(contacts\)/,
+    );
+    expect(lusha).not.toContain("`Bearer ${apiKey}`");
     expect(lusha).not.toContain(
       'contactTrustTier: lushaResult.email ? "send_ready" : contact.contactTrustTier',
     );
@@ -114,6 +138,27 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(router).toContain(".from(contactProjects)");
     expect(router).toContain("if (transition.newTier === \"send_ready\")");
     expect(router).toContain("send_ready requires an allowed source");
+  });
+
+  it("finds no unenumerated raw send-ready persistence writer", () => {
+    const allowedRawWriters = new Set([
+      "server/contactEnrichment.ts",
+      "server/contactTrustReconciliation.ts",
+      "server/contactValidationState.ts",
+    ]);
+    const hitFiles = new Set<string>();
+
+    for (const root of ["server", "scripts"]) {
+      for (const path of sourceFiles(root)) {
+        if (/\.test\.[^.]+$/.test(path)) continue;
+        const text = source(path);
+        const hasDirectObjectWrite = /contactTrustTier\s*:\s*["']send_ready["']/.test(text);
+        const hasRawSqlUpdate = /UPDATE[\s\S]{0,1200}?\bSET\b[\s\S]{0,800}?\bcontactTrustTier\s*=\s*["']send_ready["']/i.test(text);
+        if (hasDirectObjectWrite || hasRawSqlUpdate) hitFiles.add(path);
+      }
+    }
+
+    expect([...hitFiles].filter(path => !allowedRawWriters.has(path)).sort()).toEqual([]);
   });
 
   it("retains every fail-closed gate in the stale-tier pipeline backfill", () => {
