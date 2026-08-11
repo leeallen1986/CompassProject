@@ -119,4 +119,32 @@ describe("Lusha Enrichment Module", () => {
       expect(content).toContain("linkedinUrl: contactLinkedinUrl");
     });
   });
+
+  describe("Email confidence trust boundary", () => {
+    it("auto-verifies only explicit high-confidence Lusha emails", async () => {
+      const { isLushaEmailVerified } = await import("./lushaEnrichment");
+      expect(isLushaEmailVerified("high")).toBe(true);
+      expect(isLushaEmailVerified(" HIGH ")).toBe(true);
+      expect(isLushaEmailVerified("medium")).toBe(false);
+      expect(isLushaEmailVerified("low")).toBe(false);
+      expect(isLushaEmailVerified(null)).toBe(false);
+      expect(isLushaEmailVerified(undefined)).toBe(false);
+    });
+
+    it("uses the V2 companyName parameter and raw api_key header", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      expect(content).toContain("companyName: company");
+      expect(content).toContain('"api_key": apiKey');
+      expect(content).not.toContain('"api_key": `Bearer ${apiKey}`');
+    });
+
+    it("keeps the Lusha log, contact update and slate invalidation atomic when email is found", async () => {
+      const fs = await import("fs");
+      const content = fs.readFileSync("server/lushaEnrichment.ts", "utf-8");
+      expect(content).toMatch(
+        /await db\.transaction\(async tx => \{[\s\S]*await tx\.insert\(lushaEnrichmentLog\)[\s\S]*await tx\.update\(contacts\)[\s\S]*invalidateAffectedSlatesInTransaction/,
+      );
+    });
+  });
 });
