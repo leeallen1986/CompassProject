@@ -30,6 +30,7 @@ export default defineConfig({
       "server/projectBuyerRoute.router.test.ts",
       "server/projectBuyerRoute.test.ts",
       "server/projectEvidenceMigration.issue86.test.ts",
+      "server/ryanPortfolioAudit.shared.test.ts",
       "server/thisWeekContactSelection.issue86.test.ts",
     ],
   },
