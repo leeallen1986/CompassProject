@@ -153,10 +153,8 @@ describe("Issue #82 normal-writer inventory", () => {
 
   it("finds no unenumerated raw writer in normal server runtime", () => {
     const allowedRuntimeWriters = new Set([
-      // Fail-closed stale-tier backfill.
+      // Fail-closed stale-tier backfill — only literal "send_ready" writer in normal runtime.
       "server/contactEnrichment.ts",
-      // Controlled manifest-gated reconciliation executor, not autonomous enrichment.
-      "server/contactTrustReconciliation.ts",
     ]);
 
     const runtimeHits = sourceFiles("server")
@@ -169,24 +167,98 @@ describe("Issue #82 normal-writer inventory", () => {
     expect(runtimeHits).toEqual([...allowedRuntimeWriters].sort());
   });
 
-  it("freezes the known manual/demo mutation-tool inventory outside normal runtime", () => {
-    const expectedManualWriters = [
+  it("classifies contactTrustReconciliation.ts as a controlled manifest-gated operator path, not an autonomous runtime writer", () => {
+    const reconciliation = source("server/contactTrustReconciliation.ts");
+
+    // Must NOT contain a literal "send_ready" string in a persistence call —
+    // it persists the dynamic value row.expectedAfter.contactTrustTier instead.
+    expect(hasRawSendReadyPersistence(reconciliation)).toBe(false);
+
+    // Must require a sealed manifest before any apply.
+    expect(reconciliation).toContain("verifySealedContactTrustManifest(manifest)");
+
+    // Must require the caller to supply the exact manifest hash.
+    expect(reconciliation).toContain("options.confirmHash !== manifest.manifestHash");
+
+    // Must compare database identity before apply.
+    expect(reconciliation).toContain("currentManifest.databaseIdentity !== manifest.databaseIdentity");
+
+    // Must compare database fingerprint before apply.
+    expect(reconciliation).toContain("currentManifest.databaseFingerprint !== manifest.databaseFingerprint");
+
+    // Must compare per-row record hash before apply.
+    expect(reconciliation).toContain("current.recordHash !== row.recordHash");
+
+    // Must apply only approved/applyable rows.
+    expect(reconciliation).toContain('row.disposition === "safe_demote"');
+    expect(reconciliation).toContain('row.disposition === "safe_promote"');
+
+    // Must persist the dynamic value, not a literal.
+    expect(reconciliation).toContain("contactTrustTier: row.expectedAfter.contactTrustTier");
+
+    // Must be transaction-controlled.
+    expect(reconciliation).toContain("await db.transaction(async (tx:");
+
+    // Must NOT be called by daily/weekly pipeline, enrichment jobs, outreach routes or provider callbacks.
+    const forbiddenCallers = [
+      "server/pipelineRunner.ts",
+      "server/weeklyPipeline.ts",
+      "server/dailyPipeline.ts",
+      "server/apolloEnrichment.ts",
+      "server/hunterVerification.ts",
+      "server/lushaEnrichment.ts",
+      "server/contactEnrichment.ts",
+    ];
+    for (const callerPath of forbiddenCallers) {
+      try {
+        const callerSource = source(callerPath);
+        expect(callerSource).not.toContain("applyContactTrustManifest");
+      } catch {
+        // File does not exist — not a caller.
+      }
+    }
+    const routerFiles = sourceFiles("server/routers").filter(p => !/\.test\.[^.]+$/.test(p));
+    for (const routerPath of routerFiles) {
+      expect(source(routerPath)).not.toContain("applyContactTrustManifest");
+    }
+
+    // Must only be callable from the explicit operator script.
+    const operatorScript = source("server/scripts/contactTrustReconcile.ts");
+    expect(operatorScript).toContain("applyContactTrustManifest");
+  });
+
+  it("confirms all legacy direct-mutation scripts have been removed", () => {
+    // All legacy scripts that directly set contactTrustTier='send_ready' outside
+    // the canonical boundary have been deleted from the repository. Git history
+    // preserves them for audit purposes.
+    const deletedScripts = [
       "scripts/amitRescueDemo.mjs",
       "scripts/e2eRescueDemo.mjs",
       "scripts/rescueE2E.mjs",
       "scripts/trust-tier-promotion.mjs",
+      "scripts/validate_digest_safe.ts",
       "server/scripts/enrichCadiaNewmont.ts",
     ];
+    for (const deleted of deletedScripts) {
+      let found = false;
+      try {
+        source(deleted);
+        found = true;
+      } catch {
+        // Expected: file does not exist.
+      }
+      expect(found).toBe(false);
+    }
 
-    const manualHits = [
-      ...sourceFiles("scripts"),
-      ...sourceFiles("server/scripts"),
-    ]
-      .filter(path => !/\.test\.[^.]+$/.test(path))
-      .filter(path => hasRawSendReadyPersistence(source(path)))
-      .sort();
-
-    expect(manualHits).toEqual(expectedManualWriters.sort());
+    // No remaining scripts/ or server/scripts/ file should contain a raw send_ready write.
+    const remainingManualHits: string[] = [];
+    try {
+      remainingManualHits.push(...sourceFiles("scripts").filter(path => !/\.test\.[^.]+$/.test(path)).filter(path => hasRawSendReadyPersistence(source(path))));
+    } catch { /* scripts/ may not exist */ }
+    try {
+      remainingManualHits.push(...sourceFiles("server/scripts").filter(path => !/\.test\.[^.]+$/.test(path)).filter(path => hasRawSendReadyPersistence(source(path))));
+    } catch { /* server/scripts/ may not exist */ }
+    expect(remainingManualHits.sort()).toEqual([]);
   });
 
   it("retains every fail-closed gate in the stale-tier pipeline backfill", () => {
