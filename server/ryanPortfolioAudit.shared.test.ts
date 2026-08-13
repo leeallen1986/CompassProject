@@ -160,8 +160,14 @@ describe("Ryan-mode project classification", () => {
   });
 
   it("flags contractor_unmapped when product fit is credible but no package holder is recorded", () => {
-    const result = classifyRyanPortfolioProject(input({}, dossier({ packageHolders: [] })));
+    const result = classifyRyanPortfolioProject(input({
+      contactCTAAction: "find_contacts",
+      bestStakeholder: null,
+    }, dossier({ packageHolders: [], contacts: [] })));
     expect(result.primaryClassification).toBe("contractor_unmapped");
+    expect(result.flags).toContain("contractor_unmapped");
+    expect(result.metrics.recordedPackageHolderCount).toBe(0);
+    expect(result.metrics.cardMatchesPackageBuyer).toBe(false);
   });
 
   it("flags principal_only when every named contact is a principal/referral route", () => {
