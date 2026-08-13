@@ -74,3 +74,5 @@ The audit performs no:
 - GitHub or deployment mutation during production execution.
 
 Production execution should be wrapped with the same before/after database fingerprint discipline used by the contact-trust audits.
+
+The broader live This Week application/routing/timing corrections found by the August Ryan audit are tracked separately in Issue #106.
