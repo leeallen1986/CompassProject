@@ -45,12 +45,16 @@ export interface RyanPortfolioAuditInput {
 export interface RyanPortfolioAuditMetrics {
   productFitProven: boolean;
   packageHolderCount: number;
+  recordedPackageHolderCount: number;
   exactContactCount: number;
   namedContactCount: number;
   effectiveSendReadyCount: number;
   buyerLaneContactCount: number;
   effectiveBuyerContactCount: number;
+  packageMatchedBuyerContactCount: number;
+  effectivePackageMatchedBuyerCount: number;
   principalOrReferralContactCount: number;
+  cardMatchesPackageBuyer: boolean;
   unsafeOutreachExposed: boolean;
   contactEvidenceHidden: boolean;
 }
@@ -109,40 +113,40 @@ const CLASSIFICATION_SEVERITY: Record<RyanPortfolioClassification, number> = {
 
 const CLASSIFICATION_REASON: Record<RyanPortfolioClassification, string> = {
   unsafe_outreach_exposed:
-    "The card exposes a contactable state without an exact-linked effectively send-ready contact supporting that action.",
+    "The card exposes a contactable state without the same exact-linked effectively send-ready buyer being supported by a recorded package-holder route.",
   contact_evidence_hidden:
     "Exact-linked contact evidence exists in the dossier but the This Week card does not surface the corresponding contact or validation state.",
   contractor_unmapped:
-    "The project has credible product fit but no recorded contractor or package-holder route.",
+    "The project has credible product fit but no non-inferred recorded contractor or package-holder route.",
   principal_only:
     "The available exact-linked contacts are limited to principal or referral lanes; the equipment-buying route is not mapped.",
   buyer_lane_unmapped:
-    "A contractor/package route is recorded, but no exact-linked contractor, commercial or technical contact lane is mapped.",
+    "A recorded contractor/package route exists, but no exact-linked buyer contact is mapped to that buying organisation.",
   right_project_wrong_contact:
-    "The project has credible product fit, but no exact-linked buyer-lane contact is effectively send-ready.",
+    "The project has credible product fit, but no exact-linked effectively send-ready buyer contact is matched to the recorded package-holder organisation.",
   product_fit_unproven:
     "Persisted project evidence does not yet prove a sufficiently strong Portable Air application and product angle.",
   action_ready:
-    "The project has credible product fit, a recorded package route and an exact-linked effectively send-ready buyer-lane contact.",
+    "The project has credible product fit, a non-inferred recorded package route, and the card resolves an exact-linked effectively send-ready buyer at that package-holder organisation.",
 };
 
 const CLASSIFICATION_ACTION: Record<RyanPortfolioClassification, string> = {
   unsafe_outreach_exposed:
-    "Remove the contactable CTA until the card and server both resolve the same exact-linked effectively send-ready contact.",
+    "Remove the contactable CTA until the card and server resolve the same exact-linked effectively send-ready buyer at the relevant recorded package holder.",
   contact_evidence_hidden:
     "Render the dossier's exact-linked contact state on the card and route named-unverified contacts to Validate contacts rather than Find contacts.",
   contractor_unmapped:
-    "Confirm the awarded contractor, JV or package holder from evidence; keep the principal as a referral path rather than assuming it buys the equipment.",
+    "Confirm the awarded contractor, JV or package holder from evidence; keep inferred/predicted contractors as hypotheses rather than buying-route proof.",
   principal_only:
     "Map contractor-side plant/equipment, procurement/commercial or technical/site contacts; retain the principal contact for referral only.",
   buyer_lane_unmapped:
-    "Add at least one exact-linked contractor, commercial or technical contact with a visible lane rationale and evidence state.",
+    "Add at least one exact-linked contact at the recorded package-holder organisation with a buyer-lane rationale and evidence state.",
   right_project_wrong_contact:
-    "Validate or replace the current contact with a buyer-lane contact whose current mailbox satisfies the canonical send-ready policy.",
+    "Validate or replace the current contact with a package-holder-side buyer whose current mailbox satisfies the canonical send-ready policy.",
   product_fit_unproven:
     "Add persisted compressed-air application evidence and a defensible product hypothesis before treating the project as a sales action.",
   action_ready:
-    "Proceed with evidence-limited, confirmation-first outreach and preserve the current trust boundary.",
+    "Proceed with evidence-limited, confirmation-first outreach and preserve the current trust and package-route boundary.",
 };
 
 function normaliseIdentity(value: string | null | undefined): string {
@@ -187,6 +191,12 @@ function matchingDossierContact(
   ) ?? null;
 }
 
+function isRecordedPackageHolder(
+  holder: ProjectBuyerRoute["packageHolders"][number],
+): boolean {
+  return holder.evidenceState !== "not_recorded" && holder.evidenceState !== "inferred";
+}
+
 function primaryClassification(
   flags: RyanPortfolioClassification[],
 ): RyanPortfolioClassification {
@@ -202,41 +212,61 @@ export function classifyRyanPortfolioProject(
   const contacts = dossier?.contacts ?? [];
   const packageHolders = (dossier?.packageHolders ?? [])
     .filter(holder => holder.evidenceState !== "not_recorded");
+  const recordedPackageHolders = packageHolders.filter(isRecordedPackageHolder);
+  const recordedPackageHolderNames = new Set(
+    recordedPackageHolders
+      .map(holder => normaliseIdentity(holder.organisation))
+      .filter(Boolean),
+  );
+
   const namedContacts = contacts.filter(contact => contact.effectiveTrustTier !== "llm_inferred");
   const effectiveContacts = contacts.filter(contact => contact.effectivelySendReady);
   const buyerLaneContacts = namedContacts.filter(contact => BUYER_LANES.has(contact.lane.value));
   const effectiveBuyerContacts = effectiveContacts.filter(contact => BUYER_LANES.has(contact.lane.value));
+  const packageMatchedBuyerContacts = buyerLaneContacts.filter(contact =>
+    recordedPackageHolderNames.has(normaliseIdentity(contact.organisation.recordedName)),
+  );
+  const effectivePackageMatchedBuyerContacts = packageMatchedBuyerContacts.filter(contact =>
+    contact.effectivelySendReady,
+  );
   const principalOrReferralContacts = namedContacts.filter(contact =>
     PRINCIPAL_OR_REFERRAL_LANES.has(contact.lane.value),
   );
+
   const projectFit = productFitProven(project);
   const matchedStakeholder = matchingDossierContact(project, dossier);
   const stakeholderEmailShown = Boolean(project.bestStakeholder?.email?.trim());
+  const cardMatchesPackageBuyer = Boolean(
+    matchedStakeholder &&
+    BUYER_LANES.has(matchedStakeholder.lane.value) &&
+    matchedStakeholder.effectivelySendReady &&
+    recordedPackageHolderNames.has(normaliseIdentity(matchedStakeholder.organisation.recordedName)),
+  );
   const unsafeOutreachExposed =
-    (project.contactCTAAction === "view_best" && effectiveContacts.length === 0) ||
-    (stakeholderEmailShown && !matchedStakeholder?.effectivelySendReady);
+    (project.contactCTAAction === "view_best" && !cardMatchesPackageBuyer) ||
+    (stakeholderEmailShown && !cardMatchesPackageBuyer);
   const cardAcknowledgesEvidence =
     project.bestStakeholder !== null ||
     project.contactCTAAction === "view_best" ||
     project.contactCTAAction === "validate_contacts";
   const contactEvidenceHidden =
     (namedContacts.length > 0 && !cardAcknowledgesEvidence) ||
-    (effectiveContacts.length > 0 && project.contactCTAAction !== "view_best");
+    (effectivePackageMatchedBuyerContacts.length > 0 && project.contactCTAAction !== "view_best");
   const principalOnly =
     projectFit &&
     namedContacts.length > 0 &&
-    buyerLaneContacts.length === 0 &&
+    packageMatchedBuyerContacts.length === 0 &&
     principalOrReferralContacts.length === namedContacts.length;
-  const contractorUnmapped = projectFit && packageHolders.length === 0;
+  const contractorUnmapped = projectFit && recordedPackageHolders.length === 0;
   const buyerLaneUnmapped =
     projectFit &&
-    packageHolders.length > 0 &&
-    buyerLaneContacts.length === 0 &&
+    recordedPackageHolders.length > 0 &&
+    packageMatchedBuyerContacts.length === 0 &&
     !principalOnly;
   const wrongContact =
     projectFit &&
     namedContacts.length > 0 &&
-    effectiveBuyerContacts.length === 0;
+    effectivePackageMatchedBuyerContacts.length === 0;
 
   const flags: RyanPortfolioClassification[] = [];
   if (unsafeOutreachExposed) flags.push("unsafe_outreach_exposed");
@@ -270,12 +300,16 @@ export function classifyRyanPortfolioProject(
     metrics: {
       productFitProven: projectFit,
       packageHolderCount: packageHolders.length,
+      recordedPackageHolderCount: recordedPackageHolders.length,
       exactContactCount: contacts.length,
       namedContactCount: namedContacts.length,
       effectiveSendReadyCount: effectiveContacts.length,
       buyerLaneContactCount: buyerLaneContacts.length,
       effectiveBuyerContactCount: effectiveBuyerContacts.length,
+      packageMatchedBuyerContactCount: packageMatchedBuyerContacts.length,
+      effectivePackageMatchedBuyerCount: effectivePackageMatchedBuyerContacts.length,
       principalOrReferralContactCount: principalOrReferralContacts.length,
+      cardMatchesPackageBuyer,
       unsafeOutreachExposed,
       contactEvidenceHidden,
     },
