@@ -1,5 +1,6 @@
 import { getUserById } from "./db";
 import { commercialTruthRepName } from "./portableAirCommercialPolicy";
+import { applyLegacyManagedNameGuard } from "./thisWeekCommercialFinalGuard";
 import {
   getThisWeekSummary as getPolicyThisWeekSummary,
 } from "./thisWeekCommercialPolicyService";
@@ -33,7 +34,8 @@ export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSumma
     const user = await getUserById(userId);
     const repName = commercialTruthRepName(user?.name);
     if (repName) {
-      return getPolicyThisWeekSummary(userId, repName);
+      const summary = await getPolicyThisWeekSummary(userId, repName);
+      return applyLegacyManagedNameGuard(summary);
     }
   } catch (error) {
     console.warn(
