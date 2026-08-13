@@ -1,0 +1,1 @@
+Temporary traceability note. Remove before merge once the GitHub issue is linked in PR #102.
