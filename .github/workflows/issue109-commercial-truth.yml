@@ -1,0 +1,45 @@
+name: Issue 109 commercial truth
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue109-commercial-truth.yml"
+      - "server/portableAirCommercialPolicy.ts"
+      - "server/portableAirCommercialPolicy.issue109.test.ts"
+      - "server/portableAirCommercialPolicy.territory.test.ts"
+      - "server/thisWeekCommercialFinalGuard.ts"
+      - "server/thisWeekCommercialFinalGuard.test.ts"
+      - "server/thisWeekCommercialPolicyService.ts"
+      - "server/thisWeekCommercialService.ts"
+      - "server/thisWeekCommercialTruth.ts"
+      - "server/thisWeekCommercialTruth.issue106.test.ts"
+      - "server/thisWeekService.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Issue 109 focused tests
+        run: >-
+          pnpm exec vitest run
+          server/portableAirCommercialPolicy.issue109.test.ts
+          server/portableAirCommercialPolicy.territory.test.ts
+          server/thisWeekCommercialFinalGuard.test.ts
+          server/thisWeekCommercialTruth.issue106.test.ts
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build
