@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-/** Provider- and database-free focused suite for Issue #86 and its commercial-truth follow-up. */
+/** Provider- and database-free focused suite for Issue #86 and commercial-truth follow-ups. */
 export default defineConfig({
   root: path.resolve(import.meta.dirname),
   resolve: {
@@ -26,6 +26,7 @@ export default defineConfig({
       "server/outreachEmail.quotaFallback.test.ts",
       "server/outreachEmailFallback.test.ts",
       "server/outreachTemplates.quotaFallback.test.ts",
+      "server/portableAirCommercialPolicy.test.ts",
       "server/projectBuyerRoute.db.static.test.ts",
       "server/projectBuyerRoute.router.test.ts",
       "server/projectBuyerRoute.test.ts",

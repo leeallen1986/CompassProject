@@ -7,6 +7,14 @@ const outreachEmail = readFileSync(new URL("./outreachEmail.ts", import.meta.url
 const thisWeekEntry = readFileSync(new URL("./thisWeekService.ts", import.meta.url), "utf8");
 const thisWeekLegacy = readFileSync(new URL("./thisWeekServiceLegacy.ts", import.meta.url), "utf8");
 const thisWeekCommercial = readFileSync(new URL("./thisWeekCommercialService.ts", import.meta.url), "utf8");
+const thisWeekPolicy = readFileSync(
+  new URL("./thisWeekCommercialPolicyService.ts", import.meta.url),
+  "utf8",
+);
+const portableAirPolicy = readFileSync(
+  new URL("./portableAirCommercialPolicy.ts", import.meta.url),
+  "utf8",
+);
 const thisWeekClient = readFileSync(
   new URL("../client/src/pages/ThisWeek.tsx", import.meta.url),
   "utf8",
@@ -19,7 +27,6 @@ const telemetry = readFileSync(
 
 describe("Issue #86 fail-closed integration", () => {
   it("uses the exact outreach projection for This Week contact selection", () => {
-    // Issue #106 wraps, rather than replaces, the certified Issue #86 assembly path.
     expect(thisWeekLegacy).toContain("getAllContactsWithOutreachEligibility()");
     expect(thisWeekLegacy).toContain("contactsExactlyLinkedToProject(allContacts, p.id)");
     expect(thisWeekLegacy).toContain("contactsAreExactProjectLinks: true");
@@ -32,18 +39,26 @@ describe("Issue #86 fail-closed integration", () => {
     expect(thisWeekLegacy).toContain('type: "contact_validation"');
     expect(thisWeekLegacy).toContain("do not run duplicate stakeholder discovery");
 
-    // The new layer can only tighten that projection via the exact-link buyer dossier.
     expect(thisWeekCommercial).toContain("getProjectBuyerRouteInputs(project.id)");
     expect(thisWeekCommercial).toContain("buildProjectBuyerRoute(inputs)");
     expect(thisWeekCommercial).toContain("preferred?.effectivelySendReady");
+
+    expect(thisWeekPolicy).toContain("applyPortableAirRepPolicy");
+    expect(thisWeekPolicy).toContain("loadDossier(project.id)");
+    expect(thisWeekPolicy).toContain("finalPreferred?.effectivelySendReady");
   });
 
   it("derives action-ready counts from authoritative CTA/commercial truth", () => {
     expect(thisWeekLegacy).toContain("topProjects.filter(isThisWeekActionReady)");
     expect(thisWeekCommercial).toContain("project.commercialTruth?.actionReady === true");
-    expect(thisWeekCommercial).toContain('case "view_best"');
-    expect(thisWeekEntry).toContain('=== "ryan pemberton"');
+    expect(thisWeekPolicy).toContain("truth?.actionReady === true");
+    expect(thisWeekPolicy).toContain('case "view_best"');
+    expect(thisWeekEntry).toContain("commercialTruthRepName(user?.name)");
+    expect(thisWeekEntry).toContain("getPolicyThisWeekSummary(userId, repName)");
     expect(thisWeekEntry).toContain("return getLegacyThisWeekSummary(userId)");
+    expect(portableAirPolicy).toContain('["ryan pemberton", "Ryan Pemberton"]');
+    expect(portableAirPolicy).toContain('["paul lueth", "Paul Lueth"]');
+    expect(portableAirPolicy).toContain('["dan day", "Dan Day"]');
     expect(thisWeekClient).toContain("Likely route (inference):");
     expect(thisWeekClient).toContain(
       "Recorded contact context · employment unverified",
@@ -106,6 +121,10 @@ describe("Issue #86 fail-closed integration", () => {
     expect(thisWeekLegacy).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");
     expect(thisWeekCommercial).toContain("truth.actionReady && preferred?.effectivelySendReady");
     expect(thisWeekCommercial).toContain("bestStakeholder: safeStakeholder");
+    expect(thisWeekPolicy).toContain("preferredByProject.get(stakeholder.projectId) === stakeholder.id");
+    expect(thisWeekPolicy).toContain("preferredBuyerContactId: null");
+    expect(thisWeekPolicy).toContain('case "refer_managed_account"');
+    expect(thisWeekPolicy).toContain('case "specialist_support_only"');
     expect(emailDigest).toContain("⚠️ VALIDATE FIRST");
     expect(emailDigest).toContain("Exact persisted project link");
     expect(emailDigest).toContain("Recorded context:");
