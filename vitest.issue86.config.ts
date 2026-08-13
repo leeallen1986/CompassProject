@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-/** Provider- and database-free focused suite for Issue #86. */
+/** Provider- and database-free focused suite for Issue #86 and its commercial-truth follow-up. */
 export default defineConfig({
   root: path.resolve(import.meta.dirname),
   resolve: {
@@ -32,6 +32,7 @@ export default defineConfig({
       "server/projectEvidenceMigration.issue86.test.ts",
       "server/ryanPortfolioAudit.shared.test.ts",
       "server/ryanPortfolioAudit.packageRoute.test.ts",
+      "server/thisWeekCommercialTruth.issue106.test.ts",
       "server/thisWeekContactSelection.issue86.test.ts",
     ],
   },

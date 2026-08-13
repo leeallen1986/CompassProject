@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 const routers = readFileSync(new URL("./routers.ts", import.meta.url), "utf8");
 const templates = readFileSync(new URL("./outreachTemplates.ts", import.meta.url), "utf8");
 const outreachEmail = readFileSync(new URL("./outreachEmail.ts", import.meta.url), "utf8");
-const thisWeek = readFileSync(new URL("./thisWeekService.ts", import.meta.url), "utf8");
+const thisWeekEntry = readFileSync(new URL("./thisWeekService.ts", import.meta.url), "utf8");
+const thisWeekLegacy = readFileSync(new URL("./thisWeekServiceLegacy.ts", import.meta.url), "utf8");
+const thisWeekCommercial = readFileSync(new URL("./thisWeekCommercialService.ts", import.meta.url), "utf8");
 const thisWeekClient = readFileSync(
   new URL("../client/src/pages/ThisWeek.tsx", import.meta.url),
   "utf8",
@@ -17,21 +19,31 @@ const telemetry = readFileSync(
 
 describe("Issue #86 fail-closed integration", () => {
   it("uses the exact outreach projection for This Week contact selection", () => {
-    expect(thisWeek).toContain("getAllContactsWithOutreachEligibility()");
-    expect(thisWeek).toContain("contactsExactlyLinkedToProject(allContacts, p.id)");
-    expect(thisWeek).toContain("contactsAreExactProjectLinks: true");
-    expect(thisWeek).not.toContain("const allContacts = await getAllContacts();");
-    expect(thisWeek).not.toContain("c.project.toLowerCase().includes(p.name.toLowerCase()");
-    expect(thisWeek).not.toContain("inScopeProjectNames");
-    expect(thisWeek).toContain("isContactOutreachEligibleForProject(c, p.id)");
-    expect(thisWeek).toContain('action: "validate_contacts"');
-    expect(thisWeek).toContain("Validate ${contactSelection.fallbackContacts.length} exact-linked contact");
-    expect(thisWeek).toContain('type: "contact_validation"');
-    expect(thisWeek).toContain("do not run duplicate stakeholder discovery");
+    // Issue #106 wraps, rather than replaces, the certified Issue #86 assembly path.
+    expect(thisWeekLegacy).toContain("getAllContactsWithOutreachEligibility()");
+    expect(thisWeekLegacy).toContain("contactsExactlyLinkedToProject(allContacts, p.id)");
+    expect(thisWeekLegacy).toContain("contactsAreExactProjectLinks: true");
+    expect(thisWeekLegacy).not.toContain("const allContacts = await getAllContacts();");
+    expect(thisWeekLegacy).not.toContain("c.project.toLowerCase().includes(p.name.toLowerCase()");
+    expect(thisWeekLegacy).not.toContain("inScopeProjectNames");
+    expect(thisWeekLegacy).toContain("isContactOutreachEligibleForProject(c, p.id)");
+    expect(thisWeekLegacy).toContain('action: "validate_contacts"');
+    expect(thisWeekLegacy).toContain("Validate ${contactSelection.fallbackContacts.length} exact-linked contact");
+    expect(thisWeekLegacy).toContain('type: "contact_validation"');
+    expect(thisWeekLegacy).toContain("do not run duplicate stakeholder discovery");
+
+    // The new layer can only tighten that projection via the exact-link buyer dossier.
+    expect(thisWeekCommercial).toContain("getProjectBuyerRouteInputs(project.id)");
+    expect(thisWeekCommercial).toContain("buildProjectBuyerRoute(inputs)");
+    expect(thisWeekCommercial).toContain("preferred?.effectivelySendReady");
   });
 
-  it("derives action-ready counts from the authoritative contact CTA", () => {
-    expect(thisWeek).toContain("topProjects.filter(isThisWeekActionReady)");
+  it("derives action-ready counts from authoritative CTA/commercial truth", () => {
+    expect(thisWeekLegacy).toContain("topProjects.filter(isThisWeekActionReady)");
+    expect(thisWeekCommercial).toContain("project.commercialTruth?.actionReady === true");
+    expect(thisWeekCommercial).toContain('case "view_best"');
+    expect(thisWeekEntry).toContain('=== "ryan pemberton"');
+    expect(thisWeekEntry).toContain("return getLegacyThisWeekSummary(userId)");
     expect(thisWeekClient).toContain("Likely route (inference):");
     expect(thisWeekClient).toContain(
       "Recorded contact context · employment unverified",
@@ -88,10 +100,12 @@ describe("Issue #86 fail-closed integration", () => {
   });
 
   it("keeps This Week stakeholder and digest claims fail closed", () => {
-    expect(thisWeek).toContain('email: sendReady ? c.email?.trim() || null : null');
-    expect(thisWeek).toContain('projectLinkState: "exact_persisted"');
-    expect(thisWeek).toContain("isExplicitlyNotCrmOrphan(c.crmOrphan)");
-    expect(thisWeek).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");
+    expect(thisWeekLegacy).toContain('email: sendReady ? c.email?.trim() || null : null');
+    expect(thisWeekLegacy).toContain('projectLinkState: "exact_persisted"');
+    expect(thisWeekLegacy).toContain("isExplicitlyNotCrmOrphan(c.crmOrphan)");
+    expect(thisWeekLegacy).toContain("isExplicitlyNotCrmOrphan(contact.crmOrphan)");
+    expect(thisWeekCommercial).toContain("truth.actionReady && preferred?.effectivelySendReady");
+    expect(thisWeekCommercial).toContain("bestStakeholder: safeStakeholder");
     expect(emailDigest).toContain("⚠️ VALIDATE FIRST");
     expect(emailDigest).toContain("Exact persisted project link");
     expect(emailDigest).toContain("Recorded context:");
@@ -101,7 +115,7 @@ describe("Issue #86 fail-closed integration", () => {
     expect(emailDigest).not.toContain("getAllContacts()");
     expect(emailDigest).not.toContain("c.project.toLowerCase().includes");
     expect(emailDigest).toContain("Recorded contractor/package entries (participation unverified)");
-    expect(thisWeek).toContain("Recorded contractor/package entries (participation unverified)");
+    expect(thisWeekLegacy).toContain("Recorded contractor/package entries (participation unverified)");
     expect(emailDigest).toContain("if (s.email) section += ` | Email: ${s.email}`");
     expect(emailDigest).not.toContain("🔑 KEY");
   });
