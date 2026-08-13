@@ -1,1 +1,0 @@
-Issue #106 implementation evidence is tracked in the repository issue once created; this placeholder is retained only on the audit branch for traceability and may be removed before merge.
