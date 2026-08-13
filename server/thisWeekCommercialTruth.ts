@@ -64,6 +64,7 @@ export interface PortableAirCommercialTruth {
 }
 
 const BUYER_LANES = new Set(["contractor", "commercial", "technical"]);
+const PACKAGE_HOLDER_ROLES = new Set(["epc", "contractor", "subcontractor"]);
 const GENERIC_ORGANISATION = /^(unknown|various|multiple|none|pending|tba|tbc|tbd|n\/?a|not specified|to be confirmed|not yet awarded|to be appointed|-+)$/i;
 
 function normalise(value: string | null | undefined): string {
@@ -81,9 +82,32 @@ export function isUsablePackageOrganisation(value: string | null | undefined): b
   if (!compact || compact.length < 2 || compact.length > 120) return false;
   if (GENERIC_ORGANISATION.test(compact)) return false;
   if (/https?:\/\/|www\.|<[^>]+>|href\s*=|\{\s*"|\}\s*$/i.test(compact)) return false;
-  if ((compact.match(/[.!?]/g) ?? []).length >= 2) return false;
   if (compact.split(/\s+/).length > 14) return false;
   return /[a-z]/i.test(compact);
+}
+
+function isRecordedBuyingPackageHolder(
+  holder: ProjectBuyerRoute["packageHolders"][number],
+): boolean {
+  if (holder.evidenceState !== "recorded_unverified") return false;
+  if (!isUsablePackageOrganisation(holder.organisation)) return false;
+
+  const role = (holder.recordedRole ?? "").trim().toLowerCase();
+  const status = (holder.recordedStatus ?? "").trim().toLowerCase();
+  const scope = (holder.packageScope ?? "").trim().toLowerCase();
+
+  if (/\b(supplier|vendor|material supplier|service provider|consultant|advisor)\b/i.test(status)) {
+    return false;
+  }
+  if (/\b(supplied|supplies|supply of|materials? supply|rock supply)\b/i.test(scope)) {
+    return false;
+  }
+
+  if (PACKAGE_HOLDER_ROLES.has(role)) return true;
+
+  if (role) return false;
+  if (!/\b(awarded|appointed|contracted|confirmed)\b/i.test(status)) return false;
+  return /\b(contract|epc|construction|civil works?|installation|drilling|commissioning|package|subcontract)\b/i.test(scope);
 }
 
 function combinedText(input: PortableAirCommercialTruthInput): string {
@@ -131,7 +155,6 @@ function classifyApplication(text: string, lane: PortableAirCommercialTruthInput
   const hasDecommissioning = containsAny(text, ["decommissioning", "decommission", "demolition"]);
   const hasElectric = containsAny(text, ["e-air", "electric compressor", "electric portable", "fixed speed", "1000v", "1000 v", "underground electric"]);
 
-  // Specialty and package-specific evidence outranks generic drilling tokens.
   if (hasNitrogen && (hasPipeline || hasCommissioning || hasGasProcessing)) {
     return { application: "Nitrogen purging / inerting / commissioning", airFit: "High", opportunityType: "purging_inerting", bestProductAngle: "N2 Membrane" };
   }
@@ -210,8 +233,6 @@ function routeStatus(
 
   if (values.length > 0 && values.every(value => value <= 600)) return "channel_cea";
 
-  // Generic compressor, construction, blasting and decommissioning demand needs
-  // duty/capacity confirmation before the dashboard asserts direct >600 cfm.
   if (application.airFit === "Low") return "not_relevant";
   return "confirm_product_scope";
 }
@@ -220,9 +241,8 @@ function recordedPackageHolders(dossier: ProjectBuyerRoute | null): string[] {
   if (!dossier) return [];
   return Array.from(new Set(
     dossier.packageHolders
-      .filter(holder => holder.evidenceState === "recorded_unverified")
-      .map(holder => holder.organisation.trim())
-      .filter(isUsablePackageOrganisation),
+      .filter(isRecordedBuyingPackageHolder)
+      .map(holder => holder.organisation.trim()),
   ));
 }
 

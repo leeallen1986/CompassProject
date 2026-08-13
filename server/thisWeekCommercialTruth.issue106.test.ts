@@ -178,7 +178,7 @@ describe("Issue #106 direct-vs-channel boundary", () => {
 
   it("does not let a generic solar construction signal become direct", () => {
     const result = resolvePortableAirCommercialTruth(input({
-      name: "Yindjibarndi Energy Solar Project",
+      name: "Yindjibarindi Energy Solar Project",
       overview: "Solar project construction with general portable compressor requirement.",
       equipmentSignals: ["portable compressor"],
     }));
@@ -244,6 +244,44 @@ describe("Issue #106 timing and buyer route", () => {
     expect(result.recordedPackageHolders).toEqual([]);
     expect(result.buyerStatus).toBe("map_package_holder");
     expect(result.recommendedAction).toBe("map_package_holder");
+  });
+
+  it("does not treat a supplier or source-only confirmed organisation as a buying package holder", () => {
+    const scarboroughLike = dossier({
+      packageHolders: [
+        {
+          ...holder("Boral"),
+          recordedRole: null,
+          recordedStatus: "supplier",
+          packageScope: "Supplied rock for pipeline stabilisation and protection",
+        },
+        {
+          ...holder("Arrow Energy"),
+          recordedRole: null,
+          recordedStatus: "confirmed",
+          packageScope: "Confirmed via ICN Gateway",
+        },
+        {
+          ...holder("Royal Boskalis Westminster N.V."),
+          recordedRole: null,
+          recordedStatus: "awarded",
+          packageScope: "Awarded construction contract for the pipeline",
+        },
+      ],
+      contacts: [contact({ company: "Boral", safe: true })],
+    });
+    const result = resolvePortableAirCommercialTruth(input({
+      name: "Scarborough Energy Project",
+      overview: "Pipeline pressure testing and commissioning package.",
+      equipmentSignals: ["pipeline testing"],
+    }, { dossier: scarboroughLike }));
+
+    expect(result.routeStatus).toBe("direct_proven");
+    expect(result.recordedPackageHolders).toEqual(["Royal Boskalis Westminster N.V."]);
+    expect(result.packageMatchedSafeBuyerCount).toBe(0);
+    expect(result.buyerStatus).toBe("find_buyer");
+    expect(result.recommendedAction).toBe("find_contacts");
+    expect(result.actionReady).toBe(false);
   });
 
   it("does not accept a safe buyer at the wrong organisation", () => {
