@@ -32,14 +32,17 @@ It does not use free-text contact/project matching, provider discovery or the un
 A project is `action_ready` only when it has:
 
 1. credible lane and compressed-air product fit;
-2. at least one recorded package-holder route;
-3. at least one exact-linked contractor, commercial or technical contact;
-4. an effectively send-ready buyer-lane contact;
-5. no card-level unsafe outreach or hidden-evidence conflict.
+2. at least one **non-inferred recorded** contractor/JV/package-holder route;
+3. at least one exact-linked contractor, commercial or technical contact whose recorded organisation matches that package holder;
+4. that package-matched buyer is effectively send-ready under the canonical contact policy;
+5. the This Week card resolves the same safe package-matched buyer when it exposes `view_best` / an email;
+6. no card-level unsafe outreach or hidden-evidence conflict.
+
+Predicted/inferred contractor entries remain useful hypotheses but cannot by themselves make a project action-ready.
 
 ## Output privacy
 
-The JSON, CSV and Markdown outputs intentionally exclude plaintext email addresses. They record only whether the current card exposed an email and whether the matching dossier contact satisfies the effective-send-ready policy.
+The JSON, CSV and Markdown outputs intentionally exclude plaintext email addresses. They record only whether the current card exposed an email, whether the contact satisfies the effective-send-ready policy, and whether the contact is aligned to the recorded package-holder route.
 
 ## Run
 
@@ -55,7 +58,7 @@ pnpm exec tsx server/scripts/ryanPortfolioAudit.ts \
 Outputs:
 
 - `ryan-portfolio-audit.json` — complete machine-readable portfolio and worst-15 set;
-- `ryan-portfolio-audit.csv` — all projects with classifications, metrics and corrections;
+- `ryan-portfolio-audit.csv` — all projects with classifications, package-route metrics and corrections;
 - `ryan-portfolio-audit.md` — management-readable summary and worst 15.
 
 ## Safety boundary
@@ -68,6 +71,6 @@ The audit performs no:
 - provider, LLM or enrichment call;
 - pipeline run or replay;
 - outreach or email send;
-- GitHub or deployment mutation.
+- GitHub or deployment mutation during production execution.
 
 Production execution should be wrapped with the same before/after database fingerprint discipline used by the contact-trust audits.
