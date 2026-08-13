@@ -1,24 +1,19 @@
-name: Issue 86 Ryan portfolio audit
+name: Issue 109 commercial truth
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/issue86-ryan-portfolio-audit.yml"
-      - "docs/issue86-ryan-portfolio-audit.md"
-      - "server/issue86Regression.static.test.ts"
+      - ".github/workflows/issue109-commercial-truth.yml"
       - "server/portableAirCommercialPolicy.ts"
       - "server/portableAirCommercialPolicy.issue109.test.ts"
       - "server/portableAirCommercialPolicy.territory.test.ts"
-      - "server/ryanPortfolioAudit.shared.ts"
-      - "server/ryanPortfolioAudit.shared.test.ts"
-      - "server/ryanPortfolioAudit.ts"
-      - "server/scripts/ryanPortfolioAudit.ts"
+      - "server/thisWeekCommercialFinalGuard.ts"
+      - "server/thisWeekCommercialFinalGuard.test.ts"
       - "server/thisWeekCommercialPolicyService.ts"
       - "server/thisWeekCommercialService.ts"
       - "server/thisWeekCommercialTruth.ts"
       - "server/thisWeekCommercialTruth.issue106.test.ts"
       - "server/thisWeekService.ts"
-      - "vitest.issue86.config.ts"
   workflow_dispatch:
 
 permissions:
@@ -37,8 +32,13 @@ jobs:
           cache: pnpm
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
-      - name: Issue 86 focused tests
-        run: pnpm test:issue86
+      - name: Issue 109 focused tests
+        run: >-
+          pnpm exec vitest run
+          server/portableAirCommercialPolicy.issue109.test.ts
+          server/portableAirCommercialPolicy.territory.test.ts
+          server/thisWeekCommercialFinalGuard.test.ts
+          server/thisWeekCommercialTruth.issue106.test.ts
       - name: TypeScript
         run: pnpm check
       - name: Production build
