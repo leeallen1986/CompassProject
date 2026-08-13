@@ -1,7 +1,8 @@
 import { getUserById } from "./db";
+import { commercialTruthRepName } from "./portableAirCommercialPolicy";
 import {
-  getThisWeekSummary as getCommercialThisWeekSummary,
-} from "./thisWeekCommercialService";
+  getThisWeekSummary as getPolicyThisWeekSummary,
+} from "./thisWeekCommercialPolicyService";
 import {
   getThisWeekSummary as getLegacyThisWeekSummary,
   type SuggestedAction,
@@ -21,28 +22,22 @@ export type {
   UserContext,
 } from "./thisWeekServiceLegacy";
 
-function isRyanPemberton(name: string | null | undefined): boolean {
-  return (name ?? "").trim().toLowerCase() === "ryan pemberton";
-}
-
 /**
- * Issue #106 is intentionally a Ryan-only pilot.
- *
- * Paul/Dan and other sales users remain on the unchanged legacy projection until
- * the same commercial-truth rules have been verified against Ryan's live 15-project
- * set. This prevents a Ryan-specific routing fix from silently changing other reps.
+ * Issue #109 enables the accepted Portable Air commercial-truth chain only for
+ * Ryan Pemberton, Paul Lueth and Dan Day. Other users retain the legacy projection.
  */
 export async function getThisWeekSummary(userId?: number): Promise<ThisWeekSummary> {
   if (!userId) return getLegacyThisWeekSummary(userId);
 
   try {
     const user = await getUserById(userId);
-    if (isRyanPemberton(user?.name)) {
-      return getCommercialThisWeekSummary(userId);
+    const repName = commercialTruthRepName(user?.name);
+    if (repName) {
+      return getPolicyThisWeekSummary(userId, repName);
     }
   } catch (error) {
     console.warn(
-      "[ThisWeekCommercialTruth] Ryan identity lookup failed; using legacy projection",
+      "[ThisWeekCommercialTruth] Rep identity lookup failed; using legacy projection",
       error instanceof Error ? error.message : String(error),
     );
   }
