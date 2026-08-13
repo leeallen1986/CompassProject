@@ -9,6 +9,10 @@ on:
       - "server/ryanPortfolioAudit.shared.test.ts"
       - "server/ryanPortfolioAudit.ts"
       - "server/scripts/ryanPortfolioAudit.ts"
+      - "server/thisWeekCommercialService.ts"
+      - "server/thisWeekCommercialTruth.ts"
+      - "server/thisWeekCommercialTruth.issue106.test.ts"
+      - "server/thisWeekService.ts"
       - "vitest.issue86.config.ts"
   workflow_dispatch:
 
