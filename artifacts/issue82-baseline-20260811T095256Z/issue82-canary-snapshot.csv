@@ -1,0 +1,4 @@
+contactId,name,contactTrustTier,enrichmentSource,emailVerified,verificationStatus,crmOrphan,rawSendReady,effectiveSendReady,failedCanonicalConditions,evidenceTimingClassification,linkedProjectCount
+3180002,"Marina SILVA SANTOS",send_ready,linkedin,0,unverified,0,true,false,"emailVerified_not_true;verificationStatus_not_verified",timing_not_provable_from_available_logs,1
+5700008,"John McCormick",send_ready,linkedin,0,unverified,0,true,false,"emailVerified_not_true;verificationStatus_not_verified",timing_not_provable_from_available_logs,1
+750056,"Jeffery Howard",named_unverified,apollo,0,unverified,0,false,false,"emailVerified_not_true;verificationStatus_not_verified",current_state_consistent_with_certified_demotion,1

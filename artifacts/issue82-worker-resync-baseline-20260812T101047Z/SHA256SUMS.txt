@@ -1,0 +1,7 @@
+99993a711e11bc425f68d76bf8a36a010b6ff9723c85f56cd5f96aca006b2535  ./fingerprint-a/contact-trust-manifest.csv
+1029212cb37354800f58b4273a40a46c429e677b405f6fe5ea7c3ab968df6312  ./fingerprint-a/contact-trust-manifest.draft.json
+8232558f172830859fe124c45f77c23b4a1df1b084a44e0b0139d459b961a4ad  ./fingerprint-a/contact-trust-summary.json
+99993a711e11bc425f68d76bf8a36a010b6ff9723c85f56cd5f96aca006b2535  ./fingerprint-b/contact-trust-manifest.csv
+f942bf5abc15a727dfa88756022caf2aee592971d8fc96130908578d3227e449  ./fingerprint-b/contact-trust-manifest.draft.json
+8232558f172830859fe124c45f77c23b4a1df1b084a44e0b0139d459b961a4ad  ./fingerprint-b/contact-trust-summary.json
+f4cfe65c46201d248232fc37030e95a0234b8b6779594ca73b3a9ecd1557e855  ./issue82-resync-baseline-census.json

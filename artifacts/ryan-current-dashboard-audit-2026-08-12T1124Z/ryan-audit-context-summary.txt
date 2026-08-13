@@ -1,0 +1,41 @@
+DASHBOARD_DIR: artifacts/ryan-current-dashboard-audit-2026-08-12T1124Z
+RYAN_USER_ID: 2340043
+WEEK_LABEL: 2026-08-10
+GENERATED: 2026-08-12T11:24:11.603Z
+TOP_PROJECTS: 15
+TOTAL_IN_SCOPE: 56
+ALL_WA_ACTIVE: 268
+
+=== TOP 15 PROJECTS (ID, Name, Location, Owner, Priority, Sector, Stage, ActionTier, LaneFitLabel, Channel, OpportunityType) ===
+  3390006 | Youanmi Gold Mine Development | Youanmi, WA | Rox Resources | hot | mining | Accelerated Construction | tier1_actionable | High | direct | drilling_blasting
+  2430016 | Madman Project Drill Test | Madman Project, WA | Buxton Resources | hot | mining | Drilling underway | tier1_actionable | High | direct | drilling_blasting
+  2280001 | Hussar Prospect Drilling Campaign | EP513, WA | Georgina Energy | hot | oil_gas | Mobilisation/Drilling Imminent | tier1_actionable | High | direct | drilling_blasting
+  2250001 | Santos Offshore Drilling Program | Offshore, WA | Santos | hot | oil_gas | Contract awarded, pre-mobilisation | tier1_actionable | High | direct | drilling_blasting
+  1380040 | Bellevue Gold Project | WA | Bellevue Gold | hot | mining | Underground mining contract awarded | tier1_actionable | High | direct | drilling_blasting
+  3780038 | Goldfields and Agricultural Water Supply Scheme (G | Goldfields, WA | Water Corporation (for WA Government) | hot | infrastructure | Construction contracts awarded for Stage 1 | tier1_actionable | High | direct | drilling_blasting
+  3780012 | Goldfields Pipeline Upgrade | Goldfields-Wheatbelt, WA | Water Corporation (WA Government) | hot | infrastructure | Stage 1 awarded, construction expected to start late 2026 | tier1_actionable | High | direct | drilling_blasting
+  4140031 | British Hill Gold Project | Southern Cross–Forrestania Greenstone Belt, WA | Forrestania Resources | hot | mining | Exploration drilling completed, Mineral Resource Estimate upgrade pending | tier1_actionable | High | direct | drilling_blasting
+  120229 | Scarborough Gas Project | Offshore WA | Woodside Energy (73.5%), BHP (26.5% - divested to Woodside) | hot | oil_gas | Construction underway | tier1_actionable | High | direct | drilling_blasting
+  4260001 | Scarborough Energy Project | Pilbara, WA | Woodside Energy (75%), BHP (25%) | hot | oil_gas | First gas achieved, targeting first LNG cargo in Q4 2026 | tier1_actionable | High | direct | drilling_blasting
+  1950002 | Mineral Processing Plant Expansion | Pilbara, WA | Unknown | hot | mining | Tenders open for civil, structural, and mechanical contractors | tier1_actionable | High | direct | temporary_plant_air
+  4260016 | Kwinana Freeway Upgrade | Perth, WA | Main Roads WA (jointly funded by Albanese and Cook Labor Governments) | hot | infrastructure | Preferred contractor team confirmed, contract negotiations beginning, detailed design H2 2026, construction early 2027 | tier1_actionable | High | direct | temporary_plant_air
+  1290005 | Yindjibarndi Energy Solar Project | Pilbara, WA | Yindjibarndi Energy Corporation (YEC) | hot | energy | Construction imminent | tier1_actionable | High | direct | temporary_plant_air
+  510033 | Barrow Island Decommissioning Work | Barrow Island, WA | Chevron | hot | oil_gas | Decommissioning | tier1_actionable | High | direct | temporary_plant_air
+  2190005 | Hard Rock Lithium and Tantalum Operation | Pilbara, WA | Unknown | hot | mining | Moving towards construction | tier1_actionable | Medium | direct | generic_construction
+
+=== BUYER DOSSIER SUMMARY (projectId, buyerOrg, routeClassification, contactCount) ===
+  3390006 | buyerOrg=? | route=? | contacts=14
+  2430016 | buyerOrg=? | route=? | contacts=4
+  2280001 | buyerOrg=? | route=? | contacts=1
+  2250001 | buyerOrg=? | route=? | contacts=10
+  1380040 | buyerOrg=? | route=? | contacts=3
+  3780038 | buyerOrg=? | route=? | contacts=7
+  3780012 | buyerOrg=? | route=? | contacts=5
+  4140031 | buyerOrg=? | route=? | contacts=10
+  120229 | buyerOrg=? | route=? | contacts=295
+  4260001 | buyerOrg=? | route=? | contacts=16
+  1950002 | buyerOrg=? | route=? | contacts=2
+  4260016 | buyerOrg=? | route=? | contacts=8
+  1290005 | buyerOrg=? | route=? | contacts=1
+  510033 | buyerOrg=? | route=? | contacts=22
+  2190005 | buyerOrg=? | route=? | contacts=5

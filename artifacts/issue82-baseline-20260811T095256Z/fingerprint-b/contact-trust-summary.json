@@ -1,0 +1,18 @@
+{
+  "totalContacts": 6252,
+  "dispositions": {
+    "safe_keep": 1180,
+    "safe_demote": 1048,
+    "safe_promote": 0,
+    "safe_clear_generated_email": 0,
+    "safe_link_to_project": 0,
+    "manual_review": 2301,
+    "no_change": 1723
+  },
+  "exactGeneratedEmailMatches": 3455,
+  "acceptAllHistoricPromotions": 67,
+  "strongDuplicateContacts": 534,
+  "nameEmployerReviewContacts": 398,
+  "orphanContacts": 16,
+  "deterministicLinkCandidates": 0
+}

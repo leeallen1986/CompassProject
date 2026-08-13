@@ -1,0 +1,16 @@
+{
+  "totalNewSendReady": 6,
+  "allCanonical": true,
+  "newInvalidRawSendReadyCount": 0,
+  "resolvedInvalidRawSendReadyCount": 0,
+  "baselineEffectiveToCurrentInvalidCount": 0,
+  "canaryRegressions": [],
+  "unsafePromotionCount": 0,
+  "historicalInvalidStateImproved": false,
+  "historicalInvalidStateCount": 2166,
+  "threeMisclassifiedContactIds": [
+    630151,
+    780103,
+    810056
+  ]
+}

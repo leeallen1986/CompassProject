@@ -1,0 +1,1808 @@
+{
+  "weekLabel": "2026-08-10",
+  "generatedAt": "2026-08-12T11:21:06.123Z",
+  "userContext": {
+    "territories": [
+      "WA",
+      "OFFSHORE_AU"
+    ],
+    "assignedBusinessLines": [
+      "Portable Air",
+      "PAL",
+      "BESS",
+      "Pump/Dewatering",
+      "Generators",
+      "Nitrogen",
+      "Booster"
+    ],
+    "sectorFocus": [
+      "mining",
+      "oil_gas",
+      "infrastructure",
+      "energy"
+    ],
+    "hasPreferences": true,
+    "scopeResolved": true,
+    "scopeIssue": null,
+    "repName": "Ryan Pemberton"
+  },
+  "topProjects": [
+    {
+      "id": 3390006,
+      "name": "Youanmi Gold Mine Development",
+      "location": "Youanmi, WA",
+      "value": "Undisclosed",
+      "owner": "Rox Resources",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Accelerated Construction",
+      "overview": "Rox Resources is accelerating construction at its flagship Youanmi Gold Mine development after receiving full approvals. The company is targeting its first gold pour by mid-2027.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 85,
+          "detail": "contractor: Monadelphous is a major Australian engineering group, highly active in the WA mining sector, with a strong track record in construction and maintenance for gold and iron ore projects. They have multiple recent contract wins with major miners like Rio Tinto and FMG in WA. (enrichment pass)",
+          "name": "Monadelphous",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 85,
+          "detail": "contractor: NRW is a prominent civil and mining contractor in WA, often involved in early works, earthworks, and mine infrastructure. They have recent contract wins in the Pilbara, WA, indicating strong regional presence and capability. (enrichment pass)",
+          "name": "NRW Civil & Mining",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: Macmahon is a leading mining services company with extensive experience in gold mining operations across Australia, including WA. They have a recent contract win in WA (WASP Western Hill) via Decmil, showing continued activity in the region. (enrichment pass)",
+          "name": "Macmahon",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: MACA is a significant mining and civil contractor in WA, with a strong presence in gold mining projects, offering crushing, earthmoving, and mining services. (enrichment pass)",
+          "name": "MACA",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "subcontractor: Byrnecut is a specialist underground mining contractor. Given it's a gold mine development, underground operations are highly likely, making Byrnecut a strong candidate for specialist mining services. (enrichment pass)",
+          "name": "Byrnecut",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "consultant: Worley is a global engineering, procurement, and construction (EPC) firm with a strong presence in Australia, particularly in mining and resources. They often provide engineering and design services for large-scale mining developments. (enrichment pass)",
+          "name": "Worley",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 35,
+          "detail": "epc: Primero Group (now part of NRW) is an Australian EPC contractor with expertise in mineral processing facilities, particularly for gold projects in WA. While NRW is listed, Primero as a specialist EPC arm is relevant for the processing plant component. (enrichment pass)",
+          "name": "Primero Group",
+          "status": "Predicted"
+        }
+      ],
+      "equipmentSignals": [
+        "portable air compressors for mining",
+        "blast hole drilling",
+        "generators for site power",
+        "dewatering pumps"
+      ],
+      "detectedActivities": [
+        "dewatering",
+        "blasting",
+        "drilling",
+        "mine_development"
+      ],
+      "relevanceScore": 100,
+      "createdAt": "2026-07-13T20:03:19.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: dewatering, blasting, drilling. Strong fit for Portable Air, Pump/Dewatering, Service Potential. Recorded contractor/package entries (participation unverified): Monadelphous, NRW Civil & Mining.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 100
+        },
+        {
+          "name": "Pump/Dewatering",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 99
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Dave Morrow",
+        "title": "Project Manager/Construction Manager",
+        "company": "Worley",
+        "relevance": "medium",
+        "email": "dave.morrow@worley.com",
+        "linkedin": "http://www.linkedin.com/in/dave-morrow-a6948571"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 8,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pump_dewatering",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Dave Morrow",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 2430016,
+      "name": "Madman Project Drill Test",
+      "location": "Madman Project, WA",
+      "value": "Unknown",
+      "owner": "Buxton Resources",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Drilling underway",
+      "overview": "Buxton Resources has commenced its first drill test at the Madman project, targeting a Havieron-style geophysical anomaly.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 85,
+          "detail": "subcontractor: SSH Mining is known for pre-mining services and has recent contract wins in WA for similar early-stage mining work. (enrichment pass)",
+          "name": "SSH Mining",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 85,
+          "detail": "subcontractor: Delta Drilling has a recent contract win in WA for pre-mining activities, specifically drilling, making them a very likely candidate for a 'Drill Test' project. (enrichment pass)",
+          "name": "Delta Drilling",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: Monadelphous is a major Australian engineering group with extensive experience in mining infrastructure and maintenance in WA, often involved in various stages of mining projects. (enrichment pass)",
+          "name": "Monadelphous",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: NRW is a prominent civil and mining contractor in WA, frequently involved in early-stage earthworks and civil infrastructure for mining projects. (enrichment pass)",
+          "name": "NRW Civil & Mining",
+          "status": "Predicted"
+        }
+      ],
+      "equipmentSignals": [
+        "drilling rigs",
+        "portable air compressors"
+      ],
+      "detectedActivities": [
+        "drilling"
+      ],
+      "relevanceScore": 100,
+      "createdAt": "2026-07-01T07:00:40.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: drilling. Strong fit for Portable Air, Service Potential, PAL. Recorded contractor/package entries (participation unverified): SSH Mining, Delta Drilling.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 99
+        },
+        {
+          "name": "Service Potential",
+          "score": 88
+        },
+        {
+          "name": "PAL",
+          "score": 75
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Voula Hatzi",
+        "title": "Operations Manager",
+        "company": "Buxton Resources",
+        "relevance": "medium",
+        "email": "voula.h@buxton.com.au",
+        "linkedin": "http://www.linkedin.com/in/voula-hatzi-97b6341a4"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 4,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Voula Hatzi",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 2280001,
+      "name": "Hussar Prospect Drilling Campaign",
+      "location": "EP513, WA",
+      "value": "Unknown",
+      "owner": "Georgina Energy",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "stage": "Mobilisation/Drilling Imminent",
+      "overview": "Georgina Energy paid a deposit to Ensign Australia for mobilization of the Ensign 970 rig for drilling at the Hussar prospect in exploration permit EP513, onshore Western Australia. The well will be drilled to a depth of 3,200 m, targeting the Townsend Formation and fractured Neoproterozoic basement lithologies for helium, hydrogen and natural gas.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Direct CAPEX",
+      "contractors": [
+        {
+          "confidence": 1,
+          "detail": "Mobilization of Ensign 970 rig",
+          "name": "Ensign Australia",
+          "status": "Awarded"
+        }
+      ],
+      "equipmentSignals": [
+        "Drilling rig mobilization",
+        "Deep well drilling"
+      ],
+      "detectedActivities": [
+        "drilling"
+      ],
+      "relevanceScore": 100,
+      "createdAt": "2026-06-18T20:03:23.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: drilling. Strong fit for Portable Air, Service Potential, PAL. Recorded contractor/package entries (participation unverified): Ensign Australia.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 86
+        },
+        {
+          "name": "PAL",
+          "score": 78
+        }
+      ],
+      "bestStakeholder": null,
+      "suggestedAction": "Run second-pass contact search — no high-relevance contacts",
+      "contactDepth": 1,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Direct CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "find_contacts",
+        "label": "Find Contacts",
+        "reason": "No high-relevance contacts found"
+      }
+    },
+    {
+      "id": 2250001,
+      "name": "Santos Offshore Drilling Program",
+      "location": "Offshore, WA",
+      "value": "Undisclosed",
+      "owner": "Santos",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "stage": "Contract awarded, pre-mobilisation",
+      "overview": "Santos has awarded Transocean a two-well contract for the Transocean Equinox rig for an offshore drilling program in Australia. The work is expected to commence in Q1 2025.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 1,
+          "detail": "Awarded a two-well contract for the Transocean Equinox rig.",
+          "name": "Transocean",
+          "status": "Awarded"
+        }
+      ],
+      "equipmentSignals": [
+        "Drilling rig",
+        "Offshore drilling equipment"
+      ],
+      "detectedActivities": [
+        "drilling"
+      ],
+      "relevanceScore": 100,
+      "createdAt": "2026-06-17T20:03:21.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: drilling. Strong fit for Portable Air, Service Potential, PAL. Recorded contractor/package entries (participation unverified): Transocean.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 96
+        },
+        {
+          "name": "PAL",
+          "score": 78
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Sergio Goimil",
+        "title": "Maintenance Manager",
+        "company": "Santos",
+        "relevance": "medium",
+        "email": "sergio.goimil@santos.com",
+        "linkedin": "http://www.linkedin.com/in/sergio-goimil-82325421"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 4,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": "Santos",
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Sergio Goimil",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 1380040,
+      "name": "Bellevue Gold Project",
+      "location": "WA",
+      "value": "A$850 million",
+      "owner": "Bellevue Gold",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Underground mining contract awarded",
+      "overview": "Bellevue Gold has awarded a four-year, A$850 million contract to Barminco (Perenti's underground mining division) for its Bellevue Gold Project in Western Australia.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 1,
+          "detail": "Secured a four-year contract valued at A$850m ($616m) for the Bellevue Gold Project.",
+          "name": "Barminco (Perenti)",
+          "status": "Awarded underground mining contract"
+        },
+        {
+          "confidence": 0.9,
+          "detail": "Contractor (Projectory)",
+          "name": "article-id=\"38297\"",
+          "status": "confirmed"
+        }
+      ],
+      "equipmentSignals": [
+        "Portable compressors (for underground mining, drilling, blasting, shotcrete)",
+        "Dewatering pumps",
+        "Lighting towers",
+        "Generators"
+      ],
+      "detectedActivities": [
+        "blasting",
+        "dewatering",
+        "drilling",
+        "shotcrete",
+        "underground_mining"
+      ],
+      "relevanceScore": 100,
+      "createdAt": "2026-05-15T20:35:46.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: blasting, dewatering, drilling. Strong fit for Portable Air, Pump/Dewatering, Service Potential. Recorded contractor/package entries (participation unverified): Barminco (Perenti), article-id=\"38297\".",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 100
+        },
+        {
+          "name": "Pump/Dewatering",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 98
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Brendan Moore",
+        "title": "Contracts & Procurement Manager",
+        "company": "Bellevue Gold",
+        "relevance": "medium",
+        "email": "bmoore@bellevuegold.com.au",
+        "linkedin": "http://www.linkedin.com/in/brendan-moore-5a359933"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 3,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pump_dewatering",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Brendan Moore",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 3780038,
+      "name": "Goldfields and Agricultural Water Supply Scheme (GAWSS) Upgrade",
+      "location": "Goldfields, WA",
+      "value": "$543 million",
+      "owner": "Water Corporation (for WA Government)",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "stage": "Construction contracts awarded for Stage 1",
+      "overview": "The $543 million upgrade of Western Australia's Goldfields and Agricultural Water Supply Scheme (GAWSS) involves replacing 44.5 km of ageing pipeline sections, valve upgrades, and duplication of the Binduli Reservoir. This project aims to increase daily capacity by 7.2 million litres (10%) to meet growing demand from industry and communities and improve reliability. Over $170 million will be spent with WA contractors and subcontractors.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 1,
+          "detail": "Awarded contracts for Stage 1 pipeline replacement",
+          "name": "Georgiou Group",
+          "status": "awarded"
+        },
+        {
+          "confidence": 1,
+          "detail": "Awarded contracts for Stage 1 pipeline replacement",
+          "name": "SRG Global McConnell Dowell Joint Venture",
+          "status": "awarded"
+        }
+      ],
+      "equipmentSignals": [
+        "pipeline construction equipment",
+        "water pumps",
+        "generators (for construction sites)",
+        "portable compressors (for pipeline work, potentially blasting/drilling for reservoir construction)"
+      ],
+      "detectedActivities": [
+        "blasting",
+        "dam_construction",
+        "drilling",
+        "pipeline_construction"
+      ],
+      "relevanceScore": 99,
+      "createdAt": "2026-07-19T21:33:08.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: blasting, dam_construction, drilling. Strong fit for Portable Air, Pump/Dewatering, Service Potential. Recorded contractor/package entries (participation unverified): Georgiou Group, SRG Global McConnell Dowell Joint Venture.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 100
+        },
+        {
+          "name": "Pump/Dewatering",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 96
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Gareth Davie",
+        "title": "Project Director, Construction Manager",
+        "company": "Georgiou Group",
+        "relevance": "medium",
+        "email": "gareth.davie@georgiou.com.au",
+        "linkedin": "http://www.linkedin.com/in/gareth-davie-35110755"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 7,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pump_dewatering",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": "Water Corporation",
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Gareth Davie",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 3780012,
+      "name": "Goldfields Pipeline Upgrade",
+      "location": "Goldfields-Wheatbelt, WA",
+      "value": "$543 million",
+      "owner": "Water Corporation (WA Government)",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "stage": "Stage 1 awarded, construction expected to start late 2026",
+      "overview": "Upgrade of Western Australia’s ageing Goldfields pipeline, including replacement of 44.5km of pipeline, valve upgrades, and duplication of the Binduli Reservoir. This project is part of the Goldfields and Agricultural Water Supply Scheme (GAWSS) upgrade. Construction of the duplicated Binduli Reservoir in Kalgoorlie-Boulder is expected to begin later this year. The project is expected to be delivered over a 70-year timeframe, with Stage 1 works expected to commence in June 2026 and be completed by late 2027.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "name": "Georgiou Group",
+          "status": "Awarded"
+        },
+        {
+          "name": "SRG Global–McConnell Dowell joint venture",
+          "status": "Awarded"
+        }
+      ],
+      "equipmentSignals": [
+        "portable compressors (for pipeline construction, trenchless methods, rock drilling, blasting)",
+        "dewatering pumps (for excavations, pipeline installation)",
+        "generators (for site power, lighting towers)"
+      ],
+      "detectedActivities": [
+        "blasting",
+        "dewatering",
+        "pipeline_construction",
+        "dam_construction",
+        "drilling",
+        "excavation",
+        "trenching"
+      ],
+      "relevanceScore": 99,
+      "createdAt": "2026-07-19T21:31:22.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: blasting, dewatering, pipeline_construction. Strong fit for Portable Air, Pump/Dewatering, Service Potential. Recorded contractor/package entries (participation unverified): Georgiou Group, SRG Global–McConnell Dowell joint venture.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 100
+        },
+        {
+          "name": "Pump/Dewatering",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 99
+        }
+      ],
+      "bestStakeholder": null,
+      "suggestedAction": "Run second-pass contact search — no high-relevance contacts",
+      "contactDepth": 5,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pump_dewatering",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 100,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": "Water Corporation",
+      "contactCTA": {
+        "action": "find_contacts",
+        "label": "Find Contacts",
+        "reason": "No high-relevance contacts found"
+      }
+    },
+    {
+      "id": 4140031,
+      "name": "British Hill Gold Project",
+      "location": "Southern Cross–Forrestania Greenstone Belt, WA",
+      "value": "Unknown",
+      "owner": "Forrestania Resources",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Exploration drilling completed, Mineral Resource Estimate upgrade pending",
+      "overview": "Forrestania Resources has completed an eight-hole, 1858-meter reverse circulation (RC) drilling program at its British Hill gold project. The drilling confirmed high-grade gold extensions both up-dip and at depth. The results will feed into an expansion of the British Hill Mineral Resource Estimate, expected in the coming weeks. Ore from British Hill is already being trucked to the Lake Johnston processing hub.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] subcontractor: Stark Drilling is a Western Australian-owned company with over 30 years of RC drilling experience, specializing in drilling for gold and other resources. Given the project's stage of completed exploration drilling, they are a likely candidate for previous or future drilling campaigns.",
+          "name": "Stark Drilling",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] subcontractor: Drillwest is a leading drilling contractor for the mineral exploration industry in Western Australia, providing state-of-the-art rigs and extensive experience for various drilling techniques.",
+          "name": "Drillwest",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] subcontractor: McKay Drilling is a WA-based drilling company specializing in Reverse Circulation, Hydro, and Diamond Drilling, striving to deliver high-end drilling services to the exploration and mining industries, with extensive regional experience.",
+          "name": "McKay Drilling",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] subcontractor: Hagstrom Drilling is an established force in the West Australian mining sector, delivering diversified drilling expertise for exploration, development, production, and closure.",
+          "name": "Hagstrom Drilling",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] consultant: K-MINE provides mining consulting for Western Australian mineral projects, including gold, covering JORC compliant resource estimation and geological modeling, which is relevant for a project awaiting an MRE upgrade.",
+          "name": "K-MINE",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] consultant: Blue Veldt Geological is a Perth-based geological consulting business offering specialist services to the Western Australian Exploration and Mining Industry, including geological modeling and resource estimation.",
+          "name": "Blue Veldt Geological",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] consultant: Morpheus Minerals is active throughout Australia, working with junior explorers to plan and execute exploration programs, offering geological services and strong technical and operational experience in gold exploration.",
+          "name": "Morpheus Minerals",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] consultant: SJS Geologists is a Perth-based geological consultancy with experienced professionals specializing in mineral systems modeling for gold and other industrial minerals, relevant for resource estimation.",
+          "name": "SJS Geologists",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 55,
+          "detail": "[LLM hypothesis; unverified] consultant: ExploreGeo is a Geophysical Consulting Group based in Perth, Western Australia, providing geophysical consulting and services to the minerals exploration industry, with experience in gold exploration.",
+          "name": "ExploreGeo",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 70,
+          "detail": "[LLM hypothesis; unverified] consultant: Forrestania Resources has engaged Polaris Engineering to undertake staged refurbishment and recommissioning of the Lake Johnston processing facility, which will process ore from British Hill.",
+          "name": "Polaris Engineering",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 35,
+          "detail": "[LLM hypothesis; unverified] supplier: Direct Mining and Industrial is a leading supplier of premier mobile and stationary equipment products and services to the mining industry in Perth and Worldwide, which could supply various equipment for exploration or future development.",
+          "name": "Direct Mining and Industrial",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 35,
+          "detail": "[LLM hypothesis; unverified] supplier: Westate Mining Supplies is a Perth-based company committed to the supply and service of a wide range of quality assured products to the mining industry.",
+          "name": "Westate Mining Supplies",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 35,
+          "detail": "[LLM hypothesis; unverified] supplier: Armstrong Industries is a family-owned and operated West Australian business specializing in small-scale mining equipment.",
+          "name": "Armstrong Industries",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 35,
+          "detail": "[LLM hypothesis; unverified] supplier: Plantman offers equipment and services for mining and earthmoving companies in Perth, providing machinery and support for projects.",
+          "name": "Plantman",
+          "status": "Predicted"
+        }
+      ],
+      "equipmentSignals": [
+        "RC drilling",
+        "gold exploration",
+        "mining lease",
+        "ore trucking"
+      ],
+      "detectedActivities": [
+        "drilling"
+      ],
+      "relevanceScore": 97,
+      "createdAt": "2026-07-26T20:16:54.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: drilling. Strong fit for Portable Air, Rental Influence, Service Potential. Recorded contractor/package entries (participation unverified): Stark Drilling, Drillwest.",
+      "topBusinessLines": [
+        {
+          "name": "Portable Air",
+          "score": 79
+        },
+        {
+          "name": "Rental Influence",
+          "score": 79
+        },
+        {
+          "name": "Service Potential",
+          "score": 69
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Mike Shaw",
+        "title": "Project Manager",
+        "company": "Plantman",
+        "relevance": "medium",
+        "email": "mike.shaw@plantman.com.au",
+        "linkedin": "http://www.linkedin.com/in/mike-shaw-326a1694"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 8,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "High-priority opportunity. Strong Portable Air fit.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 99,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Mike Shaw",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 120229,
+      "name": "Scarborough Gas Project",
+      "location": "Offshore WA",
+      "value": "AUD $16.5 billion (Woodside's share)",
+      "owner": "Woodside Energy (73.5%), BHP (26.5% - divested to Woodside)",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "stage": "Construction underway",
+      "overview": "Development of the Scarborough gas field, located approximately 375 km off the coast of north-west Western Australia, to supply gas to the Pluto LNG facility.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Direct CAPEX",
+      "contractors": [
+        {
+          "confidence": 0.9,
+          "detail": "EPCI for the FPU, subsea umbilicals, flowlines and risers (SURF)",
+          "name": "McDermott International",
+          "status": "Awarded"
+        },
+        {
+          "confidence": 0.9,
+          "detail": "Subsea production system and associated infrastructure",
+          "name": "Saipem",
+          "status": "Awarded"
+        },
+        {
+          "confidence": 0.8,
+          "detail": "Engineering and project management services",
+          "name": "Wood",
+          "status": "Awarded"
+        }
+      ],
+      "equipmentSignals": [
+        "Subsea production systems",
+        "Floating Production Unit (FPU)",
+        "Pipelines",
+        "LNG processing equipment",
+        "Offshore drilling rigs"
+      ],
+      "detectedActivities": [
+        "drilling",
+        "gas_processing"
+      ],
+      "relevanceScore": 97,
+      "createdAt": "2026-02-11T14:52:47.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: drilling, gas_processing. Strong fit for Booster, Nitrogen, Service Potential. Recorded contractor/package entries (participation unverified): McDermott International, Saipem.",
+      "topBusinessLines": [
+        {
+          "name": "Booster",
+          "score": 95
+        },
+        {
+          "name": "Nitrogen",
+          "score": 90
+        },
+        {
+          "name": "Service Potential",
+          "score": 90
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Treeve Andrew",
+        "title": "Engineering Manager",
+        "company": "Worley",
+        "relevance": "high",
+        "email": "treeve.andrew@worley.com",
+        "linkedin": "https://www.linkedin.com/in/treeve-andrew"
+      },
+      "suggestedAction": "Reach out to Treeve Andrew (Engineering Manager) — high-relevance contact",
+      "contactDepth": 7,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Direct CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 95,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Treeve Andrew",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 4260001,
+      "name": "Scarborough Energy Project",
+      "location": "Pilbara, WA",
+      "value": "US$12 billion (total project cost)",
+      "owner": "Woodside Energy (75%), BHP (25%)",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "stage": "First gas achieved, targeting first LNG cargo in Q4 2026",
+      "overview": "Development of the Scarborough natural gas field through new offshore facilities connected by a 430 km pipeline to a second LNG train (Pluto Train 2) at the existing Pluto LNG onshore facility, and modifications to Pluto Train 1. The project aims to produce up to 8 million tonnes per annum (Mtpa) of liquefied natural gas (LNG). First gas from the Scarborough reservoir has been achieved, with first LNG cargo targeted for Q4 2026.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Direct CAPEX",
+      "contractors": [
+        {
+          "confidence": 0.9,
+          "detail": "Awarded construction contract for the pipeline",
+          "name": "Royal Boskalis Westminster N.V.",
+          "status": "awarded"
+        },
+        {
+          "confidence": 0.9,
+          "detail": "Supplied over 350,000 tonnes of rock for pipeline stabilization and protection",
+          "name": "Boral",
+          "status": "supplier"
+        },
+        {
+          "confidence": 0.9,
+          "detail": "Contractor (Projectory)",
+          "name": "//www.projectory.com.au/article/early-civil-award-opens-supplier-pathway-ahead-of-broader-queensland-energy-development\" title=\"Early civil award opens supplier pathway ahead of broader Queensland energy development\">Early civil award opens supplier pathway ahead of broader Queensland energy development",
+          "status": "confirmed"
+        },
+        {
+          "confidence": 0.85,
+          "detail": "Confirmed via ICN Gateway",
+          "name": "Arrow Energy",
+          "status": "confirmed"
+        }
+      ],
+      "equipmentSignals": [
+        "Offshore facilities construction",
+        "Subsea infrastructure",
+        "430 km pipeline installation",
+        "LNG train expansion (Pluto Train 2)",
+        "Pluto Train 1 modifications",
+        "Floating Production Unit (FPU) commissioning",
+        "Subsea production system commissioning",
+        "Drilling of eight wells initially, thirteen over project life"
+      ],
+      "detectedActivities": [
+        "dam_construction",
+        "drilling",
+        "gas_processing",
+        "pipeline_construction"
+      ],
+      "relevanceScore": 96,
+      "createdAt": "2026-07-29T20:02:21.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: dam_construction, drilling, gas_processing. Strong fit for Service Potential, Nitrogen, Booster. Recorded contractor/package entries (participation unverified): Royal Boskalis Westminster N.V., Boral.",
+      "topBusinessLines": [
+        {
+          "name": "Service Potential",
+          "score": 98
+        },
+        {
+          "name": "Nitrogen",
+          "score": 93
+        },
+        {
+          "name": "Booster",
+          "score": 93
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Milan Kovac",
+        "title": "Construction Manager",
+        "company": "Woodside Energy (75%)",
+        "relevance": "medium",
+        "email": "milan.kovac@woodside.com.au",
+        "linkedin": "http://www.linkedin.com/in/milan-kovac-9a529b70"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 10,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "High-priority opportunity. Strong Portable Air fit.",
+      "routeToBuy": "Direct sale via contractor — Direct CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 99,
+      "airFit": "High",
+      "opportunityType": "drilling_blasting",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Milan Kovac",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 1950002,
+      "name": "Mineral Processing Plant Expansion",
+      "location": "Pilbara, WA",
+      "value": "Unknown",
+      "owner": "Unknown",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Tenders open for civil, structural, and mechanical contractors",
+      "overview": "Fully funded mineral processing plant expansion in the Pilbara with tenders open for civil, structural, and mechanical contractors.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 85,
+          "detail": "contractor: Monadelphous is a major Australian engineering group with extensive experience in mineral processing plant construction and maintenance in the Pilbara, including recent Rio Tinto maintenance contracts. They are strong in mechanical and structural work. (enrichment pass)",
+          "name": "Monadelphous",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 85,
+          "detail": "contractor: NRW has a strong presence in the Pilbara, demonstrated by their recent WASP Deposit H project win. They are highly capable of civil works for mineral processing plants. (enrichment pass)",
+          "name": "NRW Civil & Mining",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: MACA is a significant mining and civil contractor in WA, often involved in large-scale resource projects, including civil and earthworks for processing plants. (enrichment pass)",
+          "name": "MACA",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: Macmahon, through its acquisition of Decmil's mining assets, has a strong track record in WA mining infrastructure, including processing plant related works. They recently won WASP Western Hill. (enrichment pass)",
+          "name": "Macmahon",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: Primero is an Australian engineering and construction company specialising in mineral processing facilities, often acting as an EPC or EPCM contractor for such projects in WA. (enrichment pass)",
+          "name": "Primero Group",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "epc: GRES is an Australian engineering and construction company with extensive experience in the design and construction of mineral processing plants, often operating on an EPC or EPCM basis. (enrichment pass)",
+          "name": "GR Engineering Services (GRES)",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "consultant: Worley is a global engineering firm with a significant presence in Australia, providing engineering, procurement, and construction management services for large-scale mining and mineral processing projects in WA. (enrichment pass)",
+          "name": "Worley",
+          "status": "Predicted"
+        }
+      ],
+      "equipmentSignals": [
+        "portable compressors for construction",
+        "generators for site power",
+        "lighting towers for night works"
+      ],
+      "detectedActivities": [
+        "mineral_processing"
+      ],
+      "relevanceScore": 91,
+      "createdAt": "2026-06-09T20:04:02.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: mineral_processing. Strong fit for Service Potential, Generators, Portable Air. Recorded contractor/package entries (participation unverified): Monadelphous, NRW Civil & Mining.",
+      "topBusinessLines": [
+        {
+          "name": "Service Potential",
+          "score": 91
+        },
+        {
+          "name": "Generators",
+          "score": 73
+        },
+        {
+          "name": "Portable Air",
+          "score": 72
+        }
+      ],
+      "bestStakeholder": null,
+      "suggestedAction": "Run second-pass contact search — no high-relevance contacts",
+      "contactDepth": 2,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Live tender — decision window open. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 84,
+      "airFit": "Medium",
+      "opportunityType": "temporary_plant_air",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "why_no_contacts",
+        "label": "Why no contacts?",
+        "blockedReason": "Owner field is garbage data — cannot infer domain"
+      }
+    },
+    {
+      "id": 4260016,
+      "name": "Kwinana Freeway Upgrade",
+      "location": "Perth, WA",
+      "value": "$700 million",
+      "owner": "Main Roads WA (jointly funded by Albanese and Cook Labor Governments)",
+      "priority": "hot",
+      "sector": "infrastructure",
+      "stage": "Preferred contractor team confirmed, contract negotiations beginning, detailed design H2 2026, construction early 2027",
+      "overview": "Major upgrades to Perth's Kwinana Freeway between Roe Highway and Safety Bay Road are progressing, with a preferred proponent consortium appointed. The $700 million project will add new lanes, coordinated ramp signals, and upgrade median and verge barriers to ease congestion and improve safety.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 1,
+          "detail": "Part of the consortium for the Kwinana Freeway Upgrade.",
+          "name": "CPB Contractors",
+          "status": "Preferred Proponent"
+        },
+        {
+          "confidence": 1,
+          "detail": "Part of the consortium for the Kwinana Freeway Upgrade.",
+          "name": "McConnell Dowell Constructors",
+          "status": "Preferred Proponent"
+        },
+        {
+          "confidence": 1,
+          "detail": "Part of the consortium for the Kwinana Freeway Upgrade.",
+          "name": "Arup Australia Projects",
+          "status": "Preferred Proponent"
+        },
+        {
+          "confidence": 1,
+          "detail": "Part of the consortium for the Kwinana Freeway Upgrade.",
+          "name": "Jacobs Group",
+          "status": "Preferred Proponent"
+        },
+        {
+          "confidence": 0.9,
+          "detail": "Contractor (Projectory)",
+          "name": "article-id=\"40476\"",
+          "status": "confirmed"
+        }
+      ],
+      "equipmentSignals": [
+        "portable compressors (road construction, civil works)",
+        "power generators",
+        "lighting towers"
+      ],
+      "detectedActivities": [
+        "road_construction"
+      ],
+      "relevanceScore": 90,
+      "createdAt": "2026-07-29T20:04:09.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: road_construction. Strong fit for PAL, Rental Influence, Portable Air. Recorded contractor/package entries (participation unverified): CPB Contractors, McConnell Dowell Constructors.",
+      "topBusinessLines": [
+        {
+          "name": "PAL",
+          "score": 92
+        },
+        {
+          "name": "Rental Influence",
+          "score": 82
+        },
+        {
+          "name": "Portable Air",
+          "score": 80
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Andrew Thompson",
+        "title": "Mining Manager",
+        "company": "CPB Contractors",
+        "relevance": "medium",
+        "email": "andrew.thompson@cpbcon.com.au",
+        "linkedin": "http://www.linkedin.com/in/andrew-thompson-61a00245"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 6,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_portable_air",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 84,
+      "airFit": "Medium",
+      "opportunityType": "temporary_plant_air",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Andrew Thompson",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 1290005,
+      "name": "Yindjibarndi Energy Solar Project",
+      "location": "Pilbara, WA",
+      "value": "Undisclosed",
+      "owner": "Yindjibarndi Energy Corporation (YEC)",
+      "priority": "hot",
+      "sector": "energy",
+      "stage": "Construction imminent",
+      "overview": "Construction is set to begin on one of Australia’s largest Indigenous-led renewable energy projects after the developer locked in a long-term energy offtake deal with mining giant Rio Tinto. This project involves a significant solar power generation facility.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Direct CAPEX",
+      "contractors": [
+        {
+          "confidence": 0.85,
+          "detail": "Confirmed via ICN Gateway",
+          "name": "Arrow Energy",
+          "status": "confirmed"
+        }
+      ],
+      "equipmentSignals": [
+        "portable compressors for construction",
+        "generators for site power",
+        "lighting towers for night work",
+        "battery energy storage systems for grid stability"
+      ],
+      "detectedActivities": [
+        "renewable_energy_install"
+      ],
+      "relevanceScore": 81,
+      "createdAt": "2026-05-12T09:06:04.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: renewable_energy_install. Strong fit for BESS, PAL, Generators. Recorded contractor/package entries (participation unverified): Arrow Energy.",
+      "topBusinessLines": [
+        {
+          "name": "BESS",
+          "score": 100
+        },
+        {
+          "name": "PAL",
+          "score": 89
+        },
+        {
+          "name": "Generators",
+          "score": 84
+        }
+      ],
+      "bestStakeholder": null,
+      "suggestedAction": "Run second-pass contact search — no high-relevance contacts",
+      "contactDepth": 1,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Direct CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 68,
+      "airFit": "Medium",
+      "opportunityType": "temporary_plant_air",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "find_contacts",
+        "label": "Find Contacts",
+        "reason": "No high-relevance contacts found"
+      }
+    },
+    {
+      "id": 510033,
+      "name": "Barrow Island Decommissioning Work",
+      "location": "Barrow Island, WA",
+      "value": "Unknown",
+      "owner": "Chevron",
+      "priority": "hot",
+      "sector": "oil_gas",
+      "stage": "Decommissioning",
+      "overview": "Chevron has contracted Bhagwan Marine for decommissioning work at Barrow Island. Bhagwan Marine is also expanding its operations.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 1,
+          "detail": "Contracted by Chevron for decommissioning work.",
+          "name": "Bhagwan Marine",
+          "status": "Awarded"
+        }
+      ],
+      "equipmentSignals": [
+        "Portable compressors",
+        "Dewatering pumps",
+        "Generators",
+        "Lighting towers"
+      ],
+      "detectedActivities": [
+        "dewatering"
+      ],
+      "relevanceScore": 79,
+      "createdAt": "2026-03-26T04:17:54.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: dewatering. Strong fit for Pump/Dewatering, Service Potential, Rental Influence. Recorded contractor/package entries (participation unverified): Bhagwan Marine.",
+      "topBusinessLines": [
+        {
+          "name": "Pump/Dewatering",
+          "score": 100
+        },
+        {
+          "name": "Service Potential",
+          "score": 94
+        },
+        {
+          "name": "Rental Influence",
+          "score": 79
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Damir Issagulov",
+        "title": "Capital Projects & Facilities Engineering Manager at Chevron",
+        "company": "Chevron",
+        "relevance": "high",
+        "email": "damir.issagulov@chevron.com",
+        "linkedin": "http://www.linkedin.com/in/damir-issagulov-49648066"
+      },
+      "suggestedAction": "Reach out to Damir Issagulov (Capital Projects & Facilities Engineering Manager at Chevron) — high-relevance contact",
+      "contactDepth": 5,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "High",
+      "channel": "direct",
+      "whyNow": "Commissioning phase — final equipment procurement. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "high_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 68,
+      "airFit": "Medium",
+      "opportunityType": "temporary_plant_air",
+      "bestProductAngle": "Compressor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Damir Issagulov",
+        "trustTier": "named_unverified"
+      }
+    },
+    {
+      "id": 2190005,
+      "name": "Hard Rock Lithium and Tantalum Operation",
+      "location": "Pilbara, WA",
+      "value": "Unknown",
+      "owner": "Unknown",
+      "priority": "hot",
+      "sector": "mining",
+      "stage": "Moving towards construction",
+      "overview": "A 20-year hard rock lithium and tantalum operation in the Pilbara is advancing towards its full construction program, including processing, hybrid power, and bulk earthworks scopes.",
+      "actionTier": "tier1_actionable",
+      "tierLabel": "Tier 1 — Actionable",
+      "isNew": true,
+      "opportunityRoute": "Fleet CAPEX",
+      "contractors": [
+        {
+          "confidence": 85,
+          "detail": "contractor: Monadelphous is a major Australian engineering group with extensive experience in the Pilbara region, particularly in mining infrastructure and processing facilities, making them a strong candidate for a hard rock lithium and tantalum operation. (enrichment pass)",
+          "name": "Monadelphous",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 85,
+          "detail": "contractor: NRW has a significant presence in the Pilbara, with recent wins like the WASP Deposit H project. They are highly capable of undertaking the civil and mining infrastructure works required for such an operation. (enrichment pass)",
+          "name": "NRW Civil & Mining",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 85,
+          "detail": "contractor: Macmahon is a leading mining services company with strong capabilities in hard rock mining, including open pit and underground operations, and has a track record in WA, including the WASP Western Hill project (via Decmil, which they acquired). (enrichment pass)",
+          "name": "Macmahon",
+          "status": "Confirmed"
+        },
+        {
+          "confidence": 60,
+          "detail": "contractor: MACA is a well-established mining and civil contractor in Western Australia, with experience in bulk earthworks, crushing, and mining services, which would be relevant for a new hard rock operation. (enrichment pass)",
+          "name": "MACA",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "subcontractor: If the operation involves underground mining, Byrnecut is a specialist underground mining contractor with extensive experience in hard rock projects across Australia, including WA. (enrichment pass)",
+          "name": "Byrnecut",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "consultant: Worley is a global engineering, procurement, and construction (EPC) firm with a strong presence in Australia, offering design and engineering services for mining and minerals processing projects. (enrichment pass)",
+          "name": "Worley",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "epc: Primero Group (now part of NRW) specializes in the design, construction, and operation of minerals processing facilities, particularly in the lithium sector in WA, making them a strong EPC candidate. (enrichment pass)",
+          "name": "Primero Group",
+          "status": "Predicted"
+        },
+        {
+          "confidence": 60,
+          "detail": "consultant: Ausenco is a global company providing engineering, procurement, project management, and operations solutions to the mining and minerals sector, with significant experience in hard rock projects. (enrichment pass)",
+          "name": "Ausenco",
+          "status": "Predicted"
+        }
+      ],
+      "equipmentSignals": [
+        "Processing equipment",
+        "Hybrid power solutions",
+        "Bulk earthworks machinery"
+      ],
+      "detectedActivities": [
+        "excavation",
+        "earthmoving"
+      ],
+      "relevanceScore": 75,
+      "createdAt": "2026-06-15T20:04:07.000Z",
+      "whyItMatters": "Active-stage project ready for equipment decisions. Site activities: excavation, earthmoving. Strong fit for Pump/Dewatering, PAL, Generators. Recorded contractor/package entries (participation unverified): Monadelphous, NRW Civil & Mining.",
+      "topBusinessLines": [
+        {
+          "name": "Pump/Dewatering",
+          "score": 89
+        },
+        {
+          "name": "PAL",
+          "score": 84
+        },
+        {
+          "name": "Generators",
+          "score": 84
+        }
+      ],
+      "bestStakeholder": {
+        "name": "Lee Thompson",
+        "title": "General Manager - Operations and Maintenance",
+        "company": "Primero Group",
+        "relevance": "medium",
+        "email": "lee.thompson@primero.com.au",
+        "linkedin": "http://www.linkedin.com/in/lee-thompson-a178644"
+      },
+      "suggestedAction": "Review project details and assess opportunity",
+      "contactDepth": 5,
+      "suggestedStakeholders": [],
+      "scopeReason": "WA + Portable Air match",
+      "laneMatch": true,
+      "laneFitLabel": "Medium",
+      "channel": "direct",
+      "whyNow": "Awarded and mobilising — equipment decisions imminent. High-priority opportunity.",
+      "routeToBuy": "Direct sale via contractor — Fleet CAPEX",
+      "bestNextMove": "Contact the contractor directly — procurement contact needed",
+      "reasonCodes": [
+        "territory_match",
+        "hot_priority",
+        "medium_lane_fit",
+        "crosssell_pal",
+        "direct_capex_signal",
+        "sales_motion_bonus_10",
+        "no_contacts",
+        "contractor_known"
+      ],
+      "visibilityTier": "must_act_candidate",
+      "laneScore": 54,
+      "airFit": "Low",
+      "opportunityType": "generic_construction",
+      "bestProductAngle": "Monitor",
+      "matchedAccountPrior": null,
+      "contactCTA": {
+        "action": "view_best",
+        "label": "View Best Contacts",
+        "contactName": "Lee Thompson",
+        "trustTier": "named_unverified"
+      }
+    }
+  ],
+  "newStakeholders": [],
+  "stageChanges": [
+    {
+      "projectId": 4500005,
+      "projectName": "REF12264 — Department of Climate Change, Energy, the Environment and Water",
+      "location": "VIC, Australia",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 1 — Actionable",
+      "stage": "Awarded — Active Contract",
+      "priority": "cold",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4500004,
+      "projectName": "5600004861 — Australian Taxation Office",
+      "location": "NSW, Australia",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 1 — Actionable",
+      "stage": "Awarded — Active Contract",
+      "priority": "warm",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4500003,
+      "projectName": "5600004828 — Australian Taxation Office",
+      "location": "QLD, Australia",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 1 — Actionable",
+      "stage": "Awarded — Active Contract",
+      "priority": "warm",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4500002,
+      "projectName": "4600094808 — Department of Defence",
+      "location": "NSW, Australia",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 1 — Actionable",
+      "stage": "Awarded — Active Contract",
+      "priority": "cold",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4500001,
+      "projectName": "4600094809 — Department of Defence",
+      "location": "NSW, Australia",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 1 — Actionable",
+      "stage": "Awarded — Active Contract",
+      "priority": "cold",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4380004,
+      "projectName": "Goldwind's Integrated Wind Turbine Battery Strategy (Coppabella Wind Farm)",
+      "location": "Southern Tablelands, NSW",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 2 — Warm",
+      "stage": "Application to include BESS at 53 turbine locations",
+      "priority": "hot",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4380001,
+      "projectName": "Establishment of Dilak Council and Repurposing of Gove Peninsula Port Facilities",
+      "location": "Gove Peninsula, NT",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 2 — Warm",
+      "stage": "Early stage, announced at Garma Festival 2026, seeking federal funding",
+      "priority": "warm",
+      "isUpgrade": true
+    },
+    {
+      "projectId": 4260029,
+      "projectName": "Beetaloo Basin Gas Development for Grid-Scale Projects",
+      "location": "Beetaloo Basin, NT",
+      "previousTier": "New Entry",
+      "currentTier": "Tier 2 — Warm",
+      "stage": "Planning/Development",
+      "priority": "warm",
+      "isUpgrade": true
+    }
+  ],
+  "suggestedActions": [
+    {
+      "type": "tier1_new",
+      "priority": "high",
+      "title": "New Tier 1 opportunity: Youanmi Gold Mine Development",
+      "description": "Youanmi, WA — Undisclosed. Stage: Accelerated Construction. No high-relevance contacts found yet — consider running stakeholder discovery.",
+      "projectId": 3390006,
+      "projectName": "Youanmi Gold Mine Development",
+      "actionKey": "tier1_new:3390006:0"
+    },
+    {
+      "type": "tier1_new",
+      "priority": "high",
+      "title": "New Tier 1 opportunity: Madman Project Drill Test",
+      "description": "Madman Project, WA — Unknown. Stage: Drilling underway. No high-relevance contacts found yet — consider running stakeholder discovery.",
+      "projectId": 2430016,
+      "projectName": "Madman Project Drill Test",
+      "actionKey": "tier1_new:2430016:0"
+    },
+    {
+      "type": "tier1_new",
+      "priority": "high",
+      "title": "New Tier 1 opportunity: Hussar Prospect Drilling Campaign",
+      "description": "EP513, WA — Unknown. Stage: Mobilisation/Drilling Imminent. No high-relevance contacts found yet — consider running stakeholder discovery.",
+      "projectId": 2280001,
+      "projectName": "Hussar Prospect Drilling Campaign",
+      "actionKey": "tier1_new:2280001:0"
+    },
+    {
+      "type": "contact_validation",
+      "priority": "high",
+      "title": "Validate Indira S. before outreach",
+      "description": "An exact persisted project link exists, but the contact is not send-ready. Validate the mailbox and recorded employment context before outreach; do not run duplicate stakeholder discovery.",
+      "projectId": 2250001,
+      "projectName": "Santos Offshore Drilling Program",
+      "contactId": 3180003,
+      "contactName": "Indira S.",
+      "actionKey": "contact_validation:2250001:3180003"
+    },
+    {
+      "type": "contact_validation",
+      "priority": "high",
+      "title": "Validate Koa Johnson before outreach",
+      "description": "An exact persisted project link exists, but the contact is not send-ready. Validate the mailbox and recorded employment context before outreach; do not run duplicate stakeholder discovery.",
+      "projectId": 3780038,
+      "projectName": "Goldfields and Agricultural Water Supply Scheme (GAWSS) Upgrade",
+      "contactId": 5700040,
+      "contactName": "Koa Johnson",
+      "actionKey": "contact_validation:3780038:5700040"
+    },
+    {
+      "type": "high_value",
+      "priority": "high",
+      "title": "High-value hot opportunity: Scarborough Energy Project",
+      "description": "Pilbara, WA — US$12 billion (total project cost). Site activities: dam_construction, drilling, gas_processing. Consider adding to your pipeline.",
+      "projectId": 4260001,
+      "projectName": "Scarborough Energy Project",
+      "actionKey": "high_value:4260001:0"
+    },
+    {
+      "type": "high_value",
+      "priority": "medium",
+      "title": "High-value hot opportunity: Goldfields Pipeline Upgrade",
+      "description": "Goldfields-Wheatbelt, WA — $543 million. Site activities: blasting, dewatering, pipeline_construction. Consider adding to your pipeline.",
+      "projectId": 3780012,
+      "projectName": "Goldfields Pipeline Upgrade",
+      "actionKey": "high_value:3780012:0"
+    },
+    {
+      "type": "high_value",
+      "priority": "medium",
+      "title": "High-value hot opportunity: British Hill Gold Project",
+      "description": "Southern Cross–Forrestania Greenstone Belt, WA — Unknown. Site activities: drilling. Consider adding to your pipeline.",
+      "projectId": 4140031,
+      "projectName": "British Hill Gold Project",
+      "actionKey": "high_value:4140031:0"
+    }
+  ],
+  "lastSuccessfulPipelineRun": "2026-08-11T20:23:30.000Z",
+  "dataFreshnessWarning": null,
+  "stats": {
+    "totalProjects": 786,
+    "totalInScope": 56,
+    "tier1Count": 30,
+    "tier2Count": 26,
+    "tier3Count": 0,
+    "hotCount": 31,
+    "warmCount": 23,
+    "newProjectsThisWeek": 56,
+    "newContactsThisWeek": 0,
+    "highRelevanceContacts": 29,
+    "projectsWithContractors": 50,
+    "projectsMissingContractors": 6,
+    "actionReadyCount": 11,
+    "needDiscoveryCount": 3,
+    "closingSoonCount": 0
+  }
+}

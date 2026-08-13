@@ -1,0 +1,17 @@
+{
+  "newInvalidRawSendReadyIds": [],
+  "newInvalidRawSendReadyCount": 0,
+  "resolvedInvalidRawSendReadyIds": [
+    630151,
+    780103,
+    810056
+  ],
+  "resolvedInvalidRawSendReadyCount": 3,
+  "unchangedInvalidRawSendReadyCount": 2163,
+  "baselineEffectiveToCurrentInvalidIds": [],
+  "baselineInvalidNowEffectiveIds": [
+    630151,
+    780103,
+    810056
+  ]
+}

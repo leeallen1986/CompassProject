@@ -1,0 +1,25 @@
+{
+  "fingerprintA": {
+    "generatedAt": "2026-08-11T09:53:28.359Z",
+    "manifestSha256": "e7026c98742ee5144110ea1502e6b173f7dd438536bc5ae9f8ae44ab97294b3b",
+    "summarySha256": "dd658c4e468ca118f3b4621001da94c8345caf04bf8f44eb0cbab0bf10f23a75"
+  },
+  "fingerprintB": {
+    "generatedAt": "2026-08-11T10:07:53.094Z",
+    "manifestSha256": "4a475e3dca960dd7ab8e85d5538d2ea16a74eb0072f1e9b57a896e89cdda2e0d",
+    "summarySha256": "dd658c4e468ca118f3b4621001da94c8345caf04bf8f44eb0cbab0bf10f23a75"
+  },
+  "comparison": {
+    "databaseIdentityMatch": true,
+    "databaseFingerprintMatch": true,
+    "rowCountMatch": true,
+    "allRecordHashesMatch": true,
+    "allContactIdsMatch": true,
+    "allDispositionsMatch": true,
+    "allExpectedAfterMatch": true,
+    "summaryJsonMatch": true,
+    "manifestJsonDifferenceExplanation": "Only generatedAt timestamp differs (expected for time-stamped artifacts)",
+    "dataEquality": true
+  },
+  "ZERO_CHANGE_CONFIRMED": true
+}

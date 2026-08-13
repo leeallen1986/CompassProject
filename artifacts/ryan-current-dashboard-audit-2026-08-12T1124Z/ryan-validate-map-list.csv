@@ -1,0 +1,6 @@
+rank,projectId,projectName,location,owner,disposition,actionReason,contactTeamStatus,totalContacts,effectiveSendReady
+3,2280001,Hussar Prospect Drilling Campaign,"EP513, WA",Georgina Energy,KEEP_VALIDATE_CONTACT,no_effective_send_ready_contact,CONTACTS_UNVERIFIED,1,0
+7,3780012,Goldfields Pipeline Upgrade,"Goldfields-Wheatbelt, WA",Water Corporation (WA Government),KEEP_VALIDATE_CONTACT,no_effective_send_ready_contact,CONTACTS_UNVERIFIED,5,0
+11,1950002,Mineral Processing Plant Expansion,"Pilbara, WA",Unknown,KEEP_VALIDATE_CONTACT,no_effective_send_ready_contact,CONTACTS_UNVERIFIED,2,0
+13,1290005,Yindjibarndi Energy Solar Project,"Pilbara, WA",Yindjibarndi Energy Corporation (YEC),KEEP_VALIDATE_CONTACT,no_effective_send_ready_contact,CONTACTS_UNVERIFIED,1,0
+15,2190005,Hard Rock Lithium and Tantalum Operation,"Pilbara, WA",Unknown,KEEP_CONFIRM_PRODUCT_SCOPE,product_fit_unproven,PRIMARY_BUYER_ONLY,5,3

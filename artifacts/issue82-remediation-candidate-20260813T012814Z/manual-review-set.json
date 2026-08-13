@@ -1,0 +1,3296 @@
+{
+  "phase": "4_manual_review",
+  "count": 414,
+  "rows": [
+    {
+      "contactId": 750004,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870002,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 870351,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870352,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870353,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870357,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 870358,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 870359,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870360,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870361,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 870561,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 870562,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 870563,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 870564,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 870750,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 871212,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 871751,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 871756,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 871761,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872290,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 872361,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872362,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872426,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 872432,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 872718,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 872813,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872814,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872817,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872818,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872822,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872825,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 872947,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 872971,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 873023,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873186,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873193,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873211,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873212,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873213,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873214,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873215,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873216,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873217,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873218,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873220,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873221,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873222,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873223,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873224,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873225,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873226,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873227,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873228,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873230,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873232,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873233,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873234,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873235,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873236,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873237,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873238,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873239,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873240,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873246,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873247,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873248,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873250,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873251,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873252,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873255,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873256,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873257,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873258,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873260,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873265,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873266,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873267,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873287,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873288,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873290,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873291,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873292,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873295,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873296,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873297,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873298,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873299,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873300,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873302,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873305,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873306,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873307,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873310,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873311,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873312,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873313,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873315,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873316,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873318,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873319,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873320,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873321,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873322,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873323,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873325,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873326,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873328,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873336,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873356,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873358,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873359,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873360,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873367,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873369,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873370,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873371,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873372,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873373,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873376,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873377,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873383,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873391,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873393,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873395,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873396,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873399,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873520,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873912,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873916,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873917,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873918,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 873927,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873931,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873934,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873935,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873952,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 873996,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 874002,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 874005,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 874077,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 874102,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 874270,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874271,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874275,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874340,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874341,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874544,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 874547,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874548,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874549,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874550,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874551,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874552,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874553,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874554,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874555,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874556,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874557,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874558,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874559,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874561,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874563,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874564,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874565,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874566,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874570,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874579,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874662,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874663,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874715,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 874978,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 874980,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875137,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 875180,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 875200,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 875461,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875462,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875464,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875465,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875469,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875470,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875471,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875472,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875735,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 875736,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 875737,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 875775,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 875931,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 875932,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876148,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876150,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876212,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 876611,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 876612,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 876720,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876722,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876756,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876761,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876763,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 876793,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 877219,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 877339,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 877340,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 877880,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 877884,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 877886,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 877891,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 877906,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 877923,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 877924,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 878288,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 878289,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 878297,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 878330,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 878331,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 878966,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 878967,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 878970,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879163,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879164,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879165,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879166,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879167,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879168,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879202,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 879222,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 879298,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879299,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879301,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879302,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 879320,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 879324,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 879336,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 880586,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 880587,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 881233,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 881234,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 881657,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 882197,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882198,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882199,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882200,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882201,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882203,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882205,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882206,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882207,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882208,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882210,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882211,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882213,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882216,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882219,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882220,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882221,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882222,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882474,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882476,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882481,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882489,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 882499,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882500,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882762,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882763,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 882764,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883285,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883287,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883347,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 883459,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883460,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883475,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 883558,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 883746,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883747,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883748,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883778,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883780,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883782,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883783,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883786,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883787,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883788,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883794,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883796,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883931,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883933,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 883935,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 884719,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 884814,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 884863,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 885067,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 885068,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 885237,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 885346,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 885347,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 885348,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 885349,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 885354,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 886215,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 886218,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 886997,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 887153,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 887162,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 887198,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 887201,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 887717,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 888144,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 888145,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 888247,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 888248,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 888249,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 888250,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 888253,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 888556,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 888569,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 888671,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 889271,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 889272,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890000,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890001,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890004,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890005,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890006,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890008,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890009,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890010,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890015,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890059,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890060,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890061,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890085,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890086,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890087,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 890088,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 890331,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890334,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890338,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890340,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890341,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890342,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890597,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890598,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890601,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890783,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890784,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890865,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 890868,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 891518,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 891527,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 891747,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 891979,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 892120,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 892121,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 892458,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 892460,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 892475,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 892476,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate",
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 892540,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 893266,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893267,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893355,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893356,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893393,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893394,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893395,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893404,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893405,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893410,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893411,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893412,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893425,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893427,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893430,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893435,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893436,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893437,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893439,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893440,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893441,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893442,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893443,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893444,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893445,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893446,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893447,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 893471,
+      "cohort": "F",
+      "disposition": "safe_keep",
+      "reviewFlags": []
+    },
+    {
+      "contactId": 894161,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894162,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894163,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894669,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894670,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894971,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894972,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 894973,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895541,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895544,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895545,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895546,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895548,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895549,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895553,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895554,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895736,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895741,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895742,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895763,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895764,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895765,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 895766,
+      "cohort": "F",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "duplicate_name_employer_candidate"
+      ]
+    },
+    {
+      "contactId": 1530044,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 2100085,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 2100087,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 2340053,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    },
+    {
+      "contactId": 2340055,
+      "cohort": "D",
+      "disposition": "manual_review",
+      "reviewFlags": [
+        "strong_duplicate_identity"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+[
+  {
+    "contactId": 3180002,
+    "found": true,
+    "name": "Marina SILVA SANTOS",
+    "title": "Project Manager",
+    "company": "Santos",
+    "maskedEmail": "ma***@santos.com.au",
+    "emailHash": "5a037be7efa1e3bfa56cb85451c3b0a3923127e4006a15420d94424d1a24c4fc",
+    "contactTrustTier": "send_ready",
+    "enrichmentSource": "linkedin",
+    "source": "scraper",
+    "emailVerified": 0,
+    "verificationStatus": "unverified",
+    "verificationScore": 0,
+    "rejectionReason": null,
+    "crmOrphan": 0,
+    "verifiedAt": null,
+    "verifiedByUserId": null,
+    "rejectedAt": null,
+    "rejectedByUserId": null,
+    "enrichedAt": "2026-06-17T20:03:28.000Z",
+    "lastCrmModified": null,
+    "createdAt": "2026-06-17T20:03:28.000Z",
+    "contactProjects": [
+      {
+        "projectId": 2250001,
+        "projectName": "Santos Offshore Drilling Program",
+        "lifecycleStatus": "active"
+      }
+    ],
+    "linkedProjectIds": [
+      2250001
+    ],
+    "linkedProjectNames": [
+      "Santos Offshore Drilling Program"
+    ],
+    "projectLifecycleStates": [
+      "active"
+    ],
+    "rawSendReady": true,
+    "effectiveSendReady": false,
+    "fullyProjectEligibleSendReady": false,
+    "failedCanonicalConditions": [
+      "emailVerified_not_true",
+      "verificationStatus_not_verified"
+    ],
+    "certifiedDemotionStateMatch": false,
+    "evidenceTimingClassification": "timing_not_provable_from_available_logs"
+  },
+  {
+    "contactId": 5700008,
+    "found": true,
+    "name": "John McCormick",
+    "title": "Engineering Manager at John Holland Group",
+    "company": "John Holland Group",
+    "maskedEmail": "jo***@johnholland.com.au",
+    "emailHash": "4a5c5b6a40ac7961c2fa042708c686a0dd1b685375dfb684acf03e6b221be033",
+    "contactTrustTier": "send_ready",
+    "enrichmentSource": "linkedin",
+    "source": "scraper",
+    "emailVerified": 0,
+    "verificationStatus": "unverified",
+    "verificationScore": 0,
+    "rejectionReason": null,
+    "crmOrphan": 0,
+    "verifiedAt": null,
+    "verifiedByUserId": null,
+    "rejectedAt": null,
+    "rejectedByUserId": null,
+    "enrichedAt": "2026-07-19T21:32:24.000Z",
+    "lastCrmModified": null,
+    "createdAt": "2026-07-19T21:32:24.000Z",
+    "contactProjects": [
+      {
+        "projectId": 3780021,
+        "projectName": "Webster Street Level Crossing Removal Project (Dandenong Underpass)",
+        "lifecycleStatus": "active"
+      }
+    ],
+    "linkedProjectIds": [
+      3780021
+    ],
+    "linkedProjectNames": [
+      "Webster Street Level Crossing Removal Project (Dandenong Underpass)"
+    ],
+    "projectLifecycleStates": [
+      "active"
+    ],
+    "rawSendReady": true,
+    "effectiveSendReady": false,
+    "fullyProjectEligibleSendReady": false,
+    "failedCanonicalConditions": [
+      "emailVerified_not_true",
+      "verificationStatus_not_verified"
+    ],
+    "certifiedDemotionStateMatch": false,
+    "evidenceTimingClassification": "timing_not_provable_from_available_logs"
+  },
+  {
+    "contactId": 750056,
+    "found": true,
+    "name": "Jeffery Howard",
+    "title": "Commissioning Manager - Project Managment",
+    "company": "Chevron",
+    "maskedEmail": "je***@chevron.com.au",
+    "emailHash": "25699e37435a67b7e3c0287db990b26061f3b479ba2c7cdc9ce99546f03930b9",
+    "contactTrustTier": "named_unverified",
+    "enrichmentSource": "apollo",
+    "source": "scraper",
+    "emailVerified": 0,
+    "verificationStatus": "unverified",
+    "verificationScore": 50,
+    "rejectionReason": null,
+    "crmOrphan": 0,
+    "verifiedAt": null,
+    "verifiedByUserId": null,
+    "rejectedAt": null,
+    "rejectedByUserId": null,
+    "enrichedAt": "2026-07-05T12:20:30.000Z",
+    "lastCrmModified": null,
+    "createdAt": "2026-03-27T09:55:44.000Z",
+    "contactProjects": [
+      {
+        "projectId": 570024,
+        "projectName": "Gorgon and Jansz feed gas pipeline system and wells commissioning",
+        "lifecycleStatus": "active"
+      }
+    ],
+    "linkedProjectIds": [
+      570024
+    ],
+    "linkedProjectNames": [
+      "Gorgon and Jansz feed gas pipeline system and wells commissioning"
+    ],
+    "projectLifecycleStates": [
+      "active"
+    ],
+    "rawSendReady": false,
+    "effectiveSendReady": false,
+    "fullyProjectEligibleSendReady": false,
+    "failedCanonicalConditions": [
+      "emailVerified_not_true",
+      "verificationStatus_not_verified"
+    ],
+    "certifiedDemotionStateMatch": true,
+    "evidenceTimingClassification": "current_state_consistent_with_certified_demotion"
+  }
+]

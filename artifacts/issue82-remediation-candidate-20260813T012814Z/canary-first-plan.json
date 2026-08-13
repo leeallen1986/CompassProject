@@ -1,0 +1,42 @@
+{
+  "phase": "7_canary_first_apply_plan",
+  "stage1": {
+    "contactIds": [
+      570001,
+      570002,
+      570003,
+      570045,
+      630001,
+      630119,
+      630124,
+      930017,
+      930018,
+      1920001,
+      1920002,
+      1920003,
+      3180002,
+      5700008
+    ],
+    "count": 14,
+    "preFingerprint": "11a40c511dd355be0639721069bc413e39867cc798d22bd7bc75abf59a5d2220",
+    "sealedManifestHash": "TO_BE_COMPUTED_AT_SEAL_TIME",
+    "exactExpectedRowCount": 14,
+    "confirmHashRequired": true,
+    "postFingerprint": "TO_BE_VERIFIED_AFTER_APPLY",
+    "rowLevelStateVerification": true,
+    "candidateSlateInvalidationRequired": true,
+    "rollbackCondition": "Any row fails post-apply verification OR canary contacts do not reach expected state"
+  },
+  "stage2": {
+    "contactIds": "REMAINING_AFTER_STAGE1_VALIDATION",
+    "count": 1733,
+    "preFingerprint": "STAGE1_POST_FINGERPRINT",
+    "sealedManifestHash": "TO_BE_COMPUTED_AT_SEAL_TIME",
+    "exactExpectedRowCount": 1733,
+    "confirmHashRequired": true,
+    "postFingerprint": "TO_BE_VERIFIED_AFTER_APPLY",
+    "rowLevelStateVerification": true,
+    "candidateSlateInvalidationRequired": true,
+    "rollbackCondition": "Any row fails post-apply verification OR projected state totals do not match"
+  }
+}

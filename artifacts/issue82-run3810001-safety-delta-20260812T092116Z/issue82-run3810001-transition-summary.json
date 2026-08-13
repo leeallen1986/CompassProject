@@ -1,0 +1,9 @@
+{
+  "totalNewSendReady": 6,
+  "allCanonical": true,
+  "newInvalidRawSendReadyCount": 0,
+  "resolvedInvalidRawSendReadyCount": 3,
+  "baselineEffectiveToCurrentInvalidCount": 0,
+  "canaryRegressions": [],
+  "unsafePromotionCount": 0
+}

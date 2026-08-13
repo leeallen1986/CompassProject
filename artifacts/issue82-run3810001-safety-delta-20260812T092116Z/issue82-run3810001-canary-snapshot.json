@@ -1,0 +1,44 @@
+[
+  {
+    "contactId": 3180002,
+    "baseline": {
+      "tier": "send_ready",
+      "emailVerified": 0,
+      "verificationStatus": "unverified"
+    },
+    "current": {
+      "tier": "send_ready",
+      "emailVerified": false,
+      "verificationStatus": "unverified"
+    },
+    "classification": "unchanged_legacy_invalid"
+  },
+  {
+    "contactId": 5700008,
+    "baseline": {
+      "tier": "send_ready",
+      "emailVerified": 0,
+      "verificationStatus": "unverified"
+    },
+    "current": {
+      "tier": "send_ready",
+      "emailVerified": false,
+      "verificationStatus": "unverified"
+    },
+    "classification": "unchanged_legacy_invalid"
+  },
+  {
+    "contactId": 750056,
+    "baseline": {
+      "tier": "named_unverified",
+      "emailVerified": 0,
+      "verificationStatus": "unverified"
+    },
+    "current": {
+      "tier": "named_unverified",
+      "emailVerified": false,
+      "verificationStatus": "unverified"
+    },
+    "classification": "stable_named_unverified"
+  }
+]

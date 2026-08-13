@@ -1,0 +1,10 @@
+{
+  "no_effective_demoted_without_evidence": true,
+  "no_normalization_without_exact_evidence": true,
+  "no_rejected_remains_send_ready": true,
+  "no_crmOrphan_remains_send_ready": true,
+  "every_retained_send_ready_has_project_link": true,
+  "no_duplicate_merge": true,
+  "no_plaintext_emails_in_artifacts": true,
+  "all_pass": true
+}

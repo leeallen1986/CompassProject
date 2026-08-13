@@ -1,0 +1,98 @@
+{
+  "PRIMARY_BUYER_ONLY": [
+    {
+      "projectId": 3390006,
+      "projectName": "Youanmi Gold Mine Development",
+      "totalContacts": 14,
+      "effectiveSendReady": 11
+    },
+    {
+      "projectId": 2430016,
+      "projectName": "Madman Project Drill Test",
+      "totalContacts": 4,
+      "effectiveSendReady": 4
+    },
+    {
+      "projectId": 1380040,
+      "projectName": "Bellevue Gold Project",
+      "totalContacts": 3,
+      "effectiveSendReady": 3
+    },
+    {
+      "projectId": 3780038,
+      "projectName": "Goldfields and Agricultural Water Supply Scheme (GAWSS) Upgrade",
+      "totalContacts": 7,
+      "effectiveSendReady": 5
+    },
+    {
+      "projectId": 4140031,
+      "projectName": "British Hill Gold Project",
+      "totalContacts": 10,
+      "effectiveSendReady": 7
+    },
+    {
+      "projectId": 2190005,
+      "projectName": "Hard Rock Lithium and Tantalum Operation",
+      "totalContacts": 5,
+      "effectiveSendReady": 3
+    }
+  ],
+  "CONTACTS_UNVERIFIED": [
+    {
+      "projectId": 2280001,
+      "projectName": "Hussar Prospect Drilling Campaign",
+      "totalContacts": 1,
+      "effectiveSendReady": 0
+    },
+    {
+      "projectId": 3780012,
+      "projectName": "Goldfields Pipeline Upgrade",
+      "totalContacts": 5,
+      "effectiveSendReady": 0
+    },
+    {
+      "projectId": 1950002,
+      "projectName": "Mineral Processing Plant Expansion",
+      "totalContacts": 2,
+      "effectiveSendReady": 0
+    },
+    {
+      "projectId": 1290005,
+      "projectName": "Yindjibarndi Energy Solar Project",
+      "totalContacts": 1,
+      "effectiveSendReady": 0
+    }
+  ],
+  "COMPLETE_BUYING_TEAM": [
+    {
+      "projectId": 2250001,
+      "projectName": "Santos Offshore Drilling Program",
+      "totalContacts": 10,
+      "effectiveSendReady": 3
+    },
+    {
+      "projectId": 120229,
+      "projectName": "Scarborough Gas Project",
+      "totalContacts": 295,
+      "effectiveSendReady": 7
+    },
+    {
+      "projectId": 4260001,
+      "projectName": "Scarborough Energy Project",
+      "totalContacts": 16,
+      "effectiveSendReady": 14
+    },
+    {
+      "projectId": 4260016,
+      "projectName": "Kwinana Freeway Upgrade",
+      "totalContacts": 8,
+      "effectiveSendReady": 1
+    },
+    {
+      "projectId": 510033,
+      "projectName": "Barrow Island Decommissioning Work",
+      "totalContacts": 22,
+      "effectiveSendReady": 2
+    }
+  ]
+}
