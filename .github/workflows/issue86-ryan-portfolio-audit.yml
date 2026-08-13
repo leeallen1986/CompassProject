@@ -1,0 +1,36 @@
+name: Issue 86 Ryan portfolio audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue86-ryan-portfolio-audit.yml"
+      - "docs/issue86-ryan-portfolio-audit.md"
+      - "server/ryanPortfolioAudit.shared.ts"
+      - "server/ryanPortfolioAudit.shared.test.ts"
+      - "server/ryanPortfolioAudit.ts"
+      - "server/scripts/ryanPortfolioAudit.ts"
+      - "vitest.issue86.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Issue 86 focused tests
+        run: pnpm test:issue86
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build
