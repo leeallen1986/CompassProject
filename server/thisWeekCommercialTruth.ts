@@ -82,7 +82,6 @@ export function isUsablePackageOrganisation(value: string | null | undefined): b
   if (!compact || compact.length < 2 || compact.length > 120) return false;
   if (GENERIC_ORGANISATION.test(compact)) return false;
   if (/https?:\/\/|www\.|<[^>]+>|href\s*=|\{\s*"|\}\s*$/i.test(compact)) return false;
-  if ((compact.match(/[.!?]/g) ?? []).length >= 2) return false;
   if (compact.split(/\s+/).length > 14) return false;
   return /[a-z]/i.test(compact);
 }
@@ -97,8 +96,6 @@ function isRecordedBuyingPackageHolder(
   const status = (holder.recordedStatus ?? "").trim().toLowerCase();
   const scope = (holder.packageScope ?? "").trim().toLowerCase();
 
-  // A supplier/vendor record is useful project context, but it is not evidence
-  // that the organisation owns the package that will procure/hire Portable Air.
   if (/\b(supplier|vendor|material supplier|service provider|consultant|advisor)\b/i.test(status)) {
     return false;
   }
@@ -106,12 +103,8 @@ function isRecordedBuyingPackageHolder(
     return false;
   }
 
-  // Exact contractorProjectLinks already carry a recorded buying-side role.
   if (PACKAGE_HOLDER_ROLES.has(role)) return true;
 
-  // Free-form project contractor rows do not always carry a role. In that case,
-  // require both an awarded/appointed/confirmed status and scope text that actually
-  // describes a contract/package. A generic "confirmed via source" record is not enough.
   if (role) return false;
   if (!/\b(awarded|appointed|contracted|confirmed)\b/i.test(status)) return false;
   return /\b(contract|epc|construction|civil works?|installation|drilling|commissioning|package|subcontract)\b/i.test(scope);
