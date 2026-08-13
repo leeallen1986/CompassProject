@@ -1,0 +1,49 @@
+name: Issue 82 cloud pipeline provenance
+
+on:
+  pull_request:
+    paths:
+      - "scripts/cloud-pipeline-release-manifest.mjs"
+      - "docs/CLOUD-PIPELINE-SETUP.md"
+      - ".github/workflows/issue-82-cloud-pipeline-provenance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Build immutable release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          node scripts/cloud-pipeline-release-manifest.mjs \
+            --expected-sha "$HEAD_SHA" \
+            --output /tmp/cloud-pipeline-release-manifest.json
+          test -s /tmp/cloud-pipeline-release-manifest.json
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("/tmp/cloud-pipeline-release-manifest.json", "utf8"));
+            if (!m.cleanWorkingTree) throw new Error("working tree not clean");
+            if (!/^[a-f0-9]{64}$/.test(m.releaseTreeSha256)) throw new Error("invalid releaseTreeSha256");
+            if (!m.criticalFiles["server/dailyPipeline.ts"]) throw new Error("dailyPipeline hash missing");
+            if (!m.criticalFiles["server/contactEnrichment.ts"]) throw new Error("contactEnrichment hash missing");
+          '
+
+      - name: Reject plaintext credential examples in runbook
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -nE "sshpass[[:space:]]+-p[[:space:]]+[^<]|APOLLO_API_KEY.*\([^)]{8,}\)" docs/CLOUD-PIPELINE-SETUP.md; then
+            echo "Runbook appears to contain a plaintext credential or API key example." >&2
+            exit 1
+          fi

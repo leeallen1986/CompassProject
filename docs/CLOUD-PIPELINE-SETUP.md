@@ -2,184 +2,220 @@
 
 ## Overview
 
-The daily scraping and enrichment pipeline runs on a dedicated cloud computer at **34.142.160.59** (Ubuntu 24.04 LTS, 2 vCPU, 955 MB RAM). This avoids the SIGTERM interruptions that occurred on Cloud Run when the WebDev dev server restarted during file edits.
+The daily scraping and enrichment pipeline runs on a dedicated Ubuntu cloud computer via OS cron at **20:00 UTC daily**. The worker writes to the same TiDB database used by the web application.
+
+This worker is a **separate production execution plane** from the Manus web deployment. A current web checkpoint does not prove that the cloud pipeline worker is running the same source.
 
 ---
 
 ## Architecture
 
-```
-Cloud Computer (34.142.160.59)
+```text
+Cloud pipeline worker
   └── cron: 0 20 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh
         └── tsx pipeline-runner.ts cron
               └── runDailyPipeline("cron")
-                    └── writes to TiDB Cloud (shared DB)
+                    └── shared TiDB database
 
-WebDev (compasspt.manus.space)
-  └── operationsReliability.ts: self-healing check at 20:10 UTC
-        └── wasRunStartedToday() → true (cloud computer already ran)
-              └── SKIP (no duplicate run)
+Web application
+  └── operationsReliability.ts self-healing check
+        └── checks whether a pipeline run already exists
 ```
 
-The cloud computer writes a `pipelineRuns` row to the shared TiDB database at 20:00 UTC. The WebDev self-healing timer at 20:10 UTC detects this row and skips its own run. Both paths share the same idempotency guard.
+The `triggeredBy=cron` value in `pipelineRuns` identifies the cloud-computer path, not the web `/api/scheduled/pipeline` route.
 
 ---
 
-## Cloud Computer Details
+## Worker layout
 
-| Field | Value |
-|---|---|
-| IP | 34.142.160.59 |
-| User | ubuntu |
-| OS | Ubuntu 24.04 LTS |
-| CPU | 2 vCPU |
-| RAM | 955 MB |
-| Node.js | v22.22.2 |
-| pnpm | 10.4.1 |
-| tsx | v4.22.3 |
-| Pipeline dir | /home/ubuntu/atlas-pipeline/ |
-| Cron schedule | `0 20 * * *` (20:00 UTC daily) |
-| Log dir | /home/ubuntu/atlas-pipeline/logs/ |
-| Log retention | 14 days |
-
----
-
-## File Structure on Cloud Computer
-
-```
+```text
 /home/ubuntu/atlas-pipeline/
-  .env                    ← Environment variables (chmod 600)
-  pipeline-runner.ts      ← TypeScript entry point (calls runDailyPipeline)
-  run-pipeline.sh         ← Cron shell wrapper (logs to logs/pipeline-YYYY-MM-DD.log)
+  .env                    # production secrets; chmod 600; never commit
+  pipeline-runner.ts      # standalone entry point
+  run-pipeline.sh         # cron wrapper
+  DEPLOYED_GIT_SHA        # immutable source attestation for the synced tree
+  SHA256SUMS.release      # hashes for release-critical files
   logs/
-    pipeline-YYYY-MM-DD.log  ← Per-day pipeline output
-    cron.log                 ← Cron stdout/stderr
-  server/                 ← Extracted from WebDev project tar
-  drizzle/                ← Schema and migrations
-  node_modules/           ← 936 packages installed via pnpm
+  server/
+  drizzle/
+  shared/
+  node_modules/
   package.json
+  pnpm-lock.yaml
   tsconfig.json
 ```
 
 ---
 
-## Cron Job
+## Security requirements
 
-```bash
-# Installed via: (crontab -l; echo "...") | crontab -
-0 20 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh >> /home/ubuntu/atlas-pipeline/logs/cron.log 2>&1
+**Never place credentials, API keys, database URLs, SSH passwords or provider secrets in this repository or documentation.**
+
+Required secrets belong only in approved secret stores or the worker `.env` file with restrictive permissions. Controller scripts must read SSH/authentication material from environment variables or an SSH agent, never from committed command lines.
+
+If a secret is ever committed, removing it from the latest file is not sufficient because Git history retains it. Rotate the exposed secret and then clean history only through an approved security procedure.
+
+---
+
+## Release model
+
+The cloud worker must be released from an **immutable approved GitHub SHA**. Do not copy an arbitrary Manus workspace or mutable working directory into production.
+
+For every worker release, record:
+
+- approved full GitHub SHA;
+- release UTC timestamp;
+- operator/task identity;
+- SHA-256 of `server/dailyPipeline.ts`;
+- SHA-256 of `server/contactEnrichment.ts`;
+- SHA-256 of the Apollo/Hunter/Lusha writer files;
+- SHA-256 of `server/routers/contactValidation.ts`;
+- dependency-lock hash;
+- pre-release worker source SHA/hash set;
+- post-release worker source SHA/hash set.
+
+The worker should persist the approved GitHub SHA locally as:
+
+```text
+/home/ubuntu/atlas-pipeline/DEPLOYED_GIT_SHA
 ```
 
-Verify with:
-```bash
-sshpass -p '<password>' ssh ubuntu@34.142.160.59 'crontab -l'
+and retain a release checksum file:
+
+```text
+/home/ubuntu/atlas-pipeline/SHA256SUMS.release
 ```
 
 ---
 
-## Updating the Pipeline Code
+## Safe update procedure
 
-When server-side code changes are made in WebDev, re-sync to the cloud computer:
+### 1. Controller preflight
+
+From a clean checkout of the approved release:
 
 ```bash
-# From the WebDev sandbox
-cd /home/ubuntu/atlas-copco-intelligence
+git status --short
+git rev-parse HEAD
+```
 
-# Create a fresh tar of the server code
-tar czf /tmp/pipeline-update.tar.gz \
+Require a clean tree and confirm that `HEAD` is the exact approved SHA.
+
+Create the release archive from that checkout only:
+
+```bash
+tar czf /tmp/pipeline-release.tar.gz \
   server/ drizzle/ shared/ package.json pnpm-lock.yaml tsconfig.json
-
-# Transfer to cloud computer
-sshpass -p '6HWHwXmCmZMrEwQjNrkV7z' scp -o StrictHostKeyChecking=no \
-  /tmp/pipeline-update.tar.gz ubuntu@34.142.160.59:/home/ubuntu/
-
-# Extract on cloud computer (preserves .env, pipeline-runner.ts, run-pipeline.sh, logs/)
-sshpass -p '6HWHwXmCmZMrEwQjNrkV7z' ssh -o StrictHostKeyChecking=no ubuntu@34.142.160.59 \
-  'cd /home/ubuntu/atlas-pipeline && tar xzf /home/ubuntu/pipeline-update.tar.gz && pnpm install --frozen-lockfile 2>&1 | tail -5'
 ```
+
+Generate local release hashes for the critical files before transfer.
+
+### 2. Worker preflight
+
+Using SSH credentials supplied out-of-band, inspect only:
+
+```bash
+crontab -l
+cat /home/ubuntu/atlas-pipeline/DEPLOYED_GIT_SHA 2>/dev/null || true
+sha256sum \
+  /home/ubuntu/atlas-pipeline/server/dailyPipeline.ts \
+  /home/ubuntu/atlas-pipeline/server/contactEnrichment.ts
+```
+
+Do not print `.env`, provider keys or credentials.
+
+### 3. Backup code only
+
+Create a timestamped backup of the worker code and wrapper files. Exclude `.env`, provider payloads and logs from exported evidence.
+
+### 4. Transfer and extract
+
+Copy `/tmp/pipeline-release.tar.gz` to the worker using SSH-agent/key-based authentication or another approved secret mechanism. Extract it into `/home/ubuntu/atlas-pipeline` while preserving `.env`, `pipeline-runner.ts`, `run-pipeline.sh` and `logs/`.
+
+Install locked dependencies:
+
+```bash
+cd /home/ubuntu/atlas-pipeline
+pnpm install --frozen-lockfile
+```
+
+### 5. Source attestation
+
+After extraction, verify the cloud copies of all release-critical files match the local approved checkout byte-for-byte using SHA-256.
+
+Write the exact approved GitHub SHA to `DEPLOYED_GIT_SHA` and the release-critical checksums to `SHA256SUMS.release` only after all comparisons pass.
+
+### 6. Static validation only
+
+Before the next scheduled run, perform validation that cannot call providers or mutate production data. Examples:
+
+- TypeScript compilation where supported by the worker checkout;
+- focused pure/unit tests;
+- static confirmation that `Stale Trust-Tier Backfill` is present in `server/dailyPipeline.ts`;
+- static confirmation that `runStaleTierBackfill()` enforces the canonical current-mailbox policy.
+
+**Do not manually trigger the production pipeline as part of a source-sync validation.**
+
+### 7. Natural-run validation
+
+Take the controller baseline after the worker source is attested. Allow the next normal `20:00 UTC` cron run to execute. Then verify:
+
+- `triggeredBy=cron`;
+- run completed normally;
+- transcript contains `Stale Trust-Tier Backfill`;
+- transcript contains all expected current pipeline stages;
+- no new invalid raw `send_ready` contacts appear;
+- exact canaries remain safe;
+- the post-run read-only fingerprint is stable.
 
 ---
 
-## Environment Variables
+## Drift detection
 
-All secrets are stored in `/home/ubuntu/atlas-pipeline/.env` (chmod 600). The file contains:
+A worker release is considered **unattested** when any of the following is true:
 
-- `DATABASE_URL` — TiDB Cloud connection string (same as WebDev)
-- `APOLLO_API_KEY` — Apollo.io API key (zDjTBDrJnnd0m2hgjIjeVg)
-- `HUNTER_API_KEY` — Hunter.io API key
-- `RESEND_API_KEY` — Resend email API key
-- `LUSHA_API_KEY` — Lusha API key
-- `PROJECTORY_EMAIL` / `PROJECTORY_PASSWORD` — Projectory credentials
-- `APP_SITE_URL` — https://compasspt.manus.space (for email links)
-- `BUILT_IN_FORGE_API_KEY` / `BUILT_IN_FORGE_API_URL` — Manus LLM API
+- `DEPLOYED_GIT_SHA` is missing;
+- the recorded SHA is not the approved controller SHA;
+- a release-critical file hash differs from `SHA256SUMS.release`;
+- a cron transcript lacks mandatory current pipeline stages;
+- web and worker provenance are being conflated.
+
+An unattested worker must not be used as proof that a GitHub code fix survived a natural pipeline.
 
 ---
 
 ## Monitoring
 
-### Check last run status
-```sql
-SELECT id, status, triggered_by, started_at, completed_at,
-       TIMESTAMPDIFF(MINUTE, started_at, completed_at) AS duration_min
-FROM pipeline_runs
-ORDER BY started_at DESC
-LIMIT 5;
-```
+### Pipeline status
 
-### Check today's log
-```bash
-sshpass -p '6HWHwXmCmZMrEwQjNrkV7z' ssh ubuntu@34.142.160.59 \
-  'tail -50 /home/ubuntu/atlas-pipeline/logs/pipeline-$(date +%Y-%m-%d).log'
-```
+Use the application/operator view or a read-only database query to inspect recent `pipelineRuns` rows. Do not expose credentials in logs or screenshots.
 
-### Check cron log
-```bash
-sshpass -p '6HWHwXmCmZMrEwQjNrkV7z' ssh ubuntu@34.142.160.59 \
-  'tail -20 /home/ubuntu/atlas-pipeline/logs/cron.log'
-```
+### Worker logs
+
+Inspect the worker's local daily pipeline and cron logs using authenticated SSH. Export only sanitized excerpts required for an incident.
 
 ---
 
 ## Troubleshooting
 
-### Pipeline didn't run
-1. Check cron is installed: `crontab -l`
-2. Check cron log: `tail -20 /home/ubuntu/atlas-pipeline/logs/cron.log`
-3. Check today's pipeline log: `tail -100 /home/ubuntu/atlas-pipeline/logs/pipeline-$(date +%Y-%m-%d).log`
-4. Check DB for run status: `SELECT * FROM pipeline_runs ORDER BY started_at DESC LIMIT 3`
+### Pipeline did not run
 
-### Pipeline failed mid-run
-- The `pipelineRuns` table will show `status='failed'` with error details
-- The WebDev self-healing timer (20:10 UTC) will attempt a retry if no completed run exists
-- Admin panel → Pipeline tab shows current status
+1. Confirm the cron entry exists.
+2. Inspect sanitized cron output.
+3. Inspect the daily worker log.
+4. Check the latest `pipelineRuns` row.
+5. Confirm the worker's `DEPLOYED_GIT_SHA` and release hashes.
 
-### Re-run pipeline manually
-```bash
-sshpass -p '6HWHwXmCmZMrEwQjNrkV7z' ssh ubuntu@34.142.160.59 \
-  'cd /home/ubuntu/atlas-pipeline && ./run-pipeline.sh'
-```
+### Pipeline transcript differs from GitHub
 
-Or from the WebDev Admin panel → Pipeline → "Run Pipeline Now".
+Treat this as worker source drift first. Compare the worker's release-critical hashes with the approved GitHub SHA before escalating to the web deployment platform.
+
+### Manual reruns
+
+Manual reruns are diagnostic/operational actions and are **not equivalent to a natural cron validation**. Use only under a separately authorised runbook.
 
 ---
 
-## Migration History
+## Historical note
 
-| Date | Action |
-|---|---|
-| 2026-05-27 | Initial setup: Node.js 22 + pnpm 11 + tsx installed |
-| 2026-05-27 | Project code transferred (7MB tar, 936 packages) |
-| 2026-05-27 | Cron job installed: `0 20 * * *` |
-| 2026-05-27 | Smoke test passed: DB connected, pipeline started (run ID 1320002) |
-
----
-
-## Previous Pipeline Failures (Why We Migrated)
-
-The WebDev Cloud Run container was running the pipeline via `tsx watch server/_core/index.ts`. When any server file was edited during development, `tsx watch` restarted the server process, sending SIGTERM to the in-flight pipeline. This caused:
-
-- Pipeline runs stuck in `status='running'` until next startup cleanup
-- Partial enrichment passes (Apollo/Hunter calls made but not logged)
-- Digest freshness gate failures (pipeline appeared stale)
-
-The cloud computer runs `tsx pipeline-runner.ts` as a one-shot process with no file watching, eliminating this failure mode entirely.
+The cloud worker was originally introduced to avoid long-running web-container restarts interrupting the pipeline. Because the worker uses a copied source tree, later server-side fixes must be explicitly released to that execution plane. This separation is now part of the production provenance model.
