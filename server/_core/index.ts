@@ -34,18 +34,24 @@ import {
 } from "../fullPotentialAccountMatching.http";
 import { handleReadOnlyNextBest5 } from "../fullPotentialNextBest5.http";
 
+function sendSubprocessMessageAndExit(message: Record<string, unknown>, code: number): void {
+  if (typeof process.send === "function" && process.connected) {
+    process.send(message, () => process.exit(code));
+    return;
+  }
+  process.exit(code);
+}
+
 async function runSubprocessMode(): Promise<boolean> {
   if (process.env.COMPASS_SUBPROCESS_MODE !== "contractor-engine") return false;
 
   try {
     const { runContractorEngine } = await import("../contractorEngine");
     const data = await runContractorEngine();
-    process.send?.({ type: "contractor-engine-result", data });
-    process.exit(0);
+    sendSubprocessMessageAndExit({ type: "contractor-engine-result", data }, 0);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.send?.({ type: "contractor-engine-error", message });
-    process.exit(1);
+    sendSubprocessMessageAndExit({ type: "contractor-engine-error", message }, 1);
   }
 
   return true;
