@@ -4,6 +4,7 @@ import { pipelineRuns } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
 import { runDailyPipeline } from "./dailyPipeline";
 import {
+  PIPELINE_STALL_MINUTES,
   classifyPipelineRun,
   expectedRunWindowKey,
   selfHealingDecision,
@@ -187,6 +188,7 @@ export function handleWarmup(_req: any, res: any): void {
     ts: new Date().toISOString(),
     uptime: process.uptime(),
     reliabilityVersion: 2,
+    stallThresholdMinutes: PIPELINE_STALL_MINUTES,
     selfHealingInFlight,
     selfHealingAttempts: attemptCount,
     lastSelfHealingAttempt: lastAttemptAt?.toISOString() ?? null,
@@ -201,7 +203,7 @@ export function startOperationsReliability(): void {
     return;
   }
 
-  console.log(`${LOG_PREFIX} Status-aware reliability checker started (30 min interval, 45 min progress-stall threshold)`);
+  console.log(`${LOG_PREFIX} Status-aware reliability checker started (30 min interval, ${PIPELINE_STALL_MINUTES} min progress-stall threshold)`);
   void startupReliabilityScan();
 
   setTimeout(() => {
