@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
-import { startDailyScheduler, registerSigtermHandler } from "../dailyPipeline";
+import { startDailyScheduler } from "../dailyPipeline";
 import { storagePut } from "../storage";
 import { handleScheduledPipelineTrigger } from "../scheduledPipelineGuard";
 import { handleScheduledQueueRun } from "../scheduledQueueRun";
@@ -106,13 +106,10 @@ async function startServer() {
   app.post("/api/full-potential/commercial-model/:modelId/review", handleReviewFullPotentialModel);
   app.put("/api/full-potential/commercial-model/account/:accountId/relationship", handleUpdateFullPotentialRelationship);
 
-  // Read-only bridge between project/contractor intelligence and the canonical Full Potential account universe.
   app.get("/api/full-potential/project-match/:projectId", handleFullPotentialProjectMatch);
   app.get("/api/full-potential/project-matches", handleFullPotentialProjectMatches);
   app.get("/api/full-potential/awarded-project-matches", handleFullPotentialAwardedProjectMatches);
   app.get("/api/full-potential/account-match", handleFullPotentialAccountNameMatch);
-
-  // Read-only, evidence-backed recommendation layer. No mutation route is exposed.
   app.get("/api/full-potential/next-best-5", handleReadOnlyNextBest5);
 
   app.get("/api/warmup", handleWarmup);
@@ -138,8 +135,18 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    startDailyScheduler();
-    registerSigtermHandler();
+
+    // The legacy scheduler performs DB cleanup before it discovers that it is
+    // disabled in production. Never invoke that mutation path in the web
+    // service. It remains available only as a local-development fallback.
+    const useDevPipelineScheduler =
+      process.env.NODE_ENV !== "production" && process.env.DISABLE_DEV_SCHEDULER !== "true";
+    if (useDevPipelineScheduler) startDailyScheduler();
+
+    // Do not register dailyPipeline's broad SIGTERM handler in the web process.
+    // It marks every persisted `running` row failed and cannot prove ownership
+    // of a dedicated-worker run. V2 reliability instead detects stale progress
+    // and fails closed against duplicate writers.
     startPersistentScheduler();
     startOperationsReliability();
   });
