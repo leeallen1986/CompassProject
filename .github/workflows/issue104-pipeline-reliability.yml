@@ -5,9 +5,14 @@ on:
     paths:
       - ".github/workflows/issue104-pipeline-reliability.yml"
       - "server/_core/index.ts"
+      - "server/dailyPipeline.ts"
       - "server/operationsReliabilityV2.ts"
       - "server/pipelineRunReliability.ts"
       - "server/pipelineRunReliability.test.ts"
+      - "server/pipelineRuntimePolicy.ts"
+      - "server/pipelineRuntimePolicy.test.ts"
+      - "server/pipelineRuntimeIntegration.test.ts"
+      - "server/contractorEngineSubprocess.ts"
       - "server/scheduledPipelineGuard.ts"
   workflow_dispatch:
 
@@ -28,7 +33,11 @@ jobs:
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
       - name: Issue 104 focused tests
-        run: pnpm exec vitest run server/pipelineRunReliability.test.ts
+        run: >-
+          pnpm exec vitest run
+          server/pipelineRunReliability.test.ts
+          server/pipelineRuntimePolicy.test.ts
+          server/pipelineRuntimeIntegration.test.ts
       - name: TypeScript
         run: pnpm check
       - name: Production build
