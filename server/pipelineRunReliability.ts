@@ -1,4 +1,4 @@
-export const PIPELINE_STALL_MINUTES = 45;
+export const PIPELINE_STALL_MINUTES = 60;
 
 export type PersistedPipelineRunState = {
   id: number;
@@ -75,18 +75,12 @@ export type ScheduledTriggerDecision =
   | "block_healthy_running"
   | "block_stale_running";
 
-/**
- * Any persisted running writer blocks a second automatic trigger. The legacy
- * four-hour window is intentionally not used: a healthy five-hour run is still
- * a live writer, while a stale run must be cleared before another writer starts.
- */
 export function scheduledTriggerDecision(health: PipelineRunHealth): ScheduledTriggerDecision {
   if (health === "healthy_running") return "block_healthy_running";
   if (health === "stale_running") return "block_stale_running";
   return "allow";
 }
 
-/** Stable key for persisting one self-healing attempt per expected run window. */
 export function expectedRunWindowKey(windowStart: Date): string {
   return windowStart.toISOString().slice(0, 13);
 }
