@@ -34,6 +34,23 @@ import {
 } from "../fullPotentialAccountMatching.http";
 import { handleReadOnlyNextBest5 } from "../fullPotentialNextBest5.http";
 
+async function runSubprocessMode(): Promise<boolean> {
+  if (process.env.COMPASS_SUBPROCESS_MODE !== "contractor-engine") return false;
+
+  try {
+    const { runContractorEngine } = await import("../contractorEngine");
+    const data = await runContractorEngine();
+    process.send?.({ type: "contractor-engine-result", data });
+    process.exit(0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.send?.({ type: "contractor-engine-error", message });
+    process.exit(1);
+  }
+
+  return true;
+}
+
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
@@ -136,20 +153,23 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
 
-    // The legacy scheduler performs DB cleanup before it discovers that it is
-    // disabled in production. Never invoke that mutation path in the web
-    // service. It remains available only as a local-development fallback.
     const useDevPipelineScheduler =
       process.env.NODE_ENV !== "production" && process.env.DISABLE_DEV_SCHEDULER !== "true";
     if (useDevPipelineScheduler) startDailyScheduler();
 
     // Do not register dailyPipeline's broad SIGTERM handler in the web process.
-    // It marks every persisted `running` row failed and cannot prove ownership
-    // of a dedicated-worker run. V2 reliability instead detects stale progress
-    // and fails closed against duplicate writers.
+    // It cannot prove ownership of a dedicated-worker run. V2 reliability
+    // detects stale progress and fails closed against duplicate writers.
     startPersistentScheduler();
     startOperationsReliability();
   });
 }
 
-startServer().catch(console.error);
+runSubprocessMode()
+  .then(handled => {
+    if (!handled) return startServer();
+  })
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
