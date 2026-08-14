@@ -59,7 +59,7 @@ import { runQtolNTIsolated, isSubprocessEnabled, getSubprocessTimeoutMs } from "
 import { enrichUnenrichedProjects, getSessionStatus as getProjectorySessionStatus } from "./projectoryEnrichment";
 import { validateAllProjects as icnValidateAllProjects } from "./icnEnrichment";
 import { recordSourceRun } from "./sourceMonitoring";
-import { runContractorEngine } from "./contractorEngine";
+import { runContractorEngineIsolated } from "./contractorEngineSubprocess";
 import { classifyAllProjects } from "./tierClassification";
 import { runContractorEnrichmentPass } from "./contractorEnrichmentPass";
 import { backfillOrphanContacts } from "./backfillOrphanContacts";
@@ -68,6 +68,7 @@ import { classifyAllContactRelevance } from "./roleRelevance";
 import { runBulkSecondPass } from "./secondPassContactSearch";
 import { enforceHotProjectSLA, processDiscoveryQueue } from "./discoveryQueue";
 import { runDigestSafePromotion } from "./digestSafePromotion";
+import { selectPipelineRuntimeBudgetMs } from "./pipelineRuntimePolicy";
 
 export interface DailyPipelineResult {
   harvest: {
@@ -231,7 +232,6 @@ function skipStep(step: PipelineStep, reason?: string): PipelineStep {
 }
 
 // ── Pipeline timeout ──
-const PIPELINE_TIMEOUT_MS = 90 * 60 * 1000; // 90 minutes max (enrichment is downstream and bounded)
 const STEP_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per step max
 const ENRICHMENT_TIMEOUT_MS = 25 * 60 * 1000; // 25 minutes for contact enrichment
 // Per-run batch limit: process at most this many contacts per automatic pipeline run.
@@ -336,10 +336,16 @@ function startKeepalive(): { stop: () => void } {
 // ── Main pipeline ──
 
 export async function runDailyPipeline(triggeredBy?: string): Promise<DailyPipelineResult> {
-  // Start keepalive at the outer level so it's cleaned up even on timeout
+  // Scheduled cron/self-healing runs get a larger execution-plane budget while
+  // manual/web-triggered runs retain the existing 90-minute safety limit.
+  const runtimeBudgetMs = selectPipelineRuntimeBudgetMs(triggeredBy);
   const keepalive = startKeepalive();
   try {
-    return await withTimeout(_runDailyPipelineInner(triggeredBy), PIPELINE_TIMEOUT_MS, "Daily pipeline global timeout");
+    return await withTimeout(
+      _runDailyPipelineInner(triggeredBy),
+      runtimeBudgetMs,
+      `Daily pipeline global timeout (${Math.round(runtimeBudgetMs / 60000)} min budget)`,
+    );
   } finally {
     keepalive.stop();
   }
@@ -1330,11 +1336,16 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   steps.push(tierStep);
 
   // ── Step 15: Contractor & Delivery Pattern Engine (Wednesdays + Saturdays) ──
+  markStepStarted("Contractor Engine");
   const contractorStep = startStep("Contractor Engine");
   if (dayOfWeek === 3 || dayOfWeek === 6) {
-    console.log("[DailyPipeline] Step 15: Running contractor & delivery pattern engine...");
+    console.log("[DailyPipeline] Step 15: Running contractor & delivery pattern engine in isolated subprocess...");
     try {
-      const ceResult = await runContractorEngine();
+      const isolated = await runContractorEngineIsolated();
+      if (isolated.status !== "success") {
+        throw new Error(isolated.errorSummary);
+      }
+      const ceResult = isolated.data;
       completeStep(contractorStep, {
         companies: ceResult.registry.totalCompanies,
         newCompanies: ceResult.registry.newCompanies,
