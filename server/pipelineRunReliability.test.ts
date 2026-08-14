@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  PIPELINE_STALL_MINUTES,
   classifyPipelineRun,
   expectedRunWindowKey,
   scheduledTriggerDecision,
@@ -23,6 +24,10 @@ function run(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Issue #104 persisted run health", () => {
+  it("uses the 60-minute stall threshold", () => {
+    expect(PIPELINE_STALL_MINUTES).toBe(60);
+  });
+
   it("treats recent progress as healthy running and blocks duplicate triggers", () => {
     const result = classifyPipelineRun(run(), NOW);
     expect(result.health).toBe("healthy_running");
@@ -39,8 +44,13 @@ describe("Issue #104 persisted run health", () => {
     expect(scheduledTriggerDecision(result.health)).toBe("block_healthy_running");
   });
 
-  it("classifies a running row with no progress for more than 45 minutes as stale", () => {
-    const result = classifyPipelineRun(run({ lastProgressAt: "2026-08-13T22:30:00Z" }), NOW);
+  it("keeps 55 minutes without progress healthy", () => {
+    const result = classifyPipelineRun(run({ lastProgressAt: "2026-08-13T23:05:00Z" }), NOW);
+    expect(result.health).toBe("healthy_running");
+  });
+
+  it("classifies more than 60 minutes without progress as stale", () => {
+    const result = classifyPipelineRun(run({ lastProgressAt: "2026-08-13T22:59:00Z" }), NOW);
     expect(result.health).toBe("stale_running");
     expect(selfHealingDecision(result.health)).toBe("block_stale_running");
     expect(scheduledTriggerDecision(result.health)).toBe("block_stale_running");
