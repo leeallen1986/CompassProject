@@ -1,0 +1,35 @@
+name: Issue 104 pipeline reliability
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue104-pipeline-reliability.yml"
+      - "server/_core/index.ts"
+      - "server/operationsReliabilityV2.ts"
+      - "server/pipelineRunReliability.ts"
+      - "server/pipelineRunReliability.test.ts"
+      - "server/scheduledPipelineGuard.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Issue 104 focused tests
+        run: pnpm exec vitest run server/pipelineRunReliability.test.ts
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build
