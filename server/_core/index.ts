@@ -10,9 +10,9 @@ import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
 import { startDailyScheduler, registerSigtermHandler } from "../dailyPipeline";
 import { storagePut } from "../storage";
-import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
+import { handleScheduledPipelineTrigger } from "../scheduledPipelineGuard";
 import { handleScheduledQueueRun } from "../scheduledQueueRun";
-import { handleWarmup, startOperationsReliability } from "../operationsReliability";
+import { handleWarmup, startOperationsReliability } from "../operationsReliabilityV2";
 import { handleFullPotentialDataQuality } from "../fullPotentialDataQuality";
 import { handleFullPotentialRentalHire, handleFullPotentialRentalRemediation } from "../fullPotentialRentalHire";
 import {
