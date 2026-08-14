@@ -1,4 +1,6 @@
 import { fork } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
 import type { EngineRunResult } from "./contractorEngine";
 
 export const CONTRACTOR_ENGINE_TIMEOUT_MS = 50 * 60 * 1000;
@@ -7,32 +9,52 @@ export type ContractorEngineSubprocessResult =
   | { status: "success"; durationMs: number; data: EngineRunResult }
   | { status: "failed" | "timed_out"; durationMs: number; errorSummary: string };
 
+function resolveChildLaunch(): { entry: string; env: NodeJS.ProcessEnv } | null {
+  const selfPath = fileURLToPath(import.meta.url);
+
+  // Dedicated cloud worker currently executes TypeScript source through tsx.
+  // In that execution plane, always fork the explicit worker file rather than
+  // recursively forking whichever pipeline-runner happened to launch us.
+  if (selfPath.endsWith(".ts")) {
+    return {
+      entry: path.join(path.dirname(selfPath), "contractorEngineWorker.ts"),
+      env: { ...process.env },
+    };
+  }
+
+  // The Manus web build bundles this module into dist/index.js. There is no
+  // separate worker artifact in that bundle, so fork the same index entry with
+  // an explicit child-only mode handled before the HTTP server starts.
+  const entry = process.argv[1];
+  if (!entry) return null;
+  return {
+    entry,
+    env: { ...process.env, COMPASS_SUBPROCESS_MODE: "contractor-engine" },
+  };
+}
+
 /**
- * Execute the contractor engine in a separate Node process. The child runs the
- * same application entry file with COMPASS_SUBPROCESS_MODE set, so this works
- * in both tsx development and the bundled production entry point. If the stage
- * exceeds 50 minutes it is SIGKILLed, preventing an unbounded contractor pass
- * from continuing to mutate after the parent has moved on or retried.
+ * Execute Contractor Engine behind a hard process boundary. Source runners use
+ * a dedicated worker file; the bundled web build uses its child-only entry
+ * mode. Either way, a 50-minute overrun is killed with SIGKILL so work cannot
+ * continue mutating after the parent proceeds or later retries.
  */
 export function runContractorEngineIsolated(): Promise<ContractorEngineSubprocessResult> {
   const startedAt = Date.now();
-  const entry = process.argv[1];
+  const launch = resolveChildLaunch();
 
-  if (!entry) {
+  if (!launch) {
     return Promise.resolve({
       status: "failed",
       durationMs: 0,
-      errorSummary: "Cannot resolve current Node entry point for contractor-engine subprocess",
+      errorSummary: "Cannot resolve contractor-engine subprocess entry point",
     });
   }
 
   return new Promise(resolve => {
-    const child = fork(entry, [], {
+    const child = fork(launch.entry, [], {
       execArgv: process.execArgv,
-      env: {
-        ...process.env,
-        COMPASS_SUBPROCESS_MODE: "contractor-engine",
-      },
+      env: launch.env,
       silent: false,
     });
 
