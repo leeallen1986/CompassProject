@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyPipelineRun,
+  expectedRunWindowKey,
+  scheduledTriggerDecision,
   selfHealingDecision,
   staleRunMessage,
 } from "./pipelineRunReliability";
@@ -21,24 +23,27 @@ function run(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Issue #104 persisted run health", () => {
-  it("treats recent progress as healthy running", () => {
+  it("treats recent progress as healthy running and blocks duplicate triggers", () => {
     const result = classifyPipelineRun(run(), NOW);
     expect(result.health).toBe("healthy_running");
     expect(selfHealingDecision(result.health)).toBe("skip_healthy_running");
+    expect(scheduledTriggerDecision(result.health)).toBe("block_healthy_running");
   });
 
-  it("uses lastProgressAt rather than startedAt for stall detection", () => {
+  it("uses lastProgressAt rather than startedAt for stall detection even after four hours", () => {
     const result = classifyPipelineRun(run({
-      startedAt: "2026-08-13T20:00:00Z",
+      startedAt: "2026-08-13T18:00:00Z",
       lastProgressAt: "2026-08-13T23:40:00Z",
     }), NOW);
     expect(result.health).toBe("healthy_running");
+    expect(scheduledTriggerDecision(result.health)).toBe("block_healthy_running");
   });
 
   it("classifies a running row with no progress for more than 45 minutes as stale", () => {
     const result = classifyPipelineRun(run({ lastProgressAt: "2026-08-13T22:30:00Z" }), NOW);
     expect(result.health).toBe("stale_running");
     expect(selfHealingDecision(result.health)).toBe("block_stale_running");
+    expect(scheduledTriggerDecision(result.health)).toBe("block_stale_running");
     expect(staleRunMessage(result)).toContain("Government Scrapers");
   });
 
@@ -57,6 +62,7 @@ describe("Issue #104 persisted run health", () => {
     }), NOW);
     expect(result.health).toBe("failed");
     expect(selfHealingDecision(result.health)).toBe("retry");
+    expect(scheduledTriggerDecision(result.health)).toBe("allow");
   });
 
   it("does not retry a completed expected-window run", () => {
@@ -72,5 +78,10 @@ describe("Issue #104 persisted run health", () => {
     const result = classifyPipelineRun(null, NOW);
     expect(result.health).toBe("missing");
     expect(selfHealingDecision(result.health)).toBe("retry");
+  });
+
+  it("creates a stable persistence key for one retry per expected window", () => {
+    expect(expectedRunWindowKey(new Date("2026-08-13T20:00:00Z"))).toBe("2026-08-13T20");
+    expect(expectedRunWindowKey(new Date("2026-08-14T20:00:00Z"))).toBe("2026-08-14T20");
   });
 });
