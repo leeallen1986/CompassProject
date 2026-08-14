@@ -1,4 +1,4 @@
-import { desc, gte } from "drizzle-orm";
+import { desc, eq, gte } from "drizzle-orm";
 import { getDb, getSystemKv, setSystemKv } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
@@ -31,19 +31,35 @@ export function expectedWindowStart(now: Date): Date {
   return start;
 }
 
-async function loadExpectedRun(now = new Date()): Promise<PersistedPipelineRunState | null> {
+function pipelineRunProjection() {
+  return {
+    id: pipelineRuns.id,
+    status: pipelineRuns.status,
+    startedAt: pipelineRuns.startedAt,
+    completedAt: pipelineRuns.completedAt,
+    lastProgressAt: pipelineRuns.lastProgressAt,
+    currentStep: pipelineRuns.currentStep,
+    triggeredBy: pipelineRuns.triggeredBy,
+  };
+}
+
+async function loadAnyRunningRun(): Promise<PersistedPipelineRunState | null> {
   const db = await getDb();
   if (!db) return null;
   const [run] = await db
-    .select({
-      id: pipelineRuns.id,
-      status: pipelineRuns.status,
-      startedAt: pipelineRuns.startedAt,
-      completedAt: pipelineRuns.completedAt,
-      lastProgressAt: pipelineRuns.lastProgressAt,
-      currentStep: pipelineRuns.currentStep,
-      triggeredBy: pipelineRuns.triggeredBy,
-    })
+    .select(pipelineRunProjection())
+    .from(pipelineRuns)
+    .where(eq(pipelineRuns.status, "running"))
+    .orderBy(desc(pipelineRuns.startedAt))
+    .limit(1);
+  return run ?? null;
+}
+
+async function loadExpectedWindowRun(now = new Date()): Promise<PersistedPipelineRunState | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [run] = await db
+    .select(pipelineRunProjection())
     .from(pipelineRuns)
     .where(gte(pipelineRuns.startedAt, expectedWindowStart(now)))
     .orderBy(desc(pipelineRuns.startedAt))
@@ -51,8 +67,15 @@ async function loadExpectedRun(now = new Date()): Promise<PersistedPipelineRunSt
   return run ?? null;
 }
 
+/**
+ * Running writer ownership always wins over the expected-window row. This is
+ * critical when yesterday's worker is orphaned but today's window is missing
+ * or failed: self-healing must not create a second writer alongside it.
+ */
 export async function getExpectedRunHealth(now = new Date()): Promise<ClassifiedPipelineRun> {
-  return classifyPipelineRun(await loadExpectedRun(now), now);
+  const running = await loadAnyRunningRun();
+  if (running) return classifyPipelineRun(running, now);
+  return classifyPipelineRun(await loadExpectedWindowRun(now), now);
 }
 
 async function notifyWithCooldown(title: string, content: string): Promise<void> {
@@ -75,7 +98,6 @@ async function retryAlreadyAttempted(windowStart: Date): Promise<boolean> {
 }
 
 async function markRetryAttempted(windowStart: Date): Promise<void> {
-  // Persist BEFORE launching so process restarts cannot create a retry storm.
   await setSystemKv("ops.v2.selfHealingWindow", expectedRunWindowKey(windowStart));
 }
 
@@ -99,7 +121,7 @@ export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<S
     return "skipped_completed";
   }
   if (decision === "skip_healthy_running") {
-    console.log(`${LOG_PREFIX} Expected run is healthy and still running (run ${classified.runId})`);
+    console.log(`${LOG_PREFIX} Persisted pipeline writer is healthy and still running (run ${classified.runId})`);
     return "skipped_healthy_running";
   }
   if (decision === "block_stale_running") {
@@ -160,12 +182,6 @@ async function reliabilityCheck(): Promise<void> {
   }
 }
 
-/**
- * Startup scan is diagnostic/fail-closed only. It deliberately does not mark a
- * stale row failed because this web process cannot prove ownership or death of
- * a separate cloud worker. This prevents a restart from manufacturing a second
- * writer while an orphaned worker is still alive.
- */
 async function startupReliabilityScan(): Promise<void> {
   try {
     const classified = await getExpectedRunHealth(new Date());
