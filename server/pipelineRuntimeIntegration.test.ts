@@ -35,12 +35,17 @@ describe("Issue #104 production reliability wiring", () => {
     expect(index).toContain("if (useDevPipelineScheduler) startDailyScheduler()");
   });
 
-  it("has a contractor child mode and waits for IPC flush before exit", () => {
+  it("uses a dedicated worker for source runners and a child-only mode for bundled web", () => {
     const index = source("./_core/index.ts");
     const isolated = source("./contractorEngineSubprocess.ts");
-    expect(index).toContain('COMPASS_SUBPROCESS_MODE !== "contractor-engine"');
-    expect(index).toContain("process.send(message, () => process.exit(code))");
+    const worker = source("./contractorEngineWorker.ts");
+
+    expect(isolated).toContain('"contractorEngineWorker.ts"');
     expect(isolated).toContain('COMPASS_SUBPROCESS_MODE: "contractor-engine"');
     expect(isolated).toContain('child.kill("SIGKILL")');
+    expect(worker).toContain("await runContractorEngine()");
+    expect(worker).toContain("process.send(message, () => process.exit(code))");
+    expect(index).toContain('COMPASS_SUBPROCESS_MODE !== "contractor-engine"');
+    expect(index).toContain("process.send(message, () => process.exit(code))");
   });
 });
