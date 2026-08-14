@@ -3,7 +3,11 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { handleScheduledPipelineTrigger as handleExistingScheduledPipelineTrigger } from "./scheduledPipeline";
-import { classifyPipelineRun, staleRunMessage } from "./pipelineRunReliability";
+import {
+  classifyPipelineRun,
+  scheduledTriggerDecision,
+  staleRunMessage,
+} from "./pipelineRunReliability";
 
 async function latestRunningRun() {
   const db = await getDb();
@@ -28,18 +32,30 @@ async function latestRunningRun() {
 /**
  * Safety preflight for the existing scheduled-pipeline handler.
  *
- * The legacy handler ignores `running` rows older than four hours. That means a
- * 27-hour orphan can silently permit a second writer. We fail closed instead:
- * a healthy running row remains handled by the existing 409 guard; a stale
- * running row is explicitly blocked until the old worker is terminated or a
- * process restart performs stale-run cleanup.
+ * The legacy handler ignores `running` rows older than four hours. V2 does not:
+ * every persisted running writer blocks a second automatic trigger. Fresh
+ * progress returns an ordinary in-progress response; stale progress returns a
+ * stronger operator-intervention response. This is deliberately fail-closed.
  */
 export async function handleScheduledPipelineTrigger(req: Request, res: Response): Promise<void> {
   try {
     const running = await latestRunningRun();
     if (running) {
       const classified = classifyPipelineRun(running);
-      if (classified.health === "stale_running") {
+      const decision = scheduledTriggerDecision(classified.health);
+
+      if (decision === "block_healthy_running") {
+        console.log(`[ScheduledPipelineGuard] Pipeline run ${classified.runId} is still active; refusing duplicate trigger`);
+        res.status(409).json({
+          status: "in_progress",
+          runId: classified.runId,
+          message: `Pipeline run ${classified.runId} is already executing — duplicate execution is blocked`,
+          triggeredAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (decision === "block_stale_running") {
         const message = staleRunMessage(classified);
         console.error(`[ScheduledPipelineGuard] ${message}; refusing a second pipeline writer`);
         res.status(409).json({
@@ -52,7 +68,6 @@ export async function handleScheduledPipelineTrigger(req: Request, res: Response
       }
     }
   } catch (error) {
-    // Fail closed if we cannot establish whether an existing writer is active.
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[ScheduledPipelineGuard] Preflight failed: ${message}`);
     res.status(503).json({
