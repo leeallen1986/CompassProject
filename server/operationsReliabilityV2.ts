@@ -1,10 +1,11 @@
-import { and, desc, gte } from "drizzle-orm";
+import { desc, gte } from "drizzle-orm";
 import { getDb, getSystemKv, setSystemKv } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
 import { runDailyPipeline } from "./dailyPipeline";
 import {
   classifyPipelineRun,
+  expectedRunWindowKey,
   selfHealingDecision,
   staleRunMessage,
   type ClassifiedPipelineRun,
@@ -22,7 +23,7 @@ let selfHealingInFlight = false;
 let attemptCount = 0;
 let lastAttemptAt: Date | null = null;
 
-function expectedWindowStart(now: Date): Date {
+export function expectedWindowStart(now: Date): Date {
   const start = new Date(now);
   start.setUTCHours(EXPECTED_RUN_HOUR_UTC, 0, 0, 0);
   if (now < start) start.setUTCDate(start.getUTCDate() - 1);
@@ -67,10 +68,21 @@ async function notifyWithCooldown(title: string, content: string): Promise<void>
   await setSystemKv(key, new Date().toISOString());
 }
 
+async function retryAlreadyAttempted(windowStart: Date): Promise<boolean> {
+  const stored = await getSystemKv("ops.v2.selfHealingWindow");
+  return stored === expectedRunWindowKey(windowStart);
+}
+
+async function markRetryAttempted(windowStart: Date): Promise<void> {
+  // Persist BEFORE launching so process restarts cannot create a retry storm.
+  await setSystemKv("ops.v2.selfHealingWindow", expectedRunWindowKey(windowStart));
+}
+
 export type SelfHealingOutcome =
   | "retry_succeeded"
   | "retry_failed"
   | "retry_in_flight"
+  | "retry_already_attempted"
   | "skipped_completed"
   | "skipped_healthy_running"
   | "blocked_stale_running";
@@ -94,11 +106,18 @@ export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<S
     console.error(`${LOG_PREFIX} ${message}; automatic retry blocked to prevent concurrent writers`);
     await notifyWithCooldown(
       "⚠️ Pipeline STALLED mid-run",
-      `${message}.\n\nAutomatic retry was NOT started because the previous worker may still be alive. Restart/terminate the stale worker or allow startup cleanup to mark it failed before retrying.`,
+      `${message}.\n\nAutomatic retry was NOT started because the previous worker may still be alive. Clear or terminate the stale execution plane before retrying.`,
     );
     return "blocked_stale_running";
   }
 
+  const windowStart = expectedWindowStart(now);
+  if (await retryAlreadyAttempted(windowStart)) {
+    console.warn(`${LOG_PREFIX} Self-healing retry already attempted for ${expectedRunWindowKey(windowStart)}; no repeat retry`);
+    return "retry_already_attempted";
+  }
+
+  await markRetryAttempted(windowStart);
   selfHealingInFlight = true;
   attemptCount++;
   lastAttemptAt = new Date();
@@ -112,7 +131,7 @@ export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<S
     console.error(`${LOG_PREFIX} Self-healing retry failed: ${message}`);
     await notifyWithCooldown(
       "⚠️ Pipeline Self-Healing Failed",
-      `A status-aware self-healing retry was attempted and failed.\n\nError: ${message}\n\nThe system will not start concurrent retries.`,
+      `A status-aware self-healing retry was actually started and failed.\n\nError: ${message}\n\nNo additional automatic retry will be started for this run window.`,
     );
     return "retry_failed";
   } finally {
@@ -140,6 +159,28 @@ async function reliabilityCheck(): Promise<void> {
   }
 }
 
+/**
+ * Startup scan is diagnostic/fail-closed only. It deliberately does not mark a
+ * stale row failed because this web process cannot prove ownership or death of
+ * a separate cloud worker. This prevents a restart from manufacturing a second
+ * writer while an orphaned worker is still alive.
+ */
+async function startupReliabilityScan(): Promise<void> {
+  try {
+    const classified = await getExpectedRunHealth(new Date());
+    if (classified.health === "stale_running") {
+      const message = staleRunMessage(classified);
+      console.error(`${LOG_PREFIX} Startup detected stale writer: ${message}`);
+      await notifyWithCooldown(
+        "⚠️ Pipeline stale run detected on startup",
+        `${message}.\n\nThe row was NOT auto-failed because worker ownership cannot be proven safely. Duplicate automatic execution remains blocked.`,
+      );
+    }
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Startup reliability scan failed:`, error);
+  }
+}
+
 export function handleWarmup(_req: any, res: any): void {
   res.json({
     ok: true,
@@ -159,7 +200,10 @@ export function startOperationsReliability(): void {
     console.log(`${LOG_PREFIX} Disabled by DISABLE_SELF_HEALING=true`);
     return;
   }
+
   console.log(`${LOG_PREFIX} Status-aware reliability checker started (30 min interval, 45 min progress-stall threshold)`);
+  void startupReliabilityScan();
+
   setTimeout(() => {
     void reliabilityCheck();
     setInterval(() => void reliabilityCheck(), CHECK_INTERVAL_MS);
