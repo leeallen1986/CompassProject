@@ -8,11 +8,11 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startPersistentScheduler } from "../persistentScheduler";
-import { startDailyScheduler, registerSigtermHandler } from "../dailyPipeline";
+import { startDailyScheduler } from "../dailyPipeline";
 import { storagePut } from "../storage";
-import { handleScheduledPipelineTrigger } from "../scheduledPipeline";
+import { handleScheduledPipelineTrigger } from "../scheduledPipelineGuard";
 import { handleScheduledQueueRun } from "../scheduledQueueRun";
-import { handleWarmup, startOperationsReliability } from "../operationsReliability";
+import { handleWarmup, startOperationsReliability } from "../operationsReliabilityV2";
 import { handleFullPotentialDataQuality } from "../fullPotentialDataQuality";
 import { handleFullPotentialRentalHire, handleFullPotentialRentalRemediation } from "../fullPotentialRentalHire";
 import {
@@ -33,6 +33,29 @@ import {
   handleFullPotentialProjectMatches,
 } from "../fullPotentialAccountMatching.http";
 import { handleReadOnlyNextBest5 } from "../fullPotentialNextBest5.http";
+
+function sendSubprocessMessageAndExit(message: Record<string, unknown>, code: number): void {
+  if (typeof process.send === "function" && process.connected) {
+    process.send(message, () => process.exit(code));
+    return;
+  }
+  process.exit(code);
+}
+
+async function runSubprocessMode(): Promise<boolean> {
+  if (process.env.COMPASS_SUBPROCESS_MODE !== "contractor-engine") return false;
+
+  try {
+    const { runContractorEngine } = await import("../contractorEngine");
+    const data = await runContractorEngine();
+    sendSubprocessMessageAndExit({ type: "contractor-engine-result", data }, 0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    sendSubprocessMessageAndExit({ type: "contractor-engine-error", message }, 1);
+  }
+
+  return true;
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -106,13 +129,10 @@ async function startServer() {
   app.post("/api/full-potential/commercial-model/:modelId/review", handleReviewFullPotentialModel);
   app.put("/api/full-potential/commercial-model/account/:accountId/relationship", handleUpdateFullPotentialRelationship);
 
-  // Read-only bridge between project/contractor intelligence and the canonical Full Potential account universe.
   app.get("/api/full-potential/project-match/:projectId", handleFullPotentialProjectMatch);
   app.get("/api/full-potential/project-matches", handleFullPotentialProjectMatches);
   app.get("/api/full-potential/awarded-project-matches", handleFullPotentialAwardedProjectMatches);
   app.get("/api/full-potential/account-match", handleFullPotentialAccountNameMatch);
-
-  // Read-only, evidence-backed recommendation layer. No mutation route is exposed.
   app.get("/api/full-potential/next-best-5", handleReadOnlyNextBest5);
 
   app.get("/api/warmup", handleWarmup);
@@ -138,11 +158,24 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    startDailyScheduler();
-    registerSigtermHandler();
+
+    const useDevPipelineScheduler =
+      process.env.NODE_ENV !== "production" && process.env.DISABLE_DEV_SCHEDULER !== "true";
+    if (useDevPipelineScheduler) startDailyScheduler();
+
+    // Do not register dailyPipeline's broad SIGTERM handler in the web process.
+    // It cannot prove ownership of a dedicated-worker run. V2 reliability
+    // detects stale progress and fails closed against duplicate writers.
     startPersistentScheduler();
     startOperationsReliability();
   });
 }
 
-startServer().catch(console.error);
+runSubprocessMode()
+  .then(handled => {
+    if (!handled) return startServer();
+  })
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
