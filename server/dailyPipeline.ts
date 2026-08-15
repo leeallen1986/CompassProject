@@ -36,6 +36,10 @@
  */
 import { harvestAllFeeds } from "./rssHarvester";
 import { runExtractionPipeline } from "./aiExtractor";
+import {
+  evaluateExtractionHealth,
+  failureCategoryStepCounts,
+} from "./aiExtractionHealth";
 import { runEnrichmentPipeline, runStaleTierBackfill } from "./contactEnrichment";
 import { runProjectoryScraper } from "./projectoryScraper";
 import { runDmirsScraper } from "./dmirsScraper";
@@ -78,11 +82,18 @@ export interface DailyPipelineResult {
     totalErrors: number;
   };
   extraction: {
+    selected: number;
     processed: number;
     extracted: number;
     duplicates: number;
+    skipped: number;
     failed: number;
+    deferred: number;
+    sideEffectFailures: number;
+    providerCallsAttempted: number;
+    providerCallsSucceeded: number;
     creditsUsed: number;
+    failureCategories: Record<string, number>;
   };
   enrichment: {
     processed: number;
@@ -477,23 +488,80 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
   console.log("[DailyPipeline] Step 2: Running AI extraction...");
   let extractionResult;
   try {
-    extractionResult = await withTimeout(runExtractionPipeline(), STEP_TIMEOUT_MS, "AI Extraction");
-    completeStep(extractionStep, {
+    extractionResult = await withTimeout(
+      runExtractionPipeline({ pipelineRunId: runId }),
+      STEP_TIMEOUT_MS,
+      "AI Extraction",
+    );
+    const extractionHealth = evaluateExtractionHealth(extractionResult);
+    const extractionCounts = {
+      selected: extractionResult.selected,
       processed: extractionResult.processed,
       extracted: extractionResult.extracted,
       duplicates: extractionResult.duplicates,
+      skipped: extractionResult.skipped,
       failed: extractionResult.failed,
+      deferred: extractionResult.deferred,
+      sideEffectFailures: extractionResult.sideEffectFailures,
+      providerCallsAttempted: extractionResult.providerCallsAttempted,
+      providerCallsSucceeded: extractionResult.providerCallsSucceeded,
       creditsUsed: extractionResult.creditsUsed,
-    });
+      degraded: extractionHealth.state === "degraded" ? 1 : 0,
+      ...failureCategoryStepCounts(extractionResult.failureCategories),
+    };
+
+    if (extractionHealth.shouldFailStage) {
+      const safeReason = extractionHealth.safeReason || "AI extraction quality threshold failed";
+      failStep(extractionStep, safeReason);
+      extractionStep.counts = extractionCounts;
+      errors.push(`Extraction: ${safeReason}`);
+      console.error("[DailyPipeline] Extraction quality failed", {
+        processed: extractionResult.processed,
+        failed: extractionResult.failed,
+        deferred: extractionResult.deferred,
+        failureRatio: extractionHealth.failureRatio,
+        failureCategories: extractionResult.failureCategories,
+      });
+    } else {
+      completeStep(extractionStep, extractionCounts);
+      if (extractionHealth.state === "degraded") {
+        console.warn("[DailyPipeline] Extraction completed with bounded degradation", {
+          processed: extractionResult.processed,
+          failed: extractionResult.failed,
+          deferred: extractionResult.deferred,
+          sideEffectFailures: extractionResult.sideEffectFailures,
+          failureCategories: extractionResult.failureCategories,
+        });
+      }
+    }
+
     console.log(
-      `[DailyPipeline] Extraction complete: ${extractionResult.extracted} projects from ${extractionResult.processed} articles`
+      `[DailyPipeline] Extraction outcome: ${extractionResult.extracted} projects, ` +
+      `${extractionResult.skipped} skipped, ${extractionResult.failed} failed, ` +
+      `${extractionResult.deferred} deferred from ${extractionResult.processed} attempted articles`
     );
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error("[DailyPipeline] Extraction failed:", errMsg);
     errors.push(`Extraction: ${errMsg}`);
     failStep(extractionStep, errMsg);
-    extractionResult = { processed: 0, extracted: 0, duplicates: 0, skipped: 0, failed: 0, creditsUsed: 0, results: [] };
+    extractionResult = {
+      selected: 0,
+      processed: 0,
+      extracted: 0,
+      duplicates: 0,
+      skipped: 0,
+      failed: 0,
+      deferred: 0,
+      sideEffectFailures: 0,
+      providerCallsAttempted: 0,
+      providerCallsSucceeded: 0,
+      creditsUsed: 0,
+      failureCategories: {},
+      awardedProjectsInserted: 0,
+      drillingCampaignsInserted: 0,
+      results: [],
+    };
   }
   steps.push(extractionStep);
   // ── Progress checkpoint 1/4: harvest + extraction ──
@@ -506,7 +574,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     projectsCreated: extractionResult.extracted,
     projectsDuplicate: extractionResult.duplicates,
   }, {
-    lastActivityNote: `Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources. Extraction: ${extractionResult.extracted} projects from ${extractionResult.processed} articles.`,
+    lastActivityNote: `Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources. Extraction: ${extractionResult.extracted} projects, ${extractionResult.skipped} skipped, ${extractionResult.failed} failed, ${extractionResult.deferred} deferred from ${extractionResult.processed} attempted articles.`,
   });
 
   // ── Step 3: ASX Targeted Monitoring (daily — lightweight) ──
@@ -1671,11 +1739,18 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       totalErrors: harvestResult.totalErrors,
     },
     extraction: {
+      selected: extractionResult.selected,
       processed: extractionResult.processed,
       extracted: extractionResult.extracted,
       duplicates: extractionResult.duplicates,
+      skipped: extractionResult.skipped,
       failed: extractionResult.failed,
+      deferred: extractionResult.deferred,
+      sideEffectFailures: extractionResult.sideEffectFailures,
+      providerCallsAttempted: extractionResult.providerCallsAttempted,
+      providerCallsSucceeded: extractionResult.providerCallsSucceeded,
       creditsUsed: extractionResult.creditsUsed,
+      failureCategories: extractionResult.failureCategories,
     },
     enrichment: {
       processed: enrichmentResult.processed,

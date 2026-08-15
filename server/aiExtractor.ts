@@ -20,6 +20,17 @@ import {
   type RawArticle, type InsertProject, type InsertAwardedProject, type InsertDrillingCampaign,
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
+import { parseLLMJson } from "./_core/llmErrors";
+import {
+  classifyExtractionFailure,
+  incrementFailureCategory,
+  safeExtractionFailureMessage,
+  shouldDeferExtractionFailure,
+  sortedFailureCategoryCounts,
+  withExtractionAttemptMetadata,
+  type ExtractionFailureCategory,
+  type ExtractionFailureCategoryCounts,
+} from "./aiExtractionHealth";
 import { generateAndEnrichContacts } from "./contactEnrichment";
 import { classifyStage } from "./tierClassification";
 import { scoreProjectAsync } from "./businessLineScoring";
@@ -215,18 +226,53 @@ interface ExtractionResult {
   drillingCampaigns: ExtractedDrillingCampaign[];
   isDuplicate: boolean;
   error?: string;
+  failureCategory?: ExtractionFailureCategory;
+  deferred?: boolean;
+  attemptedAt: string;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
 }
 
-interface ExtractionSummary {
+interface ExtractionBatchResult {
+  results: ExtractionResult[];
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  stopAfterBatch: boolean;
+}
+
+export interface ExtractionSummary {
+  selected: number;
   processed: number;
   extracted: number;
   duplicates: number;
   skipped: number;
   failed: number;
+  deferred: number;
+  sideEffectFailures: number;
+  providerCallsAttempted: number;
+  providerCallsSucceeded: number;
   creditsUsed: number;
+  failureCategories: ExtractionFailureCategoryCounts;
   awardedProjectsInserted: number;
   drillingCampaignsInserted: number;
   results: ExtractionResult[];
+}
+
+export interface ExtractionRunOptions {
+  maxArticles?: number;
+  pipelineRunId?: number | null;
+}
+
+function normalizeExtractionOptions(
+  value?: number | ExtractionRunOptions,
+): Required<ExtractionRunOptions> {
+  if (typeof value === "number") {
+    return { maxArticles: value, pipelineRunId: null };
+  }
+  return {
+    maxArticles: value?.maxArticles ?? Number.POSITIVE_INFINITY,
+    pipelineRunId: value?.pipelineRunId ?? null,
+  };
 }
 
 // ── Check daily credit usage ──
@@ -305,12 +351,14 @@ For drilling campaigns:
 // ── Extract projects from a batch of articles ──
 
 async function extractBatch(
-  articles: { id: number; title: string; summary: string; url: string }[]
-): Promise<ExtractionResult[]> {
+  articles: { id: number; title: string; summary: string; url: string }[],
+  attemptedAt: string,
+): Promise<ExtractionBatchResult> {
   const results: ExtractionResult[] = [];
 
   try {
     const response = await invokeLLM({
+      feature: "ai_extraction",
       messages: [
         {
           role: "system",
@@ -423,7 +471,7 @@ async function extractBatch(
       throw new Error("Empty LLM response");
     }
 
-    const parsed = JSON.parse(content) as {
+    const parsed = parseLLMJson<{
       articles: Array<{
         articleId: number;
         relevant: boolean;
@@ -431,11 +479,37 @@ async function extractBatch(
         awardedProjects?: ExtractedAwardedProject[];
         drillingCampaigns?: ExtractedDrillingCampaign[];
       }>;
-    };
+    }>(content);
 
+    if (!Array.isArray(parsed.articles)) {
+      throw new SyntaxError("Schema response did not contain an articles array");
+    }
+
+    const seenArticleIds = new Set<number>();
     for (const extraction of parsed.articles) {
       const article = articles.find(a => a.id === extraction.articleId);
-      if (!article) continue;
+      if (!article || seenArticleIds.has(extraction.articleId)) continue;
+      seenArticleIds.add(extraction.articleId);
+
+      if (extraction.relevant && !extraction.project) {
+        const category: ExtractionFailureCategory = "schema_or_json_parse";
+        results.push({
+          articleId: extraction.articleId,
+          articleTitle: article.title,
+          extracted: false,
+          project: null,
+          awardedProjects: extraction.awardedProjects || [],
+          drillingCampaigns: extraction.drillingCampaigns || [],
+          isDuplicate: false,
+          error: safeExtractionFailureMessage(category),
+          failureCategory: category,
+          deferred: true,
+          attemptedAt,
+          providerCallAttempted: true,
+          providerCallSucceeded: true,
+        });
+        continue;
+      }
 
       results.push({
         articleId: extraction.articleId,
@@ -445,11 +519,47 @@ async function extractBatch(
         awardedProjects: extraction.awardedProjects || [],
         drillingCampaigns: extraction.drillingCampaigns || [],
         isDuplicate: false,
+        attemptedAt,
+        providerCallAttempted: true,
+        providerCallSucceeded: true,
       });
     }
-  } catch (err: unknown) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    // Mark all articles in this batch as failed
+
+    for (const article of articles) {
+      if (seenArticleIds.has(article.id)) continue;
+      const category: ExtractionFailureCategory = "missing_article_result";
+      results.push({
+        articleId: article.id,
+        articleTitle: article.title,
+        extracted: false,
+        project: null,
+        awardedProjects: [],
+        drillingCampaigns: [],
+        isDuplicate: false,
+        error: safeExtractionFailureMessage(category),
+        failureCategory: category,
+        deferred: true,
+        attemptedAt,
+        providerCallAttempted: true,
+        providerCallSucceeded: true,
+      });
+    }
+
+    return {
+      results,
+      providerCallAttempted: true,
+      providerCallSucceeded: true,
+      stopAfterBatch: results.some(result => result.deferred === true),
+    };
+  } catch (error: unknown) {
+    const category = classifyExtractionFailure(error);
+    const deferred = shouldDeferExtractionFailure(category);
+    const safeMessage = safeExtractionFailureMessage(category);
+    console.warn("[AI Extractor] Batch extraction failed", {
+      category,
+      articleCount: articles.length,
+    });
+
     for (const article of articles) {
       results.push({
         articleId: article.id,
@@ -459,12 +569,22 @@ async function extractBatch(
         awardedProjects: [],
         drillingCampaigns: [],
         isDuplicate: false,
-        error: errMsg,
+        error: safeMessage,
+        failureCategory: category,
+        deferred,
+        attemptedAt,
+        providerCallAttempted: true,
+        providerCallSucceeded: false,
       });
     }
-  }
 
-  return results;
+    return {
+      results,
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+      stopAfterBatch: deferred,
+    };
+  }
 }
 
 // ── Check if a project already exists (deduplication) ──
@@ -550,7 +670,12 @@ async function isDrillingDuplicate(campaignName: string, operator: string): Prom
 
 // ── Main extraction pipeline ──
 
-export async function runExtractionPipeline(maxArticles?: number): Promise<ExtractionSummary> {
+export async function runExtractionPipeline(
+  optionsOrMaxArticles?: number | ExtractionRunOptions,
+): Promise<ExtractionSummary> {
+  const options = normalizeExtractionOptions(optionsOrMaxArticles);
+  const maxArticles = Number.isFinite(options.maxArticles) ? options.maxArticles : undefined;
+  const pipelineRunId = options.pipelineRunId;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -561,12 +686,18 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
 
   if (limit === 0) {
     return {
+      selected: 0,
       processed: 0,
       extracted: 0,
       duplicates: 0,
       skipped: 0,
       failed: 0,
-      creditsUsed: dailyCount,
+      deferred: 0,
+      sideEffectFailures: 0,
+      providerCallsAttempted: 0,
+      providerCallsSucceeded: 0,
+      creditsUsed: 0,
+      failureCategories: {},
       awardedProjectsInserted: 0,
       drillingCampaignsInserted: 0,
       results: [],
@@ -588,12 +719,18 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
 
   if (queuedArticles.length === 0) {
     return {
+      selected: 0,
       processed: 0,
       extracted: 0,
       duplicates: 0,
       skipped: 0,
       failed: 0,
-      creditsUsed: dailyCount,
+      deferred: 0,
+      sideEffectFailures: 0,
+      providerCallsAttempted: 0,
+      providerCallsSucceeded: 0,
+      creditsUsed: 0,
+      failureCategories: {},
       awardedProjectsInserted: 0,
       drillingCampaignsInserted: 0,
       results: [],
@@ -632,15 +769,22 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
   }
 
   const allResults: ExtractionResult[] = [];
+  let processed = 0;
   let extracted = 0;
   let duplicates = 0;
   let skipped = 0;
   let failed = 0;
+  let deferred = 0;
+  let sideEffectFailures = 0;
+  let providerCallsAttempted = 0;
+  let providerCallsSucceeded = 0;
+  let failureCategories: ExtractionFailureCategoryCounts = {};
   let awardedProjectsInserted = 0;
   let drillingCampaignsInserted = 0;
 
   // Process in batches
   for (let i = 0; i < queuedArticles.length; i += BATCH_SIZE) {
+    const batchIndex = Math.floor(i / BATCH_SIZE);
     const batch = queuedArticles.slice(i, i + BATCH_SIZE);
     const batchInput = batch.map(a => ({
       id: a.id,
@@ -648,18 +792,48 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       summary: a.summary || "",
       url: a.url,
     }));
+    const batchAttemptedAt = new Date().toISOString();
+    const batchOutcome = await extractBatch(batchInput, batchAttemptedAt);
+    providerCallsAttempted += batchOutcome.providerCallAttempted ? 1 : 0;
+    providerCallsSucceeded += batchOutcome.providerCallSucceeded ? 1 : 0;
+    processed += batchOutcome.results.length;
 
-    const batchResults = await extractBatch(batchInput);
-
-    for (const result of batchResults) {
+    for (const result of batchOutcome.results) {
       const article = batch.find(a => a.id === result.articleId);
+      const metadata = (
+        outcome: "extracted" | "duplicate" | "skipped" | "deferred" | "failed",
+        failureCategory: ExtractionFailureCategory | null,
+        existing: unknown = article?.extractedData,
+      ) => withExtractionAttemptMetadata(existing, {
+        pipelineRunId,
+        batchIndex,
+        attemptedAt: result.attemptedAt,
+        outcome,
+        failureCategory,
+        providerCallAttempted: result.providerCallAttempted,
+        providerCallSucceeded: result.providerCallSucceeded,
+      });
 
       if (result.error) {
-        // Mark as failed
-        await db.update(rawArticles)
-          .set({ status: "failed" })
-          .where(eq(rawArticles.id, result.articleId));
-        failed++;
+        const category = result.failureCategory ?? "unknown";
+        failureCategories = incrementFailureCategory(failureCategories, category);
+        if (result.deferred) {
+          await db.update(rawArticles)
+            .set({
+              status: "queued",
+              extractedData: metadata("deferred", category) as any,
+            })
+            .where(eq(rawArticles.id, result.articleId));
+          deferred++;
+        } else {
+          await db.update(rawArticles)
+            .set({
+              status: "failed",
+              extractedData: metadata("failed", category) as any,
+            })
+            .where(eq(rawArticles.id, result.articleId));
+          failed++;
+        }
         allResults.push(result);
         continue;
       }
@@ -684,8 +858,12 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
           });
           awardedProjectsInserted++;
           console.log(`[AI Extractor] Awarded project: "${ap.project}" → ${ap.winningContractor}`);
-        } catch (err) {
-          console.error(`[AI Extractor] Failed to insert awarded project:`, err instanceof Error ? err.message : String(err));
+        } catch {
+          sideEffectFailures++;
+          failureCategories = incrementFailureCategory(failureCategories, "database_insert_error");
+          console.error("[AI Extractor] Awarded-project insert failed", {
+            category: "database_insert_error",
+          });
         }
       }
 
@@ -709,15 +887,22 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
           });
           drillingCampaignsInserted++;
           console.log(`[AI Extractor] Drilling campaign: "${dc.campaign}" by ${dc.operator}`);
-        } catch (err) {
-          console.error(`[AI Extractor] Failed to insert drilling campaign:`, err instanceof Error ? err.message : String(err));
+        } catch {
+          sideEffectFailures++;
+          failureCategories = incrementFailureCategory(failureCategories, "database_insert_error");
+          console.error("[AI Extractor] Drilling-campaign insert failed", {
+            category: "database_insert_error",
+          });
         }
       }
 
       if (!result.extracted || !result.project) {
         // Not relevant as a main project — mark as skipped (but awarded/drilling may have been inserted above)
         await db.update(rawArticles)
-          .set({ status: "skipped" })
+          .set({
+            status: "skipped",
+            extractedData: metadata("skipped", null) as any,
+          })
           .where(eq(rawArticles.id, result.articleId));
         skipped++;
         allResults.push(result);
@@ -729,7 +914,15 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       if (dupProjectId !== null) {
         result.isDuplicate = true;
         await db.update(rawArticles)
-          .set({ status: "extracted", extractedAt: new Date(), extractedData: result.project as unknown as Record<string, unknown> })
+          .set({
+            status: "extracted",
+            extractedAt: new Date(),
+            extractedData: metadata(
+              "duplicate",
+              null,
+              result.project as unknown as Record<string, unknown>,
+            ) as any,
+          })
           .where(eq(rawArticles.id, result.articleId));
         // Stage 5A: corroborate the existing project — update sourceLastSeenAt and re-activate if stale
         await touchProjectSourceSeen(dupProjectId, true);
@@ -769,21 +962,40 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       try {
         const [insertResult] = await db.insert(projects).values(projectData);
         newProjectId = Number(insertResult.insertId);
-      } catch (insertErr) {
-        const insertErrMsg = insertErr instanceof Error ? insertErr.message : String(insertErr);
-        console.error(`[AI Extractor] ❌ Failed to insert project "${result.project.name}" (article ${result.articleId}): ${insertErrMsg}`);
-        // Mark article as failed so it can be retried — but continue processing the rest of the batch
+      } catch {
+        const category: ExtractionFailureCategory = "database_insert_error";
+        failureCategories = incrementFailureCategory(failureCategories, category);
+        console.error("[AI Extractor] Project insert failed", {
+          category,
+          articleId: result.articleId,
+        });
         await db.update(rawArticles)
-          .set({ status: "failed" })
+          .set({
+            status: "failed",
+            extractedData: metadata("failed", category) as any,
+          })
           .where(eq(rawArticles.id, result.articleId));
         failed++;
-        allResults.push(result);
+        allResults.push({
+          ...result,
+          error: safeExtractionFailureMessage(category),
+          failureCategory: category,
+          deferred: false,
+        });
         continue;
       }
 
       // Mark article as extracted
       await db.update(rawArticles)
-        .set({ status: "extracted", extractedAt: new Date(), extractedData: result.project as unknown as Record<string, unknown> })
+        .set({
+          status: "extracted",
+          extractedAt: new Date(),
+          extractedData: metadata(
+            "extracted",
+            null,
+            result.project as unknown as Record<string, unknown>,
+          ) as any,
+        })
         .where(eq(rawArticles.id, result.articleId));
 
       // Auto-score business lines for the new project (non-blocking)
@@ -804,6 +1016,15 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
       extracted++;
       allResults.push(result);
     }
+
+    if (batchOutcome.stopAfterBatch) {
+      console.warn("[AI Extractor] Stopping extraction after retryable batch failure", {
+        batchIndex,
+        selectedArticles: queuedArticles.length,
+        attemptedArticles: processed,
+      });
+      break;
+    }
   }
 
   // Update report stats
@@ -823,12 +1044,18 @@ export async function runExtractionPipeline(maxArticles?: number): Promise<Extra
   }
 
   return {
-    processed: queuedArticles.length,
+    selected: queuedArticles.length,
+    processed,
     extracted,
     duplicates,
     skipped,
     failed,
-    creditsUsed: dailyCount + Math.ceil(queuedArticles.length / BATCH_SIZE),
+    deferred,
+    sideEffectFailures,
+    providerCallsAttempted,
+    providerCallsSucceeded,
+    creditsUsed: providerCallsAttempted,
+    failureCategories: sortedFailureCategoryCounts(failureCategories),
     awardedProjectsInserted,
     drillingCampaignsInserted,
     results: allResults,
