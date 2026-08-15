@@ -92,7 +92,7 @@ suffix = suffix.replace('providerCallAttempted: true,', 'providerCallAttempted,'
 extractor = prefix + marker + suffix
 extractor = replace_once(
     extractor,
-    '''      }) => withExtractionAttemptMetadata(existing, {
+    '''      ) => withExtractionAttemptMetadata(existing, {
         pipelineRunId,
         batchIndex,
         attemptedAt: result.attemptedAt,
@@ -101,7 +101,7 @@ extractor = replace_once(
         providerCallAttempted: result.providerCallAttempted,
         providerCallSucceeded: result.providerCallSucceeded,
       });''',
-    '''      }) => withExtractionAttemptMetadata(
+    '''      ) => withExtractionAttemptMetadata(
         existing,
         {
           pipelineRunId,
