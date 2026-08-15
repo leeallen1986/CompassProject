@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { LLMInvokeError } from "./_core/llmErrors";
 import {
+  AI_EXTRACTION_METADATA_KEY,
   classifyExtractionFailure,
   evaluateExtractionHealth,
+  failureCategoryStepCounts,
   incrementFailureCategory,
+  previousExtractionAttemptCount,
+  safeExtractionFailureMessage,
+  shouldDeferExtractionFailure,
   sortedFailureCategoryCounts,
+  withExtractionAttemptMetadata,
 } from "./aiExtractionHealth";
 
 describe("Issue #113 extraction failure classification", () => {
@@ -23,7 +29,21 @@ describe("Issue #113 extraction failure classification", () => {
     expect(classifyExtractionFailure(new Error("Database insert failed"))).toBe("database_insert_error");
   });
 
-  it("aggregates and sorts bounded category counts", () => {
+  it("defers provider/batch outages but not a proven database insert failure", () => {
+    expect(shouldDeferExtractionFailure("quota_or_usage_exhausted")).toBe(true);
+    expect(shouldDeferExtractionFailure("circuit_open")).toBe(true);
+    expect(shouldDeferExtractionFailure("schema_or_json_parse")).toBe(true);
+    expect(shouldDeferExtractionFailure("database_insert_error")).toBe(false);
+  });
+
+  it("emits a bounded safe error message", () => {
+    const message = safeExtractionFailureMessage("provider_rejected");
+    expect(message).toBe("AI extraction unavailable (provider_rejected)");
+    expect(message).not.toContain("prompt");
+    expect(message).not.toContain("response");
+  });
+
+  it("aggregates and sorts bounded category counts for persisted step telemetry", () => {
     let counts = incrementFailureCategory({}, "timeout", 2);
     counts = incrementFailureCategory(counts, "timeout");
     counts = incrementFailureCategory(counts, "authentication");
@@ -31,6 +51,62 @@ describe("Issue #113 extraction failure classification", () => {
       authentication: 1,
       timeout: 3,
     });
+    expect(failureCategoryStepCounts(counts)).toEqual({
+      failure_authentication: 1,
+      failure_timeout: 3,
+    });
+  });
+});
+
+describe("Issue #113 bounded attempt metadata", () => {
+  it("adds a reconstructable run/batch ledger without raw provider content", () => {
+    const value = withExtractionAttemptMetadata(null, {
+      pipelineRunId: 3900001,
+      batchIndex: 0,
+      attemptedAt: "2026-08-14T20:02:01.686Z",
+      outcome: "deferred",
+      failureCategory: "quota_or_usage_exhausted",
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+    });
+
+    expect(value[AI_EXTRACTION_METADATA_KEY]).toEqual({
+      version: 1,
+      pipelineRunId: 3900001,
+      batchIndex: 0,
+      attemptedAt: "2026-08-14T20:02:01.686Z",
+      outcome: "deferred",
+      failureCategory: "quota_or_usage_exhausted",
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+      attemptCount: 1,
+    });
+    expect(JSON.stringify(value)).not.toContain("article text");
+    expect(JSON.stringify(value)).not.toContain("provider payload");
+  });
+
+  it("preserves existing extracted project fields and increments attempt count", () => {
+    const first = withExtractionAttemptMetadata({ name: "Existing project" }, {
+      pipelineRunId: 1,
+      batchIndex: 0,
+      attemptedAt: "2026-08-14T20:00:00Z",
+      outcome: "deferred",
+      failureCategory: "timeout",
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+    });
+    const second = withExtractionAttemptMetadata(first, {
+      pipelineRunId: 2,
+      batchIndex: 0,
+      attemptedAt: "2026-08-15T20:00:00Z",
+      outcome: "extracted",
+      failureCategory: null,
+      providerCallAttempted: true,
+      providerCallSucceeded: true,
+    });
+
+    expect(second.name).toBe("Existing project");
+    expect(previousExtractionAttemptCount(second)).toBe(2);
   });
 });
 
@@ -59,7 +135,7 @@ describe("Issue #113 extraction health", () => {
     });
   });
 
-  it("fails the stage when every processed item genuinely fails", () => {
+  it("fails the stage when every attempted item genuinely fails", () => {
     const decision = evaluateExtractionHealth({
       processed: 76,
       extracted: 0,
@@ -73,7 +149,23 @@ describe("Issue #113 extraction health", () => {
       shouldFailStage: true,
     });
     expect(decision.safeReason).toContain("76/76");
-    expect(decision.safeReason).not.toContain("provider");
+    expect(decision.safeReason).not.toContain("provider payload");
+  });
+
+  it("fails a total deferred provider batch without converting it to article failure", () => {
+    expect(evaluateExtractionHealth({
+      processed: 5,
+      extracted: 0,
+      duplicates: 0,
+      skipped: 0,
+      failed: 0,
+      deferred: 5,
+    })).toMatchObject({
+      state: "failed",
+      effectiveFailures: 5,
+      failureRatio: 1,
+      shouldFailStage: true,
+    });
   });
 
   it("fails a material partial outage at or above the controller threshold", () => {
@@ -82,7 +174,8 @@ describe("Issue #113 extraction health", () => {
       extracted: 3,
       duplicates: 1,
       skipped: 6,
-      failed: 10,
+      failed: 5,
+      deferred: 5,
     })).toMatchObject({
       state: "failed",
       failureRatio: 0.5,
@@ -127,5 +220,21 @@ describe("Issue #113 extraction health", () => {
       skipped: 10,
       failed: 0,
     })).toMatchObject({ state: "healthy", shouldFailStage: false });
+  });
+
+  it("records secondary insert failures as degradation without double-counting articles", () => {
+    expect(evaluateExtractionHealth({
+      processed: 10,
+      extracted: 2,
+      duplicates: 2,
+      skipped: 6,
+      failed: 0,
+      sideEffectFailures: 1,
+    })).toMatchObject({
+      state: "degraded",
+      effectiveFailures: 0,
+      sideEffectFailures: 1,
+      shouldFailStage: false,
+    });
   });
 });
