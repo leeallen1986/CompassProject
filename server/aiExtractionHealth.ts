@@ -127,6 +127,13 @@ export function shouldDeferExtractionFailure(
   return category !== "database_insert_error";
 }
 
+/** True only when the adapter got as far as attempting an upstream request. */
+export function didAttemptExtractionProviderCall(
+  category: ExtractionFailureCategory,
+): boolean {
+  return category !== "configuration" && category !== "circuit_open";
+}
+
 export function safeExtractionFailureMessage(
   category: ExtractionFailureCategory,
 ): string {
@@ -158,12 +165,13 @@ export function previousExtractionAttemptCount(value: unknown): number {
 export function withExtractionAttemptMetadata(
   existing: unknown,
   input: Omit<ExtractionAttemptMetadata, "version" | "attemptCount">,
+  historySource: unknown = existing,
 ): Record<string, unknown> {
   const base = isRecord(existing) ? { ...existing } : {};
   const metadata: ExtractionAttemptMetadata = {
     version: 1,
     ...input,
-    attemptCount: previousExtractionAttemptCount(existing) + 1,
+    attemptCount: previousExtractionAttemptCount(historySource) + 1,
   };
   return {
     ...base,

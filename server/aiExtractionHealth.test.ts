@@ -3,6 +3,7 @@ import { LLMInvokeError } from "./_core/llmErrors";
 import {
   AI_EXTRACTION_METADATA_KEY,
   classifyExtractionFailure,
+  didAttemptExtractionProviderCall,
   evaluateExtractionHealth,
   failureCategoryStepCounts,
   incrementFailureCategory,
@@ -34,6 +35,13 @@ describe("Issue #113 extraction failure classification", () => {
     expect(shouldDeferExtractionFailure("circuit_open")).toBe(true);
     expect(shouldDeferExtractionFailure("schema_or_json_parse")).toBe(true);
     expect(shouldDeferExtractionFailure("database_insert_error")).toBe(false);
+  });
+
+  it("does not claim an upstream provider call for configuration or circuit-open failures", () => {
+    expect(didAttemptExtractionProviderCall("configuration")).toBe(false);
+    expect(didAttemptExtractionProviderCall("circuit_open")).toBe(false);
+    expect(didAttemptExtractionProviderCall("quota_or_usage_exhausted")).toBe(true);
+    expect(didAttemptExtractionProviderCall("timeout")).toBe(true);
   });
 
   it("emits a bounded safe error message", () => {
@@ -95,7 +103,7 @@ describe("Issue #113 bounded attempt metadata", () => {
       providerCallAttempted: true,
       providerCallSucceeded: false,
     });
-    const second = withExtractionAttemptMetadata(first, {
+    const second = withExtractionAttemptMetadata({ name: "Extracted project" }, {
       pipelineRunId: 2,
       batchIndex: 0,
       attemptedAt: "2026-08-15T20:00:00Z",
@@ -103,9 +111,9 @@ describe("Issue #113 bounded attempt metadata", () => {
       failureCategory: null,
       providerCallAttempted: true,
       providerCallSucceeded: true,
-    });
+    }, first);
 
-    expect(second.name).toBe("Existing project");
+    expect(second.name).toBe("Extracted project");
     expect(previousExtractionAttemptCount(second)).toBe(2);
   });
 });

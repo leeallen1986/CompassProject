@@ -23,6 +23,7 @@ import { invokeLLM } from "./_core/llm";
 import { parseLLMJson } from "./_core/llmErrors";
 import {
   classifyExtractionFailure,
+  didAttemptExtractionProviderCall,
   incrementFailureCategory,
   safeExtractionFailureMessage,
   shouldDeferExtractionFailure,
@@ -554,6 +555,7 @@ async function extractBatch(
   } catch (error: unknown) {
     const category = classifyExtractionFailure(error);
     const deferred = shouldDeferExtractionFailure(category);
+    const providerCallAttempted = didAttemptExtractionProviderCall(category);
     const safeMessage = safeExtractionFailureMessage(category);
     console.warn("[AI Extractor] Batch extraction failed", {
       category,
@@ -573,14 +575,14 @@ async function extractBatch(
         failureCategory: category,
         deferred,
         attemptedAt,
-        providerCallAttempted: true,
+        providerCallAttempted,
         providerCallSucceeded: false,
       });
     }
 
     return {
       results,
-      providerCallAttempted: true,
+      providerCallAttempted,
       providerCallSucceeded: false,
       stopAfterBatch: deferred,
     };
@@ -804,15 +806,19 @@ export async function runExtractionPipeline(
         outcome: "extracted" | "duplicate" | "skipped" | "deferred" | "failed",
         failureCategory: ExtractionFailureCategory | null,
         existing: unknown = article?.extractedData,
-      ) => withExtractionAttemptMetadata(existing, {
-        pipelineRunId,
-        batchIndex,
-        attemptedAt: result.attemptedAt,
-        outcome,
-        failureCategory,
-        providerCallAttempted: result.providerCallAttempted,
-        providerCallSucceeded: result.providerCallSucceeded,
-      });
+      ) => withExtractionAttemptMetadata(
+        existing,
+        {
+          pipelineRunId,
+          batchIndex,
+          attemptedAt: result.attemptedAt,
+          outcome,
+          failureCategory,
+          providerCallAttempted: result.providerCallAttempted,
+          providerCallSucceeded: result.providerCallSucceeded,
+        },
+        article?.extractedData,
+      );
 
       if (result.error) {
         const category = result.failureCategory ?? "unknown";
