@@ -1,0 +1,41 @@
+name: Issue 113 AI extraction health
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue113-ai-extraction-health.yml"
+      - "server/aiExtractor.ts"
+      - "server/aiExtractionHealth.ts"
+      - "server/aiExtractionHealth.test.ts"
+      - "server/aiExtractionPipelineIntegration.test.ts"
+      - "server/dailyPipeline.ts"
+      - "server/_core/llm.ts"
+      - "server/_core/llmErrors.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Issue 113 focused tests
+        run: >-
+          pnpm exec vitest run
+          server/aiExtractionHealth.test.ts
+          server/aiExtractionPipelineIntegration.test.ts
+          server/pipelineRuntimeIntegration.test.ts
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build
