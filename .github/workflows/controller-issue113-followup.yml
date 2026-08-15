@@ -6,6 +6,7 @@ on:
       - controller/issue113-ai-extraction-outage
     paths:
       - ".github/workflows/controller-issue113-followup.yml"
+      - ".github/controller/issue113_followup.py"
 
 permissions:
   contents: write
