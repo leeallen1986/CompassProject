@@ -1,0 +1,51 @@
+name: Issue 117 AI extraction provider
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue117-ai-extraction-provider.yml"
+      - "server/_core/env.ts"
+      - "server/_core/llm.ts"
+      - "server/_core/llmErrors.ts"
+      - "server/_core/llmErrors.test.ts"
+      - "server/_core/llm.behavior.test.ts"
+      - "server/_core/llmProvider.ts"
+      - "server/_core/llmProvider.test.ts"
+      - "server/aiExtractionHealth.ts"
+      - "server/aiExtractionHealth.test.ts"
+      - "server/aiExtractionPipelineIntegration.test.ts"
+      - "server/aiExtractor.ts"
+      - "server/dailyPipeline.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Provider and extraction focused tests
+        run: >-
+          pnpm exec vitest run
+          server/_core/llmProvider.test.ts
+          server/_core/llm.behavior.test.ts
+          server/_core/llmErrors.test.ts
+          server/aiExtractionHealth.test.ts
+          server/aiExtractionPipelineIntegration.test.ts
+          server/pipelineRuntimeIntegration.test.ts
+          server/pipelineRunReliability.test.ts
+          server/pipelineRuntimePolicy.test.ts
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build

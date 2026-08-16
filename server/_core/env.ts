@@ -7,6 +7,15 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  /**
+   * Feature-scoped provider configuration for nightly AI project extraction.
+   * The external key is intentionally separate from Manus Forge and from all
+   * other LLM-powered features.
+   */
+  aiExtractionProvider: process.env.AI_EXTRACTION_PROVIDER ?? "",
+  aiExtractionApiKey: process.env.AI_EXTRACTION_API_KEY ?? "",
+  aiExtractionBaseUrl: process.env.AI_EXTRACTION_BASE_URL ?? "",
+  aiExtractionModel: process.env.AI_EXTRACTION_MODEL ?? "",
   apolloApiKey: process.env.APOLLO_API_KEY ?? "",
   projectoryEmail: process.env.PROJECTORY_EMAIL ?? "",
   projectoryPassword: process.env.PROJECTORY_PASSWORD ?? "",

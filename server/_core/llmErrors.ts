@@ -14,6 +14,10 @@ export interface LLMFailureDetails {
   status?: number;
   requestId?: string;
   retryAfterMs?: number;
+  /** Bounded provider telemetry only; never a URL, key or request payload. */
+  provider?: string;
+  /** Bounded configured model identifier only. */
+  model?: string;
 }
 
 export class LLMInvokeError extends Error {
@@ -21,17 +25,21 @@ export class LLMInvokeError extends Error {
   readonly status?: number;
   readonly requestId?: string;
   readonly retryAfterMs?: number;
+  readonly provider?: string;
+  readonly model?: string;
 
   constructor(details: LLMFailureDetails) {
     const status = details.status ? `, HTTP ${details.status}` : "";
-    // Provider request IDs remain available as internal structured metadata but
-    // never enter the public Error.message propagated by tRPC.
+    // Provider request IDs and provider/model telemetry remain available as
+    // internal structured metadata but never enter the public Error.message.
     super(`LLM unavailable (${details.kind}${status})`);
     this.name = "LLMInvokeError";
     this.kind = details.kind;
     this.status = details.status;
     this.requestId = details.requestId;
     this.retryAfterMs = details.retryAfterMs;
+    this.provider = details.provider;
+    this.model = details.model;
   }
 }
 

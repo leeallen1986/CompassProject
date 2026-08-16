@@ -5,6 +5,7 @@ import {
   classifyExtractionFailure,
   didAttemptExtractionProviderCall,
   evaluateExtractionHealth,
+  extractionProviderTelemetryFrom,
   failureCategoryStepCounts,
   incrementFailureCategory,
   previousExtractionAttemptCount,
@@ -22,6 +23,33 @@ describe("Issue #113 extraction failure classification", () => {
       .toBe("circuit_open");
     expect(classifyExtractionFailure(new LLMInvokeError({ kind: "malformed_response" })))
       .toBe("schema_or_json_parse");
+  });
+
+  it("extracts only bounded provider/model attribution", () => {
+    expect(extractionProviderTelemetryFrom(new LLMInvokeError({
+      kind: "quota_exhausted",
+      provider: "openai_compatible",
+      model: "gemini-3.6-flash",
+    }))).toEqual({
+      provider: "openai_compatible",
+      model: "gemini-3.6-flash",
+    });
+    expect(extractionProviderTelemetryFrom({
+      providerTelemetry: {
+        provider: "manus_forge",
+        model: "gemini-2.5-flash",
+        apiKey: "must-not-survive",
+      },
+    })).toEqual({
+      provider: "manus_forge",
+      model: "gemini-2.5-flash",
+    });
+    expect(extractionProviderTelemetryFrom({
+      providerTelemetry: {
+        provider: "secret-provider",
+        model: "model with spaces",
+      },
+    })).toEqual({ provider: null, model: null });
   });
 
   it("classifies empty, JSON and insert failures safely", () => {
@@ -76,6 +104,8 @@ describe("Issue #113 bounded attempt metadata", () => {
       failureCategory: "quota_or_usage_exhausted",
       providerCallAttempted: true,
       providerCallSucceeded: false,
+      provider: "openai_compatible",
+      model: "gemini-3.6-flash",
     });
 
     expect(value[AI_EXTRACTION_METADATA_KEY]).toEqual({
@@ -87,10 +117,14 @@ describe("Issue #113 bounded attempt metadata", () => {
       failureCategory: "quota_or_usage_exhausted",
       providerCallAttempted: true,
       providerCallSucceeded: false,
+      provider: "openai_compatible",
+      model: "gemini-3.6-flash",
       attemptCount: 1,
     });
     expect(JSON.stringify(value)).not.toContain("article text");
     expect(JSON.stringify(value)).not.toContain("provider payload");
+    expect(JSON.stringify(value)).not.toContain("apiKey");
+    expect(JSON.stringify(value)).not.toContain("generativelanguage.googleapis.com");
   });
 
   it("preserves existing extracted project fields and increments attempt count", () => {

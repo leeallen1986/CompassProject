@@ -4,6 +4,10 @@ import {
   classifyLLMHttpFailure,
   parseRetryAfterMs,
 } from "./llmErrors";
+import {
+  resolveLLMProvider,
+  type ResolvedLLMProvider,
+} from "./llmProvider";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -102,6 +106,11 @@ export type InvokeResult = {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
+  };
+  /** Internal bounded attribution; never includes endpoint or credentials. */
+  providerTelemetry?: {
+    provider: string;
+    model: string;
   };
 };
 
@@ -217,24 +226,13 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
-
-const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new LLMInvokeError({ kind: "configuration" });
-  }
-};
-
 const DEFAULT_MAX_TOKENS = 32_768;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_QUOTA_CIRCUIT_MS = 30 * 60 * 1_000;
 const MAX_SUCCESS_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_ERROR_PREFIX_BYTES = 4 * 1024;
 
-let circuitOpenUntil = 0;
+const circuitOpenUntil = new Map<string, number>();
 
 function requestIdFrom(headers: Headers): string | undefined {
   return ["x-request-id", "x-goog-request-id", "request-id"]
@@ -304,20 +302,54 @@ async function readBoundedResponseText(
   return text + decoder.decode();
 }
 
-function assertCircuitClosed(now = Date.now()): void {
-  if (circuitOpenUntil <= now) {
-    circuitOpenUntil = 0;
+function assertCircuitClosed(
+  provider: ResolvedLLMProvider,
+  now = Date.now(),
+): void {
+  const openUntil = circuitOpenUntil.get(provider.circuitKey) ?? 0;
+  if (openUntil <= now) {
+    circuitOpenUntil.delete(provider.circuitKey);
     return;
   }
   throw new LLMInvokeError({
     kind: "circuit_open",
-    retryAfterMs: circuitOpenUntil - now,
+    retryAfterMs: openUntil - now,
+    provider: provider.name,
+    model: provider.model,
+  });
+}
+
+function openCircuit(
+  provider: ResolvedLLMProvider,
+  retryAfterMs: number | undefined,
+): void {
+  circuitOpenUntil.set(
+    provider.circuitKey,
+    Date.now() + (retryAfterMs ?? DEFAULT_QUOTA_CIRCUIT_MS),
+  );
+}
+
+function withProviderContext(
+  error: unknown,
+  provider: ResolvedLLMProvider,
+): unknown {
+  if (!(error instanceof LLMInvokeError)) return error;
+  if (error.provider === provider.name && error.model === provider.model) {
+    return error;
+  }
+  return new LLMInvokeError({
+    kind: error.kind,
+    status: error.status,
+    requestId: error.requestId,
+    retryAfterMs: error.retryAfterMs,
+    provider: provider.name,
+    model: provider.model,
   });
 }
 
 /** Test-only reset. Production recovery is time based. */
 export function resetLLMCircuitForTests(): void {
-  circuitOpenUntil = 0;
+  circuitOpenUntil.clear();
 }
 
 const normalizeResponseFormat = ({
@@ -366,8 +398,8 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
-  assertCircuitClosed();
+  const provider = resolveLLMProvider(params.feature, ENV);
+  assertCircuitClosed(provider);
 
   const {
     messages,
@@ -384,7 +416,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gemini-2.5-flash",
+    model: provider.model,
     messages: messages.map(normalizeMessage),
   };
 
@@ -405,9 +437,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     DEFAULT_MAX_TOKENS,
     DEFAULT_MAX_TOKENS,
   );
-  payload.thinking = {
-    "budget_tokens": 128
-  };
+
+  if (provider.payloadMode === "manus_forge") {
+    payload.thinking = {
+      budget_tokens: provider.thinkingBudgetTokens ?? 128,
+    };
+  } else if (provider.reasoningEffort) {
+    // Gemini's OpenAI-compatible API maps this to its supported thinking level.
+    payload.reasoning_effort = provider.reasoningEffort;
+  }
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
@@ -426,18 +464,22 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       controller.abort();
-      reject(new LLMInvokeError({ kind: "timeout" }));
+      reject(new LLMInvokeError({
+        kind: "timeout",
+        provider: provider.name,
+        model: provider.model,
+      }));
     }, effectiveTimeoutMs);
   });
 
   const request = async (): Promise<InvokeResult> => {
     let response: Response;
     try {
-      response = await fetch(resolveApiUrl(), {
+      response = await fetch(provider.endpoint, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${ENV.forgeApiKey}`,
+          authorization: `Bearer ${provider.apiKey}`,
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -447,6 +489,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         (error instanceof Error && error.name === "AbortError");
       throw new LLMInvokeError({
         kind: timedOut ? "timeout" : "upstream_unavailable",
+        provider: provider.name,
+        model: provider.model,
       });
     }
 
@@ -463,12 +507,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       const requestId = requestIdFrom(response.headers);
 
       if (kind === "quota_exhausted" || kind === "rate_limited") {
-        circuitOpenUntil = Date.now() +
-          (retryAfterMs ?? DEFAULT_QUOTA_CIRCUIT_MS);
+        openCircuit(provider, retryAfterMs);
       }
 
       console.warn("[LLM] request failed", {
         feature: params.feature ?? "unclassified",
+        provider: provider.name,
+        model: provider.model,
         kind,
         status: response.status,
         requestId: requestId ?? null,
@@ -479,6 +524,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         status: response.status,
         requestId,
         retryAfterMs,
+        provider: provider.name,
+        model: provider.model,
       });
     }
 
@@ -492,18 +539,25 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.choices)) {
         throw new Error("invalid shape");
       }
-      return parsed as InvokeResult;
+      return {
+        ...(parsed as InvokeResult),
+        providerTelemetry: provider.telemetry,
+      };
     } catch {
       throw new LLMInvokeError({
         kind: "malformed_response",
         status: response.status,
         requestId: requestIdFrom(response.headers),
+        provider: provider.name,
+        model: provider.model,
       });
     }
   };
 
   try {
     return await Promise.race([request(), timeout]);
+  } catch (error) {
+    throw withProviderContext(error, provider);
   } finally {
     if (timer) clearTimeout(timer);
   }

@@ -30,6 +30,13 @@ export type ExtractionAttemptOutcome =
   | "deferred"
   | "failed";
 
+export type ExtractionProviderName = "manus_forge" | "openai_compatible";
+
+export interface ExtractionProviderTelemetry {
+  provider: ExtractionProviderName | null;
+  model: string | null;
+}
+
 export interface ExtractionAttemptMetadata {
   version: 1;
   pipelineRunId: number | null;
@@ -39,6 +46,8 @@ export interface ExtractionAttemptMetadata {
   failureCategory: ExtractionFailureCategory | null;
   providerCallAttempted: boolean;
   providerCallSucceeded: boolean;
+  provider?: ExtractionProviderName;
+  model?: string;
   attemptCount: number;
 }
 
@@ -74,6 +83,48 @@ function nonNegativeInteger(value: number): number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function safeProviderName(value: unknown): ExtractionProviderName | null {
+  return value === "manus_forge" || value === "openai_compatible"
+    ? value
+    : null;
+}
+
+function safeModelId(value: unknown): string | null {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > 128 ||
+    !/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/.test(value)
+  ) {
+    return null;
+  }
+  return value;
+}
+
+/**
+ * Extract bounded provider/model attribution from an InvokeResult or
+ * LLMInvokeError. Endpoints, keys and payloads are intentionally ignored.
+ */
+export function extractionProviderTelemetryFrom(
+  value: unknown,
+): ExtractionProviderTelemetry {
+  if (value instanceof LLMInvokeError) {
+    return {
+      provider: safeProviderName(value.provider),
+      model: safeModelId(value.model),
+    };
+  }
+
+  if (!isRecord(value)) return { provider: null, model: null };
+  const telemetry = isRecord(value.providerTelemetry)
+    ? value.providerTelemetry
+    : value;
+  return {
+    provider: safeProviderName(telemetry.provider),
+    model: safeModelId(telemetry.model),
+  };
 }
 
 function mapLLMFailureKind(kind: LLMFailureKind): ExtractionFailureCategory {
@@ -159,8 +210,8 @@ export function previousExtractionAttemptCount(value: unknown): number {
 
 /**
  * Add a bounded attempt ledger without changing the existing top-level project
- * extraction shape. No prompt, response, article text or raw provider error is
- * stored.
+ * extraction shape. No prompt, response, article text, endpoint, key or raw
+ * provider error is stored.
  */
 export function withExtractionAttemptMetadata(
   existing: unknown,
@@ -168,9 +219,19 @@ export function withExtractionAttemptMetadata(
   historySource: unknown = existing,
 ): Record<string, unknown> {
   const base = isRecord(existing) ? { ...existing } : {};
+  const provider = safeProviderName(input.provider);
+  const model = safeModelId(input.model);
   const metadata: ExtractionAttemptMetadata = {
     version: 1,
-    ...input,
+    pipelineRunId: input.pipelineRunId,
+    batchIndex: input.batchIndex,
+    attemptedAt: input.attemptedAt,
+    outcome: input.outcome,
+    failureCategory: input.failureCategory,
+    providerCallAttempted: input.providerCallAttempted,
+    providerCallSucceeded: input.providerCallSucceeded,
+    ...(provider ? { provider } : {}),
+    ...(model ? { model } : {}),
     attemptCount: previousExtractionAttemptCount(historySource) + 1,
   };
   return {
