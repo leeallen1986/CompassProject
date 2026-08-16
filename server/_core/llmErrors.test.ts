@@ -73,6 +73,20 @@ describe("LLM failure classification", () => {
     expect(error.message).not.toContain("usage exhausted");
   });
 
+  it("keeps provider/model attribution bounded and out of the public message", () => {
+    const error = new LLMInvokeError({
+      kind: "authentication",
+      provider: "openai_compatible",
+      model: "gemini-3.6-flash",
+    });
+    expect(error).toMatchObject({
+      provider: "openai_compatible",
+      model: "gemini-3.6-flash",
+    });
+    expect(error.message).not.toContain("openai_compatible");
+    expect(error.message).not.toContain("gemini-3.6-flash");
+  });
+
   it("redacts malformed model JSON instead of echoing its content", () => {
     expect(() =>
       parseLLMJson("recipient-and-prompt-data is not JSON")
