@@ -24,6 +24,7 @@ import { parseLLMJson } from "./_core/llmErrors";
 import {
   classifyExtractionFailure,
   didAttemptExtractionProviderCall,
+  extractionProviderTelemetryFrom,
   incrementFailureCategory,
   safeExtractionFailureMessage,
   shouldDeferExtractionFailure,
@@ -31,6 +32,7 @@ import {
   withExtractionAttemptMetadata,
   type ExtractionFailureCategory,
   type ExtractionFailureCategoryCounts,
+  type ExtractionProviderName,
 } from "./aiExtractionHealth";
 import { generateAndEnrichContacts } from "./contactEnrichment";
 import { classifyStage } from "./tierClassification";
@@ -232,12 +234,16 @@ interface ExtractionResult {
   attemptedAt: string;
   providerCallAttempted: boolean;
   providerCallSucceeded: boolean;
+  provider?: ExtractionProviderName;
+  model?: string;
 }
 
 interface ExtractionBatchResult {
   results: ExtractionResult[];
   providerCallAttempted: boolean;
   providerCallSucceeded: boolean;
+  provider: ExtractionProviderName | null;
+  model: string | null;
   stopAfterBatch: boolean;
 }
 
@@ -252,6 +258,8 @@ export interface ExtractionSummary {
   sideEffectFailures: number;
   providerCallsAttempted: number;
   providerCallsSucceeded: number;
+  provider: ExtractionProviderName | null;
+  model: string | null;
   creditsUsed: number;
   failureCategories: ExtractionFailureCategoryCounts;
   awardedProjectsInserted: number;
@@ -356,6 +364,10 @@ async function extractBatch(
   attemptedAt: string,
 ): Promise<ExtractionBatchResult> {
   const results: ExtractionResult[] = [];
+  let providerTelemetry: {
+    provider: ExtractionProviderName | null;
+    model: string | null;
+  } = { provider: null, model: null };
 
   try {
     const response = await invokeLLM({
@@ -466,6 +478,7 @@ async function extractBatch(
         },
       },
     });
+    providerTelemetry = extractionProviderTelemetryFrom(response);
 
     const content = response.choices[0]?.message?.content;
     if (!content || typeof content !== "string") {
@@ -508,6 +521,10 @@ async function extractBatch(
           attemptedAt,
           providerCallAttempted: true,
           providerCallSucceeded: true,
+
+          provider: providerTelemetry.provider ?? undefined,
+
+          model: providerTelemetry.model ?? undefined,
         });
         continue;
       }
@@ -523,6 +540,10 @@ async function extractBatch(
         attemptedAt,
         providerCallAttempted: true,
         providerCallSucceeded: true,
+
+        provider: providerTelemetry.provider ?? undefined,
+
+        model: providerTelemetry.model ?? undefined,
       });
     }
 
@@ -543,6 +564,10 @@ async function extractBatch(
         attemptedAt,
         providerCallAttempted: true,
         providerCallSucceeded: true,
+
+        provider: providerTelemetry.provider ?? undefined,
+
+        model: providerTelemetry.model ?? undefined,
       });
     }
 
@@ -550,15 +575,23 @@ async function extractBatch(
       results,
       providerCallAttempted: true,
       providerCallSucceeded: true,
+      provider: providerTelemetry.provider,
+      model: providerTelemetry.model,
       stopAfterBatch: results.some(result => result.deferred === true),
     };
   } catch (error: unknown) {
     const category = classifyExtractionFailure(error);
+    const errorTelemetry = extractionProviderTelemetryFrom(error);
+    if (errorTelemetry.provider || errorTelemetry.model) {
+      providerTelemetry = errorTelemetry;
+    }
     const deferred = shouldDeferExtractionFailure(category);
     const providerCallAttempted = didAttemptExtractionProviderCall(category);
     const safeMessage = safeExtractionFailureMessage(category);
     console.warn("[AI Extractor] Batch extraction failed", {
       category,
+      provider: providerTelemetry.provider,
+      model: providerTelemetry.model,
       articleCount: articles.length,
     });
 
@@ -577,6 +610,8 @@ async function extractBatch(
         attemptedAt,
         providerCallAttempted,
         providerCallSucceeded: false,
+        provider: providerTelemetry.provider ?? undefined,
+        model: providerTelemetry.model ?? undefined,
       });
     }
 
@@ -584,6 +619,8 @@ async function extractBatch(
       results,
       providerCallAttempted,
       providerCallSucceeded: false,
+      provider: providerTelemetry.provider,
+      model: providerTelemetry.model,
       stopAfterBatch: deferred,
     };
   }
@@ -698,6 +735,8 @@ export async function runExtractionPipeline(
       sideEffectFailures: 0,
       providerCallsAttempted: 0,
       providerCallsSucceeded: 0,
+      provider: null,
+      model: null,
       creditsUsed: 0,
       failureCategories: {},
       awardedProjectsInserted: 0,
@@ -731,6 +770,8 @@ export async function runExtractionPipeline(
       sideEffectFailures: 0,
       providerCallsAttempted: 0,
       providerCallsSucceeded: 0,
+      provider: null,
+      model: null,
       creditsUsed: 0,
       failureCategories: {},
       awardedProjectsInserted: 0,
@@ -780,6 +821,8 @@ export async function runExtractionPipeline(
   let sideEffectFailures = 0;
   let providerCallsAttempted = 0;
   let providerCallsSucceeded = 0;
+  let provider: ExtractionProviderName | null = null;
+  let model: string | null = null;
   let failureCategories: ExtractionFailureCategoryCounts = {};
   let awardedProjectsInserted = 0;
   let drillingCampaignsInserted = 0;
@@ -798,6 +841,8 @@ export async function runExtractionPipeline(
     const batchOutcome = await extractBatch(batchInput, batchAttemptedAt);
     providerCallsAttempted += batchOutcome.providerCallAttempted ? 1 : 0;
     providerCallsSucceeded += batchOutcome.providerCallSucceeded ? 1 : 0;
+    provider ??= batchOutcome.provider;
+    model ??= batchOutcome.model;
     processed += batchOutcome.results.length;
 
     for (const result of batchOutcome.results) {
@@ -816,6 +861,8 @@ export async function runExtractionPipeline(
           failureCategory,
           providerCallAttempted: result.providerCallAttempted,
           providerCallSucceeded: result.providerCallSucceeded,
+          provider: result.provider,
+          model: result.model,
         },
         article?.extractedData,
       );
@@ -1028,6 +1075,8 @@ export async function runExtractionPipeline(
         batchIndex,
         selectedArticles: queuedArticles.length,
         attemptedArticles: processed,
+        provider,
+        model,
       });
       break;
     }
@@ -1060,6 +1109,8 @@ export async function runExtractionPipeline(
     sideEffectFailures,
     providerCallsAttempted,
     providerCallsSucceeded,
+    provider,
+    model,
     creditsUsed: providerCallsAttempted,
     failureCategories: sortedFailureCategoryCounts(failureCategories),
     awardedProjectsInserted,

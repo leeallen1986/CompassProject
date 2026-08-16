@@ -92,6 +92,8 @@ export interface DailyPipelineResult {
     sideEffectFailures: number;
     providerCallsAttempted: number;
     providerCallsSucceeded: number;
+    provider: string | null;
+    model: string | null;
     creditsUsed: number;
     failureCategories: Record<string, number>;
   };
@@ -520,6 +522,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
         failed: extractionResult.failed,
         deferred: extractionResult.deferred,
         failureRatio: extractionHealth.failureRatio,
+        provider: extractionResult.provider,
+        model: extractionResult.model,
         failureCategories: extractionResult.failureCategories,
       });
     } else {
@@ -536,8 +540,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     }
 
     console.log(
-      `[DailyPipeline] Extraction outcome: ${extractionResult.extracted} projects, ` +
-      `${extractionResult.skipped} skipped, ${extractionResult.failed} failed, ` +
+      `[DailyPipeline] Extraction outcome (${extractionResult.provider ?? "unknown"}/${extractionResult.model ?? "unknown"}): ` +
+      `${extractionResult.extracted} projects, ${extractionResult.skipped} skipped, ${extractionResult.failed} failed, ` +
       `${extractionResult.deferred} deferred from ${extractionResult.processed} attempted articles`
     );
   } catch (err: unknown) {
@@ -556,6 +560,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       sideEffectFailures: 0,
       providerCallsAttempted: 0,
       providerCallsSucceeded: 0,
+      provider: null,
+      model: null,
       creditsUsed: 0,
       failureCategories: {},
       awardedProjectsInserted: 0,
@@ -574,7 +580,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
     projectsCreated: extractionResult.extracted,
     projectsDuplicate: extractionResult.duplicates,
   }, {
-    lastActivityNote: `Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources. Extraction: ${extractionResult.extracted} projects, ${extractionResult.skipped} skipped, ${extractionResult.failed} failed, ${extractionResult.deferred} deferred from ${extractionResult.processed} attempted articles.`,
+    lastActivityNote: `Harvest: ${harvestResult.totalNew} new articles from ${harvestResult.totalSources} sources. Extraction (${extractionResult.provider ?? "unknown"}/${extractionResult.model ?? "unknown"}): ${extractionResult.extracted} projects, ${extractionResult.skipped} skipped, ${extractionResult.failed} failed, ${extractionResult.deferred} deferred from ${extractionResult.processed} attempted articles.`,
   });
 
   // ── Step 3: ASX Targeted Monitoring (daily — lightweight) ──
@@ -1723,7 +1729,7 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
         // Clear currentStep on completion so Admin shows no active step
         currentStep: null,
         lastProgressAt: new Date(),
-        lastActivityNote: `Pipeline ${coreStatus}: ${extractionResult.extracted} projects extracted, ${enrichmentResult.enriched} contacts enriched in ${Math.round((Date.now() - startTime) / 60000)} min.`,
+        lastActivityNote: `Pipeline ${coreStatus}: ${extractionResult.extracted} projects extracted via ${extractionResult.provider ?? "unknown"}/${extractionResult.model ?? "unknown"}, ${enrichmentResult.enriched} contacts enriched in ${Math.round((Date.now() - startTime) / 60000)} min.`,
       }).where(eq(pipelineRuns.id, runId));
       console.log(`[DailyPipeline] Core completion record written (status=${coreStatus}, ${coreStepsFailed.length} critical failures, ${enrichmentStepsFailed.length} enrichment failures tolerated)`);
     } catch (err) {
@@ -1749,6 +1755,8 @@ async function _runDailyPipelineInner(triggeredBy?: string): Promise<DailyPipeli
       sideEffectFailures: extractionResult.sideEffectFailures,
       providerCallsAttempted: extractionResult.providerCallsAttempted,
       providerCallsSucceeded: extractionResult.providerCallsSucceeded,
+      provider: extractionResult.provider,
+      model: extractionResult.model,
       creditsUsed: extractionResult.creditsUsed,
       failureCategories: extractionResult.failureCategories,
     },

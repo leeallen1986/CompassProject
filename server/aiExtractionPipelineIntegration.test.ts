@@ -30,6 +30,8 @@ describe("Issue #113 production extraction wiring", () => {
     expect(extractor).toContain("batchIndex");
     expect(extractor).toContain("providerCallAttempted");
     expect(extractor).toContain("providerCallSucceeded");
+    expect(extractor).toContain("provider: result.provider");
+    expect(extractor).toContain("model: result.model");
     expect(health).toContain('AI_EXTRACTION_METADATA_KEY = "__aiExtraction"');
     expect(health).not.toContain("rawProviderPayload");
     expect(health).not.toContain("promptText");
@@ -41,6 +43,8 @@ describe("Issue #113 production extraction wiring", () => {
     expect(extractor).toContain("providerCallsSucceeded");
     expect(extractor).toContain("creditsUsed: providerCallsAttempted");
     expect(extractor).not.toContain("dailyCount + Math.ceil(queuedArticles.length / BATCH_SIZE)");
+    expect(extractor).toContain("extractionProviderTelemetryFrom(response)");
+    expect(extractor).toContain("extractionProviderTelemetryFrom(error)");
   });
 
   it("fails the critical daily stage when extraction health breaches the threshold", () => {
@@ -57,5 +61,7 @@ describe("Issue #113 production extraction wiring", () => {
     expect(daily).toContain("skipped: extractionResult.skipped");
     expect(daily).toContain("failed: extractionResult.failed");
     expect(daily).toContain("deferred: extractionResult.deferred");
+    expect(daily).toContain("provider: extractionResult.provider");
+    expect(daily).toContain("model: extractionResult.model");
   });
 });
