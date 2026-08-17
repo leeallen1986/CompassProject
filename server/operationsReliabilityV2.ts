@@ -12,6 +12,11 @@ import {
   type ClassifiedPipelineRun,
   type PersistedPipelineRunState,
 } from "./pipelineRunReliability";
+import {
+  classifyPersistedSelfHealingRetry,
+  selfHealingFailureSummary,
+  type PersistedSelfHealingRetry,
+} from "./selfHealingRetryTruth";
 
 const LOG_PREFIX = "[OpsReliabilityV2]";
 const EXPECTED_RUN_HOUR_UTC = 20;
@@ -43,6 +48,15 @@ function pipelineRunProjection() {
   };
 }
 
+function selfHealingRetryProjection() {
+  return {
+    id: pipelineRuns.id,
+    status: pipelineRuns.status,
+    triggeredBy: pipelineRuns.triggeredBy,
+    steps: pipelineRuns.steps,
+  };
+}
+
 async function loadAnyRunningRun(): Promise<PersistedPipelineRunState | null> {
   const db = await getDb();
   if (!db) return null;
@@ -65,6 +79,25 @@ async function loadExpectedWindowRun(now = new Date()): Promise<PersistedPipelin
     .orderBy(desc(pipelineRuns.startedAt))
     .limit(1);
   return run ?? null;
+}
+
+async function loadLatestSelfHealingRetry(): Promise<PersistedSelfHealingRetry | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [run] = await db
+    .select(selfHealingRetryProjection())
+    .from(pipelineRuns)
+    .where(eq(pipelineRuns.triggeredBy, "self-healing-retry"))
+    .orderBy(desc(pipelineRuns.id))
+    .limit(1);
+  return run ?? null;
+}
+
+async function loadNewRetryTruth(previousRetryId: number | null) {
+  const latest = await loadLatestSelfHealingRetry();
+  return classifyPersistedSelfHealingRetry(
+    latest && latest.id !== previousRetryId ? latest : null,
+  );
 }
 
 /**
@@ -90,6 +123,13 @@ async function notifyWithCooldown(title: string, content: string): Promise<void>
   }
   await notifyOwner({ title, content });
   await setSystemKv(key, new Date().toISOString());
+}
+
+async function notifyRetryFailure(summary: string): Promise<void> {
+  await notifyWithCooldown(
+    "⚠️ Pipeline Self-Healing Failed",
+    `${summary}\n\nNo additional automatic retry will be started for this run window.`,
+  );
 }
 
 async function retryAlreadyAttempted(windowStart: Date): Promise<boolean> {
@@ -140,6 +180,7 @@ export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<S
     return "retry_already_attempted";
   }
 
+  const previousRetryId = (await loadLatestSelfHealingRetry())?.id ?? null;
   await markRetryAttempted(windowStart);
   selfHealingInFlight = true;
   attemptCount++;
@@ -147,15 +188,33 @@ export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<S
   try {
     console.log(`${LOG_PREFIX} Starting bounded self-healing retry #${attemptCount}; prior state=${classified.health}`);
     await runDailyPipeline("self-healing-retry");
-    console.log(`${LOG_PREFIX} Self-healing retry completed successfully`);
+
+    const truth = await loadNewRetryTruth(previousRetryId);
+    if (!truth.succeeded) {
+      console.error(`${LOG_PREFIX} Self-healing retry resolved without persisted success`, {
+        runId: truth.runId,
+        persistedState: truth.state,
+        criticalFailures: truth.criticalFailures,
+      });
+      await notifyRetryFailure(selfHealingFailureSummary(truth));
+      return "retry_failed";
+    }
+
+    console.log(`${LOG_PREFIX} Self-healing retry persisted completed status (run ${truth.runId})`);
     return "retry_succeeded";
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`${LOG_PREFIX} Self-healing retry failed: ${message}`);
-    await notifyWithCooldown(
-      "⚠️ Pipeline Self-Healing Failed",
-      `A status-aware self-healing retry was actually started and failed.\n\nError: ${message}\n\nNo additional automatic retry will be started for this run window.`,
-    );
+    const truth = await loadNewRetryTruth(previousRetryId);
+    const errorType = error instanceof Error ? error.name : typeof error;
+    console.error(`${LOG_PREFIX} Self-healing retry execution threw`, {
+      errorType,
+      runId: truth.runId,
+      persistedState: truth.state,
+      criticalFailures: truth.criticalFailures,
+    });
+    const summary = truth.runId !== null
+      ? selfHealingFailureSummary(truth)
+      : "The self-healing retry execution threw before a completed persisted result could be confirmed.";
+    await notifyRetryFailure(summary);
     return "retry_failed";
   } finally {
     selfHealingInFlight = false;
@@ -174,7 +233,7 @@ async function reliabilityCheck(): Promise<void> {
     if (outcome === "retry_succeeded") {
       await notifyWithCooldown(
         "✅ Pipeline Self-Healing Succeeded",
-        "The expected pipeline run was missing or failed. A status-aware retry was actually started and completed successfully.",
+        "The expected pipeline run was missing or failed. A status-aware retry was actually started and its persisted pipeline status is completed.",
       );
     }
   } catch (error) {
