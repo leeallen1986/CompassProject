@@ -1,4 +1,4 @@
-import { desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb, getSystemKv, setSystemKv } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
@@ -23,6 +23,7 @@ const EXPECTED_RUN_HOUR_UTC = 20;
 const RETRY_DELAY_MINUTES = 10;
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const NOTIFICATION_COOLDOWN_HOURS = 6;
+const LAST_NOTIFIED_WORKER_RECOVERY_KEY = "ops.v2.lastNotifiedSelfHealingRunId";
 
 /**
  * Issue #104 v2: automatic recovery belongs to the dedicated worker plane.
@@ -102,6 +103,21 @@ async function loadLatestSelfHealingRetry(): Promise<PersistedSelfHealingRetry |
   return run ?? null;
 }
 
+async function loadWindowSelfHealingRetry(windowStart: Date): Promise<PersistedSelfHealingRetry | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [run] = await db
+    .select(selfHealingRetryProjection())
+    .from(pipelineRuns)
+    .where(and(
+      eq(pipelineRuns.triggeredBy, "self-healing-retry"),
+      gte(pipelineRuns.startedAt, windowStart),
+    ))
+    .orderBy(desc(pipelineRuns.id))
+    .limit(1);
+  return run ?? null;
+}
+
 async function loadNewRetryTruth(previousRetryId: number | null) {
   const latest = await loadLatestSelfHealingRetry();
   return classifyPersistedSelfHealingRetry(
@@ -139,6 +155,36 @@ async function notifyRetryFailure(summary: string): Promise<void> {
     "⚠️ Pipeline Self-Healing Failed",
     `${summary}\n\nNo additional automatic retry will be started for this run window.`,
   );
+}
+
+/**
+ * Worker recovery notifications are keyed to the persisted retry row rather
+ * than a web-process Promise. This preserves Issue #115 truth while keeping
+ * production writer ownership on the dedicated worker. A per-run marker is
+ * used instead of the generic six-hour cooldown so a result is never silently
+ * suppressed by an earlier stale-run alert.
+ */
+async function notifyWorkerRecoveryTruth(windowStart: Date): Promise<void> {
+  if (WEB_SELF_HEALING_ENABLED) return;
+  const run = await loadWindowSelfHealingRetry(windowStart);
+  if (!run || run.status === "running") return;
+
+  const alreadyNotified = await getSystemKv(LAST_NOTIFIED_WORKER_RECOVERY_KEY);
+  if (alreadyNotified === String(run.id)) return;
+
+  const truth = classifyPersistedSelfHealingRetry(run);
+  if (truth.succeeded) {
+    await notifyOwner({
+      title: "✅ Pipeline Self-Healing Succeeded",
+      content: `Dedicated-worker recovery run ${truth.runId} reached persisted status completed.`,
+    });
+  } else {
+    await notifyOwner({
+      title: "⚠️ Pipeline Self-Healing Failed",
+      content: `${selfHealingFailureSummary(truth)}\n\nNo additional automatic recovery will be started for this run window.`,
+    });
+  }
+  await setSystemKv(LAST_NOTIFIED_WORKER_RECOVERY_KEY, String(run.id));
 }
 
 async function retryAlreadyAttempted(windowStart: Date): Promise<boolean> {
@@ -249,6 +295,7 @@ async function reliabilityCheck(): Promise<void> {
     retryEligibleAt.setUTCMinutes(RETRY_DELAY_MINUTES);
     if (now < retryEligibleAt) return;
 
+    await notifyWorkerRecoveryTruth(windowStart);
     const outcome = await attemptStatusAwareSelfHealing(now);
     if (outcome === "retry_succeeded") {
       await notifyWithCooldown(
