@@ -15,11 +15,11 @@ Dedicated worker
   │           └── tracked pipeline-runner.ts
   │                 └── runDailyPipeline("cron")
   │
-  └── guarded recovery 20:30 UTC
+  └── guarded recovery checks 20:30 / 21:30 / 22:30 UTC
         └── run-pipeline.sh recover
               └── tracked pipeline-runner.ts
                     └── workerRecoveryGuard
-                          └── lightweight recovery pipeline
+                          └── lightweight recovery pipeline (at most once/window)
 
 Manus web application
   └── Operations Reliability V2
@@ -28,16 +28,18 @@ Manus web application
         └── does NOT execute production recovery by default
 ```
 
-The normal worker is the only full automatic production writer. The recovery job runs only when the expected window is missing or failed and the one-retry-per-window guard permits it.
+The normal worker is the only full automatic production writer. Recovery checks run only in the bounded evening window. Each check exits without mutation while a writer is running or after a recovery has already been attempted. The one-window marker allows at most one actual recovery execution.
 
 ## Required cron
 
 ```cron
 0 20 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh cron >> /home/ubuntu/atlas-pipeline/logs/cron.log 2>&1
-30 20 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh recover >> /home/ubuntu/atlas-pipeline/logs/cron.log 2>&1
+30 20-22 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh recover >> /home/ubuntu/atlas-pipeline/logs/cron.log 2>&1
 ```
 
-Do not add a second independent full-pipeline schedule.
+The recovery expression produces guarded checks at 20:30, 21:30 and 22:30 UTC. This matters on Wednesday/Saturday when Contractor Engine can legitimately keep the natural worker busy beyond 20:30. The first check must not consume the retry marker merely because the natural writer is still active; a later check may recover only if that writer subsequently reaches a failed state or if the expected run never existed.
+
+Do not add a second independent full-pipeline schedule or recovery checks more frequent than hourly.
 
 ## Worker layout
 
@@ -64,7 +66,7 @@ Do not add a second independent full-pipeline schedule.
 
 Before Issue #104 v2, the release archive intentionally excluded `pipeline-runner.ts` and `run-pipeline.sh`, while cron depended on those two files. A worker could therefore report an approved `DEPLOYED_GIT_SHA` even though the actual cron entrypoint was missing, stale or different from the approved GitHub source.
 
-That model is no longer acceptable. A release is not attested unless both launcher files match the approved source.
+That model is no longer acceptable. A release is not attested unless both launcher files match the approved source, including the executable Git mode of `run-pipeline.sh`.
 
 ## Execution safety
 
@@ -78,7 +80,8 @@ That model is no longer acceptable. A release is not attested unless both launch
 4. writes process-liveness heartbeats that explicitly do **not** claim step completion;
 5. enforces a 15-minute wall-clock boundary while the owned run remains in `Apollo Gap-Fill`;
 6. on SIGTERM, interrupt, application rejection or unresolved persisted status, finalises only the row created by that owned process and exits;
-7. never changes `durationMs` when the exact process stop time is not application-proven.
+7. exits explicitly after final persisted truth so database/event-loop handles cannot keep cron alive;
+8. never changes `durationMs` when the exact process stop time is not application-proven.
 
 A supervisor heartbeat is ownership/liveness evidence only. It must not be interpreted as proof that a business step completed.
 
@@ -86,11 +89,13 @@ A supervisor heartbeat is ownership/liveness evidence only. It must not be inter
 
 `run-pipeline.sh recover` is not a second full run. It checks the expected 20:00 UTC window and the existing `ops.v2.selfHealingWindow` marker.
 
-Recovery runs only when:
+Recovery executes only when:
 
 - no pipeline writer is currently running;
 - the expected run is missing or failed;
 - a recovery has not already been attempted for that window.
+
+When a natural writer is still running, the guard exits without setting the retry marker. This lets the later hourly recovery checks observe the same window safely.
 
 The recovery profile intentionally contains only the critical discovery/truth chain:
 
@@ -170,6 +175,8 @@ The release manifest must include SHA-256 for:
 - contact-trust writer files already covered by the production release discipline;
 - `pnpm-lock.yaml`.
 
+The manifest must also attest Git file modes, including `run-pipeline.sh=100755`, so source provenance covers executable semantics as well as file content.
+
 The worker must persist the approved SHA in:
 
 ```text
@@ -229,9 +236,11 @@ Require `run-pipeline.sh` to remain executable after sync.
 
 Compare every tracked worker file against the approved clean source. Require zero differing and zero missing files before writing the new `DEPLOYED_GIT_SHA` and `SHA256SUMS.release`.
 
+The release manifest must include both launcher hashes and the executable Git mode.
+
 ### 6. Offline validation
 
-Use existing dependencies only unless the approved release changes the lockfile. Run focused tests, TypeScript and other static validation. Do not manually start the production pipeline as a deployment test.
+Use existing dependencies only unless the approved release changes the lockfile. Run focused tests, TypeScript (including the root `pipeline-runner.ts`), shell syntax and other static validation. Do not manually start the production pipeline as a deployment test.
 
 ### 7. Cron installation
 
@@ -247,12 +256,15 @@ Allow the next normal 20:00 UTC cron to execute. Verify from persisted evidence 
 - no concurrent writer existed;
 - Gemini extraction accounting is truthful;
 - Apollo did not exceed its supervised wall-clock boundary, or the owned run was failed closed without an orphan;
+- the runner exited after final persisted truth;
 - final production state is quiet.
 
-At 20:30 UTC verify the recovery guard either:
+For the 20:30 / 21:30 / 22:30 guarded checks, verify each observed outcome. Across the entire expected window there must be at most one actual `self-healing-retry` execution. Valid outcomes include:
 
-- records `recovery_not_needed` after a healthy natural run; or
-- creates exactly one `self-healing-retry` recovery when the natural window is missing/failed.
+- `recovery_not_needed` after a healthy natural run;
+- `recovery_blocked_running` while the natural writer is legitimately active;
+- a later `recovery_completed` / `recovery_failed` after the natural run reaches a failed state;
+- `recovery_already_attempted` after one prior recovery for the same window.
 
 ## Drift detection
 
@@ -262,8 +274,9 @@ The worker release is unattested if any of the following is true:
 - `pipeline-runner.ts` differs from the approved SHA;
 - `run-pipeline.sh` differs from the approved SHA;
 - the wrapper is not executable;
-- any release-manifest hash differs;
+- any release-manifest hash or Git mode differs;
 - cron does not contain exactly the approved natural and guarded recovery entries;
+- more than one recovery execution appears for a single expected window;
 - a recovery row appears without the one-window guard;
 - web and worker provenance are conflated.
 
