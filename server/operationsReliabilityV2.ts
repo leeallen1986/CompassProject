@@ -1,4 +1,4 @@
-import { desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb, getSystemKv, setSystemKv } from "./db";
 import { pipelineRuns } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
@@ -23,6 +23,16 @@ const EXPECTED_RUN_HOUR_UTC = 20;
 const RETRY_DELAY_MINUTES = 10;
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const NOTIFICATION_COOLDOWN_HOURS = 6;
+const LAST_NOTIFIED_WORKER_RECOVERY_KEY = "ops.v2.lastNotifiedSelfHealingRunId";
+
+/**
+ * Issue #104 v2: automatic recovery belongs to the dedicated worker plane.
+ * The web service is an observer by default because an in-process timer can be
+ * suspended/restarted independently of the worker and cannot safely own a
+ * long-running production writer. The old execution path is retained only as
+ * an explicit emergency compatibility switch.
+ */
+const WEB_SELF_HEALING_ENABLED = process.env.ENABLE_WEB_SELF_HEALING === "true";
 
 let started = false;
 let selfHealingInFlight = false;
@@ -93,6 +103,21 @@ async function loadLatestSelfHealingRetry(): Promise<PersistedSelfHealingRetry |
   return run ?? null;
 }
 
+async function loadWindowSelfHealingRetry(windowStart: Date): Promise<PersistedSelfHealingRetry | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [run] = await db
+    .select(selfHealingRetryProjection())
+    .from(pipelineRuns)
+    .where(and(
+      eq(pipelineRuns.triggeredBy, "self-healing-retry"),
+      gte(pipelineRuns.startedAt, windowStart),
+    ))
+    .orderBy(desc(pipelineRuns.id))
+    .limit(1);
+  return run ?? null;
+}
+
 async function loadNewRetryTruth(previousRetryId: number | null) {
   const latest = await loadLatestSelfHealingRetry();
   return classifyPersistedSelfHealingRetry(
@@ -132,6 +157,36 @@ async function notifyRetryFailure(summary: string): Promise<void> {
   );
 }
 
+/**
+ * Worker recovery notifications are keyed to the persisted retry row rather
+ * than a web-process Promise. This preserves Issue #115 truth while keeping
+ * production writer ownership on the dedicated worker. A per-run marker is
+ * used instead of the generic six-hour cooldown so a result is never silently
+ * suppressed by an earlier stale-run alert.
+ */
+async function notifyWorkerRecoveryTruth(windowStart: Date): Promise<void> {
+  if (WEB_SELF_HEALING_ENABLED) return;
+  const run = await loadWindowSelfHealingRetry(windowStart);
+  if (!run || run.status === "running") return;
+
+  const alreadyNotified = await getSystemKv(LAST_NOTIFIED_WORKER_RECOVERY_KEY);
+  if (alreadyNotified === String(run.id)) return;
+
+  const truth = classifyPersistedSelfHealingRetry(run);
+  if (truth.succeeded) {
+    await notifyOwner({
+      title: "✅ Pipeline Self-Healing Succeeded",
+      content: `Dedicated-worker recovery run ${truth.runId} reached persisted status completed.`,
+    });
+  } else {
+    await notifyOwner({
+      title: "⚠️ Pipeline Self-Healing Failed",
+      content: `${selfHealingFailureSummary(truth)}\n\nNo additional automatic recovery will be started for this run window.`,
+    });
+  }
+  await setSystemKv(LAST_NOTIFIED_WORKER_RECOVERY_KEY, String(run.id));
+}
+
 async function retryAlreadyAttempted(windowStart: Date): Promise<boolean> {
   const stored = await getSystemKv("ops.v2.selfHealingWindow");
   return stored === expectedRunWindowKey(windowStart);
@@ -148,7 +203,8 @@ export type SelfHealingOutcome =
   | "retry_already_attempted"
   | "skipped_completed"
   | "skipped_healthy_running"
-  | "blocked_stale_running";
+  | "blocked_stale_running"
+  | "worker_recovery_pending";
 
 export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<SelfHealingOutcome> {
   if (selfHealingInFlight) return "retry_in_flight";
@@ -176,17 +232,27 @@ export async function attemptStatusAwareSelfHealing(now = new Date()): Promise<S
 
   const windowStart = expectedWindowStart(now);
   if (await retryAlreadyAttempted(windowStart)) {
-    console.warn(`${LOG_PREFIX} Self-healing retry already attempted for ${expectedRunWindowKey(windowStart)}; no repeat retry`);
+    console.warn(`${LOG_PREFIX} Worker recovery already attempted for ${expectedRunWindowKey(windowStart)}; no repeat retry`);
     return "retry_already_attempted";
   }
 
+  if (!WEB_SELF_HEALING_ENABLED) {
+    console.warn(
+      `${LOG_PREFIX} Expected run is ${classified.health}; web execution is disabled and the dedicated worker recovery cron owns the retry.`,
+    );
+    return "worker_recovery_pending";
+  }
+
+  // Explicit compatibility path only. Production default is worker-owned
+  // recovery; keeping this path allows a controlled rollback without losing
+  // the Issue #115 persisted-status truth boundary.
   const previousRetryId = (await loadLatestSelfHealingRetry())?.id ?? null;
   await markRetryAttempted(windowStart);
   selfHealingInFlight = true;
   attemptCount++;
   lastAttemptAt = new Date();
   try {
-    console.log(`${LOG_PREFIX} Starting bounded self-healing retry #${attemptCount}; prior state=${classified.health}`);
+    console.log(`${LOG_PREFIX} Starting legacy web self-healing retry #${attemptCount}; prior state=${classified.health}`);
     await runDailyPipeline("self-healing-retry");
 
     const truth = await loadNewRetryTruth(previousRetryId);
@@ -229,6 +295,7 @@ async function reliabilityCheck(): Promise<void> {
     retryEligibleAt.setUTCMinutes(RETRY_DELAY_MINUTES);
     if (now < retryEligibleAt) return;
 
+    await notifyWorkerRecoveryTruth(windowStart);
     const outcome = await attemptStatusAwareSelfHealing(now);
     if (outcome === "retry_succeeded") {
       await notifyWithCooldown(
@@ -264,6 +331,7 @@ export function handleWarmup(_req: any, res: any): void {
     uptime: process.uptime(),
     reliabilityVersion: 2,
     stallThresholdMinutes: PIPELINE_STALL_MINUTES,
+    recoveryExecutionPlane: WEB_SELF_HEALING_ENABLED ? "web_legacy_override" : "dedicated_worker",
     selfHealingInFlight,
     selfHealingAttempts: attemptCount,
     lastSelfHealingAttempt: lastAttemptAt?.toISOString() ?? null,
@@ -278,7 +346,9 @@ export function startOperationsReliability(): void {
     return;
   }
 
-  console.log(`${LOG_PREFIX} Status-aware reliability checker started (30 min interval, ${PIPELINE_STALL_MINUTES} min progress-stall threshold)`);
+  console.log(
+    `${LOG_PREFIX} Reliability observer started (30 min interval, ${PIPELINE_STALL_MINUTES} min progress-stall threshold, recovery plane=${WEB_SELF_HEALING_ENABLED ? "web legacy override" : "dedicated worker"})`,
+  );
   void startupReliabilityScan();
 
   setTimeout(() => {

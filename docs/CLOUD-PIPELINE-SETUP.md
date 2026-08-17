@@ -2,40 +2,57 @@
 
 ## Overview
 
-The daily scraping and enrichment pipeline runs on a dedicated Ubuntu cloud computer via OS cron at **20:00 UTC daily**. The worker writes to the same TiDB database used by the web application.
+The daily intelligence pipeline runs on a dedicated Ubuntu cloud worker. The worker is a separate production execution plane from the Manus web application and writes to the same TiDB database.
 
-This worker is a **separate production execution plane** from the Manus web deployment. A current web checkpoint does not prove that the cloud pipeline worker is running the same source.
-
----
+Issue #104 v2 makes the **actual worker launch path part of the immutable GitHub release**. `run-pipeline.sh` and `pipeline-runner.ts` must no longer be treated as worker-only operational files.
 
 ## Architecture
 
 ```text
-Cloud pipeline worker
-  └── cron: 0 20 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh
-        └── tsx pipeline-runner.ts cron
-              └── runDailyPipeline("cron")
-                    └── shared TiDB database
+Dedicated worker
+  ├── cron 20:00 UTC
+  │     └── run-pipeline.sh cron
+  │           └── tracked pipeline-runner.ts
+  │                 └── runDailyPipeline("cron")
+  │
+  └── guarded recovery checks 20:30 / 21:30 / 22:30 UTC
+        └── run-pipeline.sh recover
+              └── tracked pipeline-runner.ts
+                    └── workerRecoveryGuard
+                          └── lightweight recovery pipeline (at most once/window)
 
-Web application
-  └── operationsReliability.ts self-healing check
-        └── checks whether a pipeline run already exists
+Manus web application
+  └── Operations Reliability V2
+        ├── observes persisted run health
+        ├── reports stale writers
+        └── does NOT execute production recovery by default
 ```
 
-The `triggeredBy=cron` value in `pipelineRuns` identifies the cloud-computer path, not the web `/api/scheduled/pipeline` route.
+The normal worker is the only full automatic production writer. Recovery checks run only in the bounded evening window. Each check exits without mutation while a writer is running or after a recovery has already been attempted. The one-window marker allows at most one actual recovery execution.
 
----
+## Required cron
+
+```cron
+0 20 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh cron >> /home/ubuntu/atlas-pipeline/logs/cron.log 2>&1
+30 20-22 * * * /home/ubuntu/atlas-pipeline/run-pipeline.sh recover >> /home/ubuntu/atlas-pipeline/logs/cron.log 2>&1
+```
+
+The recovery expression produces guarded checks at 20:30, 21:30 and 22:30 UTC. This matters on Wednesday/Saturday when Contractor Engine can legitimately keep the natural worker busy beyond 20:30. The first check must not consume the retry marker merely because the natural writer is still active; a later check may recover only if that writer subsequently reaches a failed state or if the expected run never existed.
+
+Do not add a second independent full-pipeline schedule or recovery checks more frequent than hourly.
 
 ## Worker layout
 
 ```text
 /home/ubuntu/atlas-pipeline/
-  .env                    # production secrets; chmod 600; never commit
-  pipeline-runner.ts      # standalone entry point
-  run-pipeline.sh         # cron wrapper
-  DEPLOYED_GIT_SHA        # immutable source attestation for the synced tree
-  SHA256SUMS.release      # hashes for release-critical files
+  .env                    # protected production secrets; chmod 600; never commit
+  pipeline-runner.ts      # GIT-TRACKED supervised entry point
+  run-pipeline.sh         # GIT-TRACKED cron wrapper; executable
+  DEPLOYED_GIT_SHA        # approved immutable GitHub source SHA
+  SHA256SUMS.release      # release manifest
   logs/
+    cron.log
+    pipeline-launcher.log # bounded pre-row and supervisor diagnostics
   server/
   drizzle/
   shared/
@@ -45,177 +62,239 @@ The `triggeredBy=cron` value in `pipelineRuns` identifies the cloud-computer pat
   tsconfig.json
 ```
 
----
+## Why the launcher must be tracked
+
+Before Issue #104 v2, the release archive intentionally excluded `pipeline-runner.ts` and `run-pipeline.sh`, while cron depended on those two files. A worker could therefore report an approved `DEPLOYED_GIT_SHA` even though the actual cron entrypoint was missing, stale or different from the approved GitHub source.
+
+That model is no longer acceptable. A release is not attested unless both launcher files match the approved source, including the executable Git mode of `run-pipeline.sh`.
+
+## Execution safety
+
+### Full natural run
+
+`run-pipeline.sh cron` starts the tracked runner with an OS process boundary slightly wider than the application 180-minute budget. The runner:
+
+1. writes a bounded launcher record before importing application pipeline code;
+2. blocks when any persisted pipeline writer is already running;
+3. supervises the owned `cron` row;
+4. writes process-liveness heartbeats that explicitly do **not** claim step completion;
+5. enforces a 15-minute wall-clock boundary while the owned run remains in `Apollo Gap-Fill`;
+6. on SIGTERM, interrupt, application rejection or unresolved persisted status, finalises only the row created by that owned process and exits;
+7. exits explicitly after final persisted truth so database/event-loop handles cannot keep cron alive;
+8. never changes `durationMs` when the exact process stop time is not application-proven.
+
+A supervisor heartbeat is ownership/liveness evidence only. It must not be interpreted as proof that a business step completed.
+
+### Guarded recovery
+
+`run-pipeline.sh recover` is not a second full run. It checks the expected 20:00 UTC window and the existing `ops.v2.selfHealingWindow` marker.
+
+Recovery executes only when:
+
+- no pipeline writer is currently running;
+- the expected run is missing or failed;
+- a recovery has not already been attempted for that window.
+
+When a natural writer is still running, the guard exits without setting the retry marker. This lets the later hourly recovery checks observe the same window safely.
+
+The recovery profile intentionally contains only the critical discovery/truth chain:
+
+- RSS Harvest;
+- AI Extraction;
+- Tier Classification;
+- Staleness Check;
+- Source Monitoring Snapshot.
+
+It deliberately excludes:
+
+- contact enrichment;
+- Web Stakeholder Discovery;
+- Apollo Gap-Fill;
+- discovery queue work;
+- Contractor Engine;
+- second-pass contact search;
+- other non-critical enrichment.
+
+This prevents self-healing from repeating the expensive workload that caused the original web-plane stall.
+
+### Web reliability observer
+
+The Manus web application remains responsible for visibility and stale-writer alerts. Automatic web execution is disabled by default. The legacy web retry path exists only behind the explicit compatibility switch:
+
+```text
+ENABLE_WEB_SELF_HEALING=true
+```
+
+Do not set that variable in normal production while the dedicated worker recovery cron is enabled.
 
 ## Security requirements
 
-**Never place credentials, API keys, database URLs, SSH passwords or provider secrets in this repository or documentation.**
+Never place credentials, API keys, database URLs, SSH passwords or provider secrets in the repository, launcher logs or deployment reports.
 
-Required secrets belong only in approved secret stores or the worker `.env` file with restrictive permissions. Controller scripts must read SSH/authentication material from environment variables or an SSH agent, never from committed command lines.
+Secrets belong only in the approved worker `.env` or managed web secret store. The worker `.env` must remain mode `600`.
 
-If a secret is ever committed, removing it from the latest file is not sufficient because Git history retains it. Rotate the exposed secret and then clean history only through an approved security procedure.
+Launcher diagnostics may contain only bounded operational fields such as:
 
----
+- UTC timestamp;
+- process ID;
+- release SHA;
+- mode (`cron` or `recover`);
+- run ID;
+- current step;
+- bounded failure category;
+- exit code.
 
-## Release model
+They must never contain environment values, provider payloads, article content or contact data.
 
-The cloud worker must be released from an **immutable approved GitHub SHA**. Do not copy an arbitrary Manus workspace or mutable working directory into production.
+## Immutable release model
 
-For every worker release, record:
+Every worker release must originate from an approved GitHub SHA.
 
-- approved full GitHub SHA;
-- release UTC timestamp;
-- operator/task identity;
-- SHA-256 of `server/dailyPipeline.ts`;
-- SHA-256 of `server/contactEnrichment.ts`;
-- SHA-256 of the Apollo/Hunter/Lusha writer files;
-- SHA-256 of `server/routers/contactValidation.ts`;
-- dependency-lock hash;
-- pre-release worker source SHA/hash set;
-- post-release worker source SHA/hash set.
+The Git-tracked release includes at minimum:
 
-The worker should persist the approved GitHub SHA locally as:
+```text
+pipeline-runner.ts
+run-pipeline.sh
+server/
+drizzle/
+shared/
+package.json
+pnpm-lock.yaml
+tsconfig.json
+```
+
+The release manifest must include SHA-256 for:
+
+- `pipeline-runner.ts`;
+- `run-pipeline.sh`;
+- `server/dailyPipeline.ts`;
+- `server/pipelineExecutionSupervisor.ts`;
+- `server/pipelineRecovery.ts`;
+- `server/workerRecoveryGuard.ts`;
+- `server/operationsReliabilityV2.ts`;
+- contact-trust writer files already covered by the production release discipline;
+- `pnpm-lock.yaml`.
+
+The manifest must also attest Git file modes, including `run-pipeline.sh=100755`, so source provenance covers executable semantics as well as file content.
+
+The worker must persist the approved SHA in:
 
 ```text
 /home/ubuntu/atlas-pipeline/DEPLOYED_GIT_SHA
 ```
 
-and retain a release checksum file:
+and the tracked-file checksum manifest in:
 
 ```text
 /home/ubuntu/atlas-pipeline/SHA256SUMS.release
 ```
 
----
-
 ## Safe update procedure
 
-### 1. Controller preflight
+### 1. Controller source attestation
 
-From a clean checkout of the approved release:
+From a clean checkout of the approved release, require:
 
 ```bash
 git status --short
 git rev-parse HEAD
 ```
 
-Require a clean tree and confirm that `HEAD` is the exact approved SHA.
+The tree must be clean and `HEAD` must be the exact approved SHA.
 
-Create the release archive from that checkout only:
+### 2. Quiet-window preflight
 
-```bash
-tar czf /tmp/pipeline-release.tar.gz \
-  server/ drizzle/ shared/ package.json pnpm-lock.yaml tsconfig.json
-```
+Before changing worker source, confirm read-only:
 
-Generate local release hashes for the critical files before transfer.
+- production `pipelineRuns.status=running` count is zero;
+- no worker pipeline/node/tsx process is active;
+- the next natural 20:00 UTC run is sufficiently far away;
+- the current cron and `.env` fingerprints are recorded without displaying secret content.
 
-### 2. Worker preflight
+### 3. Backup
 
-Using SSH credentials supplied out-of-band, inspect only:
+Create a timestamped rollback archive of worker source and launcher files. The protected `.env` may remain in the worker-only rollback archive but must never be exported into chat or an artifact report.
 
-```bash
-crontab -l
-cat /home/ubuntu/atlas-pipeline/DEPLOYED_GIT_SHA 2>/dev/null || true
-sha256sum \
-  /home/ubuntu/atlas-pipeline/server/dailyPipeline.ts \
-  /home/ubuntu/atlas-pipeline/server/contactEnrichment.ts
-```
+### 4. Exact source sync
 
-Do not print `.env`, provider keys or credentials.
+Synchronise the approved Git-tracked source into `/home/ubuntu/atlas-pipeline`.
 
-### 3. Backup code only
+Preserve only non-Git operational state:
 
-Create a timestamped backup of the worker code and wrapper files. Exclude `.env`, provider payloads and logs from exported evidence.
+- `.env`;
+- logs;
+- backups;
+- `node_modules` when the release does not change dependencies;
+- `DEPLOYED_GIT_SHA` until post-sync verification;
+- prior release manifests until replacement is verified.
 
-### 4. Transfer and extract
+**Do not preserve old copies of `pipeline-runner.ts` or `run-pipeline.sh`.** They must be replaced by the approved GitHub versions.
 
-Copy `/tmp/pipeline-release.tar.gz` to the worker using SSH-agent/key-based authentication or another approved secret mechanism. Extract it into `/home/ubuntu/atlas-pipeline` while preserving `.env`, `pipeline-runner.ts`, `run-pipeline.sh` and `logs/`.
-
-Install locked dependencies:
-
-```bash
-cd /home/ubuntu/atlas-pipeline
-pnpm install --frozen-lockfile
-```
+Require `run-pipeline.sh` to remain executable after sync.
 
 ### 5. Source attestation
 
-After extraction, verify the cloud copies of all release-critical files match the local approved checkout byte-for-byte using SHA-256.
+Compare every tracked worker file against the approved clean source. Require zero differing and zero missing files before writing the new `DEPLOYED_GIT_SHA` and `SHA256SUMS.release`.
 
-Write the exact approved GitHub SHA to `DEPLOYED_GIT_SHA` and the release-critical checksums to `SHA256SUMS.release` only after all comparisons pass.
+The release manifest must include both launcher hashes and the executable Git mode.
 
-### 6. Static validation only
+### 6. Offline validation
 
-Before the next scheduled run, perform validation that cannot call providers or mutate production data. Examples:
+Use existing dependencies only unless the approved release changes the lockfile. Run focused tests, TypeScript (including the root `pipeline-runner.ts`), shell syntax and other static validation. Do not manually start the production pipeline as a deployment test.
 
-- TypeScript compilation where supported by the worker checkout;
-- focused pure/unit tests;
-- static confirmation that `Stale Trust-Tier Backfill` is present in `server/dailyPipeline.ts`;
-- static confirmation that `runStaleTierBackfill()` enforces the canonical current-mailbox policy.
+### 7. Cron installation
 
-**Do not manually trigger the production pipeline as part of a source-sync validation.**
+Install exactly the two approved cron entries shown above. Record the resulting crontab SHA-256. Do not add more frequent recovery checks.
 
-### 7. Natural-run validation
+### 8. Natural-run acceptance
 
-Take the controller baseline after the worker source is attested. Allow the next normal `20:00 UTC` cron run to execute. Then verify:
+Allow the next normal 20:00 UTC cron to execute. Verify from persisted evidence and bounded launcher logs:
 
-- `triggeredBy=cron`;
-- run completed normally;
-- transcript contains `Stale Trust-Tier Backfill`;
-- transcript contains all expected current pipeline stages;
-- no new invalid raw `send_ready` contacts appear;
-- exact canaries remain safe;
-- the post-run read-only fingerprint is stable.
+- shell invocation occurred;
+- tracked runner booted;
+- `triggeredBy=cron` row appeared;
+- no concurrent writer existed;
+- Gemini extraction accounting is truthful;
+- Apollo did not exceed its supervised wall-clock boundary, or the owned run was failed closed without an orphan;
+- the runner exited after final persisted truth;
+- final production state is quiet.
 
----
+For the 20:30 / 21:30 / 22:30 guarded checks, verify each observed outcome. Across the entire expected window there must be at most one actual `self-healing-retry` execution. Valid outcomes include:
+
+- `recovery_not_needed` after a healthy natural run;
+- `recovery_blocked_running` while the natural writer is legitimately active;
+- a later `recovery_completed` / `recovery_failed` after the natural run reaches a failed state;
+- `recovery_already_attempted` after one prior recovery for the same window.
 
 ## Drift detection
 
-A worker release is considered **unattested** when any of the following is true:
+The worker release is unattested if any of the following is true:
 
-- `DEPLOYED_GIT_SHA` is missing;
-- the recorded SHA is not the approved controller SHA;
-- a release-critical file hash differs from `SHA256SUMS.release`;
-- a cron transcript lacks mandatory current pipeline stages;
-- web and worker provenance are being conflated.
+- `DEPLOYED_GIT_SHA` is missing or wrong;
+- `pipeline-runner.ts` differs from the approved SHA;
+- `run-pipeline.sh` differs from the approved SHA;
+- the wrapper is not executable;
+- any release-manifest hash or Git mode differs;
+- cron does not contain exactly the approved natural and guarded recovery entries;
+- more than one recovery execution appears for a single expected window;
+- a recovery row appears without the one-window guard;
+- web and worker provenance are conflated.
 
-An unattested worker must not be used as proof that a GitHub code fix survived a natural pipeline.
+## Troubleshooting a missing natural row
 
----
+Use `logs/pipeline-launcher.log` before guessing about the database or cron service.
 
-## Monitoring
+Expected bounded stages include:
 
-### Pipeline status
+- `shell_invoked`;
+- `runner_start`;
+- `runner_boot`;
+- `daily_pipeline_import_start`;
+- `daily_pipeline_import_ok`;
+- `pipeline_finished` or a bounded failure event.
 
-Use the application/operator view or a read-only database query to inspect recent `pipelineRuns` rows. Do not expose credentials in logs or screenshots.
+This distinguishes shell launch, working-directory failure, missing entrypoint, import failure and application execution failure even when no `pipelineRuns` row was created.
 
-### Worker logs
+## Manual reruns
 
-Inspect the worker's local daily pipeline and cron logs using authenticated SSH. Export only sanitized excerpts required for an incident.
-
----
-
-## Troubleshooting
-
-### Pipeline did not run
-
-1. Confirm the cron entry exists.
-2. Inspect sanitized cron output.
-3. Inspect the daily worker log.
-4. Check the latest `pipelineRuns` row.
-5. Confirm the worker's `DEPLOYED_GIT_SHA` and release hashes.
-
-### Pipeline transcript differs from GitHub
-
-Treat this as worker source drift first. Compare the worker's release-critical hashes with the approved GitHub SHA before escalating to the web deployment platform.
-
-### Manual reruns
-
-Manual reruns are diagnostic/operational actions and are **not equivalent to a natural cron validation**. Use only under a separately authorised runbook.
-
----
-
-## Historical note
-
-The cloud worker was originally introduced to avoid long-running web-container restarts interrupting the pipeline. Because the worker uses a copied source tree, later server-side fixes must be explicitly released to that execution plane. This separation is now part of the production provenance model.
+Manual production runs are not deployment validation and are not equivalent to a natural cron proof. They require a separate explicit operational authorisation.
