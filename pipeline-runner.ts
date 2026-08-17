@@ -181,9 +181,11 @@ async function main(): Promise<void> {
 
 main()
   .then(() => {
-    launcherLog("runner_exit", { exitCode: process.exitCode ?? 0 });
+    const exitCode = process.exitCode ?? 0;
+    launcherLog("runner_exit", { exitCode });
+    process.exit(exitCode);
   })
   .catch((error) => {
     launcherLog("runner_unhandled_failure", { category: safeFailureCategory(error) });
-    process.exitCode = 1;
+    process.exit(1);
   });
