@@ -22,6 +22,15 @@ describe("Issue #104 worker-owned recovery plane", () => {
     expect(legacy).toBeGreaterThan(gate);
   });
 
+  it("notifies once from the persisted worker recovery row rather than execution promise truth", () => {
+    const text = source();
+    expect(text).toContain('const LAST_NOTIFIED_WORKER_RECOVERY_KEY = "ops.v2.lastNotifiedSelfHealingRunId"');
+    expect(text).toContain("const truth = classifyPersistedSelfHealingRetry(run)");
+    expect(text).toContain("Dedicated-worker recovery run ${truth.runId} reached persisted status completed.");
+    expect(text).toContain("selfHealingFailureSummary(truth)");
+    expect(text).toContain("await setSystemKv(LAST_NOTIFIED_WORKER_RECOVERY_KEY, String(run.id))");
+  });
+
   it("retains persisted-status truth on the explicit legacy compatibility path", () => {
     const text = source();
     expect(text).toContain("const truth = await loadNewRetryTruth(previousRetryId)");
