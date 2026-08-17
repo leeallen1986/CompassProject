@@ -3,7 +3,6 @@ import { dirname, resolve } from "node:path";
 
 const PIPELINE_DIR = process.env.PIPELINE_DIR || "/home/ubuntu/atlas-pipeline";
 const LAUNCH_LOG = process.env.PIPELINE_LAUNCH_LOG || resolve(PIPELINE_DIR, "logs/pipeline-launcher.log");
-const executionStartedAt = new Date();
 
 function boundedField(value: unknown, max = 160): string {
   return String(value ?? "unknown").replace(/[\r\n\t]+/g, " ").slice(0, max);
@@ -57,6 +56,7 @@ async function main(): Promise<void> {
     heartbeatOwnedPipelineRun,
     loadAnyRunningPipelineRun,
     loadLatestOwnedPipelineRun,
+    loadLatestPipelineRunForTrigger,
     observeOwnedRun,
   } = await import("./server/pipelineExecutionSupervisor");
 
@@ -70,6 +70,12 @@ async function main(): Promise<void> {
     process.exit(75);
   }
 
+  // Ownership is monotonic-ID based. MySQL timestamp precision can truncate
+  // milliseconds, so a timestamp taken immediately before row creation is not
+  // a safe ownership boundary.
+  const previousOwnedRunId = (await loadLatestPipelineRunForTrigger(trigger))?.id ?? null;
+  launcherLog("ownership_snapshot", { trigger, previousOwnedRunId: previousOwnedRunId ?? "none" });
+
   let stopping = false;
   let supervisorBusy = false;
   let observation = { currentStep: null as string | null, currentStepObservedAtMs: null as number | null };
@@ -78,7 +84,7 @@ async function main(): Promise<void> {
     if (stopping) process.exit(exitCode);
     stopping = true;
     launcherLog("owned_execution_stopping", { trigger, reason });
-    const finalised = await finalizeOwnedPipelineRun(trigger, executionStartedAt, reason);
+    const finalised = await finalizeOwnedPipelineRun(trigger, previousOwnedRunId, reason);
     launcherLog("owned_execution_finalised", {
       trigger,
       finalised: finalised.finalized,
@@ -106,7 +112,7 @@ async function main(): Promise<void> {
     supervisorBusy = true;
     void (async () => {
       try {
-        const snapshot = await heartbeatOwnedPipelineRun(trigger, executionStartedAt);
+        const snapshot = await heartbeatOwnedPipelineRun(trigger, previousOwnedRunId);
         if (!snapshot || snapshot.status !== "running") return;
 
         const decision = observeOwnedRun(snapshot, observation, Date.now(), APOLLO_GAP_FILL_WALL_CLOCK_LIMIT_MS);
@@ -147,7 +153,7 @@ async function main(): Promise<void> {
     launcherLog("daily_pipeline_import_ok");
     await runDailyPipeline("cron");
 
-    const final = await loadLatestOwnedPipelineRun("cron", executionStartedAt);
+    const final = await loadLatestOwnedPipelineRun("cron", previousOwnedRunId);
     if (!final) {
       launcherLog("pipeline_resolved_without_row");
       process.exitCode = 1;
@@ -166,7 +172,7 @@ async function main(): Promise<void> {
     launcherLog("pipeline_execution_failed", { mode, trigger, category });
     const finalised = await finalizeOwnedPipelineRun(
       trigger,
-      executionStartedAt,
+      previousOwnedRunId,
       `Dedicated worker execution failed under supervisor control (${category}).`,
     );
     launcherLog("pipeline_failure_finalisation", {
