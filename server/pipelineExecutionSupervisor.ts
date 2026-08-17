@@ -1,4 +1,4 @@
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { pipelineRuns } from "../drizzle/schema";
 import { getDb } from "./db";
 
@@ -27,6 +27,20 @@ export interface SupervisorObservationState {
 export type SupervisorDecision =
   | { action: "continue"; nextState: SupervisorObservationState }
   | { action: "terminate_apollo_timeout"; nextState: SupervisorObservationState };
+
+function runProjection() {
+  return {
+    id: pipelineRuns.id,
+    status: pipelineRuns.status,
+    triggeredBy: pipelineRuns.triggeredBy,
+    startedAt: pipelineRuns.startedAt,
+    completedAt: pipelineRuns.completedAt,
+    lastProgressAt: pipelineRuns.lastProgressAt,
+    currentStep: pipelineRuns.currentStep,
+    lastActivityNote: pipelineRuns.lastActivityNote,
+    errors: pipelineRuns.errors,
+  };
+}
 
 export function observeOwnedRun(
   snapshot: Pick<OwnedPipelineRunSnapshot, "currentStep">,
@@ -57,47 +71,52 @@ export async function loadAnyRunningPipelineRun(): Promise<OwnedPipelineRunSnaps
   const db = await getDb();
   if (!db) return null;
   const [run] = await db
-    .select({
-      id: pipelineRuns.id,
-      status: pipelineRuns.status,
-      triggeredBy: pipelineRuns.triggeredBy,
-      startedAt: pipelineRuns.startedAt,
-      completedAt: pipelineRuns.completedAt,
-      lastProgressAt: pipelineRuns.lastProgressAt,
-      currentStep: pipelineRuns.currentStep,
-      lastActivityNote: pipelineRuns.lastActivityNote,
-      errors: pipelineRuns.errors,
-    })
+    .select(runProjection())
     .from(pipelineRuns)
     .where(eq(pipelineRuns.status, "running"))
-    .orderBy(desc(pipelineRuns.startedAt))
+    .orderBy(desc(pipelineRuns.id))
     .limit(1);
   return (run as OwnedPipelineRunSnapshot | undefined) ?? null;
 }
 
-export async function loadLatestOwnedPipelineRun(
+/** Snapshot the highest existing row for this trigger before owned execution. */
+export async function loadLatestPipelineRunForTrigger(
   trigger: SupervisedPipelineTrigger,
-  startedAfter: Date,
 ): Promise<OwnedPipelineRunSnapshot | null> {
   const db = await getDb();
   if (!db) return null;
   const [run] = await db
-    .select({
-      id: pipelineRuns.id,
-      status: pipelineRuns.status,
-      triggeredBy: pipelineRuns.triggeredBy,
-      startedAt: pipelineRuns.startedAt,
-      completedAt: pipelineRuns.completedAt,
-      lastProgressAt: pipelineRuns.lastProgressAt,
-      currentStep: pipelineRuns.currentStep,
-      lastActivityNote: pipelineRuns.lastActivityNote,
-      errors: pipelineRuns.errors,
-    })
+    .select(runProjection())
     .from(pipelineRuns)
-    .where(and(
-      eq(pipelineRuns.triggeredBy, trigger),
-      gte(pipelineRuns.startedAt, startedAfter),
-    ))
+    .where(eq(pipelineRuns.triggeredBy, trigger))
+    .orderBy(desc(pipelineRuns.id))
+    .limit(1);
+  return (run as OwnedPipelineRunSnapshot | undefined) ?? null;
+}
+
+/**
+ * Identify a row created after this process took its pre-execution ID snapshot.
+ * Ownership is based on monotonic auto-increment ID rather than startedAt:
+ * MySQL timestamp columns are persisted at lower precision than JavaScript
+ * Date values, so millisecond timestamp comparisons can miss the process's own
+ * row when both occur in the same second.
+ */
+export async function loadLatestOwnedPipelineRun(
+  trigger: SupervisedPipelineTrigger,
+  previousRunId: number | null,
+): Promise<OwnedPipelineRunSnapshot | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const where = previousRunId === null
+    ? eq(pipelineRuns.triggeredBy, trigger)
+    : and(
+        eq(pipelineRuns.triggeredBy, trigger),
+        gt(pipelineRuns.id, previousRunId),
+      );
+  const [run] = await db
+    .select(runProjection())
+    .from(pipelineRuns)
+    .where(where)
     .orderBy(desc(pipelineRuns.id))
     .limit(1);
   return (run as OwnedPipelineRunSnapshot | undefined) ?? null;
@@ -110,10 +129,10 @@ export async function loadLatestOwnedPipelineRun(
  */
 export async function heartbeatOwnedPipelineRun(
   trigger: SupervisedPipelineTrigger,
-  startedAfter: Date,
+  previousRunId: number | null,
   now: Date = new Date(),
 ): Promise<OwnedPipelineRunSnapshot | null> {
-  const run = await loadLatestOwnedPipelineRun(trigger, startedAfter);
+  const run = await loadLatestOwnedPipelineRun(trigger, previousRunId);
   if (!run || run.status !== "running") return run;
 
   const db = await getDb();
@@ -140,17 +159,17 @@ function appendBoundedError(existing: string[] | null, reason: string): string[]
 }
 
 /**
- * Finalise only the newest row created by this owned execution after the
- * supervisor started. This is used only after the dedicated process is
+ * Finalise only the newest row created after this owned process took its
+ * pre-execution run-ID snapshot. This is used only while the process is
  * terminating, never while an unknown writer could still be alive.
  */
 export async function finalizeOwnedPipelineRun(
   trigger: SupervisedPipelineTrigger,
-  startedAfter: Date,
+  previousRunId: number | null,
   reason: string,
   completedAt: Date = new Date(),
 ): Promise<{ finalized: boolean; runId: number | null }> {
-  const run = await loadLatestOwnedPipelineRun(trigger, startedAfter);
+  const run = await loadLatestOwnedPipelineRun(trigger, previousRunId);
   if (!run || run.status !== "running") {
     return { finalized: false, runId: run?.id ?? null };
   }
