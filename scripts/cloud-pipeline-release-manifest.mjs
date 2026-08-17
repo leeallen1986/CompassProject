@@ -7,7 +7,13 @@ import { relative, resolve } from "node:path";
 
 const ROOT = resolve(process.cwd());
 const CRITICAL_FILES = [
+  "pipeline-runner.ts",
+  "run-pipeline.sh",
   "server/dailyPipeline.ts",
+  "server/pipelineExecutionSupervisor.ts",
+  "server/pipelineRecovery.ts",
+  "server/workerRecoveryGuard.ts",
+  "server/operationsReliabilityV2.ts",
   "server/contactEnrichment.ts",
   "server/apolloEnrichment.ts",
   "server/hunterVerification.ts",
@@ -18,7 +24,13 @@ const CRITICAL_FILES = [
   "tsconfig.json",
 ];
 const TREE_ROOTS = ["server", "drizzle", "shared"];
-const TREE_TOP_LEVEL = ["package.json", "pnpm-lock.yaml", "tsconfig.json"];
+const TREE_TOP_LEVEL = [
+  "pipeline-runner.ts",
+  "run-pipeline.sh",
+  "package.json",
+  "pnpm-lock.yaml",
+  "tsconfig.json",
+];
 
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
@@ -30,6 +42,12 @@ function sha256File(path) {
 
 function git(args) {
   return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+}
+
+function gitMode(path) {
+  const staged = git(["ls-files", "--stage", "--", path]);
+  if (!staged) throw new Error(`Tracked release file missing from Git index: ${path}`);
+  return staged.split(/\s+/)[0];
 }
 
 function walk(path) {
@@ -68,18 +86,20 @@ const treeFiles = [
   ...TREE_ROOTS.flatMap(walk),
   ...TREE_TOP_LEVEL,
 ].sort();
+const fileModes = Object.fromEntries(treeFiles.map(path => [path, gitMode(path)]));
 
 const treeDescriptor = treeFiles
-  .map(path => `${path}\0${sha256File(path)}`)
+  .map(path => `${path}\0${fileModes[path]}\0${sha256File(path)}`)
   .join("\n");
 
 const manifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: new Date().toISOString(),
   gitSha,
   cleanWorkingTree: dirty.length === 0,
   releaseTreeSha256: sha256Buffer(Buffer.from(treeDescriptor, "utf8")),
   criticalFiles: critical,
+  fileModes,
   treeFileCount: treeFiles.length,
 };
 
