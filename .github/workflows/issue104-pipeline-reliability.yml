@@ -4,14 +4,27 @@ on:
   pull_request:
     paths:
       - ".github/workflows/issue104-pipeline-reliability.yml"
+      - "pipeline-runner.ts"
+      - "run-pipeline.sh"
+      - "docs/CLOUD-PIPELINE-SETUP.md"
       - "server/_core/index.ts"
       - "server/dailyPipeline.ts"
       - "server/operationsReliabilityV2.ts"
+      - "server/operationsReliabilityV2.issue104.test.ts"
+      - "server/operationsReliabilityV2.issue115.test.ts"
+      - "server/pipelineExecutionSupervisor.ts"
+      - "server/pipelineExecutionSupervisor.test.ts"
+      - "server/pipelineRecovery.ts"
+      - "server/pipelineWorkerRelease.issue104.test.ts"
+      - "server/workerRecoveryGuard.ts"
+      - "server/workerRecoveryGuard.test.ts"
       - "server/pipelineRunReliability.ts"
       - "server/pipelineRunReliability.test.ts"
       - "server/pipelineRuntimePolicy.ts"
       - "server/pipelineRuntimePolicy.test.ts"
       - "server/pipelineRuntimeIntegration.test.ts"
+      - "server/selfHealingRetryTruth.ts"
+      - "server/selfHealingRetryTruth.test.ts"
       - "server/contractorEngineSubprocess.ts"
       - "server/contractorEngineWorker.ts"
       - "server/scheduledPipelineGuard.ts"
@@ -33,12 +46,20 @@ jobs:
           cache: pnpm
       - name: Install frozen dependencies
         run: pnpm install --frozen-lockfile
-      - name: Issue 104 focused tests
+      - name: Issue 104 focused and reliability regression tests
         run: >-
           pnpm exec vitest run
+          server/pipelineExecutionSupervisor.test.ts
+          server/workerRecoveryGuard.test.ts
+          server/operationsReliabilityV2.issue104.test.ts
+          server/operationsReliabilityV2.issue115.test.ts
+          server/pipelineWorkerRelease.issue104.test.ts
+          server/selfHealingRetryTruth.test.ts
           server/pipelineRunReliability.test.ts
           server/pipelineRuntimePolicy.test.ts
           server/pipelineRuntimeIntegration.test.ts
+      - name: Shell syntax
+        run: bash -n run-pipeline.sh
       - name: TypeScript
         run: pnpm check
       - name: Production build
