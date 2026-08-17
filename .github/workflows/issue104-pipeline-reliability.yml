@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/issue104-pipeline-reliability.yml"
+      - ".github/workflows/issue-82-cloud-pipeline-provenance.yml"
       - "pipeline-runner.ts"
       - "run-pipeline.sh"
+      - "tsconfig.json"
+      - "scripts/cloud-pipeline-release-manifest.mjs"
       - "docs/CLOUD-PIPELINE-SETUP.md"
       - "server/_core/index.ts"
       - "server/dailyPipeline.ts"
