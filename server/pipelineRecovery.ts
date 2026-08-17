@@ -63,8 +63,9 @@ function failStep(step: PipelineStep, safeError: string, counts?: Record<string,
  * expensive non-critical workload that previously stalled in the web plane.
  */
 export async function runRecoveryPipeline(): Promise<RecoveryPipelineResult> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  const dbMaybe = await getDb();
+  if (!dbMaybe) throw new Error("Database not available");
+  const db = dbMaybe;
 
   const startedAt = new Date();
   const [inserted] = await db.insert(pipelineRuns).values({
@@ -113,7 +114,7 @@ export async function runRecoveryPipeline(): Promise<RecoveryPipelineResult> {
       duplicates: result.totalDuplicates,
       errors: result.totalErrors,
     });
-  } catch (error) {
+  } catch {
     const safe = "RSS Harvest failed during worker recovery";
     errors.push(safe);
     failStep(harvestStep, safe);
