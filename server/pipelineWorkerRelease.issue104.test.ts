@@ -12,10 +12,19 @@ describe("Issue #104 release-controlled worker execution", () => {
     const importDaily = text.indexOf('await import("./server/dailyPipeline")');
     expect(boot).toBeGreaterThan(-1);
     expect(importDaily).toBeGreaterThan(boot);
+    expect(text).toContain("loadLatestPipelineRunForTrigger");
+    expect(text).toContain("previousOwnedRunId");
     expect(text).toContain("finalizeOwnedPipelineRun");
     expect(text).toContain("heartbeatOwnedPipelineRun");
     expect(text).toContain("terminate_apollo_timeout");
     expect(text).toContain("process.exit(exitCode)");
+  });
+
+  it("uses monotonic run-id ownership instead of timestamp precision", () => {
+    const supervisor = read("server/pipelineExecutionSupervisor.ts");
+    expect(supervisor).toContain("gt(pipelineRuns.id, previousRunId)");
+    expect(supervisor).toContain("MySQL timestamp columns are persisted at lower precision");
+    expect(supervisor).not.toContain("gte(pipelineRuns.startedAt");
   });
 
   it("tracks an executable cron wrapper with an OS process boundary and separate recovery mode", () => {
