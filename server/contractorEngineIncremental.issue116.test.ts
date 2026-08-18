@@ -4,11 +4,16 @@ import { describe, expect, it } from "vitest";
 const read = (relative: string) => readFileSync(new URL(`./${relative}`, import.meta.url), "utf8");
 
 describe("Issue #116 contractor-engine integration", () => {
-  it("routes the dedicated source worker through the incremental engine", () => {
+  it("routes both source and bundled subprocess workers through the incremental engine", () => {
     const worker = read("contractorEngineWorker.ts");
+    const index = read("_core/index.ts");
     expect(worker).toContain('runIncrementalContractorEngine');
     expect(worker).toContain('contractor-engine-progress');
     expect(worker).not.toContain('runContractorEngine } from "./contractorEngine"');
+    expect(index).toContain('await import("../contractorEngineIncremental")');
+    expect(index).toContain('await runIncrementalContractorEngine(');
+    expect(index).toContain('type: "contractor-engine-progress"');
+    expect(index).not.toContain('await import("../contractorEngine")');
   });
 
   it("preserves the 50-minute hard child-process boundary", () => {
