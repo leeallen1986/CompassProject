@@ -9,6 +9,7 @@ const ROOT = resolve(process.cwd());
 const CRITICAL_FILES = [
   "pipeline-runner.ts",
   "run-pipeline.sh",
+  "scripts/worker-validation-job.mjs",
   "server/dailyPipeline.ts",
   "server/pipelineExecutionSupervisor.ts",
   "server/pipelineRecovery.ts",
@@ -31,6 +32,7 @@ const TREE_ROOTS = ["server", "drizzle", "shared"];
 const TREE_TOP_LEVEL = [
   "pipeline-runner.ts",
   "run-pipeline.sh",
+  "scripts/worker-validation-job.mjs",
   "package.json",
   "pnpm-lock.yaml",
   "tsconfig.json",

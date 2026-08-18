@@ -6,7 +6,9 @@ on:
       - "pipeline-runner.ts"
       - "run-pipeline.sh"
       - "scripts/cloud-pipeline-release-manifest.mjs"
+      - "scripts/worker-validation-job.mjs"
       - "docs/CLOUD-PIPELINE-SETUP.md"
+      - "docs/WORKER-CONTROL-CHANNEL.md"
       - ".github/workflows/issue-82-cloud-pipeline-provenance.yml"
   workflow_dispatch:
 
@@ -41,6 +43,7 @@ jobs:
             for (const path of [
               "pipeline-runner.ts",
               "run-pipeline.sh",
+              "scripts/worker-validation-job.mjs",
               "server/dailyPipeline.ts",
               "server/pipelineExecutionSupervisor.ts",
               "server/pipelineRecovery.ts",
@@ -55,13 +58,17 @@ jobs:
             if (m.fileModes["pipeline-runner.ts"] !== "100644") {
               throw new Error(`unexpected pipeline-runner.ts mode=${m.fileModes["pipeline-runner.ts"]}`);
             }
+            if (m.fileModes["scripts/worker-validation-job.mjs"] !== "100644") {
+              throw new Error(`unexpected worker validation controller mode=${m.fileModes["scripts/worker-validation-job.mjs"]}`);
+            }
           '
 
-      - name: Reject plaintext credential examples in runbook
+      - name: Reject plaintext credential examples in runbooks
         shell: bash
         run: |
           set -euo pipefail
-          if grep -nE "sshpass[[:space:]]+-p[[:space:]]+[^<]|APOLLO_API_KEY.*\([^)]{8,}\)" docs/CLOUD-PIPELINE-SETUP.md; then
+          if grep -nE "sshpass[[:space:]]+-p[[:space:]]+[^<]|APOLLO_API_KEY.*\([^)]{8,}\)" \
+            docs/CLOUD-PIPELINE-SETUP.md docs/WORKER-CONTROL-CHANNEL.md; then
             echo "Runbook appears to contain a plaintext credential or API key example." >&2
             exit 1
           fi
