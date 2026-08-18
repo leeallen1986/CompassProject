@@ -1,0 +1,44 @@
+name: Issue 116 contractor engine incremental
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue116-contractor-engine.yml"
+      - "server/_core/index.ts"
+      - "server/contractorEngine.ts"
+      - "server/contractorEngineIncremental.ts"
+      - "server/contractorEngineIncrementalPolicy.ts"
+      - "server/contractorEngineIncrementalPolicy.test.ts"
+      - "server/contractorEngineIncremental.issue116.test.ts"
+      - "server/contractorEngineWorker.ts"
+      - "server/contractorEngineSubprocess.ts"
+      - "server/dailyPipeline.ts"
+      - "server/db.ts"
+      - "drizzle/schema.ts"
+      - "scripts/cloud-pipeline-release-manifest.mjs"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Issue 116 focused tests
+        run: >-
+          pnpm exec vitest run
+          server/contractorEngineIncrementalPolicy.test.ts
+          server/contractorEngineIncremental.issue116.test.ts
+          server/pipelineRuntimeIntegration.test.ts
+      - name: TypeScript
+        run: pnpm check
+      - name: Production build
+        run: pnpm build

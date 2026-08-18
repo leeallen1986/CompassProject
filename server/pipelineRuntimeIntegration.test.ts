@@ -35,7 +35,7 @@ describe("Issue #104 production reliability wiring", () => {
     expect(index).toContain("if (useDevPipelineScheduler) startDailyScheduler()");
   });
 
-  it("uses a dedicated worker for source runners and a child-only mode for bundled web", () => {
+  it("uses an incremental dedicated worker behind the hard boundary and retains bundled child-only mode", () => {
     const index = source("./_core/index.ts");
     const isolated = source("./contractorEngineSubprocess.ts");
     const worker = source("./contractorEngineWorker.ts");
@@ -43,7 +43,8 @@ describe("Issue #104 production reliability wiring", () => {
     expect(isolated).toContain('"contractorEngineWorker.ts"');
     expect(isolated).toContain('COMPASS_SUBPROCESS_MODE: "contractor-engine"');
     expect(isolated).toContain('child.kill("SIGKILL")');
-    expect(worker).toContain("await runContractorEngine()");
+    expect(worker).toContain("await runIncrementalContractorEngine(");
+    expect(worker).toContain('type: "contractor-engine-progress"');
     expect(worker).toContain("process.send(message, () => process.exit(code))");
     expect(index).toContain('COMPASS_SUBPROCESS_MODE !== "contractor-engine"');
     expect(index).toContain("process.send(message, () => process.exit(code))");
