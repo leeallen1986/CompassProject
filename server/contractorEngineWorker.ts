@@ -1,4 +1,10 @@
-import { runContractorEngine } from "./contractorEngine";
+import { runIncrementalContractorEngine } from "./contractorEngineIncremental";
+
+function send(message: Record<string, unknown>): void {
+  if (typeof process.send === "function" && process.connected) {
+    process.send(message);
+  }
+}
 
 function sendAndExit(message: Record<string, unknown>, code: number): void {
   if (typeof process.send === "function" && process.connected) {
@@ -10,7 +16,11 @@ function sendAndExit(message: Record<string, unknown>, code: number): void {
 
 async function main(): Promise<void> {
   try {
-    const data = await runContractorEngine();
+    const data = await runIncrementalContractorEngine({
+      onProgress(snapshot) {
+        send({ type: "contractor-engine-progress", ...snapshot });
+      },
+    });
     sendAndExit({ type: "contractor-engine-result", data }, 0);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
