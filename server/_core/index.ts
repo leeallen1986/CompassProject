@@ -34,6 +34,12 @@ import {
 } from "../fullPotentialAccountMatching.http";
 import { handleReadOnlyNextBest5 } from "../fullPotentialNextBest5.http";
 
+function sendSubprocessMessage(message: Record<string, unknown>): void {
+  if (typeof process.send === "function" && process.connected) {
+    process.send(message);
+  }
+}
+
 function sendSubprocessMessageAndExit(message: Record<string, unknown>, code: number): void {
   if (typeof process.send === "function" && process.connected) {
     process.send(message, () => process.exit(code));
@@ -46,8 +52,12 @@ async function runSubprocessMode(): Promise<boolean> {
   if (process.env.COMPASS_SUBPROCESS_MODE !== "contractor-engine") return false;
 
   try {
-    const { runContractorEngine } = await import("../contractorEngine");
-    const data = await runContractorEngine();
+    const { runIncrementalContractorEngine } = await import("../contractorEngineIncremental");
+    const data = await runIncrementalContractorEngine({
+      onProgress(snapshot) {
+        sendSubprocessMessage({ type: "contractor-engine-progress", ...snapshot });
+      },
+    });
     sendSubprocessMessageAndExit({ type: "contractor-engine-result", data }, 0);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
