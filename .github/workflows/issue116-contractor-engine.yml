@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/issue116-contractor-engine.yml"
+      - "server/_core/index.ts"
       - "server/contractorEngine.ts"
       - "server/contractorEngineIncremental.ts"
       - "server/contractorEngineIncrementalPolicy.ts"
