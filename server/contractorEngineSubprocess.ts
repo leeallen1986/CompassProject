@@ -1,13 +1,27 @@
 import { fork } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { EngineRunResult } from "./contractorEngine";
+import type { IncrementalContractorEngineResult } from "./contractorEngineIncremental";
+import {
+  buildHardTimeoutSummary,
+  type ContractorEngineProgressSnapshot,
+} from "./contractorEngineIncrementalPolicy";
 
 export const CONTRACTOR_ENGINE_TIMEOUT_MS = 50 * 60 * 1000;
 
 export type ContractorEngineSubprocessResult =
-  | { status: "success"; durationMs: number; data: EngineRunResult }
-  | { status: "failed" | "timed_out"; durationMs: number; errorSummary: string };
+  | {
+      status: "success";
+      durationMs: number;
+      data: IncrementalContractorEngineResult;
+      progress?: ContractorEngineProgressSnapshot;
+    }
+  | {
+      status: "failed" | "timed_out";
+      durationMs: number;
+      errorSummary: string;
+      progress?: ContractorEngineProgressSnapshot;
+    };
 
 function resolveChildLaunch(): { entry: string; env: NodeJS.ProcessEnv } | null {
   const selfPath = fileURLToPath(import.meta.url);
@@ -34,10 +48,9 @@ function resolveChildLaunch(): { entry: string; env: NodeJS.ProcessEnv } | null 
 }
 
 /**
- * Execute Contractor Engine behind a hard process boundary. Source runners use
- * a dedicated worker file; the bundled web build uses its child-only entry
- * mode. Either way, a 50-minute overrun is killed with SIGKILL so work cannot
- * continue mutating after the parent proceeds or later retries.
+ * Execute Contractor Engine behind the existing 50-minute hard process boundary.
+ * Issue #116 adds an internal 35-minute soft budget and persisted checkpoints,
+ * but the SIGKILL boundary remains unchanged as the final safety backstop.
  */
 export function runContractorEngineIsolated(): Promise<ContractorEngineSubprocessResult> {
   const startedAt = Date.now();
@@ -60,6 +73,7 @@ export function runContractorEngineIsolated(): Promise<ContractorEngineSubproces
 
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let lastProgress: ContractorEngineProgressSnapshot | undefined;
 
     const settle = (result: ContractorEngineSubprocessResult) => {
       if (settled) return;
@@ -79,19 +93,36 @@ export function runContractorEngineIsolated(): Promise<ContractorEngineSubproces
       settle({
         status: "timed_out",
         durationMs,
-        errorSummary: `Contractor Engine hard timeout after ${Math.round(durationMs / 1000)}s; child process killed`,
+        errorSummary: buildHardTimeoutSummary(durationMs, lastProgress?.phase),
+        progress: lastProgress,
       });
     }, CONTRACTOR_ENGINE_TIMEOUT_MS);
 
     child.on("message", (message: unknown) => {
-      const msg = message as { type?: string; data?: EngineRunResult; message?: string };
+      const msg = message as {
+        type?: string;
+        data?: IncrementalContractorEngineResult;
+        message?: string;
+        phase?: string;
+        counts?: ContractorEngineProgressSnapshot["counts"];
+      };
+      if (msg.type === "contractor-engine-progress" && msg.phase && msg.counts) {
+        lastProgress = { phase: msg.phase, counts: msg.counts };
+        return;
+      }
       if (msg.type === "contractor-engine-result" && msg.data) {
-        settle({ status: "success", durationMs: Date.now() - startedAt, data: msg.data });
+        settle({
+          status: "success",
+          durationMs: Date.now() - startedAt,
+          data: msg.data,
+          progress: msg.data.progress || lastProgress,
+        });
       } else if (msg.type === "contractor-engine-error") {
         settle({
           status: "failed",
           durationMs: Date.now() - startedAt,
           errorSummary: msg.message || "Contractor Engine child reported an unknown error",
+          progress: lastProgress,
         });
       }
     });
@@ -105,6 +136,7 @@ export function runContractorEngineIsolated(): Promise<ContractorEngineSubproces
         errorSummary: signal
           ? `Contractor Engine child exited via ${signal}`
           : `Contractor Engine child exited with code ${code}`,
+        progress: lastProgress,
       });
     });
 
@@ -113,6 +145,7 @@ export function runContractorEngineIsolated(): Promise<ContractorEngineSubproces
         status: "failed",
         durationMs: Date.now() - startedAt,
         errorSummary: error.message,
+        progress: lastProgress,
       });
     });
   });
