@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["server/**/*", "shared/**/*", "pipeline-runner.ts"],
+  "exclude": ["node_modules", "build", "dist", "client", "**/*.test.ts"],
+  "compilerOptions": {
+    "incremental": false
+  }
+}
