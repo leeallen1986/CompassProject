@@ -55,11 +55,23 @@ Current profiles:
 - `control-probe` — harmless short detached process used to prove reconnect/resume behavior;
 - `shell-syntax` — `bash -n run-pipeline.sh`;
 - `issue104-tests` — focused runtime/recovery regression tests;
-- `typecheck` — `pnpm check`;
-- `build` — `pnpm build`;
-- `deployment-static` — shell syntax, focused reliability tests, TypeScript and production build in sequence.
+- `typecheck` — worker-only TypeScript using `tsconfig.worker.json`;
+- `deployment-static` — shell syntax, focused reliability tests and worker-only TypeScript in sequence.
+
+The dedicated-worker controller intentionally does **not** offer a whole-application `build` profile. The immutable worker release does not contain or attest the full `client/` tree, so Vite/client build validation belongs in GitHub exact-head CI rather than on the worker.
+
+`tsconfig.worker.json` includes only the worker/server TypeScript scope (`server/**/*`, `shared/**/*`, `pipeline-runner.ts`) and explicitly excludes `client/`. The worker TypeScript config is itself part of the immutable release manifest.
 
 No profile runs `run-pipeline.sh`, `pipeline-runner.ts`, `runDailyPipeline`, recovery, provider calls, enrichment, migrations or database remediation.
+
+## Full-source release validation versus worker-local validation
+
+These are separate gates:
+
+- **GitHub CI / full source** runs the normal `pnpm check` and `pnpm build`, including client TypeScript and the Vite web build.
+- **Dedicated worker / deployed release** validates only files that are part of the immutable worker release tree.
+
+A worker-local deployment gate must never depend on stale or unattested files outside `SHA256SUMS.release`.
 
 ## Starting a detached validation
 
@@ -150,21 +162,23 @@ A cron or other production scheduling mutation may proceed only when all of the 
 
 A disconnected terminal never waives these gates.
 
-## Recommended Issue #104 deployment validation
+## Recommended Issue #104/#126 deployment validation
 
-For the current runtime/recovery release, prefer:
+For a worker release, prefer:
 
 ```bash
 node scripts/worker-validation-job.mjs start deployment-static
 ```
 
-If only the previously unconfirmed TypeScript gate remains, use:
+If only the worker TypeScript gate is needed, use:
 
 ```bash
 node scripts/worker-validation-job.mjs start typecheck
 ```
 
 If the initiating session disconnects, do not restart the command. Reconnect and inspect `status latest` first.
+
+Do not use worker-local validation as a substitute for the full GitHub CI TypeScript and production-build gates.
 
 ## Control-plane acceptance probe
 
