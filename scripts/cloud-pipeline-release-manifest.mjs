@@ -9,6 +9,7 @@ const ROOT = resolve(process.cwd());
 const CRITICAL_FILES = [
   "pipeline-runner.ts",
   "run-pipeline.sh",
+  "scripts/cloud-pipeline-release-manifest.mjs",
   "scripts/worker-validation-job.mjs",
   "docs/CLOUD-PIPELINE-SETUP.md",
   "docs/WORKER-CONTROL-CHANNEL.md",
@@ -34,6 +35,7 @@ const TREE_ROOTS = ["server", "drizzle", "shared"];
 const TREE_TOP_LEVEL = [
   "pipeline-runner.ts",
   "run-pipeline.sh",
+  "scripts/cloud-pipeline-release-manifest.mjs",
   "scripts/worker-validation-job.mjs",
   "docs/CLOUD-PIPELINE-SETUP.md",
   "docs/WORKER-CONTROL-CHANNEL.md",

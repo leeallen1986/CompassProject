@@ -43,6 +43,7 @@ jobs:
             for (const path of [
               "pipeline-runner.ts",
               "run-pipeline.sh",
+              "scripts/cloud-pipeline-release-manifest.mjs",
               "scripts/worker-validation-job.mjs",
               "docs/CLOUD-PIPELINE-SETUP.md",
               "docs/WORKER-CONTROL-CHANNEL.md",
@@ -60,15 +61,14 @@ jobs:
             if (m.fileModes["pipeline-runner.ts"] !== "100644") {
               throw new Error(`unexpected pipeline-runner.ts mode=${m.fileModes["pipeline-runner.ts"]}`);
             }
-            if (m.fileModes["scripts/worker-validation-job.mjs"] !== "100644") {
-              throw new Error(`unexpected worker validation controller mode=${m.fileModes["scripts/worker-validation-job.mjs"]}`);
-            }
             for (const path of [
+              "scripts/cloud-pipeline-release-manifest.mjs",
+              "scripts/worker-validation-job.mjs",
               "docs/CLOUD-PIPELINE-SETUP.md",
               "docs/WORKER-CONTROL-CHANNEL.md",
             ]) {
               if (m.fileModes[path] !== "100644") {
-                throw new Error(`unexpected runbook mode for ${path}: ${m.fileModes[path]}`);
+                throw new Error(`unexpected worker release file mode for ${path}: ${m.fileModes[path]}`);
               }
             }
           '
