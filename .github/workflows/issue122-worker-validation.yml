@@ -30,6 +30,7 @@ jobs:
         run: |
           node --check scripts/worker-validation-job.mjs
           node --check scripts/worker-validation-job.test.mjs
+          node --check scripts/cloud-pipeline-release-manifest.mjs
 
       - name: Detached resume and fail-closed tests
         run: node scripts/worker-validation-job.test.mjs
@@ -60,12 +61,15 @@ jobs:
             const fs = require("fs");
             const m = JSON.parse(fs.readFileSync("/tmp/release.json", "utf8"));
             for (const path of [
+              "scripts/cloud-pipeline-release-manifest.mjs",
+              "scripts/worker-validation-job.mjs",
               "docs/CLOUD-PIPELINE-SETUP.md",
               "docs/WORKER-CONTROL-CHANNEL.md",
             ]) {
               if (!m.criticalFiles[path]) throw new Error(`missing critical validation dependency: ${path}`);
               if (!m.fileModes[path]) throw new Error(`missing release-tree validation dependency: ${path}`);
             }
+            if (m.schemaVersion !== 2) throw new Error(`unexpected manifest schema: ${m.schemaVersion}`);
           '
 
       - name: Runbook control-plane separation
