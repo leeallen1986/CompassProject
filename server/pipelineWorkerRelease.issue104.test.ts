@@ -57,9 +57,11 @@ describe("Issue #104 release-controlled worker execution", () => {
     expect(docs).toContain("at most one actual recovery execution");
   });
 
-  it("attests every worker-local document required by focused validation", () => {
+  it("attests every worker-local validation dependency, including the manifest generator itself", () => {
     const manifestSource = read("scripts/cloud-pipeline-release-manifest.mjs");
     for (const path of [
+      "scripts/cloud-pipeline-release-manifest.mjs",
+      "scripts/worker-validation-job.mjs",
       "docs/CLOUD-PIPELINE-SETUP.md",
       "docs/WORKER-CONTROL-CHANNEL.md",
     ]) {
