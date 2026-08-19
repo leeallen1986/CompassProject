@@ -57,6 +57,16 @@ describe("Issue #104 release-controlled worker execution", () => {
     expect(docs).toContain("at most one actual recovery execution");
   });
 
+  it("attests every worker-local document required by focused validation", () => {
+    const manifestSource = read("scripts/cloud-pipeline-release-manifest.mjs");
+    for (const path of [
+      "docs/CLOUD-PIPELINE-SETUP.md",
+      "docs/WORKER-CONTROL-CHANNEL.md",
+    ]) {
+      expect(manifestSource).toContain(`\"${path}\"`);
+    }
+  });
+
   it("never prints protected environment contents from the tracked runner or wrapper", () => {
     const combined = `${read("pipeline-runner.ts")}\n${read("run-pipeline.sh")}`;
     expect(combined).not.toContain("cat .env");
