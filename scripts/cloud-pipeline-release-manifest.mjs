@@ -30,6 +30,7 @@ const CRITICAL_FILES = [
   "package.json",
   "pnpm-lock.yaml",
   "tsconfig.json",
+  "tsconfig.worker.json",
 ];
 const TREE_ROOTS = ["server", "drizzle", "shared"];
 const TREE_TOP_LEVEL = [
@@ -42,6 +43,7 @@ const TREE_TOP_LEVEL = [
   "package.json",
   "pnpm-lock.yaml",
   "tsconfig.json",
+  "tsconfig.worker.json",
 ];
 
 function sha256Buffer(buffer) {
