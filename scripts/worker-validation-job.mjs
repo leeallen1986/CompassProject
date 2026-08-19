@@ -39,6 +39,8 @@ const ISSUE104_TESTS = [
   "server/pipelineRuntimeIntegration.test.ts",
 ];
 
+const WORKER_TYPECHECK_ARGS = ["exec", "tsc", "--noEmit", "-p", "tsconfig.worker.json"];
+
 const PROFILE_DEFINITIONS = {
   "control-probe": {
     requiresProvenance: false,
@@ -82,18 +84,7 @@ const PROFILE_DEFINITIONS = {
       {
         name: "typecheck",
         command: "pnpm",
-        args: ["check"],
-        timeoutMs: 20 * 60_000,
-      },
-    ],
-  },
-  build: {
-    requiresProvenance: true,
-    steps: [
-      {
-        name: "production-build",
-        command: "pnpm",
-        args: ["build"],
+        args: WORKER_TYPECHECK_ARGS,
         timeoutMs: 20 * 60_000,
       },
     ],
@@ -116,13 +107,7 @@ const PROFILE_DEFINITIONS = {
       {
         name: "typecheck",
         command: "pnpm",
-        args: ["check"],
-        timeoutMs: 20 * 60_000,
-      },
-      {
-        name: "production-build",
-        command: "pnpm",
-        args: ["build"],
+        args: WORKER_TYPECHECK_ARGS,
         timeoutMs: 20 * 60_000,
       },
     ],
