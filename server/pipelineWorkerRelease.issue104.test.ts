@@ -60,6 +60,7 @@ describe("Issue #104 release-controlled worker execution", () => {
   it("attests every worker-local validation dependency, including the manifest generator itself", () => {
     const manifestSource = read("scripts/cloud-pipeline-release-manifest.mjs");
     for (const path of [
+      "tsconfig.worker.json",
       "scripts/cloud-pipeline-release-manifest.mjs",
       "scripts/worker-validation-job.mjs",
       "docs/CLOUD-PIPELINE-SETUP.md",
@@ -67,6 +68,22 @@ describe("Issue #104 release-controlled worker execution", () => {
     ]) {
       expect(manifestSource).toContain(`\"${path}\"`);
     }
+  });
+
+  it("keeps worker-local deployment validation out of client/Vite build scope", () => {
+    const validator = read("scripts/worker-validation-job.mjs");
+    const workerTsconfig = JSON.parse(read("tsconfig.worker.json"));
+
+    expect(validator).toContain("tsconfig.worker.json");
+    expect(validator).not.toContain('name: "production-build"');
+    expect(validator).not.toContain('args: ["build"]');
+    expect(workerTsconfig.include).toEqual([
+      "server/**/*",
+      "shared/**/*",
+      "pipeline-runner.ts",
+    ]);
+    expect(workerTsconfig.exclude).toContain("client");
+    expect(workerTsconfig.compilerOptions.incremental).toBe(false);
   });
 
   it("never prints protected environment contents from the tracked runner or wrapper", () => {
