@@ -8,6 +8,7 @@ on:
       - "scripts/worker-validation-job.test.mjs"
       - "scripts/cloud-pipeline-release-manifest.mjs"
       - "server/pipelineWorkerRelease.issue104.test.ts"
+      - "tsconfig.worker.json"
       - "docs/CLOUD-PIPELINE-SETUP.md"
       - "docs/WORKER-CONTROL-CHANNEL.md"
       - ".github/workflows/issue-82-cloud-pipeline-provenance.yml"
@@ -41,6 +42,7 @@ jobs:
           set -euo pipefail
           grep -F 'Only fixed offline/static validation profiles are accepted' scripts/worker-validation-job.mjs
           grep -F 'args: ["-n", "run-pipeline.sh"]' scripts/worker-validation-job.mjs
+          grep -F 'tsconfig.worker.json' scripts/worker-validation-job.mjs
           if grep -nE 'runDailyPipeline\(|pipeline-runner\.ts.*spawn|run-pipeline\.sh[[:space:]]+(cron|recover)' scripts/worker-validation-job.mjs; then
             echo "Validation controller appears able to invoke production pipeline/recovery." >&2
             exit 1
@@ -49,6 +51,26 @@ jobs:
             echo "Validation controller must not read or name production secrets." >&2
             exit 1
           fi
+          if grep -nE 'args:[[:space:]]*\["build"\]|name:[[:space:]]*"production-build"|vite[[:space:]]+build' scripts/worker-validation-job.mjs; then
+            echo "Worker-local validator must not invoke the whole-app/web build." >&2
+            exit 1
+          fi
+
+      - name: Worker TypeScript scope is client-free
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e '
+            const fs = require("fs");
+            const cfg = JSON.parse(fs.readFileSync("tsconfig.worker.json", "utf8"));
+            const include = cfg.include || [];
+            const exclude = cfg.exclude || [];
+            if (include.some(v => String(v).startsWith("client/"))) throw new Error("worker tsconfig includes client scope");
+            if (!exclude.includes("client")) throw new Error("worker tsconfig must explicitly exclude client");
+            for (const required of ["server/**/*", "shared/**/*", "pipeline-runner.ts"]) {
+              if (!include.includes(required)) throw new Error(`worker tsconfig missing ${required}`);
+            }
+          '
 
       - name: Worker validation dependencies are attested
         shell: bash
@@ -61,6 +83,7 @@ jobs:
             const fs = require("fs");
             const m = JSON.parse(fs.readFileSync("/tmp/release.json", "utf8"));
             for (const path of [
+              "tsconfig.worker.json",
               "scripts/cloud-pipeline-release-manifest.mjs",
               "scripts/worker-validation-job.mjs",
               "docs/CLOUD-PIPELINE-SETUP.md",

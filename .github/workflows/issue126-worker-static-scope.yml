@@ -1,0 +1,105 @@
+name: Issue 126 worker static scope
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue126-worker-static-scope.yml"
+      - ".github/workflows/issue122-worker-validation.yml"
+      - ".github/workflows/issue104-pipeline-reliability.yml"
+      - ".github/workflows/issue-82-cloud-pipeline-provenance.yml"
+      - "scripts/worker-validation-job.mjs"
+      - "scripts/worker-validation-job.test.mjs"
+      - "scripts/cloud-pipeline-release-manifest.mjs"
+      - "server/pipelineWorkerRelease.issue104.test.ts"
+      - "tsconfig.json"
+      - "tsconfig.worker.json"
+      - "docs/WORKER-CONTROL-CHANNEL.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validation controller syntax and resume tests
+        run: |
+          node --check scripts/worker-validation-job.mjs
+          node --check scripts/worker-validation-job.test.mjs
+          node --check scripts/cloud-pipeline-release-manifest.mjs
+          node scripts/worker-validation-job.test.mjs
+
+      - name: Worker release scope is self-contained and client-free
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/cloud-pipeline-release-manifest.mjs \
+            --expected-sha "$(git rev-parse HEAD)" \
+            --output /tmp/issue126-release.json
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("/tmp/issue126-release.json", "utf8"));
+            if (m.schemaVersion !== 2) throw new Error(`unexpected manifest schema ${m.schemaVersion}`);
+            for (const path of [
+              "tsconfig.worker.json",
+              "scripts/worker-validation-job.mjs",
+              "scripts/cloud-pipeline-release-manifest.mjs",
+            ]) {
+              if (!m.criticalFiles[path]) throw new Error(`missing critical file ${path}`);
+              if (!m.fileModes[path]) throw new Error(`missing release-tree file ${path}`);
+            }
+            const clientPaths = Object.keys(m.fileModes).filter(path => path.startsWith("client/"));
+            if (clientPaths.length) throw new Error(`worker release unexpectedly contains client files: ${clientPaths.slice(0, 5).join(",")}`);
+          '
+
+      - name: Worker-only TypeScript succeeds without client tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv client /tmp/compass-client-issue126
+          trap 'mv /tmp/compass-client-issue126 client' EXIT
+          pnpm exec tsc --noEmit -p tsconfig.worker.json
+
+      - name: Worker deployment-static profile excludes web build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/worker-validation-job.mjs profiles > /tmp/issue126-profiles.json
+          node -e '
+            const fs = require("fs");
+            const rows = JSON.parse(fs.readFileSync("/tmp/issue126-profiles.json", "utf8"));
+            if (rows.some(row => row.name === "build")) throw new Error("worker validator still exposes whole-app build profile");
+            const deployment = rows.find(row => row.name === "deployment-static");
+            if (!deployment) throw new Error("deployment-static profile missing");
+            const names = deployment.steps.map(step => step.name);
+            const expected = ["shell-syntax", "issue104-tests", "typecheck"];
+            if (JSON.stringify(names) !== JSON.stringify(expected)) {
+              throw new Error(`unexpected deployment-static steps: ${JSON.stringify(names)}`);
+            }
+          '
+          grep -F 'tsconfig.worker.json' scripts/worker-validation-job.mjs
+          if grep -nE 'name:[[:space:]]*"production-build"|args:[[:space:]]*\["build"\]|vite[[:space:]]+build' scripts/worker-validation-job.mjs; then
+            echo "Dedicated worker validation must not invoke the web build." >&2
+            exit 1
+          fi
+
+      - name: Issue 104 worker release regression
+        run: pnpm exec vitest run server/pipelineWorkerRelease.issue104.test.ts
+
+      - name: Full-source TypeScript remains a GitHub gate
+        run: pnpm check
+
+      - name: Full-source production build remains a GitHub gate
+        run: pnpm build

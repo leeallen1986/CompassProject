@@ -5,6 +5,7 @@ on:
     paths:
       - "pipeline-runner.ts"
       - "run-pipeline.sh"
+      - "tsconfig.worker.json"
       - "scripts/cloud-pipeline-release-manifest.mjs"
       - "scripts/worker-validation-job.mjs"
       - "docs/CLOUD-PIPELINE-SETUP.md"
@@ -43,6 +44,7 @@ jobs:
             for (const path of [
               "pipeline-runner.ts",
               "run-pipeline.sh",
+              "tsconfig.worker.json",
               "scripts/cloud-pipeline-release-manifest.mjs",
               "scripts/worker-validation-job.mjs",
               "docs/CLOUD-PIPELINE-SETUP.md",
@@ -62,6 +64,7 @@ jobs:
               throw new Error(`unexpected pipeline-runner.ts mode=${m.fileModes["pipeline-runner.ts"]}`);
             }
             for (const path of [
+              "tsconfig.worker.json",
               "scripts/cloud-pipeline-release-manifest.mjs",
               "scripts/worker-validation-job.mjs",
               "docs/CLOUD-PIPELINE-SETUP.md",

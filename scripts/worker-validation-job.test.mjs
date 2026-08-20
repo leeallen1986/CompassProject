@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +37,19 @@ try {
   assert.ok(profiles.some(profile => profile.name === "typecheck"));
   assert.ok(profiles.some(profile => profile.name === "deployment-static"));
   assert.ok(profiles.some(profile => profile.name === "control-probe"));
+  assert.ok(!profiles.some(profile => profile.name === "build"), "worker controller must not offer a whole-app build profile");
+
+  const deploymentStatic = profiles.find(profile => profile.name === "deployment-static");
+  assert.deepEqual(
+    deploymentStatic.steps.map(step => step.name),
+    ["shell-syntax", "issue104-tests", "typecheck"],
+    "deployment-static must remain worker-only and must not run a web production build",
+  );
+
+  const controllerSource = readFileSync(SCRIPT, "utf8");
+  assert.match(controllerSource, /tsconfig\.worker\.json/);
+  assert.doesNotMatch(controllerSource, /args:\s*\["build"\]/);
+  assert.doesNotMatch(controllerSource, /name:\s*"production-build"/);
 
   const invalid = spawnSync(process.execPath, [SCRIPT, "start", "bash -c echo unsafe"], {
     env: ENV,
@@ -101,7 +114,7 @@ try {
   }
   assert.equal(restartedDone.state, "completed_success");
 
-  process.stdout.write("Issue #122 worker validation job tests passed.\n");
+  process.stdout.write("Issue #122/#126 worker validation job tests passed.\n");
 } finally {
   rmSync(ROOT, { recursive: true, force: true });
 }
