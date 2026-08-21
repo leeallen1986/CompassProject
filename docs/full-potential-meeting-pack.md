@@ -9,13 +9,12 @@ The offline pack combines:
 
 - the source-controlled 25-account Rental public observation core;
 - the source-controlled TS1–TS4 non-counting public application evidence;
-- a named TS2 surface-mining qualification universe that remains non-counting
-  until a distinct rugged/relocatable Portable Air requirement is proven;
+- named TS2 surface-mining and TS3 underground-mining qualification universes
+  that remain non-counting until a distinct rugged/relocatable Portable Air
+  requirement is proven;
 - optional specialist-rental TS2/TS4 buyer pools when a restricted adoption plan
   is supplied;
-- optional named direct-mining TS2/TS3 buyer pools when a separate restricted
-  adoption plan is supplied;
-- a local, restricted planning JSON file containing current Low/Base/High values;
+- a local restricted planning JSON file containing current Low/Base/High values;
 - optional aggregate current-revenue references;
 - explicit readiness and declared-gap settings.
 
@@ -68,36 +67,55 @@ Required shape:
 The numeric values shown above are synthetic schema examples, not current
 planning values.
 
-## Named TS2 qualification universe
+## Named qualification universes
 
-The meeting pack always includes the public TS2 named-buyer qualification
-universe as non-counting context. These records answer **where should we qualify
-the Tough Stationary application next?** rather than asserting a current fleet,
+The meeting pack always includes the public named-buyer qualification contexts
+as non-counting evidence. These records answer **where should we qualify the
+Tough Stationary application next?** rather than asserting a current fleet,
 pipeline or purchase intention.
 
-The first surface-mining classes are:
+### TS2 surface-mining classes
 
 - `S1` — early qualification: 0 / 1 / 1 possible three-year adoption positions;
 - `S2` — material qualification: 1 / 1 / 2 possible positions;
 - `S3` — priority qualification: 1 / 2 / 3 possible positions.
 
-Those positions are not monetised merely because a buyer has an S-class. A
-buyer-counting TS2 pool can be created only after public evidence supports a
-distinct rugged, exposed or relocatable compressed-air application and the
-stationary-compressor-room exclusion has been applied.
+The first named TS2 surface universe contains nine public buyer contexts. Its
+current class mix produces a **9 / 13 / 22 Low / Base / High non-monetary
+position sensitivity**.
 
-The management brief and `qualification-universe.csv` show the named contexts,
+### TS3 underground classes
+
+- `U1` — smaller underground context: 1 / 1 / 2 possible positions;
+- `U2` — significant underground mine: 1 / 2 / 3 possible positions;
+- `U3` — deep, multi-front or multi-mine priority context: 2 / 3 / 4 possible
+  positions.
+
+The first named TS3 underground qualification core contains ten public
+buyer/site contexts. Its current class mix produces a **16 / 26 / 36 Low / Base
+/ High non-monetary position sensitivity**.
+
+These position sensitivities are not installed-base claims and are not monetised
+merely because a buyer has an S- or U-class. A buyer-counting pool can be created
+only after public evidence supports a distinct rugged, exposed or relocatable
+compressed-air application and the stationary-compressor-room / central
+reticulation exclusion has been applied.
+
+For TS3, qualification must also distinguish a new machine from an existing
+package overhaul or life-extension path.
+
+The management brief and `qualification-universe.csv` show named contexts,
 product cell, class, qualification status and public source without adding value
 to the headline.
 
 ## Optional specialist-rental Tough Stationary planning
 
-When `toughStationaryPlanning` is absent, the TS1–TS4 public application evidence
-and TS2 named qualification universe still appear in the pack but remain wholly
-non-counting.
+When `toughStationaryPlanning` is absent, the TS1–TS4 public application evidence,
+TS2 surface qualification universe and TS3 underground qualification universe
+still appear in the pack but remain wholly non-counting.
 
-Supplying a restricted adoption plan adds the named specialist-rental electric
-buyer pools and the separately labelled direct-project allowance:
+Supplying a restricted adoption plan adds only the named specialist-rental
+electric buyer pools and the separately labelled direct-project allowance:
 
 ```json
 {
@@ -142,61 +160,10 @@ Rental replacement pool. The direct-project allowance is displayed separately
 under Unobserved Allowance and is not eligible for production account import
 until replaced by named, reconciled buyers.
 
-## Optional direct-mining planning
-
-Named direct-mining TS2 and TS3 records are included in the monetary snapshot
-only when `directMiningPlanning` is supplied. Without it, the meeting pack does
-not silently assign value to those buyers.
-
-The public direct-mining core contains distinct commercial pools for publicly
-evidenced operating environments. It does not claim customer installed-base
-quantities, replacement timing or purchasing intent.
-
-A restricted planning input uses the same adoption-position contract:
-
-```json
-{
-  "directMiningPlanning": {
-    "planningValueSetRef": "opaque-direct-mining-reference",
-    "adoptionPositions": {
-      "low": 0,
-      "base": 1,
-      "high": 2
-    },
-    "averageSellingPriceAud": {
-      "low": 1800,
-      "base": 2000,
-      "high": 2200
-    },
-    "addressableSharePct": {
-      "low": 30,
-      "base": 50,
-      "high": 70
-    },
-    "planningValueBasis": "machine_only",
-    "localisationUpliftStatus": "excluded_tbc",
-    "overrides": [
-      {
-        "recordKey": "mining:newmont:tanami-ts3-direct",
-        "adoptionPositions": {
-          "low": 1,
-          "base": 2,
-          "high": 3
-        }
-      }
-    ]
-  }
-}
-```
-
-The numbers above are synthetic schema examples. In the real private pack,
-site-level overrides should reflect the public application class and confidence;
-a single default must not be treated as an observed mine fleet.
-
-Several distinct site pools may resolve to one canonical buyer account. The
-production draft manifest therefore creates one draft model per account and one
-line per distinct commercial pool. Conventional permanent compressor-room demand
-remains excluded.
+The TS2 surface and TS3 underground qualification universes are deliberately not
+part of this restricted monetary plan until a distinct buyer application has
+passed the qualification gate. There is no generic `directMiningPlanning`
+shortcut that monetises mine operating context alone.
 
 ### Planning basis
 
@@ -248,10 +215,10 @@ A successful command returns a bounded JSON summary containing:
 
 - meeting readiness;
 - whether specialist-rental Tough Stationary planning was included;
-- whether direct-mining planning was included;
 - public and restricted record counts;
 - counting and non-counting record counts;
 - named qualification-context count;
+- TS2 and TS3 non-monetary position universes;
 - missing current-revenue segments;
 - meeting-pack manifest SHA-256.
 
