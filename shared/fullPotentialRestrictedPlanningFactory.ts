@@ -40,6 +40,25 @@ export interface FullPotentialRentalPlanningDefaults {
   overrides?: FullPotentialRentalPlanningOverride[];
 }
 
+export interface FullPotentialAdoptionPlanningOverride {
+  recordKey: string;
+  adoptionPositions?: FullPotentialScenarioNumberSet;
+  averageSellingPriceAud?: number | FullPotentialScenarioNumberSet;
+  addressableSharePct?: number | FullPotentialScenarioNumberSet;
+  planningValueBasis?: FullPotentialPrivatePlanningValueBasis;
+  localisationUpliftStatus?: FullPotentialLocalisationUpliftStatus;
+}
+
+export interface FullPotentialAdoptionPlanningDefaults {
+  planningValueSetRef: string;
+  adoptionPositions: FullPotentialScenarioNumberSet;
+  averageSellingPriceAud: number | FullPotentialScenarioNumberSet;
+  addressableSharePct: number | FullPotentialScenarioNumberSet;
+  planningValueBasis: FullPotentialPrivatePlanningValueBasis;
+  localisationUpliftStatus: FullPotentialLocalisationUpliftStatus;
+  overrides?: FullPotentialAdoptionPlanningOverride[];
+}
+
 const OPAQUE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const DEFAULT_REPLACEMENT_SHARE: FullPotentialScenarioNumberSet = {
   low: 30,
@@ -88,6 +107,12 @@ function replacementShare(
   );
 }
 
+function assertOpaque(value: string): void {
+  if (!OPAQUE_REFERENCE_PATTERN.test(value)) {
+    throw new Error("planningValueSetRef must be an opaque non-sensitive reference");
+  }
+}
+
 function assertBand(value: string | null | undefined, recordKey: string): FullPotentialRentalFleetBand {
   if (!value || !(value in FP_RENTAL_FLEET_BANDS)) {
     throw new Error(`Rental public observation ${recordKey} requires a P1-P5 model band`);
@@ -104,9 +129,7 @@ export function buildRentalRestrictedPlanningPack(
   observations: FullPotentialPublicObservationRecord[],
   defaults: FullPotentialRentalPlanningDefaults,
 ): FullPotentialRestrictedScenarioRecord[] {
-  if (!OPAQUE_REFERENCE_PATTERN.test(defaults.planningValueSetRef)) {
-    throw new Error("planningValueSetRef must be an opaque non-sensitive reference");
-  }
+  assertOpaque(defaults.planningValueSetRef);
 
   const overrides = new Map<string, FullPotentialRentalPlanningOverride>();
   for (const override of defaults.overrides ?? []) {
@@ -160,6 +183,69 @@ export function buildRentalRestrictedPlanningPack(
   for (const override of overrides.values()) {
     if (!publicRecordKeys.has(override.recordKey)) {
       throw new Error(`Rental planning override ${override.recordKey} has no buyer-counting observation`);
+    }
+  }
+
+  return result.sort((left, right) => left.recordKey.localeCompare(right.recordKey));
+}
+
+/**
+ * Expand concise private adoption defaults across public buyer-counting records.
+ * Each public observation remains price-free; current positions, planning values
+ * and addressable-share assumptions are supplied only in the restricted input.
+ */
+export function buildAdoptionRestrictedPlanningPack(
+  observations: FullPotentialPublicObservationRecord[],
+  defaults: FullPotentialAdoptionPlanningDefaults,
+): FullPotentialRestrictedScenarioRecord[] {
+  assertOpaque(defaults.planningValueSetRef);
+
+  const overrides = new Map<string, FullPotentialAdoptionPlanningOverride>();
+  for (const override of defaults.overrides ?? []) {
+    if (overrides.has(override.recordKey)) {
+      throw new Error(`Duplicate adoption planning override ${override.recordKey}`);
+    }
+    overrides.set(override.recordKey, override);
+  }
+
+  const result = observations
+    .filter(record => record.countingTreatment === "buyer_counting")
+    .map<FullPotentialRestrictedScenarioRecord>(record => {
+      if (record.scenarioBasis !== "adoption_positions") {
+        throw new Error(
+          `Adoption planning factory cannot process ${record.recordKey}: expected adoption_positions`,
+        );
+      }
+      const override = overrides.get(record.recordKey);
+      const positions = override?.adoptionPositions ?? defaults.adoptionPositions;
+      const asp = override?.averageSellingPriceAud ?? defaults.averageSellingPriceAud;
+      const share = override?.addressableSharePct ?? defaults.addressableSharePct;
+
+      const scenarios = Object.fromEntries(
+        FP_PUBLIC_SCENARIOS.map(scenario => [
+          scenario,
+          {
+            adoptionPositions: scenarioNumber(positions, scenario, "adoptionPositions"),
+            averageSellingPriceAud: scenarioNumber(asp, scenario, "averageSellingPriceAud"),
+            addressableSharePct: scenarioPercentage(share, scenario, "addressableSharePct"),
+          },
+        ]),
+      ) as FullPotentialRestrictedScenarioRecord["scenarios"];
+
+      return {
+        recordKey: record.recordKey,
+        planningValueSetRef: defaults.planningValueSetRef,
+        planningValueBasis: override?.planningValueBasis ?? defaults.planningValueBasis,
+        localisationUpliftStatus: override?.localisationUpliftStatus
+          ?? defaults.localisationUpliftStatus,
+        scenarios,
+      };
+    });
+
+  const publicRecordKeys = new Set(result.map(row => row.recordKey));
+  for (const override of overrides.values()) {
+    if (!publicRecordKeys.has(override.recordKey)) {
+      throw new Error(`Adoption planning override ${override.recordKey} has no buyer-counting observation`);
     }
   }
 
