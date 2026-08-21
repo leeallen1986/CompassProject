@@ -9,6 +9,8 @@ on:
       - "server/fullPotentialPublicEvidence.test.ts"
       - "server/fullPotentialPublicBands.test.ts"
       - "docs/full-potential-public-evidence-methodology.md"
+      - "docs/full-potential-electric-product-qualification.md"
+      - "docs/full-potential-rental-economics-request.md"
       - "server/fullPotentialCommercialModel.shared.ts"
       - "server/fullPotentialCommercialModel.lines.ts"
       - "drizzle/fullPotentialSchema.ts"
@@ -50,6 +52,10 @@ jobs:
           grep -F 'P5: { low: 75, base: 110, high: 150 }' shared/fullPotentialPublicBands.ts
           grep -F 'U3: { low: 2, base: 3, high: 4 }' shared/fullPotentialPublicBands.ts
           grep -F 'No schema migration is required for the first controlled draft pack.' docs/full-potential-public-evidence-methodology.md
+          grep -F 'approximately three months, followed by approximately one month sea freight' docs/full-potential-electric-product-qualification.md
+          grep -F 'local modification is not itself a portfolio gap' docs/full-potential-electric-product-qualification.md
+          grep -F 'Do not include customer names, contacts, quotations, negotiated discounts' docs/full-potential-rental-economics-request.md
+          grep -F 'Revenue is not fleet demand by itself.' docs/full-potential-rental-economics-request.md
 
       - name: TypeScript
         run: pnpm check
