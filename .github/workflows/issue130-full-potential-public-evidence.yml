@@ -6,8 +6,10 @@ on:
       - ".github/workflows/issue130-full-potential-public-evidence.yml"
       - "shared/fullPotentialPublicEvidence.ts"
       - "shared/fullPotentialPublicBands.ts"
+      - "shared/fullPotentialPrivatePlanning.ts"
       - "server/fullPotentialPublicEvidence.test.ts"
       - "server/fullPotentialPublicBands.test.ts"
+      - "server/fullPotentialPrivatePlanning.test.ts"
       - "docs/full-potential-public-evidence-methodology.md"
       - "docs/full-potential-electric-product-qualification.md"
       - "docs/full-potential-rental-economics-request.md"
@@ -39,6 +41,7 @@ jobs:
           pnpm exec vitest run
           server/fullPotentialPublicEvidence.test.ts
           server/fullPotentialPublicBands.test.ts
+          server/fullPotentialPrivatePlanning.test.ts
 
       - name: Public-evidence safety boundary
         shell: bash
@@ -49,9 +52,12 @@ jobs:
           grep -F 'Duplicate monetary commercialPoolKey' shared/fullPotentialPublicEvidence.ts
           grep -F 'must not contain an email address' shared/fullPotentialPublicEvidence.ts
           grep -F 'portfolio_gap' shared/fullPotentialPublicEvidence.ts
+          grep -F 'planningValueSetRef must be an opaque non-sensitive reference' shared/fullPotentialPrivatePlanning.ts
+          grep -F 'machine_only planning values cannot claim localisation uplift is included' shared/fullPotentialPrivatePlanning.ts
           grep -F 'P5: { low: 75, base: 110, high: 150 }' shared/fullPotentialPublicBands.ts
           grep -F 'U3: { low: 2, base: 3, high: 4 }' shared/fullPotentialPublicBands.ts
           grep -F 'No schema migration is required for the first controlled draft pack.' docs/full-potential-public-evidence-methodology.md
+          grep -F 'sensitive internal price ladders or local-engineering cost assumptions committed to the public repository' docs/full-potential-public-evidence-methodology.md
           grep -F 'approximately three months, followed by approximately one month sea freight' docs/full-potential-electric-product-qualification.md
           grep -F 'local modification is not itself a portfolio gap' docs/full-potential-electric-product-qualification.md
           grep -F 'Do not include customer names, contacts, quotations, negotiated discounts' docs/full-potential-rental-economics-request.md
