@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import {
   calculateFullPotentialPublicScenario,
-  toFullPotentialModelAssumptions,
   type FullPotentialPublicEvidenceRecord,
 } from "../shared/fullPotentialPublicEvidence";
 import {
@@ -33,8 +32,10 @@ export interface FullPotentialDraftImportManifestInput {
 
 export interface FullPotentialDraftEvidenceProposal {
   proposalKey: string;
+  recordKey: string;
   accountId: number;
   buyerAccountKey: string;
+  commercialPoolKey: string;
   productFamily: FullPotentialPublicEvidenceRecord["productFamily"];
   evidenceType: "public_source" | "financial_assumption";
   title: string;
@@ -58,9 +59,13 @@ export interface FullPotentialDraftModelProposal {
 
 export interface FullPotentialDraftLineProposal {
   proposalKey: string;
+  recordKey: string;
+  commercialPoolKey: string;
   accountId: number;
   buyerAccountKey: string;
   productFamily: FullPotentialPublicEvidenceRecord["productFamily"];
+  productCell: string;
+  valueClass: FullPotentialPublicEvidenceRecord["valueClass"];
   application: string;
   routeToMarket: RouteToMarket;
   estimatedTotalFleetUnits: number | null;
@@ -75,7 +80,7 @@ export interface FullPotentialDraftLineProposal {
 }
 
 export interface FullPotentialDraftImportManifest {
-  version: 1;
+  version: 2;
   safetyMode: "draft_only_no_writes";
   generatedAt: string;
   generatedByRef: string;
@@ -83,8 +88,15 @@ export interface FullPotentialDraftImportManifest {
   methodologyVersion: "fp-public-v1";
   publicObservationCount: number;
   restrictedPlanningCount: number;
+  /** All source records that carry monetary scenarios, including unobserved allowances. */
   buyerCountingCount: number;
+  /** Buyer-counting records eligible to become draft account model lines. */
+  importEligibleBuyerCountingCount: number;
+  distinctBuyerAccountCount: number;
+  commercialPoolCount: number;
   managementOnlyRecordCount: number;
+  /** Monetary allowances retained in management output but blocked from account import. */
+  managementOnlyMonetaryRecordCount: number;
   evidenceProposals: FullPotentialDraftEvidenceProposal[];
   modelProposals: FullPotentialDraftModelProposal[];
   lineProposals: FullPotentialDraftLineProposal[];
@@ -97,6 +109,9 @@ export interface FullPotentialDraftImportManifest {
   }>;
   invariants: {
     allStatusesDraft: true;
+    oneModelPerAccount: true;
+    multipleDistinctPoolsPerBuyerAllowed: true;
+    unobservedAllowanceImportProposals: 0;
     approvalsProposed: 0;
     accountMutationsProposed: 0;
     crmWritesProposed: 0;
@@ -131,10 +146,19 @@ function sha256(value: unknown): string {
   return createHash("sha256").update(canonical(value)).digest("hex");
 }
 
+function assertUnique(values: string[], label: string): void {
+  if (new Set(values).size !== values.length) {
+    throw new Error(`Full Potential import manifest contains duplicate ${label}`);
+  }
+}
+
 function accountTargetMap(
   targets: FullPotentialImportAccountTarget[],
 ): Map<string, FullPotentialImportAccountTarget> {
   const result = new Map<string, FullPotentialImportAccountTarget>();
+  const buyerKeyByAccountId = new Map<number, string>();
+  const buyerKeyByStableKey = new Map<string, string>();
+
   for (const target of targets) {
     if (!target.buyerAccountKey.trim() || !target.stableKey.trim()) {
       throw new Error("account target requires buyerAccountKey and stableKey");
@@ -149,9 +173,26 @@ function accountTargetMap(
       target.rowClass !== "account"
       || !target.countsTowardPotential
       || ["merged", "parked", "excluded"].includes(target.recordStatus)
+      || target.routeToMarket === "exclude"
     ) {
       throw new Error(`Account target ${target.buyerAccountKey} is not eligible for a draft model`);
     }
+
+    const existingBuyerForAccount = buyerKeyByAccountId.get(target.accountId);
+    if (existingBuyerForAccount && existingBuyerForAccount !== target.buyerAccountKey) {
+      throw new Error(
+        `Account target ${target.accountId} is assigned to distinct buyer keys ${existingBuyerForAccount} and ${target.buyerAccountKey}`,
+      );
+    }
+    const existingBuyerForStableKey = buyerKeyByStableKey.get(target.stableKey);
+    if (existingBuyerForStableKey && existingBuyerForStableKey !== target.buyerAccountKey) {
+      throw new Error(
+        `Stable account target ${target.stableKey} is assigned to distinct buyer keys ${existingBuyerForStableKey} and ${target.buyerAccountKey}`,
+      );
+    }
+
+    buyerKeyByAccountId.set(target.accountId, target.buyerAccountKey);
+    buyerKeyByStableKey.set(target.stableKey, target.buyerAccountKey);
     result.set(target.buyerAccountKey, target);
   }
   return result;
@@ -167,6 +208,7 @@ function publicEvidenceSummary(record: FullPotentialPublicEvidenceRecord): strin
     "",
     `Evidence grade: ${record.evidenceGrade}`,
     `Model band: ${record.modelBand ?? "unbanded"}`,
+    `Commercial pool: ${record.commercialPoolKey ?? "none"}`,
     `Counting treatment: ${record.countingTreatment}`,
     `Addressability status: ${record.addressabilityStatus}`,
   ].join("\n");
@@ -176,6 +218,11 @@ function publicEvidenceSummary(record: FullPotentialPublicEvidenceRecord): strin
  * Produce a deterministic proposal manifest only. This function does not open a
  * database connection, import evidence, create models, approve values, trigger
  * C4C, call a provider or invoke the production pipeline.
+ *
+ * One canonical buyer account may carry several genuinely distinct commercial
+ * pools. The manifest therefore proposes one draft model per account and one
+ * line per commercial pool. Unobserved allowances remain management-only until
+ * replaced by named, reconciled buyer records.
  */
 export function buildFullPotentialDraftImportManifest(
   input: FullPotentialDraftImportManifestInput,
@@ -196,28 +243,44 @@ export function buildFullPotentialDraftImportManifest(
   );
 
   const evidenceProposals: FullPotentialDraftEvidenceProposal[] = [];
-  const modelProposals: FullPotentialDraftModelProposal[] = [];
+  const modelProposalByAccountId = new Map<number, FullPotentialDraftModelProposal>();
   const lineProposals: FullPotentialDraftLineProposal[] = [];
   const managementOnlyRecordKeys: string[] = [];
-  const usedAccountIds = new Set<number>();
+  const managementOnlyMonetaryRecordKeys: string[] = [];
+  const usedTargetsByAccountId = new Map<number, FullPotentialImportAccountTarget>();
+  const commercialPoolKeys = new Set<string>();
+  const sourceBuyerCountingCount = materialized.records.filter(
+    record => record.countingTreatment === "buyer_counting",
+  ).length;
 
   for (const record of materialized.records) {
-    if (record.countingTreatment !== "buyer_counting") {
+    const isUnobservedAllowance = record.valueClass === "unobserved_allowance";
+    if (record.countingTreatment !== "buyer_counting" || isUnobservedAllowance) {
       managementOnlyRecordKeys.push(record.recordKey);
+      if (record.countingTreatment === "buyer_counting") {
+        managementOnlyMonetaryRecordKeys.push(record.recordKey);
+      }
       continue;
     }
 
     const buyerAccountKey = record.buyerAccountKey as string;
+    const commercialPoolKey = record.commercialPoolKey as string;
+    if (commercialPoolKeys.has(commercialPoolKey)) {
+      throw new Error(`Duplicate import-eligible commercialPoolKey ${commercialPoolKey}`);
+    }
+    commercialPoolKeys.add(commercialPoolKey);
+
     const target = targets.get(buyerAccountKey);
     if (!target) {
       throw new Error(`No eligible account target for buyer ${buyerAccountKey}`);
     }
-    if (usedAccountIds.has(target.accountId)) {
+    const existingTarget = usedTargetsByAccountId.get(target.accountId);
+    if (existingTarget && existingTarget.buyerAccountKey !== buyerAccountKey) {
       throw new Error(
-        `More than one buyer-counting public record targets account ${target.accountId}; split or consolidate the commercial pool before import`,
+        `Distinct public buyer identities target counting account ${target.accountId}`,
       );
     }
-    usedAccountIds.add(target.accountId);
+    usedTargetsByAccountId.set(target.accountId, target);
 
     const envelope = envelopeByRecord.get(record.recordKey);
     if (!envelope) {
@@ -235,8 +298,10 @@ export function buildFullPotentialDraftImportManifest(
 
     evidenceProposals.push({
       proposalKey: `evidence:${record.recordKey}:public`,
+      recordKey: record.recordKey,
       accountId: target.accountId,
       buyerAccountKey,
+      commercialPoolKey,
       productFamily: record.productFamily,
       evidenceType: "public_source",
       title: `${record.buyerName} public Full Potential evidence`,
@@ -250,8 +315,10 @@ export function buildFullPotentialDraftImportManifest(
     });
     evidenceProposals.push({
       proposalKey: `evidence:${record.recordKey}:planning`,
+      recordKey: record.recordKey,
       accountId: target.accountId,
       buyerAccountKey,
+      commercialPoolKey,
       productFamily: record.productFamily,
       evidenceType: "financial_assumption",
       title: `${record.buyerName} restricted planning assumptions`,
@@ -263,19 +330,27 @@ export function buildFullPotentialDraftImportManifest(
       confidenceLevel: confidence(record.evidenceGrade),
       status: "draft",
     });
-    modelProposals.push({
-      proposalKey: `model:${buyerAccountKey}:public-v1`,
-      accountId: target.accountId,
-      buyerAccountKey,
-      status: "draft",
-      methodologyVersion: "fp-public-v1",
-      assumptionsSummary: "Public observation and transparent inference combined with a restricted Low, Base and High planning set. No account value is approved by this manifest.",
-    });
+
+    if (!modelProposalByAccountId.has(target.accountId)) {
+      modelProposalByAccountId.set(target.accountId, {
+        proposalKey: `model:${buyerAccountKey}:public-v1`,
+        accountId: target.accountId,
+        buyerAccountKey,
+        status: "draft",
+        methodologyVersion: "fp-public-v1",
+        assumptionsSummary: "Public observations and transparent inferences combined with restricted Low, Base and High planning sets. Distinct commercial pools are held as separate draft lines; no account value is approved by this manifest.",
+      });
+    }
+
     lineProposals.push({
       proposalKey: `line:${record.recordKey}:base`,
+      recordKey: record.recordKey,
+      commercialPoolKey,
       accountId: target.accountId,
       buyerAccountKey,
       productFamily: record.productFamily,
+      productCell: record.productCell,
+      valueClass: record.valueClass,
       application: record.application,
       routeToMarket: target.routeToMarket,
       estimatedTotalFleetUnits,
@@ -290,8 +365,8 @@ export function buildFullPotentialDraftImportManifest(
     });
   }
 
-  const accountTargetSnapshot = [...usedAccountIds]
-    .map(accountId => input.accountTargets.find(target => target.accountId === accountId) as FullPotentialImportAccountTarget)
+  const modelProposals = [...modelProposalByAccountId.values()];
+  const accountTargetSnapshot = [...usedTargetsByAccountId.values()]
     .map(target => ({
       buyerAccountKey: target.buyerAccountKey,
       accountId: target.accountId,
@@ -301,7 +376,7 @@ export function buildFullPotentialDraftImportManifest(
     .sort((left, right) => left.accountId - right.accountId);
 
   const unsigned = {
-    version: 1 as const,
+    version: 2 as const,
     safetyMode: "draft_only_no_writes" as const,
     generatedAt: new Date(input.generatedAt).toISOString(),
     generatedByRef: input.generatedByRef,
@@ -309,8 +384,12 @@ export function buildFullPotentialDraftImportManifest(
     methodologyVersion: "fp-public-v1" as const,
     publicObservationCount: materialized.publicObservationCount,
     restrictedPlanningCount: materialized.restrictedPlanningCount,
-    buyerCountingCount: lineProposals.length,
+    buyerCountingCount: sourceBuyerCountingCount,
+    importEligibleBuyerCountingCount: lineProposals.length,
+    distinctBuyerAccountCount: modelProposals.length,
+    commercialPoolCount: commercialPoolKeys.size,
     managementOnlyRecordCount: managementOnlyRecordKeys.length,
+    managementOnlyMonetaryRecordCount: managementOnlyMonetaryRecordKeys.length,
     evidenceProposals: evidenceProposals.sort((left, right) => left.proposalKey.localeCompare(right.proposalKey)),
     modelProposals: modelProposals.sort((left, right) => left.proposalKey.localeCompare(right.proposalKey)),
     lineProposals: lineProposals.sort((left, right) => left.proposalKey.localeCompare(right.proposalKey)),
@@ -318,6 +397,9 @@ export function buildFullPotentialDraftImportManifest(
     accountTargetSnapshot,
     invariants: {
       allStatusesDraft: true as const,
+      oneModelPerAccount: true as const,
+      multipleDistinctPoolsPerBuyerAllowed: true as const,
+      unobservedAllowanceImportProposals: 0 as const,
       approvalsProposed: 0 as const,
       accountMutationsProposed: 0 as const,
       crmWritesProposed: 0 as const,
@@ -339,8 +421,8 @@ export function verifyFullPotentialDraftImportManifest(
   if (!/^[a-f0-9]{64}$/.test(manifestSha256) || sha256(unsigned) !== manifestSha256) {
     throw new Error("Full Potential draft import manifest SHA-256 mismatch");
   }
-  if (manifest.safetyMode !== "draft_only_no_writes") {
-    throw new Error("Full Potential import manifest is not draft-only");
+  if (manifest.version !== 2 || manifest.safetyMode !== "draft_only_no_writes") {
+    throw new Error("Full Potential import manifest has an unsupported version or safety mode");
   }
   if (
     manifest.evidenceProposals.some(row => row.status !== "draft")
@@ -349,8 +431,53 @@ export function verifyFullPotentialDraftImportManifest(
   ) {
     throw new Error("Full Potential import manifest contains a non-draft proposal");
   }
+
+  assertUnique(manifest.evidenceProposals.map(row => row.proposalKey), "evidence proposal keys");
+  assertUnique(manifest.modelProposals.map(row => row.proposalKey), "model proposal keys");
+  assertUnique(manifest.modelProposals.map(row => String(row.accountId)), "model account IDs");
+  assertUnique(manifest.lineProposals.map(row => row.proposalKey), "line proposal keys");
+  assertUnique(manifest.lineProposals.map(row => row.recordKey), "line record keys");
+  assertUnique(manifest.lineProposals.map(row => row.commercialPoolKey), "line commercial-pool keys");
+  assertUnique(manifest.accountTargetSnapshot.map(row => String(row.accountId)), "account target IDs");
+  assertUnique(manifest.accountTargetSnapshot.map(row => row.buyerAccountKey), "account target buyer keys");
+
+  const modelAccountIds = new Set(manifest.modelProposals.map(row => row.accountId));
+  const targetAccountIds = new Set(manifest.accountTargetSnapshot.map(row => row.accountId));
+  const lineRecordKeys = new Set(manifest.lineProposals.map(row => row.recordKey));
+  for (const line of manifest.lineProposals) {
+    if (!modelAccountIds.has(line.accountId) || !targetAccountIds.has(line.accountId)) {
+      throw new Error(`Line proposal ${line.proposalKey} has no draft model or account target`);
+    }
+    if (line.valueClass === "unobserved_allowance") {
+      throw new Error(`Unobserved allowance ${line.recordKey} must remain management-only`);
+    }
+  }
+  for (const recordKey of manifest.managementOnlyRecordKeys) {
+    if (lineRecordKeys.has(recordKey)) {
+      throw new Error(`Management-only record ${recordKey} also appears as a draft line`);
+    }
+  }
+
   if (
-    manifest.invariants.approvalsProposed !== 0
+    manifest.importEligibleBuyerCountingCount !== manifest.lineProposals.length
+    || manifest.distinctBuyerAccountCount !== manifest.modelProposals.length
+    || manifest.commercialPoolCount !== new Set(
+      manifest.lineProposals.map(row => row.commercialPoolKey),
+    ).size
+    || manifest.managementOnlyRecordCount !== manifest.managementOnlyRecordKeys.length
+    || manifest.buyerCountingCount !== (
+      manifest.importEligibleBuyerCountingCount + manifest.managementOnlyMonetaryRecordCount
+    )
+  ) {
+    throw new Error("Full Potential import manifest count reconciliation failed");
+  }
+
+  if (
+    manifest.invariants.allStatusesDraft !== true
+    || manifest.invariants.oneModelPerAccount !== true
+    || manifest.invariants.multipleDistinctPoolsPerBuyerAllowed !== true
+    || manifest.invariants.unobservedAllowanceImportProposals !== 0
+    || manifest.invariants.approvalsProposed !== 0
     || manifest.invariants.accountMutationsProposed !== 0
     || manifest.invariants.crmWritesProposed !== 0
     || manifest.invariants.pipelineInvocationsProposed !== 0
