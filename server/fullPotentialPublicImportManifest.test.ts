@@ -146,7 +146,6 @@ describe("Full Potential draft import manifest", () => {
       recordKey: "overlay:rental:temporary-electric",
       commercialPoolKey: "buyer:example:rental-portable-air",
       countingTreatment: "application_overlay_non_counting",
-      scenarios: undefined as never,
       productFamily: "e_air",
       productCell: "TS2_temporary_industrial_overlay",
       application: "temporary electric air for industrial continuity",
