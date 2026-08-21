@@ -63,7 +63,7 @@ function parseArgs(argv: string[]): CliOptions {
         "",
         "The input contains restricted aggregate planning assumptions. Do not commit it to the public repository.",
         "Tough Stationary planning is optional; when absent, only its non-counting public application evidence is shown.",
-        "The command performs no database, CRM, provider, pipeline or deployment operation.",
+        "The command performs no database, CRM, provider, pipeline or deployment action.",
       ].join("\n"));
       process.exit(0);
     }
