@@ -69,6 +69,20 @@ describe("TS3 named direct-mining qualification core", () => {
     expect(view.headline.total).toEqual({ lowAud: 0, baseAud: 0, highAud: 0 });
   });
 
+  it("uses stable official Evolution operating documents rather than transient job pages", () => {
+    const evolution = FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.filter(
+      record => record.buyerAccountKey === "evolution-mining-au",
+    );
+    expect(evolution).toHaveLength(3);
+    expect(evolution.every(record => record.sourceUrl.includes("evolutionmining.com.au/storage/"))).toBe(true);
+    expect(evolution.every(record => !record.sourceUrl.includes("careers.evolutionmining.com.au"))).toBe(true);
+    expect(evolution.map(record => record.recordKey).sort()).toEqual([
+      "ts3:qualification:evolution:cowal",
+      "ts3:qualification:evolution:ernest-henry",
+      "ts3:qualification:evolution:mungari",
+    ]);
+  });
+
   it("retains the new-equipment versus overhaul and reticulation gate", () => {
     for (const record of FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1) {
       expect(record.qualificationGates?.some(gate => gate.includes("life-extension"))).toBe(true);
