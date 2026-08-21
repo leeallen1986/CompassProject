@@ -34,6 +34,8 @@ on:
       - "server/fullPotentialToughStationaryPublicApplications.test.ts"
       - "server/fullPotentialToughStationaryPublicBuyerCore.ts"
       - "server/fullPotentialToughStationaryPublicBuyerCore.test.ts"
+      - "server/fullPotentialToughStationaryDirectMiningCore.ts"
+      - "server/fullPotentialToughStationaryDirectMiningCore.test.ts"
       - "server/fullPotentialTs2PublicBuyerUniverse.ts"
       - "server/fullPotentialTs2PublicBuyerUniverse.test.ts"
       - "scripts/full-potential-meeting-pack.ts"
@@ -84,6 +86,7 @@ jobs:
           server/fullPotentialRentalPublicCore.test.ts
           server/fullPotentialToughStationaryPublicApplications.test.ts
           server/fullPotentialToughStationaryPublicBuyerCore.test.ts
+          server/fullPotentialToughStationaryDirectMiningCore.test.ts
           server/fullPotentialTs2PublicBuyerUniverse.test.ts
 
       - name: Public-evidence safety boundary
@@ -103,13 +106,14 @@ jobs:
           grep -F 'Adoption planning override' shared/fullPotentialRestrictedPlanningFactory.ts
           grep -F 'Only buyer-counting records carry monetary Full Potential.' shared/fullPotentialManagementView.ts
           grep -F 'Named non-counting buyer contexts are qualification targets' shared/fullPotentialManagementView.ts
-          grep -F 'TS2 S-classes express a non-monetary adoption-position universe' shared/fullPotentialManagementView.ts
+          grep -F 'TS2 S-classes and TS3 U-classes express non-monetary adoption-position universes' shared/fullPotentialManagementView.ts
           grep -F 'assertFullPotentialManagementViewReconciles' shared/fullPotentialManagementView.ts
           grep -F 'Do not substitute zero for missing current revenue.' shared/fullPotentialManagementReadiness.ts
           grep -F 'ready_with_declared_gaps' shared/fullPotentialManagementReadiness.ts
           grep -F 'Estimated market potential is derived from public evidence' shared/fullPotentialManagementExport.ts
           grep -F 'Named qualification universe' shared/fullPotentialManagementExport.ts
           grep -F 'TS2 provisional three-year position universe' shared/fullPotentialManagementExport.ts
+          grep -F 'TS3 provisional three-year position universe' shared/fullPotentialManagementExport.ts
           grep -F 'buildFullPotentialManagementExportBundle' shared/fullPotentialManagementExport.ts
           grep -F 'databaseConnections: 0' server/fullPotentialMeetingPack.ts
           grep -F 'qualificationUniverseCsvSha256' server/fullPotentialMeetingPack.ts
@@ -134,7 +138,9 @@ jobs:
           grep -F 'No monetary scenarios or current planning values are committed here.' server/fullPotentialToughStationaryPublicBuyerCore.ts
           grep -F 'FP_TS2_PUBLIC_BUYER_UNIVERSE_V1' server/fullPotentialTs2PublicBuyerUniverse.ts
           grep -F 'Every row therefore remains context-only' server/fullPotentialTs2PublicBuyerUniverse.ts
-          if grep -nE 'averageSellingPriceAud|\bAUD\b|A\$[[:space:]]*[0-9]|\$[[:space:]]*[0-9]' server/fullPotentialRentalPublicCore.ts server/fullPotentialToughStationaryPublicApplications.ts server/fullPotentialToughStationaryPublicBuyerCore.ts server/fullPotentialTs2PublicBuyerUniverse.ts; then
+          grep -F 'FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1' server/fullPotentialToughStationaryDirectMiningCore.ts
+          grep -F 'These records are not commercial pools and carry no monetary' server/fullPotentialToughStationaryDirectMiningCore.ts
+          if grep -nE 'averageSellingPriceAud|\bAUD\b|A\$[[:space:]]*[0-9]|\$[[:space:]]*[0-9]' server/fullPotentialRentalPublicCore.ts server/fullPotentialToughStationaryPublicApplications.ts server/fullPotentialToughStationaryPublicBuyerCore.ts server/fullPotentialTs2PublicBuyerUniverse.ts server/fullPotentialToughStationaryDirectMiningCore.ts; then
             echo "Public observation packs must not contain restricted planning values." >&2
             exit 1
           fi
@@ -194,9 +200,11 @@ jobs:
           grep -F '"status": "PASS"' /tmp/full-potential-ci-check.json
           grep -F '"includedToughStationaryBuyerPlanning": false' /tmp/full-potential-ci-check.json
           grep -F '"meetingStatus": "ready_with_declared_gaps"' /tmp/full-potential-ci-check.json
-          grep -F '"publicObservationCount": 46' /tmp/full-potential-ci-check.json
+          grep -F '"publicObservationCount": 56' /tmp/full-potential-ci-check.json
           grep -F '"restrictedPlanningCount": 25' /tmp/full-potential-ci-check.json
-          grep -F '"namedQualificationContextCount": 9' /tmp/full-potential-ci-check.json
+          grep -F '"countingRecordCount": 25' /tmp/full-potential-ci-check.json
+          grep -F '"nonCountingRecordCount": 31' /tmp/full-potential-ci-check.json
+          grep -F '"namedQualificationContextCount": 19' /tmp/full-potential-ci-check.json
 
           cat > /tmp/full-potential-ci-input-ts.json <<'JSON'
           {
@@ -244,11 +252,11 @@ jobs:
             --check-only | tee /tmp/full-potential-ci-check-ts.json
           grep -F '"status": "PASS"' /tmp/full-potential-ci-check-ts.json
           grep -F '"includedToughStationaryBuyerPlanning": true' /tmp/full-potential-ci-check-ts.json
-          grep -F '"publicObservationCount": 53' /tmp/full-potential-ci-check-ts.json
+          grep -F '"publicObservationCount": 63' /tmp/full-potential-ci-check-ts.json
           grep -F '"restrictedPlanningCount": 32' /tmp/full-potential-ci-check-ts.json
           grep -F '"countingRecordCount": 32' /tmp/full-potential-ci-check-ts.json
-          grep -F '"nonCountingRecordCount": 21' /tmp/full-potential-ci-check-ts.json
-          grep -F '"namedQualificationContextCount": 9' /tmp/full-potential-ci-check-ts.json
+          grep -F '"nonCountingRecordCount": 31' /tmp/full-potential-ci-check-ts.json
+          grep -F '"namedQualificationContextCount": 19' /tmp/full-potential-ci-check-ts.json
 
           rm -rf /tmp/full-potential-ci-output
           pnpm exec tsx scripts/full-potential-meeting-pack.ts \
@@ -271,7 +279,9 @@ jobs:
           grep -F 'Unobserved Allowance' /tmp/full-potential-ci-output/management-brief.md
           grep -F 'Named qualification universe' /tmp/full-potential-ci-output/management-brief.md
           grep -F '9 / **13** / 22' /tmp/full-potential-ci-output/management-brief.md
+          grep -F '16 / **26** / 36' /tmp/full-potential-ci-output/management-brief.md
           grep -F 'BHP Western Australia Iron Ore' /tmp/full-potential-ci-output/qualification-universe.csv
+          grep -F 'Newmont Australia' /tmp/full-potential-ci-output/qualification-universe.csv
 
       - name: Offline reconciliation CLI
         shell: bash
