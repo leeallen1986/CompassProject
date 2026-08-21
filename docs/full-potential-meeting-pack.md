@@ -9,6 +9,8 @@ The offline pack combines:
 
 - the source-controlled 25-account Rental public observation core;
 - the source-controlled TS1–TS4 non-counting public application evidence;
+- optional named Tough Stationary buyer and allowance observations when a
+  restricted adoption plan is supplied;
 - a local, restricted planning JSON file containing current Low/Base/High values;
 - optional aggregate current-revenue references;
 - explicit readiness and declared-gap settings.
@@ -62,6 +64,57 @@ Required shape:
 The numeric values shown above are synthetic schema examples, not current
 planning values.
 
+## Optional Tough Stationary planning
+
+When `toughStationaryPlanning` is absent, the TS1–TS4 public application evidence
+still appears in the pack but remains wholly non-counting.
+
+Supplying a restricted adoption plan adds the named specialist-rental electric
+buyer pools and the separately labelled direct-project allowance:
+
+```json
+{
+  "toughStationaryPlanning": {
+    "planningValueSetRef": "opaque-electric-reference",
+    "adoptionPositions": {
+      "low": 1,
+      "base": 2,
+      "high": 3
+    },
+    "averageSellingPriceAud": {
+      "low": 1800,
+      "base": 2000,
+      "high": 2200
+    },
+    "addressableSharePct": {
+      "low": 50,
+      "base": 60,
+      "high": 70
+    },
+    "planningValueBasis": "machine_only",
+    "localisationUpliftStatus": "excluded_tbc",
+    "overrides": [
+      {
+        "recordKey": "allowance:ts4:direct-powered-projects",
+        "adoptionPositions": {
+          "low": 1,
+          "base": 4,
+          "high": 8
+        }
+      }
+    ]
+  }
+}
+```
+
+These numbers are also synthetic schema examples. The real restricted file may
+use different assumptions by record through `overrides`.
+
+The named TS2 and TS4 pools are distinct from the conventional Rental replacement
+pool. The direct-project allowance is displayed separately under Unobserved
+Allowance and is not eligible for production account import until replaced by
+named, reconciled buyers.
+
 ### Planning basis
 
 Allowed values:
@@ -111,6 +164,7 @@ pnpm exec tsx scripts/full-potential-meeting-pack.ts \
 A successful command returns a bounded JSON summary containing:
 
 - meeting readiness;
+- whether Tough Stationary buyer planning was included;
 - public and restricted record counts;
 - counting and non-counting record counts;
 - missing current-revenue segments;
