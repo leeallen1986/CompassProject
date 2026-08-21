@@ -235,6 +235,12 @@ export function reconcileFullPotentialPublicBuyers(
   };
 }
 
+/**
+ * A buyer may legitimately carry several distinct commercial pools (for example
+ * conventional Rental replacement plus TS2 and TS4 electric adoption) on one
+ * canonical account. Completion therefore validates buyer identity, not a
+ * one-record-per-account assumption.
+ */
 export function assertFullPotentialReconciliationComplete(
   summary: FullPotentialReconciliationSummary,
 ): void {
@@ -243,10 +249,44 @@ export function assertFullPotentialReconciliationComplete(
       `Full Potential account reconciliation incomplete: ${summary.unmatchedCount} unmatched, ${summary.ambiguousCount} ambiguous`,
     );
   }
-  const matchedIds = summary.results
-    .filter(result => result.disposition === "matched")
-    .map(result => result.matchedAccountId as number);
-  if (new Set(matchedIds).size !== matchedIds.length) {
-    throw new Error("Full Potential reconciliation maps more than one public buyer to the same counting account");
+
+  const matched = summary.results.filter(
+    (result): result is FullPotentialReconciliationResult & {
+      buyerAccountKey: string;
+      matchedAccountId: number;
+    } => (
+      result.disposition === "matched"
+      && typeof result.buyerAccountKey === "string"
+      && result.buyerAccountKey.length > 0
+      && typeof result.matchedAccountId === "number"
+    ),
+  );
+
+  const accountIdsByBuyer = new Map<string, Set<number>>();
+  const buyerKeysByAccount = new Map<number, Set<string>>();
+  for (const result of matched) {
+    const accountIds = accountIdsByBuyer.get(result.buyerAccountKey) ?? new Set<number>();
+    accountIds.add(result.matchedAccountId);
+    accountIdsByBuyer.set(result.buyerAccountKey, accountIds);
+
+    const buyerKeys = buyerKeysByAccount.get(result.matchedAccountId) ?? new Set<string>();
+    buyerKeys.add(result.buyerAccountKey);
+    buyerKeysByAccount.set(result.matchedAccountId, buyerKeys);
+  }
+
+  for (const [buyerAccountKey, accountIds] of accountIdsByBuyer) {
+    if (accountIds.size > 1) {
+      throw new Error(
+        `Full Potential reconciliation maps buyer ${buyerAccountKey} to multiple counting accounts`,
+      );
+    }
+  }
+
+  for (const [accountId, buyerAccountKeys] of buyerKeysByAccount) {
+    if (buyerAccountKeys.size > 1) {
+      throw new Error(
+        `Full Potential reconciliation maps distinct public buyer identities to counting account ${accountId}`,
+      );
+    }
   }
 }
