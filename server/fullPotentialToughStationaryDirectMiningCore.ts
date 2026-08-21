@@ -119,7 +119,7 @@ export const FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1: FullPotentialPublicObser
     sourceName: "Evolution Mining public Cowal role page",
     sourceUrl: "https://careers.evolutionmining.com.au/job/Cowal-Geotechnical-Engineer-NSW/1363638666/",
     publicObservation: "The public Cowal page states that the operation has moved underground, operates surface and underground mining together and has a mine life extending to 2042.",
-    inference: "Cowal supports a material TS3 qualification context under the Evolution buyer without asserting current equipment quantity or purchasing intent.",
+    inference: "Cowal supports a material TS3 qualification context under the Evolution buyer without asserting current equipment quantity or procurement timing.",
     positionClass: "U2",
     qualificationGates: [
       "Confirm a relocatable underground requirement that is distinct from the site's permanent plant and existing reticulation.",
