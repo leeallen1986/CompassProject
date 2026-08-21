@@ -1,138 +1,127 @@
-# Full Potential electric product qualification matrix
+# Full Potential electric product qualification framework
 
 ## Purpose
 
-This is the internal product gate for Tough Stationary / E-Air modelling. It is intentionally separate from customer/public evidence.
+This document defines the **public-source-safe** qualification framework for
+Tough Stationary / E-Air modelling.
 
-A sourceable product is not counted as fully addressable in Australia until voltage, compliance, package, lead-time and planning-value questions are resolved.
+It does not contain internal factory availability, transfer prices, local
+engineering costs, lead times, unpublished model plans or confidential product
+roadmap detail. Those inputs belong in a separately authorised restricted
+planning pack referenced only by an opaque `planningValueSetRef`.
 
-The values and operating assumptions in this document are internal planning inputs. They must not be represented as public customer evidence.
+A publicly visible product or application is not automatically counted as fully
+addressable in Australia. Product availability, voltage, local engineering,
+compliance, package format and commercial competitiveness remain explicit gates.
 
-## Current confirmed working position — Oceania
+## Publicly visible product cells
 
-The present working route is to source the China-based electric compressor and complete the Australian/mining adaptation locally until repeat volume and a stable factory specification are proven.
+The platform uses abstract product cells rather than an internal factory list.
+Public product pages and case studies currently support the following analytical
+cells:
 
-The following points are currently treated as internal product facts or approved planning assumptions:
+| Product cell | Publicly visible capability | Full Potential treatment |
+|---|---|---|
+| **TS1** | Relocatable electric air around 130–500 CFM, including VSD and fixed-speed products | Product/application overlay and named-buyer modelling |
+| **TS2** | Rugged electric air around 550–900 CFM and approximately 8.6–17 bar | Priority surface-mining, rental and industrial application cell |
+| **TS3** | Engineered underground electric packages around 900–1,000 CFM, including publicly documented 415 V / 1,000 V configurations | Underground adoption-position modelling |
+| **TS4** | Publicly visible 20–25 bar electric equipment around the large-air class | Specialist high-pressure adoption modelling, subject to local product qualification |
+| **35 bar gap** | Public high-pressure demand exists above the currently evidenced electric range | Retain as `portfolio_gap`; monetary value remains zero |
 
-- local modification is likely to be required for the first Australian machines;
-- Australia has the engineering, fabrication and mining-package capability to complete the required local adaptation;
-- local engineering will increase landed cost, but the cost is not yet quantified and remains under investigation;
-- standard source lead time is approximately three months, followed by approximately one month sea freight to Australia;
-- the current planning lead time is therefore approximately four months before local modification, commissioning and customer delivery;
-- local modification is not itself a portfolio gap: it is a product-qualification and commercial-cost gate;
-- competitor packages are also believed to require market-specific adaptation, but competitor scope and costs are not known and must not be presented as verified evidence.
+The public layer may describe these broad cells and cite public sources. It must
+not disclose or imply an unpublished internal model-release plan.
 
-Until the local engineering scope and cost are understood, the machines should be treated as technically feasible but commercially conditional. The Full Potential model must retain a conservative addressable-share assumption and show the qualification gap rather than assigning an unqualified full market share.
+## Qualification fields held outside public source control
 
-## China Medium Air portfolio supplied for review
+The following information is required before a conditional product cell becomes
+`addressable_now`, but the answers are restricted internal planning inputs:
 
-Source slide: Medium Air Product Portfolio, 380 V / 50 Hz / 3-phase / IE3.
+- legal product owner and approved source location;
+- confirmed Australian sourceability;
+- true 400/415 V configuration and voltage tolerance;
+- 1,000 V factory, conversion or transformer-fed path;
+- main motor, VFD, auxiliary motor and control-system compatibility;
+- start-current and site-supply requirements;
+- maximum ambient and any derating;
+- ingress, dust and cooling protection;
+- skid, drag-skid, trailer, wheeled or container options;
+- mine-spec and fire-suppression options;
+- receiver and dryer integration;
+- Australian electrical, pressure-vessel, lifting and road compliance;
+- factory and local engineering lead time;
+- MOQ and order constraints;
+- parts, service competence and warranty treatment;
+- factory transfer price, landed cost and local modification cost;
+- indicative Australia net sales value;
+- evidence owner and confirmation date.
 
-| Product family | Motor | Public/model flow | Pressure | Approx. CFM | Working cell |
-|---|---:|---:|---:|---:|---|
-| XAMS800E / XAHS650E / XAVS550E | 132 kW | 15.4–21.5 m³/min | 8.6–14 bar | 544–759 | TS2 |
-| XAMS850E / XAHS710E / XAVS650E / XAXS600E | 160 kW | 17–25.5 m³/min | 8.6–17 bar | 600–901 | TS2 / TS3 candidate |
-| XATS1050E / XRHS930E | 210 / 230 kW | 26.7 m³/min | 20 bar | 943 | TS4 |
-| XRVS960E | 275 kW | 27 m³/min | 25 bar | 953 | TS4 |
-| XRHS1150E | 275 kW | 32 m³/min | 20 bar | 1,130 | TS4 |
-| XRHE1300 | 315 kW | 37 m³/min | 20 bar | 1,307 | TS4 |
+The restricted answer pack must never contain customer-specific pricing,
+quotation history, discounts, contacts or CRM notes.
 
-The identified portfolio does not currently show a 35 bar electric solution. Public 35 bar demand remains a portfolio gap unless another sourceable product is confirmed.
-
-## Required factory/product confirmation
-
-Complete one row for every product family before its model status changes to `addressable_now`.
-
-| Qualification field | Required answer |
-|---|---|
-| Factory source / legal product owner | Wuxi / other; responsible product company |
-| True 400/415 V option | Yes / no / engineering review; exact nameplate voltage |
-| Permitted voltage tolerance | Minimum / nominal / maximum at 50 Hz |
-| Motor winding | Factory winding or local rewind required |
-| Main drive / VFD compatibility | Confirm all drive ratings and configuration |
-| Auxiliary motors | Fan, pump and other motor voltage ratings |
-| Controls | Control transformer, contactors, breaker and phase monitoring suitability |
-| 1,000 V option | Factory / engineered conversion / transformer-fed / unavailable |
-| Start current / site supply | DOL, star-delta, soft starter or VFD; required breaker/cable/transformer |
-| Maximum ambient | Rating and any derating above 40°C / 45°C / 50°C |
-| Ingress / dust protection | Motor, controller and drive IP ratings |
-| Package formats | Trailer, wheeled, skid, drag skid, container or engineered pack |
-| Mine-spec options | Fire suppression, E-stop, isolation, guards, lifting, lighting, containment |
-| Dryer / receiver integration | Standard / engineered / unavailable |
-| Australian electrical compliance | Required design review, certification and documentation |
-| Pressure-vessel compliance | Receiver/vessel registration or design verification requirement |
-| Lifting / frame compliance | AS 4991 or other applicable requirement |
-| Road registration | Whether any undercarriage is suitable for Australian road use |
-| Noise data | Rated sound pressure / sound power |
-| Factory lead time | Current working assumption: approximately three months |
-| Freight lead time | Current working assumption: approximately one month sea freight |
-| Local modification duration | To be established by the selected Australian engineering route |
-| MOQ / order constraints | Minimum order or batch requirement |
-| Spare-parts availability | Stocking strategy and lead time |
-| Service competence | Training/tooling required in Australia |
-| Warranty | Standard and engineered-conversion treatment |
-| Factory transfer price | AUD or source currency; internal only |
-| Landed-cost assumption | Freight, duty, local engineering and commissioning |
-| Local engineering cost | Unknown; establish Low / Base / High range by product family |
-| Indicative Australia net sales value | Internal planning value, not customer quotation |
-| Commercial status | Addressable now / conditional / gap / excluded |
-| Evidence owner and date | Person/function confirming the answer |
-
-## Working addressability rules
+## Addressability rules
 
 ### `addressable_now`
 
-Use only when the factory/product company has confirmed a locally deployable configuration and the remaining compliance work is routine and costed.
+Use only when a locally deployable configuration is confirmed and the remaining
+compliance work is routine, understood and commercially manageable.
 
 ### `conditional_factory_confirmation`
 
-Use where the sourceable product exists but Australian configuration, documentation or commercial availability is not confirmed.
+Use where the public capability is visible but approved sourceability or product
+ownership has not been confirmed internally.
 
 ### `conditional_voltage`
 
-Use where 380 V is the only confirmed source configuration and 400/415 V or 1,000 V suitability remains unresolved.
+Use where the public product exists but local voltage or 1,000 V compatibility
+remains unresolved.
 
 ### `conditional_compliance`
 
-Use where the sourceable machine can be adapted locally, but mine, electrical, lifting, pressure-vessel, package or road requirements remain material or uncosted.
-
-For the current China-based route, this is the normal working status after voltage feasibility is established and before local-engineering scope and cost are approved.
+Use where the product is technically sourceable but local engineering,
+Australian compliance, mine-spec scope or cost remains material and unresolved.
+Local modification is not itself a portfolio gap; it is a qualification and
+commercial-competitiveness gate.
 
 ### `portfolio_gap`
 
-Use where public demand exists but the current identified product portfolio does not meet the pressure/flow/configuration requirement.
+Use where public demand exists but the currently evidenced product portfolio
+does not meet the pressure, flow or configuration requirement.
 
-Local modification alone is not a portfolio gap.
+### `excluded`
 
-## Minimum planning values needed for the September model
+Use where the application is conventional permanent compressor-room equipment,
+outside Portable Air scope, or otherwise deliberately excluded.
 
-Exact transfer prices are not required for the first management sensitivity. A defensible range is sufficient.
+## Restricted planning-value treatment
 
-Please provide a Low / Base / High indicative Australia net sales value for:
+The public repository stores only:
 
-1. TS1 small/medium relocatable electric (~130–500 CFM).
-2. TS2 132 kW electric (~550–760 CFM).
-3. TS2 160 kW electric (~600–900 CFM).
-4. TS3 engineered 1,000 V mine package (~900–1,000 CFM).
-5. TS4 210–230 kW / 20 bar.
-6. TS4 275 kW / 20–25 bar.
-7. TS4 315 kW / 20 bar.
-8. Dryer/receiver/fire-suppression/package uplift where separately chargeable.
-9. Local electrical, structural and mine-spec modification uplift by product family.
+- an opaque planning-value-set reference;
+- whether the basis is `machine_only`, `locally_deployable_package` or
+  `blended_portfolio`;
+- whether localisation uplift is included, not applicable or excluded/TBC.
 
-A range is preferable to a false exact price. The Full Potential model will retain these as `financial_assumption` evidence, not as public observations.
+The actual Low/Base/High planning values and local-engineering uplift are supplied
+only through a separately authorised restricted pack. Machine-only values must
+not claim that localisation is included.
 
-## Immediate internal support request
+## Buyer/application/product discipline
 
-The highest-value inputs are:
+Only a buyer-counting record carries money.
 
-- confirmation that 400/415 V factory configurations can be supplied for each China family;
-- an initial view of which families can be engineered to 1,000 V;
-- rough Australia net sales value bands;
-- first-pass local-modification scope and cost bands;
-- current MOQ;
-- any existing application or compliance pack already used in another market.
+Examples:
 
-Factory and freight lead time are sufficiently understood for the first model: approximately three months ex-factory plus one month freight. The remaining commercial uncertainty is mainly local-engineering scope, cost and final compliance approval.
+- a rental company buying an electric compressor is counted under Rental Hire;
+- the mining shutdown or industrial contingency supported by that machine is an
+  application overlay and is non-counting;
+- a mine owner buying a direct relocatable electric package is a separate direct
+  buyer pool only when the assumed equipment purchase is genuinely distinct;
+- a permanent conventional compressor-room installation is excluded unless a
+  rugged, exposed or relocatable requirement clearly differentiates the Portable
+  Air offer.
 
-These inputs unlock the monetary TS2–TS4 model. Public market research can continue without them, but the output must remain a position count or a broad financial sensitivity rather than a committed revenue value.
+## Release boundary
+
+This framework contains no internal factory answer pack, price ladder, import,
+production database mutation, account-value approval, CRM write, provider call,
+pipeline invocation or deployment.
