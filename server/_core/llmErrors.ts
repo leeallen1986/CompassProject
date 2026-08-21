@@ -9,6 +9,42 @@ export type LLMFailureKind =
   | "malformed_response"
   | "circuit_open";
 
+const SAFE_TRANSPORT_CODES = new Set([
+  "EAI_AGAIN",
+  "EADDRNOTAVAIL",
+  "ECONNABORTED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTDOWN",
+  "EHOSTUNREACH",
+  "ENETDOWN",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "EPIPE",
+  "ETIMEDOUT",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "ERR_TLS_CERT_SIGNATURE_ALGORITHM_UNSUPPORTED",
+  "ERR_TLS_HANDSHAKE_TIMEOUT",
+  "UND_ERR_ABORTED",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_DESTROYED",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_REQ_CONTENT_LENGTH_MISMATCH",
+  "UND_ERR_RES_CONTENT_LENGTH_MISMATCH",
+  "UND_ERR_RES_EXCEEDED",
+  "UND_ERR_SOCKET",
+]);
+
+const MAX_TRANSPORT_CODES = 6;
+const MAX_TRANSPORT_ERROR_DEPTH = 5;
+const MAX_TRANSPORT_CHILD_ERRORS = 8;
+
 export interface LLMFailureDetails {
   kind: LLMFailureKind;
   status?: number;
@@ -18,6 +54,58 @@ export interface LLMFailureDetails {
   provider?: string;
   /** Bounded configured model identifier only. */
   model?: string;
+  /** Allow-listed transport/library codes only; never raw error text or addresses. */
+  transportCodes?: string[];
+}
+
+function sanitizedTransportCodes(values: readonly string[] | undefined): string[] | undefined {
+  if (!values?.length) return undefined;
+  const safe = [...new Set(values.filter(value => SAFE_TRANSPORT_CODES.has(value)))]
+    .sort()
+    .slice(0, MAX_TRANSPORT_CODES);
+  return safe.length ? safe : undefined;
+}
+
+/**
+ * Extract only allow-listed network/TLS/undici codes from a thrown fetch error.
+ * Raw messages, hostnames, addresses, certificate data and stack traces are
+ * deliberately ignored.
+ */
+export function safeTransportErrorCodes(error: unknown): string[] {
+  const codes = new Set<string>();
+  const seen = new Set<object>();
+
+  const visit = (value: unknown, depth: number): void => {
+    if (
+      depth > MAX_TRANSPORT_ERROR_DEPTH ||
+      codes.size >= MAX_TRANSPORT_CODES ||
+      !value ||
+      typeof value !== "object"
+    ) {
+      return;
+    }
+
+    const objectValue = value as object;
+    if (seen.has(objectValue)) return;
+    seen.add(objectValue);
+
+    const record = value as Record<string, unknown>;
+    if (typeof record.code === "string" && SAFE_TRANSPORT_CODES.has(record.code)) {
+      codes.add(record.code);
+    }
+
+    visit(record.cause, depth + 1);
+
+    if (Array.isArray(record.errors)) {
+      for (const child of record.errors.slice(0, MAX_TRANSPORT_CHILD_ERRORS)) {
+        visit(child, depth + 1);
+        if (codes.size >= MAX_TRANSPORT_CODES) break;
+      }
+    }
+  };
+
+  visit(error, 0);
+  return [...codes].sort();
 }
 
 export class LLMInvokeError extends Error {
@@ -27,11 +115,12 @@ export class LLMInvokeError extends Error {
   readonly retryAfterMs?: number;
   readonly provider?: string;
   readonly model?: string;
+  readonly transportCodes?: string[];
 
   constructor(details: LLMFailureDetails) {
     const status = details.status ? `, HTTP ${details.status}` : "";
-    // Provider request IDs and provider/model telemetry remain available as
-    // internal structured metadata but never enter the public Error.message.
+    // Provider request IDs, provider/model attribution and bounded transport
+    // codes remain structured metadata and never enter the public message.
     super(`LLM unavailable (${details.kind}${status})`);
     this.name = "LLMInvokeError";
     this.kind = details.kind;
@@ -40,6 +129,7 @@ export class LLMInvokeError extends Error {
     this.retryAfterMs = details.retryAfterMs;
     this.provider = details.provider;
     this.model = details.model;
+    this.transportCodes = sanitizedTransportCodes(details.transportCodes);
   }
 }
 
