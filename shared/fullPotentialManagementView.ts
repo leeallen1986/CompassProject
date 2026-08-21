@@ -30,6 +30,7 @@ export interface FullPotentialManagementCurrentRevenueInput {
 export interface FullPotentialManagementBuyerRow extends FullPotentialManagementRow {
   currentRevenueAud: number | null;
   currentRevenuePeriod: string | null;
+  currentRevenueSourceReference: string | null;
   remainingBasePotentialAud: number | null;
 }
 
@@ -201,6 +202,7 @@ export function buildFullPotentialSeptemberManagementView(
         ...row,
         currentRevenueAud: current ? money(current.currentRevenueAud) : null,
         currentRevenuePeriod: current?.periodLabel ?? null,
+        currentRevenueSourceReference: current?.sourceReference ?? null,
         remainingBasePotentialAud: current
           ? money(Math.max(row.baseAud - current.currentRevenueAud, 0))
           : null,
@@ -218,6 +220,7 @@ export function buildFullPotentialSeptemberManagementView(
         ),
         currentRevenueAud: money(input.currentRevenueAud),
         currentRevenuePeriod: input.periodLabel,
+        currentRevenueSourceReference: input.sourceReference,
         remainingBasePotentialAud: 0,
       });
     }
