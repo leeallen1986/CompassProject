@@ -3,6 +3,7 @@ import path from "node:path";
 import { FP_RENTAL_PUBLIC_CORE_V1 } from "../server/fullPotentialRentalPublicCore";
 import { FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1 } from "../server/fullPotentialToughStationaryPublicApplications";
 import { FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1 } from "../server/fullPotentialToughStationaryPublicBuyerCore";
+import { FP_TS2_PUBLIC_BUYER_UNIVERSE_V1 } from "../server/fullPotentialTs2PublicBuyerUniverse";
 import {
   buildAdoptionRestrictedPlanningPack,
   buildRentalRestrictedPlanningPack,
@@ -62,7 +63,7 @@ function parseArgs(argv: string[]): CliOptions {
         "  pnpm exec tsx scripts/full-potential-meeting-pack.ts --input <private.json> --check-only",
         "",
         "The input contains restricted aggregate planning assumptions. Do not commit it to the public repository.",
-        "Tough Stationary planning is optional; when absent, only its non-counting public application evidence is shown.",
+        "Tough Stationary planning is optional; when absent, its public application and named qualification evidence remain visible but non-counting.",
         "The command performs no database, CRM, provider, pipeline or deployment action.",
       ].join("\n"));
       process.exit(0);
@@ -117,6 +118,7 @@ async function writeOutputs(outputDir: string, pack: ReturnType<typeof buildFull
     ["product-cells.csv", pack.exportBundle.csv.productCells],
     ["confidence.csv", pack.exportBundle.csv.confidence],
     ["qualification-gaps.csv", pack.exportBundle.csv.qualificationGaps],
+    ["qualification-universe.csv", pack.exportBundle.csv.qualificationUniverse],
     ["data-gaps.csv", pack.exportBundle.csv.dataGaps],
   ];
   await Promise.all(writes.map(([fileName, content]) => (
@@ -149,6 +151,7 @@ async function main() {
       ...FP_RENTAL_PUBLIC_CORE_V1,
       ...toughBuyerObservations,
       ...FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1,
+      ...FP_TS2_PUBLIC_BUYER_UNIVERSE_V1,
     ],
     restrictedPlanning: [
       ...rentalPlanning,
@@ -173,6 +176,7 @@ async function main() {
     restrictedPlanningCount: pack.manifest.restrictedPlanningCount,
     countingRecordCount: pack.manifest.countingRecordCount,
     nonCountingRecordCount: pack.manifest.nonCountingRecordCount,
+    namedQualificationContextCount: pack.view.qualificationUniverse.namedBuyerContextCount,
     missingCurrentRevenueSegments: pack.readiness.missingCurrentRevenueSegments,
     manifestSha256: pack.manifest.manifestSha256,
     outputDir: options.checkOnly ? null : options.outputDir,
