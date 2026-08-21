@@ -67,6 +67,7 @@ describe("Full Potential offline reconciliation report", () => {
       version: 1,
       snapshotRef: "prod-readonly-test-v1",
       publicRecordCount: 1,
+      requiredBuyerIdentityCount: 1,
       completeForDraftImport: true,
       unresolvedRecordKeys: [],
       summary: {
@@ -143,10 +144,12 @@ describe("Full Potential offline reconciliation report", () => {
     ], snapshot());
 
     expect(report).toMatchObject({
-      completeForDraftImport: false,
+      requiredBuyerIdentityCount: 1,
+      completeForDraftImport: true,
       summary: { buyerCountingCount: 2, matchedCount: 2 },
     });
     expect(report.importTargets).toHaveLength(1);
+    expect(() => verifyFullPotentialAccountReconciliationReport(report)).not.toThrow();
   });
 
   it("rejects malformed snapshots and tampered reports", () => {
