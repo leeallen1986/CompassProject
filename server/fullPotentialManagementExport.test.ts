@@ -92,8 +92,27 @@ function buildFixture() {
     publicObservation: "Public rental material shows temporary electric air for production continuity.",
     inference: "This remains an application overlay on the Rental buyer pool.",
   });
+  const qualificationContext = countingRecord({
+    recordKey: "ts2:buyer:example-miner:qualification",
+    commercialPoolKey: null,
+    buyerAccountKey: "example-miner-qualification-au",
+    buyerName: "Example Miner Qualification",
+    buyerSegment: "mining_direct",
+    countingTreatment: "context_non_counting",
+    scenarios: null,
+    productFamily: "e_air",
+    productCell: "TS2_surface_mining_buyer",
+    application: "surface mine-spec relocatable electric air qualification",
+    evidenceGrade: "B",
+    modelBand: "S3",
+    addressabilityStatus: "conditional_compliance",
+    sourceName: "Example mine public energy page",
+    sourceUrl: "https://example.com/mine-power",
+    publicObservation: "The public mine page shows substantial powered process infrastructure.",
+    inference: "The site is a qualification target only and carries no monetary Full Potential until a distinct application is proven.",
+  });
   const view = buildFullPotentialSeptemberManagementView(
-    [countingRecord(), conditional, overlay],
+    [countingRecord(), conditional, overlay, qualificationContext],
     [{
       buyerSegment: "rental_hire",
       currentRevenueAud: 2_000,
@@ -112,7 +131,7 @@ function buildFixture() {
 }
 
 describe("Full Potential management export", () => {
-  it("renders a meeting-ready Markdown brief with declared gaps", () => {
+  it("renders a meeting-ready Markdown brief with declared gaps and qualification targets", () => {
     const { view, readiness } = buildFixture();
     const markdown = buildFullPotentialManagementMarkdown(view, readiness, {
       title: "Test Full Potential",
@@ -126,12 +145,15 @@ describe("Full Potential management export", () => {
     expect(markdown).toContain("Regional Long Tail");
     expect(markdown).toContain("Current revenue");
     expect(markdown).toContain("Pending");
+    expect(markdown).toContain("Named qualification universe");
+    expect(markdown).toContain("Example Miner Qualification");
+    expect(markdown).toContain("qualification targets only");
     expect(markdown).toContain("Only buyer-counting records carry monetary Full Potential.");
     expect(markdown).toContain("Reconciled: **Yes**");
     expect(markdown).toContain("Estimated market potential is derived from public evidence");
   });
 
-  it("exports reconciled CSV tables with aggregate revenue provenance", () => {
+  it("exports reconciled CSV tables with aggregate revenue provenance and public qualification rows", () => {
     const { view, readiness } = buildFixture();
     const bundle = buildFullPotentialManagementExportBundle(view, readiness);
 
@@ -139,9 +161,13 @@ describe("Full Potential management export", () => {
     expect(bundle.csv.buyerSegments).toContain("aggregate-rental-ledger-test");
     expect(bundle.csv.buyerSegments).toContain("rolling 12 months");
     expect(bundle.csv.productCells).toContain("TS2_temporary_industrial_overlay");
+    expect(bundle.csv.qualificationUniverse).toContain("Example Miner Qualification");
+    expect(bundle.csv.qualificationUniverse).toContain("S3");
+    expect(bundle.csv.qualificationUniverse).toContain("https://example.com/mine-power");
     expect(bundle.csv.dataGaps).toContain("aggregate_current_revenue_pending");
     expect(bundle.csv.dataGaps).toContain("canonical_account_reconciliation_incomplete");
     expect(bundle.csv.buyerSegments.endsWith("\n")).toBe(true);
+    expect(bundle.csv.qualificationUniverse.endsWith("\n")).toBe(true);
   });
 
   it("escapes Markdown and CSV-sensitive text", () => {
