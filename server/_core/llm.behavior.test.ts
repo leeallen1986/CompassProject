@@ -114,6 +114,57 @@ describe("invokeLLM availability controls", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("logs only bounded transport codes when fetch fails before an HTTP response", async () => {
+    Object.assign(mockEnv, {
+      aiExtractionProvider: "openai_compatible",
+      aiExtractionApiKey: "external-key-never-logged",
+      aiExtractionBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      aiExtractionModel: "gemini-3.6-flash",
+    });
+
+    const unreachable = Object.assign(
+      new Error("2001:db8::1 recipient@example.com private-route"),
+      { code: "ENETUNREACH" },
+    );
+    const unsafe = Object.assign(new Error("private diagnostic"), {
+      code: "RECIPIENT_SECRET_VALUE",
+    });
+    const fetchError = Object.assign(new TypeError("fetch failed private detail"), {
+      cause: new AggregateError([unreachable, unsafe]),
+    });
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(fetchError));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    try {
+      await expect(invokeLLM({
+        feature: "ai_extraction",
+        messages: [{ role: "user", content: "test" }],
+      })).rejects.toMatchObject({
+        kind: "upstream_unavailable",
+        provider: "openai_compatible",
+        model: "gemini-3.6-flash",
+        transportCodes: ["ENETUNREACH"],
+      });
+
+      expect(warn).toHaveBeenCalledWith(
+        "[LLM] transport failed",
+        expect.objectContaining({
+          feature: "ai_extraction",
+          provider: "openai_compatible",
+          model: "gemini-3.6-flash",
+          transportCodes: ["ENETUNREACH"],
+        }),
+      );
+      const logged = JSON.stringify(warn.mock.calls);
+      expect(logged).not.toContain("recipient@example.com");
+      expect(logged).not.toContain("2001:db8");
+      expect(logged).not.toContain("RECIPIENT_SECRET_VALUE");
+      expect(logged).not.toContain("external-key-never-logged");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("opens the circuit after quota exhaustion and makes no second request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({ code: 9, message: "account has hit usage exhausted" }),

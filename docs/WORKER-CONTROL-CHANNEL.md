@@ -55,12 +55,12 @@ Current profiles:
 - `control-probe` — harmless short detached process used to prove reconnect/resume behavior;
 - `shell-syntax` — `bash -n run-pipeline.sh`;
 - `issue104-tests` — focused runtime/recovery regression tests;
-- `typecheck` — worker-only TypeScript using `tsconfig.worker.json`;
-- `deployment-static` — shell syntax, focused reliability tests and worker-only TypeScript in sequence.
+- `typecheck` — optional worker-only TypeScript diagnostic using `tsconfig.worker.json`;
+- `deployment-static` — shell syntax plus focused reliability tests only.
 
 The dedicated-worker controller intentionally does **not** offer a whole-application `build` profile. The immutable worker release does not contain or attest the full `client/` tree, so Vite/client build validation belongs in GitHub exact-head CI rather than on the worker.
 
-`tsconfig.worker.json` includes only the worker/server TypeScript scope (`server/**/*`, `shared/**/*`, `pipeline-runner.ts`) and explicitly excludes `client/`. The worker TypeScript config is itself part of the immutable release manifest.
+`tsconfig.worker.json` includes only the worker/server TypeScript scope (`server/**/*`, `shared/**/*`, `pipeline-runner.ts`) and explicitly excludes `client/`. The worker TypeScript config is itself part of the immutable release manifest. The standalone `typecheck` profile is diagnostic only and is not a production deployment gate because the current worker environment has demonstrated non-deterministic compilation runtime compared with exact-head CI.
 
 No profile runs `run-pipeline.sh`, `pipeline-runner.ts`, `runDailyPipeline`, recovery, provider calls, enrichment, migrations or database remediation.
 
@@ -68,10 +68,10 @@ No profile runs `run-pipeline.sh`, `pipeline-runner.ts`, `runDailyPipeline`, rec
 
 These are separate gates:
 
-- **GitHub CI / full source** runs the normal `pnpm check` and `pnpm build`, including client TypeScript and the Vite web build.
-- **Dedicated worker / deployed release** validates only files that are part of the immutable worker release tree.
+- **GitHub CI / full source** owns compile/build correctness: normal `pnpm check`, worker-only `tsconfig.worker.json` compilation where relevant, and `pnpm build`, including client TypeScript and the Vite web build.
+- **Dedicated worker / deployed release** validates only cheap deterministic properties of the immutable worker release: provenance, shell syntax and focused runtime/recovery regressions.
 
-A worker-local deployment gate must never depend on stale or unattested files outside `SHA256SUMS.release`.
+A worker-local deployment gate must never depend on stale or unattested files outside `SHA256SUMS.release`, and must not repeat expensive compile/build work already proven on the exact release head in CI.
 
 ## Starting a detached validation
 
@@ -79,7 +79,7 @@ Example:
 
 ```bash
 cd /home/ubuntu/atlas-pipeline
-node scripts/worker-validation-job.mjs start typecheck
+node scripts/worker-validation-job.mjs start deployment-static
 ```
 
 The command creates durable job state first and then starts the validator as a detached Node process with ignored terminal stdio. The validator therefore does not depend on the initiating SSH/Manus session remaining attached.
@@ -153,32 +153,35 @@ A successful validation is therefore tied to one stable worker release, rather t
 
 A cron or other production scheduling mutation may proceed only when all of the following are independently true:
 
-1. the desired validation job is `completed_success`;
-2. `provenanceStable=true`;
-3. `provenanceMatchesStart=true` at the fresh status check;
-4. the worker/database quiet-window preflight is still green;
-5. no natural pipeline writer has started since the validation began;
-6. there is enough time to make and verify the scheduling change safely.
+1. the approved exact-head GitHub CI compile/build gates are successful;
+2. the worker `deployment-static` job is `completed_success`;
+3. `provenanceStable=true`;
+4. `provenanceMatchesStart=true` at the fresh status check;
+5. the worker/database quiet-window preflight is still green;
+6. no natural pipeline writer has started since the validation began;
+7. there is enough time to make and verify the scheduling change safely.
 
 A disconnected terminal never waives these gates.
 
-## Recommended Issue #104/#126 deployment validation
+## Recommended worker deployment validation
 
-For a worker release, prefer:
+For a worker release, use:
 
 ```bash
 node scripts/worker-validation-job.mjs start deployment-static
 ```
 
-If only the worker TypeScript gate is needed, use:
+This deliberately performs only shell syntax and the focused worker/recovery regression suite. Compile/build correctness must already be green on the exact release head in GitHub CI.
+
+If an operator is specifically investigating worker-local compiler behavior, the optional diagnostic remains available:
 
 ```bash
 node scripts/worker-validation-job.mjs start typecheck
 ```
 
-If the initiating session disconnects, do not restart the command. Reconnect and inspect `status latest` first.
+Do not use the standalone worker `typecheck` result as a production deployment gate, and do not rerun it merely to manufacture acceptance.
 
-Do not use worker-local validation as a substitute for the full GitHub CI TypeScript and production-build gates.
+If the initiating session disconnects, do not restart the command. Reconnect and inspect `status latest` first.
 
 ## Control-plane acceptance probe
 
