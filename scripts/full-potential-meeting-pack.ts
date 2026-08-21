@@ -2,8 +2,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FP_RENTAL_PUBLIC_CORE_V1 } from "../server/fullPotentialRentalPublicCore";
 import { FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1 } from "../server/fullPotentialToughStationaryPublicApplications";
+import { FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1 } from "../server/fullPotentialToughStationaryPublicBuyerCore";
 import {
+  buildAdoptionRestrictedPlanningPack,
   buildRentalRestrictedPlanningPack,
+  type FullPotentialAdoptionPlanningDefaults,
   type FullPotentialRentalPlanningDefaults,
 } from "../shared/fullPotentialRestrictedPlanningFactory";
 import type { FullPotentialManagementCurrentRevenueInput } from "../shared/fullPotentialManagementView";
@@ -16,6 +19,8 @@ import {
 
 interface MeetingPackCliInput {
   rentalPlanning: FullPotentialRentalPlanningDefaults;
+  /** Optional. When omitted, Tough Stationary buyer pools remain outside the monetary snapshot. */
+  toughStationaryPlanning?: FullPotentialAdoptionPlanningDefaults;
   currentRevenueInputs?: FullPotentialManagementCurrentRevenueInput[];
   readiness: FullPotentialManagementReadinessInput;
   exportOptions?: FullPotentialManagementExportOptions;
@@ -57,6 +62,7 @@ function parseArgs(argv: string[]): CliOptions {
         "  pnpm exec tsx scripts/full-potential-meeting-pack.ts --input <private.json> --check-only",
         "",
         "The input contains restricted aggregate planning assumptions. Do not commit it to the public repository.",
+        "Tough Stationary planning is optional; when absent, only its non-counting public application evidence is shown.",
         "The command performs no database, CRM, provider, pipeline or deployment operation.",
       ].join("\n"));
       process.exit(0);
@@ -81,6 +87,12 @@ function assertInput(value: unknown): asserts value is MeetingPackCliInput {
   const input = value as Record<string, unknown>;
   if (!input.rentalPlanning || typeof input.rentalPlanning !== "object") {
     throw new Error("rentalPlanning is required");
+  }
+  if (
+    input.toughStationaryPlanning !== undefined
+    && (!input.toughStationaryPlanning || typeof input.toughStationaryPlanning !== "object")
+  ) {
+    throw new Error("toughStationaryPlanning must be an object when supplied");
   }
   if (!input.readiness || typeof input.readiness !== "object") {
     throw new Error("readiness is required");
@@ -118,16 +130,30 @@ async function main() {
   const parsed: unknown = JSON.parse(raw);
   assertInput(parsed);
 
-  const restrictedPlanning = buildRentalRestrictedPlanningPack(
+  const rentalPlanning = buildRentalRestrictedPlanningPack(
     FP_RENTAL_PUBLIC_CORE_V1,
     parsed.rentalPlanning,
   );
+  const toughBuyerObservations = parsed.toughStationaryPlanning
+    ? FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1
+    : [];
+  const toughStationaryPlanning = parsed.toughStationaryPlanning
+    ? buildAdoptionRestrictedPlanningPack(
+      FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1,
+      parsed.toughStationaryPlanning,
+    )
+    : [];
+
   const pack = buildFullPotentialMeetingPack({
     publicObservations: [
       ...FP_RENTAL_PUBLIC_CORE_V1,
+      ...toughBuyerObservations,
       ...FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1,
     ],
-    restrictedPlanning,
+    restrictedPlanning: [
+      ...rentalPlanning,
+      ...toughStationaryPlanning,
+    ],
     currentRevenueInputs: parsed.currentRevenueInputs ?? [],
     readiness: parsed.readiness,
     exportOptions: parsed.exportOptions,
@@ -142,6 +168,7 @@ async function main() {
     status: "PASS",
     mode: options.checkOnly ? "check_only" : "write_outputs",
     meetingStatus: pack.readiness.meetingStatus,
+    includedToughStationaryBuyerPlanning: Boolean(parsed.toughStationaryPlanning),
     publicObservationCount: pack.manifest.publicObservationCount,
     restrictedPlanningCount: pack.manifest.restrictedPlanningCount,
     countingRecordCount: pack.manifest.countingRecordCount,
