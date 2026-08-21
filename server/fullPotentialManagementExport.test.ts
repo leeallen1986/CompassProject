@@ -147,7 +147,9 @@ describe("Full Potential management export", () => {
     expect(markdown).toContain("Pending");
     expect(markdown).toContain("Named qualification universe");
     expect(markdown).toContain("Example Miner Qualification");
-    expect(markdown).toContain("qualification targets only");
+    expect(markdown).toContain("TS2 provisional three-year position universe");
+    expect(markdown).toContain("1 / **2** / 3");
+    expect(markdown).toContain("non-monetary");
     expect(markdown).toContain("Only buyer-counting records carry monetary Full Potential.");
     expect(markdown).toContain("Reconciled: **Yes**");
     expect(markdown).toContain("Estimated market potential is derived from public evidence");
