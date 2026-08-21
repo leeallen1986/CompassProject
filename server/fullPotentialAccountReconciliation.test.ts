@@ -186,6 +186,43 @@ describe("Full Potential public buyer reconciliation", () => {
     expect(() => assertFullPotentialReconciliationComplete(result)).not.toThrow();
   });
 
+  it("treats unobserved monetary allowances as management-only with no account target", () => {
+    const result = reconcileFullPotentialPublicBuyers(
+      [observation({
+        recordKey: "allowance:ts4:direct-powered-projects",
+        commercialPoolKey: "allowance:ts4:direct-powered-projects",
+        buyerAccountKey: "ts4-direct-powered-project-allowance",
+        buyerName: "TS4 direct powered-project allowance",
+        buyerSegment: "mining_direct",
+        application: "direct powered-site high-pressure electric adoption",
+        productFamily: "e_air",
+        productCell: "TS4_direct_powered_project_allowance",
+        valueClass: "unobserved_allowance",
+        scenarioBasis: "adoption_positions",
+        evidenceGrade: "C",
+        modelBand: "TS4-DIRECT-ALLOWANCE",
+        addressabilityStatus: "conditional_compliance",
+        inference: "A separately labelled allowance remains management-only until replaced by named buyers.",
+        qualificationGates: ["Replace the allowance with named public buyers before import."],
+      })],
+      [],
+      [],
+    );
+    expect(result).toMatchObject({
+      buyerCountingCount: 0,
+      matchedCount: 0,
+      unmatchedCount: 0,
+      ambiguousCount: 0,
+      nonCountingCount: 1,
+    });
+    expect(result.results[0]).toMatchObject({
+      disposition: "not_buyer_counting",
+      matchedAccountId: null,
+    });
+    expect(result.results[0].reason).toContain("management-only");
+    expect(() => assertFullPotentialReconciliationComplete(result)).not.toThrow();
+  });
+
   it("allows one buyer identity to carry multiple distinct product pools on one account", () => {
     const result = reconcileFullPotentialPublicBuyers(
       [
