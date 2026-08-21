@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FP_RENTAL_PUBLIC_CORE_V1 } from "../server/fullPotentialRentalPublicCore";
 import { FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1 } from "../server/fullPotentialToughStationaryPublicBuyerCore";
+import { FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1 } from "../server/fullPotentialToughStationaryDirectMiningCore";
 import {
   buildFullPotentialAccountReconciliationReport,
   verifyFullPotentialAccountReconciliationReport,
@@ -13,6 +14,7 @@ interface CliOptions {
   outputDir: string;
   checkOnly: boolean;
   includeToughStationary: boolean;
+  includeDirectMining: boolean;
   requireComplete: boolean;
 }
 
@@ -21,6 +23,7 @@ function parseArgs(argv: string[]): CliOptions {
   let outputDir = "";
   let checkOnly = false;
   let includeToughStationary = false;
+  let includeDirectMining = false;
   let requireComplete = false;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -43,6 +46,10 @@ function parseArgs(argv: string[]): CliOptions {
       includeToughStationary = true;
       continue;
     }
+    if (arg === "--include-direct-mining") {
+      includeDirectMining = true;
+      continue;
+    }
     if (arg === "--require-complete") {
       requireComplete = true;
       continue;
@@ -54,8 +61,9 @@ function parseArgs(argv: string[]): CliOptions {
         "  pnpm exec tsx scripts/full-potential-account-reconciliation.ts --input <snapshot.json> --output-dir <dir>",
         "",
         "Options:",
-        "  --include-tough-stationary  Include distinct named TS2/TS4 specialist-rental adoption pools.",
-        "  --require-complete          Exit non-zero when any buyer identity is unmatched or ambiguous.",
+        "  --include-tough-stationary  Include named specialist-rental TS2/TS4 adoption pools; unobserved allowances remain management-only.",
+        "  --include-direct-mining     Include named direct-mining TS2/TS3 adoption pools.",
+        "  --require-complete          Exit non-zero when any required buyer identity is unmatched or ambiguous.",
         "",
         "The input snapshot contains only Full Potential account identity/relationship fields and aliases.",
         "The command performs no database, account, CRM, provider, pipeline or deployment action.",
@@ -73,6 +81,7 @@ function parseArgs(argv: string[]): CliOptions {
     outputDir: outputDir ? path.resolve(outputDir) : "",
     checkOnly,
     includeToughStationary,
+    includeDirectMining,
     requireComplete,
   };
 }
@@ -154,6 +163,7 @@ async function main() {
   const records = [
     ...FP_RENTAL_PUBLIC_CORE_V1,
     ...(options.includeToughStationary ? FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1 : []),
+    ...(options.includeDirectMining ? FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1 : []),
   ];
   const report = buildFullPotentialAccountReconciliationReport(records, parsed);
   verifyFullPotentialAccountReconciliationReport(report);
@@ -165,11 +175,13 @@ async function main() {
     status,
     mode: options.checkOnly ? "check_only" : "write_outputs",
     includeToughStationary: options.includeToughStationary,
+    includeDirectMining: options.includeDirectMining,
     publicRecordCount: report.publicRecordCount,
     requiredBuyerIdentityCount: report.requiredBuyerIdentityCount,
     matchedRecordCount: report.summary.matchedCount,
     unmatchedRecordCount: report.summary.unmatchedCount,
     ambiguousRecordCount: report.summary.ambiguousCount,
+    managementOnlyRecordCount: report.summary.nonCountingCount,
     importTargetCount: report.importTargets.length,
     completeForDraftImport: report.completeForDraftImport,
     reportSha256: report.reportSha256,
