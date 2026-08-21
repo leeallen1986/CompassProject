@@ -10,6 +10,7 @@ on:
       - "shared/fullPotentialPublicDraftPack.ts"
       - "shared/fullPotentialManagementView.ts"
       - "shared/fullPotentialManagementReadiness.ts"
+      - "shared/fullPotentialManagementExport.ts"
       - "shared/fullPotentialAccountReconciliation.ts"
       - "server/fullPotentialPublicEvidence.test.ts"
       - "server/fullPotentialPublicBands.test.ts"
@@ -17,6 +18,7 @@ on:
       - "server/fullPotentialPublicDraftPack.test.ts"
       - "server/fullPotentialManagementView.test.ts"
       - "server/fullPotentialManagementReadiness.test.ts"
+      - "server/fullPotentialManagementExport.test.ts"
       - "server/fullPotentialAccountReconciliation.test.ts"
       - "server/fullPotentialPublicImportManifest.ts"
       - "server/fullPotentialPublicImportManifest.test.ts"
@@ -59,6 +61,7 @@ jobs:
           server/fullPotentialPublicDraftPack.test.ts
           server/fullPotentialManagementView.test.ts
           server/fullPotentialManagementReadiness.test.ts
+          server/fullPotentialManagementExport.test.ts
           server/fullPotentialAccountReconciliation.test.ts
           server/fullPotentialPublicImportManifest.test.ts
           server/fullPotentialRentalPublicCore.test.ts
@@ -81,6 +84,8 @@ jobs:
           grep -F 'assertFullPotentialManagementViewReconciles' shared/fullPotentialManagementView.ts
           grep -F 'Do not substitute zero for missing current revenue.' shared/fullPotentialManagementReadiness.ts
           grep -F 'ready_with_declared_gaps' shared/fullPotentialManagementReadiness.ts
+          grep -F 'Estimated market potential is derived from public evidence' shared/fullPotentialManagementExport.ts
+          grep -F 'buildFullPotentialManagementExportBundle' shared/fullPotentialManagementExport.ts
           grep -F 'Full Potential account reconciliation incomplete' shared/fullPotentialAccountReconciliation.ts
           grep -F 'No eligible active Australian counting account matched' shared/fullPotentialAccountReconciliation.ts
           grep -F 'draft_only_no_writes' server/fullPotentialPublicImportManifest.ts
