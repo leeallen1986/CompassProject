@@ -8,7 +8,9 @@ import {
 } from "./fullPotentialPublicEvidence";
 import {
   FP_TS2_SURFACE_POSITION_CLASSES,
+  FP_UNDERGROUND_POSITION_CLASSES,
   type FullPotentialTs2SurfacePositionClass,
+  type FullPotentialUndergroundPositionClass,
 } from "./fullPotentialPublicBands";
 
 export interface FullPotentialManagementScenarioValue {
@@ -84,6 +86,7 @@ export interface FullPotentialSeptemberManagementView {
   qualificationUniverse: {
     namedBuyerContextCount: number;
     ts2SurfacePositionUniverse: FullPotentialManagementPositionUniverse;
+    ts3UndergroundPositionUniverse: FullPotentialManagementPositionUniverse;
     byBuyerSegment: FullPotentialManagementCoverageCount[];
     byProductCell: FullPotentialManagementCoverageCount[];
     byModelBand: FullPotentialManagementCoverageCount[];
@@ -127,6 +130,9 @@ const LABELS: Record<string, string> = {
   S1: "S1 — early surface qualification",
   S2: "S2 — material surface qualification",
   S3: "S3 — priority surface qualification",
+  U1: "U1 — smaller underground qualification",
+  U2: "U2 — significant underground qualification",
+  U3: "U3 — priority underground / multi-front qualification",
 };
 
 function money(value: number): number {
@@ -210,6 +216,21 @@ function ts2SurfacePositionUniverse(
     const band = record.modelBand as FullPotentialTs2SurfacePositionClass | null;
     if (!band || !(band in FP_TS2_SURFACE_POSITION_CLASSES)) continue;
     const positions = FP_TS2_SURFACE_POSITION_CLASSES[band];
+    total.low += positions.low;
+    total.base += positions.base;
+    total.high += positions.high;
+  }
+  return total;
+}
+
+function ts3UndergroundPositionUniverse(
+  records: FullPotentialPublicEvidenceRecord[],
+): FullPotentialManagementPositionUniverse {
+  const total = { low: 0, base: 0, high: 0 };
+  for (const record of records) {
+    const band = record.modelBand as FullPotentialUndergroundPositionClass | null;
+    if (!band || !(band in FP_UNDERGROUND_POSITION_CLASSES)) continue;
+    const positions = FP_UNDERGROUND_POSITION_CLASSES[band];
     total.low += positions.low;
     total.base += positions.base;
     total.high += positions.high;
@@ -347,6 +368,7 @@ export function buildFullPotentialSeptemberManagementView(
     qualificationUniverse: {
       namedBuyerContextCount: namedQualificationRecords.length,
       ts2SurfacePositionUniverse: ts2SurfacePositionUniverse(namedQualificationRecords),
+      ts3UndergroundPositionUniverse: ts3UndergroundPositionUniverse(namedQualificationRecords),
       byBuyerSegment: coverageCounts(namedQualificationRecords, record => record.buyerSegment),
       byProductCell: coverageCounts(namedQualificationRecords, record => record.productCell),
       byModelBand: coverageCounts(namedQualificationRecords, record => record.modelBand ?? "unbanded"),
@@ -383,7 +405,7 @@ export function buildFullPotentialSeptemberManagementView(
       "Only buyer-counting records carry monetary Full Potential.",
       "Application and site overlays remain visible but non-counting.",
       "Named non-counting buyer contexts are qualification targets, not asserted pipeline or installed-base facts.",
-      "TS2 S-classes express a non-monetary adoption-position universe, not installed equipment or a sales forecast.",
+      "TS2 S-classes and TS3 U-classes express non-monetary adoption-position universes, not installed equipment or sales forecasts.",
       "Named Evidenced Core is shown separately from Regional Long Tail and Unobserved Allowance.",
       "Low, Base and High are transparent scenarios, not asserted customer fleet facts.",
       "Current revenue inputs are aggregate planning references and do not contain customer contacts, conversations or quotation detail.",
