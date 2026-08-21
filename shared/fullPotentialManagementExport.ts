@@ -106,14 +106,16 @@ function qualificationUniverseTable(view: FullPotentialSeptemberManagementView):
   const classSummary = view.qualificationUniverse.byModelBand
     .map(row => `${row.label}: ${row.count}`)
     .join("; ");
+  const positions = view.qualificationUniverse.ts2SurfacePositionUniverse;
 
   return [
     "## Named qualification universe",
     "",
     `**Named public qualification contexts:** ${view.qualificationUniverse.namedBuyerContextCount}  `,
-    `**Class distribution:** ${escapeMarkdown(classSummary || "Unbanded")}`,
+    `**Class distribution:** ${escapeMarkdown(classSummary || "Unbanded")}  `,
+    `**TS2 provisional three-year position universe (Low / Base / High):** ${positions.low} / **${positions.base}** / ${positions.high}`,
     "",
-    "> These are public-evidence qualification targets only. They carry no monetary Full Potential until a distinct buyer application is proven and separately reviewed.",
+    "> The TS2 position universe is non-monetary. It is a transparent qualification sensitivity, not installed equipment, pipeline, customer intent or a sales forecast. No value enters Full Potential until a distinct buyer application is proven and separately reviewed.",
     "",
     "| Buyer | Segment | Application | Product cell | Class | Status | Public source |",
     "|---|---|---|---|---|---|---|",
