@@ -24,6 +24,8 @@ on:
       - "server/fullPotentialMeetingPack.ts"
       - "server/fullPotentialMeetingPack.test.ts"
       - "server/fullPotentialAccountReconciliation.test.ts"
+      - "server/fullPotentialAccountReconciliationReport.ts"
+      - "server/fullPotentialAccountReconciliationReport.test.ts"
       - "server/fullPotentialPublicImportManifest.ts"
       - "server/fullPotentialPublicImportManifest.test.ts"
       - "server/fullPotentialRentalPublicCore.ts"
@@ -35,10 +37,12 @@ on:
       - "server/fullPotentialTs2PublicBuyerUniverse.ts"
       - "server/fullPotentialTs2PublicBuyerUniverse.test.ts"
       - "scripts/full-potential-meeting-pack.ts"
+      - "scripts/full-potential-account-reconciliation.ts"
       - "docs/full-potential-public-evidence-methodology.md"
       - "docs/full-potential-electric-product-qualification.md"
       - "docs/full-potential-rental-economics-request.md"
       - "docs/full-potential-meeting-pack.md"
+      - "docs/full-potential-account-reconciliation.md"
       - "server/fullPotentialCommercialModel.shared.ts"
       - "server/fullPotentialCommercialModel.lines.ts"
       - "drizzle/fullPotentialSchema.ts"
@@ -75,6 +79,7 @@ jobs:
           server/fullPotentialManagementExport.test.ts
           server/fullPotentialMeetingPack.test.ts
           server/fullPotentialAccountReconciliation.test.ts
+          server/fullPotentialAccountReconciliationReport.test.ts
           server/fullPotentialPublicImportManifest.test.ts
           server/fullPotentialRentalPublicCore.test.ts
           server/fullPotentialToughStationaryPublicApplications.test.ts
@@ -98,17 +103,22 @@ jobs:
           grep -F 'Adoption planning override' shared/fullPotentialRestrictedPlanningFactory.ts
           grep -F 'Only buyer-counting records carry monetary Full Potential.' shared/fullPotentialManagementView.ts
           grep -F 'Named non-counting buyer contexts are qualification targets' shared/fullPotentialManagementView.ts
+          grep -F 'TS2 S-classes express a non-monetary adoption-position universe' shared/fullPotentialManagementView.ts
           grep -F 'assertFullPotentialManagementViewReconciles' shared/fullPotentialManagementView.ts
           grep -F 'Do not substitute zero for missing current revenue.' shared/fullPotentialManagementReadiness.ts
           grep -F 'ready_with_declared_gaps' shared/fullPotentialManagementReadiness.ts
           grep -F 'Estimated market potential is derived from public evidence' shared/fullPotentialManagementExport.ts
           grep -F 'Named qualification universe' shared/fullPotentialManagementExport.ts
+          grep -F 'TS2 provisional three-year position universe' shared/fullPotentialManagementExport.ts
           grep -F 'buildFullPotentialManagementExportBundle' shared/fullPotentialManagementExport.ts
           grep -F 'databaseConnections: 0' server/fullPotentialMeetingPack.ts
           grep -F 'qualificationUniverseCsvSha256' server/fullPotentialMeetingPack.ts
           grep -F 'Meeting pack must not require a live production deployment' server/fullPotentialMeetingPack.ts
           grep -F 'Full Potential account reconciliation incomplete' shared/fullPotentialAccountReconciliation.ts
           grep -F 'No eligible active Australian counting account matched' shared/fullPotentialAccountReconciliation.ts
+          grep -F 'requiredBuyerIdentityCount' server/fullPotentialAccountReconciliationReport.ts
+          grep -F 'databaseConnections: 0' server/fullPotentialAccountReconciliationReport.ts
+          grep -F 'reportSha256' server/fullPotentialAccountReconciliationReport.ts
           grep -F 'draft_only_no_writes' server/fullPotentialPublicImportManifest.ts
           grep -F 'approvalsProposed: 0' server/fullPotentialPublicImportManifest.ts
           grep -F 'providerCallsProposed: 0' server/fullPotentialPublicImportManifest.ts
@@ -141,8 +151,11 @@ jobs:
           grep -F 'The numeric values shown above are synthetic schema examples' docs/full-potential-meeting-pack.md
           grep -F 'When `toughStationaryPlanning` is absent' docs/full-potential-meeting-pack.md
           grep -F 'Do not commit the restricted input' docs/full-potential-meeting-pack.md
+          grep -F 'Production snapshot boundary' docs/full-potential-account-reconciliation.md
+          grep -F 'identity-and-relationship export only' docs/full-potential-account-reconciliation.md
           grep -F 'The command performs no database, CRM, provider, pipeline or deployment action.' scripts/full-potential-meeting-pack.ts
           grep -F 'qualification-universe.csv' scripts/full-potential-meeting-pack.ts
+          grep -F 'The command performs no database, account, CRM, provider, pipeline or deployment action.' scripts/full-potential-account-reconciliation.ts
 
       - name: Offline meeting-pack CLI
         shell: bash
@@ -257,7 +270,39 @@ jobs:
           grep -F 'TS4 specialist rental electric' /tmp/full-potential-ci-output/management-brief.md
           grep -F 'Unobserved Allowance' /tmp/full-potential-ci-output/management-brief.md
           grep -F 'Named qualification universe' /tmp/full-potential-ci-output/management-brief.md
+          grep -F '9 / **13** / 22' /tmp/full-potential-ci-output/management-brief.md
           grep -F 'BHP Western Australia Iron Ore' /tmp/full-potential-ci-output/qualification-universe.csv
+
+      - name: Offline reconciliation CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/full-potential-account-snapshot.json <<'JSON'
+          {
+            "snapshotRef": "ci-empty-account-snapshot-v1",
+            "capturedAt": "2026-08-21T00:00:00.000Z",
+            "accounts": [],
+            "aliases": []
+          }
+          JSON
+          pnpm exec tsx scripts/full-potential-account-reconciliation.ts \
+            --input /tmp/full-potential-account-snapshot.json \
+            --check-only | tee /tmp/full-potential-reconciliation-check.json
+          grep -F '"status": "INCOMPLETE"' /tmp/full-potential-reconciliation-check.json
+          grep -F '"publicRecordCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"requiredBuyerIdentityCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"unmatchedRecordCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"completeForDraftImport": false' /tmp/full-potential-reconciliation-check.json
+
+          set +e
+          pnpm exec tsx scripts/full-potential-account-reconciliation.ts \
+            --input /tmp/full-potential-account-snapshot.json \
+            --check-only \
+            --require-complete > /tmp/full-potential-reconciliation-required.json
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -F '"status": "INCOMPLETE"' /tmp/full-potential-reconciliation-required.json
 
       - name: TypeScript
         run: pnpm check
