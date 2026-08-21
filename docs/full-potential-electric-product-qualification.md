@@ -6,7 +6,23 @@ This is the internal product gate for Tough Stationary / E-Air modelling. It is 
 
 A sourceable product is not counted as fully addressable in Australia until voltage, compliance, package, lead-time and planning-value questions are resolved.
 
-The values in this document are internal planning inputs. They must not be represented as public customer evidence.
+The values and operating assumptions in this document are internal planning inputs. They must not be represented as public customer evidence.
+
+## Current confirmed working position — Oceania
+
+The present working route is to source the China-based electric compressor and complete the Australian/mining adaptation locally until repeat volume and a stable factory specification are proven.
+
+The following points are currently treated as internal product facts or approved planning assumptions:
+
+- local modification is likely to be required for the first Australian machines;
+- Australia has the engineering, fabrication and mining-package capability to complete the required local adaptation;
+- local engineering will increase landed cost, but the cost is not yet quantified and remains under investigation;
+- standard source lead time is approximately three months, followed by approximately one month sea freight to Australia;
+- the current planning lead time is therefore approximately four months before local modification, commissioning and customer delivery;
+- local modification is not itself a portfolio gap: it is a product-qualification and commercial-cost gate;
+- competitor packages are also believed to require market-specific adaptation, but competitor scope and costs are not known and must not be presented as verified evidence.
+
+Until the local engineering scope and cost are understood, the machines should be treated as technically feasible but commercially conditional. The Full Potential model must retain a conservative addressable-share assumption and show the qualification gap rather than assigning an unqualified full market share.
 
 ## China Medium Air portfolio supplied for review
 
@@ -48,13 +64,16 @@ Complete one row for every product family before its model status changes to `ad
 | Lifting / frame compliance | AS 4991 or other applicable requirement |
 | Road registration | Whether any undercarriage is suitable for Australian road use |
 | Noise data | Rated sound pressure / sound power |
-| Factory lead time | Standard and engineered lead time |
+| Factory lead time | Current working assumption: approximately three months |
+| Freight lead time | Current working assumption: approximately one month sea freight |
+| Local modification duration | To be established by the selected Australian engineering route |
 | MOQ / order constraints | Minimum order or batch requirement |
 | Spare-parts availability | Stocking strategy and lead time |
 | Service competence | Training/tooling required in Australia |
 | Warranty | Standard and engineered-conversion treatment |
 | Factory transfer price | AUD or source currency; internal only |
 | Landed-cost assumption | Freight, duty, local engineering and commissioning |
+| Local engineering cost | Unknown; establish Low / Base / High range by product family |
 | Indicative Australia net sales value | Internal planning value, not customer quotation |
 | Commercial status | Addressable now / conditional / gap / excluded |
 | Evidence owner and date | Person/function confirming the answer |
@@ -75,11 +94,15 @@ Use where 380 V is the only confirmed source configuration and 400/415 V or 1,00
 
 ### `conditional_compliance`
 
-Use where voltage is acceptable but mine, electrical, lifting, pressure-vessel or road requirements remain material and uncosted.
+Use where the sourceable machine can be adapted locally, but mine, electrical, lifting, pressure-vessel, package or road requirements remain material or uncosted.
+
+For the current China-based route, this is the normal working status after voltage feasibility is established and before local-engineering scope and cost are approved.
 
 ### `portfolio_gap`
 
 Use where public demand exists but the current identified product portfolio does not meet the pressure/flow/configuration requirement.
+
+Local modification alone is not a portfolio gap.
 
 ## Minimum planning values needed for the September model
 
@@ -95,6 +118,7 @@ Please provide a Low / Base / High indicative Australia net sales value for:
 6. TS4 275 kW / 20–25 bar.
 7. TS4 315 kW / 20 bar.
 8. Dryer/receiver/fire-suppression/package uplift where separately chargeable.
+9. Local electrical, structural and mine-spec modification uplift by product family.
 
 A range is preferable to a false exact price. The Full Potential model will retain these as `financial_assumption` evidence, not as public observations.
 
@@ -105,7 +129,10 @@ The highest-value inputs are:
 - confirmation that 400/415 V factory configurations can be supplied for each China family;
 - an initial view of which families can be engineered to 1,000 V;
 - rough Australia net sales value bands;
-- current lead-time and MOQ;
+- first-pass local-modification scope and cost bands;
+- current MOQ;
 - any existing application or compliance pack already used in another market.
 
-These inputs unlock the monetary TS2–TS4 model. Public market research can continue without them, but the output must remain a position count rather than a defensible revenue value.
+Factory and freight lead time are sufficiently understood for the first model: approximately three months ex-factory plus one month freight. The remaining commercial uncertainty is mainly local-engineering scope, cost and final compliance approval.
+
+These inputs unlock the monetary TS2–TS4 model. Public market research can continue without them, but the output must remain a position count or a broad financial sensitivity rather than a committed revenue value.
