@@ -42,8 +42,15 @@ try {
   const deploymentStatic = profiles.find(profile => profile.name === "deployment-static");
   assert.deepEqual(
     deploymentStatic.steps.map(step => step.name),
-    ["shell-syntax", "issue104-tests", "typecheck"],
-    "deployment-static must remain worker-only and must not run a web production build",
+    ["shell-syntax", "issue104-tests"],
+    "deployment-static must stay cheap and deterministic; compile/build correctness belongs to exact-head CI",
+  );
+
+  const typecheck = profiles.find(profile => profile.name === "typecheck");
+  assert.deepEqual(
+    typecheck.steps.map(step => step.name),
+    ["typecheck"],
+    "worker-only TypeScript remains available as an explicitly requested diagnostic",
   );
 
   const controllerSource = readFileSync(SCRIPT, "utf8");
