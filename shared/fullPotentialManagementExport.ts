@@ -23,6 +23,7 @@ export interface FullPotentialManagementExportBundle {
     productCells: string;
     confidence: string;
     qualificationGaps: string;
+    qualificationUniverse: string;
     dataGaps: string;
   };
 }
@@ -91,6 +92,36 @@ function buyerTable(rows: FullPotentialManagementBuyerRow[]): string[] {
   ];
 }
 
+function qualificationUniverseTable(view: FullPotentialSeptemberManagementView): string[] {
+  const records = view.qualificationUniverse.records;
+  if (records.length === 0) {
+    return [
+      "## Named qualification universe",
+      "",
+      "No named non-counting qualification contexts in this snapshot.",
+      "",
+    ];
+  }
+
+  const classSummary = view.qualificationUniverse.byModelBand
+    .map(row => `${row.label}: ${row.count}`)
+    .join("; ");
+
+  return [
+    "## Named qualification universe",
+    "",
+    `**Named public qualification contexts:** ${view.qualificationUniverse.namedBuyerContextCount}  `,
+    `**Class distribution:** ${escapeMarkdown(classSummary || "Unbanded")}`,
+    "",
+    "> These are public-evidence qualification targets only. They carry no monetary Full Potential until a distinct buyer application is proven and separately reviewed.",
+    "",
+    "| Buyer | Segment | Application | Product cell | Class | Status | Public source |",
+    "|---|---|---|---|---|---|---|",
+    ...records.map(record => `| ${escapeMarkdown(record.buyerName)} | ${escapeMarkdown(record.buyerSegment.replace(/_/g, " "))} | ${escapeMarkdown(record.application)} | ${escapeMarkdown(record.productCell)} | ${escapeMarkdown(record.modelBand ?? "—")} | ${escapeMarkdown(record.addressabilityStatus.replace(/_/g, " "))} | ${escapeMarkdown(record.sourceName)} |`),
+    "",
+  ];
+}
+
 export function buildFullPotentialManagementMarkdown(
   view: FullPotentialSeptemberManagementView,
   readiness: FullPotentialManagementReadiness,
@@ -128,6 +159,7 @@ export function buildFullPotentialManagementMarkdown(
     `| Portfolio-gap evidence records | ${view.addressability.portfolioGapRecordCount} |`,
     `| Excluded records | ${view.addressability.excludedRecordCount} |`,
     "",
+    ...qualificationUniverseTable(view),
     ...buyerTable(view.buyerSegments),
     ...rowTable("Product cells", view.productCells),
     ...rowTable("Evidence confidence", view.confidence),
@@ -231,6 +263,35 @@ export function buildFullPotentialManagementCsvBundle(
     ]),
   ]);
 
+  const qualificationUniverse = csv([
+    [
+      "record_key",
+      "buyer_name",
+      "buyer_account_key",
+      "buyer_segment",
+      "application",
+      "product_cell",
+      "model_band",
+      "evidence_grade",
+      "addressability_status",
+      "source_name",
+      "source_url",
+    ],
+    ...view.qualificationUniverse.records.map(record => [
+      record.recordKey,
+      record.buyerName,
+      record.buyerAccountKey ?? "",
+      record.buyerSegment,
+      record.application,
+      record.productCell,
+      record.modelBand ?? "",
+      record.evidenceGrade,
+      record.addressabilityStatus,
+      record.sourceName,
+      record.sourceUrl,
+    ]),
+  ]);
+
   const dataGaps = csv([
     [
       "key",
@@ -258,6 +319,7 @@ export function buildFullPotentialManagementCsvBundle(
     productCells: rowsCsv(view.productCells),
     confidence: rowsCsv(view.confidence),
     qualificationGaps: rowsCsv(view.qualificationGaps),
+    qualificationUniverse,
     dataGaps,
   };
 }
