@@ -186,13 +186,44 @@ describe("Full Potential public buyer reconciliation", () => {
     expect(() => assertFullPotentialReconciliationComplete(result)).not.toThrow();
   });
 
-  it("fails complete reconciliation when two public buyers map to one account", () => {
+  it("allows one buyer identity to carry multiple distinct product pools on one account", () => {
     const result = reconcileFullPotentialPublicBuyers(
       [
         observation(),
         observation({
-          recordKey: "rental:kerrs-hire:second-pool",
-          commercialPoolKey: "buyer:kerrs-hire:second-pool",
+          recordKey: "rental:kerrs-hire:ts2-electric-adoption",
+          commercialPoolKey: "buyer:kerrs-hire:ts2-electric-adoption",
+          productFamily: "e_air",
+          productCell: "TS2_specialist_rental_electric",
+          application: "incremental medium electric rental-fleet adoption",
+          scenarioBasis: "adoption_positions",
+        }),
+        observation({
+          recordKey: "rental:kerrs-hire:ts4-electric-adoption",
+          commercialPoolKey: "buyer:kerrs-hire:ts4-electric-adoption",
+          productFamily: "e_air",
+          productCell: "TS4_specialist_rental_electric",
+          application: "incremental high-pressure electric rental-fleet adoption",
+          scenarioBasis: "adoption_positions",
+        }),
+      ],
+      [account()],
+      [],
+    );
+    expect(result.matchedCount).toBe(3);
+    expect(result.results.every(row => row.matchedAccountId === 101)).toBe(true);
+    expect(() => assertFullPotentialReconciliationComplete(result)).not.toThrow();
+  });
+
+  it("fails when distinct public buyer identities map to one counting account", () => {
+    const result = reconcileFullPotentialPublicBuyers(
+      [
+        observation(),
+        observation({
+          recordKey: "rental:kerrs-equipment:public-core-v1",
+          commercialPoolKey: "buyer:kerrs-equipment:rental-portable-air",
+          buyerAccountKey: "kerrs-equipment-au",
+          buyerName: "Kerrs Hire",
         }),
       ],
       [account()],
@@ -200,6 +231,41 @@ describe("Full Potential public buyer reconciliation", () => {
     );
     expect(result.matchedCount).toBe(2);
     expect(() => assertFullPotentialReconciliationComplete(result))
-      .toThrow("more than one public buyer to the same counting account");
+      .toThrow("distinct public buyer identities to counting account 101");
+  });
+
+  it("fails when one public buyer identity maps to multiple counting accounts", () => {
+    const summary = {
+      recordCount: 2,
+      buyerCountingCount: 2,
+      matchedCount: 2,
+      unmatchedCount: 0,
+      ambiguousCount: 0,
+      nonCountingCount: 0,
+      results: [
+        {
+          recordKey: "one",
+          buyerAccountKey: "shared-buyer-au",
+          buyerName: "Shared Buyer",
+          disposition: "matched" as const,
+          matchedAccountId: 101,
+          matchedStableKey: "shared|one",
+          candidates: [],
+          reason: "test",
+        },
+        {
+          recordKey: "two",
+          buyerAccountKey: "shared-buyer-au",
+          buyerName: "Shared Buyer",
+          disposition: "matched" as const,
+          matchedAccountId: 202,
+          matchedStableKey: "shared|two",
+          candidates: [],
+          reason: "test",
+        },
+      ],
+    };
+    expect(() => assertFullPotentialReconciliationComplete(summary))
+      .toThrow("maps buyer shared-buyer-au to multiple counting accounts");
   });
 });
