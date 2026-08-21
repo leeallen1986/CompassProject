@@ -104,7 +104,10 @@ function routeToMarket(value: string): RouteToMarket {
 function requiredBuyerIdentityCount(records: FullPotentialPublicObservationRecord[]): number {
   return new Set(
     records
-      .filter(record => record.countingTreatment === "buyer_counting")
+      .filter(record => (
+        record.countingTreatment === "buyer_counting"
+        && record.valueClass !== "unobserved_allowance"
+      ))
       .map(record => record.buyerAccountKey)
       .filter((value): value is string => Boolean(value?.trim())),
   ).size;
