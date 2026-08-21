@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { FP_PUBLIC_EVIDENCE_METHOD_VERSION } from "../shared/fullPotentialPublicEvidence";
 import type { FullPotentialPublicObservationRecord } from "../shared/fullPotentialPublicDraftPack";
-import { buildRentalRestrictedPlanningPack } from "../shared/fullPotentialRestrictedPlanningFactory";
+import {
+  buildAdoptionRestrictedPlanningPack,
+  buildRentalRestrictedPlanningPack,
+} from "../shared/fullPotentialRestrictedPlanningFactory";
 
 function observation(
   recordKey: string,
@@ -29,6 +32,36 @@ function observation(
     addressabilityStatus: "addressable_now",
     qualificationGates: [],
     methodologyVersion: FP_PUBLIC_EVIDENCE_METHOD_VERSION,
+  };
+}
+
+function adoptionObservation(
+  recordKey: string,
+  overrides: Partial<FullPotentialPublicObservationRecord> = {},
+): FullPotentialPublicObservationRecord {
+  return {
+    recordKey,
+    commercialPoolKey: `buyer:${recordKey}:electric-adoption`,
+    buyerAccountKey: `${recordKey}-au`,
+    buyerName: recordKey,
+    buyerSegment: "rental_hire",
+    application: "incremental electric adoption",
+    productFamily: "e_air",
+    productCell: "TS4_specialist_rental_electric",
+    countingTreatment: "buyer_counting",
+    valueClass: "named_evidenced_core",
+    scenarioBasis: "adoption_positions",
+    evidenceGrade: "C",
+    sourceName: "Example public high-pressure source",
+    sourceUrl: "https://example.com/public-high-pressure",
+    observedAt: "2026-08-21",
+    publicObservation: "The public range shows high-pressure project demand.",
+    inference: "A transparent adoption range is used without claiming a current electric fleet.",
+    modelBand: "TS4-NAMED-ADOPTION",
+    addressabilityStatus: "conditional_compliance",
+    qualificationGates: ["Confirm local package compliance."],
+    methodologyVersion: FP_PUBLIC_EVIDENCE_METHOD_VERSION,
+    ...overrides,
   };
 }
 
@@ -175,5 +208,118 @@ describe("Rental restricted planning factory", () => {
         localisationUpliftStatus: "not_applicable",
       },
     )).toThrow("cannot exceed 100");
+  });
+});
+
+describe("Adoption restricted planning factory", () => {
+  it("expands concise adoption defaults across named buyer pools", () => {
+    const pack = buildAdoptionRestrictedPlanningPack(
+      [adoptionObservation("buyer-one"), adoptionObservation("buyer-two")],
+      {
+        planningValueSetRef: "ts4-planning-test-v1",
+        adoptionPositions: { low: 1, base: 2, high: 3 },
+        averageSellingPriceAud: { low: 1_800, base: 2_000, high: 2_200 },
+        addressableSharePct: { low: 50, base: 60, high: 70 },
+        planningValueBasis: "machine_only",
+        localisationUpliftStatus: "excluded_tbc",
+      },
+    );
+
+    expect(pack).toHaveLength(2);
+    expect(pack[0].scenarios).toEqual({
+      low: {
+        adoptionPositions: 1,
+        averageSellingPriceAud: 1_800,
+        addressableSharePct: 50,
+      },
+      base: {
+        adoptionPositions: 2,
+        averageSellingPriceAud: 2_000,
+        addressableSharePct: 60,
+      },
+      high: {
+        adoptionPositions: 3,
+        averageSellingPriceAud: 2_200,
+        addressableSharePct: 70,
+      },
+    });
+  });
+
+  it("supports a distinct direct-project allowance override", () => {
+    const allowanceKey = "allowance:ts4:direct-powered-projects";
+    const pack = buildAdoptionRestrictedPlanningPack(
+      [
+        adoptionObservation("named-buyer"),
+        adoptionObservation(allowanceKey, {
+          buyerSegment: "mining_direct",
+          valueClass: "unobserved_allowance",
+        }),
+      ],
+      {
+        planningValueSetRef: "ts4-planning-test-v1",
+        adoptionPositions: { low: 1, base: 2, high: 3 },
+        averageSellingPriceAud: { low: 1_800, base: 2_000, high: 2_200 },
+        addressableSharePct: { low: 50, base: 60, high: 70 },
+        planningValueBasis: "machine_only",
+        localisationUpliftStatus: "excluded_tbc",
+        overrides: [{
+          recordKey: allowanceKey,
+          adoptionPositions: { low: 1, base: 4, high: 8 },
+        }],
+      },
+    );
+
+    const allowance = pack.find(record => record.recordKey === allowanceKey);
+    expect(allowance?.scenarios).toMatchObject({
+      low: { adoptionPositions: 1 },
+      base: { adoptionPositions: 4 },
+      high: { adoptionPositions: 8 },
+    });
+  });
+
+  it("rejects replacement records, duplicate overrides and orphan overrides", () => {
+    expect(() => buildAdoptionRestrictedPlanningPack(
+      [observation("rental-one", "P2")],
+      {
+        planningValueSetRef: "ts4-planning-test-v1",
+        adoptionPositions: { low: 1, base: 2, high: 3 },
+        averageSellingPriceAud: 2_000,
+        addressableSharePct: 60,
+        planningValueBasis: "machine_only",
+        localisationUpliftStatus: "excluded_tbc",
+      },
+    )).toThrow("expected adoption_positions");
+
+    expect(() => buildAdoptionRestrictedPlanningPack(
+      [adoptionObservation("buyer-one")],
+      {
+        planningValueSetRef: "ts4-planning-test-v1",
+        adoptionPositions: { low: 1, base: 2, high: 3 },
+        averageSellingPriceAud: 2_000,
+        addressableSharePct: 60,
+        planningValueBasis: "machine_only",
+        localisationUpliftStatus: "excluded_tbc",
+        overrides: [
+          { recordKey: "buyer-one", adoptionPositions: { low: 1, base: 2, high: 3 } },
+          { recordKey: "buyer-one", adoptionPositions: { low: 2, base: 3, high: 4 } },
+        ],
+      },
+    )).toThrow("Duplicate adoption planning override");
+
+    expect(() => buildAdoptionRestrictedPlanningPack(
+      [adoptionObservation("buyer-one")],
+      {
+        planningValueSetRef: "ts4-planning-test-v1",
+        adoptionPositions: { low: 1, base: 2, high: 3 },
+        averageSellingPriceAud: 2_000,
+        addressableSharePct: 60,
+        planningValueBasis: "machine_only",
+        localisationUpliftStatus: "excluded_tbc",
+        overrides: [{
+          recordKey: "unknown-record",
+          adoptionPositions: { low: 1, base: 2, high: 3 },
+        }],
+      },
+    )).toThrow("has no buyer-counting observation");
   });
 });
