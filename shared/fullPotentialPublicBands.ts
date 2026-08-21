@@ -17,8 +17,21 @@ export const FP_UNDERGROUND_POSITION_CLASSES = {
   U3: { low: 2, base: 3, high: 4 },
 } as const;
 
+/**
+ * TS2 surface adoption classes are not installed-base claims. They are the
+ * number of distinct three-year relocatable-electric adoption positions that
+ * may be assigned later to a named buyer only after a site passes the powered,
+ * rugged/exposed and mobility qualification test.
+ */
+export const FP_TS2_SURFACE_POSITION_CLASSES = {
+  S1: { low: 0, base: 1, high: 1 },
+  S2: { low: 1, base: 1, high: 2 },
+  S3: { low: 1, base: 2, high: 3 },
+} as const;
+
 export type FullPotentialRentalFleetBand = keyof typeof FP_RENTAL_FLEET_BANDS;
 export type FullPotentialUndergroundPositionClass = keyof typeof FP_UNDERGROUND_POSITION_CLASSES;
+export type FullPotentialTs2SurfacePositionClass = keyof typeof FP_TS2_SURFACE_POSITION_CLASSES;
 
 export interface FullPotentialRentalScenarioOptions {
   averageSellingPriceAud: number;
@@ -101,4 +114,11 @@ export function undergroundPositionClassScenarios(
   options: FullPotentialAdoptionScenarioOptions,
 ): Record<FullPotentialPublicScenario, FullPotentialPublicScenarioAssumption> {
   return adoptionPositionScenarios(FP_UNDERGROUND_POSITION_CLASSES[positionClass], options);
+}
+
+export function ts2SurfacePositionClassScenarios(
+  positionClass: FullPotentialTs2SurfacePositionClass,
+  options: FullPotentialAdoptionScenarioOptions,
+): Record<FullPotentialPublicScenario, FullPotentialPublicScenarioAssumption> {
+  return adoptionPositionScenarios(FP_TS2_SURFACE_POSITION_CLASSES[positionClass], options);
 }
