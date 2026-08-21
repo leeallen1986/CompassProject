@@ -3,6 +3,7 @@ import {
   LLMInvokeError,
   classifyLLMHttpFailure,
   parseRetryAfterMs,
+  safeTransportErrorCodes,
 } from "./llmErrors";
 import {
   resolveLLMProvider,
@@ -344,6 +345,7 @@ function withProviderContext(
     retryAfterMs: error.retryAfterMs,
     provider: provider.name,
     model: provider.model,
+    transportCodes: error.transportCodes,
   });
 }
 
@@ -487,10 +489,20 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     } catch (error) {
       const timedOut = controller.signal.aborted ||
         (error instanceof Error && error.name === "AbortError");
+      const transportCodes = timedOut ? [] : safeTransportErrorCodes(error);
+      if (!timedOut) {
+        console.warn("[LLM] transport failed", {
+          feature: params.feature ?? "unclassified",
+          provider: provider.name,
+          model: provider.model,
+          transportCodes,
+        });
+      }
       throw new LLMInvokeError({
         kind: timedOut ? "timeout" : "upstream_unavailable",
         provider: provider.name,
         model: provider.model,
+        transportCodes,
       });
     }
 
