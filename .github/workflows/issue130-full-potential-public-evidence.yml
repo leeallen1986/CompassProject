@@ -5,7 +5,9 @@ on:
     paths:
       - ".github/workflows/issue130-full-potential-public-evidence.yml"
       - "shared/fullPotentialPublicEvidence.ts"
+      - "shared/fullPotentialPublicBands.ts"
       - "server/fullPotentialPublicEvidence.test.ts"
+      - "server/fullPotentialPublicBands.test.ts"
       - "docs/full-potential-public-evidence-methodology.md"
       - "server/fullPotentialCommercialModel.shared.ts"
       - "server/fullPotentialCommercialModel.lines.ts"
@@ -31,7 +33,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Public-evidence model regressions
-        run: pnpm exec vitest run server/fullPotentialPublicEvidence.test.ts
+        run: >-
+          pnpm exec vitest run
+          server/fullPotentialPublicEvidence.test.ts
+          server/fullPotentialPublicBands.test.ts
 
       - name: Public-evidence safety boundary
         shell: bash
@@ -42,6 +47,8 @@ jobs:
           grep -F 'Duplicate monetary commercialPoolKey' shared/fullPotentialPublicEvidence.ts
           grep -F 'must not contain an email address' shared/fullPotentialPublicEvidence.ts
           grep -F 'portfolio_gap' shared/fullPotentialPublicEvidence.ts
+          grep -F 'P5: { low: 75, base: 110, high: 150 }' shared/fullPotentialPublicBands.ts
+          grep -F 'U3: { low: 2, base: 3, high: 4 }' shared/fullPotentialPublicBands.ts
           grep -F 'No schema migration is required for the first controlled draft pack.' docs/full-potential-public-evidence-methodology.md
 
       - name: TypeScript
