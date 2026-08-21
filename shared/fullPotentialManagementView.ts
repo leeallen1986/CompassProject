@@ -34,6 +34,26 @@ export interface FullPotentialManagementBuyerRow extends FullPotentialManagement
   remainingBasePotentialAud: number | null;
 }
 
+export interface FullPotentialManagementCoverageCount {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface FullPotentialManagementQualificationRecord {
+  recordKey: string;
+  buyerName: string;
+  buyerAccountKey: string | null;
+  buyerSegment: string;
+  application: string;
+  productCell: string;
+  modelBand: string | null;
+  evidenceGrade: FullPotentialPublicEvidenceGrade;
+  addressabilityStatus: FullPotentialPublicEvidenceRecord["addressabilityStatus"];
+  sourceName: string;
+  sourceUrl: string;
+}
+
 export interface FullPotentialSeptemberManagementView {
   methodologyVersion: string;
   generatedFromRecordCount: number;
@@ -50,6 +70,13 @@ export interface FullPotentialSeptemberManagementView {
     conditional: FullPotentialManagementScenarioValue;
     portfolioGapRecordCount: number;
     excludedRecordCount: number;
+  };
+  qualificationUniverse: {
+    namedBuyerContextCount: number;
+    byBuyerSegment: FullPotentialManagementCoverageCount[];
+    byProductCell: FullPotentialManagementCoverageCount[];
+    byModelBand: FullPotentialManagementCoverageCount[];
+    records: FullPotentialManagementQualificationRecord[];
   };
   confidence: Array<FullPotentialManagementRow & {
     evidenceGrade: FullPotentialPublicEvidenceGrade;
@@ -86,6 +113,9 @@ const LABELS: Record<string, string> = {
   A: "A — directly observed public evidence",
   B: "B — strong public-evidence inference",
   C: "C — modelled adoption assumption",
+  S1: "S1 — early surface qualification",
+  S2: "S2 — material surface qualification",
+  S3: "S3 — priority surface qualification",
 };
 
 function money(value: number): number {
@@ -143,6 +173,24 @@ function rowsBy(
     .sort((left, right) => right.baseAud - left.baseAud || left.label.localeCompare(right.label));
 }
 
+function coverageCounts(
+  records: FullPotentialPublicEvidenceRecord[],
+  keyOf: (record: FullPotentialPublicEvidenceRecord) => string,
+): FullPotentialManagementCoverageCount[] {
+  const counts = new Map<string, number>();
+  for (const record of records) {
+    const key = keyOf(record) || "unknown";
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([key, count]) => ({
+      key,
+      label: LABELS[key] ?? key.replace(/_/g, " "),
+      count,
+    }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+}
+
 function revenueBySegment(
   inputs: FullPotentialManagementCurrentRevenueInput[],
 ): Map<string, FullPotentialManagementCurrentRevenueInput> {
@@ -193,6 +241,13 @@ export function buildFullPotentialSeptemberManagementView(
     "conditional_voltage",
     "conditional_compliance",
   ].includes(record.addressabilityStatus));
+
+  const namedQualificationRecords = records
+    .filter(record => (
+      record.countingTreatment !== "buyer_counting"
+      && Boolean(record.buyerName?.trim())
+      && Boolean(record.buyerAccountKey?.trim())
+    ));
 
   const buyerSegments = rowsBy(records, record => record.buyerSegment, total.baseAud)
     .filter(row => row.baseAud > 0 || revenue.has(row.key))
@@ -263,6 +318,30 @@ export function buildFullPotentialSeptemberManagementView(
         record => record.addressabilityStatus === "excluded",
       ).length,
     },
+    qualificationUniverse: {
+      namedBuyerContextCount: namedQualificationRecords.length,
+      byBuyerSegment: coverageCounts(namedQualificationRecords, record => record.buyerSegment),
+      byProductCell: coverageCounts(namedQualificationRecords, record => record.productCell),
+      byModelBand: coverageCounts(namedQualificationRecords, record => record.modelBand ?? "unbanded"),
+      records: namedQualificationRecords
+        .map(record => ({
+          recordKey: record.recordKey,
+          buyerName: record.buyerName as string,
+          buyerAccountKey: record.buyerAccountKey,
+          buyerSegment: record.buyerSegment,
+          application: record.application,
+          productCell: record.productCell,
+          modelBand: record.modelBand ?? null,
+          evidenceGrade: record.evidenceGrade,
+          addressabilityStatus: record.addressabilityStatus,
+          sourceName: record.sourceName,
+          sourceUrl: record.sourceUrl,
+        }))
+        .sort((left, right) => (
+          (right.modelBand ?? "").localeCompare(left.modelBand ?? "")
+          || left.buyerName.localeCompare(right.buyerName)
+        )),
+    },
     confidence,
     buyerSegments,
     productCells: rowsBy(records, record => record.productCell, total.baseAud),
@@ -276,6 +355,7 @@ export function buildFullPotentialSeptemberManagementView(
     governanceNotes: [
       "Only buyer-counting records carry monetary Full Potential.",
       "Application and site overlays remain visible but non-counting.",
+      "Named non-counting buyer contexts are qualification targets, not asserted pipeline or installed-base facts.",
       "Named Evidenced Core is shown separately from Regional Long Tail and Unobserved Allowance.",
       "Low, Base and High are transparent scenarios, not asserted customer fleet facts.",
       "Current revenue inputs are aggregate planning references and do not contain customer contacts, conversations or quotation detail.",
