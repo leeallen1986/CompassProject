@@ -6,11 +6,21 @@ import {
   type FullPotentialPublicEvidenceRecord,
   type FullPotentialPublicScenario,
 } from "./fullPotentialPublicEvidence";
+import {
+  FP_TS2_SURFACE_POSITION_CLASSES,
+  type FullPotentialTs2SurfacePositionClass,
+} from "./fullPotentialPublicBands";
 
 export interface FullPotentialManagementScenarioValue {
   lowAud: number;
   baseAud: number;
   highAud: number;
+}
+
+export interface FullPotentialManagementPositionUniverse {
+  low: number;
+  base: number;
+  high: number;
 }
 
 export interface FullPotentialManagementRow extends FullPotentialManagementScenarioValue {
@@ -73,6 +83,7 @@ export interface FullPotentialSeptemberManagementView {
   };
   qualificationUniverse: {
     namedBuyerContextCount: number;
+    ts2SurfacePositionUniverse: FullPotentialManagementPositionUniverse;
     byBuyerSegment: FullPotentialManagementCoverageCount[];
     byProductCell: FullPotentialManagementCoverageCount[];
     byModelBand: FullPotentialManagementCoverageCount[];
@@ -189,6 +200,21 @@ function coverageCounts(
       count,
     }))
     .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+}
+
+function ts2SurfacePositionUniverse(
+  records: FullPotentialPublicEvidenceRecord[],
+): FullPotentialManagementPositionUniverse {
+  const total = { low: 0, base: 0, high: 0 };
+  for (const record of records) {
+    const band = record.modelBand as FullPotentialTs2SurfacePositionClass | null;
+    if (!band || !(band in FP_TS2_SURFACE_POSITION_CLASSES)) continue;
+    const positions = FP_TS2_SURFACE_POSITION_CLASSES[band];
+    total.low += positions.low;
+    total.base += positions.base;
+    total.high += positions.high;
+  }
+  return total;
 }
 
 function revenueBySegment(
@@ -320,6 +346,7 @@ export function buildFullPotentialSeptemberManagementView(
     },
     qualificationUniverse: {
       namedBuyerContextCount: namedQualificationRecords.length,
+      ts2SurfacePositionUniverse: ts2SurfacePositionUniverse(namedQualificationRecords),
       byBuyerSegment: coverageCounts(namedQualificationRecords, record => record.buyerSegment),
       byProductCell: coverageCounts(namedQualificationRecords, record => record.productCell),
       byModelBand: coverageCounts(namedQualificationRecords, record => record.modelBand ?? "unbanded"),
@@ -356,6 +383,7 @@ export function buildFullPotentialSeptemberManagementView(
       "Only buyer-counting records carry monetary Full Potential.",
       "Application and site overlays remain visible but non-counting.",
       "Named non-counting buyer contexts are qualification targets, not asserted pipeline or installed-base facts.",
+      "TS2 S-classes express a non-monetary adoption-position universe, not installed equipment or a sales forecast.",
       "Named Evidenced Core is shown separately from Regional Long Tail and Unobserved Allowance.",
       "Low, Base and High are transparent scenarios, not asserted customer fleet facts.",
       "Current revenue inputs are aggregate planning references and do not contain customer contacts, conversations or quotation detail.",
