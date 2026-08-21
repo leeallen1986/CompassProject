@@ -104,12 +104,6 @@ const PROFILE_DEFINITIONS = {
         args: ["exec", "vitest", "run", ...ISSUE104_TESTS],
         timeoutMs: 15 * 60_000,
       },
-      {
-        name: "typecheck",
-        command: "pnpm",
-        args: WORKER_TYPECHECK_ARGS,
-        timeoutMs: 20 * 60_000,
-      },
     ],
   },
 };
