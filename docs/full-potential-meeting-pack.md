@@ -11,8 +11,10 @@ The offline pack combines:
 - the source-controlled TS1–TS4 non-counting public application evidence;
 - a named TS2 surface-mining qualification universe that remains non-counting
   until a distinct rugged/relocatable Portable Air requirement is proven;
-- optional named Tough Stationary buyer and allowance observations when a
-  restricted adoption plan is supplied;
+- optional specialist-rental TS2/TS4 buyer pools when a restricted adoption plan
+  is supplied;
+- optional named direct-mining TS2/TS3 buyer pools when a separate restricted
+  adoption plan is supplied;
 - a local, restricted planning JSON file containing current Low/Base/High values;
 - optional aggregate current-revenue references;
 - explicit readiness and declared-gap settings.
@@ -88,7 +90,7 @@ The management brief and `qualification-universe.csv` show the named contexts,
 product cell, class, qualification status and public source without adding value
 to the headline.
 
-## Optional Tough Stationary planning
+## Optional specialist-rental Tough Stationary planning
 
 When `toughStationaryPlanning` is absent, the TS1–TS4 public application evidence
 and TS2 named qualification universe still appear in the pack but remain wholly
@@ -132,13 +134,69 @@ buyer pools and the separately labelled direct-project allowance:
 }
 ```
 
-These numbers are also synthetic schema examples. The real restricted file may
-use different assumptions by record through `overrides`.
+These numbers are synthetic schema examples. The real restricted file may use
+different assumptions by record through `overrides`.
 
 The named TS2 and TS4 specialist-rental pools are distinct from the conventional
 Rental replacement pool. The direct-project allowance is displayed separately
 under Unobserved Allowance and is not eligible for production account import
 until replaced by named, reconciled buyers.
+
+## Optional direct-mining planning
+
+Named direct-mining TS2 and TS3 records are included in the monetary snapshot
+only when `directMiningPlanning` is supplied. Without it, the meeting pack does
+not silently assign value to those buyers.
+
+The public direct-mining core contains distinct commercial pools for publicly
+evidenced operating environments. It does not claim customer installed-base
+quantities, replacement timing or purchasing intent.
+
+A restricted planning input uses the same adoption-position contract:
+
+```json
+{
+  "directMiningPlanning": {
+    "planningValueSetRef": "opaque-direct-mining-reference",
+    "adoptionPositions": {
+      "low": 0,
+      "base": 1,
+      "high": 2
+    },
+    "averageSellingPriceAud": {
+      "low": 1800,
+      "base": 2000,
+      "high": 2200
+    },
+    "addressableSharePct": {
+      "low": 30,
+      "base": 50,
+      "high": 70
+    },
+    "planningValueBasis": "machine_only",
+    "localisationUpliftStatus": "excluded_tbc",
+    "overrides": [
+      {
+        "recordKey": "mining:newmont:tanami-ts3-direct",
+        "adoptionPositions": {
+          "low": 1,
+          "base": 2,
+          "high": 3
+        }
+      }
+    ]
+  }
+}
+```
+
+The numbers above are synthetic schema examples. In the real private pack,
+site-level overrides should reflect the public application class and confidence;
+a single default must not be treated as an observed mine fleet.
+
+Several distinct site pools may resolve to one canonical buyer account. The
+production draft manifest therefore creates one draft model per account and one
+line per distinct commercial pool. Conventional permanent compressor-room demand
+remains excluded.
 
 ### Planning basis
 
@@ -189,7 +247,8 @@ pnpm exec tsx scripts/full-potential-meeting-pack.ts \
 A successful command returns a bounded JSON summary containing:
 
 - meeting readiness;
-- whether Tough Stationary buyer planning was included;
+- whether specialist-rental Tough Stationary planning was included;
+- whether direct-mining planning was included;
 - public and restricted record counts;
 - counting and non-counting record counts;
 - named qualification-context count;
