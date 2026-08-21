@@ -22,6 +22,7 @@ export interface FullPotentialReconciliationReport {
   snapshotRef: string;
   capturedAt: string;
   publicRecordCount: number;
+  requiredBuyerIdentityCount: number;
   summary: FullPotentialReconciliationSummary;
   importTargets: FullPotentialImportAccountTarget[];
   unresolvedRecordKeys: string[];
@@ -100,12 +101,22 @@ function routeToMarket(value: string): RouteToMarket {
   return value as RouteToMarket;
 }
 
+function requiredBuyerIdentityCount(records: FullPotentialPublicObservationRecord[]): number {
+  return new Set(
+    records
+      .filter(record => record.countingTreatment === "buyer_counting")
+      .map(record => record.buyerAccountKey)
+      .filter((value): value is string => Boolean(value?.trim())),
+  ).size;
+}
+
 export function buildFullPotentialAccountReconciliationReport(
   records: FullPotentialPublicObservationRecord[],
   snapshot: FullPotentialAccountSnapshot,
 ): FullPotentialReconciliationReport {
   assertSnapshot(snapshot);
   const summary = reconcileFullPotentialPublicBuyers(records, snapshot.accounts, snapshot.aliases);
+  const requiredBuyerCount = requiredBuyerIdentityCount(records);
   const accountById = new Map(snapshot.accounts.map(account => [account.id, account]));
   const targetsByBuyer = new Map<string, FullPotentialImportAccountTarget>();
 
@@ -143,7 +154,7 @@ export function buildFullPotentialAccountReconciliationReport(
   let completeForDraftImport = false;
   try {
     assertFullPotentialReconciliationComplete(summary);
-    completeForDraftImport = importTargets.length === summary.buyerCountingCount;
+    completeForDraftImport = importTargets.length === requiredBuyerCount;
   } catch {
     completeForDraftImport = false;
   }
@@ -153,6 +164,7 @@ export function buildFullPotentialAccountReconciliationReport(
     snapshotRef: snapshot.snapshotRef,
     capturedAt: new Date(snapshot.capturedAt).toISOString(),
     publicRecordCount: records.length,
+    requiredBuyerIdentityCount: requiredBuyerCount,
     summary,
     importTargets,
     unresolvedRecordKeys,
@@ -192,8 +204,8 @@ export function verifyFullPotentialAccountReconciliationReport(
   }
   if (report.completeForDraftImport) {
     assertFullPotentialReconciliationComplete(report.summary);
-    if (report.importTargets.length !== report.summary.buyerCountingCount) {
-      throw new Error("Complete reconciliation report does not cover every buyer-counting record");
+    if (report.importTargets.length !== report.requiredBuyerIdentityCount) {
+      throw new Error("Complete reconciliation report does not cover every unique buyer identity");
     }
   }
 }
