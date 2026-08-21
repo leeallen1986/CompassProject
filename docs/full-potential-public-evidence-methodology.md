@@ -23,7 +23,7 @@ The September 2026 management view must explain every material number back to na
 - publicly visible equipment, pressure and flow bands;
 - openly stated branch, site or operating footprint;
 - transparent fleet bands, adoption-position classes and replacement assumptions;
-- internal planning values explicitly marked as financial assumptions.
+- references to an approved internal planning-value set without exposing sensitive price values in public source control.
 
 ### Prohibited in the public-evidence layer
 
@@ -33,9 +33,34 @@ The September 2026 management view must explain every material number back to na
 - quotations, prices offered, discounts or margin;
 - confidential tender or installed-base information;
 - CRM activity notes;
-- unpublished service, warranty or distributor intelligence presented as public evidence.
+- unpublished service, warranty or distributor intelligence presented as public evidence;
+- sensitive internal price ladders or local-engineering cost assumptions committed to the public repository.
 
 C4C/CRM remains the system for people, conversations, opportunities, quotes and close plans.
+
+## Private planning-value boundary
+
+Full Potential calculations require internal planning values, but those values are not public evidence.
+
+The current management model may use a privately approved machine-value range and a separate localisation/package uplift. The exact values must be supplied through a restricted admin-only assumption pack or entered into a draft model by an authorised internal user. They must not be hard-coded in the shared public-evidence library, committed to the public repository, shown in distributor views or represented as a customer quotation.
+
+The source-controlled model may contain only:
+
+- scenario field names;
+- calculation logic;
+- qualification status;
+- an opaque planning-value-set reference or methodology version;
+- tests using synthetic/example values that are not asserted to be current commercial prices.
+
+The management output should distinguish:
+
+```text
+machine planning value
++ local engineering / voltage / mine-package uplift
+= indicative locally deployable package value
+```
+
+Where localisation cost is unknown, the model must show the machine-only value and a separate `localisation uplift TBC` qualification gap. It must not silently embed an invented contingency.
 
 ## Buyer, application and product
 
@@ -165,14 +190,15 @@ The Base scenario may populate the editable V1 line fields in a draft model. Low
 
 A draft import pack must:
 
-- contain public-source and financial-assumption evidence only for this workstream;
+- contain public-source evidence plus references to restricted financial assumptions for this workstream;
 - keep observation and inference in separate fields;
 - reject email addresses, phone numbers and CRM/confidential language;
 - keep all model/evidence statuses draft;
 - use canonical buyer accounts and non-counting context records;
 - reconcile Low/Base/High totals to unique commercial-pool keys;
-- include a methodology version;
-- never trigger C4C, pipeline, provider or outreach work.
+- include a methodology version and private planning-value-set reference;
+- never trigger C4C, pipeline, provider or outreach work;
+- never export or display restricted price inputs to distributor users.
 
 ## September 3 management view
 
@@ -185,6 +211,7 @@ The management view should show:
 - evidence-grade distribution;
 - current product-addressable value;
 - conditional voltage/compliance/factory value;
+- machine-only value versus localisation/package uplift TBC;
 - portfolio gaps;
 - current sales and remaining potential where approved data exists;
 - the source and assumptions behind every material number.
@@ -198,6 +225,7 @@ The initial Issue #130 source release defines and tests the model contract only.
 - approve account values;
 - create CRM records or contacts;
 - invoke providers or the production pipeline;
-- deploy the web or worker.
+- deploy the web or worker;
+- commit current internal commercial price ladders to public source control.
 
 Production data loading requires a separate bounded import manifest, dry-run reconciliation and explicit approval.
