@@ -23,8 +23,6 @@ interface MeetingPackCliInput {
   rentalPlanning: FullPotentialRentalPlanningDefaults;
   /** Optional specialist-rental TS2/TS4 adoption planning. */
   toughStationaryPlanning?: FullPotentialAdoptionPlanningDefaults;
-  /** Optional named direct-mining TS2/TS3 adoption planning. */
-  directMiningPlanning?: FullPotentialAdoptionPlanningDefaults;
   currentRevenueInputs?: FullPotentialManagementCurrentRevenueInput[];
   readiness: FullPotentialManagementReadinessInput;
   exportOptions?: FullPotentialManagementExportOptions;
@@ -66,7 +64,7 @@ function parseArgs(argv: string[]): CliOptions {
         "  pnpm exec tsx scripts/full-potential-meeting-pack.ts --input <private.json> --check-only",
         "",
         "The input contains restricted aggregate planning assumptions. Do not commit it to the public repository.",
-        "Specialist-rental and direct-mining Tough Stationary planning are optional and independently gated.",
+        "Specialist-rental Tough Stationary planning is optional. Direct-mining TS3 evidence remains non-counting until a distinct application is qualified.",
         "The command performs no database, CRM, provider, pipeline or deployment action.",
       ].join("\n"));
       process.exit(0);
@@ -97,12 +95,6 @@ function assertInput(value: unknown): asserts value is MeetingPackCliInput {
     && (!input.toughStationaryPlanning || typeof input.toughStationaryPlanning !== "object")
   ) {
     throw new Error("toughStationaryPlanning must be an object when supplied");
-  }
-  if (
-    input.directMiningPlanning !== undefined
-    && (!input.directMiningPlanning || typeof input.directMiningPlanning !== "object")
-  ) {
-    throw new Error("directMiningPlanning must be an object when supplied");
   }
   if (!input.readiness || typeof input.readiness !== "object") {
     throw new Error("readiness is required");
@@ -145,7 +137,6 @@ async function main() {
     FP_RENTAL_PUBLIC_CORE_V1,
     parsed.rentalPlanning,
   );
-
   const specialistBuyerObservations = parsed.toughStationaryPlanning
     ? FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1
     : [];
@@ -156,28 +147,17 @@ async function main() {
     )
     : [];
 
-  const directMiningObservations = parsed.directMiningPlanning
-    ? FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1
-    : [];
-  const directMiningPlanning = parsed.directMiningPlanning
-    ? buildAdoptionRestrictedPlanningPack(
-      FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1,
-      parsed.directMiningPlanning,
-    )
-    : [];
-
   const pack = buildFullPotentialMeetingPack({
     publicObservations: [
       ...FP_RENTAL_PUBLIC_CORE_V1,
       ...specialistBuyerObservations,
-      ...directMiningObservations,
       ...FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1,
       ...FP_TS2_PUBLIC_BUYER_UNIVERSE_V1,
+      ...FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1,
     ],
     restrictedPlanning: [
       ...rentalPlanning,
       ...specialistPlanning,
-      ...directMiningPlanning,
     ],
     currentRevenueInputs: parsed.currentRevenueInputs ?? [],
     readiness: parsed.readiness,
@@ -194,7 +174,6 @@ async function main() {
     mode: options.checkOnly ? "check_only" : "write_outputs",
     meetingStatus: pack.readiness.meetingStatus,
     includedToughStationaryBuyerPlanning: Boolean(parsed.toughStationaryPlanning),
-    includedDirectMiningPlanning: Boolean(parsed.directMiningPlanning),
     publicObservationCount: pack.manifest.publicObservationCount,
     restrictedPlanningCount: pack.manifest.restrictedPlanningCount,
     countingRecordCount: pack.manifest.countingRecordCount,
