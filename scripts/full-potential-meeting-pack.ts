@@ -3,6 +3,7 @@ import path from "node:path";
 import { FP_RENTAL_PUBLIC_CORE_V1 } from "../server/fullPotentialRentalPublicCore";
 import { FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1 } from "../server/fullPotentialToughStationaryPublicApplications";
 import { FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1 } from "../server/fullPotentialToughStationaryPublicBuyerCore";
+import { FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1 } from "../server/fullPotentialToughStationaryDirectMiningCore";
 import { FP_TS2_PUBLIC_BUYER_UNIVERSE_V1 } from "../server/fullPotentialTs2PublicBuyerUniverse";
 import {
   buildAdoptionRestrictedPlanningPack,
@@ -63,7 +64,7 @@ function parseArgs(argv: string[]): CliOptions {
         "  pnpm exec tsx scripts/full-potential-meeting-pack.ts --input <private.json> --check-only",
         "",
         "The input contains restricted aggregate planning assumptions. Do not commit it to the public repository.",
-        "Tough Stationary planning is optional; when absent, its public application and named qualification evidence remain visible but non-counting.",
+        "Tough Stationary planning is optional; when absent, its public application and named TS2/TS3 qualification evidence remain visible but non-counting.",
         "The command performs no database, CRM, provider, pipeline or deployment action.",
       ].join("\n"));
       process.exit(0);
@@ -152,6 +153,7 @@ async function main() {
       ...toughBuyerObservations,
       ...FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1,
       ...FP_TS2_PUBLIC_BUYER_UNIVERSE_V1,
+      ...FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1,
     ],
     restrictedPlanning: [
       ...rentalPlanning,
@@ -177,6 +179,8 @@ async function main() {
     countingRecordCount: pack.manifest.countingRecordCount,
     nonCountingRecordCount: pack.manifest.nonCountingRecordCount,
     namedQualificationContextCount: pack.view.qualificationUniverse.namedBuyerContextCount,
+    ts2SurfacePositionUniverse: pack.view.qualificationUniverse.ts2SurfacePositionUniverse,
+    ts3UndergroundPositionUniverse: pack.view.qualificationUniverse.ts3UndergroundPositionUniverse,
     missingCurrentRevenueSegments: pack.readiness.missingCurrentRevenueSegments,
     manifestSha256: pack.manifest.manifestSha256,
     outputDir: options.checkOnly ? null : options.outputDir,
