@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { FP_TS2_SURFACE_POSITION_CLASSES, type FullPotentialTs2SurfacePositionClass } from "../shared/fullPotentialPublicBands";
 import {
   assertFullPotentialPublicObservationRecord,
+  materializeFullPotentialDraftPack,
   summarizeFullPotentialPublicObservations,
 } from "../shared/fullPotentialPublicDraftPack";
+import { buildFullPotentialSeptemberManagementView } from "../shared/fullPotentialManagementView";
 import { FP_TS2_PUBLIC_BUYER_UNIVERSE_V1 } from "./fullPotentialTs2PublicBuyerUniverse";
 
 function adoptionUniverse(scenario: "low" | "base" | "high"): number {
@@ -42,6 +44,23 @@ describe("TS2 public direct-buyer qualification universe", () => {
     expect(adoptionUniverse("low")).toBe(9);
     expect(adoptionUniverse("base")).toBe(13);
     expect(adoptionUniverse("high")).toBe(22);
+  });
+
+  it("carries the same 9/13/22 non-monetary universe into the management view", () => {
+    const materialized = materializeFullPotentialDraftPack(
+      FP_TS2_PUBLIC_BUYER_UNIVERSE_V1,
+      [],
+    );
+    const view = buildFullPotentialSeptemberManagementView(materialized.records);
+    expect(view.qualificationUniverse).toMatchObject({
+      namedBuyerContextCount: 9,
+      ts2SurfacePositionUniverse: { low: 9, base: 13, high: 22 },
+      byModelBand: [
+        { key: "S2", label: "S2 — material surface qualification", count: 5 },
+        { key: "S3", label: "S3 — priority surface qualification", count: 4 },
+      ],
+    });
+    expect(view.headline.total).toEqual({ lowAud: 0, baseAud: 0, highAud: 0 });
   });
 
   it("keeps TS2 buyer qualification conditional and public-source safe", () => {
