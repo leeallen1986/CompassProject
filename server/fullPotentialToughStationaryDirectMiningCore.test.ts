@@ -1,91 +1,79 @@
 import { describe, expect, it } from "vitest";
 import {
+  FP_UNDERGROUND_POSITION_CLASSES,
+  type FullPotentialUndergroundPositionClass,
+} from "../shared/fullPotentialPublicBands";
+import {
   assertFullPotentialPublicObservationRecord,
   summarizeFullPotentialPublicObservations,
 } from "../shared/fullPotentialPublicDraftPack";
 import { FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1 } from "./fullPotentialToughStationaryDirectMiningCore";
 
-describe("Tough Stationary direct-mining public core", () => {
-  it("contains eleven distinct named adoption pools with no monetary scenarios", () => {
-    expect(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1).toHaveLength(11);
-    expect(new Set(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.map(record => record.recordKey)).size)
-      .toBe(11);
-    expect(new Set(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.map(record => record.commercialPoolKey)).size)
-      .toBe(11);
-    expect(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.every(
-      record => record.countingTreatment === "buyer_counting",
-    )).toBe(true);
-    expect(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.every(
-      record => record.scenarioBasis === "adoption_positions",
-    )).toBe(true);
-    expect(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.every(
-      record => !Object.prototype.hasOwnProperty.call(record, "scenarios"),
-    )).toBe(true);
+function positionUniverse(scenario: "low" | "base" | "high"): number {
+  return FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.reduce((sum, record) => {
+    const positionClass = record.modelBand as FullPotentialUndergroundPositionClass;
+    return sum + FP_UNDERGROUND_POSITION_CLASSES[positionClass][scenario];
+  }, 0);
+}
+
+describe("TS3 named direct-mining qualification core", () => {
+  it("contains ten unique public buyer/site qualification contexts", () => {
+    expect(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1).toHaveLength(10);
+    expect(new Set(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.map(record => record.recordKey)).size).toBe(10);
+    expect(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.every(record => record.buyerName && record.buyerAccountKey)).toBe(true);
   });
 
-  it("validates public sources and keeps current planning values absent", () => {
+  it("keeps every TS3 mining record non-counting and scenario-free", () => {
     for (const record of FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1) {
+      expect(record.countingTreatment).toBe("context_non_counting");
+      expect(record.commercialPoolKey).toBeNull();
+      expect(record.productCell).toBe("TS3_underground_mining_buyer");
+      expect(record.buyerSegment).toBe("underground_mining");
+      expect(record.scenarioBasis).toBe("adoption_positions");
+      expect(Object.prototype.hasOwnProperty.call(record, "scenarios")).toBe(false);
       expect(() => assertFullPotentialPublicObservationRecord(record)).not.toThrow();
-      expect(record.buyerSegment).toBe("mining_direct");
-      expect(record.productFamily).toBe("e_air");
-      expect(record.valueClass).toBe("named_evidenced_core");
-      expect(record.evidenceGrade).toBe("B");
-      expect(record.addressabilityStatus).toBe("conditional_compliance");
-      expect(record.sourceUrl.startsWith("https://")).toBe(true);
     }
-
-    const serialized = JSON.stringify(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1);
-    expect(serialized).not.toContain("averageSellingPriceAud");
-    expect(serialized).not.toMatch(/\bAUD\b|A\$\s*\d|\$\s*\d/);
-    expect(serialized).not.toMatch(/customer said|purchasing intent|quotation|discount/i);
   });
 
-  it("separates surface TS2 from underground TS3", () => {
-    const ts2 = FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.filter(
-      record => record.productCell === "TS2_surface_mining_direct",
-    );
-    const ts3 = FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.filter(
-      record => record.productCell === "TS3_underground_direct",
-    );
-
-    expect(ts2).toHaveLength(1);
-    expect(ts2[0]).toMatchObject({
-      buyerAccountKey: "fortescue-au",
-      modelBand: "TS2-DIRECT-NAMED",
-    });
-    expect(ts3).toHaveLength(10);
-    expect(ts3.every(record => record.modelBand === "TS3-DIRECT-NAMED")).toBe(true);
+  it("uses six U3 and four U2 qualification classes", () => {
+    const summary = summarizeFullPotentialPublicObservations(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1);
+    expect(summary.byModelBand).toEqual([
+      { key: "U3", count: 6 },
+      { key: "U2", count: 4 },
+    ]);
   });
 
-  it("allows one canonical mining buyer to carry distinct site pools", () => {
-    const evolution = FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.filter(
-      record => record.buyerAccountKey === "evolution-mining-au",
-    );
-    const mmg = FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1.filter(
-      record => record.buyerAccountKey === "mmg-au",
-    );
-
-    expect(evolution).toHaveLength(3);
-    expect(new Set(evolution.map(record => record.commercialPoolKey)).size).toBe(3);
-    expect(mmg).toHaveLength(2);
-    expect(new Set(mmg.map(record => record.commercialPoolKey)).size).toBe(2);
+  it("creates a non-monetary 16/26/36 named TS3 position universe", () => {
+    expect(positionUniverse("low")).toBe(16);
+    expect(positionUniverse("base")).toBe(26);
+    expect(positionUniverse("high")).toBe(36);
   });
 
-  it("summarizes named direct-mining coverage without claiming installed units", () => {
+  it("retains the new-equipment versus overhaul and reticulation gate", () => {
+    for (const record of FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1) {
+      expect(record.qualificationGates?.some(gate => gate.includes("life-extension"))).toBe(true);
+      expect(record.qualificationGates?.some(gate => gate.includes("monetary buyer pool"))).toBe(true);
+    }
+  });
+
+  it("summarizes qualification coverage without creating monetary value", () => {
     const summary = summarizeFullPotentialPublicObservations(
       FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1,
     );
     expect(summary).toMatchObject({
-      recordCount: 11,
-      countingRecordCount: 11,
-      nonCountingRecordCount: 0,
-      byBuyerSegment: [{ key: "mining_direct", count: 11 }],
-      byEvidenceGrade: [{ key: "B", count: 11 }],
-      byAddressabilityStatus: [{ key: "conditional_compliance", count: 11 }],
+      recordCount: 10,
+      countingRecordCount: 0,
+      nonCountingRecordCount: 10,
+      byBuyerSegment: [{ key: "underground_mining", count: 10 }],
+      byEvidenceGrade: [{ key: "B", count: 10 }],
+      byAddressabilityStatus: [{ key: "conditional_compliance", count: 10 }],
     });
-    expect(summary.byModelBand).toEqual([
-      { key: "TS3-DIRECT-NAMED", count: 10 },
-      { key: "TS2-DIRECT-NAMED", count: 1 },
-    ]);
+  });
+
+  it("contains no restricted planning values or CRM-style intelligence", () => {
+    const serialized = JSON.stringify(FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1);
+    expect(serialized).not.toContain("averageSellingPriceAud");
+    expect(serialized).not.toMatch(/\bAUD\b|A\$\s*\d|\$\s*\d/);
+    expect(serialized).not.toMatch(/customer said|customer told|crm note|quotation|discount|intends? to buy/i);
   });
 });
