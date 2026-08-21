@@ -9,6 +9,8 @@ The offline pack combines:
 
 - the source-controlled 25-account Rental public observation core;
 - the source-controlled TS1–TS4 non-counting public application evidence;
+- a named TS2 surface-mining qualification universe that remains non-counting
+  until a distinct rugged/relocatable Portable Air requirement is proven;
 - optional named Tough Stationary buyer and allowance observations when a
   restricted adoption plan is supplied;
 - a local, restricted planning JSON file containing current Low/Base/High values;
@@ -64,10 +66,33 @@ Required shape:
 The numeric values shown above are synthetic schema examples, not current
 planning values.
 
+## Named TS2 qualification universe
+
+The meeting pack always includes the public TS2 named-buyer qualification
+universe as non-counting context. These records answer **where should we qualify
+the Tough Stationary application next?** rather than asserting a current fleet,
+pipeline or purchase intention.
+
+The first surface-mining classes are:
+
+- `S1` — early qualification: 0 / 1 / 1 possible three-year adoption positions;
+- `S2` — material qualification: 1 / 1 / 2 possible positions;
+- `S3` — priority qualification: 1 / 2 / 3 possible positions.
+
+Those positions are not monetised merely because a buyer has an S-class. A
+buyer-counting TS2 pool can be created only after public evidence supports a
+distinct rugged, exposed or relocatable compressed-air application and the
+stationary-compressor-room exclusion has been applied.
+
+The management brief and `qualification-universe.csv` show the named contexts,
+product cell, class, qualification status and public source without adding value
+to the headline.
+
 ## Optional Tough Stationary planning
 
 When `toughStationaryPlanning` is absent, the TS1–TS4 public application evidence
-still appears in the pack but remains wholly non-counting.
+and TS2 named qualification universe still appear in the pack but remain wholly
+non-counting.
 
 Supplying a restricted adoption plan adds the named specialist-rental electric
 buyer pools and the separately labelled direct-project allowance:
@@ -110,10 +135,10 @@ buyer pools and the separately labelled direct-project allowance:
 These numbers are also synthetic schema examples. The real restricted file may
 use different assumptions by record through `overrides`.
 
-The named TS2 and TS4 pools are distinct from the conventional Rental replacement
-pool. The direct-project allowance is displayed separately under Unobserved
-Allowance and is not eligible for production account import until replaced by
-named, reconciled buyers.
+The named TS2 and TS4 specialist-rental pools are distinct from the conventional
+Rental replacement pool. The direct-project allowance is displayed separately
+under Unobserved Allowance and is not eligible for production account import
+until replaced by named, reconciled buyers.
 
 ### Planning basis
 
@@ -167,6 +192,7 @@ A successful command returns a bounded JSON summary containing:
 - whether Tough Stationary buyer planning was included;
 - public and restricted record counts;
 - counting and non-counting record counts;
+- named qualification-context count;
 - missing current-revenue segments;
 - meeting-pack manifest SHA-256.
 
@@ -189,6 +215,7 @@ Outputs:
 - `product-cells.csv`
 - `confidence.csv`
 - `qualification-gaps.csv`
+- `qualification-universe.csv`
 - `data-gaps.csv`
 
 The manifest hashes every output and records zero database connections, database
