@@ -8,6 +8,13 @@ import {
   type FullPotentialPublicEvidenceRecord,
 } from "../shared/fullPotentialPublicEvidence";
 
+/**
+ * All monetary values in this file are deliberately synthetic arithmetic fixtures.
+ * They are not current commercial prices or approved Full Potential assumptions.
+ */
+const SYNTHETIC_RENTAL_ASP = 1_000;
+const SYNTHETIC_TS4_ASP = 2_000;
+
 function rentalRecord(overrides: Partial<FullPotentialPublicEvidenceRecord> = {}): FullPotentialPublicEvidenceRecord {
   return {
     recordKey: "rental:kennards:portable-air",
@@ -25,19 +32,19 @@ function rentalRecord(overrides: Partial<FullPotentialPublicEvidenceRecord> = {}
       low: {
         estimatedFleetUnits: 75,
         replacementSharePct: 30,
-        averageSellingPriceAud: 70_000,
+        averageSellingPriceAud: SYNTHETIC_RENTAL_ASP,
         addressableSharePct: 100,
       },
       base: {
         estimatedFleetUnits: 110,
         replacementSharePct: 45,
-        averageSellingPriceAud: 70_000,
+        averageSellingPriceAud: SYNTHETIC_RENTAL_ASP,
         addressableSharePct: 100,
       },
       high: {
         estimatedFleetUnits: 150,
         replacementSharePct: 60,
-        averageSellingPriceAud: 70_000,
+        averageSellingPriceAud: SYNTHETIC_RENTAL_ASP,
         addressableSharePct: 100,
       },
     },
@@ -71,17 +78,17 @@ function highPressureRecord(overrides: Partial<FullPotentialPublicEvidenceRecord
     scenarios: {
       low: {
         adoptionPositions: 5,
-        averageSellingPriceAud: 250_000,
+        averageSellingPriceAud: SYNTHETIC_TS4_ASP,
         addressableSharePct: 50,
       },
       base: {
         adoptionPositions: 12,
-        averageSellingPriceAud: 275_000,
+        averageSellingPriceAud: SYNTHETIC_TS4_ASP,
         addressableSharePct: 60,
       },
       high: {
         adoptionPositions: 20,
-        averageSellingPriceAud: 300_000,
+        averageSellingPriceAud: SYNTHETIC_TS4_ASP,
         addressableSharePct: 70,
       },
     },
@@ -106,17 +113,17 @@ describe("Full Potential public-evidence modelling", () => {
     expect(calculateFullPotentialPublicScenario(record, "low")).toEqual({
       scenario: "low",
       modelledThreeYearUnits: 22.5,
-      potentialAud: 1_575_000,
+      potentialAud: 22_500,
     });
     expect(calculateFullPotentialPublicScenario(record, "base")).toEqual({
       scenario: "base",
       modelledThreeYearUnits: 49.5,
-      potentialAud: 3_465_000,
+      potentialAud: 49_500,
     });
     expect(calculateFullPotentialPublicScenario(record, "high")).toEqual({
       scenario: "high",
       modelledThreeYearUnits: 90,
-      potentialAud: 6_300_000,
+      potentialAud: 90_000,
     });
   });
 
@@ -125,7 +132,7 @@ describe("Full Potential public-evidence modelling", () => {
     expect(result).toEqual({
       scenario: "base",
       modelledThreeYearUnits: 12,
-      potentialAud: 1_980_000,
+      potentialAud: 14_400,
     });
   });
 
@@ -149,7 +156,7 @@ describe("Full Potential public-evidence modelling", () => {
     expect(summary.recordCount).toBe(2);
     expect(summary.countingRecordCount).toBe(1);
     expect(summary.nonCountingRecordCount).toBe(1);
-    expect(summary.totals.base).toBe(3_465_000);
+    expect(summary.totals.base).toBe(49_500);
   });
 
   it("fails closed when two counting records claim the same commercial pool", () => {
@@ -204,18 +211,18 @@ describe("Full Potential public-evidence modelling", () => {
     ]);
 
     expect(summary.totals).toEqual({
-      low: 2_200_000,
-      base: 5_445_000,
-      high: 10_500_000,
+      low: 27_500,
+      base: 63_900,
+      high: 118_000,
     });
     expect(summary.byBuyerSegment[0]).toMatchObject({
       key: "rental_hire",
       recordCount: 2,
-      baseAud: 5_445_000,
+      baseAud: 63_900,
     });
     expect(summary.byEvidenceGrade.map(row => [row.evidenceGrade, row.baseAud])).toEqual([
-      ["A", 3_465_000],
-      ["C", 1_980_000],
+      ["A", 49_500],
+      ["C", 14_400],
     ]);
   });
 
