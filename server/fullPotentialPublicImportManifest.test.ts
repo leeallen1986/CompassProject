@@ -41,6 +41,24 @@ function observation(
   };
 }
 
+function electricObservation(
+  overrides: Partial<FullPotentialPublicObservationRecord> = {},
+): FullPotentialPublicObservationRecord {
+  return observation({
+    recordKey: "rental:example:ts4-electric-adoption",
+    commercialPoolKey: "buyer:example:ts4-electric-adoption",
+    application: "incremental high-pressure electric rental-fleet adoption",
+    productFamily: "e_air",
+    productCell: "TS4_specialist_rental_electric",
+    scenarioBasis: "adoption_positions",
+    evidenceGrade: "C",
+    modelBand: "TS4-NAMED-ADOPTION",
+    addressabilityStatus: "conditional_compliance",
+    qualificationGates: ["Confirm local package compliance before approval."],
+    ...overrides,
+  });
+}
+
 function planning(
   overrides: Partial<FullPotentialRestrictedScenarioRecord> = {},
 ): FullPotentialRestrictedScenarioRecord {
@@ -66,6 +84,35 @@ function planning(
         estimatedFleetUnits: 30,
         replacementSharePct: 60,
         averageSellingPriceAud: SYNTHETIC_ASP,
+        addressableSharePct: 70,
+      },
+    },
+    ...overrides,
+  };
+}
+
+function electricPlanning(
+  overrides: Partial<FullPotentialRestrictedScenarioRecord> = {},
+): FullPotentialRestrictedScenarioRecord {
+  return {
+    recordKey: "rental:example:ts4-electric-adoption",
+    planningValueSetRef: "electric-planning-test-v1",
+    planningValueBasis: "machine_only",
+    localisationUpliftStatus: "excluded_tbc",
+    scenarios: {
+      low: {
+        adoptionPositions: 1,
+        averageSellingPriceAud: 1_800,
+        addressableSharePct: 50,
+      },
+      base: {
+        adoptionPositions: 2,
+        averageSellingPriceAud: 2_000,
+        addressableSharePct: 60,
+      },
+      high: {
+        adoptionPositions: 3,
+        averageSellingPriceAud: 2_200,
         addressableSharePct: 70,
       },
     },
@@ -106,14 +153,21 @@ describe("Full Potential draft import manifest", () => {
 
     expect(first.manifestSha256).toBe(second.manifestSha256);
     expect(first).toMatchObject({
-      version: 1,
+      version: 2,
       safetyMode: "draft_only_no_writes",
       publicObservationCount: 1,
       restrictedPlanningCount: 1,
       buyerCountingCount: 1,
+      importEligibleBuyerCountingCount: 1,
+      distinctBuyerAccountCount: 1,
+      commercialPoolCount: 1,
       managementOnlyRecordCount: 0,
+      managementOnlyMonetaryRecordCount: 0,
       invariants: {
         allStatusesDraft: true,
+        oneModelPerAccount: true,
+        multipleDistinctPoolsPerBuyerAllowed: true,
+        unobservedAllowanceImportProposals: 0,
         approvalsProposed: 0,
         accountMutationsProposed: 0,
         crmWritesProposed: 0,
@@ -129,7 +183,10 @@ describe("Full Potential draft import manifest", () => {
     expect(first.modelProposals).toHaveLength(1);
     expect(first.lineProposals).toHaveLength(1);
     expect(first.lineProposals[0]).toMatchObject({
+      recordKey: "rental:example:public-core-v1",
+      commercialPoolKey: "buyer:example:rental-portable-air",
       accountId: 101,
+      productCell: "rental_portable_air_blended",
       estimatedTotalFleetUnits: 23,
       baseThreeYearUnits: 10.35,
       basePotentialAud: 6_210,
@@ -139,6 +196,31 @@ describe("Full Potential draft import manifest", () => {
     });
     expect(first.lineProposals[0].annualReplacementUnits).toBe(3.45);
     expect(() => verifyFullPotentialDraftImportManifest(first)).not.toThrow();
+  });
+
+  it("creates one account model with several distinct commercial-pool lines", () => {
+    const manifest = buildFullPotentialDraftImportManifest({
+      ...manifestInput(),
+      publicObservations: [observation(), electricObservation()],
+      restrictedPlanning: [planning(), electricPlanning()],
+    });
+
+    expect(manifest).toMatchObject({
+      buyerCountingCount: 2,
+      importEligibleBuyerCountingCount: 2,
+      distinctBuyerAccountCount: 1,
+      commercialPoolCount: 2,
+      managementOnlyMonetaryRecordCount: 0,
+    });
+    expect(manifest.modelProposals).toHaveLength(1);
+    expect(manifest.lineProposals).toHaveLength(2);
+    expect(manifest.evidenceProposals).toHaveLength(4);
+    expect(manifest.accountTargetSnapshot).toHaveLength(1);
+    expect(manifest.lineProposals.map(row => row.productCell).sort()).toEqual([
+      "TS4_specialist_rental_electric",
+      "rental_portable_air_blended",
+    ]);
+    expect(() => verifyFullPotentialDraftImportManifest(manifest)).not.toThrow();
   });
 
   it("keeps non-counting application evidence management-only", () => {
@@ -161,6 +243,43 @@ describe("Full Potential draft import manifest", () => {
     expect(manifest.lineProposals).toHaveLength(1);
   });
 
+  it("keeps unobserved monetary allowances out of account import", () => {
+    const allowance = electricObservation({
+      recordKey: "allowance:ts4:direct-powered-projects",
+      commercialPoolKey: "allowance:ts4:direct-powered-projects",
+      buyerAccountKey: "ts4-direct-powered-project-allowance",
+      buyerName: "TS4 direct powered-project allowance",
+      buyerSegment: "mining_direct",
+      valueClass: "unobserved_allowance",
+      productCell: "TS4_direct_powered_project_allowance",
+    });
+    const allowancePlanning = electricPlanning({
+      recordKey: allowance.recordKey,
+    });
+
+    const manifest = buildFullPotentialDraftImportManifest({
+      ...manifestInput(),
+      publicObservations: [observation(), allowance],
+      restrictedPlanning: [planning(), allowancePlanning],
+      accountTargets: [target()],
+    });
+
+    expect(manifest).toMatchObject({
+      buyerCountingCount: 2,
+      importEligibleBuyerCountingCount: 1,
+      distinctBuyerAccountCount: 1,
+      commercialPoolCount: 1,
+      managementOnlyRecordCount: 1,
+      managementOnlyMonetaryRecordCount: 1,
+    });
+    expect(manifest.managementOnlyRecordKeys).toEqual([
+      "allowance:ts4:direct-powered-projects",
+    ]);
+    expect(manifest.lineProposals).toHaveLength(1);
+    expect(manifest.modelProposals).toHaveLength(1);
+    expect(() => verifyFullPotentialDraftImportManifest(manifest)).not.toThrow();
+  });
+
   it("fails closed when the canonical account target is missing or ineligible", () => {
     expect(() => buildFullPotentialDraftImportManifest({
       ...manifestInput(),
@@ -178,6 +297,19 @@ describe("Full Potential draft import manifest", () => {
     })).toThrow("is not eligible for a draft model");
   });
 
+  it("rejects distinct buyer identities assigned to one account target", () => {
+    expect(() => buildFullPotentialDraftImportManifest({
+      ...manifestInput(),
+      accountTargets: [
+        target(),
+        target({
+          buyerAccountKey: "different-buyer-au",
+          stableKey: "different-buyer|account|au|national|direct_ape",
+        }),
+      ],
+    })).toThrow("assigned to distinct buyer keys");
+  });
+
   it("rejects tampered or non-draft manifests", () => {
     const manifest = buildFullPotentialDraftImportManifest(manifestInput());
     expect(() => verifyFullPotentialDraftImportManifest({
@@ -187,8 +319,7 @@ describe("Full Potential draft import manifest", () => {
 
     const changedStatus = structuredClone(manifest);
     changedStatus.evidenceProposals[0].status = "approved" as never;
-    const unsigned = { ...changedStatus, manifestSha256: manifest.manifestSha256 };
-    expect(() => verifyFullPotentialDraftImportManifest(unsigned))
+    expect(() => verifyFullPotentialDraftImportManifest(changedStatus))
       .toThrow();
   });
 
