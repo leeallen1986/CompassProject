@@ -152,6 +152,48 @@ describe("Full Potential offline reconciliation report", () => {
     expect(() => verifyFullPotentialAccountReconciliationReport(report)).not.toThrow();
   });
 
+  it("keeps an unobserved monetary allowance management-only and target-free", () => {
+    const allowance = record({
+      recordKey: "allowance:ts4:direct-powered-projects",
+      commercialPoolKey: "allowance:ts4:direct-powered-projects",
+      buyerAccountKey: "ts4-direct-powered-project-allowance",
+      buyerName: "TS4 direct powered-project allowance",
+      buyerSegment: "mining_direct",
+      application: "direct powered-site high-pressure electric adoption",
+      productFamily: "e_air",
+      productCell: "TS4_direct_powered_project_allowance",
+      valueClass: "unobserved_allowance",
+      scenarioBasis: "adoption_positions",
+      evidenceGrade: "C",
+      modelBand: "TS4-DIRECT-ALLOWANCE",
+      addressabilityStatus: "conditional_compliance",
+      inference: "A separately labelled allowance remains management-only until replaced by named buyers.",
+      qualificationGates: ["Replace the allowance with named public buyers before import."],
+    });
+
+    const report = buildFullPotentialAccountReconciliationReport(
+      [record(), allowance],
+      snapshot(),
+    );
+
+    expect(report).toMatchObject({
+      publicRecordCount: 2,
+      requiredBuyerIdentityCount: 1,
+      completeForDraftImport: true,
+      summary: {
+        buyerCountingCount: 1,
+        matchedCount: 1,
+        unmatchedCount: 0,
+        ambiguousCount: 0,
+        nonCountingCount: 1,
+      },
+    });
+    expect(report.importTargets).toHaveLength(1);
+    expect(report.summary.results.find(row => row.recordKey === allowance.recordKey))
+      .toMatchObject({ disposition: "not_buyer_counting", matchedAccountId: null });
+    expect(() => verifyFullPotentialAccountReconciliationReport(report)).not.toThrow();
+  });
+
   it("rejects malformed snapshots and tampered reports", () => {
     expect(() => buildFullPotentialAccountReconciliationReport([record()], snapshot({
       snapshotRef: "contains a space",
