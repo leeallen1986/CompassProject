@@ -150,6 +150,11 @@ function candidateScore(
   };
 }
 
+function requiresAccountTarget(record: FullPotentialPublicObservationRecord): boolean {
+  return record.countingTreatment === "buyer_counting"
+    && record.valueClass !== "unobserved_allowance";
+}
+
 export function reconcileFullPotentialPublicBuyers(
   records: FullPotentialPublicObservationRecord[],
   accounts: FullPotentialReconciliationAccount[],
@@ -164,7 +169,10 @@ export function reconcileFullPotentialPublicBuyers(
   const eligibleAccounts = accounts.filter(eligible);
 
   const results = records.map<FullPotentialReconciliationResult>(record => {
-    if (record.countingTreatment !== "buyer_counting") {
+    if (!requiresAccountTarget(record)) {
+      const reason = record.valueClass === "unobserved_allowance"
+        ? "Unobserved allowance remains management-only and cannot receive a production account target."
+        : "Non-counting public context/application record does not require a monetary account target.";
       return {
         recordKey: record.recordKey,
         buyerAccountKey: record.buyerAccountKey,
@@ -173,7 +181,7 @@ export function reconcileFullPotentialPublicBuyers(
         matchedAccountId: null,
         matchedStableKey: null,
         candidates: [],
-        reason: "Non-counting public context/application record does not require a monetary account target.",
+        reason,
       };
     }
 
@@ -239,7 +247,7 @@ export function reconcileFullPotentialPublicBuyers(
  * A buyer may legitimately carry several distinct commercial pools (for example
  * conventional Rental replacement plus TS2 and TS4 electric adoption) on one
  * canonical account. Completion therefore validates buyer identity, not a
- * one-record-per-account assumption.
+ * one-record-per-account assumption. Unobserved allowances are management-only.
  */
 export function assertFullPotentialReconciliationComplete(
   summary: FullPotentialReconciliationSummary,
