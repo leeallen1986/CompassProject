@@ -1,0 +1,69 @@
+name: Issue 128 AI provider transport telemetry
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue128-ai-provider-transport.yml"
+      - ".github/workflows/issue126-worker-static-scope.yml"
+      - "server/_core/llm.ts"
+      - "server/_core/llmErrors.ts"
+      - "server/_core/llm.behavior.test.ts"
+      - "server/_core/llmErrors.test.ts"
+      - "server/_core/llmProvider.ts"
+      - "server/_core/llmProvider.test.ts"
+      - "scripts/worker-validation-job.mjs"
+      - "scripts/worker-validation-job.test.mjs"
+      - "docs/WORKER-CONTROL-CHANNEL.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bounded provider transport regressions
+        run: >-
+          pnpm exec vitest run
+          server/_core/llm.behavior.test.ts
+          server/_core/llmErrors.test.ts
+          server/_core/llmProvider.test.ts
+
+      - name: Transport telemetry safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F '"[LLM] transport failed"' server/_core/llm.ts
+          grep -F 'safeTransportErrorCodes' server/_core/llm.ts
+          grep -F 'SAFE_TRANSPORT_CODES' server/_core/llmErrors.ts
+          if grep -nE 'transport failed.*(error\.message|String\(error\)|provider\.endpoint|apiKey)' server/_core/llm.ts; then
+            echo "Transport telemetry must not log raw error text, endpoint or credentials." >&2
+            exit 1
+          fi
+
+      - name: Worker validation controller regression
+        run: |
+          node --check scripts/worker-validation-job.mjs
+          node --check scripts/worker-validation-job.test.mjs
+          node scripts/worker-validation-job.test.mjs
+
+      - name: Worker-only TypeScript remains an exact-head CI gate
+        run: pnpm exec tsc --noEmit -p tsconfig.worker.json
+
+      - name: Full-source TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
