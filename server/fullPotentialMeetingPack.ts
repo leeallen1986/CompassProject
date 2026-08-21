@@ -50,6 +50,7 @@ export interface FullPotentialMeetingPackManifest {
     productCellsCsvSha256: string;
     confidenceCsvSha256: string;
     qualificationGapsCsvSha256: string;
+    qualificationUniverseCsvSha256: string;
     dataGapsCsvSha256: string;
   };
   invariants: {
@@ -136,6 +137,7 @@ export function buildFullPotentialMeetingPack(
       productCellsCsvSha256: sha256(exportBundle.csv.productCells),
       confidenceCsvSha256: sha256(exportBundle.csv.confidence),
       qualificationGapsCsvSha256: sha256(exportBundle.csv.qualificationGaps),
+      qualificationUniverseCsvSha256: sha256(exportBundle.csv.qualificationUniverse),
       dataGapsCsvSha256: sha256(exportBundle.csv.dataGaps),
     },
     invariants: {
@@ -177,6 +179,7 @@ export function verifyFullPotentialMeetingPack(
     productCellsCsvSha256: sha256(pack.exportBundle.csv.productCells),
     confidenceCsvSha256: sha256(pack.exportBundle.csv.confidence),
     qualificationGapsCsvSha256: sha256(pack.exportBundle.csv.qualificationGaps),
+    qualificationUniverseCsvSha256: sha256(pack.exportBundle.csv.qualificationUniverse),
     dataGapsCsvSha256: sha256(pack.exportBundle.csv.dataGaps),
   };
   if (canonical(expectedOutputs) !== canonical(pack.manifest.outputs)) {
