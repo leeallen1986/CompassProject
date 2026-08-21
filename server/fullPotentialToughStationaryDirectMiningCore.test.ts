@@ -5,8 +5,10 @@ import {
 } from "../shared/fullPotentialPublicBands";
 import {
   assertFullPotentialPublicObservationRecord,
+  materializeFullPotentialDraftPack,
   summarizeFullPotentialPublicObservations,
 } from "../shared/fullPotentialPublicDraftPack";
+import { buildFullPotentialSeptemberManagementView } from "../shared/fullPotentialManagementView";
 import { FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1 } from "./fullPotentialToughStationaryDirectMiningCore";
 
 function positionUniverse(scenario: "low" | "base" | "high"): number {
@@ -47,6 +49,24 @@ describe("TS3 named direct-mining qualification core", () => {
     expect(positionUniverse("low")).toBe(16);
     expect(positionUniverse("base")).toBe(26);
     expect(positionUniverse("high")).toBe(36);
+  });
+
+  it("carries the same 16/26/36 TS3 universe into the management view with zero value", () => {
+    const materialized = materializeFullPotentialDraftPack(
+      FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1,
+      [],
+    );
+    const view = buildFullPotentialSeptemberManagementView(materialized.records);
+    expect(view.qualificationUniverse).toMatchObject({
+      namedBuyerContextCount: 10,
+      ts2SurfacePositionUniverse: { low: 0, base: 0, high: 0 },
+      ts3UndergroundPositionUniverse: { low: 16, base: 26, high: 36 },
+      byModelBand: [
+        { key: "U3", label: "U3 — priority underground / multi-front qualification", count: 6 },
+        { key: "U2", label: "U2 — significant underground qualification", count: 4 },
+      ],
+    });
+    expect(view.headline.total).toEqual({ lowAud: 0, baseAud: 0, highAud: 0 });
   });
 
   it("retains the new-equipment versus overhaul and reticulation gate", () => {
