@@ -9,12 +9,14 @@ on:
       - "shared/fullPotentialPrivatePlanning.ts"
       - "shared/fullPotentialPublicDraftPack.ts"
       - "shared/fullPotentialManagementView.ts"
+      - "shared/fullPotentialManagementReadiness.ts"
       - "shared/fullPotentialAccountReconciliation.ts"
       - "server/fullPotentialPublicEvidence.test.ts"
       - "server/fullPotentialPublicBands.test.ts"
       - "server/fullPotentialPrivatePlanning.test.ts"
       - "server/fullPotentialPublicDraftPack.test.ts"
       - "server/fullPotentialManagementView.test.ts"
+      - "server/fullPotentialManagementReadiness.test.ts"
       - "server/fullPotentialAccountReconciliation.test.ts"
       - "server/fullPotentialPublicImportManifest.ts"
       - "server/fullPotentialPublicImportManifest.test.ts"
@@ -56,6 +58,7 @@ jobs:
           server/fullPotentialPrivatePlanning.test.ts
           server/fullPotentialPublicDraftPack.test.ts
           server/fullPotentialManagementView.test.ts
+          server/fullPotentialManagementReadiness.test.ts
           server/fullPotentialAccountReconciliation.test.ts
           server/fullPotentialPublicImportManifest.test.ts
           server/fullPotentialRentalPublicCore.test.ts
@@ -76,6 +79,8 @@ jobs:
           grep -F 'missing restricted planning' shared/fullPotentialPublicDraftPack.ts
           grep -F 'Only buyer-counting records carry monetary Full Potential.' shared/fullPotentialManagementView.ts
           grep -F 'assertFullPotentialManagementViewReconciles' shared/fullPotentialManagementView.ts
+          grep -F 'Do not substitute zero for missing current revenue.' shared/fullPotentialManagementReadiness.ts
+          grep -F 'ready_with_declared_gaps' shared/fullPotentialManagementReadiness.ts
           grep -F 'Full Potential account reconciliation incomplete' shared/fullPotentialAccountReconciliation.ts
           grep -F 'No eligible active Australian counting account matched' shared/fullPotentialAccountReconciliation.ts
           grep -F 'draft_only_no_writes' server/fullPotentialPublicImportManifest.ts
