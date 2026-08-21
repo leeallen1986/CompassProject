@@ -14,6 +14,8 @@ on:
       - "server/fullPotentialPublicDraftPack.test.ts"
       - "server/fullPotentialRentalPublicCore.ts"
       - "server/fullPotentialRentalPublicCore.test.ts"
+      - "server/fullPotentialToughStationaryPublicApplications.ts"
+      - "server/fullPotentialToughStationaryPublicApplications.test.ts"
       - "docs/full-potential-public-evidence-methodology.md"
       - "docs/full-potential-electric-product-qualification.md"
       - "docs/full-potential-rental-economics-request.md"
@@ -48,6 +50,7 @@ jobs:
           server/fullPotentialPrivatePlanning.test.ts
           server/fullPotentialPublicDraftPack.test.ts
           server/fullPotentialRentalPublicCore.test.ts
+          server/fullPotentialToughStationaryPublicApplications.test.ts
 
       - name: Public-evidence safety boundary
         shell: bash
@@ -66,14 +69,20 @@ jobs:
           grep -F 'U3: { low: 2, base: 3, high: 4 }' shared/fullPotentialPublicBands.ts
           grep -F 'FP_RENTAL_PUBLIC_CORE_V1' server/fullPotentialRentalPublicCore.ts
           grep -F 'contains no current commercial price ladder' server/fullPotentialRentalPublicCore.ts
-          if grep -nE 'averageSellingPriceAud|\bAUD\b|A\$[[:space:]]*[0-9]|\$[[:space:]]*[0-9]' server/fullPotentialRentalPublicCore.ts; then
-            echo "Rental public observation pack must not contain private planning values." >&2
+          grep -F 'FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1' server/fullPotentialToughStationaryPublicApplications.ts
+          grep -F 'Every row is deliberately non-counting' server/fullPotentialToughStationaryPublicApplications.ts
+          if grep -nE 'averageSellingPriceAud|\bAUD\b|A\$[[:space:]]*[0-9]|\$[[:space:]]*[0-9]' server/fullPotentialRentalPublicCore.ts server/fullPotentialToughStationaryPublicApplications.ts; then
+            echo "Public observation packs must not contain restricted planning values." >&2
             exit 1
           fi
           grep -F 'No schema migration is required for the first controlled draft pack.' docs/full-potential-public-evidence-methodology.md
           grep -F 'sensitive internal price ladders or local-engineering cost assumptions committed to the public repository' docs/full-potential-public-evidence-methodology.md
-          grep -F 'approximately three months, followed by approximately one month sea freight' docs/full-potential-electric-product-qualification.md
-          grep -F 'local modification is not itself a portfolio gap' docs/full-potential-electric-product-qualification.md
+          grep -F 'does not contain internal factory availability' docs/full-potential-electric-product-qualification.md
+          grep -F 'Local modification is not itself a portfolio gap' docs/full-potential-electric-product-qualification.md
+          if grep -nE 'three months|one month sea freight|XAMS800E|XAMS850E|XRVS960E|XRHE1300' docs/full-potential-electric-product-qualification.md; then
+            echo "Internal product timing or unpublished product-list detail must not enter the public qualification framework." >&2
+            exit 1
+          fi
           grep -F 'Do not include customer names, contacts, quotations, negotiated discounts' docs/full-potential-rental-economics-request.md
           grep -F 'Revenue is not fleet demand by itself.' docs/full-potential-rental-economics-request.md
 
