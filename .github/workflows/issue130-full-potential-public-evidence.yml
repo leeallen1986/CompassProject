@@ -1,0 +1,321 @@
+name: Issue 130 Full Potential public-evidence model
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue130-full-potential-public-evidence.yml"
+      - "shared/fullPotentialPublicEvidence.ts"
+      - "shared/fullPotentialPublicBands.ts"
+      - "shared/fullPotentialPrivatePlanning.ts"
+      - "shared/fullPotentialPublicDraftPack.ts"
+      - "shared/fullPotentialRestrictedPlanningFactory.ts"
+      - "shared/fullPotentialManagementView.ts"
+      - "shared/fullPotentialManagementReadiness.ts"
+      - "shared/fullPotentialManagementExport.ts"
+      - "shared/fullPotentialAccountReconciliation.ts"
+      - "server/fullPotentialPublicEvidence.test.ts"
+      - "server/fullPotentialPublicBands.test.ts"
+      - "server/fullPotentialPrivatePlanning.test.ts"
+      - "server/fullPotentialPublicDraftPack.test.ts"
+      - "server/fullPotentialRestrictedPlanningFactory.test.ts"
+      - "server/fullPotentialManagementView.test.ts"
+      - "server/fullPotentialManagementReadiness.test.ts"
+      - "server/fullPotentialManagementExport.test.ts"
+      - "server/fullPotentialMeetingPack.ts"
+      - "server/fullPotentialMeetingPack.test.ts"
+      - "server/fullPotentialAccountReconciliation.test.ts"
+      - "server/fullPotentialAccountReconciliationReport.ts"
+      - "server/fullPotentialAccountReconciliationReport.test.ts"
+      - "server/fullPotentialPublicImportManifest.ts"
+      - "server/fullPotentialPublicImportManifest.test.ts"
+      - "server/fullPotentialRentalPublicCore.ts"
+      - "server/fullPotentialRentalPublicCore.test.ts"
+      - "server/fullPotentialToughStationaryPublicApplications.ts"
+      - "server/fullPotentialToughStationaryPublicApplications.test.ts"
+      - "server/fullPotentialToughStationaryPublicBuyerCore.ts"
+      - "server/fullPotentialToughStationaryPublicBuyerCore.test.ts"
+      - "server/fullPotentialToughStationaryDirectMiningCore.ts"
+      - "server/fullPotentialToughStationaryDirectMiningCore.test.ts"
+      - "server/fullPotentialTs2PublicBuyerUniverse.ts"
+      - "server/fullPotentialTs2PublicBuyerUniverse.test.ts"
+      - "scripts/full-potential-meeting-pack.ts"
+      - "scripts/full-potential-account-reconciliation.ts"
+      - "docs/full-potential-public-evidence-methodology.md"
+      - "docs/full-potential-electric-product-qualification.md"
+      - "docs/full-potential-rental-economics-request.md"
+      - "docs/full-potential-meeting-pack.md"
+      - "docs/full-potential-account-reconciliation.md"
+      - "server/fullPotentialCommercialModel.shared.ts"
+      - "server/fullPotentialCommercialModel.lines.ts"
+      - "drizzle/fullPotentialSchema.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Public-evidence model regressions
+        run: >-
+          pnpm exec vitest run
+          server/fullPotentialPublicEvidence.test.ts
+          server/fullPotentialPublicBands.test.ts
+          server/fullPotentialPrivatePlanning.test.ts
+          server/fullPotentialPublicDraftPack.test.ts
+          server/fullPotentialRestrictedPlanningFactory.test.ts
+          server/fullPotentialManagementView.test.ts
+          server/fullPotentialManagementReadiness.test.ts
+          server/fullPotentialManagementExport.test.ts
+          server/fullPotentialMeetingPack.test.ts
+          server/fullPotentialAccountReconciliation.test.ts
+          server/fullPotentialAccountReconciliationReport.test.ts
+          server/fullPotentialPublicImportManifest.test.ts
+          server/fullPotentialRentalPublicCore.test.ts
+          server/fullPotentialToughStationaryPublicApplications.test.ts
+          server/fullPotentialToughStationaryPublicBuyerCore.test.ts
+          server/fullPotentialToughStationaryDirectMiningCore.test.ts
+          server/fullPotentialTs2PublicBuyerUniverse.test.ts
+
+      - name: Public-evidence safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'buyer_counting' shared/fullPotentialPublicEvidence.ts
+          grep -F 'application_overlay_non_counting' shared/fullPotentialPublicEvidence.ts
+          grep -F 'Duplicate monetary commercialPoolKey' shared/fullPotentialPublicEvidence.ts
+          grep -F 'must not contain an email address' shared/fullPotentialPublicEvidence.ts
+          grep -F 'portfolio_gap' shared/fullPotentialPublicEvidence.ts
+          grep -F 'planningValueSetRef must be an opaque non-sensitive reference' shared/fullPotentialPrivatePlanning.ts
+          grep -F 'machine_only planning values cannot claim localisation uplift is included' shared/fullPotentialPrivatePlanning.ts
+          grep -F 'Public observation records must omit scenarios entirely' shared/fullPotentialPublicDraftPack.ts
+          grep -F 'missing restricted planning' shared/fullPotentialPublicDraftPack.ts
+          grep -F 'Rental planning override' shared/fullPotentialRestrictedPlanningFactory.ts
+          grep -F 'Adoption planning override' shared/fullPotentialRestrictedPlanningFactory.ts
+          grep -F 'Only buyer-counting records carry monetary Full Potential.' shared/fullPotentialManagementView.ts
+          grep -F 'Named non-counting buyer contexts are qualification targets' shared/fullPotentialManagementView.ts
+          grep -F 'TS2 S-classes and TS3 U-classes express non-monetary adoption-position universes' shared/fullPotentialManagementView.ts
+          grep -F 'assertFullPotentialManagementViewReconciles' shared/fullPotentialManagementView.ts
+          grep -F 'Do not substitute zero for missing current revenue.' shared/fullPotentialManagementReadiness.ts
+          grep -F 'ready_with_declared_gaps' shared/fullPotentialManagementReadiness.ts
+          grep -F 'Estimated market potential is derived from public evidence' shared/fullPotentialManagementExport.ts
+          grep -F 'Named qualification universe' shared/fullPotentialManagementExport.ts
+          grep -F 'TS2 provisional three-year position universe' shared/fullPotentialManagementExport.ts
+          grep -F 'TS3 provisional three-year position universe' shared/fullPotentialManagementExport.ts
+          grep -F 'buildFullPotentialManagementExportBundle' shared/fullPotentialManagementExport.ts
+          grep -F 'databaseConnections: 0' server/fullPotentialMeetingPack.ts
+          grep -F 'qualificationUniverseCsvSha256' server/fullPotentialMeetingPack.ts
+          grep -F 'Meeting pack must not require a live production deployment' server/fullPotentialMeetingPack.ts
+          grep -F 'Full Potential account reconciliation incomplete' shared/fullPotentialAccountReconciliation.ts
+          grep -F 'No eligible active Australian counting account matched' shared/fullPotentialAccountReconciliation.ts
+          grep -F 'requiredBuyerIdentityCount' server/fullPotentialAccountReconciliationReport.ts
+          grep -F 'databaseConnections: 0' server/fullPotentialAccountReconciliationReport.ts
+          grep -F 'reportSha256' server/fullPotentialAccountReconciliationReport.ts
+          grep -F 'draft_only_no_writes' server/fullPotentialPublicImportManifest.ts
+          grep -F 'approvalsProposed: 0' server/fullPotentialPublicImportManifest.ts
+          grep -F 'providerCallsProposed: 0' server/fullPotentialPublicImportManifest.ts
+          grep -F 'verifyFullPotentialDraftImportManifest' server/fullPotentialPublicImportManifest.ts
+          grep -F 'P5: { low: 75, base: 110, high: 150 }' shared/fullPotentialPublicBands.ts
+          grep -F 'U3: { low: 2, base: 3, high: 4 }' shared/fullPotentialPublicBands.ts
+          grep -F 'S3: { low: 1, base: 2, high: 3 }' shared/fullPotentialPublicBands.ts
+          grep -F 'FP_RENTAL_PUBLIC_CORE_V1' server/fullPotentialRentalPublicCore.ts
+          grep -F 'contains no current commercial price ladder' server/fullPotentialRentalPublicCore.ts
+          grep -F 'FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1' server/fullPotentialToughStationaryPublicApplications.ts
+          grep -F 'Every row is deliberately non-counting' server/fullPotentialToughStationaryPublicApplications.ts
+          grep -F 'FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1' server/fullPotentialToughStationaryPublicBuyerCore.ts
+          grep -F 'No monetary scenarios or current planning values are committed here.' server/fullPotentialToughStationaryPublicBuyerCore.ts
+          grep -F 'FP_TS2_PUBLIC_BUYER_UNIVERSE_V1' server/fullPotentialTs2PublicBuyerUniverse.ts
+          grep -F 'Every row therefore remains context-only' server/fullPotentialTs2PublicBuyerUniverse.ts
+          grep -F 'FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1' server/fullPotentialToughStationaryDirectMiningCore.ts
+          grep -F 'These records are not commercial pools and carry no monetary' server/fullPotentialToughStationaryDirectMiningCore.ts
+          if grep -nE 'averageSellingPriceAud|\bAUD\b|A\$[[:space:]]*[0-9]|\$[[:space:]]*[0-9]' server/fullPotentialRentalPublicCore.ts server/fullPotentialToughStationaryPublicApplications.ts server/fullPotentialToughStationaryPublicBuyerCore.ts server/fullPotentialTs2PublicBuyerUniverse.ts server/fullPotentialToughStationaryDirectMiningCore.ts; then
+            echo "Public observation packs must not contain restricted planning values." >&2
+            exit 1
+          fi
+          grep -F 'No schema migration is required for the first controlled draft pack.' docs/full-potential-public-evidence-methodology.md
+          grep -F 'sensitive internal price ladders or local-engineering cost assumptions committed to the public repository' docs/full-potential-public-evidence-methodology.md
+          grep -F 'does not contain internal factory availability' docs/full-potential-electric-product-qualification.md
+          grep -F 'Local modification is not itself a portfolio gap' docs/full-potential-electric-product-qualification.md
+          if grep -nE 'three months|one month sea freight|XAMS800E|XAMS850E|XRVS960E|XRHE1300' docs/full-potential-electric-product-qualification.md; then
+            echo "Internal product timing or unpublished product-list detail must not enter the public qualification framework." >&2
+            exit 1
+          fi
+          grep -F 'Do not include customer names, contacts, quotations, negotiated discounts' docs/full-potential-rental-economics-request.md
+          grep -F 'Revenue is not fleet demand by itself.' docs/full-potential-rental-economics-request.md
+          grep -F 'The numeric values shown above are synthetic schema examples' docs/full-potential-meeting-pack.md
+          grep -F 'When `toughStationaryPlanning` is absent' docs/full-potential-meeting-pack.md
+          grep -F 'Do not commit the restricted input' docs/full-potential-meeting-pack.md
+          grep -F 'Production snapshot boundary' docs/full-potential-account-reconciliation.md
+          grep -F 'identity-and-relationship export only' docs/full-potential-account-reconciliation.md
+          grep -F 'The command performs no database, CRM, provider, pipeline or deployment action.' scripts/full-potential-meeting-pack.ts
+          grep -F 'qualification-universe.csv' scripts/full-potential-meeting-pack.ts
+          grep -F 'The command performs no database, account, CRM, provider, pipeline or deployment action.' scripts/full-potential-account-reconciliation.ts
+
+      - name: Offline meeting-pack CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/full-potential-ci-input.json <<'JSON'
+          {
+            "rentalPlanning": {
+              "planningValueSetRef": "ci-rental-planning-v1",
+              "averageSellingPriceAud": 1000,
+              "addressableSharePct": 100,
+              "planningValueBasis": "blended_portfolio",
+              "localisationUpliftStatus": "not_applicable",
+              "overrides": []
+            },
+            "currentRevenueInputs": [],
+            "readiness": {
+              "expectedCurrentRevenueSegments": ["rental_hire"],
+              "planningStatus": "provisional",
+              "localisationCostStatus": "tbc",
+              "accountReconciliationStatus": "partial",
+              "liveDeploymentRequired": false
+            },
+            "exportOptions": {
+              "title": "CI Full Potential",
+              "asOfLabel": "Synthetic CI snapshot",
+              "meetingDateLabel": "Synthetic review"
+            },
+            "generatedAt": "2026-08-21T00:00:00.000Z",
+            "sourcePackRef": "ci-full-potential-pack-v1"
+          }
+          JSON
+          pnpm exec tsx scripts/full-potential-meeting-pack.ts \
+            --input /tmp/full-potential-ci-input.json \
+            --check-only | tee /tmp/full-potential-ci-check.json
+          grep -F '"status": "PASS"' /tmp/full-potential-ci-check.json
+          grep -F '"includedToughStationaryBuyerPlanning": false' /tmp/full-potential-ci-check.json
+          grep -F '"meetingStatus": "ready_with_declared_gaps"' /tmp/full-potential-ci-check.json
+          grep -F '"publicObservationCount": 56' /tmp/full-potential-ci-check.json
+          grep -F '"restrictedPlanningCount": 25' /tmp/full-potential-ci-check.json
+          grep -F '"countingRecordCount": 25' /tmp/full-potential-ci-check.json
+          grep -F '"nonCountingRecordCount": 31' /tmp/full-potential-ci-check.json
+          grep -F '"namedQualificationContextCount": 19' /tmp/full-potential-ci-check.json
+
+          cat > /tmp/full-potential-ci-input-ts.json <<'JSON'
+          {
+            "rentalPlanning": {
+              "planningValueSetRef": "ci-rental-planning-v1",
+              "averageSellingPriceAud": 1000,
+              "addressableSharePct": 100,
+              "planningValueBasis": "blended_portfolio",
+              "localisationUpliftStatus": "not_applicable",
+              "overrides": []
+            },
+            "toughStationaryPlanning": {
+              "planningValueSetRef": "ci-ts-planning-v1",
+              "adoptionPositions": { "low": 1, "base": 2, "high": 3 },
+              "averageSellingPriceAud": { "low": 1800, "base": 2000, "high": 2200 },
+              "addressableSharePct": { "low": 50, "base": 60, "high": 70 },
+              "planningValueBasis": "machine_only",
+              "localisationUpliftStatus": "excluded_tbc",
+              "overrides": [
+                {
+                  "recordKey": "allowance:ts4:direct-powered-projects",
+                  "adoptionPositions": { "low": 1, "base": 4, "high": 8 }
+                }
+              ]
+            },
+            "currentRevenueInputs": [],
+            "readiness": {
+              "expectedCurrentRevenueSegments": ["rental_hire", "mining_direct"],
+              "planningStatus": "provisional",
+              "localisationCostStatus": "tbc",
+              "accountReconciliationStatus": "partial",
+              "liveDeploymentRequired": false
+            },
+            "exportOptions": {
+              "title": "CI Full Potential with Tough Stationary",
+              "asOfLabel": "Synthetic CI snapshot",
+              "meetingDateLabel": "Synthetic review"
+            },
+            "generatedAt": "2026-08-21T00:00:00.000Z",
+            "sourcePackRef": "ci-full-potential-pack-ts-v1"
+          }
+          JSON
+          pnpm exec tsx scripts/full-potential-meeting-pack.ts \
+            --input /tmp/full-potential-ci-input-ts.json \
+            --check-only | tee /tmp/full-potential-ci-check-ts.json
+          grep -F '"status": "PASS"' /tmp/full-potential-ci-check-ts.json
+          grep -F '"includedToughStationaryBuyerPlanning": true' /tmp/full-potential-ci-check-ts.json
+          grep -F '"publicObservationCount": 63' /tmp/full-potential-ci-check-ts.json
+          grep -F '"restrictedPlanningCount": 32' /tmp/full-potential-ci-check-ts.json
+          grep -F '"countingRecordCount": 32' /tmp/full-potential-ci-check-ts.json
+          grep -F '"nonCountingRecordCount": 31' /tmp/full-potential-ci-check-ts.json
+          grep -F '"namedQualificationContextCount": 19' /tmp/full-potential-ci-check-ts.json
+
+          rm -rf /tmp/full-potential-ci-output
+          pnpm exec tsx scripts/full-potential-meeting-pack.ts \
+            --input /tmp/full-potential-ci-input-ts.json \
+            --output-dir /tmp/full-potential-ci-output
+          test -s /tmp/full-potential-ci-output/management-brief.md
+          test -s /tmp/full-potential-ci-output/management-view.json
+          test -s /tmp/full-potential-ci-output/management-readiness.json
+          test -s /tmp/full-potential-ci-output/meeting-pack-manifest.json
+          test -s /tmp/full-potential-ci-output/headline.csv
+          test -s /tmp/full-potential-ci-output/buyer-segments.csv
+          test -s /tmp/full-potential-ci-output/product-cells.csv
+          test -s /tmp/full-potential-ci-output/confidence.csv
+          test -s /tmp/full-potential-ci-output/qualification-gaps.csv
+          test -s /tmp/full-potential-ci-output/qualification-universe.csv
+          test -s /tmp/full-potential-ci-output/data-gaps.csv
+          grep -F 'READY WITH DECLARED GAPS' /tmp/full-potential-ci-output/management-brief.md
+          grep -F 'Pending' /tmp/full-potential-ci-output/management-brief.md
+          grep -F 'TS4 specialist rental electric' /tmp/full-potential-ci-output/management-brief.md
+          grep -F 'Unobserved Allowance' /tmp/full-potential-ci-output/management-brief.md
+          grep -F 'Named qualification universe' /tmp/full-potential-ci-output/management-brief.md
+          grep -F '9 / **13** / 22' /tmp/full-potential-ci-output/management-brief.md
+          grep -F '16 / **26** / 36' /tmp/full-potential-ci-output/management-brief.md
+          grep -F 'BHP Western Australia Iron Ore' /tmp/full-potential-ci-output/qualification-universe.csv
+          grep -F 'Newmont Australia' /tmp/full-potential-ci-output/qualification-universe.csv
+
+      - name: Offline reconciliation CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/full-potential-account-snapshot.json <<'JSON'
+          {
+            "snapshotRef": "ci-empty-account-snapshot-v1",
+            "capturedAt": "2026-08-21T00:00:00.000Z",
+            "accounts": [],
+            "aliases": []
+          }
+          JSON
+          pnpm exec tsx scripts/full-potential-account-reconciliation.ts \
+            --input /tmp/full-potential-account-snapshot.json \
+            --check-only | tee /tmp/full-potential-reconciliation-check.json
+          grep -F '"status": "INCOMPLETE"' /tmp/full-potential-reconciliation-check.json
+          grep -F '"publicRecordCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"requiredBuyerIdentityCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"unmatchedRecordCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"completeForDraftImport": false' /tmp/full-potential-reconciliation-check.json
+
+          set +e
+          pnpm exec tsx scripts/full-potential-account-reconciliation.ts \
+            --input /tmp/full-potential-account-snapshot.json \
+            --check-only \
+            --require-complete > /tmp/full-potential-reconciliation-required.json
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -F '"status": "INCOMPLETE"' /tmp/full-potential-reconciliation-required.json
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
