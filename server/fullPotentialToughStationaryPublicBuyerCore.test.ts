@@ -73,7 +73,7 @@ describe("Tough Stationary public buyer core", () => {
     expect(new Set(flowControl.map(record => record.commercialPoolKey)).size).toBe(2);
   });
 
-  it("summarizes named core and unobserved allowance separately", () => {
+  it("summarizes named buyer and allowance coverage without monetary values", () => {
     const summary = summarizeFullPotentialPublicObservations(
       FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1,
     );
@@ -81,11 +81,15 @@ describe("Tough Stationary public buyer core", () => {
       recordCount: 7,
       countingRecordCount: 7,
       nonCountingRecordCount: 0,
-      byValueClass: undefined,
     });
     expect(summary.byEvidenceGrade).toEqual([
-      { key: "C", count: 5 },
-      { key: "B", count: 2 },
+      { key: "C", count: 4 },
+      { key: "B", count: 3 },
+    ]);
+    expect(summary.byModelBand).toEqual([
+      { key: "TS4-NAMED-ADOPTION", count: 4 },
+      { key: "TS2-NAMED-ADOPTION", count: 2 },
+      { key: "TS4-DIRECT-ALLOWANCE", count: 1 },
     ]);
   });
 });
