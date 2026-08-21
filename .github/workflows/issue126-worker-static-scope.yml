@@ -72,7 +72,7 @@ jobs:
           trap 'mv /tmp/compass-client-issue126 client' EXIT
           pnpm exec tsc --noEmit -p tsconfig.worker.json
 
-      - name: Worker deployment-static profile excludes web build
+      - name: Worker deployment-static profile stays cheap and excludes web build
         shell: bash
         run: |
           set -euo pipefail
@@ -84,9 +84,13 @@ jobs:
             const deployment = rows.find(row => row.name === "deployment-static");
             if (!deployment) throw new Error("deployment-static profile missing");
             const names = deployment.steps.map(step => step.name);
-            const expected = ["shell-syntax", "issue104-tests", "typecheck"];
+            const expected = ["shell-syntax", "issue104-tests"];
             if (JSON.stringify(names) !== JSON.stringify(expected)) {
               throw new Error(`unexpected deployment-static steps: ${JSON.stringify(names)}`);
+            }
+            const typecheck = rows.find(row => row.name === "typecheck");
+            if (!typecheck || JSON.stringify(typecheck.steps.map(step => step.name)) !== JSON.stringify(["typecheck"])) {
+              throw new Error("standalone worker typecheck diagnostic missing");
             }
           '
           grep -F 'tsconfig.worker.json' scripts/worker-validation-job.mjs
