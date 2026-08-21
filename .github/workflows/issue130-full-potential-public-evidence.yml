@@ -1,0 +1,51 @@
+name: Issue 130 Full Potential public-evidence model
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue130-full-potential-public-evidence.yml"
+      - "shared/fullPotentialPublicEvidence.ts"
+      - "server/fullPotentialPublicEvidence.test.ts"
+      - "docs/full-potential-public-evidence-methodology.md"
+      - "server/fullPotentialCommercialModel.shared.ts"
+      - "server/fullPotentialCommercialModel.lines.ts"
+      - "drizzle/fullPotentialSchema.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Public-evidence model regressions
+        run: pnpm exec vitest run server/fullPotentialPublicEvidence.test.ts
+
+      - name: Public-evidence safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'buyer_counting' shared/fullPotentialPublicEvidence.ts
+          grep -F 'application_overlay_non_counting' shared/fullPotentialPublicEvidence.ts
+          grep -F 'Duplicate monetary commercialPoolKey' shared/fullPotentialPublicEvidence.ts
+          grep -F 'must not contain an email address' shared/fullPotentialPublicEvidence.ts
+          grep -F 'portfolio_gap' shared/fullPotentialPublicEvidence.ts
+          grep -F 'No schema migration is required for the first controlled draft pack.' docs/full-potential-public-evidence-methodology.md
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
