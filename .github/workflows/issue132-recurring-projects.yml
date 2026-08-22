@@ -1,0 +1,161 @@
+name: Issue 132 recurring project programmes
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue132-recurring-projects.yml"
+      - "shared/recurringProjectContract.ts"
+      - "shared/recurringProjectSchemaContract.ts"
+      - "server/recurringProjectContract.test.ts"
+      - "server/recurringProjectPlanning.ts"
+      - "server/recurringProjectPlanning.test.ts"
+      - "server/recurringProjectSchema.test.ts"
+      - "server/recurringProjectWeeklyProjection.ts"
+      - "server/recurringProjectWeeklyProjection.test.ts"
+      - "server/recurringProjectRuntimeBoundary.test.ts"
+      - "scripts/recurring-project-preview.ts"
+      - "docs/recurring-project-programmes.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Focused recurring-project tests
+        run: >-
+          pnpm exec vitest run
+          server/recurringProjectContract.test.ts
+          server/recurringProjectPlanning.test.ts
+          server/recurringProjectSchema.test.ts
+          server/recurringProjectWeeklyProjection.test.ts
+          server/recurringProjectRuntimeBoundary.test.ts
+
+      - name: Source safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'RECURRING_PROJECT_MIGRATION_INCLUDED = false' shared/recurringProjectSchemaContract.ts
+          grep -F 'RECURRING_PROJECT_RUNTIME_WRITES_ENABLED = false' shared/recurringProjectSchemaContract.ts
+          grep -F 'A project can belong to exactly one recurring occurrence.' shared/recurringProjectSchemaContract.ts
+          grep -F 'requiresUserAcceptance: true' shared/recurringProjectContract.ts
+          grep -F 'durableActionCreated: false' shared/recurringProjectContract.ts
+          grep -F 'countingTreatment: "application_overlay_non_counting"' shared/recurringProjectContract.ts
+          grep -F 'fullPotentialMonetaryImpactAud: 0' shared/recurringProjectContract.ts
+          grep -F 'preview_only_no_writes' server/recurringProjectPlanning.ts
+          grep -F 'projectDateMutations: 0' server/recurringProjectPlanning.ts
+          grep -F 'durableActionsCreated: 0' server/recurringProjectPlanning.ts
+          grep -F 'type: "recurring_project_window"' server/recurringProjectWeeklyProjection.ts
+          grep -F 'projectActionsCreated: 0' server/recurringProjectWeeklyProjection.ts
+          grep -F 'fullPotentialActionsCreated: 0' server/recurringProjectWeeklyProjection.ts
+          grep -F 'The command performs no database, project, Full Potential, CRM, provider, pipeline or deployment operation.' scripts/recurring-project-preview.ts
+          grep -F 'A prior occurrence is never date-rolled' docs/recurring-project-programmes.md
+          grep -F 'No broad weekly-page redesign is included' docs/recurring-project-programmes.md
+          grep -F 'not registered with Drizzle' docs/recurring-project-programmes.md
+          test ! -e drizzle/recurringProjectSchema.ts
+          if grep -Fq 'recurringProjectSchema' drizzle.config.ts; then
+            echo 'The first source release must not register a recurring-project Drizzle schema.' >&2
+            exit 1
+          fi
+          if find drizzle -maxdepth 1 -type f -name '*recurring*sql' | grep -q .; then
+            echo 'The first source release must not include a recurring-project migration.' >&2
+            exit 1
+          fi
+          if grep -nE 'getDb\(|DATABASE_URL|runDailyPipeline|openai|gemini' server/recurringProjectPlanning.ts server/recurringProjectWeeklyProjection.ts scripts/recurring-project-preview.ts; then
+            echo 'Preview/projection code must not connect to production or call providers/pipelines.' >&2
+            exit 1
+          fi
+
+      - name: Offline preview CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/recurring-project-preview-input.json <<'JSON'
+          {
+            "generatedAt": "2026-08-22T01:00:00.000Z",
+            "generatedByRef": "issue132-ci-v1",
+            "sourceSnapshotRef": "synthetic-project-snapshot-v1",
+            "programmeId": 1,
+            "occurrenceId": 2,
+            "programme": {
+              "programmeKey": "acme-mine:annual-shutdown",
+              "programmeName": "Acme Mine annual shutdown",
+              "recurrenceType": "annual",
+              "status": "active",
+              "buyerName": "Acme Mining",
+              "siteName": "Acme Mine",
+              "fullPotentialAccountId": 123,
+              "routeToMarket": "direct_ape",
+              "ownerName": "Example Rep",
+              "usualLeadTimeDays": 90,
+              "productFamilies": ["portable_air_large"],
+              "applicationTags": ["shutdown_turnaround"],
+              "confidenceLevel": "high"
+            },
+            "existingOccurrences": [],
+            "candidateOccurrence": {
+              "occurrenceKey": "acme-mine:annual-shutdown:2026:primary",
+              "programmeKey": "acme-mine:annual-shutdown",
+              "cycleLabel": "2026",
+              "packageKey": "primary",
+              "status": "anticipated",
+              "anticipatedWindow": { "startDate": "2026-10-01", "endDate": "2026-10-21" },
+              "confirmedWindow": null,
+              "canonicalProjectId": 456,
+              "priorOccurrenceKey": null,
+              "scopeFingerprint": "scope-v1",
+              "sourceFingerprint": "source-v1"
+            },
+            "existingProjectLinks": [],
+            "proposedProjectLinks": [
+              {
+                "projectId": 456,
+                "occurrenceKey": "acme-mine:annual-shutdown:2026:primary",
+                "relationshipType": "canonical",
+                "reason": "Synthetic CI canonical link."
+              }
+            ],
+            "asOfDate": "2026-08-22",
+            "accountId": 123,
+            "signalId": 789,
+            "fullPotentialContext": {
+              "accountName": "Acme Mining",
+              "productFamily": "Large Air"
+            }
+          }
+          JSON
+          pnpm exec tsx scripts/recurring-project-preview.ts \
+            --input /tmp/recurring-project-preview-input.json \
+            --check-only | tee /tmp/recurring-project-preview-check.json
+          grep -F '"status": "PASS"' /tmp/recurring-project-preview-check.json
+          grep -F '"occurrenceOperation": "create"' /tmp/recurring-project-preview-check.json
+          grep -F '"projectLinkProposalCount": 1' /tmp/recurring-project-preview-check.json
+          grep -F '"weeklyRecommendationProjected": true' /tmp/recurring-project-preview-check.json
+          grep -F '"durableActionsCreated": 0' /tmp/recurring-project-preview-check.json
+          grep -F '"databaseWrites": 0' /tmp/recurring-project-preview-check.json
+          grep -F '"fullPotentialMonetaryMutations": 0' /tmp/recurring-project-preview-check.json
+          rm -rf /tmp/recurring-project-preview-output
+          pnpm exec tsx scripts/recurring-project-preview.ts \
+            --input /tmp/recurring-project-preview-input.json \
+            --output-dir /tmp/recurring-project-preview-output
+          test -s /tmp/recurring-project-preview-output/recurring-project-preview.json
+          grep -F '"mode": "preview_only_no_writes"' /tmp/recurring-project-preview-output/recurring-project-preview.json
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
