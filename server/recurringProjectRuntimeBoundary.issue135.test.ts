@@ -13,6 +13,10 @@ const previewTool = readFileSync(
   "scripts/recurring-project-backfill-preview.ts",
   "utf8",
 );
+const databaseUrlCore = readFileSync(
+  "scripts/issue86-phase2a-preflight-core.mjs",
+  "utf8",
+);
 const discoveryService = readFileSync(
   "server/recurringProjectDiscovery.ts",
   "utf8",
@@ -54,7 +58,7 @@ describe("Issue #135 migration-neutral runtime boundary", () => {
       expect(statement.sql).toMatch(/^(?:SELECT|SHOW)\b/);
       expect(statement.sql).not.toContain(";");
     }
-    expect(snapshotTool).toContain("multipleStatements: false");
+    expect(databaseUrlCore).toContain("multipleStatements: false");
     expect(snapshotTool).toContain("assertSelectOnlyGrantProfile");
     expect(snapshotTool).toContain(
       "RECURRING_SNAPSHOT_ALLOW_INSECURE_LOCALHOST",
