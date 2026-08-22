@@ -94,14 +94,13 @@ jobs:
           fi
 
       - name: Generate deterministic public review package
-        env:
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          test "$SOURCE_SHA" = "$(git rev-parse HEAD)"
           PARENT="$RUNNER_TEMP/issue133-private"
           OUTPUT="$PARENT/public-review"
           mkdir -m 700 "$PARENT"
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
             --output-dir "$OUTPUT" \
             --source-sha "$SOURCE_SHA" \
@@ -147,10 +146,9 @@ jobs:
           NODE
 
       - name: Prove signal-gated weekly eligibility remains recommendation-only
-        env:
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
+          SOURCE_SHA="$(git rev-parse HEAD)"
           PARENT="$RUNNER_TEMP/issue133-private"
           REVIEW_INPUT="$PARENT/review-input.json"
           OUTPUT="$PARENT/approved-review"
@@ -181,14 +179,18 @@ jobs:
             cd "$OUTPUT"
             sha256sum --check checksums.sha256
           )
-          OUTPUT="$OUTPUT" node --input-type=module <<'NODE'
+          OUTPUT="$OUTPUT" SOURCE_SHA="$SOURCE_SHA" node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
           import { join } from 'node:path';
           const results = JSON.parse(
             readFileSync(join(process.env.OUTPUT, 'lookalike-candidate-results.json'), 'utf8'),
           );
+          const summary = JSON.parse(
+            readFileSync(join(process.env.OUTPUT, 'lookalike-review-summary.json'), 'utf8'),
+          );
           const rawson = results.results.find(row => row.candidateKey === 'rawson-hire');
+          assert.equal(summary.sourceSha, process.env.SOURCE_SHA);
           assert.equal(rawson.disposition, 'ranked_candidate');
           assert.equal(rawson.weeklyRecommendationEligible, true);
           assert.equal(rawson.durableActionCreated, false);
