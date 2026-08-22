@@ -149,11 +149,17 @@ async function main() {
       parsed.toughStationaryPlanning,
     )
     : [];
+  const rentalMarketContext = FP_RENTAL_PUBLIC_MARKET_CONTEXT_V1.map(record => ({
+    ...record,
+    // Excluded competitor/channel context is visible in market cuts but is not
+    // a named qualification target or monetary account-reconciliation input.
+    buyerAccountKey: null,
+  }));
 
   const pack = buildFullPotentialMeetingPack({
     publicObservations: [
       ...FP_RENTAL_PUBLIC_CORE_V1,
-      ...FP_RENTAL_PUBLIC_MARKET_CONTEXT_V1,
+      ...rentalMarketContext,
       ...specialistBuyerObservations,
       ...FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1,
       ...FP_TS2_PUBLIC_BUYER_UNIVERSE_V1,
