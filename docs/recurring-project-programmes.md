@@ -132,7 +132,7 @@ The first source release defines a logical, versioned contract for future tables
 - `recurringProjectAuditEvents`.
 
 The contract includes intended columns, enums, unique constraints and indexes,
-but it is **not** registered with Drizzle and includes no migration artifact.
+but it is not registered with Drizzle and includes no migration artifact.
 
 The source explicitly states:
 
