@@ -53,6 +53,7 @@ function parsePositiveInteger(value: string | undefined, field: string): number 
 
 function parseCli(argv: string[]): {
   outputDir: string;
+  sourceSha: string;
   asOfDate: string;
   segmentCap: number;
   reviewInput: string | null;
@@ -67,19 +68,33 @@ function parseCli(argv: string[]): {
     }
     values.set(key, value);
   }
-  const allowed = new Set(["--output-dir", "--as-of-date", "--segment-cap", "--review-input"]);
+  const allowed = new Set([
+    "--output-dir",
+    "--source-sha",
+    "--as-of-date",
+    "--segment-cap",
+    "--review-input",
+  ]);
   for (const key of values.keys()) {
     if (!allowed.has(key)) throw new Error(`LOOKALIKE_CLI_OPTION_REJECTED:${key}`);
   }
   const outputDir = values.get("--output-dir");
+  const sourceSha = values.get("--source-sha");
   const asOfDate = values.get("--as-of-date");
-  if (!outputDir || !asOfDate || Number.isNaN(Date.parse(asOfDate))) {
+  if (
+    !outputDir
+    || !sourceSha
+    || !/^[0-9a-f]{40}$/.test(sourceSha)
+    || !asOfDate
+    || Number.isNaN(Date.parse(asOfDate))
+  ) {
     throw new Error(
-      "LOOKALIKE_CLI_USAGE: --output-dir <new-dir> --as-of-date <ISO-date> [--segment-cap <n>] [--review-input <json>]",
+      "LOOKALIKE_CLI_USAGE: --output-dir <new-dir> --source-sha <40-hex> --as-of-date <ISO-date> [--segment-cap <n>] [--review-input <json>]",
     );
   }
   return {
     outputDir: resolve(outputDir),
+    sourceSha,
     asOfDate: new Date(asOfDate).toISOString(),
     segmentCap: values.has("--segment-cap")
       ? parsePositiveInteger(values.get("--segment-cap"), "LOOKALIKE_SEGMENT_CAP")
@@ -268,10 +283,12 @@ function main(): void {
   const reviewSummary = {
     version: 1,
     mode: "review_only_no_writes",
+    sourceSha: cli.sourceSha,
     methodologyVersion: summary.methodologyVersion,
     asOfDate: summary.asOfDate,
     sourcePack: "FP_LOOKALIKE_PUBLIC_CANDIDATES_V1",
     inputFingerprintSha256: sha256(canonical({
+      sourceSha: cli.sourceSha,
       seeds: FP_LOOKALIKE_PUBLIC_SEEDS_V1,
       candidates,
       asOfDate: cli.asOfDate,
@@ -326,6 +343,7 @@ function main(): void {
 
   process.stdout.write(pretty({
     status: "PASS",
+    sourceSha: cli.sourceSha,
     outputDirectory: cli.outputDir,
     candidateCount: summary.candidateCount,
     identityCheckRequiredCount: summary.identityCheckRequiredCount,
