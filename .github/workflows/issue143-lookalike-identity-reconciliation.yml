@@ -1,0 +1,252 @@
+name: Issue 143 Full Potential lookalike identity reconciliation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue143-lookalike-identity-reconciliation.yml"
+      - "docs/full-potential-lookalike-identity-reconciliation.md"
+      - "scripts/full-potential-lookalike-identity-reconciliation.ts"
+      - "server/fullPotentialLookalikeIdentityReconciliation.ts"
+      - "server/fullPotentialLookalikeIdentityReconciliation.test.ts"
+      - "server/fullPotentialLookalikePublicPack.ts"
+      - "shared/fullPotentialLookalikeDiscovery.ts"
+      - "shared/fullPotentialAccountReconciliation.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Protect migration, production data and weekly runtime boundary
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            'drizzle/**' \
+            drizzle.config.ts \
+            client/src/pages/ThisWeek.tsx \
+            server/routers.ts \
+            server/db.ts \
+            drizzle/fullPotentialSchema.ts; then
+            echo "Issue #143 must remain migration-neutral, database-disconnected and weekly-runtime-disconnected." >&2
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
+              'drizzle/**' \
+              drizzle.config.ts \
+              client/src/pages/ThisWeek.tsx \
+              server/routers.ts \
+              server/db.ts \
+              drizzle/fullPotentialSchema.ts
+            exit 1
+          fi
+
+      - name: Governed identity reconciliation tests
+        run: >-
+          pnpm exec vitest run
+          server/fullPotentialLookalikeIdentityReconciliation.test.ts
+          server/fullPotentialLookalikeDiscovery.test.ts
+          server/fullPotentialAccountReconciliation.test.ts
+
+      - name: Static safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'completeForCandidateCreation: false' server/fullPotentialLookalikeIdentityReconciliation.ts
+          grep -F 'weeklyRecommendationEligibleCount: 0' server/fullPotentialLookalikeIdentityReconciliation.ts
+          grep -F 'databaseConnections: 0' server/fullPotentialLookalikeIdentityReconciliation.ts
+          grep -F 'fullPotentialMonetaryMutations: 0' server/fullPotentialLookalikeIdentityReconciliation.ts
+          grep -F 'currentSignalEvidence: { reviewed: false, count: 0 }' server/fullPotentialLookalikeIdentityReconciliation.ts
+          grep -F 'LOOKALIKE_IDENTITY_OUTPUT_INSIDE_REPOSITORY_REJECTED' scripts/full-potential-lookalike-identity-reconciliation.ts
+          grep -F 'lookalike-review-input.json' scripts/full-potential-lookalike-identity-reconciliation.ts
+          grep -F 'The identity tool itself never sets qualification approval or weekly eligibility.' docs/full-potential-lookalike-identity-reconciliation.md
+          if grep -nE 'getDb\(|createConnection|createPool|runDailyPipeline|runWeeklyPipeline|apolloPeopleSearch|openai|gemini|lusha' \
+            server/fullPotentialLookalikeIdentityReconciliation.ts \
+            scripts/full-potential-lookalike-identity-reconciliation.ts; then
+            echo "Issue #143 must not connect to production data, providers or pipelines." >&2
+            exit 1
+          fi
+          if grep -nE '\b(currentRevenueAud|fullPotentialAud|target2026Aud|remainingPotentialAud|averageSellingPriceAud|email|phone|contactName)\b' \
+            server/fullPotentialLookalikeIdentityReconciliation.ts; then
+            echo "Issue #143 bounded identity contract must not accept financial or contact fields." >&2
+            exit 1
+          fi
+
+      - name: Generate deterministic governed identity package
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          PARENT="$RUNNER_TEMP/issue143-private"
+          SNAPSHOT="$PARENT/base-snapshot.json"
+          DELTA="$PARENT/governance-delta.json"
+          OUTPUT="$PARENT/identity-review"
+          mkdir -m 700 "$PARENT"
+
+          SNAPSHOT="$SNAPSHOT" DELTA="$DELTA" node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { writeFileSync } from 'node:fs';
+
+          const canonical = value => {
+            if (value === null || typeof value !== 'object') return JSON.stringify(value);
+            if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+            return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+          };
+          const hash = value => createHash('sha256').update(canonical(value)).digest('hex');
+          const account = overrides => ({
+            id: 101,
+            stableKey: 'avenida-australia|account|au|wa|direct_ape',
+            canonicalName: 'Avenida Australia Pty Ltd',
+            displayName: 'Avenida Australia',
+            parentGroup: null,
+            rowClass: 'account',
+            relationshipType: 'standalone',
+            recordStatus: 'active',
+            countsTowardPotential: true,
+            mergedIntoAccountId: null,
+            country: 'AU',
+            routeToMarket: 'direct_ape',
+            ...overrides,
+          });
+          const snapshot = {
+            snapshotRef: 'issue143-ci-base-v1',
+            capturedAt: '2026-08-21T00:00:00.000Z',
+            accounts: [
+              account({}),
+              account({
+                id: 102,
+                stableKey: 'rawson-hire|competitor_watch|au|qld|exclude',
+                canonicalName: 'Rawson Hire',
+                displayName: 'Rawson Hire',
+                rowClass: 'competitor_watch',
+                relationshipType: 'strategic_context',
+                countsTowardPotential: false,
+                routeToMarket: 'exclude',
+              }),
+            ],
+            aliases: [],
+          };
+          const delta = {
+            version: 1,
+            deltaRef: 'issue143-ci-delta-v1',
+            appliedAt: '2026-08-22T00:00:00.000Z',
+            baseSnapshotSha256: hash(snapshot),
+            accounts: [
+              account({
+                id: 103,
+                stableKey: 'governed-context|site_context|au|national|manual_review',
+                canonicalName: 'Governed Context',
+                displayName: 'Governed Context',
+                rowClass: 'site_context',
+                relationshipType: 'strategic_context',
+                countsTowardPotential: false,
+                recordStatus: 'under_review',
+                routeToMarket: 'manual_review',
+              }),
+            ],
+            aliases: [],
+          };
+          writeFileSync(process.env.SNAPSHOT, `${JSON.stringify(snapshot, null, 2)}\n`, { mode: 0o600 });
+          writeFileSync(process.env.DELTA, `${JSON.stringify(delta, null, 2)}\n`, { mode: 0o600 });
+          NODE
+
+          pnpm exec tsx scripts/full-potential-lookalike-identity-reconciliation.ts \
+            --snapshot "$SNAPSHOT" \
+            --governance-delta "$DELTA" \
+            --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
+            > "$PARENT/result.json"
+
+          (
+            cd "$OUTPUT"
+            sha256sum --check checksums.sha256
+          )
+
+          OUTPUT="$OUTPUT" SOURCE_SHA="$SOURCE_SHA" node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const report = JSON.parse(readFileSync(join(process.env.OUTPUT, 'lookalike-identity-resolution.json'), 'utf8'));
+          const review = JSON.parse(readFileSync(join(process.env.OUTPUT, 'lookalike-review-input.json'), 'utf8'));
+          assert.equal(report.sourceSha, process.env.SOURCE_SHA);
+          assert.equal(report.counts.candidateCount, 8);
+          assert.equal(report.counts.buyerCandidateCount, 6);
+          assert.equal(report.counts.marketParticipantControlCount, 2);
+          assert.equal(report.counts.existingAccountCount, 1);
+          assert.equal(report.counts.existingMarketContextCount, 1);
+          assert.equal(report.counts.newIdentityCount, 4);
+          assert.equal(report.counts.ambiguousIdentityCount, 0);
+          assert.equal(report.counts.excludedMarketParticipantCount, 2);
+          assert.equal(report.counts.weeklyRecommendationEligibleCount, 0);
+          assert.equal(report.completeForCandidateCreation, false);
+          assert.equal(report.manualReviewRequired, true);
+          assert.equal(review.overrides.length, 8);
+          assert.equal(review.overrides.every(row => (
+            row.reviewState !== 'approved_for_qualification'
+            && row.proposedOwner === null
+            && row.currentSignalEvidence.reviewed === false
+            && row.currentSignalEvidence.count === 0
+            && row.recurringProgrammeEvidence.reviewed === false
+            && row.recurringProgrammeEvidence.count === 0
+          )), true);
+          assert.deepEqual(report.safety, {
+            databaseConnections: 0,
+            databaseWrites: 0,
+            fullPotentialAccountMutations: 0,
+            fullPotentialMonetaryMutations: 0,
+            crmC4cMutations: 0,
+            contactEnrichmentMutations: 0,
+            providerCalls: 0,
+            pipelineInvocations: 0,
+            durableActionsCreated: 0,
+            deployments: 0,
+          });
+          NODE
+
+          PREVIEW="$PARENT/lookalike-preview"
+          pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
+            --output-dir "$PREVIEW" \
+            --source-sha "$SOURCE_SHA" \
+            --as-of-date 2026-08-22 \
+            --segment-cap 20 \
+            --review-input "$OUTPUT/lookalike-review-input.json" \
+            > "$PARENT/preview-result.json"
+          (
+            cd "$PREVIEW"
+            sha256sum --check checksums.sha256
+          )
+          PREVIEW="$PREVIEW" node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const results = JSON.parse(readFileSync(join(process.env.PREVIEW, 'lookalike-candidate-results.json'), 'utf8'));
+          assert.equal(results.weeklyRecommendationEligibleCount, 0);
+          assert.equal(results.durableActionsCreated, 0);
+          assert.equal(results.monetaryImpactAud, 0);
+          NODE
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
