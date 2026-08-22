@@ -13,6 +13,7 @@ on:
       - "server/recurringProjectSchema.test.ts"
       - "server/recurringProjectWeeklyProjection.ts"
       - "server/recurringProjectWeeklyProjection.test.ts"
+      - "server/recurringProjectRuntimeBoundary.test.ts"
       - "scripts/recurring-project-preview.ts"
       - "docs/recurring-project-programmes.md"
   workflow_dispatch:
@@ -42,6 +43,7 @@ jobs:
           server/recurringProjectPlanning.test.ts
           server/recurringProjectSchema.test.ts
           server/recurringProjectWeeklyProjection.test.ts
+          server/recurringProjectRuntimeBoundary.test.ts
 
       - name: Source safety boundary
         shell: bash
