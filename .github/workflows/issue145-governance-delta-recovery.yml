@@ -87,7 +87,7 @@ jobs:
           grep -F 'weeklyRecommendationEligibleCount: 0' server/fullPotentialGovernanceDeltaRecovery.ts
           grep -F 'GOVERNANCE_DELTA_RECOVERY_OUTPUT_INSIDE_REPOSITORY_REJECTED' scripts/full-potential-governance-delta-recovery.ts
           grep -F 'full-potential-governance-delta.recovered.json' scripts/full-potential-governance-delta-recovery.ts
-          grep -F 'It never claims that the missing original file was recovered.' docs/full-potential-governance-delta-recovery.md
+          grep -F 'The original private Issue #130 governance-delta JSON is no longer available.' docs/full-potential-governance-delta-recovery.md
           grep -F '2026-08-22T00:51:36.712Z' docs/full-potential-governance-delta-recovery.md
           if grep -nE 'getDb\(|createConnection|createPool|runDailyPipeline|runWeeklyPipeline|apolloPeopleSearch|openai|gemini|lusha' \
             server/fullPotentialGovernanceDeltaRecovery.ts \
