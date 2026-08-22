@@ -271,8 +271,15 @@ jobs:
             materially_different_package_review: 1,
             insufficient_evidence: 1,
           };
-          if (JSON.stringify(summary.classifications) !== JSON.stringify(expected)) {
-            throw new Error(`CLASSIFICATION_RECONCILIATION_FAILED:${JSON.stringify(summary.classifications)}`);
+          for (const [classification, expectedCount] of Object.entries(expected)) {
+            if (summary.classifications[classification] !== expectedCount) {
+              throw new Error(
+                `CLASSIFICATION_RECONCILIATION_FAILED:${classification}:${summary.classifications[classification]}`,
+              );
+            }
+          }
+          if (Object.keys(summary.classifications).length !== Object.keys(expected).length) {
+            throw new Error("CLASSIFICATION_KEY_COUNT_RECONCILIATION_FAILED");
           }
           if (
             summary.projectCount !== 9 ||
