@@ -86,12 +86,25 @@ function identityKey(value: unknown): string {
   return normaliseRecurringDiscoveryText(value).replace(/\s+/g, "-");
 }
 
-function combinedProjectText(project: RecurringProjectSnapshotRow): string {
+/**
+ * Source labels can contain publication years that are not commercial cycles.
+ * Keep them available for recurrence evidence, but exclude them from cycle
+ * extraction so an observation year cannot manufacture an occurrence year.
+ */
+function cycleEvidenceText(project: RecurringProjectSnapshotRow): string {
   return [
     project.name,
     project.timeline,
     project.completion,
     project.tenderNumber,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function recurrenceEvidenceText(project: RecurringProjectSnapshotRow): string {
+  return [
+    cycleEvidenceText(project),
     ...project.sources.map(source => source.label),
   ]
     .filter(Boolean)
@@ -99,7 +112,7 @@ function combinedProjectText(project: RecurringProjectSnapshotRow): string {
 }
 
 function deriveRecurrenceEvidence(project: RecurringProjectSnapshotRow): string[] {
-  const text = combinedProjectText(project);
+  const text = recurrenceEvidenceText(project);
   return RECURRENCE_SIGNAL_PATTERNS.filter(([, pattern]) => pattern.test(text)).map(
     ([code]) => code,
   );
@@ -137,7 +150,7 @@ function deriveYearCycles(text: string): string[] {
 export function deriveRecurringCycleLabel(
   project: RecurringProjectSnapshotRow,
 ): { cycleLabel: string | null; evidenceCodes: string[] } {
-  const text = combinedProjectText(project);
+  const text = cycleEvidenceText(project);
   const quarterCycles = deriveQuarterCycles(text);
   if (quarterCycles.length === 1) {
     return { cycleLabel: quarterCycles[0], evidenceCodes: ["explicit_quarter_cycle"] };
@@ -338,6 +351,11 @@ function classifyGroup(
     ),
   );
   const duplicateClusterShared = sharedDuplicateCluster(projects);
+  const fullyObservedSingleCycle =
+    cycleLabels.length === 1 &&
+    projects.every(project => project.cycleLabel === cycleLabels[0]);
+  const partialSingleCycleEvidence =
+    cycleLabels.length === 1 && !fullyObservedSingleCycle;
   const genericIdentity =
     GENERIC_IDENTITY_VALUES.has(projects[0].ownerKey) ||
     GENERIC_IDENTITY_VALUES.has(projects[0].locationKey);
@@ -348,6 +366,7 @@ function classifyGroup(
       : "",
     packageKeys.length > 1 ? "multiple_package_keys" : "",
     duplicateClusterShared ? "shared_duplicate_cluster" : "",
+    partialSingleCycleEvidence ? "partial_cycle_evidence" : "",
     genericIdentity ? "generic_owner_or_location" : "",
     projects.length > configuration.maximumProjectsPerGroup
       ? "group_exceeds_review_limit"
@@ -398,7 +417,7 @@ function classifyGroup(
     };
   }
 
-  if (cycleLabels.length === 1 || duplicateClusterShared) {
+  if (fullyObservedSingleCycle || duplicateClusterShared) {
     return {
       classification: "same_cycle_duplicate_review",
       confidence:
@@ -407,9 +426,9 @@ function classifyGroup(
           : "medium",
       evidenceCodes,
       reasons: [
-        cycleLabels.length === 1
-          ? `Multiple records resolve to the same observed cycle ${cycleLabels[0]}.`
-          : "The projects share one existing duplicate-cluster identity but do not expose a reliable cycle label.",
+        fullyObservedSingleCycle
+          ? `Every grouped record resolves to the same observed cycle ${cycleLabels[0]}.`
+          : "The projects share one existing duplicate-cluster identity but do not expose a complete common cycle label.",
         "Treat them as possible supporting sources or historic duplicates, not as a new recurring occurrence.",
       ],
     };
@@ -420,7 +439,9 @@ function classifyGroup(
     confidence: "low",
     evidenceCodes,
     reasons: [
-      "At least two similar project records exist, but no distinct cycle or reliable same-cycle boundary is visible.",
+      partialSingleCycleEvidence
+        ? "Only part of the group exposes a cycle label; the unknown records cannot safely be assigned to that cycle."
+        : "At least two similar project records exist, but no distinct cycle or reliable same-cycle boundary is visible.",
       "Keep the group review-only and do not invent a recurrence cadence.",
     ],
   };
