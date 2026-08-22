@@ -1,0 +1,317 @@
+name: Issue 135 recurring project discovery
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue135-recurring-project-discovery.yml"
+      - "docs/recurring-project-discovery.md"
+      - "scripts/recurring-project-snapshot.mjs"
+      - "scripts/recurring-project-backfill-preview.ts"
+      - "shared/recurringProjectDiscoveryContract.ts"
+      - "server/recurringProjectSnapshotSafety.ts"
+      - "server/recurringProjectSnapshotSafety.test.ts"
+      - "server/recurringProjectDiscovery.ts"
+      - "server/recurringProjectDiscovery.test.ts"
+      - "server/recurringProjectRuntimeBoundary.issue135.test.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: issue135_schema
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Protect migration and weekly runtime boundary
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            'drizzle/**' \
+            drizzle.config.ts \
+            client/src/pages/ThisWeek.tsx \
+            server/routers.ts \
+            server/db.ts; then
+            echo "Issue #135 must remain migration-neutral and runtime-disconnected." >&2
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
+              'drizzle/**' \
+              drizzle.config.ts \
+              client/src/pages/ThisWeek.tsx \
+              server/routers.ts \
+              server/db.ts
+            exit 1
+          fi
+
+      - name: Focused recurrence discovery tests
+        run: >-
+          pnpm exec vitest run
+          server/recurringProjectSnapshotSafety.test.ts
+          server/recurringProjectDiscovery.test.ts
+          server/recurringProjectRuntimeBoundary.issue135.test.ts
+          server/recurringProjectContract.test.ts
+          server/recurringProjectPlanning.test.ts
+          server/recurringProjectSchema.test.ts
+          server/recurringProjectWeeklyProjection.test.ts
+          server/recurringProjectRuntimeBoundary.test.ts
+
+      - name: Source safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'mode: "read_only_project_snapshot"' shared/recurringProjectDiscoveryContract.ts
+          grep -F 'mode: "review_only_no_writes"' shared/recurringProjectDiscoveryContract.ts
+          grep -F 'completeForBackfillApply: false' shared/recurringProjectDiscoveryContract.ts
+          grep -F 'SHOW GRANTS FOR CURRENT_USER()' server/recurringProjectSnapshotSafety.ts
+          grep -F 'SNAPSHOT_GRANT_PROFILE_NOT_SELECT_ONLY' server/recurringProjectSnapshotSafety.ts
+          grep -F 'databaseWrites: 0' server/recurringProjectDiscovery.ts
+          grep -F 'projectDateMutations: 0' server/recurringProjectDiscovery.ts
+          grep -F 'fullPotentialMonetaryMutations: 0' server/recurringProjectDiscovery.ts
+          grep -F 'crmC4cMutations: 0' server/recurringProjectDiscovery.ts
+          grep -F 'providerCalls: 0' server/recurringProjectDiscovery.ts
+          grep -F 'pipelineInvocations: 0' server/recurringProjectDiscovery.ts
+          grep -F 'RECURRING_PROJECT_MIGRATION_INCLUDED = false' shared/recurringProjectSchemaContract.ts
+          grep -F 'RECURRING_PROJECT_RUNTIME_WRITES_ENABLED = false' shared/recurringProjectSchemaContract.ts
+          grep -F 'The preview command opens no database connection.' docs/recurring-project-discovery.md
+          if grep -Fq 'recurringProjectSchema' drizzle.config.ts; then
+            echo "Physical recurring-project schema must remain unregistered." >&2
+            exit 1
+          fi
+          if find drizzle -maxdepth 1 -type f -iname '*recurring*' | grep -q .; then
+            echo "Issue #135 must not add a recurring migration/schema under drizzle/." >&2
+            exit 1
+          fi
+          if grep -nE 'getDb\(|runDailyPipeline|runWeeklyPipeline|openai|gemini|apolloPeopleSearch' \
+            scripts/recurring-project-snapshot.mjs \
+            scripts/recurring-project-backfill-preview.ts \
+            server/recurringProjectDiscovery.ts; then
+            echo "Snapshot and preview code must not use the runtime DB service, providers or pipeline." >&2
+            exit 1
+          fi
+
+      - name: Seed disposable project history and grant profiles
+        env:
+          MYSQL_ROOT_URL: mysql://root:root@127.0.0.1:3306/issue135_schema
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/issue135-seed.mjs" <<'NODE'
+          import { createConnection } from "mysql2/promise";
+
+          const connection = await createConnection({
+            host: "127.0.0.1",
+            port: 3306,
+            user: "root",
+            password: "root",
+            database: "issue135_schema",
+            multipleStatements: false,
+          });
+
+          await connection.query(`
+            CREATE TABLE projects (
+              id INT NOT NULL PRIMARY KEY,
+              reportId INT NOT NULL,
+              projectKey VARCHAR(128) NOT NULL,
+              name VARCHAR(512) NOT NULL,
+              location VARCHAR(256) NOT NULL,
+              owner VARCHAR(256) NOT NULL,
+              sector VARCHAR(64) NOT NULL,
+              stage VARCHAR(256) NULL,
+              stageCode VARCHAR(64) NULL,
+              lifecycleStatus VARCHAR(64) NOT NULL,
+              projectType VARCHAR(64) NULL,
+              productLane VARCHAR(64) NULL,
+              sourcePurpose VARCHAR(64) NULL,
+              tenderNumber VARCHAR(64) NULL,
+              tenderCloseDate TIMESTAMP NULL,
+              timeline VARCHAR(256) NULL,
+              completion VARCHAR(256) NULL,
+              sources JSON NULL,
+              duplicateClusterId VARCHAR(64) NULL,
+              mergedIntoId INT NULL,
+              duplicateDismissed BOOLEAN NOT NULL DEFAULT FALSE,
+              suppressed BOOLEAN NOT NULL DEFAULT FALSE,
+              projectCountry VARCHAR(2) NULL,
+              projectState VARCHAR(64) NULL,
+              sourceLastSeenAt TIMESTAMP NULL,
+              lastActivityAt TIMESTAMP NULL,
+              createdAt TIMESTAMP NOT NULL,
+              updatedAt TIMESTAMP NULL
+            )
+          `);
+
+          const rows = [
+            [1, "Example Mine Annual Shutdown 2024", "Example Mine, Pilbara WA", "Example Mining", null, null, "project_signal"],
+            [2, "Example Mine Annual Shutdown 2025", "Example Mine, Pilbara WA", "Example Mining", null, null, "project_signal"],
+            [3, "Example Mine Annual Shutdown 2026", "Example Mine, Pilbara WA", "Example Mining", null, null, "project_signal"],
+            [4, "Example Fleet Tender 2026", "Perth Metro, WA", "Example Rentals", "duplicate-fleet", null, "project_signal"],
+            [5, "Example Fleet Tender 2026", "Perth Metro, WA", "Example Rentals", "duplicate-fleet", null, "live_tender"],
+            [6, "Example LNG Turnaround 2026 Train 1 Package A", "Karratha Gas Plant, WA", "Example LNG", null, null, "project_signal"],
+            [7, "Example LNG Turnaround 2026 Train 2 Package B", "Karratha Gas Plant, WA", "Example LNG", null, null, "project_signal"],
+            [8, "Regional Infrastructure Programme", "Regional Water Network, NSW", "Example Authority", null, null, "project_signal"],
+            [9, "Regional Infrastructure Programme", "Regional Water Network, NSW", "Example Authority", null, null, "forward_plan"],
+          ];
+
+          for (const [id, name, location, owner, duplicateClusterId, mergedIntoId, sourcePurpose] of rows) {
+            await connection.query(
+              `INSERT INTO projects (
+                id, reportId, projectKey, name, location, owner, sector, stage,
+                stageCode, lifecycleStatus, projectType, productLane,
+                sourcePurpose, tenderNumber, tenderCloseDate, timeline,
+                completion, sources, duplicateClusterId, mergedIntoId,
+                duplicateDismissed, suppressed, projectCountry, projectState,
+                sourceLastSeenAt, lastActivityAt, createdAt, updatedAt
+              ) VALUES (?, ?, ?, ?, ?, ?, 'mining', 'Planning', 'planning',
+                'active', 'opportunity', 'portable_air', ?, NULL, NULL, NULL,
+                NULL, ?, ?, ?, FALSE, FALSE, 'AU', ?,
+                '2026-08-20 00:00:00', '2026-08-20 00:00:00',
+                '2026-08-01 00:00:00', '2026-08-20 00:00:00')`,
+              [
+                id,
+                100 + id,
+                `project-${id}`,
+                name,
+                location,
+                owner,
+                sourcePurpose,
+                JSON.stringify([
+                  { label: `Public source ${id}`, url: `https://example.com/${id}?discard=1#section`, date: null },
+                ]),
+                duplicateClusterId,
+                mergedIntoId,
+                location.endsWith("NSW") ? "NSW" : "WA",
+              ],
+            );
+          }
+
+          await connection.query(
+            "CREATE USER 'snapshot_reader'@'%' IDENTIFIED BY 'reader-pass-135'",
+          );
+          await connection.query(
+            "GRANT SELECT ON issue135_schema.* TO 'snapshot_reader'@'%'",
+          );
+          await connection.query(
+            "CREATE USER 'snapshot_writer'@'%' IDENTIFIED BY 'writer-pass-135'",
+          );
+          await connection.query(
+            "GRANT SELECT, INSERT ON issue135_schema.* TO 'snapshot_writer'@'%'",
+          );
+          await connection.end();
+          NODE
+          node "$RUNNER_TEMP/issue135-seed.mjs"
+
+      - name: Run SELECT-only snapshot and offline review package
+        env:
+          DATABASE_URL: mysql://snapshot_reader:reader-pass-135@127.0.0.1:3306/issue135_schema
+          RECURRING_SNAPSHOT_ALLOW_INSECURE_LOCALHOST: "1"
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          PARENT="$RUNNER_TEMP/issue135-private"
+          OUTPUT="$PARENT/review-package"
+          mkdir -m 700 "$PARENT"
+          pnpm exec tsx scripts/recurring-project-snapshot.mjs \
+            --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
+            --from-id 1 \
+            --to-id 20 \
+            --max-rows 20 | tee "$RUNNER_TEMP/issue135-snapshot-result.json"
+
+          pnpm exec tsx scripts/recurring-project-backfill-preview.ts \
+            --snapshot "$OUTPUT/recurring-project-snapshot.json" \
+            --output-dir "$OUTPUT" | tee "$RUNNER_TEMP/issue135-preview-result.json"
+
+          (
+            cd "$OUTPUT"
+            sha256sum --check checksums.sha256
+          )
+
+          OUTPUT="$OUTPUT" node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          import { join } from "node:path";
+
+          const output = process.env.OUTPUT;
+          const summary = JSON.parse(
+            readFileSync(join(output, "recurring-project-review-summary.json"), "utf8"),
+          );
+          const manifest = JSON.parse(
+            readFileSync(join(output, "recurring-project-snapshot-manifest.json"), "utf8"),
+          );
+          const expected = {
+            likely_recurring_programme: 1,
+            same_cycle_duplicate_review: 1,
+            materially_different_package_review: 1,
+            insufficient_evidence: 1,
+          };
+          if (JSON.stringify(summary.classifications) !== JSON.stringify(expected)) {
+            throw new Error(`CLASSIFICATION_RECONCILIATION_FAILED:${JSON.stringify(summary.classifications)}`);
+          }
+          if (
+            summary.projectCount !== 9 ||
+            summary.candidateProjectCount !== 9 ||
+            summary.candidateGroupCount !== 4 ||
+            summary.completeForBackfillApply !== false ||
+            manifest.projectCount !== 9 ||
+            manifest.database.grantProfile !== "select_only" ||
+            manifest.safety.databaseWriteStatementsExecuted !== 0
+          ) {
+            throw new Error("SNAPSHOT_REVIEW_RECONCILIATION_FAILED");
+          }
+          NODE
+
+      - name: Prove write-capable account is rejected before export
+        env:
+          DATABASE_URL: mysql://snapshot_writer:writer-pass-135@127.0.0.1:3306/issue135_schema
+          RECURRING_SNAPSHOT_ALLOW_INSECURE_LOCALHOST: "1"
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          REJECTED="$RUNNER_TEMP/issue135-private/writer-rejected"
+          if pnpm exec tsx scripts/recurring-project-snapshot.mjs \
+            --output-dir "$REJECTED" \
+            --source-sha "$SOURCE_SHA" \
+            --from-id 1 \
+            --to-id 20 \
+            --max-rows 20 \
+            >"$RUNNER_TEMP/issue135-writer-stdout.json" \
+            2>"$RUNNER_TEMP/issue135-writer-stderr.json"; then
+            echo "Write-capable account unexpectedly passed the snapshot gate." >&2
+            exit 1
+          fi
+          grep -F 'SNAPSHOT_GRANT_PROFILE_NOT_SELECT_ONLY' \
+            "$RUNNER_TEMP/issue135-writer-stderr.json"
+          test ! -e "$REJECTED"
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
