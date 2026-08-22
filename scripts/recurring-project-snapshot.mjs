@@ -21,6 +21,7 @@ import {
   parseDatabaseUrl,
   sanitizeMessage,
 } from "./issue86-phase2a-preflight-core.mjs";
+import { normaliseRecurringSnapshotDatabaseUrl } from "./recurring-project-database-url-policy.mjs";
 import {
   RECURRING_PROJECT_REQUIRED_COLUMNS,
   RECURRING_PROJECT_SNAPSHOT_SQL,
@@ -221,8 +222,19 @@ async function main() {
   validateOutputLocation(cli.outputDir);
   const sqlManifest = assertSnapshotSqlManifest();
   const rawDatabaseUrl = process.env[cli.databaseUrlEnv];
-  const parsedDatabase = parseDatabaseUrl(rawDatabaseUrl);
-  const secrets = { highRisk: parsedDatabase.secrets.highRisk, contextual: [] };
+  const databaseUrlPolicy = normaliseRecurringSnapshotDatabaseUrl(rawDatabaseUrl);
+  const parsedDatabase = parseDatabaseUrl(databaseUrlPolicy.sanitizedDatabaseUrl);
+  const queryValueSecrets = [
+    ...new URL(rawDatabaseUrl).searchParams.values(),
+  ].filter(Boolean);
+  const secrets = {
+    highRisk: [
+      rawDatabaseUrl,
+      ...queryValueSecrets,
+      ...parsedDatabase.secrets.highRisk,
+    ].filter(Boolean),
+    contextual: [],
+  };
   const connectionConfig = localInsecureOverride({
     ...parsedDatabase.config,
     connectTimeout: 20_000,
@@ -301,10 +313,7 @@ async function main() {
         ? snapshot.projects[snapshot.projects.length - 1].id
         : null;
     const engine = engineRows[0];
-    for (const field of [
-      "currentUserSha256",
-      "targetIdentitySha256",
-    ]) {
+    for (const field of ["currentUserSha256", "targetIdentitySha256"]) {
       if (!/^[0-9a-f]{64}$/.test(String(engine[field] ?? ""))) {
         throw new Error(`SNAPSHOT_ENGINE_HASH_INVALID:${field}`);
       }
@@ -329,6 +338,10 @@ async function main() {
         targetIdentitySha256: String(engine.targetIdentitySha256),
         grantProfileSha256: grantProfile.grantProfileSha256,
         grantProfile: "select_only",
+        urlPolicy: {
+          ...databaseUrlPolicy.policyEvidence,
+          policySha256: databaseUrlPolicy.policySha256,
+        },
       },
       executor: {
         connectionCount: 1,
@@ -380,6 +393,7 @@ async function main() {
         snapshotSha256,
         outputFiles: [snapshotMeta, manifestMeta],
         grantProfile: "select_only",
+        databaseUrlPolicy: databaseUrlPolicy.policyEvidence.acceptedShape,
         databaseWriteStatementsExecuted: 0,
       }),
     );
@@ -387,7 +401,7 @@ async function main() {
     if (outputReserved) rmSync(cli.outputDir, { recursive: true, force: true });
     throw new Error(
       sanitizeMessage(error instanceof Error ? error.message : error, {
-        highRisk: parsedDatabase.secrets.highRisk,
+        highRisk: secrets.highRisk,
         contextual: [],
       }),
     );
