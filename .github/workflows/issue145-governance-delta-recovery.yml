@@ -1,0 +1,113 @@
+name: Issue 145 Full Potential governance delta recovery
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue145-governance-delta-recovery.yml"
+      - "docs/full-potential-governance-delta-recovery.md"
+      - "scripts/full-potential-governance-delta-recovery.ts"
+      - "server/fullPotentialGovernanceDeltaRecovery.ts"
+      - "server/fullPotentialGovernanceDeltaRecovery.test.ts"
+      - "server/fullPotentialLookalikeIdentityReconciliation.ts"
+      - "server/fullPotentialLookalikeIdentityReconciliation.test.ts"
+      - "server/fullPotentialLookalikePublicPack.ts"
+      - "shared/fullPotentialAccountReconciliation.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Protect migration, production data and weekly runtime boundary
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            'drizzle/**' \
+            drizzle.config.ts \
+            client/src/pages/ThisWeek.tsx \
+            server/routers.ts \
+            server/db.ts \
+            drizzle/fullPotentialSchema.ts \
+            pipeline-runner.ts \
+            run-pipeline.sh; then
+            echo "Issue #145 must remain migration-neutral, database-disconnected and weekly-runtime-disconnected." >&2
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
+              'drizzle/**' \
+              drizzle.config.ts \
+              client/src/pages/ThisWeek.tsx \
+              server/routers.ts \
+              server/db.ts \
+              drizzle/fullPotentialSchema.ts \
+              pipeline-runner.ts \
+              run-pipeline.sh
+            exit 1
+          fi
+
+      - name: Governance delta recovery and Issue 143 regression tests
+        run: >-
+          pnpm exec vitest run
+          server/fullPotentialGovernanceDeltaRecovery.test.ts
+          server/fullPotentialLookalikeIdentityReconciliation.test.ts
+          server/fullPotentialLookalikeDiscovery.test.ts
+          server/fullPotentialAccountReconciliation.test.ts
+
+      - name: Static recovery and privacy boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'originalDeltaRecovered: false' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'exactTransactionTimeClaimed: false' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'baseSnapshotCanonicalSha256' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'GOVERNANCE_DELTA_RECOVERY_ORPHAN_ALIAS_TARGETS' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'accountDeleted: 0' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'aliasDeleted: 0' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'databaseConnections: 0' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'weeklyRecommendationEligibleCount: 0' server/fullPotentialGovernanceDeltaRecovery.ts
+          grep -F 'GOVERNANCE_DELTA_RECOVERY_OUTPUT_INSIDE_REPOSITORY_REJECTED' scripts/full-potential-governance-delta-recovery.ts
+          grep -F 'full-potential-governance-delta.recovered.json' scripts/full-potential-governance-delta-recovery.ts
+          grep -F 'The original private Issue #130 governance-delta JSON is no longer available.' docs/full-potential-governance-delta-recovery.md
+          grep -F '2026-08-22T00:51:36.712Z' docs/full-potential-governance-delta-recovery.md
+          if grep -nE 'getDb\(|createConnection|createPool|runDailyPipeline|runWeeklyPipeline|apolloPeopleSearch|openai|gemini|lusha' \
+            server/fullPotentialGovernanceDeltaRecovery.ts \
+            scripts/full-potential-governance-delta-recovery.ts; then
+            echo "Issue #145 must not connect to a database, provider or pipeline." >&2
+            exit 1
+          fi
+
+      - name: CLI usage boundary
+        run: |
+          set -euo pipefail
+          pnpm exec tsx scripts/full-potential-governance-delta-recovery.ts --help \
+            | tee "$RUNNER_TEMP/issue145-help.txt"
+          grep -F -- '--check-only' "$RUNNER_TEMP/issue145-help.txt"
+          grep -F -- '--retained-post-apply-evidence-at' "$RUNNER_TEMP/issue145-help.txt"
+          grep -F 'not an exact transaction-time claim' "$RUNNER_TEMP/issue145-help.txt"
+          grep -F 'no database, Full Potential, CRM, provider, pipeline or deployment action' "$RUNNER_TEMP/issue145-help.txt"
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
