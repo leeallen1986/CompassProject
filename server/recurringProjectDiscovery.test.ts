@@ -50,7 +50,7 @@ function project(
 }
 
 function snapshot(projects: RecurringProjectSnapshotRow[]): RecurringProjectSnapshotDocument {
-  const ordered = [...projects];
+  const ordered = [...projects].sort((left, right) => left.id - right.id);
   return {
     version: 1,
     mode: "read_only_project_snapshot",
@@ -85,6 +85,22 @@ describe("Issue #135 recurring project discovery", () => {
     });
     expect(deriveRecurringProgrammeCore(row.name)).toBe("west plant shutdown");
     expect(deriveRecurringPackageKey(row.name)).toBe("package-b+train-2");
+  });
+
+  it("does not treat a public-source observation date as the commercial cycle", () => {
+    const row = project(2, "West Plant Annual Shutdown 2025", {
+      sources: [
+        {
+          label: "Public shutdown notice",
+          url: null,
+          date: "2026-08-20",
+        },
+      ],
+    });
+    expect(deriveRecurringCycleLabel(row)).toEqual({
+      cycleLabel: "2025",
+      evidenceCodes: ["explicit_year_cycle"],
+    });
   });
 
   it("classifies distinct explicit cycles as a likely recurring programme", () => {
