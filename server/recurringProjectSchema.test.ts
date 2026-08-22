@@ -1,55 +1,95 @@
-import { readFileSync } from "node:fs";
-import { getTableName } from "drizzle-orm";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  RECURRING_PROJECT_MIGRATION_INCLUDED,
   RECURRING_PROJECT_RUNTIME_WRITES_ENABLED,
-  RECURRING_PROJECT_SCHEMA_VERSION,
-  recurringProjectAuditEvents,
-  recurringProjectOccurrenceProjects,
-  recurringProjectOccurrences,
-  recurringProjectProgrammes,
-  recurringProjectRecommendationDecisions,
-} from "../drizzle/recurringProjectSchema";
+  RECURRING_PROJECT_SCHEMA_CONTRACT,
+  RECURRING_PROJECT_SCHEMA_CONTRACT_VERSION,
+  assertRecurringProjectSchemaContract,
+} from "../shared/recurringProjectSchemaContract";
 
-describe("Issue #132 recurring project schema", () => {
-  it("defines versioned programme, occurrence, link, decision and audit tables", () => {
-    expect(RECURRING_PROJECT_SCHEMA_VERSION).toBe(1);
-    expect(getTableName(recurringProjectProgrammes)).toBe("recurringProjectProgrammes");
-    expect(getTableName(recurringProjectOccurrences)).toBe("recurringProjectOccurrences");
-    expect(getTableName(recurringProjectOccurrenceProjects)).toBe("recurringProjectOccurrenceProjects");
-    expect(getTableName(recurringProjectRecommendationDecisions)).toBe("recurringProjectRecommendationDecisions");
-    expect(getTableName(recurringProjectAuditEvents)).toBe("recurringProjectAuditEvents");
+describe("Issue #132 recurring project schema contract", () => {
+  it("defines a versioned migration-neutral five-table contract", () => {
+    expect(RECURRING_PROJECT_SCHEMA_CONTRACT_VERSION).toBe(1);
+    expect(RECURRING_PROJECT_SCHEMA_CONTRACT).toMatchObject({
+      version: 1,
+      migrationIncluded: false,
+      runtimeWritesEnabled: false,
+    });
+    expect(Object.values(RECURRING_PROJECT_SCHEMA_CONTRACT.tables).map(table => table.name))
+      .toEqual([
+        "recurringProjectProgrammes",
+        "recurringProjectOccurrences",
+        "recurringProjectOccurrenceProjects",
+        "recurringProjectRecommendationDecisions",
+        "recurringProjectAuditEvents",
+      ]);
+    expect(() => assertRecurringProjectSchemaContract()).not.toThrow();
   });
 
-  it("keeps runtime writes disabled in the first source release", () => {
+  it("keeps migration and runtime writes disabled", () => {
+    expect(RECURRING_PROJECT_MIGRATION_INCLUDED).toBe(false);
     expect(RECURRING_PROJECT_RUNTIME_WRITES_ENABLED).toBe(false);
   });
 
   it("contains the fields needed to preserve history and link Full Potential context", () => {
-    expect(recurringProjectProgrammes).toHaveProperty("programmeKey");
-    expect(recurringProjectProgrammes).toHaveProperty("fullPotentialAccountId");
-    expect(recurringProjectProgrammes).toHaveProperty("nextExpectedWindowStart");
-    expect(recurringProjectOccurrences).toHaveProperty("priorOccurrenceId");
-    expect(recurringProjectOccurrences).toHaveProperty("canonicalProjectId");
-    expect(recurringProjectOccurrences).toHaveProperty("scopeFingerprint");
-    expect(recurringProjectOccurrenceProjects).toHaveProperty("projectId");
-    expect(recurringProjectRecommendationDecisions).toHaveProperty("createdFullPotentialActionId");
-    expect(recurringProjectAuditEvents).toHaveProperty("beforeState");
-    expect(recurringProjectAuditEvents).toHaveProperty("afterState");
+    const { programmes, occurrences, occurrenceProjects, recommendationDecisions, auditEvents } =
+      RECURRING_PROJECT_SCHEMA_CONTRACT.tables;
+    expect(programmes.columns.map(column => column.name)).toEqual(expect.arrayContaining([
+      "programmeKey",
+      "fullPotentialAccountId",
+      "nextExpectedWindowStart",
+      "usualLeadTimeDays",
+    ]));
+    expect(occurrences.columns.map(column => column.name)).toEqual(expect.arrayContaining([
+      "priorOccurrenceId",
+      "canonicalProjectId",
+      "scopeFingerprint",
+      "sourceFingerprint",
+    ]));
+    expect(occurrenceProjects.columns.map(column => column.name)).toContain("projectId");
+    expect(recommendationDecisions.columns.map(column => column.name)).toEqual(expect.arrayContaining([
+      "createdProjectActionId",
+      "createdFullPotentialActionId",
+    ]));
+    expect(auditEvents.columns.map(column => column.name)).toEqual(expect.arrayContaining([
+      "beforeState",
+      "afterState",
+      "reason",
+    ]));
   });
 
-  it("registers the schema with drizzle without creating a migration or deployment", () => {
+  it("declares the future database identity constraints without changing drizzle artifacts", () => {
+    const { programmes, occurrences, occurrenceProjects, recommendationDecisions } =
+      RECURRING_PROJECT_SCHEMA_CONTRACT.tables;
+    expect(programmes.uniqueConstraints).toContainEqual(expect.objectContaining({
+      name: "recurringProgramme_key_uq",
+      columns: ["programmeKey"],
+    }));
+    expect(occurrences.uniqueConstraints).toContainEqual(expect.objectContaining({
+      name: "recurringOccurrence_key_uq",
+      columns: ["occurrenceKey"],
+    }));
+    expect(occurrenceProjects.uniqueConstraints).toContainEqual(expect.objectContaining({
+      name: "recurringOccurrenceProject_project_uq",
+      columns: ["projectId"],
+    }));
+    expect(recommendationDecisions.uniqueConstraints).toContainEqual(expect.objectContaining({
+      name: "recurringRecommendation_user_uq",
+      columns: ["recommendationKey", "userId"],
+    }));
+
+    expect(existsSync("drizzle/recurringProjectSchema.ts")).toBe(false);
     const config = readFileSync("drizzle.config.ts", "utf8");
-    expect(config).toContain("./drizzle/recurringProjectSchema.ts");
-    expect(config).not.toContain("migrate(");
+    expect(config).not.toContain("recurringProjectSchema");
   });
 
-  it("declares database-enforced project and occurrence identity constraints", () => {
-    const source = readFileSync("drizzle/recurringProjectSchema.ts", "utf8");
-    expect(source).toContain('uniqueIndex("recurringProgramme_key_uq")');
-    expect(source).toContain('uniqueIndex("recurringOccurrence_key_uq")');
-    expect(source).toContain('uniqueIndex("recurringOccurrenceProject_project_uq")');
-    expect(source).toContain('uniqueIndex("recurringRecommendation_user_uq")');
-    expect(source).toContain("one project cannot belong to\n * several recurring occurrences");
+  it("requires one recurring occurrence per preserved project", () => {
+    const projectConstraint = RECURRING_PROJECT_SCHEMA_CONTRACT.tables.occurrenceProjects
+      .uniqueConstraints.find(row => row.name === "recurringOccurrenceProject_project_uq");
+    expect(projectConstraint).toMatchObject({
+      columns: ["projectId"],
+      reason: "A project can belong to exactly one recurring occurrence.",
+    });
   });
 });
