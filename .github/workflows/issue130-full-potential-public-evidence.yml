@@ -45,6 +45,7 @@ on:
       - "docs/full-potential-rental-economics-request.md"
       - "docs/full-potential-meeting-pack.md"
       - "docs/full-potential-account-reconciliation.md"
+      - "docs/full-potential-rental-core-correction.md"
       - "server/fullPotentialCommercialModel.shared.ts"
       - "server/fullPotentialCommercialModel.lines.ts"
       - "drizzle/fullPotentialSchema.ts"
@@ -131,6 +132,8 @@ jobs:
           grep -F 'U3: { low: 2, base: 3, high: 4 }' shared/fullPotentialPublicBands.ts
           grep -F 'S3: { low: 1, base: 2, high: 3 }' shared/fullPotentialPublicBands.ts
           grep -F 'FP_RENTAL_PUBLIC_CORE_V1' server/fullPotentialRentalPublicCore.ts
+          grep -F 'FP_RENTAL_PUBLIC_MARKET_CONTEXT_V1' server/fullPotentialRentalPublicCore.ts
+          grep -F 'Public market evidence retained for competitor/channel context only' server/fullPotentialRentalPublicCore.ts
           grep -F 'contains no current commercial price ladder' server/fullPotentialRentalPublicCore.ts
           grep -F 'FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1' server/fullPotentialToughStationaryPublicApplications.ts
           grep -F 'Every row is deliberately non-counting' server/fullPotentialToughStationaryPublicApplications.ts
@@ -159,6 +162,8 @@ jobs:
           grep -F 'Do not commit the restricted input' docs/full-potential-meeting-pack.md
           grep -F 'Production snapshot boundary' docs/full-potential-account-reconciliation.md
           grep -F 'identity-and-relationship export only' docs/full-potential-account-reconciliation.md
+          grep -F '24 addressable named Rental buyers' docs/full-potential-rental-core-correction.md
+          grep -F '476 / 724 / 1,015' docs/full-potential-rental-core-correction.md
           grep -F 'The command performs no database, CRM, provider, pipeline or deployment action.' scripts/full-potential-meeting-pack.ts
           grep -F 'qualification-universe.csv' scripts/full-potential-meeting-pack.ts
           grep -F 'The command performs no database, account, CRM, provider, pipeline or deployment action.' scripts/full-potential-account-reconciliation.ts
@@ -201,9 +206,9 @@ jobs:
           grep -F '"includedToughStationaryBuyerPlanning": false' /tmp/full-potential-ci-check.json
           grep -F '"meetingStatus": "ready_with_declared_gaps"' /tmp/full-potential-ci-check.json
           grep -F '"publicObservationCount": 56' /tmp/full-potential-ci-check.json
-          grep -F '"restrictedPlanningCount": 25' /tmp/full-potential-ci-check.json
-          grep -F '"countingRecordCount": 25' /tmp/full-potential-ci-check.json
-          grep -F '"nonCountingRecordCount": 31' /tmp/full-potential-ci-check.json
+          grep -F '"restrictedPlanningCount": 24' /tmp/full-potential-ci-check.json
+          grep -F '"countingRecordCount": 24' /tmp/full-potential-ci-check.json
+          grep -F '"nonCountingRecordCount": 32' /tmp/full-potential-ci-check.json
           grep -F '"namedQualificationContextCount": 19' /tmp/full-potential-ci-check.json
 
           cat > /tmp/full-potential-ci-input-ts.json <<'JSON'
@@ -253,9 +258,9 @@ jobs:
           grep -F '"status": "PASS"' /tmp/full-potential-ci-check-ts.json
           grep -F '"includedToughStationaryBuyerPlanning": true' /tmp/full-potential-ci-check-ts.json
           grep -F '"publicObservationCount": 63' /tmp/full-potential-ci-check-ts.json
-          grep -F '"restrictedPlanningCount": 32' /tmp/full-potential-ci-check-ts.json
-          grep -F '"countingRecordCount": 32' /tmp/full-potential-ci-check-ts.json
-          grep -F '"nonCountingRecordCount": 31' /tmp/full-potential-ci-check-ts.json
+          grep -F '"restrictedPlanningCount": 31' /tmp/full-potential-ci-check-ts.json
+          grep -F '"countingRecordCount": 31' /tmp/full-potential-ci-check-ts.json
+          grep -F '"nonCountingRecordCount": 32' /tmp/full-potential-ci-check-ts.json
           grep -F '"namedQualificationContextCount": 19' /tmp/full-potential-ci-check-ts.json
 
           rm -rf /tmp/full-potential-ci-output
@@ -282,6 +287,7 @@ jobs:
           grep -F '16 / **26** / 36' /tmp/full-potential-ci-output/management-brief.md
           grep -F 'BHP Western Australia Iron Ore' /tmp/full-potential-ci-output/qualification-universe.csv
           grep -F 'Newmont Australia' /tmp/full-potential-ci-output/qualification-universe.csv
+          grep -F 'rental_competitor_channel_context' /tmp/full-potential-ci-output/product-cells.csv
 
       - name: Offline reconciliation CLI
         shell: bash
@@ -299,9 +305,9 @@ jobs:
             --input /tmp/full-potential-account-snapshot.json \
             --check-only | tee /tmp/full-potential-reconciliation-check.json
           grep -F '"status": "INCOMPLETE"' /tmp/full-potential-reconciliation-check.json
-          grep -F '"publicRecordCount": 25' /tmp/full-potential-reconciliation-check.json
-          grep -F '"requiredBuyerIdentityCount": 25' /tmp/full-potential-reconciliation-check.json
-          grep -F '"unmatchedRecordCount": 25' /tmp/full-potential-reconciliation-check.json
+          grep -F '"publicRecordCount": 24' /tmp/full-potential-reconciliation-check.json
+          grep -F '"requiredBuyerIdentityCount": 24' /tmp/full-potential-reconciliation-check.json
+          grep -F '"unmatchedRecordCount": 24' /tmp/full-potential-reconciliation-check.json
           grep -F '"completeForDraftImport": false' /tmp/full-potential-reconciliation-check.json
 
           set +e
