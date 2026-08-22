@@ -143,6 +143,15 @@ describe("Issue #143 governed lookalike identity reconciliation", () => {
   it("recognises an exact governed alias", () => {
     const base = snapshot();
     const governance = delta(base, {
+      accounts: [account({
+        id: 202,
+        stableKey: "another-hire|account|au|national|manual_review",
+        canonicalName: "Another Hire",
+        displayName: "Another Hire",
+        routeToMarket: "manual_review",
+        countsTowardPotential: false,
+        recordStatus: "active",
+      })],
       aliases: [{
         accountId: 202,
         aliasName: "Avenida Australia",
