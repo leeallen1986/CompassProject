@@ -6,7 +6,7 @@ export default function FullPotentialDataQualityLink() {
   const { user } = useAuth();
   const [location] = useLocation();
 
-  if (!user || location !== "/full-potential") return null;
+  if (!user || user.role !== "admin" || location !== "/full-potential") return null;
 
   return (
     <a
