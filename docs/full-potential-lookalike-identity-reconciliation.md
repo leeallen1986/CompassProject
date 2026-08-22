@@ -188,8 +188,9 @@ The report and governed-snapshot summary retain:
 ## Next review step
 
 After human identity review, the generated review input may be passed into the
-existing lookalike preview command to produce a ranked review package. The
-identity tool itself never sets qualification approval or weekly eligibility.
+existing lookalike preview command to produce a ranked review package.
+
+The identity tool itself never sets qualification approval or weekly eligibility.
 
 Candidate-account creation, route/owner approval, market-signal activation and
 weekly-page integration remain separate approval gates.
