@@ -87,11 +87,11 @@ describe("Issue #135 recurring project discovery", () => {
     expect(deriveRecurringPackageKey(row.name)).toBe("package-b+train-2");
   });
 
-  it("does not treat a public-source observation date as the commercial cycle", () => {
+  it("does not treat public-source observation years as the commercial cycle", () => {
     const row = project(2, "West Plant Annual Shutdown 2025", {
       sources: [
         {
-          label: "Public shutdown notice",
+          label: "Public shutdown notice published 2026",
           url: null,
           date: "2026-08-20",
         },
@@ -140,6 +140,21 @@ describe("Issue #135 recurring project discovery", () => {
       projectIds: [10, 11],
     });
     expect(result.groups[0].evidenceCodes).toContain("shared_duplicate_cluster");
+  });
+
+  it("does not assign an unknown-cycle record to the one observed cycle", () => {
+    const result = review([
+      project(12, "Example Fleet Tender 2026"),
+      project(13, "Example Fleet Tender"),
+    ]);
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0]).toMatchObject({
+      classification: "insufficient_evidence",
+      confidence: "low",
+      cycleLabels: ["2026"],
+      projectIds: [12, 13],
+    });
+    expect(result.groups[0].evidenceCodes).toContain("partial_cycle_evidence");
   });
 
   it("separates materially different packages inside the same programme and cycle", () => {
