@@ -119,11 +119,11 @@ jobs:
           fi
 
       - name: Seed disposable project history and grant profiles
-        env:
-          MYSQL_ROOT_URL: mysql://root:root@127.0.0.1:3306/issue135_schema
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/issue135-seed.mjs" <<'NODE'
+          SEED_FILE=".issue135-seed-ci.mjs"
+          trap 'rm -f "$SEED_FILE"' EXIT
+          cat > "$SEED_FILE" <<'NODE'
           import { createConnection } from "mysql2/promise";
 
           const connection = await createConnection({
@@ -226,7 +226,7 @@ jobs:
           );
           await connection.end();
           NODE
-          node "$RUNNER_TEMP/issue135-seed.mjs"
+          node "$SEED_FILE"
 
       - name: Run SELECT-only snapshot and offline review package
         env:
