@@ -1,0 +1,85 @@
+name: Sales UI validation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/sales-ui-validation.yml"
+      - "client/**"
+      - "shared/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig.json"
+      - "vite.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sales-ui-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Record source and runner capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "HEAD_SHA=$(git rev-parse HEAD)"
+          echo "PARENT_SHA=$(git rev-parse HEAD^)"
+          echo "Changed files:"
+          git diff --name-status HEAD^ HEAD
+          echo "Runner memory:"
+          free -h
+          echo "Runner disk:"
+          df -h .
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v pnpm check
+
+      - name: Test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v pnpm test
+
+      - name: Production build
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v pnpm build
+
+      - name: Safety boundary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "No database URL, production secret, provider credential or deployment credential was supplied to this workflow."
+          echo "This workflow performs dependency installation, static checking, unit tests and a local production build only."
