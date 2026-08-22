@@ -4,9 +4,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/issue132-recurring-projects.yml"
-      - "drizzle.config.ts"
-      - "drizzle/recurringProjectSchema.ts"
       - "shared/recurringProjectContract.ts"
+      - "shared/recurringProjectSchemaContract.ts"
       - "server/recurringProjectContract.test.ts"
       - "server/recurringProjectPlanning.ts"
       - "server/recurringProjectPlanning.test.ts"
@@ -49,8 +48,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -F 'RECURRING_PROJECT_RUNTIME_WRITES_ENABLED = false' drizzle/recurringProjectSchema.ts
-          grep -F 'one project cannot belong to' drizzle/recurringProjectSchema.ts
+          grep -F 'RECURRING_PROJECT_MIGRATION_INCLUDED = false' shared/recurringProjectSchemaContract.ts
+          grep -F 'RECURRING_PROJECT_RUNTIME_WRITES_ENABLED = false' shared/recurringProjectSchemaContract.ts
+          grep -F 'A project can belong to exactly one recurring occurrence.' shared/recurringProjectSchemaContract.ts
           grep -F 'requiresUserAcceptance: true' shared/recurringProjectContract.ts
           grep -F 'durableActionCreated: false' shared/recurringProjectContract.ts
           grep -F 'countingTreatment: "application_overlay_non_counting"' shared/recurringProjectContract.ts
@@ -61,12 +61,17 @@ jobs:
           grep -F 'type: "recurring_project_window"' server/recurringProjectWeeklyProjection.ts
           grep -F 'projectActionsCreated: 0' server/recurringProjectWeeklyProjection.ts
           grep -F 'fullPotentialActionsCreated: 0' server/recurringProjectWeeklyProjection.ts
-          grep -F './drizzle/recurringProjectSchema.ts' drizzle.config.ts
           grep -F 'The command performs no database, project, Full Potential, CRM, provider, pipeline or deployment operation.' scripts/recurring-project-preview.ts
           grep -F 'A prior occurrence is never date-rolled' docs/recurring-project-programmes.md
           grep -F 'No broad weekly-page redesign is included' docs/recurring-project-programmes.md
+          grep -F 'not registered with Drizzle' docs/recurring-project-programmes.md
+          test ! -e drizzle/recurringProjectSchema.ts
+          if grep -Fq 'recurringProjectSchema' drizzle.config.ts; then
+            echo 'The first source release must not register a recurring-project Drizzle schema.' >&2
+            exit 1
+          fi
           if find drizzle -maxdepth 1 -type f -name '*recurring*sql' | grep -q .; then
-            echo 'The first source release must not include an unapplied recurring-project migration.' >&2
+            echo 'The first source release must not include a recurring-project migration.' >&2
             exit 1
           fi
           if grep -nE 'getDb\(|DATABASE_URL|runDailyPipeline|openai|gemini' server/recurringProjectPlanning.ts server/recurringProjectWeeklyProjection.ts scripts/recurring-project-preview.ts; then
