@@ -77,6 +77,7 @@ jobs:
           grep -F 'FP_LOOKALIKE_SEGMENT_CAP_DEFAULT = 20' shared/fullPotentialLookalikeDiscovery.ts
           grep -F 'identityStatus = not_checked' docs/full-potential-lookalike-discovery.md
           grep -F 'completeForCandidateCreation = false' docs/full-potential-lookalike-discovery.md
+          grep -F 'sourceSha: cli.sourceSha' scripts/full-potential-lookalike-preview.ts
           grep -F 'databaseConnections: 0' scripts/full-potential-lookalike-preview.ts
           grep -F 'durableActionsCreated: 0' scripts/full-potential-lookalike-preview.ts
           if grep -nE 'getDb\(|createConnection|createPool|runDailyPipeline|runWeeklyPipeline|apolloPeopleSearch|openai|gemini|lusha' \
@@ -93,13 +94,17 @@ jobs:
           fi
 
       - name: Generate deterministic public review package
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           PARENT="$RUNNER_TEMP/issue133-private"
           OUTPUT="$PARENT/public-review"
           mkdir -m 700 "$PARENT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
             --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
             --as-of-date 2026-08-22 \
             --segment-cap 20 \
             > "$RUNNER_TEMP/issue133-public-result.json"
@@ -107,7 +112,7 @@ jobs:
             cd "$OUTPUT"
             sha256sum --check checksums.sha256
           )
-          OUTPUT="$OUTPUT" node --input-type=module <<'NODE'
+          OUTPUT="$OUTPUT" SOURCE_SHA="$SOURCE_SHA" node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
           import { join } from 'node:path';
@@ -115,6 +120,7 @@ jobs:
           const summary = JSON.parse(readFileSync(join(output, 'lookalike-review-summary.json'), 'utf8'));
           const results = JSON.parse(readFileSync(join(output, 'lookalike-candidate-results.json'), 'utf8'));
           assert.equal(summary.mode, 'review_only_no_writes');
+          assert.equal(summary.sourceSha, process.env.SOURCE_SHA);
           assert.equal(summary.counts.seedCount, 4);
           assert.equal(summary.counts.candidateCount, 8);
           assert.equal(summary.counts.scoredCandidateCount, 6);
@@ -141,6 +147,8 @@ jobs:
           NODE
 
       - name: Prove signal-gated weekly eligibility remains recommendation-only
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           PARENT="$RUNNER_TEMP/issue133-private"
@@ -164,6 +172,7 @@ jobs:
           chmod 600 "$REVIEW_INPUT"
           pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
             --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
             --as-of-date 2026-08-22 \
             --segment-cap 20 \
             --review-input "$REVIEW_INPUT" \
