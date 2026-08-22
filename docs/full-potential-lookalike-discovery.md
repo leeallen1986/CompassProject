@@ -185,14 +185,20 @@ separate review package exists.
 ## Offline preview command
 
 Run from exact reviewed source. The output directory must be new, private and
-outside the repository.
+outside the repository. The exact 40-character source SHA is mandatory and is
+included in the deterministic input fingerprint and review summary.
 
 ```bash
 umask 077
 mkdir -m 700 /secure/operator-owned/lookalike-parent
+SOURCE_SHA="$(git rev-parse HEAD)"
+
+test "$SOURCE_SHA" = "$(git rev-parse HEAD)"
+test -z "$(git status --porcelain)"
 
 pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
   --output-dir /secure/operator-owned/lookalike-parent/review \
+  --source-sha "$SOURCE_SHA" \
   --as-of-date 2026-08-22 \
   --segment-cap 20
 ```
@@ -202,6 +208,7 @@ Optional private review overrides may be supplied:
 ```bash
 pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
   --output-dir /secure/operator-owned/lookalike-parent/review \
+  --source-sha "$SOURCE_SHA" \
   --as-of-date 2026-08-22 \
   --segment-cap 20 \
   --review-input /secure/operator-owned/lookalike-review-input.json
@@ -227,13 +234,14 @@ The offline command writes:
 - `lookalike-review-summary.json`;
 - `checksums.sha256`.
 
-For the same public pack, review input, as-of date and segment cap, scoring and
-review outputs are deterministic.
+For the same source SHA, public pack, review input, as-of date and segment cap,
+scoring and review outputs are deterministic.
 
 The summary always declares:
 
 ```text
 mode = review_only_no_writes
+sourceSha = exact reviewed source
 completeForCandidateCreation = false
 manualReviewRequired = true
 databaseConnections = 0
