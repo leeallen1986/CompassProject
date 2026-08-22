@@ -1,0 +1,270 @@
+name: Issue 137 recurring snapshot URL adapter
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue137-recurring-snapshot-url-adapter.yml"
+      - "docs/recurring-project-database-url-adapter.md"
+      - "scripts/recurring-project-database-url-policy.mjs"
+      - "scripts/recurring-project-database-url-policy.test.mjs"
+      - "scripts/recurring-project-snapshot.mjs"
+      - "scripts/issue86-phase2a-database-url-policy.mjs"
+      - "scripts/issue86-phase2a-preflight-core.mjs"
+      - "server/recurringProjectSnapshotSafety.ts"
+      - "server/recurringProjectSnapshotSafety.test.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: issue137_schema
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Protect migration and production runtime boundary
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            'drizzle/**' \
+            drizzle.config.ts \
+            client/src/pages/ThisWeek.tsx \
+            server/routers.ts \
+            server/db.ts; then
+            echo "Issue #137 must remain migration-neutral and runtime-disconnected." >&2
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
+              'drizzle/**' \
+              drizzle.config.ts \
+              client/src/pages/ThisWeek.tsx \
+              server/routers.ts \
+              server/db.ts
+            exit 1
+          fi
+
+      - name: URL policy and recurring snapshot regressions
+        run: |
+          set -euo pipefail
+          node --test scripts/recurring-project-database-url-policy.test.mjs
+          pnpm exec vitest run \
+            server/recurringProjectSnapshotSafety.test.ts \
+            server/recurringProjectDiscovery.test.ts \
+            server/recurringProjectRuntimeBoundary.issue135.test.ts \
+            server/recurringProjectContract.test.ts \
+            server/recurringProjectPlanning.test.ts \
+            server/recurringProjectSchema.test.ts \
+            server/recurringProjectWeeklyProjection.test.ts \
+            server/recurringProjectRuntimeBoundary.test.ts
+
+      - name: Static safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'acceptedShapes: Object.freeze(["no_query", "single_ignored_ssl"])' \
+            scripts/recurring-project-database-url-policy.mjs
+          grep -F 'normaliseDatabaseUrlForPreflight(raw)' \
+            scripts/recurring-project-database-url-policy.mjs
+          grep -F 'queryValuesUsedForConnectionConfiguration: false' \
+            scripts/recurring-project-database-url-policy.mjs
+          grep -F 'normaliseRecurringSnapshotDatabaseUrl(rawDatabaseUrl)' \
+            scripts/recurring-project-snapshot.mjs
+          grep -F 'rejectUnauthorized: true' scripts/issue86-phase2a-preflight-core.mjs
+          grep -F 'multipleStatements: false' scripts/issue86-phase2a-preflight-core.mjs
+          grep -F 'SHOW GRANTS FOR CURRENT_USER()' server/recurringProjectSnapshotSafety.ts
+          grep -F 'SNAPSHOT_GRANT_PROFILE_NOT_SELECT_ONLY' server/recurringProjectSnapshotSafety.ts
+          grep -F 'The option value is never used for' \
+            docs/recurring-project-database-url-adapter.md
+          if grep -nE 'getDb\(|runDailyPipeline|runWeeklyPipeline|openai|gemini|apolloPeopleSearch' \
+            scripts/recurring-project-database-url-policy.mjs \
+            scripts/recurring-project-snapshot.mjs; then
+            echo "URL adapter and snapshot must not use runtime DB services, providers or pipeline." >&2
+            exit 1
+          fi
+
+      - name: Seed disposable project and database users
+        run: |
+          set -euo pipefail
+          SEED_FILE=".issue137-seed-ci.mjs"
+          trap 'rm -f "$SEED_FILE"' EXIT
+          cat > "$SEED_FILE" <<'NODE'
+          import { createConnection } from "mysql2/promise";
+
+          const connection = await createConnection({
+            host: "127.0.0.1",
+            port: 3306,
+            user: "root",
+            password: "root",
+            database: "issue137_schema",
+            multipleStatements: false,
+          });
+
+          await connection.query(`
+            CREATE TABLE projects (
+              id INT NOT NULL PRIMARY KEY,
+              reportId INT NOT NULL,
+              projectKey VARCHAR(128) NOT NULL,
+              name VARCHAR(512) NOT NULL,
+              location VARCHAR(256) NOT NULL,
+              owner VARCHAR(256) NOT NULL,
+              sector VARCHAR(64) NOT NULL,
+              stage VARCHAR(256) NULL,
+              stageCode VARCHAR(64) NULL,
+              lifecycleStatus VARCHAR(64) NOT NULL,
+              projectType VARCHAR(64) NULL,
+              productLane VARCHAR(64) NULL,
+              sourcePurpose VARCHAR(64) NULL,
+              tenderNumber VARCHAR(64) NULL,
+              tenderCloseDate TIMESTAMP NULL,
+              timeline VARCHAR(256) NULL,
+              completion VARCHAR(256) NULL,
+              sources JSON NULL,
+              duplicateClusterId VARCHAR(64) NULL,
+              mergedIntoId INT NULL,
+              duplicateDismissed BOOLEAN NOT NULL DEFAULT FALSE,
+              suppressed BOOLEAN NOT NULL DEFAULT FALSE,
+              projectCountry VARCHAR(2) NULL,
+              projectState VARCHAR(64) NULL,
+              sourceLastSeenAt TIMESTAMP NULL,
+              lastActivityAt TIMESTAMP NULL,
+              createdAt TIMESTAMP NOT NULL,
+              updatedAt TIMESTAMP NULL
+            )
+          `);
+
+          await connection.query(
+            `INSERT INTO projects (
+              id, reportId, projectKey, name, location, owner, sector, stage,
+              stageCode, lifecycleStatus, projectType, productLane,
+              sourcePurpose, tenderNumber, tenderCloseDate, timeline,
+              completion, sources, duplicateClusterId, mergedIntoId,
+              duplicateDismissed, suppressed, projectCountry, projectState,
+              sourceLastSeenAt, lastActivityAt, createdAt, updatedAt
+            ) VALUES (
+              1, 101, 'project-1', 'Example Annual Shutdown 2026',
+              'Example Mine, WA', 'Example Mining', 'mining', 'Planning',
+              'planning', 'active', 'opportunity', 'portable_air',
+              'project_signal', NULL, NULL, 'Shutdown planning', NULL, ?,
+              NULL, NULL, FALSE, FALSE, 'AU', 'WA',
+              '2026-08-20 00:00:00', '2026-08-20 00:00:00',
+              '2026-08-01 00:00:00', '2026-08-20 00:00:00'
+            )`,
+            [JSON.stringify([{ label: "Public source", url: "https://example.com/1", date: null }])],
+          );
+
+          await connection.query(
+            "CREATE USER 'snapshot_reader'@'%' IDENTIFIED BY 'reader-pass-137'",
+          );
+          await connection.query(
+            "GRANT SELECT ON issue137_schema.* TO 'snapshot_reader'@'%'",
+          );
+          await connection.query(
+            "CREATE USER 'snapshot_writer'@'%' IDENTIFIED BY 'writer-pass-137'",
+          );
+          await connection.query(
+            "GRANT SELECT, INSERT ON issue137_schema.* TO 'snapshot_writer'@'%'",
+          );
+          await connection.end();
+          NODE
+          node "$SEED_FILE"
+
+      - name: Accept one ignored ssl option and preserve strict snapshot controls
+        env:
+          DATABASE_URL: mysql://snapshot_reader:reader-pass-137@127.0.0.1:3306/issue137_schema?ssl=provider-ignored-sensitive-shape
+          RECURRING_SNAPSHOT_ALLOW_INSECURE_LOCALHOST: "1"
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          PARENT="$RUNNER_TEMP/issue137-private"
+          OUTPUT="$PARENT/review-package"
+          mkdir -m 700 "$PARENT"
+
+          pnpm exec tsx scripts/recurring-project-snapshot.mjs \
+            --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
+            --from-id 1 \
+            --to-id 10 \
+            --max-rows 10 \
+            >"$RUNNER_TEMP/issue137-snapshot-result.json"
+
+          OUTPUT="$OUTPUT" node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          import { join } from "node:path";
+
+          const manifest = JSON.parse(
+            readFileSync(join(process.env.OUTPUT, "recurring-project-snapshot-manifest.json"), "utf8"),
+          );
+          const result = JSON.parse(
+            readFileSync(process.env.RUNNER_TEMP + "/issue137-snapshot-result.json", "utf8"),
+          );
+          assert.equal(manifest.projectCount, 1);
+          assert.equal(manifest.database.grantProfile, "select_only");
+          assert.equal(manifest.database.urlPolicy.acceptedShape, "single_ignored_ssl");
+          assert.deepEqual(manifest.database.urlPolicy.ignoredQueryParameterNames, ["ssl"]);
+          assert.equal(manifest.database.urlPolicy.ignoredQueryParameterOccurrenceCount, 1);
+          assert.equal(manifest.database.urlPolicy.queryValuesUsedForConnectionConfiguration, false);
+          assert.equal(manifest.database.urlPolicy.queryStringRemovedBeforeApprovedParser, true);
+          assert.match(manifest.database.urlPolicy.policySha256, /^[0-9a-f]{64}$/);
+          assert.equal(manifest.safety.databaseWriteStatementsExecuted, 0);
+          assert.equal(result.databaseUrlPolicy, "single_ignored_ssl");
+          NODE
+
+          ! grep -R -F 'provider-ignored-sensitive-shape' "$OUTPUT" "$RUNNER_TEMP/issue137-snapshot-result.json"
+
+      - name: Prove write-capable account remains rejected before export
+        env:
+          DATABASE_URL: mysql://snapshot_writer:writer-pass-137@127.0.0.1:3306/issue137_schema?ssl=provider-ignored
+          RECURRING_SNAPSHOT_ALLOW_INSECURE_LOCALHOST: "1"
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          REJECTED="$RUNNER_TEMP/issue137-private/writer-rejected"
+          if pnpm exec tsx scripts/recurring-project-snapshot.mjs \
+            --output-dir "$REJECTED" \
+            --source-sha "$SOURCE_SHA" \
+            --from-id 1 \
+            --to-id 10 \
+            --max-rows 10 \
+            >"$RUNNER_TEMP/issue137-writer-stdout.json" \
+            2>"$RUNNER_TEMP/issue137-writer-stderr.json"; then
+            echo "Write-capable account unexpectedly passed the snapshot gate." >&2
+            exit 1
+          fi
+          grep -F 'SNAPSHOT_GRANT_PROFILE_NOT_SELECT_ONLY' \
+            "$RUNNER_TEMP/issue137-writer-stderr.json"
+          test ! -e "$REJECTED"
+          ! grep -Fq 'provider-ignored' "$RUNNER_TEMP/issue137-writer-stderr.json"
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
