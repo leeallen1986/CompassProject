@@ -157,6 +157,29 @@ describe("Issue #135 recurring project snapshot safety", () => {
     visit(snapshot);
   });
 
+  it("retains a public source while omitting its malformed optional date", () => {
+    const row = projectRow(1);
+    row.sources = JSON.stringify([
+      {
+        label: "Public project page",
+        url: "https://example.com/project",
+        date: "not a parseable date",
+      },
+    ]);
+    const snapshot = buildRecurringProjectSnapshotDocument({
+      sourceSha: "d".repeat(40),
+      bounds: { fromProjectId: 1, toProjectId: 1, maximumRows: 1 },
+      rows: [row],
+    });
+    expect(snapshot.projects[0].sources).toEqual([
+      {
+        label: "Public project page",
+        url: "https://example.com/project",
+        date: null,
+      },
+    ]);
+  });
+
   it("produces the same canonical snapshot hash regardless of input row order", () => {
     const base = {
       sourceSha: "b".repeat(40),
