@@ -92,7 +92,7 @@ function combinedProjectText(project: RecurringProjectSnapshotRow): string {
     project.timeline,
     project.completion,
     project.tenderNumber,
-    ...project.sources.flatMap(source => [source.label, source.date]),
+    ...project.sources.map(source => source.label),
   ]
     .filter(Boolean)
     .join(" ");
