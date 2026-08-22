@@ -11,6 +11,8 @@ on:
       - "server/recurringProjectPlanning.ts"
       - "server/recurringProjectPlanning.test.ts"
       - "server/recurringProjectSchema.test.ts"
+      - "server/recurringProjectWeeklyProjection.ts"
+      - "server/recurringProjectWeeklyProjection.test.ts"
       - "scripts/recurring-project-preview.ts"
       - "docs/recurring-project-programmes.md"
   workflow_dispatch:
@@ -39,6 +41,7 @@ jobs:
           server/recurringProjectContract.test.ts
           server/recurringProjectPlanning.test.ts
           server/recurringProjectSchema.test.ts
+          server/recurringProjectWeeklyProjection.test.ts
 
       - name: Source safety boundary
         shell: bash
@@ -53,6 +56,9 @@ jobs:
           grep -F 'preview_only_no_writes' server/recurringProjectPlanning.ts
           grep -F 'projectDateMutations: 0' server/recurringProjectPlanning.ts
           grep -F 'durableActionsCreated: 0' server/recurringProjectPlanning.ts
+          grep -F 'type: "recurring_project_window"' server/recurringProjectWeeklyProjection.ts
+          grep -F 'projectActionsCreated: 0' server/recurringProjectWeeklyProjection.ts
+          grep -F 'fullPotentialActionsCreated: 0' server/recurringProjectWeeklyProjection.ts
           grep -F './drizzle/recurringProjectSchema.ts' drizzle.config.ts
           grep -F 'The command performs no database, project, Full Potential, CRM, provider, pipeline or deployment operation.' scripts/recurring-project-preview.ts
           grep -F 'A prior occurrence is never date-rolled' docs/recurring-project-programmes.md
@@ -61,8 +67,8 @@ jobs:
             echo 'The first source release must not include an unapplied recurring-project migration.' >&2
             exit 1
           fi
-          if grep -nE 'getDb\(|DATABASE_URL|runDailyPipeline|provider|openai|gemini' server/recurringProjectPlanning.ts scripts/recurring-project-preview.ts; then
-            echo 'Preview-only recurring-project code must not connect to production or call providers/pipelines.' >&2
+          if grep -nE 'getDb\(|DATABASE_URL|runDailyPipeline|openai|gemini' server/recurringProjectPlanning.ts server/recurringProjectWeeklyProjection.ts scripts/recurring-project-preview.ts; then
+            echo 'Preview/projection code must not connect to production or call providers/pipelines.' >&2
             exit 1
           fi
 
