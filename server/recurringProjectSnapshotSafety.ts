@@ -275,6 +275,19 @@ function canonicalDate(value: unknown): string | null {
   return parsed.toISOString();
 }
 
+/**
+ * Public-source date strings are optional evidence. A malformed value must not
+ * block an otherwise valid bounded snapshot; retain the source and omit only
+ * the unusable date. Database-owned project timestamps remain strict.
+ */
+function optionalSourceDate(value: unknown): string | null {
+  try {
+    return canonicalDate(value);
+  } catch {
+    return null;
+  }
+}
+
 function sanitisePublicUrl(value: unknown): string | null {
   const text = nullableText(value, 2_048);
   if (!text) return null;
@@ -312,7 +325,7 @@ function normaliseSources(value: unknown): RecurringSnapshotSource[] {
       return {
         label,
         url: sanitisePublicUrl(row.url),
-        date: canonicalDate(row.date),
+        date: optionalSourceDate(row.date),
       } satisfies RecurringSnapshotSource;
     })
     .filter((source): source is RecurringSnapshotSource => source !== null)
