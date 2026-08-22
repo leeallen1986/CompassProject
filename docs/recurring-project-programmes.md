@@ -12,8 +12,9 @@ The governed model separates:
 - **Occurrence** — one year, cycle, phase, tender or work package.
 
 The source release is additive and preserves the existing weekly sales
-experience. It does not run a migration, backfill production projects, create a
-sales action, call a provider or alter Full Potential monetary values.
+experience. It does not run a migration, register new database tables, backfill
+production projects, create a sales action, call a provider or alter Full
+Potential monetary values.
 
 ## Core invariants
 
@@ -63,9 +64,10 @@ Each occurrence stores one specific cycle:
 - scope and source fingerprints;
 - source evidence and changes from the prior cycle.
 
-Historic project records are linked rather than deleted. The project-link table
-supports canonical, supporting-source, historic-duplicate and related-package
-relationships while enforcing one recurring occurrence per project.
+Historic project records are linked rather than deleted. The future project-link
+table must support canonical, supporting-source, historic-duplicate and
+related-package relationships while enforcing one recurring occurrence per
+project.
 
 ## Cycle identity
 
@@ -111,13 +113,17 @@ countingTreatment = application_overlay_non_counting
 fullPotentialMonetaryImpactAud = 0
 ```
 
+The read-only weekly projection also suppresses duplicate, already-decided and
+currently deferred recommendations. It creates no `projectActions` or
+`fullPotentialActions` rows.
+
 No broad weekly-page redesign is included in the first source release. The
-existing project cards may later display recurrence context only when the
-programme/occurrence data and read path are deployed.
+existing project cards may later display recurrence context only after the
+physical schema, read path and manual review workflow are separately approved.
 
-## Schema
+## Migration-neutral schema contract
 
-The source defines:
+The first source release defines a logical, versioned contract for future tables:
 
 - `recurringProjectProgrammes`;
 - `recurringProjectOccurrences`;
@@ -125,8 +131,18 @@ The source defines:
 - `recurringProjectRecommendationDecisions`;
 - `recurringProjectAuditEvents`.
 
-`RECURRING_PROJECT_RUNTIME_WRITES_ENABLED` remains `false` in the first source
-release. Registering the schema with Drizzle does not apply a database migration.
+The contract includes intended columns, enums, unique constraints and indexes,
+but it is **not** registered with Drizzle and includes no migration artifact.
+
+The source explicitly states:
+
+```text
+RECURRING_PROJECT_MIGRATION_INCLUDED = false
+RECURRING_PROJECT_RUNTIME_WRITES_ENABLED = false
+```
+
+This protects the repository's frozen migration chain and prevents a logical
+schema proposal from being mistaken for an authorised database change.
 
 ## Preview-only planner
 
@@ -153,8 +169,8 @@ its own before/after manifest and obtain approval before any write.
 
 ## Manual first release
 
-After the schema migration is separately approved, the first operational release
-should permit authorised users to:
+After the physical schema migration is separately approved, the first
+operational release should permit authorised users to:
 
 1. mark a project as recurring;
 2. create or select the programme;
@@ -173,13 +189,15 @@ trail are proven.
 Before runtime writes can be enabled:
 
 1. exact source release and tests pass;
-2. migration SQL is generated and reviewed;
-3. a production read-only project snapshot is taken;
-4. candidate programme/occurrence backfill is previewed and hashed;
-5. duplicate and package-boundary exceptions are reviewed;
-6. database backup/rollback path is confirmed;
-7. migration is applied in a quiet window;
-8. post-migration schema and row counts are attested;
-9. runtime writes are enabled in a separate reviewed release;
-10. the weekly page is verified to remain unchanged when no recurrence context
+2. a dedicated migration issue and branch are approved;
+3. migration SQL is generated against the current migration baseline and
+   reviewed without modifying frozen historical artifacts;
+4. a production read-only project snapshot is taken;
+5. candidate programme/occurrence backfill is previewed and hashed;
+6. duplicate and package-boundary exceptions are reviewed;
+7. database backup/rollback path is confirmed;
+8. migration is applied in a quiet window;
+9. post-migration schema and row counts are attested;
+10. runtime writes are enabled in a separate reviewed release;
+11. the weekly page is verified to remain unchanged when no recurrence context
     exists.
