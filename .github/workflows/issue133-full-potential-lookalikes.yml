@@ -1,0 +1,207 @@
+name: Issue 133 Full Potential lookalikes
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/issue133-full-potential-lookalikes.yml"
+      - "docs/full-potential-lookalike-discovery.md"
+      - "shared/fullPotentialLookalikeDiscovery.ts"
+      - "server/fullPotentialLookalikePublicPack.ts"
+      - "server/fullPotentialLookalikeDiscovery.test.ts"
+      - "scripts/full-potential-lookalike-preview.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Protect migration, database and weekly runtime boundary
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            'drizzle/**' \
+            drizzle.config.ts \
+            client/src/pages/ThisWeek.tsx \
+            server/routers.ts \
+            server/db.ts \
+            drizzle/fullPotentialSchema.ts; then
+            echo "Issue #133 must remain migration-neutral, database-disconnected and weekly-runtime-disconnected." >&2
+            git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- \
+              'drizzle/**' \
+              drizzle.config.ts \
+              client/src/pages/ThisWeek.tsx \
+              server/routers.ts \
+              server/db.ts \
+              drizzle/fullPotentialSchema.ts
+            exit 1
+          fi
+
+      - name: Governed lookalike tests
+        run: >-
+          pnpm exec vitest run
+          server/fullPotentialLookalikeDiscovery.test.ts
+          server/fullPotentialPublicEvidence.test.ts
+          server/fullPotentialAccountReconciliation.test.ts
+          server/recurringProjectWeeklyProjection.test.ts
+
+      - name: Static safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'countsTowardPotential: false' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'monetaryImpactAud: 0' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'crmC4cMutationAllowed: false' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'contactEnrichmentAllowed: false' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'durableActionCreated: false' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'Canonical account and alias reconciliation is required' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'FP_LOOKALIKE_SEGMENT_CAP_DEFAULT = 20' shared/fullPotentialLookalikeDiscovery.ts
+          grep -F 'identityStatus = not_checked' docs/full-potential-lookalike-discovery.md
+          grep -F 'completeForCandidateCreation = false' docs/full-potential-lookalike-discovery.md
+          grep -F 'sourceSha: cli.sourceSha' scripts/full-potential-lookalike-preview.ts
+          grep -F 'databaseConnections: 0' scripts/full-potential-lookalike-preview.ts
+          grep -F 'durableActionsCreated: 0' scripts/full-potential-lookalike-preview.ts
+          if grep -nE 'getDb\(|createConnection|createPool|runDailyPipeline|runWeeklyPipeline|apolloPeopleSearch|openai|gemini|lusha' \
+            shared/fullPotentialLookalikeDiscovery.ts \
+            server/fullPotentialLookalikePublicPack.ts \
+            scripts/full-potential-lookalike-preview.ts; then
+            echo "Lookalike discovery must not connect to production data, providers or pipelines." >&2
+            exit 1
+          fi
+          if grep -nE '\b(currentRevenueAud|fullPotentialAud|target2026Aud|remainingPotentialAud|averageSellingPriceAud)\b' \
+            server/fullPotentialLookalikePublicPack.ts; then
+            echo "Public lookalike pack must not contain financial assumptions or account values." >&2
+            exit 1
+          fi
+
+      - name: Generate deterministic public review package
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          test "$SOURCE_SHA" = "$(git rev-parse HEAD)"
+          PARENT="$RUNNER_TEMP/issue133-private"
+          OUTPUT="$PARENT/public-review"
+          mkdir -m 700 "$PARENT"
+          pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
+            --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
+            --as-of-date 2026-08-22 \
+            --segment-cap 20 \
+            > "$RUNNER_TEMP/issue133-public-result.json"
+          (
+            cd "$OUTPUT"
+            sha256sum --check checksums.sha256
+          )
+          OUTPUT="$OUTPUT" SOURCE_SHA="$SOURCE_SHA" node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const output = process.env.OUTPUT;
+          const summary = JSON.parse(readFileSync(join(output, 'lookalike-review-summary.json'), 'utf8'));
+          const results = JSON.parse(readFileSync(join(output, 'lookalike-candidate-results.json'), 'utf8'));
+          assert.equal(summary.mode, 'review_only_no_writes');
+          assert.equal(summary.sourceSha, process.env.SOURCE_SHA);
+          assert.equal(summary.counts.seedCount, 4);
+          assert.equal(summary.counts.candidateCount, 8);
+          assert.equal(summary.counts.scoredCandidateCount, 6);
+          assert.equal(summary.counts.identityCheckRequiredCount, 6);
+          assert.equal(summary.counts.excludedMarketParticipantCount, 2);
+          assert.equal(summary.counts.weeklyRecommendationEligibleCount, 0);
+          assert.equal(summary.completeForCandidateCreation, false);
+          assert.equal(summary.manualReviewRequired, true);
+          assert.deepEqual(summary.safety, {
+            databaseConnections: 0,
+            databaseWrites: 0,
+            fullPotentialAccountMutations: 0,
+            fullPotentialMonetaryMutations: 0,
+            crmC4cMutations: 0,
+            contactEnrichmentMutations: 0,
+            providerCalls: 0,
+            pipelineInvocations: 0,
+            durableActionsCreated: 0,
+            deployments: 0,
+          });
+          assert.equal(results.monetaryImpactAud, 0);
+          assert.equal(results.durableActionsCreated, 0);
+          assert.equal(results.results.every(row => row.countsTowardPotential === false), true);
+          NODE
+
+      - name: Prove signal-gated weekly eligibility remains recommendation-only
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          PARENT="$RUNNER_TEMP/issue133-private"
+          REVIEW_INPUT="$PARENT/review-input.json"
+          OUTPUT="$PARENT/approved-review"
+          cat > "$REVIEW_INPUT" <<'JSON'
+          {
+            "version": 1,
+            "overrides": [
+              {
+                "candidateKey": "rawson-hire",
+                "identityStatus": "new_identity",
+                "reviewState": "approved_for_qualification",
+                "proposedRouteToMarket": "direct_ape",
+                "proposedOwner": "Territory Owner",
+                "currentSignalEvidence": { "reviewed": true, "count": 1 }
+              }
+            ]
+          }
+          JSON
+          chmod 600 "$REVIEW_INPUT"
+          pnpm exec tsx scripts/full-potential-lookalike-preview.ts \
+            --output-dir "$OUTPUT" \
+            --source-sha "$SOURCE_SHA" \
+            --as-of-date 2026-08-22 \
+            --segment-cap 20 \
+            --review-input "$REVIEW_INPUT" \
+            > "$RUNNER_TEMP/issue133-approved-result.json"
+          (
+            cd "$OUTPUT"
+            sha256sum --check checksums.sha256
+          )
+          OUTPUT="$OUTPUT" SOURCE_SHA="$SOURCE_SHA" node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const results = JSON.parse(
+            readFileSync(join(process.env.OUTPUT, 'lookalike-candidate-results.json'), 'utf8'),
+          );
+          const summary = JSON.parse(
+            readFileSync(join(process.env.OUTPUT, 'lookalike-review-summary.json'), 'utf8'),
+          );
+          const rawson = results.results.find(row => row.candidateKey === 'rawson-hire');
+          assert.equal(summary.sourceSha, process.env.SOURCE_SHA);
+          assert.equal(rawson.disposition, 'ranked_candidate');
+          assert.equal(rawson.weeklyRecommendationEligible, true);
+          assert.equal(rawson.durableActionCreated, false);
+          assert.equal(rawson.countsTowardPotential, false);
+          assert.equal(rawson.monetaryImpactAud, 0);
+          assert.equal(results.weeklyRecommendationEligibleCount, 1);
+          assert.equal(results.durableActionsCreated, 0);
+          NODE
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Production build
+        run: pnpm build
