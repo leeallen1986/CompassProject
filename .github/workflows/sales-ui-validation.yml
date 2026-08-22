@@ -1,0 +1,181 @@
+name: Sales UI validation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/sales-ui-validation.yml"
+      - "client/**"
+      - "shared/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - "vitest.config.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/sales-ui-validation.yml"
+      - "client/**"
+      - "shared/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - "vitest.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sales-ui-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Record source and runner capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "HEAD_SHA=$(git rev-parse HEAD)"
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "PARENT_SHA=$(git rev-parse HEAD^)"
+            echo "Changed files:"
+            git diff --name-status HEAD^ HEAD
+          fi
+          echo "Runner memory:"
+          free -h
+          echo "Runner disk:"
+          df -h .
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Assert Issue 148 sales UI boundaries
+        id: boundaries
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import assert from "node:assert/strict";
+
+          const read = path => fs.readFileSync(path, "utf8");
+          const nextBest = read("client/src/components/FullPotentialNextBest5.tsx");
+          const provenance = read("client/src/components/DeploymentProvenanceBadge.tsx");
+          const accountContext = read("client/src/components/FullPotentialAccountContext.tsx");
+
+          assert.equal(nextBest.includes("/api/full-potential/next-best-5"), false,
+            "rep-facing Next Best 5 component must not call its endpoint");
+          assert.match(nextBest, /return null;/,
+            "rep-facing Next Best 5 component must render nothing");
+          assert.equal(provenance.includes("deploymentDiagnostics"), false,
+            "fixed deployment diagnostics query must not run on normal pages");
+          assert.match(provenance, /return null;/,
+            "fixed deployment provenance badge must render nothing");
+          assert.match(accountContext, /Confirm the likely equipment need and timing/,
+            "Full Potential context must use plain sales language");
+          assert.equal(accountContext.includes("priorityTierLabel"), false,
+            "compact sales context must not show priority-tier telemetry");
+
+          for (const path of [
+            "client/src/components/FullPotentialDataQualityLink.tsx",
+            "client/src/components/FullPotentialRentalHireLink.tsx",
+            "client/src/components/FullPotentialCommercialModelLink.tsx",
+            "client/src/components/FullPotentialPilotLink.tsx",
+          ]) {
+            const source = read(path);
+            assert.match(source, /user\.role !== "admin"/,
+              `${path} must remain admin-only`);
+          }
+
+          console.log("Issue 148 rep-view source assertions passed.");
+          NODE
+
+      - name: TypeScript check
+        id: typescript
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v pnpm check
+
+      - name: Credential-free Full Potential regression suite
+        id: bounded_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The repository-wide test command includes live database and provider
+          # integration tests. This release lane deliberately runs only deterministic,
+          # credential-free tests relevant to the sales and Full Potential interface.
+          /usr/bin/time -v pnpm exec vitest run \
+            client/src/lib/fullPotentialCommercialModel.test.ts \
+            client/src/lib/fullPotentialPilot.test.ts \
+            client/src/lib/fullPotentialProjectContext.test.ts \
+            client/src/lib/platformNavigation.test.ts \
+            client/src/components/FullPotentialSignalImportModal.test.ts \
+            server/fullPotentialNextBest5.shared.test.ts \
+            server/fullPotentialManagementView.test.ts \
+            server/fullPotentialManagementReadiness.test.ts \
+            server/fullPotentialPublicBands.test.ts \
+            server/fullPotentialPublicEvidence.test.ts \
+            server/fullPotentialPublicDraftPack.test.ts \
+            server/fullPotentialMeetingPack.test.ts \
+            server/fullPotentialManagementExport.test.ts
+
+      - name: Production build
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v pnpm build
+
+      - name: Validation summary and release gate
+        if: always()
+        shell: bash
+        env:
+          BOUNDARY_OUTCOME: ${{ steps.boundaries.outcome }}
+          TYPESCRIPT_OUTCOME: ${{ steps.typescript.outcome }}
+          BOUNDED_TEST_OUTCOME: ${{ steps.bounded_tests.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          set -euo pipefail
+          echo "Issue 148 boundary outcome: ${BOUNDARY_OUTCOME}"
+          echo "TypeScript outcome: ${TYPESCRIPT_OUTCOME}"
+          echo "Credential-free regression outcome: ${BOUNDED_TEST_OUTCOME}"
+          echo "Build outcome: ${BUILD_OUTCOME}"
+          echo "No database URL, production secret, provider credential or deployment credential was supplied to this workflow."
+          echo "Repository-wide database/provider integration tests require a separately provisioned validation lane and are not represented as credential-free checks here."
+          echo "This workflow performs dependency installation, source-boundary assertions, static checking, bounded tests and a local production build only."
+
+          if [[ "${BOUNDARY_OUTCOME}" != "success" || "${TYPESCRIPT_OUTCOME}" != "success" || "${BOUNDED_TEST_OUTCOME}" != "success" || "${BUILD_OUTCOME}" != "success" ]]; then
+            echo "The bounded sales UI release gate failed."
+            exit 1
+          fi
+
+          echo "The bounded sales UI release gate passed."
