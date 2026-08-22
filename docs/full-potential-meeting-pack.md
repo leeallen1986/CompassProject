@@ -7,7 +7,9 @@ planning snapshot without depending on a live production deployment.
 
 The offline pack combines:
 
-- the source-controlled 25-account Rental public observation core;
+- the source-controlled 24-account addressable Rental public observation core;
+- one source-controlled non-counting Rental competitor/channel market-context
+  record;
 - the source-controlled TS1–TS4 non-counting public application evidence;
 - named TS2 surface-mining and TS3 underground-mining qualification universes
   that remain non-counting until a distinct rugged/relocatable Portable Air
@@ -17,6 +19,9 @@ The offline pack combines:
 - a local restricted planning JSON file containing current Low/Base/High values;
 - optional aggregate current-revenue references;
 - explicit readiness and declared-gap settings.
+
+The non-counting Rental context remains visible for market understanding but has
+no commercial pool and cannot contribute to the headline potential.
 
 The command performs no database, CRM, provider, pipeline or deployment action.
 
@@ -66,6 +71,17 @@ Required shape:
 
 The numeric values shown above are synthetic schema examples, not current
 planning values.
+
+## Rental named-buyer universe
+
+The addressable buyer core contains 24 public-evidence records. Its current P-band
+mix produces a **476 / 724 / 1,015 Low / Base / High inferred relevant-unit
+universe**.
+
+These bands are modelling inputs, not customer-provided fleet counts. Current
+monetary values are calculated only from the restricted private planning input.
+The separate competitor/channel context record carries no scenario and no
+monetary potential.
 
 ## Named qualification universes
 

@@ -42,7 +42,7 @@ function rentalCore(input: RentalCoreInput): FullPotentialPublicObservationRecor
 }
 
 /**
- * Twenty-five named Australian Rental Hire buyers supported by public evidence.
+ * Twenty-four named Australian Rental Hire buyers supported by public evidence.
  *
  * This file intentionally contains no current commercial price ladder, no
  * Low/Base/High monetary scenarios, no contacts and no CRM/customer discovery.
@@ -113,14 +113,6 @@ export const FP_RENTAL_PUBLIC_CORE_V1: FullPotentialPublicObservationRecord[] = 
     sourceName: "Mega Hire public air-compressor collection",
     sourceUrl: "https://www.megahire.com.au/collections/air-compressors",
     publicObservation: "The public compressor collection spans approximately 70 to 1600 CFM, including standard-, medium- and high-pressure diesel equipment.",
-  }),
-  rentalCore({
-    slug: "mobile-compressed-air",
-    buyerName: "Mobile Compressed Air",
-    modelBand: "P3",
-    sourceName: "Mobile Compressed Air public portable-compressor range",
-    sourceUrl: "https://compressedair.com.au/product/mobilar-m135-m171-m210-m235-m250-m450-portable-diesel-air-compressors/",
-    publicObservation: "The public Kaeser portable range includes multiple pressure and flow configurations from roughly 370 CFM through 930 CFM within a compressed-air specialist business.",
   }),
   rentalCore({
     slug: "airpac-rentals-australia",
@@ -252,4 +244,36 @@ export const FP_RENTAL_PUBLIC_CORE_V1: FullPotentialPublicObservationRecord[] = 
     sourceUrl: "https://www.hirequiptas.com.au/equipment-hire/compressor/",
     publicObservation: "The public statewide rental catalogue identifies a Kaeser M43 trailer-mounted compressor.",
   }),
+];
+
+/**
+ * Public market evidence retained for competitor/channel context only. This
+ * record must never contribute a monetary Rental buyer pool.
+ */
+export const FP_RENTAL_PUBLIC_MARKET_CONTEXT_V1: FullPotentialPublicObservationRecord[] = [
+  {
+    recordKey: "context:mobile-compressed-air:public-core-v1",
+    commercialPoolKey: null,
+    buyerAccountKey: "mobile-compressed-air-au",
+    buyerName: "Mobile Compressed Air",
+    buyerSegment: "rental_market_context",
+    application: "competitor and channel market evidence for portable-air rental and distribution",
+    productFamily: "other",
+    productCell: "rental_competitor_channel_context",
+    countingTreatment: "context_non_counting",
+    valueClass: "named_evidenced_core",
+    scenarioBasis: "fleet_replacement",
+    evidenceGrade: "B",
+    sourceName: "Mobile Compressed Air public portable-compressor range",
+    sourceUrl: "https://compressedair.com.au/product/mobilar-m135-m171-m210-m235-m250-m450-portable-diesel-air-compressors/",
+    observedAt: "2026-08-21",
+    publicObservation: "The public Kaeser portable range includes multiple pressure and flow configurations from roughly 370 CFM through 930 CFM within a compressed-air specialist business.",
+    inference: "The public fleet is useful market evidence, but the governed platform classifies the identity as non-counting competitor/channel context rather than an addressable Rental buyer.",
+    modelBand: null,
+    addressabilityStatus: "excluded",
+    qualificationGates: [
+      "Retain as market context only; do not assign monetary buyer potential without a separately approved addressability exception.",
+    ],
+    methodologyVersion: FP_PUBLIC_EVIDENCE_METHOD_VERSION,
+  },
 ];
