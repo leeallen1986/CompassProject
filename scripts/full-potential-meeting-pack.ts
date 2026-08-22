@@ -1,6 +1,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { FP_RENTAL_PUBLIC_CORE_V1 } from "../server/fullPotentialRentalPublicCore";
+import {
+  FP_RENTAL_PUBLIC_CORE_V1,
+  FP_RENTAL_PUBLIC_MARKET_CONTEXT_V1,
+} from "../server/fullPotentialRentalPublicCore";
 import { FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1 } from "../server/fullPotentialToughStationaryPublicApplications";
 import { FP_TOUGH_STATIONARY_PUBLIC_BUYER_CORE_V1 } from "../server/fullPotentialToughStationaryPublicBuyerCore";
 import { FP_TOUGH_STATIONARY_DIRECT_MINING_CORE_V1 } from "../server/fullPotentialToughStationaryDirectMiningCore";
@@ -150,6 +153,7 @@ async function main() {
   const pack = buildFullPotentialMeetingPack({
     publicObservations: [
       ...FP_RENTAL_PUBLIC_CORE_V1,
+      ...FP_RENTAL_PUBLIC_MARKET_CONTEXT_V1,
       ...specialistBuyerObservations,
       ...FP_TOUGH_STATIONARY_PUBLIC_APPLICATIONS_V1,
       ...FP_TS2_PUBLIC_BUYER_UNIVERSE_V1,
