@@ -1,5 +1,8 @@
 name: Sales UI validation
 
+# This lane covers 97 deterministic tests across 13 files; live database and
+# provider integrations require a separately provisioned validation workflow.
+
 on:
   pull_request:
     paths:
