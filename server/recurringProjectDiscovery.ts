@@ -269,7 +269,9 @@ interface EnrichedProject {
 
 function enrichProject(project: RecurringProjectSnapshotRow): EnrichedProject | null {
   const ownerKey = identityKey(project.owner);
-  const locationKey = identityKey(project.projectState || project.location);
+  const locationKey = identityKey(
+    [project.projectState, project.location].filter(Boolean).join(" "),
+  );
   const programmeCore = deriveRecurringProgrammeCore(project.name);
   if (!ownerKey || !locationKey || programmeCore.length < 4) return null;
   const packageKey = deriveRecurringPackageKey(project.name);
